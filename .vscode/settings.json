@@ -10,8 +10,12 @@
   "prettier.enable": false,
   "editor.formatOnPaste": true,
   "editor.formatOnSave": true,
-  "tailwindCSS.classFunctions": ["cva", "cx", "cn"],
-  "tailwindCSS.experimental.configFile": "./tooling/tailwind/web.ts",
+  "tailwindCSS.classFunctions": [
+    "cva",
+    "cx",
+    "cn"
+  ],
+  "tailwindCSS.experimental.configFile": "../apps/mobile/tailwind.config.ts",
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "typescript.preferences.autoImportFileExcludePatterns": [
     "zod/dist/types/index.d.ts", // Force auto-imports to v4
@@ -20,6 +24,15 @@
   ],
   "typescript.tsdk": "node_modules/typescript/lib",
   "[json]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescriptreact]": {
     "editor.defaultFormatter": "biomejs.biome"
   }
 }

@@ -1,10 +1,10 @@
-import type { BetterAuthOptions } from "better-auth";
 import { expo } from "@better-auth/expo";
+import { db } from "@panabarbero/db/client";
+import * as schema from "@panabarbero/db/schema";
+import type { BetterAuthOptions } from "better-auth";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { oAuthProxy } from "better-auth/plugins";
-
-import { db } from "@panabarbero/db/client";
 
 export function initAuth(options: {
   baseUrl: string;
@@ -17,14 +17,17 @@ export function initAuth(options: {
   const config = {
     database: drizzleAdapter(db, {
       provider: "pg",
+      schema: {
+        user: schema.user,
+        session: schema.session,
+        verification: schema.verification,
+        account: schema.account,
+      },
     }),
     baseURL: options.baseUrl,
     secret: options.secret,
     plugins: [
       oAuthProxy({
-        /**
-         * Auto-inference blocked by https://github.com/better-auth/better-auth/pull/2891
-         */
         currentURL: options.baseUrl,
         productionURL: options.productionUrl,
       }),

@@ -1,10 +1,23 @@
 {
-  "exclude": ["node_modules", "dist", "build", ".turbo", ".cache"],
-  "include": ["env.ts", "./src/**/*.ts", "./src/**/*.tsx"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    ".turbo",
+    ".cache"
+  ],
+  "include": [
+    "env",
+    "./src/**/*.ts",
+    "./src/**/*.tsx"
+  ],
   "compilerOptions": {
     "verbatimModuleSyntax": true,
     "module": "ESNext",
-    "lib": ["ES2022", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM.Iterable"
+    ],
     "target": "es2022",
     "strict": true,
     "skipLibCheck": true,

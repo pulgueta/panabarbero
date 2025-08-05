@@ -21,7 +21,6 @@
   "scripts": {
     "build": "tsc",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
-    "dev": "tsc",
     "push": "bun with-env drizzle-kit push",
     "studio": "bun with-env drizzle-kit studio",
     "with-env": "dotenv -e ../../.env --"
