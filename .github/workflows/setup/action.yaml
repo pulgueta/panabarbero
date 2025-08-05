@@ -1,0 +1,24 @@
+name: "Setup and install"
+description: "Common setup steps for Actions"
+
+runs:
+  using: composite
+  steps:
+    - name: Install Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: "latest"
+
+    - name: Setup cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.bun/install/cache
+        key: ${{ runner.os }}-${{ matrix.bun }}-bun-${{ hashFiles('**/bun.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ matrix.bun }}-bun-
+
+    - shell: bash
+      run: bun add -g turbo
+
+    - shell: bash
+      run: bun install

@@ -5,7 +5,7 @@
 > create-t3-turbo now uses better-auth for authentication!
 > Look out for bugs as we're working through the last issues,
 > especially, the oauth proxy might not play very nice with Expo
-> so you might need to disable that in [`@acme/auth`](./packages/auth/src/index.ts)
+> so you might need to disable that in [`@panabarbero/auth`](./packages/auth/src/index.ts)
 
 ## Installation
 
@@ -70,7 +70,7 @@ tooling
       └─ shared tsconfig you can extend from
 ```
 
-> In this template, we use `@acme` as a placeholder for package names. As a user, you might want to replace it with your own organization or project name. You can use find-and-replace to change all the instances of `@acme` to something like `@my-company` or `@project-name`.
+> In this template, we use `@panabarbero` as a placeholder for package names. As a user, you might want to replace it with your own organization or project name. You can use find-and-replace to change all the instances of `@panabarbero` to something like `@my-company` or `@project-name`.
 
 ## Quick Start
 

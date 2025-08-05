@@ -1,5 +1,14 @@
 {
-  "extends": "@acme/tsconfig/base.json",
-  "include": ["."],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "dist", "build", ".turbo", ".cache"],
+  "compilerOptions": {
+    "verbatimModuleSyntax": true,
+    "module": "ESNext",
+    "lib": ["ES2022", "DOM.Iterable"],
+    "target": "es2022",
+    "strict": true,
+    "skipLibCheck": true,
+    "declaration": false,
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true
+  }
 }

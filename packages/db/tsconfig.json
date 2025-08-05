@@ -1,5 +1,13 @@
 {
-  "extends": "@acme/tsconfig/internal-package.json",
-  "include": ["src"],
-  "exclude": ["node_modules"]
+  "compilerOptions": {
+    "verbatimModuleSyntax": true,
+    "module": "ESNext",
+    "lib": ["ES2022"],
+    "target": "es2022",
+    "strict": true,
+    "skipLibCheck": true,
+    "declaration": false,
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true
+  }
 }
