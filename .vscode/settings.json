@@ -10,7 +10,11 @@
   "prettier.enable": false,
   "editor.formatOnPaste": true,
   "editor.formatOnSave": true,
-  "tailwindCSS.classFunctions": ["cva", "cx", "cn"],
+  "tailwindCSS.classFunctions": [
+    "cva",
+    "cx",
+    "cn"
+  ],
   "tailwindCSS.experimental.configFile": "./tooling/tailwind/web.ts",
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "typescript.preferences.autoImportFileExcludePatterns": [
@@ -20,6 +24,9 @@
   ],
   "typescript.tsdk": "node_modules/typescript/lib",
   "[json]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescript]": {
     "editor.defaultFormatter": "biomejs.biome"
   }
 }

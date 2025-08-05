@@ -11,6 +11,7 @@
     },
     "apps/api": {
       "name": "@panabarbero/api",
+      "version": "0.0.0",
       "dependencies": {
         "hono": "^4.8.12",
       },
@@ -26,6 +27,7 @@
         "@react-navigation/bottom-tabs": "^7.3.10",
         "@react-navigation/elements": "^2.3.8",
         "@react-navigation/native": "^7.1.6",
+        "@t3-oss/env-core": "^0.13.8",
         "expo": "~53.0.20",
         "expo-blur": "~14.1.5",
         "expo-constants": "~17.1.7",
@@ -48,11 +50,12 @@
         "react-native-screens": "~4.11.1",
         "react-native-web": "~0.20.0",
         "react-native-webview": "13.13.5",
+        "zod": "^4.0.14",
       },
       "devDependencies": {
         "@babel/core": "^7.25.2",
         "@types/react": "~19.0.10",
-        "typescript": "~5.8.3",
+        "typescript": "~5.9.2",
       },
     },
     "packages/auth": {
@@ -1681,8 +1684,6 @@
     "@panabarbero/mobile/react": ["react@19.0.0", "", {}, "sha512-V8AVnmPIICiWpGfm6GLzCR/W5FXLchHop40W4nXBmdlEceh16rCN8O8LNWm5bh5XUX91fh7KpA+W0TgMKmgTpQ=="],
 
     "@panabarbero/mobile/react-dom": ["react-dom@19.0.0", "", { "dependencies": { "scheduler": "^0.25.0" }, "peerDependencies": { "react": "^19.0.0" } }, "sha512-4GV5sHFG0e/0AD4X+ySy6UJd3jVl1iNsNHdpad0qhABJ11twS3TTBnseqsKurKcsNqCEFeGL3uLpVChpIO3QfQ=="],
-
-    "@panabarbero/mobile/typescript": ["typescript@5.8.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ=="],
 
     "@react-native/community-cli-plugin/chalk": ["chalk@4.1.2", "", { "dependencies": { "ansi-styles": "^4.1.0", "supports-color": "^7.1.0" } }, "sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA=="],
 
