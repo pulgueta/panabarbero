@@ -33,7 +33,8 @@
   },
   "javascript": {
     "formatter": {
-      "quoteStyle": "double"
+      "quoteStyle": "double",
+      "indentWidth": 2
     }
   },
   "assist": {

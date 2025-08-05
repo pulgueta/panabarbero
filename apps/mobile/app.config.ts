@@ -2,7 +2,7 @@ import type { ConfigContext, ExpoConfig } from "expo/config";
 
 import { version } from "./package.json";
 
-const DEFAULT_APP_NAME = "Panabarbero" as const;
+const DEFAULT_APP_NAME = "PanaBarbero" as const;
 const DEFAULT_SLUG = "panabarbero" as const;
 const DEFAULT_BUNDLE_IDENTIFIER = "com.mobile.panabarbero" as const;
 
@@ -36,6 +36,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   scheme: "mobile",
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
+  assetBundlePatterns: ["**/*"],
   ios: {
     ...config.ios,
     bundleIdentifier: projectConfig().packageName,
@@ -66,8 +67,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     iosDisplayInForeground: true,
   },
   web: {
-    bundler: "metro",
-    output: "static",
     favicon: "./assets/images/favicon.png",
   },
   plugins: [
