@@ -9,8 +9,7 @@
   },
   "license": "MIT",
   "scripts": {
-    "clean": "git clean -xdf .cache .turbo node_modules",
-    "typecheck": "tsc --noEmit"
+    "clean": "git clean -xdf .cache .turbo node_modules"
   },
   "dependencies": {
     "postcss": "^8.5.6",

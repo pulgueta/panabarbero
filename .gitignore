@@ -23,6 +23,8 @@ expo-env.d.ts
 apps/expo/.gitignore
 apps/expo/ios
 apps/expo/android
+apps/expo/google-services.json
+apps/expo/GoogleService-Info.plist
 
 # production
 build

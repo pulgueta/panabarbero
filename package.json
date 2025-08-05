@@ -16,7 +16,6 @@
     "dev:next": "turbo watch dev -F @panabarbero/nextjs...",
     "lint": "biome lint --write --unsafe .",
     "format": "biome format --write .",
-    "typecheck": "turbo run typecheck",
     "ui-add": "turbo run ui-add",
     "android": "expo run:android",
     "ios": "expo run:ios"

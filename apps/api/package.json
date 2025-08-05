@@ -1,0 +1,12 @@
+{
+  "name": "@panabarbero/api",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts"
+  },
+  "dependencies": {
+    "hono": "^4.8.12"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.19"
+  }
+}
