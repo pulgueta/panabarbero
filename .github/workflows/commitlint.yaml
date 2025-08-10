@@ -21,9 +21,6 @@ jobs:
 
       - name: Setup
         uses: ./.github/setup
-
-      - name: Install commitlint
-        run: yarn add -D @commitlint/cli @commitlint/config-conventional -W
       - name: Print versions
         run: |
           git --version
