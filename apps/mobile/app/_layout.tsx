@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { NAV_THEME } from "@/lib/constants";
+import { QueryProvider } from "@/providers/query-provider";
 
 export { ErrorBoundary } from "expo-router";
 
@@ -50,7 +51,9 @@ const RootLayout = () => {
     <SafeAreaView className="flex-1 bg-primary">
       <ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
         <StatusBar style="light" />
-        <Stack screenOptions={DEFAULT_OPTIONS} />
+        <QueryProvider>
+          <Stack screenOptions={DEFAULT_OPTIONS} />
+        </QueryProvider>
       </ThemeProvider>
     </SafeAreaView>
   );

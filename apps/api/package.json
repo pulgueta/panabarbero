@@ -2,6 +2,12 @@
   "name": "@panabarbero/api",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts"
+    }
+  },
   "scripts": {
     "dev": "bun run --hot src/index.ts"
   },

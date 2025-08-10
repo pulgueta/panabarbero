@@ -1,9 +1,12 @@
 {
   "compilerOptions": {
     "strict": true,
+    "verbatimModuleSyntax": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ESNext"],
     "paths": {
       "@/*": ["./src/*"]
     },
-    "verbatimModuleSyntax": true
   }
 }

@@ -3,8 +3,11 @@ import { View } from "react-native";
 
 import { Button, buttonTextVariants } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { useHello } from "@/query/hooks/use-hello";
 
 const Index = () => {
+  const { data } = useHello();
+
   const variant = "secondary";
 
   return (
@@ -12,6 +15,7 @@ const Index = () => {
       <Button>
         <Text className={buttonTextVariants()}>Click me</Text>
       </Button>
+      <Text>{data}</Text>
       <Button variant={variant}>
         <Link href="/about" asChild>
           <Text className={buttonTextVariants({ variant })}>About</Text>
