@@ -1,4 +1,4 @@
-import { DEFAULT_OPTIONS, ROUTE_NAMES } from "@panabarbero/constants";
+import { DEFAULT_OPTIONS } from "@panabarbero/constants";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { hide, preventAutoHideAsync } from "expo-splash-screen";
@@ -26,7 +26,7 @@ const RootLayout = () => {
   return (
     <SafeAreaProvider>
       <StatusBar style="auto" />
-      <Stack.Screen name={ROUTE_NAMES.INDEX} options={DEFAULT_OPTIONS} />
+      <Stack screenOptions={DEFAULT_OPTIONS} />
     </SafeAreaProvider>
   );
 };
