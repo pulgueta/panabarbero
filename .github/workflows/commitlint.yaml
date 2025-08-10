@@ -23,18 +23,18 @@ jobs:
         uses: ./.github/setup
 
       - name: Install commitlint
-        run: bun add -D @commitlint/cli @commitlint/config-conventional
+        run: yarn add -D @commitlint/cli @commitlint/config-conventional
       - name: Print versions
         run: |
           git --version
           node --version
           npm --version
-          bunx commitlint --version
+          yarn commitlint --version
 
       - name: Validate current commit (last commit) with commitlint
         if: github.event_name == 'push'
-        run: bunx commitlint --last --verbose
+        run: yarn commitlint --last --verbose
 
       - name: Validate PR commits with commitlint
         if: github.event_name == 'pull_request'
-        run: bunx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+        run: yarn commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
