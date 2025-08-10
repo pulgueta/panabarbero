@@ -7,7 +7,7 @@ import { TextClassContext } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "group flex items-center justify-center rounded-xl",
+  "group flex items-center justify-center rounded-xl transition-all duration-300 active:scale-95",
   {
     variants: {
       variant: {

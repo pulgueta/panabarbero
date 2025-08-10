@@ -9,7 +9,7 @@ import { Stack } from "expo-router";
 import { preventAutoHideAsync } from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { NAV_THEME } from "@/lib/constants";
@@ -47,12 +47,12 @@ const RootLayout = () => {
   }
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaView className="flex-1 bg-primary">
       <ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
-        <StatusBar style="auto" />
+        <StatusBar style="light" />
         <Stack screenOptions={DEFAULT_OPTIONS} />
       </ThemeProvider>
-    </SafeAreaProvider>
+    </SafeAreaView>
   );
 };
 

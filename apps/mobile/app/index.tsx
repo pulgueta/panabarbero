@@ -8,7 +8,7 @@ const Index = () => {
   const variant = "secondary";
 
   return (
-    <View className="flex-1 items-center justify-center gap-4 bg-background">
+    <View className="flex-1 items-center justify-center gap-4 bg-secondary">
       <Button>
         <Text className={buttonTextVariants()}>Click me</Text>
       </Button>
