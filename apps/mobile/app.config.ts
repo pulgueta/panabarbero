@@ -30,6 +30,7 @@ function projectConfig(): Config {
 export default ({ config }: ConfigContext): ExpoConfig => ({
   name: projectConfig().name,
   slug: DEFAULT_SLUG,
+  owner: "pulgueta",
   version,
   orientation: "portrait",
   icon: "./assets/images/icon.png",
@@ -83,7 +84,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   extra: {
     eas: {
-      projectId,
+      projectId: "a0ba5570-2e8e-4554-85f3-eefce5abc6a1",
     },
   },
   runtimeVersion: {
