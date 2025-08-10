@@ -1,11 +1,13 @@
 import { Link } from "expo-router";
-import { Text, View } from "react-native";
+import { View } from "react-native";
+
+import { Text } from "@/components/ui/text";
 
 const About = () => {
   return (
     <View className="flex-1 items-center justify-center">
-      <Text>About</Text>
-      <Link href="/about">Go back home</Link>
+      <Text className="font-bold text-xl">About</Text>
+      <Link href="/">Go back home</Link>
     </View>
   );
 };

@@ -1,11 +1,22 @@
 import { Link } from "expo-router";
-import { Text, View } from "react-native";
+import { View } from "react-native";
+
+import { Button, buttonTextVariants } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
 
 const Index = () => {
+  const variant = "secondary";
+
   return (
-    <View className="flex-1 items-center justify-center">
-      <Text className="font-bold text-3xl">Index</Text>
-      <Link href="/about">About</Link>
+    <View className="flex-1 items-center justify-center gap-4 bg-background">
+      <Button>
+        <Text className={buttonTextVariants()}>Click me</Text>
+      </Button>
+      <Button variant={variant}>
+        <Link href="/about" asChild>
+          <Text className={buttonTextVariants({ variant })}>About</Text>
+        </Link>
+      </Button>
     </View>
   );
 };

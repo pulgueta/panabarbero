@@ -1,32 +1,57 @@
 import { DEFAULT_OPTIONS } from "@panabarbero/constants";
-import { useFonts } from "expo-font";
+import type { Theme } from "@react-navigation/native";
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
+} from "@react-navigation/native";
 import { Stack } from "expo-router";
-import { hide, preventAutoHideAsync } from "expo-splash-screen";
+import { preventAutoHideAsync } from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { NAV_THEME } from "@/lib/constants";
+
+export { ErrorBoundary } from "expo-router";
+
+const LIGHT_THEME: Theme = {
+  ...DefaultTheme,
+  colors: NAV_THEME.light,
+};
+const DARK_THEME: Theme = {
+  ...DarkTheme,
+  colors: NAV_THEME.dark,
+};
 
 preventAutoHideAsync();
 
 const RootLayout = () => {
-  const [loaded] = useFonts({
-    Geist: require("../assets/fonts/Geist-Regular.ttf"),
-  });
+  const hasMounted = useRef(false);
+  const [isColorSchemeLoaded, setIsColorSchemeLoaded] = useState(false);
+
+  const { isDarkColorScheme } = useColorScheme();
 
   useEffect(() => {
-    if (loaded) {
-      hide();
+    if (hasMounted.current) {
+      return;
     }
-  }, [loaded]);
 
-  if (!loaded) {
+    setIsColorSchemeLoaded(true);
+    hasMounted.current = true;
+  }, []);
+
+  if (!isColorSchemeLoaded) {
     return null;
   }
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="auto" />
-      <Stack screenOptions={DEFAULT_OPTIONS} />
+      <ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
+        <StatusBar style="auto" />
+        <Stack screenOptions={DEFAULT_OPTIONS} />
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 };
