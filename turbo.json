@@ -1,6 +1,6 @@
 {
   "$schema": "https://turborepo.org/schema.json",
-  "ui": "stream",
+  "ui": "tui",
   "tasks": {
     "topo": {
       "dependsOn": ["^topo"]
@@ -40,11 +40,7 @@
     }
   },
   "globalEnv": [
-    "POSTGRES_URL",
-    "AUTH_DISCORD_ID",
-    "AUTH_DISCORD_SECRET",
-    "AUTH_REDIRECT_PROXY_URL",
-    "AUTH_SECRET",
+    "DATABASE_URL",
     "PORT"
   ],
   "globalPassThroughEnv": [

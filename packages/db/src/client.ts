@@ -1,12 +1,9 @@
-import { SQL } from "bun";
-
-import { drizzle } from "drizzle-orm/bun-sql";
+import { drizzle } from "drizzle-orm/neon-http";
 
 import * as schema from "./schema";
 
 export const db = drizzle({
-  client: new SQL(process.env.POSTGRES_URL ?? ""),
   schema,
   casing: "snake_case",
-  logger: true
+  logger: true,
 });
