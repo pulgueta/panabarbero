@@ -10,12 +10,8 @@
   "prettier.enable": false,
   "editor.formatOnPaste": true,
   "editor.formatOnSave": true,
-  "tailwindCSS.classFunctions": [
-    "cva",
-    "cx",
-    "cn"
-  ],
-  "tailwindCSS.experimental.configFile": "../apps/mobile/tailwind.config.ts",
+  "tailwindCSS.classFunctions": ["cva", "cx", "cn"],
+  "tailwindCSS.experimental.configFile": "../apps/mobile/tailwind.config.js",
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "typescript.preferences.autoImportFileExcludePatterns": [
     "zod/dist/types/index.d.ts", // Force auto-imports to v4

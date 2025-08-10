@@ -2,18 +2,17 @@
   "name": "panabarbero",
   "private": true,
   "engines": {
-    "bun": ">=1.2.19"
+    "node": ">=22.18.0"
   },
-  "packageManager": "bun@1.2.19",
+  "packageManager": "yarn@1.22.22",
   "scripts": {
     "build": "turbo run build",
     "clean": "git clean -xdf node_modules",
     "clean:workspaces": "turbo run clean",
-    "auth:generate": "bun -F @panabarbero/auth generate",
+    "auth:generate": "yarn @panabarbero/auth generate",
     "db:push": "turbo -F @panabarbero/db push",
     "db:studio": "turbo -F @panabarbero/db studio",
     "dev": "turbo watch dev --continue",
-    "dev:next": "turbo watch dev -F @panabarbero/nextjs...",
     "lint": "biome lint --write --unsafe .",
     "format": "biome format --write .",
     "changeset": "changeset",
@@ -24,7 +23,7 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.1.3",
+    "@biomejs/biome": "^2.1.4",
     "@changesets/cli": "^2.29.5",
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
@@ -35,7 +34,7 @@
     "typescript": "^5.9.2"
   },
   "workspaces": [
-    "packages/*",
-    "apps/*"
+    "apps/*",
+    "packages/*"
   ]
 }

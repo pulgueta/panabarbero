@@ -4,21 +4,27 @@ description: "Common setup steps for Actions"
 runs:
   using: composite
   steps:
-    - name: Install Bun
-      uses: oven-sh/setup-bun@v2
+    - name: Install Node
+      uses: actions/setup-node@v4
       with:
-        bun-version: "latest"
+        node-version: "latest"
+        cache: "yarn"
+
+    - shell: bash
+      id: yarn-cache-dir-path
+      run: echo "dir=$(yarn config get cacheFolder)" >> $GITHUB_OUTPUT
 
     - name: Setup cache
       uses: actions/cache@v4
+      id: yarn-cache
       with:
-        path: ~/.bun/install/cache
-        key: ${{ runner.os }}-${{ matrix.bun }}-bun-${{ hashFiles('**/bun.lock') }}
+        path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+        key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
         restore-keys: |
-          ${{ runner.os }}-${{ matrix.bun }}-bun-
+          ${{ runner.os }}-yarn-
 
     - shell: bash
-      run: bun add -g turbo
+      run: yarn add -g turbo
 
     - shell: bash
-      run: bun install
+      run: yarn
