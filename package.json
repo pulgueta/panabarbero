@@ -17,7 +17,7 @@
     "format": "biome format --write .",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "changeset:autogenerate": "node .changesets/changesets-autogenerate.mjs",
+    "changeset:autogenerate": "node .changeset/changesets-autogenerate.mjs",
     "ui-add": "turbo run ui-add",
     "android": "expo run:android",
     "ios": "expo run:ios",
