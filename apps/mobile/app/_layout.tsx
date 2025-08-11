@@ -1,3 +1,4 @@
+import { QueryProvider } from "@panabarbero/client/providers";
 import { DEFAULT_OPTIONS } from "@panabarbero/constants";
 import type { Theme } from "@react-navigation/native";
 import {
@@ -13,7 +14,6 @@ import { SafeAreaView } from "react-native";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { NAV_THEME } from "@/lib/constants";
-import { QueryProvider } from "@/providers/query-provider";
 
 export { ErrorBoundary } from "expo-router";
 

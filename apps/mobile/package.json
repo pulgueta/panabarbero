@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@panabarbero/constants": "*",
+    "@panabarbero/client": "*",
     "@react-navigation/native": "^7.1.17",
     "@rn-primitives/slot": "^1.2.0",
     "@tanstack/react-query": "^5.84.2",
