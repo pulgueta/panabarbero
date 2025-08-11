@@ -84,7 +84,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   extra: {
     eas: {
-      projectId: "a0ba5570-2e8e-4554-85f3-eefce5abc6a1",
+      projectId,
     },
   },
   runtimeVersion: {
