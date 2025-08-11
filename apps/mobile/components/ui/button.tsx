@@ -1,5 +1,6 @@
 import type { VariantProps } from "class-variance-authority";
 import { cva } from "class-variance-authority";
+import { Link as ExpoLink } from "expo-router";
 import type { ComponentProps } from "react";
 import { Pressable } from "react-native";
 
@@ -66,6 +67,9 @@ const buttonTextVariants = cva("text-center text-foreground", {
 type ButtonProps = ComponentProps<typeof Pressable> &
   VariantProps<typeof buttonVariants>;
 
+type LinkProps = ComponentProps<typeof ExpoLink> &
+  VariantProps<typeof buttonVariants>;
+
 function Button({ ref, className, variant, size, ...props }: ButtonProps) {
   return (
     <TextClassContext.Provider
@@ -86,5 +90,24 @@ function Button({ ref, className, variant, size, ...props }: ButtonProps) {
   );
 }
 
-export { Button, buttonTextVariants, buttonVariants };
+function Link({ className, variant, size, ...props }: LinkProps) {
+  return (
+    <TextClassContext.Provider
+      value={buttonTextVariants({
+        variant,
+        size,
+      })}
+    >
+      <ExpoLink
+        className={cn(
+          props.disabled && "opacity-50",
+          buttonVariants({ variant, size, className }),
+        )}
+        {...props}
+      />
+    </TextClassContext.Provider>
+  );
+}
+
+export { Button, buttonTextVariants, buttonVariants, Link };
 export type { ButtonProps };
