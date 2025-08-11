@@ -1,6 +1,3 @@
-import type { AppBackend } from "@panabarbero/api";
-import { hc } from "hono/client";
+import { createApiClient } from "@panabarbero/client";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
-
-export const api = hc<AppBackend>(API_URL);
+export const api = createApiClient("mobile");

@@ -2,7 +2,9 @@
 import type { AppBackend } from "@panabarbero/api";
 import { hc } from "hono/client";
 
-function getApiUrl(env?: "mobile" | "web") {
+type Env = "mobile" | "web";
+
+function getApiUrl(env?: Env) {
   if (env === "mobile") {
     return process.env.EXPO_PUBLIC_API_URL!;
   }
@@ -10,4 +12,6 @@ function getApiUrl(env?: "mobile" | "web") {
   return process.env.VITE_API_URL!;
 }
 
-export const api = hc<AppBackend>(getApiUrl());
+export function createApiClient(env?: Env) {
+  return hc<AppBackend>(getApiUrl(env));
+}
