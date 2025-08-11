@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.1.3/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.1.4/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -13,12 +13,22 @@
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
-    "indentWidth": 2
+    "indentWidth": 2,
+    "includes": [
+      "apps/**/*.ts",
+      "apps/**/*.tsx",
+      "packages/**/*.ts",
+      "packages/**/*.tsx",
+      "apps/**/*.js"
+    ]
   },
   "linter": {
     "enabled": true,
     "rules": {
       "recommended": true,
+      "style": {
+        "useImportType": "warn"
+      },
       "nursery": {
         "useSortedClasses": {
           "fix": "unsafe",
@@ -35,14 +45,6 @@
     "formatter": {
       "quoteStyle": "double",
       "indentWidth": 2
-    }
-  },
-  "assist": {
-    "enabled": true,
-    "actions": {
-      "source": {
-        "organizeImports": "on"
-      }
     }
   },
   "json": {

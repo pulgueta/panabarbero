@@ -1,7 +1,6 @@
 {
   "name": "@panabarbero/mobile",
-  "type": "module",
-  "main": "expo-router/entry",
+  "main": "index.js",
   "version": "0.0.0",
   "scripts": {
     "android": "expo start --android",
@@ -10,26 +9,35 @@
     "prebuild": "expo prebuild"
   },
   "dependencies": {
-    "@t3-oss/env-core": "^0.13.8",
-    "expo": "^53.0.20",
+    "@panabarbero/constants": "*",
+    "@react-navigation/native": "^7.1.17",
+    "@rn-primitives/slot": "^1.2.0",
+    "@tanstack/react-query": "^5.84.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "expo": "~53.0.6",
     "expo-constants": "~17.1.7",
     "expo-linking": "~7.1.7",
+    "expo-navigation-bar": "^4.2.7",
     "expo-router": "~5.1.4",
+    "expo-splash-screen": "~0.30.10",
     "expo-status-bar": "~2.2.3",
-    "nativewind": "latest",
+    "hono": "^4.9.0",
+    "nativewind": "4.1.23",
     "react": "19.0.0",
-    "react-native": "0.79.5",
+    "react-native": "0.79.2",
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
-    "zod": "^4.0.14"
+    "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
+    "@types/node": "^22.17.1",
     "@types/react": "~19.0.10",
-    "react-native-dotenv": "^3.4.11",
-    "tailwindcss": "^3.4.17",
-    "typescript": "^5.9.2"
+    "babel-plugin-react-compiler": "^19.1.0-rc.2",
+    "tailwindcss": "^3.4.0",
+    "typescript": "~5.8.3"
   },
   "private": true,
   "expo": {

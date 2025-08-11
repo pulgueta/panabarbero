@@ -78,3 +78,12 @@ expo-env.d.ts
 .metro-health-check*
 
 *.tsbuildinfo
+
+ios
+android
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*

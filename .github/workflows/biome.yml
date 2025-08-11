@@ -20,17 +20,16 @@ jobs:
   biome:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup
         uses: ./.github/setup
 
-      - name: Copy env
-        shell: bash
-        run: cp .env.example .env
-
       - name: Lint
-        run: bun lint
+        run: yarn lint
 
       - name: Format
-        run: bun format
+        run: yarn format

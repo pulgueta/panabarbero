@@ -6,7 +6,7 @@ const DEFAULT_APP_NAME = "PanaBarbero" as const;
 const DEFAULT_SLUG = "panabarbero" as const;
 const DEFAULT_BUNDLE_IDENTIFIER = "com.mobile.panabarbero" as const;
 
-const projectId = process.env.PROJECT_ID;
+const projectId = process.env.EXPO_PUBLIC_PROJECT_ID;
 
 type Config = {
   name: string;
@@ -14,7 +14,7 @@ type Config = {
 };
 
 function projectConfig(): Config {
-  if (process.env.APP_VARIANT === "development") {
+  if (process.env.EXPO_PUBLIC_APP_VARIANT === "development") {
     return {
       name: `${DEFAULT_APP_NAME} (Development)`,
       packageName: `${DEFAULT_BUNDLE_IDENTIFIER}.dev`,
@@ -30,12 +30,12 @@ function projectConfig(): Config {
 export default ({ config }: ConfigContext): ExpoConfig => ({
   name: projectConfig().name,
   slug: DEFAULT_SLUG,
+  owner: "pulgueta",
   version,
   orientation: "portrait",
   icon: "./assets/images/icon.png",
-  scheme: "mobile",
+  scheme: DEFAULT_SLUG,
   userInterfaceStyle: "automatic",
-  newArchEnabled: true,
   assetBundlePatterns: ["**/*"],
   ios: {
     ...config.ios,
@@ -66,15 +66,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   notification: {
     iosDisplayInForeground: true,
   },
-  web: {
-    favicon: "./assets/images/favicon.png",
-  },
   plugins: [
     "expo-router",
     [
       "expo-splash-screen",
       {
-        image: "./assets/images/splash-icon.png",
+        image: "./assets/images/splash.png",
         imageWidth: 200,
         resizeMode: "contain",
         backgroundColor: "#ffffff",
@@ -83,6 +80,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ],
   experiments: {
     typedRoutes: true,
+    reactCompiler: true,
   },
   extra: {
     eas: {
