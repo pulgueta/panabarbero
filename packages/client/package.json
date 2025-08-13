@@ -1,0 +1,26 @@
+{
+  "name": "@panabarbero/client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./providers": "./src/providers/index.tsx",
+    "./hooks": "./src/hooks/index.ts"
+  },
+  "license": "MIT",
+  "scripts": {
+    "clean": "git clean -xdf .cache .turbo dist node_modules"
+  },
+  "dependencies": {
+    "@panabarbero/constants": "*",
+    "@panabarbero/api": "*",
+    "@tanstack/react-query": "^5.84.2",
+    "hono": "^4.9.0",
+    "react": "19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.0.10",
+    "typescript": "^5.9.2"
+  }
+}

@@ -1,7 +1,7 @@
 import { QUERY_KEYS } from "@panabarbero/constants";
 import { useQuery } from "@tanstack/react-query";
 
-import { api } from "@/api/config";
+import { api } from "../index";
 
 export function useHello() {
   return useQuery({
