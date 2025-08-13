@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./middleware": "./src/middleware.ts",
     "./client": "./src/client.ts",
-    "./env": "./env"
+    "./env-client": "./env/client.ts",
+    "./env-server": "./env/server.ts"
   },
   "license": "MIT",
   "scripts": {
@@ -15,6 +16,7 @@
     "generate": "dotenv -e ../../.env -- yarn @better-auth/cli generate --output ../db/src/auth-schema.ts"
   },
   "dependencies": {
+    "@panabarbero/constants": "*",
     "@panabarbero/db": "*",
     "@better-auth/expo": "1.3.4",
     "@t3-oss/env-core": "^0.13.8",
