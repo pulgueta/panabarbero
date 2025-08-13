@@ -5,11 +5,12 @@ import { Link } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 
 const Index = () => {
-  const { data, isLoading } = useHello();
+  const { data, isLoading, error } = useHello();
 
   return (
     <View className="flex-1 items-center justify-center gap-4">
-      <Text>{isLoading ? "Loading..." : data?.message}</Text>
+      {error && <Text>{error.message}</Text>}
+      <Text>{isLoading ? "Loading..." : JSON.stringify(data, null, 2)}</Text>
       <Link href="/about">
         <Text>About</Text>
       </Link>

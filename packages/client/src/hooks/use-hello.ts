@@ -7,11 +7,9 @@ export function useHello() {
   return useQuery({
     queryKey: QUERY_KEYS.HELLO,
     queryFn: async () => {
-      const req = await api.index.$get();
+      const res = await api.index.$get();
 
-      const res = await req.json();
-
-      return res;
+      return res.json();
     },
   });
 }

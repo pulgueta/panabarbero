@@ -1,17 +1,16 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: Required for env variables */
 import type { AppBackend } from "@panabarbero/api";
 import { hc } from "hono/client";
 
-type Env = "mobile" | "web";
-
-function getApiUrl(env?: Env) {
-  if (env === "mobile") {
-    return process.env.EXPO_PUBLIC_API_URL!;
+function getApiUrl(): string {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
   }
 
-  return process.env.VITE_API_URL!;
+  if (process.env.VITE_API_URL) {
+    return process.env.VITE_API_URL;
+  }
+
+  throw new Error("No API URL found");
 }
 
-export function createApiClient(env?: Env) {
-  return hc<AppBackend>(getApiUrl(env));
-}
+export const api = hc<AppBackend>(getApiUrl());
