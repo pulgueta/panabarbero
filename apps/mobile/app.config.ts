@@ -1,8 +1,8 @@
+import { APP_NAME } from "@panabarbero/constants";
 import type { ConfigContext, ExpoConfig } from "expo/config";
 
 import { version } from "./package.json";
 
-const DEFAULT_APP_NAME = "PanaBarbero" as const;
 const DEFAULT_SLUG = "panabarbero" as const;
 const DEFAULT_BUNDLE_IDENTIFIER = "com.mobile.panabarbero" as const;
 
@@ -16,13 +16,13 @@ type Config = {
 function projectConfig(): Config {
   if (process.env.EXPO_PUBLIC_APP_VARIANT === "development") {
     return {
-      name: `${DEFAULT_APP_NAME} (Development)`,
+      name: `${APP_NAME} (Development)`,
       packageName: `${DEFAULT_BUNDLE_IDENTIFIER}.dev`,
     };
   }
 
   return {
-    name: DEFAULT_APP_NAME,
+    name: APP_NAME,
     packageName: DEFAULT_BUNDLE_IDENTIFIER,
   };
 }

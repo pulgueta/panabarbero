@@ -13,4 +13,8 @@ function getApiUrl(): string {
   throw new Error("No API URL found");
 }
 
-export const api = hc<AppBackend>(getApiUrl());
+export const api = hc<AppBackend>(getApiUrl(), {
+  init: {
+    credentials: "include",
+  },
+});
