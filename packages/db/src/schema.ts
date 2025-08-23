@@ -1,25 +1,23 @@
 import { sql } from "drizzle-orm";
-import { pgTable } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod/v4";
+import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
-export const Post = pgTable("post", (t) => ({
-  id: t.uuid().notNull().primaryKey().defaultRandom(),
+const commonRows = {
+  id: text()
+    .notNull()
+    .primaryKey()
+    .unique()
+    .$defaultFn(() => Bun.randomUUIDv7()),
+  uuid: uuid().notNull().unique().defaultRandom(),
+  createdAt: timestamp().defaultNow().notNull(),
+  updatedAt: timestamp({ mode: "date", withTimezone: true }).$onUpdateFn(
+    () => new Date()
+  ),
+};
+
+export const barbershop = pgTable("barbershop", (t) => ({
+  ...commonRows,
   title: t.varchar({ length: 256 }).notNull(),
   content: t.text().notNull(),
-  createdAt: t.timestamp().defaultNow().notNull(),
-  updatedAt: t
-    .timestamp({ mode: "date", withTimezone: true })
-    .$onUpdateFn(() => sql`now()`),
 }));
-
-export const CreatePostSchema = createInsertSchema(Post, {
-  title: z.string().max(256),
-  content: z.string().max(256),
-}).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
 
 export * from "./auth-schema";
