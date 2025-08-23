@@ -3,7 +3,7 @@ import { string, url } from "zod";
 
 export const env = createEnv({
   server: {
-    DATABASE_URL: url().startsWith("postgres://"),
+    DATABASE_URL: url().startsWith("postgresql://"),
     APP_URL: url(),
     API_USERNAME: string().min(1),
     API_PASSWORD: string().min(1),

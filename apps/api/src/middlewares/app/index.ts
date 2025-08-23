@@ -5,8 +5,8 @@ export function notFound(c: Context) {
   return c.json(
     {
       path: c.req.path,
-      message: "Not found",
+      message: "The requested resource was not found",
     },
-    STATUS_CODES.NOT_FOUND,
+    STATUS_CODES.NOT_FOUND
   );
 }

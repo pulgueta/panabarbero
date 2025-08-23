@@ -1,14 +1,13 @@
 import { createBackend } from "@/config";
 import { createOpenApiConfig } from "@/config/openapi";
-import { authMiddleware } from "@/middlewares/auth";
+import { authRouter } from "@/routes/auth";
 import { barbershopRouter } from "@/routes/barbershop";
 
 const app = createBackend().basePath("/api");
 
 createOpenApiConfig(app);
-authMiddleware(app);
 
-const routes = [barbershopRouter] as const;
+const routes = [barbershopRouter, authRouter] as const;
 
 for (const route of routes) {
   app.route("/", route);

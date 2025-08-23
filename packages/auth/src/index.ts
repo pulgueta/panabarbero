@@ -5,7 +5,7 @@ import * as schema from "@panabarbero/db/schema";
 import type { BetterAuthOptions } from "better-auth";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { oAuthProxy, organization } from "better-auth/plugins";
+import { oAuthProxy, openAPI, organization } from "better-auth/plugins";
 import { passkey } from "better-auth/plugins/passkey";
 
 import { serverEnv } from "@/env/server";
@@ -32,8 +32,8 @@ export function initAuth(options: {
       passkey(),
       organization(),
       expo(),
+      openAPI(),
     ],
-    basePath: "/auth",
     socialProviders: {
       google: {
         clientId: serverEnv.GOOGLE_CLIENT_ID,
