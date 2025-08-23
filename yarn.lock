@@ -2530,7 +2530,7 @@
   dependencies:
     "@types/node" "*"
 
-"@types/bun@^1.2.19":
+"@types/bun@^1.2.19", "@types/bun@^1.2.20":
   version "1.2.20"
   resolved "https://registry.yarnpkg.com/@types/bun/-/bun-1.2.20.tgz#2b7339f063a5a27a4ef10fd7d0f21095b578eee5"
   integrity sha512-dX3RGzQ8+KgmMw7CsW4xT5ITBSCrSbfHc36SNT31EOUg/LA9JWq0VDdEXDRSe1InVWpd2yLUM1FUF/kEOyTzYA==
@@ -3761,7 +3761,7 @@ dotenv@^16.4.5, dotenv@^16.4.7:
   resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-16.6.1.tgz#773f0e69527a8315c7285d5ee73c4459d20a8020"
   integrity sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==
 
-dotenv@^17.1.0:
+dotenv@^17.1.0, dotenv@^17.2.1:
   version "17.2.1"
   resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-17.2.1.tgz#6f32e10faf014883515538dc922a0fb8765d9b32"
   integrity sha512-kQhDYKZecqnM0fCnzI5eIv5L4cAe/iRI+HqMbO/hbRdTAeXDG+M9FjipUxNfbARuEg4iHIbhnhs78BCHNbSxEQ==
@@ -3796,7 +3796,7 @@ drizzle-orm@^0.44.4:
   resolved "https://registry.yarnpkg.com/drizzle-orm/-/drizzle-orm-0.44.4.tgz#93377d57dc39020a4e5e961dd259461c28dde88c"
   integrity sha512-ZyzKFpTC/Ut3fIqc2c0dPZ6nhchQXriTsqTNs4ayRgl6sZcFlMs9QZKPSHXK4bdOf41GHGWf+FrpcDDYwW+W6Q==
 
-drizzle-zod@^0.8.2:
+drizzle-zod@^0.8.3:
   version "0.8.3"
   resolved "https://registry.yarnpkg.com/drizzle-zod/-/drizzle-zod-0.8.3.tgz#8c61aba8216195c7670ea5038b4f38c6ebc3868f"
   integrity sha512-66yVOuvGhKJnTdiqj1/Xaaz9/qzOdRJADpDa68enqS6g3t0kpNkwNYjUuaeXgZfO/UWuIM9HIhSlJ6C5ZraMww==
@@ -6130,11 +6130,6 @@ postcss@~8.4.32:
     nanoid "^3.3.7"
     picocolors "^1.1.1"
     source-map-js "^1.2.1"
-
-postgres@^3.4.7:
-  version "3.4.7"
-  resolved "https://registry.yarnpkg.com/postgres/-/postgres-3.4.7.tgz#122f460a808fe300cae53f592108b9906e625345"
-  integrity sha512-Jtc2612XINuBjIl/QTWsV5UvE8UHuNblcO3vVADSrKsrc6RqGX6lOW1cEo3CM2v0XG4Nat8nI+YM7/f26VxXLw==
 
 prebuild-install@^7.1.1:
   version "7.1.3"
