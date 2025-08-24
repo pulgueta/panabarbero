@@ -1,0 +1,50 @@
+name: Deploy to Railway (Demo)
+
+on:
+  push:
+    branches: ["demo"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  version:
+    uses: ./.github/workflows/version.yaml
+  prod:
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' }}
+    container: ghcr.io/railwayapp/cli:latest
+    env:
+      SVC_ID: ${{ vars.SERVICE_ID }}
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup
+        uses: ./.github/setup
+
+      - name: Deploy to production
+        run: railway up --service=${{ env.SVC_ID }}
+
+  demo:
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' }}
+    container: ghcr.io/railwayapp/cli:latest
+    env:
+      SVC_ID: ${{ vars.PREVIEW_SERVICE_ID }}
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_PREVIEW_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup
+        uses: ./.github/setup
+
+      - name: Deploy to production
+        run: railway up --service=${{ env.SVC_ID }}

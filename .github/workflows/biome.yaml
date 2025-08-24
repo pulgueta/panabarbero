@@ -27,7 +27,7 @@ jobs:
         uses: ./.github/setup
 
       - name: Lint
-        run: yarn lint
+        run: bun lint
 
       - name: Format
-        run: yarn format
+        run: bun format

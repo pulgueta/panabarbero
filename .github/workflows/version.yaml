@@ -1,13 +1,17 @@
 name: Version apps
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: write
+  packages: write
+  pull-requests: write
+  actions: write
 
 jobs:
   release:
@@ -15,11 +19,6 @@ jobs:
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
-    permissions:
-      contents: write
-      packages: write
-      pull-requests: write
-      actions: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,10 +35,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          commit: 'chore(release): version packages'
-          title: 'chore(release): version packages'
-          version: node .github/changeset-version.js
-      
+          commit: "chore(release): version packages"
+          title: "chore(release): version packages"
+          version: bun .github/changeset-version.js
+
       - name: Auto-merge release PR
         if: steps.changesets.outputs.pullRequestNumber != ''
         run: |
