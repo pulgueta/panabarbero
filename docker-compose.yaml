@@ -15,6 +15,7 @@ services:
     image: bitnami/redis:8.2
     ports:
       - 6379:6379
+    command: redis-server --save 20 1 --loglevel warning
     volumes:
       - redis_data:/data
     networks:
@@ -27,4 +28,3 @@ networks:
 volumes:
   postgres_data:
   redis_data:
-
