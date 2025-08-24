@@ -14,16 +14,12 @@ import { passkey } from "better-auth/plugins/passkey";
 
 import { clientEnv } from "@/env/client";
 import { serverEnv } from "@/env/server";
+import { ac, roles } from "./rbac";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
-    schema: {
-      user: schema.user,
-      session: schema.session,
-      account: schema.account,
-      verification: schema.verification,
-    },
+    schema,
   }),
   baseURL: clientEnv.VITE_API_URL,
   secret: serverEnv.AUTH_SECRET,
@@ -33,8 +29,15 @@ export const auth = betterAuth({
       productionURL: clientEnv.VITE_API_URL,
     }),
     passkey(),
-    organization(),
-    twoFactor(),
+    organization({
+      ac,
+      roles,
+      defaultRole: roles.customer,
+      creatorRole: "barber",
+    }),
+    twoFactor({
+      issuer: APP_NAME,
+    }),
     expo(),
     openAPI(),
   ],

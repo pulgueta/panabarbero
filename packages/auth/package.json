@@ -8,7 +8,8 @@
     "./middleware": "./src/middleware.ts",
     "./client": "./src/client.ts",
     "./env-client": "./env/client.ts",
-    "./env-server": "./env/server.ts"
+    "./env-server": "./env/server.ts",
+    "./rbac": "./src/rbac.ts"
   },
   "license": "MIT",
   "scripts": {

@@ -10,14 +10,17 @@ import {
 
 import * as auth from "./auth-schema";
 
-export type SocialMedia = {
-  instagramUrl?: string;
-  facebookUrl?: string;
-  twitterUrl?: string;
-  youtubeUrl?: string;
-  tiktokUrl?: string;
-};
+export type Platform =
+  | "tiktok"
+  | "instagram"
+  | "facebook"
+  | "twitter"
+  | "youtube";
 
+export type MediaObject = {
+  platform: Platform;
+  url: string;
+};
 export type Day =
   | "monday"
   | "tuesday"
@@ -27,7 +30,7 @@ export type Day =
   | "saturday"
   | "sunday";
 export type AvailableDays = {
-  [key in Day]: {
+  [key in Day]?: {
     open: string;
     close: string;
   };
@@ -96,14 +99,17 @@ export const barbershops = pgTable(
   "barbershops",
   (t) => ({
     ...commonRows,
-    name: t.text().notNull(),
     description: t.text(),
+    organizationId: t
+      .text()
+      .notNull()
+      .references(() => auth.organization.id),
     address: t.text().notNull(),
-    coordinates: t.geometry({ mode: "tuple", type: "point" }),
+    coordinates: t.geometry({ mode: "xy", type: "point" }),
     contactPhone: t.text(),
-    socialMedia: t.jsonb().$type<SocialMedia>(),
+    socialMedia: t.jsonb().$type<MediaObject[]>(),
     isActive: t.boolean().notNull().default(false),
-    gracePeriod: t.integer().notNull().default(10),
+    gracePeriodMinutes: t.integer().default(5),
     ownerId: t
       .text()
       .notNull()
@@ -112,17 +118,16 @@ export const barbershops = pgTable(
     city: t.text().notNull(),
     state: t.text().notNull(),
     zipCode: t.text(),
-    logoUrl: t.text(),
     bannerUrl: t.text(),
-    coverUrl: t.text(),
     contactEmail: t.text(),
     websiteUrl: t.text(),
   }),
   (t) => [
     index("barbershops_owner_id_idx").on(t.ownerId),
     index("barbershops_city_state_idx").on(t.city, t.state),
+    index("barbershops_organization_id_idx").on(t.organizationId),
     index("barbershops_spacial_idx").using("gist", t.coordinates),
-  ],
+  ]
 );
 
 export const barbershopsRelations = relations(barbershops, ({ one, many }) => ({
@@ -130,13 +135,15 @@ export const barbershopsRelations = relations(barbershops, ({ one, many }) => ({
     fields: [barbershops.ownerId],
     references: [auth.user.id],
   }),
+  organization: one(auth.organization, {
+    fields: [barbershops.organizationId],
+    references: [auth.organization.id],
+  }),
   barbers: many(barbers),
   services: many(services),
   reviews: many(reviews),
   appointments: many(appointments),
 }));
-
-export type Barbershop = typeof barbershops.$inferSelect;
 
 export const barbers = pgTable(
   "barbers",
@@ -146,6 +153,10 @@ export const barbers = pgTable(
       .text()
       .notNull()
       .references(() => auth.user.id, { onDelete: "cascade" }),
+    memberId: t
+      .text()
+      .notNull()
+      .references(() => auth.member.id, { onDelete: "cascade" }),
     barbershopId: t
       .text()
       .notNull()
@@ -154,7 +165,7 @@ export const barbers = pgTable(
   (t) => [
     index("barbers_user_id_idx").on(t.userId),
     index("barbers_barbershop_id_idx").on(t.barbershopId),
-  ],
+  ]
 );
 
 export const barbersRelations = relations(barbers, ({ one, many }) => ({
@@ -162,10 +173,12 @@ export const barbersRelations = relations(barbers, ({ one, many }) => ({
     fields: [barbers.userId],
     references: [auth.user.id],
   }),
+  member: one(auth.member, {
+    fields: [barbers.memberId],
+    references: [auth.member.id],
+  }),
   barbershops: many(barbershops),
 }));
-
-export type Barber = typeof barbers.$inferSelect;
 
 export const services = pgTable(
   "services",
@@ -184,10 +197,10 @@ export const services = pgTable(
   (t) => [
     index("name_vector_idx").using(
       "hnsw",
-      t.nameVector.op("vector_cosine_ops"),
+      t.nameVector.op("vector_cosine_ops")
     ),
     index("services_barbershop_id_idx").on(t.barbershopId),
-  ],
+  ]
 );
 
 export const servicesRelations = relations(services, ({ one }) => ({
@@ -196,8 +209,6 @@ export const servicesRelations = relations(services, ({ one }) => ({
     references: [barbershops.id],
   }),
 }));
-
-export type Service = typeof services.$inferSelect;
 
 export const reviews = pgTable(
   "reviews",
@@ -217,7 +228,7 @@ export const reviews = pgTable(
   (t) => [
     index("reviews_user_id_idx").on(t.userId),
     index("reviews_barbershop_id_idx").on(t.barbershopId),
-  ],
+  ]
 );
 
 export const reviewsRelations = relations(reviews, ({ one }) => ({
@@ -230,8 +241,6 @@ export const reviewsRelations = relations(reviews, ({ one }) => ({
     references: [barbershops.id],
   }),
 }));
-
-export type Review = typeof reviews.$inferSelect;
 
 export const appointments = pgTable(
   "appointments",
@@ -265,7 +274,7 @@ export const appointments = pgTable(
     index("appointments_service_id_idx").on(t.serviceId),
     index("appointments_barber_id_idx").on(t.barberId),
     index("appointments_status_idx").on(t.status),
-  ],
+  ]
 );
 
 export const appointmentsRelations = relations(appointments, ({ one }) => ({
@@ -282,8 +291,6 @@ export const appointmentsRelations = relations(appointments, ({ one }) => ({
     references: [services.id],
   }),
 }));
-
-export type Appointment = typeof appointments.$inferSelect;
 
 export const payments = pgTable(
   "payments",
@@ -303,7 +310,7 @@ export const payments = pgTable(
     index("payments_appointment_id_idx").on(t.appointmentId),
     index("payments_status_idx").on(t.status),
     index("payments_method_idx").on(t.method),
-  ],
+  ]
 );
 
 export const paymentsRelations = relations(payments, ({ one }) => ({
@@ -312,8 +319,6 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
     references: [appointments.id],
   }),
 }));
-
-export type Payment = typeof payments.$inferSelect;
 
 export const notifications = pgTable("notifications", (t) => ({
   ...commonRows,
@@ -332,7 +337,5 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
     references: [auth.user.id],
   }),
 }));
-
-export type Notification = typeof notifications.$inferSelect;
 
 export * from "./auth-schema";
