@@ -26,4 +26,6 @@ COPY --from=deps /app/node_modules ./node_modules
 
 WORKDIR /app/apps/api
 
+EXPOSE 3000
+
 CMD ["bun", "run", "src/index.ts"]
