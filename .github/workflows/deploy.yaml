@@ -10,9 +10,9 @@ concurrency:
 
 jobs:
   version:
-    uses: pulgueta/panabarbero/.github/workflows/version.yaml@main
+    uses: ./.github/workflows/version.yaml
   migrations:
-    uses: pulgueta/panabarbero/.github/workflows/migrations.yaml@main
+    uses: ./.github/workflows/migrations.yaml
 
         
   prod:
