@@ -9,11 +9,11 @@
 .git
 .npmrc
 Dockerfile
+docker-compose.yaml
 node_modules
 dist
 biome.json
 commitlint.config.ts
-LICENSE
 README.md
 apps/mobile
 packages/client

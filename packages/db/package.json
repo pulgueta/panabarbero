@@ -18,9 +18,10 @@
   "scripts": {
     "build": "tsc",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
-    "push": "yarn with-env drizzle-kit push",
-    "studio": "yarn with-env drizzle-kit studio",
-    "with-env": "dotenv -e ../../.env --"
+    "generate": "drizzle-kit generate",
+    "migrate": "drizzle-kit migrate",
+    "push": "drizzle-kit push",
+    "studio": "drizzle-kit studio"
   },
   "dependencies": {
     "dotenv": "^17.2.1",

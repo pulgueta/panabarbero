@@ -1,16 +1,20 @@
-name: Deploy to Railway (Demo)
+name: Deploy to Railway
 
 on:
   push:
-    branches: ["demo"]
+    branches: ["demo", "main"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  cancel-in-progress: true
 
 jobs:
   version:
-    uses: ./.github/workflows/version.yaml
+    uses: pulgueta/panabarbero/.github/workflows/version.yaml@main
+  migrations:
+    uses: pulgueta/panabarbero/.github/workflows/migrations.yaml@main
+
+        
   prod:
     runs-on: ubuntu-latest
     if: ${{ github.ref == 'refs/heads/main' }}
