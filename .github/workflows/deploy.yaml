@@ -36,11 +36,11 @@ jobs:
 
   demo:
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/main' }}
+    if: ${{ github.ref == 'refs/heads/demo' }}
     container: ghcr.io/railwayapp/cli:latest
     env:
       SVC_ID: ${{ vars.PREVIEW_SERVICE_ID }}
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_PREVIEW_TOKEN }}
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
