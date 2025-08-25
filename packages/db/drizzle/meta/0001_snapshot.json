@@ -1,6 +1,6 @@
 {
-  "id": "3b2d5009-5c6b-454f-bcc3-9780fbd5548c",
-  "prevId": "a549d184-1989-4e3f-82dc-f13fde13f30e",
+  "id": "116e2e58-c47a-4903-9de2-150dbe5938c5",
+  "prevId": "d34c334b-38b3-4c1f-af5c-a44032dd1fcb",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -34,6 +34,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "user_id": {
           "name": "user_id",
@@ -275,6 +281,12 @@
           "notNull": true,
           "default": "now()"
         },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "user_id": {
           "name": "user_id",
           "type": "text",
@@ -419,11 +431,11 @@
           "notNull": true,
           "default": "now()"
         },
-        "name": {
-          "name": "name",
-          "type": "text",
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "description": {
           "name": "description",
@@ -468,12 +480,12 @@
           "notNull": true,
           "default": false
         },
-        "grace_period": {
-          "name": "grace_period",
+        "grace_period_minutes": {
+          "name": "grace_period_minutes",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
-          "default": 10
+          "notNull": false,
+          "default": 5
         },
         "owner_id": {
           "name": "owner_id",
@@ -505,20 +517,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "logo_url": {
-          "name": "logo_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "banner_url": {
           "name": "banner_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cover_url": {
-          "name": "cover_url",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -653,6 +653,116 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.mobile_push_tokens": {
+      "name": "mobile_push_tokens",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "uuid": {
+          "name": "uuid",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "mobile_push_tokens_user_id_idx": {
+          "name": "mobile_push_tokens_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "mobile_push_tokens_user_id_user_id_fk": {
+          "name": "mobile_push_tokens_user_id_user_id_fk",
+          "tableFrom": "mobile_push_tokens",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "barbershops_id_unique": {
+          "name": "barbershops_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id"
+          ]
+        },
+        "barbershops_uuid_unique": {
+          "name": "barbershops_uuid_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uuid"
+          ]
+        },
+        "mobile_push_tokens_token_unique": {
+          "name": "mobile_push_tokens_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "token"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.notifications": {
       "name": "notifications",
       "schema": "",
@@ -684,6 +794,12 @@
           "notNull": true,
           "default": "now()"
         },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "type": {
           "name": "type",
           "type": "notification_type",
@@ -704,8 +820,14 @@
           "primaryKey": false,
           "notNull": true
         },
-        "user_id": {
-          "name": "user_id",
+        "sender_user_id": {
+          "name": "sender_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "receiver_user_id": {
+          "name": "receiver_user_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -713,12 +835,25 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "notifications_user_id_user_id_fk": {
-          "name": "notifications_user_id_user_id_fk",
+        "notifications_sender_user_id_user_id_fk": {
+          "name": "notifications_sender_user_id_user_id_fk",
           "tableFrom": "notifications",
           "tableTo": "user",
           "columnsFrom": [
-            "user_id"
+            "sender_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "notifications_receiver_user_id_user_id_fk": {
+          "name": "notifications_receiver_user_id_user_id_fk",
+          "tableFrom": "notifications",
+          "tableTo": "user",
+          "columnsFrom": [
+            "receiver_user_id"
           ],
           "columnsTo": [
             "id"
@@ -778,6 +913,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "appointment_id": {
           "name": "appointment_id",
@@ -896,6 +1037,13 @@
           "columns": [
             "uuid"
           ]
+        },
+        "payments_transactionId_unique": {
+          "name": "payments_transactionId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "transaction_id"
+          ]
         }
       },
       "policies": {},
@@ -932,6 +1080,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "rating": {
           "name": "rating",
@@ -1069,6 +1223,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "name": {
           "name": "name",

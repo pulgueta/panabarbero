@@ -17,6 +17,7 @@ export const {
   useActiveMember,
   useActiveOrganization,
   useListOrganizations,
+  organization,
   passkey,
   twoFactor,
   getSession,

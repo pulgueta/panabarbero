@@ -1,5 +1,6 @@
+import { auth } from "@panabarbero/auth";
+
 import { createBackendRouter } from "@/config";
-import { auth } from "@/config/auth";
 
 export const authRouter = createBackendRouter();
 

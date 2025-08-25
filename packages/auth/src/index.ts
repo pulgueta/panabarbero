@@ -32,8 +32,8 @@ export const auth = betterAuth({
     organization({
       ac,
       roles,
-      defaultRole: roles.customer,
-      creatorRole: "barber",
+      defaultRole: roles.barber,
+      creatorRole: "owner",
     }),
     twoFactor({
       issuer: APP_NAME,

@@ -16,11 +16,11 @@ export type Platform =
   | "facebook"
   | "twitter"
   | "youtube";
-
 export type MediaObject = {
   platform: Platform;
   url: string;
 };
+
 export type Day =
   | "monday"
   | "tuesday"
@@ -30,10 +30,13 @@ export type Day =
   | "saturday"
   | "sunday";
 export type AvailableDays = {
-  [key in Day]?: {
-    open: string;
-    close: string;
-  };
+  [key in Day]:
+    | {
+        open: string;
+        close: string;
+      }
+    | null
+    | undefined;
 };
 
 export const paymentStatus = pgEnum("payment_status", [
@@ -93,6 +96,7 @@ const commonRows = {
     .defaultNow()
     .notNull()
     .$onUpdateFn(() => new Date()),
+  deletedAt: timestamp({ mode: "date", withTimezone: true }),
 };
 
 export const barbershops = pgTable(
@@ -127,7 +131,7 @@ export const barbershops = pgTable(
     index("barbershops_city_state_idx").on(t.city, t.state),
     index("barbershops_organization_id_idx").on(t.organizationId),
     index("barbershops_spacial_idx").using("gist", t.coordinates),
-  ]
+  ],
 );
 
 export const barbershopsRelations = relations(barbershops, ({ one, many }) => ({
@@ -165,7 +169,7 @@ export const barbers = pgTable(
   (t) => [
     index("barbers_user_id_idx").on(t.userId),
     index("barbers_barbershop_id_idx").on(t.barbershopId),
-  ]
+  ],
 );
 
 export const barbersRelations = relations(barbers, ({ one, many }) => ({
@@ -197,10 +201,10 @@ export const services = pgTable(
   (t) => [
     index("name_vector_idx").using(
       "hnsw",
-      t.nameVector.op("vector_cosine_ops")
+      t.nameVector.op("vector_cosine_ops"),
     ),
     index("services_barbershop_id_idx").on(t.barbershopId),
-  ]
+  ],
 );
 
 export const servicesRelations = relations(services, ({ one }) => ({
@@ -228,7 +232,7 @@ export const reviews = pgTable(
   (t) => [
     index("reviews_user_id_idx").on(t.userId),
     index("reviews_barbershop_id_idx").on(t.barbershopId),
-  ]
+  ],
 );
 
 export const reviewsRelations = relations(reviews, ({ one }) => ({
@@ -274,7 +278,7 @@ export const appointments = pgTable(
     index("appointments_service_id_idx").on(t.serviceId),
     index("appointments_barber_id_idx").on(t.barberId),
     index("appointments_status_idx").on(t.status),
-  ]
+  ],
 );
 
 export const appointmentsRelations = relations(appointments, ({ one }) => ({
@@ -285,6 +289,10 @@ export const appointmentsRelations = relations(appointments, ({ one }) => ({
   barbershop: one(barbershops, {
     fields: [appointments.barbershopId],
     references: [barbershops.id],
+  }),
+  barber: one(barbers, {
+    fields: [appointments.barberId],
+    references: [barbers.id],
   }),
   service: one(services, {
     fields: [appointments.serviceId],
@@ -300,7 +308,7 @@ export const payments = pgTable(
       .text()
       .notNull()
       .references(() => appointments.id, { onDelete: "cascade" }),
-    transactionId: t.text().notNull(),
+    transactionId: t.text().notNull().unique(),
     paymentDate: t.timestamp({ mode: "date", withTimezone: true }).notNull(),
     amount: t.integer().notNull(),
     status: paymentStatus().notNull().default("pending"),
@@ -310,7 +318,7 @@ export const payments = pgTable(
     index("payments_appointment_id_idx").on(t.appointmentId),
     index("payments_status_idx").on(t.status),
     index("payments_method_idx").on(t.method),
-  ]
+  ],
 );
 
 export const paymentsRelations = relations(payments, ({ one }) => ({
@@ -325,17 +333,48 @@ export const notifications = pgTable("notifications", (t) => ({
   type: notificationType().notNull(),
   reason: notificationReason().notNull(),
   text: t.text().notNull(),
-  userId: t
+  senderUserId: t
+    .text()
+    .notNull()
+    .references(() => auth.user.id, { onDelete: "cascade" }),
+  receiverUserId: t
     .text()
     .notNull()
     .references(() => auth.user.id, { onDelete: "cascade" }),
 }));
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
-  user: one(auth.user, {
-    fields: [notifications.userId],
+  sender: one(auth.user, {
+    fields: [notifications.senderUserId],
+    references: [auth.user.id],
+  }),
+  receiver: one(auth.user, {
+    fields: [notifications.receiverUserId],
     references: [auth.user.id],
   }),
 }));
+
+export const mobilePushTokens = pgTable(
+  "mobile_push_tokens",
+  (t) => ({
+    ...commonRows,
+    userId: t
+      .text()
+      .notNull()
+      .references(() => auth.user.id, { onDelete: "cascade" }),
+    token: t.text().notNull().unique(),
+  }),
+  (t) => [index("mobile_push_tokens_user_id_idx").on(t.userId)],
+);
+
+export const mobilePushTokensRelations = relations(
+  mobilePushTokens,
+  ({ one }) => ({
+    user: one(auth.user, {
+      fields: [mobilePushTokens.userId],
+      references: [auth.user.id],
+    }),
+  }),
+);
 
 export * from "./auth-schema";

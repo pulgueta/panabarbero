@@ -3,6 +3,7 @@ import { createAccessControl } from "better-auth/plugins/access";
 const statements = {
   appointments: ["read", "create", "update", "delete"],
   barbershops: ["read", "create", "update", "delete"],
+  combos: ["read", "create", "update", "delete"],
 } as const;
 
 export type ForStatement = keyof typeof statements;
@@ -11,17 +12,15 @@ export type StatementActions = (typeof statements)[ForStatement];
 const ac = createAccessControl(statements);
 
 export const roles = {
-  customer: ac.newRole({
+  barber: ac.newRole({
     appointments: ["read", "create", "update"],
     barbershops: ["read"],
+    combos: ["read"],
   }),
-  barber: ac.newRole({
+  owner: ac.newRole({
     appointments: ["read", "create", "update", "delete"],
-    barbershops: ["read", "update"],
-  }),
-  admin: ac.newRole({
-    appointments: ["read", "create", "update", "delete"],
-    barbershops: ["read", "update", "delete"],
+    barbershops: ["read", "update", "delete", "create"],
+    combos: ["read", "create", "update", "delete"],
   }),
 } as const;
 

@@ -10,7 +10,6 @@ import pinoPretty from "pino-pretty";
 import type { AppBindings } from "@/config/types";
 import { env } from "@/env";
 import { notFound } from "@/middlewares/app";
-import { auth } from "@/config/auth";
 
 export function createBackendRouter() {
   return new OpenAPIHono<AppBindings>();
@@ -27,7 +26,7 @@ export function createBackend() {
       exposeHeaders: ["Content-Length", API_HEADER],
       credentials: true,
       maxAge: 600,
-    })
+    }),
   );
   app.use(prettyJSON());
   app.use(requestId());
@@ -37,25 +36,10 @@ export function createBackend() {
         {
           level: "debug",
         },
-        pinoPretty()
+        pinoPretty(),
       ),
-    })
+    }),
   );
-  app.use("*", async (c, next) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
-
-    if (!session) {
-      c.set("user", null);
-      c.set("session", null);
-
-      return next();
-    }
-
-    c.set("user", session.user);
-    c.set("session", session.session);
-
-    return next();
-  });
   app.notFound(notFound);
 
   return app;
