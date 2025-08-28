@@ -4,6 +4,7 @@ import {
   createUpdateSchema,
 } from "drizzle-zod";
 import type { output } from "zod";
+import { coerce, object, string, url } from "zod";
 
 import {
   appointments,
@@ -16,14 +17,31 @@ import {
   services,
 } from "../schema";
 
-export const createBarbershopSchema = createInsertSchema(barbershops).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  uuid: true,
-  isActive: true,
-  deletedAt: true,
+export const getByIdSchema = object({
+  id: string(),
 });
+
+export const querySchema = object({
+  page: coerce.number().default(1),
+  limit: coerce.number().default(10),
+});
+
+export const createdResourceSchema = object({
+  id: string(),
+});
+
+export const createBarbershopSchema = createInsertSchema(barbershops)
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+    uuid: true,
+    isActive: true,
+    deletedAt: true,
+  })
+  .extend({
+    logo: url().optional(),
+  });
 export const updateBarbershopSchema = createUpdateSchema(barbershops).omit({
   createdAt: true,
   updatedAt: true,

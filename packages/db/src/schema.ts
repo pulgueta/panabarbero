@@ -103,6 +103,7 @@ export const barbershops = pgTable(
   "barbershops",
   (t) => ({
     ...commonRows,
+    name: t.text().notNull(),
     description: t.text(),
     organizationId: t
       .text()
