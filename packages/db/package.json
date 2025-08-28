@@ -11,7 +11,10 @@
       "default": "./src/client.ts"
     },
     "./schema": {
-      "default": "./src/schema.ts"
+      "import": "./src/schema.ts"
+    },
+    "./schema/zod": {
+      "import": "./src/zod/index.ts"
     }
   },
   "license": "MIT",

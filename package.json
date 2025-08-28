@@ -2,9 +2,9 @@
   "name": "panabarbero",
   "private": true,
   "engines": {
-    "bun": ">=1.2.19"
+    "bun": ">=1.2.21"
   },
-  "packageManager": "bun@1.2.19",
+  "packageManager": "bun@1.2.21",
   "scripts": {
     "build": "turbo run build",
     "clean": "git clean -xdf node_modules",
@@ -15,15 +15,10 @@
     "dev": "turbo watch dev --continue",
     "lint": "biome lint --write --unsafe .",
     "format": "biome format --write .",
-    "changeset": "changeset",
-    "version-packages": "changeset version",
-    "changeset:autogenerate": "bun .changeset/changesets-autogenerate.mjs",
     "prepare": "husky"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.1.4",
-    "@changesets/changelog-github": "^0.5.1",
-    "@changesets/cli": "^2.29.5",
+    "@biomejs/biome": "^2.2.2",
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@commitlint/format": "^19.8.1",
@@ -32,11 +27,14 @@
     "conventional-changelog-atom": "^5.0.0",
     "husky": "^9.1.7",
     "semantic-release": "^24.2.7",
-    "turbo": "^2.5.5",
+    "turbo": "^2.5.6",
     "typescript": "^5.9.2"
   },
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^8.1.0"
+  }
 }

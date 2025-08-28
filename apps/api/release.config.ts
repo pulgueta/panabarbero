@@ -10,5 +10,6 @@ export default {
     "@semantic-release/github",
   ],
   repositoryUrl: "https://github.com/pulgueta/panabarbero",
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: Required by semantic-release
   tagFormat: "v${version}",
 } satisfies GlobalConfig;
