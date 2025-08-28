@@ -1,0 +1,30 @@
+services:
+  postgres:
+    image: postgres:17
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - panabarbero
+  redis:
+    image: bitnami/redis:8.2
+    ports:
+      - 6379:6379
+    command: redis-server --save 20 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    networks:
+      - panabarbero
+
+networks:
+  panabarbero:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

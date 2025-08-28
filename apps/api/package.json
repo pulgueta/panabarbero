@@ -7,12 +7,13 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "dev": "bun run --hot src/index.ts"
+    "dev": "bun run --hot src/index.ts",
+    "start": "bun run src/index.ts"
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.1.0",
-    "@panabarbero/auth": "*",
-    "@panabarbero/constants": "*",
+    "@panabarbero/auth": "workspace:*",
+    "@panabarbero/constants": "workspace:*",
     "@scalar/hono-api-reference": "^0.9.13",
     "@t3-oss/env-core": "^0.13.8",
     "hono": "^4.9.1",
