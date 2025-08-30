@@ -19,16 +19,12 @@ FROM oven/bun:${BUN_VERSION} AS runner
 
 WORKDIR /app
 
-RUN addgroup -S bun && adduser -S bun -G bun -u 10001
+COPY apps/api ./apps/api
+COPY packages ./packages
 
-COPY --chown=bun:bun apps/api ./apps/api
-COPY --chown=bun:bun packages ./packages
-
-COPY --chown=bun:bun --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/node_modules ./node_modules
 
 WORKDIR /app/apps/api
-
-USER bun
 
 EXPOSE 3000
 
