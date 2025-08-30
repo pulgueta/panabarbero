@@ -9,3 +9,13 @@ export const idParamsSchema = object({
     },
   }),
 });
+
+export const idQuerySchema = object({
+  id: string().openapi({
+    param: {
+      name: "id",
+      in: "query",
+      description: "The id of the resource",
+    },
+  }),
+});

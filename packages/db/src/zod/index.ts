@@ -37,7 +37,6 @@ export const createBarbershopSchema = createInsertSchema(barbershops)
     createdAt: true,
     updatedAt: true,
     uuid: true,
-    isActive: true,
   })
   .extend({
     logo: url().optional(),
@@ -47,7 +46,6 @@ export const updateBarbershopSchema = createUpdateSchema(barbershops).omit({
   createdAt: true,
   updatedAt: true,
   uuid: true,
-  isActive: true,
 });
 
 export const barbershopSchema = createSelectSchema(barbershops);
@@ -70,14 +68,12 @@ export const createBarberSchema = createInsertSchema(barbers).omit({
   createdAt: true,
   updatedAt: true,
   uuid: true,
-  isActive: true,
 });
 export const updateBarberSchema = createUpdateSchema(barbers).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
   uuid: true,
-  isActive: true,
 });
 
 export const barberSchema = createSelectSchema(barbers);
@@ -91,13 +87,11 @@ export const createAppointmentSchema = createInsertSchema(appointments).omit({
   createdAt: true,
   updatedAt: true,
   uuid: true,
-  isActive: true,
 });
 export const updateAppointmentSchema = createUpdateSchema(appointments).omit({
   createdAt: true,
   updatedAt: true,
   uuid: true,
-  isActive: true,
 });
 
 export const appointmentSchema = createSelectSchema(appointments);
@@ -113,7 +107,6 @@ export const createMobilePushTokenSchema = createInsertSchema(
   createdAt: true,
   updatedAt: true,
   uuid: true,
-  isActive: true,
 });
 export const updateMobilePushTokenSchema = createUpdateSchema(
   mobilePushTokens,
@@ -122,7 +115,6 @@ export const updateMobilePushTokenSchema = createUpdateSchema(
   createdAt: true,
   updatedAt: true,
   uuid: true,
-  isActive: true,
 });
 
 export const mobilePushTokenSchema = createSelectSchema(mobilePushTokens);
@@ -136,14 +128,12 @@ export const createReviewSchema = createInsertSchema(reviews).omit({
   createdAt: true,
   updatedAt: true,
   uuid: true,
-  isActive: true,
 });
 export const updateReviewSchema = createUpdateSchema(reviews).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
   uuid: true,
-  isActive: true,
 });
 
 export const reviewSchema = createSelectSchema(reviews);
@@ -157,14 +147,12 @@ export const createServiceSchema = createInsertSchema(services).omit({
   createdAt: true,
   updatedAt: true,
   uuid: true,
-  isActive: true,
 });
 export const updateServiceSchema = createUpdateSchema(services).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
   uuid: true,
-  isActive: true,
 });
 
 export const serviceSchema = createSelectSchema(services);
@@ -178,14 +166,12 @@ export const createPaymentSchema = createInsertSchema(payments).omit({
   createdAt: true,
   updatedAt: true,
   uuid: true,
-  isActive: true,
 });
 export const updatePaymentSchema = createUpdateSchema(payments).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
   uuid: true,
-  isActive: true,
 });
 
 export const paymentSchema = createSelectSchema(payments);
@@ -199,14 +185,12 @@ export const createNotificationSchema = createInsertSchema(notifications).omit({
   createdAt: true,
   updatedAt: true,
   uuid: true,
-  isActive: true,
 });
 export const updateNotificationSchema = createUpdateSchema(notifications).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
   uuid: true,
-  isActive: true,
 });
 
 export const notificationSchema = createSelectSchema(notifications);

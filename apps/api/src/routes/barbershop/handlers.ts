@@ -3,7 +3,7 @@ import { api } from "@panabarbero/constants";
 import { eq } from "@panabarbero/db";
 import { db } from "@panabarbero/db/client";
 import { barbershops } from "@panabarbero/db/schema";
-import { barbershopSchema } from "@panabarbero/db/schema/zod";
+import { barbershopWithOrganizationSchema } from "@panabarbero/db/schema/zod";
 import { array } from "zod";
 
 import type { ApiHandler } from "@/config/types";
@@ -67,23 +67,27 @@ export const createBarbershop: ApiHandler<CreateBarbershopRoute> = async (
 export const getBarbershops: ApiHandler<GetBarbershopsRoute> = async (c) => {
   const cachedBarbershops = await getCacheFromKey(
     api.CACHE_KEYS.BARBERSHOP,
-    array(barbershopSchema),
+    array(barbershopWithOrganizationSchema),
   );
 
   if (cachedBarbershops) {
     return c.json(cachedBarbershops, api.STATUS_CODES.OK);
   }
 
-  const barbershops = await db.query.barbershops.findMany();
+  const barbershopsWithOrganization = await db.query.barbershops.findMany({
+    with: {
+      organization: true,
+    },
+  });
 
-  if (!barbershops) {
+  if (!barbershopsWithOrganization) {
     return c.json(
       { message: "Barbershops not found" },
       api.STATUS_CODES.NOT_FOUND,
     );
   }
 
-  return c.json(barbershops, api.STATUS_CODES.OK);
+  return c.json(barbershopsWithOrganization, api.STATUS_CODES.OK);
 };
 
 export const getBarbershop: ApiHandler<GetBarbershopRoute> = async (c) => {
@@ -106,7 +110,7 @@ export const getBarbershop: ApiHandler<GetBarbershopRoute> = async (c) => {
 export const updateBarbershop: ApiHandler<UpdateBarbershopRoute> = async (
   c,
 ) => {
-  const { id } = c.req.valid("param");
+  const { id } = c.req.valid("query");
   const jsonBarbershop = c.req.valid("json");
 
   const updatedBarbershop = await db
@@ -131,7 +135,7 @@ export const updateBarbershop: ApiHandler<UpdateBarbershopRoute> = async (
 export const deleteBarbershop: ApiHandler<DeleteBarbershopRoute> = async (
   c,
 ) => {
-  const { id } = c.req.valid("param");
+  const { id } = c.req.valid("query");
 
   const barbershop = await db.query.barbershops.findFirst({
     where: (table, { eq }) => eq(table.id, id),

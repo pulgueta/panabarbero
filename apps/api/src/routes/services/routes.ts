@@ -1,115 +1,101 @@
 import { createRoute } from "@hono/zod-openapi";
 import { api } from "@panabarbero/constants";
 import {
-  barbershopSchema,
-  barbershopWithOrganizationSchema,
-  createBarbershopSchema,
   createdResourceSchema,
-  updateBarbershopSchema,
+  createServiceSchema,
+  serviceSchema,
+  updateServiceSchema,
 } from "@panabarbero/db/schema/zod";
-import { array } from "zod";
 
 import { jsonContent, requiredJsonContent } from "@/utils/parsers/json";
 import { createErrorSchema, defaultResponse } from "@/utils/responses";
 import { idParamsSchema, idQuerySchema } from "@/utils/schemas";
 
-export const createBarbershop = createRoute({
+export const createService = createRoute({
   method: "post",
-  path: "/barbershops",
+  path: "/services",
   request: {
-    body: requiredJsonContent(
-      createBarbershopSchema,
-      "The barbershop to create",
-    ),
+    body: requiredJsonContent(createServiceSchema, "The service to create"),
   },
   responses: {
     [api.STATUS_CODES.CREATED]: jsonContent(
       createdResourceSchema,
-      "Barbershop created",
+      "Service created",
     ),
     [api.STATUS_CODES.BAD_REQUEST]: createErrorSchema(
-      createBarbershopSchema,
-      "The barbershop is not valid",
+      createServiceSchema,
+      "The service is not valid",
     ),
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
     [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
-      createBarbershopSchema,
+      createServiceSchema,
       "Validation error",
     ),
   },
 });
 
-export const getBarbershops = createRoute({
+export const getServices = createRoute({
   method: "get",
-  path: "/barbershops",
+  path: "/services",
   responses: {
     [api.STATUS_CODES.OK]: jsonContent(
-      array(barbershopWithOrganizationSchema),
-      "The existing barbershops",
+      serviceSchema.array(),
+      "The existing services",
     ),
-    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Barbershops not found"),
+    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Services not found"),
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
   },
 });
 
-export const updateBarbershop = createRoute({
+export const updateService = createRoute({
   method: "put",
-  path: "/barbershops",
+  path: "/services",
   request: {
     query: idQuerySchema,
-    body: requiredJsonContent(
-      updateBarbershopSchema,
-      "The barbershop to update",
-    ),
+    body: requiredJsonContent(updateServiceSchema, "The service to update"),
   },
   responses: {
-    [api.STATUS_CODES.OK]: jsonContent(
-      barbershopSchema,
-      "The updated barbershop",
-    ),
-    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Barbershop not found"),
+    [api.STATUS_CODES.OK]: jsonContent(serviceSchema, "The updated service"),
+    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Service not found"),
     [api.STATUS_CODES.BAD_REQUEST]: createErrorSchema(
-      updateBarbershopSchema,
-      "The barbershop is not valid",
+      updateServiceSchema,
+      "The service is not valid",
     ),
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
     [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
-      updateBarbershopSchema,
+      updateServiceSchema,
       "Validation error",
     ),
   },
 });
 
-export const deleteBarbershop = createRoute({
+export const deleteService = createRoute({
   method: "delete",
-  path: "/barbershops",
+  path: "/services",
   request: {
     query: idQuerySchema,
-    body: requiredJsonContent(barbershopSchema, "The barbershop to update"),
+    body: requiredJsonContent(serviceSchema, "The service to update"),
   },
   responses: {
-    [api.STATUS_CODES.OK]: jsonContent(
-      barbershopSchema,
-      "The deleted barbershop",
-    ),
-    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Barbershop not found"),
+    [api.STATUS_CODES.OK]: jsonContent(serviceSchema, "The deleted service"),
+    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Service not found"),
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
   },
 });
 
-export const getBarbershop = createRoute({
+export const getService = createRoute({
   method: "get",
-  path: "/barbershops/{id}",
+  path: "/services/{id}",
   request: {
     params: idParamsSchema,
   },
   responses: {
-    [api.STATUS_CODES.OK]: jsonContent(barbershopSchema, "The barbershop"),
-    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Barbershop not found"),
+    [api.STATUS_CODES.OK]: jsonContent(serviceSchema, "The service"),
+    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Service not found"),
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
     [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
@@ -119,8 +105,8 @@ export const getBarbershop = createRoute({
   },
 });
 
-export type CreateBarbershopRoute = typeof createBarbershop;
-export type GetBarbershopsRoute = typeof getBarbershops;
-export type UpdateBarbershopRoute = typeof updateBarbershop;
-export type DeleteBarbershopRoute = typeof deleteBarbershop;
-export type GetBarbershopRoute = typeof getBarbershop;
+export type CreateServiceRoute = typeof createService;
+export type GetServicesRoute = typeof getServices;
+export type UpdateServiceRoute = typeof updateService;
+export type DeleteServiceRoute = typeof deleteService;
+export type GetServiceRoute = typeof getService;

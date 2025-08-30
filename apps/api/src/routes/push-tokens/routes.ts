@@ -1,115 +1,127 @@
 import { createRoute } from "@hono/zod-openapi";
 import { api } from "@panabarbero/constants";
 import {
-  barbershopSchema,
-  barbershopWithOrganizationSchema,
-  createBarbershopSchema,
   createdResourceSchema,
-  updateBarbershopSchema,
+  createMobilePushTokenSchema,
+  mobilePushTokenSchema,
+  updateMobilePushTokenSchema,
 } from "@panabarbero/db/schema/zod";
-import { array } from "zod";
 
 import { jsonContent, requiredJsonContent } from "@/utils/parsers/json";
 import { createErrorSchema, defaultResponse } from "@/utils/responses";
 import { idParamsSchema, idQuerySchema } from "@/utils/schemas";
 
-export const createBarbershop = createRoute({
+export const createMobilePushToken = createRoute({
   method: "post",
-  path: "/barbershops",
+  path: "/push-tokens",
   request: {
     body: requiredJsonContent(
-      createBarbershopSchema,
-      "The barbershop to create",
+      createMobilePushTokenSchema,
+      "The mobile push token to create",
     ),
   },
   responses: {
     [api.STATUS_CODES.CREATED]: jsonContent(
       createdResourceSchema,
-      "Barbershop created",
+      "Mobile push token created",
     ),
     [api.STATUS_CODES.BAD_REQUEST]: createErrorSchema(
-      createBarbershopSchema,
-      "The barbershop is not valid",
+      createMobilePushTokenSchema,
+      "The mobile push token is not valid",
     ),
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
     [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
-      createBarbershopSchema,
+      createMobilePushTokenSchema,
       "Validation error",
     ),
   },
 });
 
-export const getBarbershops = createRoute({
+export const getMobilePushTokens = createRoute({
   method: "get",
-  path: "/barbershops",
+  path: "/push-tokens",
   responses: {
     [api.STATUS_CODES.OK]: jsonContent(
-      array(barbershopWithOrganizationSchema),
-      "The existing barbershops",
+      mobilePushTokenSchema.array(),
+      "The existing mobile push tokens",
     ),
-    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Barbershops not found"),
+    [api.STATUS_CODES.NOT_FOUND]: defaultResponse(
+      "Mobile push tokens not found",
+    ),
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
   },
 });
 
-export const updateBarbershop = createRoute({
+export const updateMobilePushToken = createRoute({
   method: "put",
-  path: "/barbershops",
+  path: "/push-tokens",
   request: {
     query: idQuerySchema,
     body: requiredJsonContent(
-      updateBarbershopSchema,
-      "The barbershop to update",
+      updateMobilePushTokenSchema,
+      "The mobile push token to update",
     ),
   },
   responses: {
     [api.STATUS_CODES.OK]: jsonContent(
-      barbershopSchema,
-      "The updated barbershop",
+      mobilePushTokenSchema,
+      "The updated mobile push token",
     ),
-    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Barbershop not found"),
+    [api.STATUS_CODES.NOT_FOUND]: defaultResponse(
+      "Mobile push token not found",
+    ),
     [api.STATUS_CODES.BAD_REQUEST]: createErrorSchema(
-      updateBarbershopSchema,
-      "The barbershop is not valid",
+      updateMobilePushTokenSchema,
+      "The mobile push token is not valid",
     ),
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
     [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
-      updateBarbershopSchema,
+      updateMobilePushTokenSchema,
       "Validation error",
     ),
   },
 });
 
-export const deleteBarbershop = createRoute({
+export const deleteMobilePushToken = createRoute({
   method: "delete",
-  path: "/barbershops",
+  path: "/push-tokens",
   request: {
     query: idQuerySchema,
-    body: requiredJsonContent(barbershopSchema, "The barbershop to update"),
+    body: requiredJsonContent(
+      mobilePushTokenSchema,
+      "The mobile push token to update",
+    ),
   },
   responses: {
     [api.STATUS_CODES.OK]: jsonContent(
-      barbershopSchema,
-      "The deleted barbershop",
+      mobilePushTokenSchema,
+      "The deleted mobile push token",
     ),
-    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Barbershop not found"),
+    [api.STATUS_CODES.NOT_FOUND]: defaultResponse(
+      "Mobile push token not found",
+    ),
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
   },
 });
 
-export const getBarbershop = createRoute({
+export const getMobilePushToken = createRoute({
   method: "get",
-  path: "/barbershops/{id}",
+  path: "/push-tokens/{id}",
   request: {
     params: idParamsSchema,
   },
   responses: {
-    [api.STATUS_CODES.OK]: jsonContent(barbershopSchema, "The barbershop"),
-    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Barbershop not found"),
+    [api.STATUS_CODES.OK]: jsonContent(
+      mobilePushTokenSchema,
+      "The mobile push token",
+    ),
+    [api.STATUS_CODES.NOT_FOUND]: defaultResponse(
+      "Mobile push token not found",
+    ),
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
     [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
@@ -119,8 +131,8 @@ export const getBarbershop = createRoute({
   },
 });
 
-export type CreateBarbershopRoute = typeof createBarbershop;
-export type GetBarbershopsRoute = typeof getBarbershops;
-export type UpdateBarbershopRoute = typeof updateBarbershop;
-export type DeleteBarbershopRoute = typeof deleteBarbershop;
-export type GetBarbershopRoute = typeof getBarbershop;
+export type CreateMobilePushTokenRoute = typeof createMobilePushToken;
+export type GetMobilePushTokensRoute = typeof getMobilePushTokens;
+export type UpdateMobilePushTokenRoute = typeof updateMobilePushToken;
+export type DeleteMobilePushTokenRoute = typeof deleteMobilePushToken;
+export type GetMobilePushTokenRoute = typeof getMobilePushToken;
