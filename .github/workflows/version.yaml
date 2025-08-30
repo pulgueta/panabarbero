@@ -2,6 +2,7 @@ name: Version apps
 
 on:
   workflow_dispatch:
+  workflow_call:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -28,4 +29,4 @@ jobs:
 
       - name: Generate semantic release version
         working-directory: ${{ matrix.version_apps }}
-        run: bun semantic-release
+        run: bunx semantic-release
