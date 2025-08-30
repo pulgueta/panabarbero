@@ -10,6 +10,11 @@ concurrency:
 
 jobs:
   version:
+    permissions:
+      contents: write
+      packages: write
+      pull-requests: write
+      actions: write
     uses: ./.github/workflows/version.yaml
   migrations:
     uses: ./.github/workflows/migrations.yaml
