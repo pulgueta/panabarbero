@@ -21,11 +21,14 @@ WORKDIR /app
 
 COPY apps/api ./apps/api
 COPY packages ./packages
-
+COPY --from=deps /app/package.json ./
+COPY --from=deps /app/bun.lock ./
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/turbo.json ./turbo.json
 
-WORKDIR /app/apps/api
+
+WORKDIR /app
 
 EXPOSE 3000
 
-CMD ["bun", "run", "src/index.ts"]
+CMD ["bun", "run", "start"]

@@ -15,5 +15,7 @@ dist
 biome.json
 commitlint.config.ts
 README.md
+CHANGELOG.md
+release.config.ts
 apps/mobile
 packages/client
