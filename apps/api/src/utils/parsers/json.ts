@@ -2,7 +2,7 @@ import {
   OpenAPIRegistry,
   OpenApiGeneratorV3,
 } from "@asteasolutions/zod-to-openapi";
-import type { ZodError, ZodType } from "zod";
+import type { ZodType } from "zod";
 import { array, object, string } from "zod";
 
 export function jsonContent<T extends ZodType>(schema: T, description: string) {
@@ -52,11 +52,3 @@ export const errorResponseSchema = object({
     }),
   ),
 });
-
-export function badRequestFromSchema() {
-  return jsonContent(errorResponseSchema, "Validation error");
-}
-
-export function formatZodError(error: ZodError) {
-  return errorResponseSchema.parse(error);
-}

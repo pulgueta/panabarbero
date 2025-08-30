@@ -13,6 +13,6 @@ for (const route of routes) {
   app.route("/", route);
 }
 
-export type AppBackend = typeof routes;
+export type AppBackend = (typeof routes)[number];
 
 export default app;

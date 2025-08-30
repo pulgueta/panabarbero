@@ -1,5 +1,5 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { API_HEADER } from "@panabarbero/constants";
+import { api } from "@panabarbero/constants";
 import { logger } from "hono-pino";
 import { cors } from "hono/cors";
 import { prettyJSON } from "hono/pretty-json";
@@ -9,10 +9,12 @@ import pinoPretty from "pino-pretty";
 
 import type { AppBindings } from "@/config/types";
 import { env } from "@/env";
-import { notFound } from "@/middlewares/app";
+import { defaultHookHandler, notFound } from "@/middlewares/app";
 
 export function createBackendRouter() {
-  return new OpenAPIHono<AppBindings>();
+  return new OpenAPIHono<AppBindings>({
+    defaultHook: defaultHookHandler,
+  });
 }
 
 export function createBackend() {
@@ -23,7 +25,7 @@ export function createBackend() {
       origin: [env.APP_URL],
       allowHeaders: ["Content-Type", "Authorization"],
       allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      exposeHeaders: ["Content-Length", API_HEADER],
+      exposeHeaders: ["Content-Length", api.API_HEADER],
       credentials: true,
       maxAge: 600,
     }),

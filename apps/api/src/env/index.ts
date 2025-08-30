@@ -8,6 +8,7 @@ export const env = createEnv({
     API_USERNAME: string().min(1),
     API_PASSWORD: string().min(1),
     API_URL: url(),
+    REDIS_URL: url().startsWith("redis://"),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
