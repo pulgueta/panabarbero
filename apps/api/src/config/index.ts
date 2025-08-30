@@ -1,11 +1,8 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { api } from "@panabarbero/constants";
-import { logger } from "hono-pino";
 import { cors } from "hono/cors";
 import { prettyJSON } from "hono/pretty-json";
 import { requestId } from "hono/request-id";
-import pino from "pino";
-import pinoPretty from "pino-pretty";
 
 import type { AppBindings } from "@/config/types";
 import { env } from "@/env";
@@ -32,16 +29,7 @@ export function createBackend() {
   );
   app.use(prettyJSON());
   app.use(requestId());
-  app.use(
-    logger({
-      pino: pino(
-        {
-          level: "debug",
-        },
-        pinoPretty(),
-      ),
-    }),
-  );
+
   app.notFound(notFound);
 
   return app;

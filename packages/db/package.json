@@ -19,7 +19,6 @@
   },
   "license": "MIT",
   "scripts": {
-    "build": "tsc",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "generate": "drizzle-kit generate",
     "migrate": "drizzle-kit migrate",
