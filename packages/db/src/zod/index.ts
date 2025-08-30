@@ -6,6 +6,7 @@ import {
 import type { output } from "zod";
 import { coerce, object, string, url } from "zod";
 
+import * as auth from "../auth-schema";
 import {
   appointments,
   barbers,
@@ -37,24 +38,32 @@ export const createBarbershopSchema = createInsertSchema(barbershops)
     updatedAt: true,
     uuid: true,
     isActive: true,
-    deletedAt: true,
   })
   .extend({
     logo: url().optional(),
   });
 export const updateBarbershopSchema = createUpdateSchema(barbershops).omit({
+  id: true,
   createdAt: true,
   updatedAt: true,
   uuid: true,
   isActive: true,
-  deletedAt: true,
 });
 
 export const barbershopSchema = createSelectSchema(barbershops);
 
+export const barbershopWithOrganizationSchema = createSelectSchema(
+  barbershops,
+).extend({
+  organization: createSelectSchema(auth.organization),
+});
+
 export type CreateBarbershop = output<typeof createBarbershopSchema>;
 export type UpdateBarbershop = output<typeof updateBarbershopSchema>;
 export type Barbershop = output<typeof barbershopSchema>;
+export type BarbershopWithOrganization = output<
+  typeof barbershopWithOrganizationSchema
+>;
 
 export const createBarberSchema = createInsertSchema(barbers).omit({
   id: true,
@@ -62,14 +71,13 @@ export const createBarberSchema = createInsertSchema(barbers).omit({
   updatedAt: true,
   uuid: true,
   isActive: true,
-  deletedAt: true,
 });
 export const updateBarberSchema = createUpdateSchema(barbers).omit({
+  id: true,
   createdAt: true,
   updatedAt: true,
   uuid: true,
   isActive: true,
-  deletedAt: true,
 });
 
 export const barberSchema = createSelectSchema(barbers);
@@ -84,14 +92,12 @@ export const createAppointmentSchema = createInsertSchema(appointments).omit({
   updatedAt: true,
   uuid: true,
   isActive: true,
-  deletedAt: true,
 });
 export const updateAppointmentSchema = createUpdateSchema(appointments).omit({
   createdAt: true,
   updatedAt: true,
   uuid: true,
   isActive: true,
-  deletedAt: true,
 });
 
 export const appointmentSchema = createSelectSchema(appointments);
@@ -108,16 +114,15 @@ export const createMobilePushTokenSchema = createInsertSchema(
   updatedAt: true,
   uuid: true,
   isActive: true,
-  deletedAt: true,
 });
 export const updateMobilePushTokenSchema = createUpdateSchema(
   mobilePushTokens,
 ).omit({
+  id: true,
   createdAt: true,
   updatedAt: true,
   uuid: true,
   isActive: true,
-  deletedAt: true,
 });
 
 export const mobilePushTokenSchema = createSelectSchema(mobilePushTokens);
@@ -132,14 +137,13 @@ export const createReviewSchema = createInsertSchema(reviews).omit({
   updatedAt: true,
   uuid: true,
   isActive: true,
-  deletedAt: true,
 });
 export const updateReviewSchema = createUpdateSchema(reviews).omit({
+  id: true,
   createdAt: true,
   updatedAt: true,
   uuid: true,
   isActive: true,
-  deletedAt: true,
 });
 
 export const reviewSchema = createSelectSchema(reviews);
@@ -154,14 +158,13 @@ export const createServiceSchema = createInsertSchema(services).omit({
   updatedAt: true,
   uuid: true,
   isActive: true,
-  deletedAt: true,
 });
 export const updateServiceSchema = createUpdateSchema(services).omit({
+  id: true,
   createdAt: true,
   updatedAt: true,
   uuid: true,
   isActive: true,
-  deletedAt: true,
 });
 
 export const serviceSchema = createSelectSchema(services);
@@ -176,14 +179,13 @@ export const createPaymentSchema = createInsertSchema(payments).omit({
   updatedAt: true,
   uuid: true,
   isActive: true,
-  deletedAt: true,
 });
 export const updatePaymentSchema = createUpdateSchema(payments).omit({
+  id: true,
   createdAt: true,
   updatedAt: true,
   uuid: true,
   isActive: true,
-  deletedAt: true,
 });
 
 export const paymentSchema = createSelectSchema(payments);
@@ -198,14 +200,13 @@ export const createNotificationSchema = createInsertSchema(notifications).omit({
   updatedAt: true,
   uuid: true,
   isActive: true,
-  deletedAt: true,
 });
 export const updateNotificationSchema = createUpdateSchema(notifications).omit({
+  id: true,
   createdAt: true,
   updatedAt: true,
   uuid: true,
   isActive: true,
-  deletedAt: true,
 });
 
 export const notificationSchema = createSelectSchema(notifications);

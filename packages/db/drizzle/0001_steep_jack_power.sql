@@ -9,7 +9,6 @@ CREATE TABLE "appointments" (
 	"uuid" uuid DEFAULT gen_random_uuid() NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"deleted_at" timestamp with time zone,
 	"user_id" text NOT NULL,
 	"barbershop_id" text NOT NULL,
 	"service_id" text NOT NULL,
@@ -18,9 +17,7 @@ CREATE TABLE "appointments" (
 	"start_at" timestamp with time zone NOT NULL,
 	"end_at" timestamp with time zone NOT NULL,
 	"status" "appointment_status" DEFAULT 'pending' NOT NULL,
-	"notes" text,
-	CONSTRAINT "barbershops_id_unique" UNIQUE("id"),
-	CONSTRAINT "barbershops_uuid_unique" UNIQUE("uuid")
+	"notes" text
 );
 --> statement-breakpoint
 CREATE TABLE "barbers" (
@@ -28,12 +25,9 @@ CREATE TABLE "barbers" (
 	"uuid" uuid DEFAULT gen_random_uuid() NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"deleted_at" timestamp with time zone,
 	"user_id" text NOT NULL,
 	"member_id" text NOT NULL,
-	"barbershop_id" text NOT NULL,
-	CONSTRAINT "barbershops_id_unique" UNIQUE("id"),
-	CONSTRAINT "barbershops_uuid_unique" UNIQUE("uuid")
+	"barbershop_id" text NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "barbershops" (
@@ -41,11 +35,11 @@ CREATE TABLE "barbershops" (
 	"uuid" uuid DEFAULT gen_random_uuid() NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"deleted_at" timestamp with time zone,
+	"name" text NOT NULL,
 	"description" text,
 	"organization_id" text NOT NULL,
 	"address" text NOT NULL,
-	"coordinates" geometry(point),
+	"coordinates" "extensions"."geometry"(point),
 	"contact_phone" text,
 	"social_media" jsonb,
 	"is_active" boolean DEFAULT false NOT NULL,
@@ -57,9 +51,7 @@ CREATE TABLE "barbershops" (
 	"zip_code" text,
 	"banner_url" text,
 	"contact_email" text,
-	"website_url" text,
-	CONSTRAINT "barbershops_id_unique" UNIQUE("id"),
-	CONSTRAINT "barbershops_uuid_unique" UNIQUE("uuid")
+	"website_url" text
 );
 --> statement-breakpoint
 CREATE TABLE "mobile_push_tokens" (
@@ -67,11 +59,8 @@ CREATE TABLE "mobile_push_tokens" (
 	"uuid" uuid DEFAULT gen_random_uuid() NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"deleted_at" timestamp with time zone,
 	"user_id" text NOT NULL,
 	"token" text NOT NULL,
-	CONSTRAINT "barbershops_id_unique" UNIQUE("id"),
-	CONSTRAINT "barbershops_uuid_unique" UNIQUE("uuid"),
 	CONSTRAINT "mobile_push_tokens_token_unique" UNIQUE("token")
 );
 --> statement-breakpoint
@@ -80,14 +69,11 @@ CREATE TABLE "notifications" (
 	"uuid" uuid DEFAULT gen_random_uuid() NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"deleted_at" timestamp with time zone,
 	"type" "notification_type" NOT NULL,
 	"reason" "notification_reason" NOT NULL,
 	"text" text NOT NULL,
 	"sender_user_id" text NOT NULL,
-	"receiver_user_id" text NOT NULL,
-	CONSTRAINT "barbershops_id_unique" UNIQUE("id"),
-	CONSTRAINT "barbershops_uuid_unique" UNIQUE("uuid")
+	"receiver_user_id" text NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "payments" (
@@ -95,15 +81,12 @@ CREATE TABLE "payments" (
 	"uuid" uuid DEFAULT gen_random_uuid() NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"deleted_at" timestamp with time zone,
 	"appointment_id" text NOT NULL,
 	"transaction_id" text NOT NULL,
 	"payment_date" timestamp with time zone NOT NULL,
 	"amount" integer NOT NULL,
 	"status" "payment_status" DEFAULT 'pending' NOT NULL,
 	"method" "payment_method" NOT NULL,
-	CONSTRAINT "barbershops_id_unique" UNIQUE("id"),
-	CONSTRAINT "barbershops_uuid_unique" UNIQUE("uuid"),
 	CONSTRAINT "payments_transactionId_unique" UNIQUE("transaction_id")
 );
 --> statement-breakpoint
@@ -112,13 +95,10 @@ CREATE TABLE "reviews" (
 	"uuid" uuid DEFAULT gen_random_uuid() NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"deleted_at" timestamp with time zone,
 	"rating" integer NOT NULL,
 	"comment" text,
 	"user_id" text NOT NULL,
-	"barbershop_id" text NOT NULL,
-	CONSTRAINT "barbershops_id_unique" UNIQUE("id"),
-	CONSTRAINT "barbershops_uuid_unique" UNIQUE("uuid")
+	"barbershop_id" text NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "services" (
@@ -126,15 +106,12 @@ CREATE TABLE "services" (
 	"uuid" uuid DEFAULT gen_random_uuid() NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"deleted_at" timestamp with time zone,
 	"name" text NOT NULL,
 	"description" text,
 	"price" integer NOT NULL,
 	"duration" integer,
-	"name_vector" vector(1536),
-	"barbershop_id" text NOT NULL,
-	CONSTRAINT "barbershops_id_unique" UNIQUE("id"),
-	CONSTRAINT "barbershops_uuid_unique" UNIQUE("uuid")
+	"name_vector" "extensions"."vector"(1536),
+	"barbershop_id" text NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "account" (
@@ -265,17 +242,34 @@ CREATE INDEX "appointments_barbershop_id_idx" ON "appointments" USING btree ("ba
 CREATE INDEX "appointments_service_id_idx" ON "appointments" USING btree ("service_id");--> statement-breakpoint
 CREATE INDEX "appointments_barber_id_idx" ON "appointments" USING btree ("barber_id");--> statement-breakpoint
 CREATE INDEX "appointments_status_idx" ON "appointments" USING btree ("status");--> statement-breakpoint
+CREATE UNIQUE INDEX "appointments_uuid_unique" ON "appointments" USING btree ("uuid");--> statement-breakpoint
+CREATE UNIQUE INDEX "appointments_id_unique" ON "appointments" USING btree ("id");--> statement-breakpoint
 CREATE INDEX "barbers_user_id_idx" ON "barbers" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "barbers_barbershop_id_idx" ON "barbers" USING btree ("barbershop_id");--> statement-breakpoint
+CREATE INDEX "barbers_member_id_idx" ON "barbers" USING btree ("member_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "barbers_uuid_unique" ON "barbers" USING btree ("uuid");--> statement-breakpoint
+CREATE UNIQUE INDEX "barbers_id_unique" ON "barbers" USING btree ("id");--> statement-breakpoint
 CREATE INDEX "barbershops_owner_id_idx" ON "barbershops" USING btree ("owner_id");--> statement-breakpoint
 CREATE INDEX "barbershops_city_state_idx" ON "barbershops" USING btree ("city","state");--> statement-breakpoint
 CREATE INDEX "barbershops_organization_id_idx" ON "barbershops" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "barbershops_spacial_idx" ON "barbershops" USING gist ("coordinates");--> statement-breakpoint
+CREATE UNIQUE INDEX "barbershops_uuid_unique" ON "barbershops" USING btree ("uuid");--> statement-breakpoint
+CREATE UNIQUE INDEX "barbershops_id_unique" ON "barbershops" USING btree ("id");--> statement-breakpoint
 CREATE INDEX "mobile_push_tokens_user_id_idx" ON "mobile_push_tokens" USING btree ("user_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "mobile_push_tokens_uuid_unique" ON "mobile_push_tokens" USING btree ("uuid");--> statement-breakpoint
+CREATE UNIQUE INDEX "mobile_push_tokens_id_unique" ON "mobile_push_tokens" USING btree ("id");--> statement-breakpoint
+CREATE UNIQUE INDEX "notifications_uuid_unique" ON "notifications" USING btree ("uuid");--> statement-breakpoint
+CREATE UNIQUE INDEX "notifications_id_unique" ON "notifications" USING btree ("id");--> statement-breakpoint
 CREATE INDEX "payments_appointment_id_idx" ON "payments" USING btree ("appointment_id");--> statement-breakpoint
 CREATE INDEX "payments_status_idx" ON "payments" USING btree ("status");--> statement-breakpoint
 CREATE INDEX "payments_method_idx" ON "payments" USING btree ("method");--> statement-breakpoint
+CREATE UNIQUE INDEX "payments_uuid_unique" ON "payments" USING btree ("uuid");--> statement-breakpoint
+CREATE UNIQUE INDEX "payments_id_unique" ON "payments" USING btree ("id");--> statement-breakpoint
 CREATE INDEX "reviews_user_id_idx" ON "reviews" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "reviews_barbershop_id_idx" ON "reviews" USING btree ("barbershop_id");--> statement-breakpoint
-CREATE INDEX "name_vector_idx" ON "services" USING hnsw ("name_vector" vector_cosine_ops);--> statement-breakpoint
-CREATE INDEX "services_barbershop_id_idx" ON "services" USING btree ("barbershop_id");
+CREATE UNIQUE INDEX "reviews_uuid_unique" ON "reviews" USING btree ("uuid");--> statement-breakpoint
+CREATE UNIQUE INDEX "reviews_id_unique" ON "reviews" USING btree ("id");--> statement-breakpoint
+CREATE INDEX "name_vector_idx" ON "services" USING hnsw ("name_vector" "extensions".vector_cosine_ops);--> statement-breakpoint
+CREATE INDEX "services_barbershop_id_idx" ON "services" USING btree ("barbershop_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "services_uuid_unique" ON "services" USING btree ("uuid");--> statement-breakpoint
+CREATE UNIQUE INDEX "services_id_unique" ON "services" USING btree ("id");

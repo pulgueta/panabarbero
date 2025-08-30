@@ -5,6 +5,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -86,9 +87,8 @@ const commonRows = {
   id: text()
     .notNull()
     .primaryKey()
-    .unique()
     .$defaultFn(() => Bun.randomUUIDv7()),
-  uuid: uuid().notNull().unique().defaultRandom(),
+  uuid: uuid().notNull().defaultRandom(),
   createdAt: timestamp({ mode: "date", withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -96,7 +96,6 @@ const commonRows = {
     .defaultNow()
     .notNull()
     .$onUpdateFn(() => new Date()),
-  deletedAt: timestamp({ mode: "date", withTimezone: true }),
 };
 
 export const barbershops = pgTable(
@@ -132,6 +131,8 @@ export const barbershops = pgTable(
     index("barbershops_city_state_idx").on(t.city, t.state),
     index("barbershops_organization_id_idx").on(t.organizationId),
     index("barbershops_spacial_idx").using("gist", t.coordinates),
+    uniqueIndex("barbershops_uuid_unique").on(t.uuid),
+    uniqueIndex("barbershops_id_unique").on(t.id),
   ],
 );
 
@@ -170,6 +171,9 @@ export const barbers = pgTable(
   (t) => [
     index("barbers_user_id_idx").on(t.userId),
     index("barbers_barbershop_id_idx").on(t.barbershopId),
+    index("barbers_member_id_idx").on(t.memberId),
+    uniqueIndex("barbers_uuid_unique").on(t.uuid),
+    uniqueIndex("barbers_id_unique").on(t.id),
   ],
 );
 
@@ -205,6 +209,8 @@ export const services = pgTable(
       t.nameVector.op("vector_cosine_ops"),
     ),
     index("services_barbershop_id_idx").on(t.barbershopId),
+    uniqueIndex("services_uuid_unique").on(t.uuid),
+    uniqueIndex("services_id_unique").on(t.id),
   ],
 );
 
@@ -233,6 +239,8 @@ export const reviews = pgTable(
   (t) => [
     index("reviews_user_id_idx").on(t.userId),
     index("reviews_barbershop_id_idx").on(t.barbershopId),
+    uniqueIndex("reviews_uuid_unique").on(t.uuid),
+    uniqueIndex("reviews_id_unique").on(t.id),
   ],
 );
 
@@ -279,6 +287,8 @@ export const appointments = pgTable(
     index("appointments_service_id_idx").on(t.serviceId),
     index("appointments_barber_id_idx").on(t.barberId),
     index("appointments_status_idx").on(t.status),
+    uniqueIndex("appointments_uuid_unique").on(t.uuid),
+    uniqueIndex("appointments_id_unique").on(t.id),
   ],
 );
 
@@ -319,6 +329,8 @@ export const payments = pgTable(
     index("payments_appointment_id_idx").on(t.appointmentId),
     index("payments_status_idx").on(t.status),
     index("payments_method_idx").on(t.method),
+    uniqueIndex("payments_uuid_unique").on(t.uuid),
+    uniqueIndex("payments_id_unique").on(t.id),
   ],
 );
 
@@ -329,20 +341,27 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
   }),
 }));
 
-export const notifications = pgTable("notifications", (t) => ({
-  ...commonRows,
-  type: notificationType().notNull(),
-  reason: notificationReason().notNull(),
-  text: t.text().notNull(),
-  senderUserId: t
-    .text()
-    .notNull()
-    .references(() => auth.user.id, { onDelete: "cascade" }),
-  receiverUserId: t
-    .text()
-    .notNull()
-    .references(() => auth.user.id, { onDelete: "cascade" }),
-}));
+export const notifications = pgTable(
+  "notifications",
+  (t) => ({
+    ...commonRows,
+    type: notificationType().notNull(),
+    reason: notificationReason().notNull(),
+    text: t.text().notNull(),
+    senderUserId: t
+      .text()
+      .notNull()
+      .references(() => auth.user.id, { onDelete: "cascade" }),
+    receiverUserId: t
+      .text()
+      .notNull()
+      .references(() => auth.user.id, { onDelete: "cascade" }),
+  }),
+  (t) => [
+    uniqueIndex("notifications_uuid_unique").on(t.uuid),
+    uniqueIndex("notifications_id_unique").on(t.id),
+  ],
+);
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
   sender: one(auth.user, {
@@ -365,7 +384,11 @@ export const mobilePushTokens = pgTable(
       .references(() => auth.user.id, { onDelete: "cascade" }),
     token: t.text().notNull().unique(),
   }),
-  (t) => [index("mobile_push_tokens_user_id_idx").on(t.userId)],
+  (t) => [
+    index("mobile_push_tokens_user_id_idx").on(t.userId),
+    uniqueIndex("mobile_push_tokens_uuid_unique").on(t.uuid),
+    uniqueIndex("mobile_push_tokens_id_unique").on(t.id),
+  ],
 );
 
 export const mobilePushTokensRelations = relations(
