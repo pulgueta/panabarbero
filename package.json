@@ -2,43 +2,41 @@
   "name": "panabarbero",
   "private": true,
   "engines": {
-    "node": ">=22.18.0"
+    "bun": ">=1.2.21"
   },
-  "packageManager": "yarn@1.22.22",
+  "packageManager": "bun@1.2.21",
   "scripts": {
     "build": "turbo run build",
     "clean": "git clean -xdf node_modules",
     "clean:workspaces": "turbo run clean",
-    "auth:generate": "yarn @panabarbero/auth generate",
-    "db:push": "turbo -F @panabarbero/db push",
-    "db:studio": "turbo -F @panabarbero/db studio",
+    "auth:generate": "cd packages/auth && bunx @better-auth/cli generate --config src/index.ts --output src/auth-schema.ts",
+    "db:generate": "cd packages/db && bun run generate",
+    "db:migrate": "cd packages/db && bun run migrate",
+    "db:studio": "cd packages/db && bun run studio",
     "dev": "turbo watch dev --continue",
     "lint": "biome lint --write --unsafe .",
     "format": "biome format --write .",
-    "changeset": "changeset",
-    "version-packages": "changeset version",
-    "changeset:autogenerate": "node .changeset/changesets-autogenerate.mjs",
-    "ui-add": "turbo run ui-add",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
-    "postinstall": "husky",
-    "prepack": "pinst --disable",
-    "postpack": "pinst --enable"
+    "prepare": "husky"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.1.4",
-    "@changesets/changelog-github": "^0.5.1",
-    "@changesets/cli": "^2.29.5",
+    "@biomejs/biome": "^2.2.2",
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@commitlint/format": "^19.8.1",
+    "@semantic-release/changelog": "^6.0.3",
+    "@types/bun": "^1.2.19",
     "conventional-changelog-atom": "^5.0.0",
     "husky": "^9.1.7",
-    "turbo": "^2.5.5",
+    "postgres": "^3.4.7",
+    "semantic-release": "^24.2.7",
+    "turbo": "^2.5.6",
     "typescript": "^5.9.2"
   },
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^8.1.0"
+  }
 }

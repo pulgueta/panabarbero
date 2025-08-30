@@ -1,7 +1,7 @@
 import type { AppBackend } from "@panabarbero/api";
 import { hc } from "hono/client";
 
-function getApiUrl(): string {
+function getApiUrl() {
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL;
   }
@@ -10,7 +10,11 @@ function getApiUrl(): string {
     return process.env.VITE_API_URL;
   }
 
-  throw new Error("No API URL found");
+  return "http://localhost:3000";
 }
 
-export const api = hc<AppBackend>(getApiUrl());
+export const api = hc<AppBackend>(getApiUrl(), {
+  init: {
+    credentials: "include",
+  },
+});

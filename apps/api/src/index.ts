@@ -1,24 +1,18 @@
-import { Hono } from "hono";
-import { cors } from "hono/cors";
+import { createBackend } from "@/config";
+import { createOpenApiConfig } from "@/config/openapi";
+import { authRouter } from "@/routes/auth";
+import { barbershopRouter } from "@/routes/barbershop";
 
-import { env } from "@/env";
+const app = createBackend().basePath("/api");
 
-const app = new Hono();
+createOpenApiConfig(app);
 
-app.use(
-  cors({
-    origin: [env.APP_URL],
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
-  }),
-);
+const routes = [barbershopRouter, authRouter] as const;
 
-const routes = app.get("/", (c) => {
-  return c.json({
-    message: "Hello Hono!",
-  });
-});
+for (const route of routes) {
+  app.route("/", route);
+}
 
-export type AppBackend = typeof routes;
+export type AppBackend = (typeof routes)[number];
 
 export default app;

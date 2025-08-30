@@ -13,8 +13,8 @@
     "clean": "git clean -xdf .cache .turbo dist node_modules"
   },
   "dependencies": {
-    "@panabarbero/constants": "*",
-    "@panabarbero/api": "*",
+    "@panabarbero/constants": "workspace:*",
+    "@panabarbero/api": "workspace:*",
     "@tanstack/react-query": "^5.84.2",
     "hono": "^4.9.0",
     "react": "19.0.0"

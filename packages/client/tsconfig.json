@@ -24,11 +24,8 @@
         "./*"
       ]
     },
-    "target": "es2022",
-    "strict": true,
-    "skipLibCheck": true,
-    "declaration": false,
     "moduleResolution": "bundler",
-    "resolveJsonModule": true
+    "target": "es2022",
+    "strict": true
   }
 }
