@@ -16,5 +16,6 @@ export default {
       "always",
       ["app", "api", "ci", "docs", "deps", "repo"],
     ],
+    "header-max-length": [RuleConfigSeverity.Warning, "always", 150],
   },
 } satisfies UserConfig;

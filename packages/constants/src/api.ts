@@ -11,3 +11,9 @@ export const STATUS_CODES = {
   UNPROCESSABLE_ENTITY: 422,
   INTERNAL_SERVER_ERROR: 500,
 } as const;
+
+export const CACHE_KEYS = {
+  BARBERSHOP: "barbershop",
+  BARBERSHOP_SLUG: (slug: string) => `${CACHE_KEYS.BARBERSHOP}:slug:${slug}`,
+  BARBERSHOP_BY_ID: (id: string) => `${CACHE_KEYS.BARBERSHOP}:id:${id}`,
+} as const;

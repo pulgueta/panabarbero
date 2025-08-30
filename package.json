@@ -12,6 +12,7 @@
     "auth:generate": "cd packages/auth && bunx @better-auth/cli generate --config src/index.ts --output src/auth-schema.ts",
     "db:generate": "cd packages/db && bun run generate",
     "db:migrate": "cd packages/db && bun run migrate",
+    "db:studio": "cd packages/db && bun run studio",
     "dev": "turbo watch dev --continue",
     "lint": "biome lint --write --unsafe .",
     "format": "biome format --write .",
@@ -26,6 +27,7 @@
     "@types/bun": "^1.2.19",
     "conventional-changelog-atom": "^5.0.0",
     "husky": "^9.1.7",
+    "postgres": "^3.4.7",
     "semantic-release": "^24.2.7",
     "turbo": "^2.5.6",
     "typescript": "^5.9.2"
