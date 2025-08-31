@@ -95,10 +95,7 @@ export const deleteAppointment: ApiHandler<DeleteAppointmentRoute> = async (
     );
   }
 
-  const [deleted] = await db
-    .delete(appointments)
-    .where(eq(appointments.uuid, uuid))
-    .returning();
+  await db.delete(appointments).where(eq(appointments.uuid, uuid)).returning();
 
-  return c.json(deleted, api.STATUS_CODES.OK);
+  return c.json({ message: "Appointment deleted" }, api.STATUS_CODES.OK);
 };

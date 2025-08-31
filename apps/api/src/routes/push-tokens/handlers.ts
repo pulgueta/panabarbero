@@ -99,10 +99,10 @@ export const deleteMobilePushToken: ApiHandler<
     );
   }
 
-  const [deleted] = await db
+  await db
     .delete(mobilePushTokens)
     .where(eq(mobilePushTokens.uuid, uuid))
     .returning();
 
-  return c.json(deleted, api.STATUS_CODES.OK);
+  return c.json({ message: "Mobile push token deleted" }, api.STATUS_CODES.OK);
 };

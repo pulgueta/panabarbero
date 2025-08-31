@@ -80,10 +80,7 @@ export const deleteService: ApiHandler<DeleteServiceRoute> = async (c) => {
     return c.json({ message: "Service not found" }, api.STATUS_CODES.NOT_FOUND);
   }
 
-  const [deleted] = await db
-    .delete(services)
-    .where(eq(services.uuid, uuid))
-    .returning();
+  await db.delete(services).where(eq(services.uuid, uuid)).returning();
 
-  return c.json(deleted, api.STATUS_CODES.OK);
+  return c.json({ message: "Service deleted" }, api.STATUS_CODES.OK);
 };

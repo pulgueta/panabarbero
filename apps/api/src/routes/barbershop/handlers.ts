@@ -148,10 +148,7 @@ export const deleteBarbershop: ApiHandler<DeleteBarbershopRoute> = async (
     );
   }
 
-  const [deletedBarbershop] = await db
-    .delete(barbershops)
-    .where(eq(barbershops.uuid, uuid))
-    .returning();
+  await db.delete(barbershops).where(eq(barbershops.uuid, uuid)).returning();
 
-  return c.json(deletedBarbershop, api.STATUS_CODES.OK);
+  return c.json({ message: "Barbershop deleted" }, api.STATUS_CODES.OK);
 };

@@ -77,10 +77,7 @@ export const deleteReview: ApiHandler<DeleteReviewRoute> = async (c) => {
     return c.json({ message: "Review not found" }, api.STATUS_CODES.NOT_FOUND);
   }
 
-  const [deleted] = await db
-    .delete(reviews)
-    .where(eq(reviews.uuid, uuid))
-    .returning();
+  await db.delete(reviews).where(eq(reviews.uuid, uuid)).returning();
 
-  return c.json(deleted, api.STATUS_CODES.OK);
+  return c.json({ message: "Review deleted" }, api.STATUS_CODES.OK);
 };

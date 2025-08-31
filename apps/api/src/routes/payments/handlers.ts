@@ -80,10 +80,7 @@ export const deletePayment: ApiHandler<DeletePaymentRoute> = async (c) => {
     return c.json({ message: "Payment not found" }, api.STATUS_CODES.NOT_FOUND);
   }
 
-  const [deleted] = await db
-    .delete(payments)
-    .where(eq(payments.uuid, uuid))
-    .returning();
+  await db.delete(payments).where(eq(payments.uuid, uuid)).returning();
 
-  return c.json(deleted, api.STATUS_CODES.OK);
+  return c.json({ message: "Payment deleted" }, api.STATUS_CODES.OK);
 };

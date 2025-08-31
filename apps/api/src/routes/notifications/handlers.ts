@@ -97,10 +97,10 @@ export const deleteNotification: ApiHandler<DeleteNotificationRoute> = async (
     );
   }
 
-  const [deleted] = await db
+  await db
     .delete(notifications)
     .where(eq(notifications.uuid, uuid))
     .returning();
 
-  return c.json(deleted, api.STATUS_CODES.OK);
+  return c.json({ message: "Notification deleted" }, api.STATUS_CODES.OK);
 };

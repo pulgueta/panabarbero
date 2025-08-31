@@ -77,10 +77,7 @@ export const deleteBarber: ApiHandler<DeleteBarberRoute> = async (c) => {
     return c.json({ message: "Barber not found" }, api.STATUS_CODES.NOT_FOUND);
   }
 
-  const [deleted] = await db
-    .delete(barbers)
-    .where(eq(barbers.uuid, uuid))
-    .returning();
+  await db.delete(barbers).where(eq(barbers.uuid, uuid)).returning();
 
-  return c.json(deleted, api.STATUS_CODES.OK);
+  return c.json({ message: "Barber deleted" }, api.STATUS_CODES.OK);
 };
