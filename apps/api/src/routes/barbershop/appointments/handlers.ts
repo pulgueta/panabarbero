@@ -23,10 +23,11 @@ export const createAppointment: ApiHandler<CreateAppointmentRoute> = async (
   c,
 ) => {
   const json = c.req.valid("json");
+  const { uuid } = c.req.valid("query");
 
   const [created] = await db
     .insert(appointments)
-    .values(json)
+    .values({ ...json, barbershopId: uuid })
     .returning({ id: appointments.uuid });
 
   await setCacheFromKey(`appointments:${created.id}`, created);
@@ -35,10 +36,11 @@ export const createAppointment: ApiHandler<CreateAppointmentRoute> = async (
 };
 
 export const getAppointments: ApiHandler<GetAppointmentsRoute> = async (c) => {
+  const { uuid } = c.req.valid("query");
   let appointments: Appointment[] | undefined;
 
   const cachedAppointments = await getCacheFromKey(
-    "appointments",
+    `appointments:${uuid}`,
     appointmentSchema.array(),
   );
 
@@ -46,6 +48,7 @@ export const getAppointments: ApiHandler<GetAppointmentsRoute> = async (c) => {
     appointments = cachedAppointments;
   } else {
     appointments = await db.query.appointments.findMany({
+      where: (t, { eq }) => eq(t.barbershopId, uuid),
       columns: { id: false, createdAt: false, updatedAt: false },
     });
   }
@@ -54,7 +57,7 @@ export const getAppointments: ApiHandler<GetAppointmentsRoute> = async (c) => {
     return c.json(appointments, api.STATUS_CODES.OK);
   }
 
-  await setCacheFromKey("appointments", appointments);
+  await setCacheFromKey(`appointments:${uuid}`, appointments);
 
   return c.json(appointments, api.STATUS_CODES.OK);
 };

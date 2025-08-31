@@ -1,9 +1,9 @@
 import { createBackend } from "@/config";
 import { createOpenApiConfig } from "@/config/openapi";
-import { appointmentsRouter } from "@/routes/appointments";
 import { authRouter } from "@/routes/auth";
 import { barbersRouter } from "@/routes/barbers";
 import { barbershopRouter } from "@/routes/barbershop";
+import { appointmentsRouter } from "@/routes/barbershop/appointments";
 import { notificationsRouter } from "@/routes/notifications";
 import { paymentsRouter } from "@/routes/payments";
 import { pushTokensRouter } from "@/routes/push-tokens";
