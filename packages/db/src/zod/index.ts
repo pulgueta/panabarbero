@@ -222,7 +222,14 @@ export type MobilePushToken = output<typeof mobilePushTokenSchema>;
 
 export const createReviewSchema = createInsertSchema(reviews, {
   rating: () =>
-    coerce.number().min(1, { message: "La calificación debe ser mayor a 0" }),
+    coerce
+      .number()
+      .min(1, { message: "La calificación debe ser mayor a 1" })
+      .max(5, { message: "La calificación debe ser menor a 5" }),
+  comment: (s) =>
+    s
+      .min(10, { message: "La descripción debe tener al menos 10 caracteres" })
+      .optional(),
 }).omit({
   id: true,
   createdAt: true,
@@ -231,7 +238,14 @@ export const createReviewSchema = createInsertSchema(reviews, {
 });
 export const updateReviewSchema = createUpdateSchema(reviews, {
   rating: () =>
-    coerce.number().min(1, { message: "La calificación debe ser mayor a 0" }),
+    coerce
+      .number()
+      .min(1, { message: "La calificación debe ser mayor a 1" })
+      .max(5, { message: "La calificación debe ser menor a 5" }),
+  comment: (s) =>
+    s
+      .min(10, { message: "La descripción debe tener al menos 10 caracteres" })
+      .optional(),
 }).omit({
   id: true,
   createdAt: true,
@@ -247,16 +261,37 @@ export type Review = output<typeof reviewSchema>;
 
 export const createServiceSchema = createInsertSchema(services, {
   price: () =>
-    coerce.number().min(1, { message: "El precio debe ser mayor a 0" }),
+    coerce.number().min(1000, { message: "El precio debe ser mayor a 1000" }),
   name: (s) =>
     s.min(3, { message: "El nombre debe tener al menos 3 caracteres" }),
+  duration: () =>
+    coerce
+      .number()
+      .min(1, { message: "La duración debe ser mayor a 1 minuto" })
+      .max(120, { message: "La duración debe ser menor a 2 horas" })
+      .optional(),
 }).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
   uuid: true,
 });
-export const updateServiceSchema = createUpdateSchema(services).omit({
+export const updateServiceSchema = createUpdateSchema(services, {
+  duration: () =>
+    coerce
+      .number()
+      .min(1, { message: "La duración debe ser mayor a 1 minuto" })
+      .max(120, { message: "La duración debe ser menor a 2 horas" })
+      .optional(),
+  description: (s) =>
+    s
+      .min(10, { message: "La descripción debe tener al menos 10 caracteres" })
+      .optional(),
+  name: (s) =>
+    s.min(3, { message: "El nombre debe tener al menos 3 caracteres" }),
+  price: () =>
+    coerce.number().min(1000, { message: "El precio debe ser mayor a 1000" }),
+}).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -271,7 +306,7 @@ export type Service = output<typeof serviceSchema>;
 
 export const createPaymentSchema = createInsertSchema(payments, {
   amount: () =>
-    coerce.number().min(1, { message: "El monto debe ser mayor a 0" }),
+    coerce.number().min(1000, { message: "El monto debe ser mayor a 1000" }),
 }).omit({
   id: true,
   createdAt: true,

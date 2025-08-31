@@ -88,7 +88,6 @@ export const deleteBarbershop = createRoute({
   path: "/barbershops",
   request: {
     query: uuidQuerySchema,
-    body: requiredJsonContent(barbershopSchema, "The barbershop to update"),
   },
   responses: {
     [api.STATUS_CODES.OK]: jsonContent(
