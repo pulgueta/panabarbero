@@ -18,7 +18,7 @@ export const createPayment: ApiHandler<CreatePaymentRoute> = async (c) => {
   const [created] = await db
     .insert(payments)
     .values(json)
-    .returning({ id: payments.id });
+    .returning({ id: payments.uuid });
 
   return c.json({ id: created.id }, api.STATUS_CODES.CREATED);
 };

@@ -20,7 +20,7 @@ export const createAppointment: ApiHandler<CreateAppointmentRoute> = async (
   const [created] = await db
     .insert(appointments)
     .values(json)
-    .returning({ id: appointments.id });
+    .returning({ id: appointments.uuid });
 
   return c.json({ id: created.id }, api.STATUS_CODES.CREATED);
 };

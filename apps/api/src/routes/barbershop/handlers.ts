@@ -54,7 +54,7 @@ export const createBarbershop: ApiHandler<CreateBarbershopRoute> = async (
       ...jsonBarbershop,
       organizationId: createdBarbershopOrganization?.id ?? "",
     })
-    .returning();
+    .returning({ id: barbershops.uuid });
 
   return c.json(
     {

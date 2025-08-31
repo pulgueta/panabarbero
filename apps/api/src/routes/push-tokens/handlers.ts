@@ -20,7 +20,7 @@ export const createMobilePushToken: ApiHandler<
   const [created] = await db
     .insert(mobilePushTokens)
     .values(json)
-    .returning({ id: mobilePushTokens.id });
+    .returning({ id: mobilePushTokens.uuid });
 
   return c.json({ id: created.id }, api.STATUS_CODES.CREATED);
 };

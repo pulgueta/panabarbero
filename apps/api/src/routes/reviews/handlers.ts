@@ -18,7 +18,7 @@ export const createReview: ApiHandler<CreateReviewRoute> = async (c) => {
   const [created] = await db
     .insert(reviews)
     .values(json)
-    .returning({ id: reviews.id });
+    .returning({ id: reviews.uuid });
 
   return c.json({ id: created.id }, api.STATUS_CODES.CREATED);
 };

@@ -20,7 +20,7 @@ export const createNotification: ApiHandler<CreateNotificationRoute> = async (
   const [created] = await db
     .insert(notifications)
     .values(json)
-    .returning({ id: notifications.id });
+    .returning({ id: notifications.uuid });
 
   return c.json({ id: created.id }, api.STATUS_CODES.CREATED);
 };

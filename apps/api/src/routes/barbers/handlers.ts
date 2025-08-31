@@ -18,7 +18,7 @@ export const createBarber: ApiHandler<CreateBarberRoute> = async (c) => {
   const [created] = await db
     .insert(barbers)
     .values(json)
-    .returning({ id: barbers.id });
+    .returning({ id: barbers.uuid });
 
   return c.json({ id: created.id }, api.STATUS_CODES.CREATED);
 };

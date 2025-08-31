@@ -18,7 +18,7 @@ export const createService: ApiHandler<CreateServiceRoute> = async (c) => {
   const [created] = await db
     .insert(services)
     .values(json)
-    .returning({ id: services.id });
+    .returning({ id: services.uuid });
 
   return c.json({ id: created.id }, api.STATUS_CODES.CREATED);
 };
