@@ -88,7 +88,7 @@ export const deleteBarber = createRoute({
 
 export const getBarber = createRoute({
   method: "get",
-  path: "/barbers/{uuid}",
+  path: "/barbers",
   request: {
     params: uuidParamsSchema,
   },

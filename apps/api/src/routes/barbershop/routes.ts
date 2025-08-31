@@ -99,7 +99,7 @@ export const deleteBarbershop = createRoute({
 
 export const getBarbershop = createRoute({
   method: "get",
-  path: "/barbershops/{uuid}",
+  path: "/barbershops",
   request: {
     params: uuidParamsSchema,
   },

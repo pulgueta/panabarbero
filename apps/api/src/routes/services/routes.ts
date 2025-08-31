@@ -88,7 +88,7 @@ export const deleteService = createRoute({
 
 export const getService = createRoute({
   method: "get",
-  path: "/services/{uuid}",
+  path: "/services",
   request: {
     params: uuidParamsSchema,
   },
