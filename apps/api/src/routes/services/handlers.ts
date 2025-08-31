@@ -2,8 +2,15 @@ import { api } from "@panabarbero/constants";
 import { eq } from "@panabarbero/db";
 import { db } from "@panabarbero/db/client";
 import { services } from "@panabarbero/db/schema";
+import type { Service } from "@panabarbero/db/schema/zod";
+import { serviceSchema } from "@panabarbero/db/schema/zod";
 
 import type { ApiHandler } from "@/config/types";
+import {
+  deleteCacheFromKey,
+  getCacheFromKey,
+  setCacheFromKey,
+} from "@/services/cache";
 import type {
   CreateServiceRoute,
   DeleteServiceRoute,
@@ -24,28 +31,57 @@ export const createService: ApiHandler<CreateServiceRoute> = async (c) => {
 };
 
 export const getServices: ApiHandler<GetServicesRoute> = async (c) => {
-  const list = await db.query.services.findMany();
+  let services: Service[] | undefined;
 
-  if (!list || list.length === 0) {
+  const cachedServices = await getCacheFromKey(
+    "services",
+    serviceSchema.array(),
+  );
+
+  if (cachedServices) {
+    services = cachedServices;
+  } else {
+    services = await db.query.services.findMany({
+      columns: { id: false, createdAt: false, updatedAt: false },
+    });
+  }
+
+  if (!services || services.length === 0) {
     return c.json(
       { message: "Services not found" },
       api.STATUS_CODES.NOT_FOUND,
     );
   }
 
-  return c.json(list, api.STATUS_CODES.OK);
+  await setCacheFromKey("services", services);
+
+  return c.json(services, api.STATUS_CODES.OK);
 };
 
 export const getService: ApiHandler<GetServiceRoute> = async (c) => {
   const { uuid } = c.req.valid("param");
 
-  const service = await db.query.services.findFirst({
-    where: (t, { eq }) => eq(t.uuid, uuid),
-  });
+  let service: Service | undefined;
+
+  const cachedService = await getCacheFromKey(
+    `services:${uuid}`,
+    serviceSchema,
+  );
+
+  if (cachedService) {
+    service = cachedService;
+  } else {
+    service = await db.query.services.findFirst({
+      where: (t, { eq }) => eq(t.uuid, uuid),
+      columns: { id: false, createdAt: false, updatedAt: false },
+    });
+  }
 
   if (!service) {
     return c.json({ message: "Service not found" }, api.STATUS_CODES.NOT_FOUND);
   }
+
+  await setCacheFromKey(`services:${uuid}`, service);
 
   return c.json(service, api.STATUS_CODES.OK);
 };
@@ -54,10 +90,22 @@ export const updateService: ApiHandler<UpdateServiceRoute> = async (c) => {
   const { uuid } = c.req.valid("query");
   const json = c.req.valid("json");
 
-  const existing = await db.query.services.findFirst({
-    where: (t, { eq }) => eq(t.uuid, uuid),
-  });
-  if (!existing) {
+  let service: Service | undefined;
+
+  const cachedService = await getCacheFromKey(
+    `services:${uuid}`,
+    serviceSchema,
+  );
+
+  if (cachedService) {
+    service = cachedService;
+  } else {
+    service = await db.query.services.findFirst({
+      where: (t, { eq }) => eq(t.uuid, uuid),
+      columns: { id: false, createdAt: false, updatedAt: false },
+    });
+  }
+  if (!service) {
     return c.json({ message: "Service not found" }, api.STATUS_CODES.NOT_FOUND);
   }
 
@@ -67,20 +115,37 @@ export const updateService: ApiHandler<UpdateServiceRoute> = async (c) => {
     .where(eq(services.uuid, uuid))
     .returning();
 
+  await setCacheFromKey(`services:${uuid}`, updated);
+
   return c.json(updated, api.STATUS_CODES.OK);
 };
 
 export const deleteService: ApiHandler<DeleteServiceRoute> = async (c) => {
   const { uuid } = c.req.valid("query");
 
-  const existing = await db.query.services.findFirst({
-    where: (t, { eq }) => eq(t.uuid, uuid),
-  });
-  if (!existing) {
+  let service: Service | undefined;
+
+  const cachedService = await getCacheFromKey(
+    `services:${uuid}`,
+    serviceSchema,
+  );
+
+  if (cachedService) {
+    service = cachedService;
+  } else {
+    service = await db.query.services.findFirst({
+      where: (t, { eq }) => eq(t.uuid, uuid),
+      columns: { id: false, createdAt: false, updatedAt: false },
+    });
+  }
+  if (!service) {
     return c.json({ message: "Service not found" }, api.STATUS_CODES.NOT_FOUND);
   }
 
-  await db.delete(services).where(eq(services.uuid, uuid)).returning();
+  await Promise.all([
+    db.delete(services).where(eq(services.uuid, uuid)).returning(),
+    deleteCacheFromKey(`services:${uuid}`),
+  ]);
 
   return c.json({ message: "Service deleted" }, api.STATUS_CODES.OK);
 };

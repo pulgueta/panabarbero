@@ -2,8 +2,15 @@ import { api } from "@panabarbero/constants";
 import { eq } from "@panabarbero/db";
 import { db } from "@panabarbero/db/client";
 import { mobilePushTokens } from "@panabarbero/db/schema";
+import type { MobilePushToken } from "@panabarbero/db/schema/zod";
+import { mobilePushTokenSchema } from "@panabarbero/db/schema/zod";
 
 import type { ApiHandler } from "@/config/types";
+import {
+  deleteCacheFromKey,
+  getCacheFromKey,
+  setCacheFromKey,
+} from "@/services/cache";
 import type {
   CreateMobilePushTokenRoute,
   DeleteMobilePushTokenRoute,
@@ -28,16 +35,31 @@ export const createMobilePushToken: ApiHandler<
 export const getMobilePushTokens: ApiHandler<GetMobilePushTokensRoute> = async (
   c,
 ) => {
-  const list = await db.query.mobilePushTokens.findMany();
+  let tokens: MobilePushToken[] | undefined;
 
-  if (!list || list.length === 0) {
+  const cachedTokens = await getCacheFromKey(
+    "push-tokens",
+    mobilePushTokenSchema.array(),
+  );
+
+  if (cachedTokens) {
+    tokens = cachedTokens;
+  } else {
+    tokens = await db.query.mobilePushTokens.findMany({
+      columns: { id: false, createdAt: false, updatedAt: false },
+    });
+  }
+
+  if (!tokens || tokens.length === 0) {
     return c.json(
       { message: "Mobile push tokens not found" },
       api.STATUS_CODES.NOT_FOUND,
     );
   }
 
-  return c.json(list, api.STATUS_CODES.OK);
+  await setCacheFromKey("push-tokens", tokens);
+
+  return c.json(tokens, api.STATUS_CODES.OK);
 };
 
 export const getMobilePushToken: ApiHandler<GetMobilePushTokenRoute> = async (
@@ -45,9 +67,21 @@ export const getMobilePushToken: ApiHandler<GetMobilePushTokenRoute> = async (
 ) => {
   const { uuid } = c.req.valid("param");
 
-  const token = await db.query.mobilePushTokens.findFirst({
-    where: (t, { eq }) => eq(t.uuid, uuid),
-  });
+  let token: MobilePushToken | undefined;
+
+  const cachedToken = await getCacheFromKey(
+    `push-tokens:${uuid}`,
+    mobilePushTokenSchema,
+  );
+
+  if (cachedToken) {
+    token = cachedToken;
+  } else {
+    token = await db.query.mobilePushTokens.findFirst({
+      where: (t, { eq }) => eq(t.uuid, uuid),
+      columns: { id: false, createdAt: false, updatedAt: false },
+    });
+  }
 
   if (!token) {
     return c.json(
@@ -55,6 +89,8 @@ export const getMobilePushToken: ApiHandler<GetMobilePushTokenRoute> = async (
       api.STATUS_CODES.NOT_FOUND,
     );
   }
+
+  await setCacheFromKey(`push-tokens:${uuid}`, token);
 
   return c.json(token, api.STATUS_CODES.OK);
 };
@@ -65,10 +101,23 @@ export const updateMobilePushToken: ApiHandler<
   const { uuid } = c.req.valid("query");
   const json = c.req.valid("json");
 
-  const existing = await db.query.mobilePushTokens.findFirst({
-    where: (t, { eq }) => eq(t.uuid, uuid),
-  });
-  if (!existing) {
+  let token: MobilePushToken | undefined;
+
+  const cachedToken = await getCacheFromKey(
+    `push-tokens:${uuid}`,
+    mobilePushTokenSchema,
+  );
+
+  if (cachedToken) {
+    token = cachedToken;
+  } else {
+    token = await db.query.mobilePushTokens.findFirst({
+      where: (t, { eq }) => eq(t.uuid, uuid),
+      columns: { id: false, createdAt: false, updatedAt: false },
+    });
+  }
+
+  if (!token) {
     return c.json(
       { message: "Mobile push token not found" },
       api.STATUS_CODES.NOT_FOUND,
@@ -79,7 +128,13 @@ export const updateMobilePushToken: ApiHandler<
     .update(mobilePushTokens)
     .set(json)
     .where(eq(mobilePushTokens.uuid, uuid))
-    .returning();
+    .returning({
+      uuid: mobilePushTokens.uuid,
+      token: mobilePushTokens.token,
+      userId: mobilePushTokens.userId,
+    });
+
+  await setCacheFromKey(`push-tokens:${uuid}`, updated);
 
   return c.json(updated, api.STATUS_CODES.OK);
 };
@@ -89,20 +144,35 @@ export const deleteMobilePushToken: ApiHandler<
 > = async (c) => {
   const { uuid } = c.req.valid("query");
 
-  const existing = await db.query.mobilePushTokens.findFirst({
-    where: (t, { eq }) => eq(t.uuid, uuid),
-  });
-  if (!existing) {
+  let token: MobilePushToken | undefined;
+
+  const cachedToken = await getCacheFromKey(
+    `push-tokens:${uuid}`,
+    mobilePushTokenSchema,
+  );
+
+  if (cachedToken) {
+    token = cachedToken;
+  } else {
+    token = await db.query.mobilePushTokens.findFirst({
+      where: (t, { eq }) => eq(t.uuid, uuid),
+      columns: { id: false, createdAt: false, updatedAt: false },
+    });
+  }
+  if (!token) {
     return c.json(
       { message: "Mobile push token not found" },
       api.STATUS_CODES.NOT_FOUND,
     );
   }
 
-  await db
-    .delete(mobilePushTokens)
-    .where(eq(mobilePushTokens.uuid, uuid))
-    .returning();
+  await Promise.all([
+    db
+      .delete(mobilePushTokens)
+      .where(eq(mobilePushTokens.uuid, uuid))
+      .returning(),
+    deleteCacheFromKey(`push-tokens:${uuid}`),
+  ]);
 
   return c.json({ message: "Mobile push token deleted" }, api.STATUS_CODES.OK);
 };

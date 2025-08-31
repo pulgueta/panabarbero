@@ -2,8 +2,15 @@ import { api } from "@panabarbero/constants";
 import { eq } from "@panabarbero/db";
 import { db } from "@panabarbero/db/client";
 import { barbers } from "@panabarbero/db/schema";
+import type { Barber } from "@panabarbero/db/schema/zod";
+import { barberSchema } from "@panabarbero/db/schema/zod";
 
 import type { ApiHandler } from "@/config/types";
+import {
+  deleteCacheFromKey,
+  getCacheFromKey,
+  setCacheFromKey,
+} from "@/services/cache";
 import type {
   CreateBarberRoute,
   DeleteBarberRoute,
@@ -20,25 +27,55 @@ export const createBarber: ApiHandler<CreateBarberRoute> = async (c) => {
     .values(json)
     .returning({ id: barbers.uuid });
 
+  await setCacheFromKey(`barbers:${created.id}`, created);
+
   return c.json({ id: created.id }, api.STATUS_CODES.CREATED);
 };
 
 export const getBarbers: ApiHandler<GetBarbersRoute> = async (c) => {
-  const list = await db.query.barbers.findMany();
+  let barbers: Barber[] | undefined;
 
-  if (!list || list.length === 0) {
+  const cachedBarbers = await getCacheFromKey("barbers", barberSchema.array());
+
+  if (cachedBarbers) {
+    barbers = cachedBarbers;
+  } else {
+    barbers = await db.query.barbers.findMany({
+      columns: {
+        id: false,
+        createdAt: false,
+        updatedAt: false,
+      },
+    });
+  }
+
+  if (!barbers || barbers.length === 0) {
     return c.json({ message: "Barbers not found" }, api.STATUS_CODES.NOT_FOUND);
   }
 
-  return c.json(list, api.STATUS_CODES.OK);
+  await setCacheFromKey("barbers", barbers);
+
+  return c.json(barbers, api.STATUS_CODES.OK);
 };
 
 export const getBarber: ApiHandler<GetBarberRoute> = async (c) => {
   const { uuid } = c.req.valid("param");
 
-  const barber = await db.query.barbers.findFirst({
-    where: (t, { eq }) => eq(t.uuid, uuid),
-  });
+  let barber: Barber | undefined;
+
+  const cachedBarber = await getCacheFromKey(`barbers:${uuid}`, barberSchema);
+
+  if (cachedBarber) {
+    barber = cachedBarber;
+  } else {
+    barber = await db.query.barbers.findFirst({
+      columns: {
+        id: false,
+        createdAt: false,
+        updatedAt: false,
+      },
+    });
+  }
 
   if (!barber) {
     return c.json({ message: "Barber not found" }, api.STATUS_CODES.NOT_FOUND);
@@ -51,10 +88,24 @@ export const updateBarber: ApiHandler<UpdateBarberRoute> = async (c) => {
   const { uuid } = c.req.valid("query");
   const json = c.req.valid("json");
 
-  const existing = await db.query.barbers.findFirst({
-    where: (t, { eq }) => eq(t.uuid, uuid),
-  });
-  if (!existing) {
+  let barber: Barber | undefined;
+
+  const cachedBarber = await getCacheFromKey(`barbers:${uuid}`, barberSchema);
+
+  if (cachedBarber) {
+    barber = cachedBarber;
+  } else {
+    barber = await db.query.barbers.findFirst({
+      where: (t, { eq }) => eq(t.uuid, uuid),
+      columns: {
+        id: false,
+        createdAt: false,
+        updatedAt: false,
+      },
+    });
+  }
+
+  if (!barber) {
     return c.json({ message: "Barber not found" }, api.STATUS_CODES.NOT_FOUND);
   }
 
@@ -62,7 +113,13 @@ export const updateBarber: ApiHandler<UpdateBarberRoute> = async (c) => {
     .update(barbers)
     .set(json)
     .where(eq(barbers.uuid, uuid))
-    .returning();
+    .returning({
+      userId: barbers.userId,
+      memberId: barbers.memberId,
+      barbershopId: barbers.barbershopId,
+    });
+
+  await setCacheFromKey(`barbers:${uuid}`, updated);
 
   return c.json(updated, api.STATUS_CODES.OK);
 };
@@ -70,14 +127,31 @@ export const updateBarber: ApiHandler<UpdateBarberRoute> = async (c) => {
 export const deleteBarber: ApiHandler<DeleteBarberRoute> = async (c) => {
   const { uuid } = c.req.valid("query");
 
-  const existing = await db.query.barbers.findFirst({
-    where: (t, { eq }) => eq(t.uuid, uuid),
-  });
-  if (!existing) {
+  let barber: Barber | undefined;
+
+  const cachedBarber = await getCacheFromKey(`barbers:${uuid}`, barberSchema);
+
+  if (cachedBarber) {
+    barber = cachedBarber;
+  } else {
+    barber = await db.query.barbers.findFirst({
+      where: (t, { eq }) => eq(t.uuid, uuid),
+      columns: {
+        id: false,
+        createdAt: false,
+        updatedAt: false,
+      },
+    });
+  }
+
+  if (!barber) {
     return c.json({ message: "Barber not found" }, api.STATUS_CODES.NOT_FOUND);
   }
 
-  await db.delete(barbers).where(eq(barbers.uuid, uuid)).returning();
+  await Promise.all([
+    db.delete(barbers).where(eq(barbers.uuid, uuid)).returning(),
+    deleteCacheFromKey(`barbers:${uuid}`),
+  ]);
 
   return c.json({ message: "Barber deleted" }, api.STATUS_CODES.OK);
 };

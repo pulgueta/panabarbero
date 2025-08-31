@@ -2,8 +2,15 @@ import { api } from "@panabarbero/constants";
 import { eq } from "@panabarbero/db";
 import { db } from "@panabarbero/db/client";
 import { appointments } from "@panabarbero/db/schema";
+import type { Appointment } from "@panabarbero/db/schema/zod";
+import { appointmentSchema } from "@panabarbero/db/schema/zod";
 
 import type { ApiHandler } from "@/config/types";
+import {
+  deleteCacheFromKey,
+  getCacheFromKey,
+  setCacheFromKey,
+} from "@/services/cache";
 import type {
   CreateAppointmentRoute,
   DeleteAppointmentRoute,
@@ -22,28 +29,58 @@ export const createAppointment: ApiHandler<CreateAppointmentRoute> = async (
     .values(json)
     .returning({ id: appointments.uuid });
 
+  await setCacheFromKey(`appointments:${created.id}`, created);
+
   return c.json({ id: created.id }, api.STATUS_CODES.CREATED);
 };
 
 export const getAppointments: ApiHandler<GetAppointmentsRoute> = async (c) => {
-  const list = await db.query.appointments.findMany();
+  let appointments: Appointment[] | undefined;
 
-  if (!list || list.length === 0) {
-    return c.json(
-      { message: "Appointments not found" },
-      api.STATUS_CODES.NOT_FOUND,
-    );
+  const cachedAppointments = await getCacheFromKey(
+    "appointments",
+    appointmentSchema.array(),
+  );
+
+  if (cachedAppointments) {
+    appointments = cachedAppointments;
+  } else {
+    appointments = await db.query.appointments.findMany({
+      columns: { id: false, createdAt: false, updatedAt: false },
+    });
   }
 
-  return c.json(list, api.STATUS_CODES.OK);
+  if (appointments) {
+    return c.json(appointments, api.STATUS_CODES.OK);
+  }
+
+  await setCacheFromKey("appointments", appointments);
+
+  return c.json(appointments, api.STATUS_CODES.OK);
 };
 
 export const getAppointment: ApiHandler<GetAppointmentRoute> = async (c) => {
   const { uuid } = c.req.valid("param");
 
-  const appointment = await db.query.appointments.findFirst({
-    where: (t, { eq }) => eq(t.uuid, uuid),
-  });
+  let appointment: Appointment | undefined;
+
+  const cachedAppointment = await getCacheFromKey(
+    `appointments:${uuid}`,
+    appointmentSchema,
+  );
+
+  if (cachedAppointment) {
+    appointment = cachedAppointment;
+  } else {
+    appointment = await db.query.appointments.findFirst({
+      where: (t, { eq }) => eq(t.uuid, uuid),
+      columns: {
+        id: false,
+        createdAt: false,
+        updatedAt: false,
+      },
+    });
+  }
 
   if (!appointment) {
     return c.json(
@@ -51,6 +88,8 @@ export const getAppointment: ApiHandler<GetAppointmentRoute> = async (c) => {
       api.STATUS_CODES.NOT_FOUND,
     );
   }
+
+  await setCacheFromKey(`appointments:${uuid}`, appointment);
 
   return c.json(appointment, api.STATUS_CODES.OK);
 };
@@ -61,10 +100,27 @@ export const updateAppointment: ApiHandler<UpdateAppointmentRoute> = async (
   const { uuid } = c.req.valid("query");
   const json = c.req.valid("json");
 
-  const existing = await db.query.appointments.findFirst({
-    where: (t, { eq }) => eq(t.uuid, uuid),
-  });
-  if (!existing) {
+  let appointment: Appointment | undefined;
+
+  const cachedAppointment = await getCacheFromKey(
+    `appointments:${uuid}`,
+    appointmentSchema,
+  );
+
+  if (cachedAppointment) {
+    appointment = cachedAppointment;
+  } else {
+    appointment = await db.query.appointments.findFirst({
+      where: (t, { eq }) => eq(t.uuid, uuid),
+      columns: {
+        id: false,
+        createdAt: false,
+        updatedAt: false,
+      },
+    });
+  }
+
+  if (!appointment) {
     return c.json(
       { message: "Appointment not found" },
       api.STATUS_CODES.NOT_FOUND,
@@ -75,7 +131,20 @@ export const updateAppointment: ApiHandler<UpdateAppointmentRoute> = async (
     .update(appointments)
     .set(json)
     .where(eq(appointments.uuid, uuid))
-    .returning();
+    .returning({
+      userId: appointments.userId,
+      barbershopId: appointments.barbershopId,
+      serviceId: appointments.serviceId,
+      barberId: appointments.barberId,
+      date: appointments.date,
+      startAt: appointments.startAt,
+      endAt: appointments.endAt,
+      status: appointments.status,
+      notes: appointments.notes,
+      uuid: appointments.uuid,
+    });
+
+  await setCacheFromKey(`appointments:${uuid}`, updated);
 
   return c.json(updated, api.STATUS_CODES.OK);
 };
@@ -85,17 +154,37 @@ export const deleteAppointment: ApiHandler<DeleteAppointmentRoute> = async (
 ) => {
   const { uuid } = c.req.valid("query");
 
-  const existing = await db.query.appointments.findFirst({
-    where: (t, { eq }) => eq(t.uuid, uuid),
-  });
-  if (!existing) {
+  let appointment: Appointment | undefined;
+
+  const cachedAppointment = await getCacheFromKey(
+    `appointments:${uuid}`,
+    appointmentSchema,
+  );
+
+  if (cachedAppointment) {
+    appointment = cachedAppointment;
+  } else {
+    appointment = await db.query.appointments.findFirst({
+      where: (t, { eq }) => eq(t.uuid, uuid),
+      columns: {
+        id: false,
+        createdAt: false,
+        updatedAt: false,
+      },
+    });
+  }
+
+  if (!appointment) {
     return c.json(
       { message: "Appointment not found" },
       api.STATUS_CODES.NOT_FOUND,
     );
   }
 
-  await db.delete(appointments).where(eq(appointments.uuid, uuid)).returning();
+  await Promise.all([
+    db.delete(appointments).where(eq(appointments.uuid, uuid)).returning(),
+    deleteCacheFromKey(`appointments:${uuid}`),
+  ]);
 
   return c.json({ message: "Appointment deleted" }, api.STATUS_CODES.OK);
 };

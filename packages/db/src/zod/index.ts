@@ -119,13 +119,21 @@ export const updateBarbershopSchema = createUpdateSchema(barbershops, {
   uuid: true,
 });
 
-export const barbershopSchema = createSelectSchema(barbershops);
-
-export const barbershopWithOrganizationSchema = createSelectSchema(
-  barbershops,
-).extend({
-  organization: createSelectSchema(auth.organization),
+export const barbershopSchema = createSelectSchema(barbershops).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
+
+export const barbershopWithOrganizationSchema = createSelectSchema(barbershops)
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    organization: createSelectSchema(auth.organization),
+  });
 
 export type CreateBarbershop = output<typeof createBarbershopSchema>;
 export type UpdateBarbershop = output<typeof updateBarbershopSchema>;
@@ -147,7 +155,12 @@ export const updateBarberSchema = createUpdateSchema(barbers).omit({
   uuid: true,
 });
 
-export const barberSchema = createSelectSchema(barbers);
+export const barberSchema = createSelectSchema(barbers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  uuid: true,
+});
 
 export type CreateBarber = output<typeof createBarberSchema>;
 export type UpdateBarber = output<typeof updateBarberSchema>;
@@ -191,7 +204,11 @@ export const updateAppointmentSchema = createUpdateSchema(appointments, {
   uuid: true,
 });
 
-export const appointmentSchema = createSelectSchema(appointments);
+export const appointmentSchema = createSelectSchema(appointments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 export type CreateAppointment = output<typeof createAppointmentSchema>;
 export type UpdateAppointment = output<typeof updateAppointmentSchema>;
@@ -214,7 +231,11 @@ export const updateMobilePushTokenSchema = createUpdateSchema(
   uuid: true,
 });
 
-export const mobilePushTokenSchema = createSelectSchema(mobilePushTokens);
+export const mobilePushTokenSchema = createSelectSchema(mobilePushTokens).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 export type CreateMobilePushToken = output<typeof createMobilePushTokenSchema>;
 export type UpdateMobilePushToken = output<typeof updateMobilePushTokenSchema>;
@@ -253,7 +274,11 @@ export const updateReviewSchema = createUpdateSchema(reviews, {
   uuid: true,
 });
 
-export const reviewSchema = createSelectSchema(reviews);
+export const reviewSchema = createSelectSchema(reviews).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 export type CreateReview = output<typeof createReviewSchema>;
 export type UpdateReview = output<typeof updateReviewSchema>;
@@ -298,7 +323,11 @@ export const updateServiceSchema = createUpdateSchema(services, {
   uuid: true,
 });
 
-export const serviceSchema = createSelectSchema(services);
+export const serviceSchema = createSelectSchema(services).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 export type CreateService = output<typeof createServiceSchema>;
 export type UpdateService = output<typeof updateServiceSchema>;
@@ -320,7 +349,11 @@ export const updatePaymentSchema = createUpdateSchema(payments).omit({
   uuid: true,
 });
 
-export const paymentSchema = createSelectSchema(payments);
+export const paymentSchema = createSelectSchema(payments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 export type CreatePayment = output<typeof createPaymentSchema>;
 export type UpdatePayment = output<typeof updatePaymentSchema>;
@@ -339,7 +372,11 @@ export const updateNotificationSchema = createUpdateSchema(notifications).omit({
   uuid: true,
 });
 
-export const notificationSchema = createSelectSchema(notifications);
+export const notificationSchema = createSelectSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 export type CreateNotification = output<typeof createNotificationSchema>;
 export type UpdateNotification = output<typeof updateNotificationSchema>;
