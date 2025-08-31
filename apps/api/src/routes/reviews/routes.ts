@@ -9,7 +9,7 @@ import {
 
 import { jsonContent, requiredJsonContent } from "@/utils/parsers/json";
 import { createErrorSchema, defaultResponse } from "@/utils/responses";
-import { idParamsSchema, idQuerySchema } from "@/utils/schemas";
+import { uuidParamsSchema, uuidQuerySchema } from "@/utils/schemas";
 
 export const createReview = createRoute({
   method: "post",
@@ -53,7 +53,7 @@ export const updateReview = createRoute({
   method: "put",
   path: "/reviews",
   request: {
-    query: idQuerySchema,
+    query: uuidQuerySchema,
     body: requiredJsonContent(updateReviewSchema, "The review to update"),
   },
   responses: {
@@ -76,8 +76,7 @@ export const deleteReview = createRoute({
   method: "delete",
   path: "/reviews",
   request: {
-    query: idQuerySchema,
-    body: requiredJsonContent(reviewSchema, "The review to update"),
+    query: uuidQuerySchema,
   },
   responses: {
     [api.STATUS_CODES.OK]: jsonContent(reviewSchema, "The deleted review"),
@@ -89,9 +88,9 @@ export const deleteReview = createRoute({
 
 export const getReview = createRoute({
   method: "get",
-  path: "/reviews/{id}",
+  path: "/reviews/{uuid}",
   request: {
-    params: idParamsSchema,
+    params: uuidParamsSchema,
   },
   responses: {
     [api.STATUS_CODES.OK]: jsonContent(reviewSchema, "The review"),
@@ -99,7 +98,7 @@ export const getReview = createRoute({
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
     [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
-      idParamsSchema,
+      uuidParamsSchema,
       "Validation error",
     ),
   },

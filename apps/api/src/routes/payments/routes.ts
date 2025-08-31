@@ -9,7 +9,7 @@ import {
 
 import { jsonContent, requiredJsonContent } from "@/utils/parsers/json";
 import { createErrorSchema, defaultResponse } from "@/utils/responses";
-import { idParamsSchema, idQuerySchema } from "@/utils/schemas";
+import { uuidParamsSchema, uuidQuerySchema } from "@/utils/schemas";
 
 export const createPayment = createRoute({
   method: "post",
@@ -53,7 +53,7 @@ export const updatePayment = createRoute({
   method: "put",
   path: "/payments",
   request: {
-    query: idQuerySchema,
+    query: uuidQuerySchema,
     body: requiredJsonContent(updatePaymentSchema, "The payment to update"),
   },
   responses: {
@@ -76,8 +76,7 @@ export const deletePayment = createRoute({
   method: "delete",
   path: "/payments",
   request: {
-    query: idQuerySchema,
-    body: requiredJsonContent(paymentSchema, "The payment to update"),
+    query: uuidQuerySchema,
   },
   responses: {
     [api.STATUS_CODES.OK]: jsonContent(paymentSchema, "The deleted payment"),
@@ -89,9 +88,9 @@ export const deletePayment = createRoute({
 
 export const getPayment = createRoute({
   method: "get",
-  path: "/payments/{id}",
+  path: "/payments/{uuid}",
   request: {
-    params: idParamsSchema,
+    params: uuidParamsSchema,
   },
   responses: {
     [api.STATUS_CODES.OK]: jsonContent(paymentSchema, "The payment"),
@@ -99,7 +98,7 @@ export const getPayment = createRoute({
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
     [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
-      idParamsSchema,
+      uuidParamsSchema,
       "Validation error",
     ),
   },

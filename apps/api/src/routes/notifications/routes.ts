@@ -9,7 +9,7 @@ import {
 
 import { jsonContent, requiredJsonContent } from "@/utils/parsers/json";
 import { createErrorSchema, defaultResponse } from "@/utils/responses";
-import { idParamsSchema, idQuerySchema } from "@/utils/schemas";
+import { uuidParamsSchema, uuidQuerySchema } from "@/utils/schemas";
 
 export const createNotification = createRoute({
   method: "post",
@@ -56,7 +56,7 @@ export const updateNotification = createRoute({
   method: "put",
   path: "/notifications",
   request: {
-    query: idQuerySchema,
+    query: uuidQuerySchema,
     body: requiredJsonContent(
       updateNotificationSchema,
       "The notification to update",
@@ -85,8 +85,7 @@ export const deleteNotification = createRoute({
   method: "delete",
   path: "/notifications",
   request: {
-    query: idQuerySchema,
-    body: requiredJsonContent(notificationSchema, "The notification to update"),
+    query: uuidQuerySchema,
   },
   responses: {
     [api.STATUS_CODES.OK]: jsonContent(
@@ -101,9 +100,9 @@ export const deleteNotification = createRoute({
 
 export const getNotification = createRoute({
   method: "get",
-  path: "/notifications/{id}",
+  path: "/notifications/{uuid}",
   request: {
-    params: idParamsSchema,
+    params: uuidParamsSchema,
   },
   responses: {
     [api.STATUS_CODES.OK]: jsonContent(notificationSchema, "The notification"),
@@ -111,7 +110,7 @@ export const getNotification = createRoute({
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
     [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
-      idParamsSchema,
+      uuidParamsSchema,
       "Validation error",
     ),
   },

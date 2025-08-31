@@ -9,7 +9,7 @@ import {
 
 import { jsonContent, requiredJsonContent } from "@/utils/parsers/json";
 import { createErrorSchema, defaultResponse } from "@/utils/responses";
-import { idParamsSchema, idQuerySchema } from "@/utils/schemas";
+import { uuidParamsSchema, uuidQuerySchema } from "@/utils/schemas";
 
 export const createAppointment = createRoute({
   method: "post",
@@ -56,7 +56,7 @@ export const updateAppointment = createRoute({
   method: "put",
   path: "/appointments",
   request: {
-    query: idQuerySchema,
+    query: uuidQuerySchema,
     body: requiredJsonContent(
       updateAppointmentSchema,
       "The appointment to update",
@@ -85,7 +85,7 @@ export const deleteAppointment = createRoute({
   method: "delete",
   path: "/appointments",
   request: {
-    query: idQuerySchema,
+    query: uuidQuerySchema,
     body: requiredJsonContent(appointmentSchema, "The appointment to update"),
   },
   responses: {
@@ -101,9 +101,9 @@ export const deleteAppointment = createRoute({
 
 export const getAppointment = createRoute({
   method: "get",
-  path: "/appointments/{id}",
+  path: "/appointments/{uuid}",
   request: {
-    params: idParamsSchema,
+    params: uuidParamsSchema,
   },
   responses: {
     [api.STATUS_CODES.OK]: jsonContent(appointmentSchema, "The appointment"),
@@ -111,7 +111,7 @@ export const getAppointment = createRoute({
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
     [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
-      idParamsSchema,
+      uuidParamsSchema,
       "Validation error",
     ),
   },

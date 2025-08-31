@@ -91,10 +91,10 @@ export const getBarbershops: ApiHandler<GetBarbershopsRoute> = async (c) => {
 };
 
 export const getBarbershop: ApiHandler<GetBarbershopRoute> = async (c) => {
-  const { id } = c.req.valid("param");
+  const { uuid } = c.req.valid("param");
 
   const barbershop = await db.query.barbershops.findFirst({
-    where: (table, { eq }) => eq(table.id, id),
+    where: (table, { eq }) => eq(table.uuid, uuid),
   });
 
   if (!barbershop) {
@@ -110,16 +110,16 @@ export const getBarbershop: ApiHandler<GetBarbershopRoute> = async (c) => {
 export const updateBarbershop: ApiHandler<UpdateBarbershopRoute> = async (
   c,
 ) => {
-  const { id } = c.req.valid("query");
+  const { uuid } = c.req.valid("query");
   const jsonBarbershop = c.req.valid("json");
 
   const updatedBarbershop = await db
     .update(barbershops)
     .set(jsonBarbershop)
-    .where(eq(barbershops.id, id));
+    .where(eq(barbershops.uuid, uuid));
 
   const barbershop = await db.query.barbershops.findFirst({
-    where: (table, { eq }) => eq(table.id, id),
+    where: (table, { eq }) => eq(table.uuid, uuid),
   });
 
   if (!barbershop) {
@@ -135,10 +135,10 @@ export const updateBarbershop: ApiHandler<UpdateBarbershopRoute> = async (
 export const deleteBarbershop: ApiHandler<DeleteBarbershopRoute> = async (
   c,
 ) => {
-  const { id } = c.req.valid("query");
+  const { uuid } = c.req.valid("query");
 
   const barbershop = await db.query.barbershops.findFirst({
-    where: (table, { eq }) => eq(table.id, id),
+    where: (table, { eq }) => eq(table.uuid, uuid),
   });
 
   if (!barbershop) {
@@ -150,7 +150,7 @@ export const deleteBarbershop: ApiHandler<DeleteBarbershopRoute> = async (
 
   const [deletedBarbershop] = await db
     .delete(barbershops)
-    .where(eq(barbershops.id, id))
+    .where(eq(barbershops.uuid, uuid))
     .returning();
 
   return c.json(deletedBarbershop, api.STATUS_CODES.OK);

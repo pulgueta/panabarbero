@@ -1,21 +1,25 @@
 import { object, string } from "zod";
 
-export const idParamsSchema = object({
-  id: string().openapi({
-    param: {
-      name: "id",
-      in: "path",
-      description: "The id of the resource",
-    },
-  }),
+export const uuidParamsSchema = object({
+  uuid: string()
+    .uuid()
+    .openapi({
+      param: {
+        name: "uuid",
+        in: "path",
+        description: "The UUID of the resource",
+      },
+    }),
 });
 
-export const idQuerySchema = object({
-  id: string().openapi({
-    param: {
-      name: "id",
-      in: "query",
-      description: "The id of the resource",
-    },
-  }),
+export const uuidQuerySchema = object({
+  uuid: string()
+    .uuid()
+    .openapi({
+      param: {
+        name: "uuid",
+        in: "query",
+        description: "The UUID of the resource",
+      },
+    }),
 });

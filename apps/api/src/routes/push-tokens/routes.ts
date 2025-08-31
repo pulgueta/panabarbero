@@ -9,7 +9,7 @@ import {
 
 import { jsonContent, requiredJsonContent } from "@/utils/parsers/json";
 import { createErrorSchema, defaultResponse } from "@/utils/responses";
-import { idParamsSchema, idQuerySchema } from "@/utils/schemas";
+import { uuidParamsSchema, uuidQuerySchema } from "@/utils/schemas";
 
 export const createMobilePushToken = createRoute({
   method: "post",
@@ -58,7 +58,7 @@ export const updateMobilePushToken = createRoute({
   method: "put",
   path: "/push-tokens",
   request: {
-    query: idQuerySchema,
+    query: uuidQuerySchema,
     body: requiredJsonContent(
       updateMobilePushTokenSchema,
       "The mobile push token to update",
@@ -89,11 +89,7 @@ export const deleteMobilePushToken = createRoute({
   method: "delete",
   path: "/push-tokens",
   request: {
-    query: idQuerySchema,
-    body: requiredJsonContent(
-      mobilePushTokenSchema,
-      "The mobile push token to update",
-    ),
+    query: uuidQuerySchema,
   },
   responses: {
     [api.STATUS_CODES.OK]: jsonContent(
@@ -110,9 +106,9 @@ export const deleteMobilePushToken = createRoute({
 
 export const getMobilePushToken = createRoute({
   method: "get",
-  path: "/push-tokens/{id}",
+  path: "/push-tokens/{uuid}",
   request: {
-    params: idParamsSchema,
+    params: uuidParamsSchema,
   },
   responses: {
     [api.STATUS_CODES.OK]: jsonContent(
@@ -125,7 +121,7 @@ export const getMobilePushToken = createRoute({
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
     [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
-      idParamsSchema,
+      uuidParamsSchema,
       "Validation error",
     ),
   },

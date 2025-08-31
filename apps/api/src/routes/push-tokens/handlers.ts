@@ -43,10 +43,10 @@ export const getMobilePushTokens: ApiHandler<GetMobilePushTokensRoute> = async (
 export const getMobilePushToken: ApiHandler<GetMobilePushTokenRoute> = async (
   c,
 ) => {
-  const { id } = c.req.valid("param");
+  const { uuid } = c.req.valid("param");
 
   const token = await db.query.mobilePushTokens.findFirst({
-    where: (t, { eq }) => eq(t.id, id),
+    where: (t, { eq }) => eq(t.uuid, uuid),
   });
 
   if (!token) {
@@ -62,11 +62,11 @@ export const getMobilePushToken: ApiHandler<GetMobilePushTokenRoute> = async (
 export const updateMobilePushToken: ApiHandler<
   UpdateMobilePushTokenRoute
 > = async (c) => {
-  const { id } = c.req.valid("query");
+  const { uuid } = c.req.valid("query");
   const json = c.req.valid("json");
 
   const existing = await db.query.mobilePushTokens.findFirst({
-    where: (t, { eq }) => eq(t.id, id),
+    where: (t, { eq }) => eq(t.uuid, uuid),
   });
   if (!existing) {
     return c.json(
@@ -78,7 +78,7 @@ export const updateMobilePushToken: ApiHandler<
   const [updated] = await db
     .update(mobilePushTokens)
     .set(json)
-    .where(eq(mobilePushTokens.id, id))
+    .where(eq(mobilePushTokens.uuid, uuid))
     .returning();
 
   return c.json(updated, api.STATUS_CODES.OK);
@@ -87,10 +87,10 @@ export const updateMobilePushToken: ApiHandler<
 export const deleteMobilePushToken: ApiHandler<
   DeleteMobilePushTokenRoute
 > = async (c) => {
-  const { id } = c.req.valid("query");
+  const { uuid } = c.req.valid("query");
 
   const existing = await db.query.mobilePushTokens.findFirst({
-    where: (t, { eq }) => eq(t.id, id),
+    where: (t, { eq }) => eq(t.uuid, uuid),
   });
   if (!existing) {
     return c.json(
@@ -101,7 +101,7 @@ export const deleteMobilePushToken: ApiHandler<
 
   const [deleted] = await db
     .delete(mobilePushTokens)
-    .where(eq(mobilePushTokens.id, id))
+    .where(eq(mobilePushTokens.uuid, uuid))
     .returning();
 
   return c.json(deleted, api.STATUS_CODES.OK);

@@ -37,10 +37,10 @@ export const getServices: ApiHandler<GetServicesRoute> = async (c) => {
 };
 
 export const getService: ApiHandler<GetServiceRoute> = async (c) => {
-  const { id } = c.req.valid("param");
+  const { uuid } = c.req.valid("param");
 
   const service = await db.query.services.findFirst({
-    where: (t, { eq }) => eq(t.id, id),
+    where: (t, { eq }) => eq(t.uuid, uuid),
   });
 
   if (!service) {
@@ -51,11 +51,11 @@ export const getService: ApiHandler<GetServiceRoute> = async (c) => {
 };
 
 export const updateService: ApiHandler<UpdateServiceRoute> = async (c) => {
-  const { id } = c.req.valid("query");
+  const { uuid } = c.req.valid("query");
   const json = c.req.valid("json");
 
   const existing = await db.query.services.findFirst({
-    where: (t, { eq }) => eq(t.id, id),
+    where: (t, { eq }) => eq(t.uuid, uuid),
   });
   if (!existing) {
     return c.json({ message: "Service not found" }, api.STATUS_CODES.NOT_FOUND);
@@ -64,17 +64,17 @@ export const updateService: ApiHandler<UpdateServiceRoute> = async (c) => {
   const [updated] = await db
     .update(services)
     .set(json)
-    .where(eq(services.id, id))
+    .where(eq(services.uuid, uuid))
     .returning();
 
   return c.json(updated, api.STATUS_CODES.OK);
 };
 
 export const deleteService: ApiHandler<DeleteServiceRoute> = async (c) => {
-  const { id } = c.req.valid("query");
+  const { uuid } = c.req.valid("query");
 
   const existing = await db.query.services.findFirst({
-    where: (t, { eq }) => eq(t.id, id),
+    where: (t, { eq }) => eq(t.uuid, uuid),
   });
   if (!existing) {
     return c.json({ message: "Service not found" }, api.STATUS_CODES.NOT_FOUND);
@@ -82,7 +82,7 @@ export const deleteService: ApiHandler<DeleteServiceRoute> = async (c) => {
 
   const [deleted] = await db
     .delete(services)
-    .where(eq(services.id, id))
+    .where(eq(services.uuid, uuid))
     .returning();
 
   return c.json(deleted, api.STATUS_CODES.OK);

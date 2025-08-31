@@ -41,10 +41,10 @@ export const getNotifications: ApiHandler<GetNotificationsRoute> = async (
 };
 
 export const getNotification: ApiHandler<GetNotificationRoute> = async (c) => {
-  const { id } = c.req.valid("param");
+  const { uuid } = c.req.valid("param");
 
   const notification = await db.query.notifications.findFirst({
-    where: (t, { eq }) => eq(t.id, id),
+    where: (t, { eq }) => eq(t.uuid, uuid),
   });
 
   if (!notification) {
@@ -60,11 +60,11 @@ export const getNotification: ApiHandler<GetNotificationRoute> = async (c) => {
 export const updateNotification: ApiHandler<UpdateNotificationRoute> = async (
   c,
 ) => {
-  const { id } = c.req.valid("query");
+  const { uuid } = c.req.valid("query");
   const json = c.req.valid("json");
 
   const existing = await db.query.notifications.findFirst({
-    where: (t, { eq }) => eq(t.id, id),
+    where: (t, { eq }) => eq(t.uuid, uuid),
   });
   if (!existing) {
     return c.json(
@@ -76,7 +76,7 @@ export const updateNotification: ApiHandler<UpdateNotificationRoute> = async (
   const [updated] = await db
     .update(notifications)
     .set(json)
-    .where(eq(notifications.id, id))
+    .where(eq(notifications.uuid, uuid))
     .returning();
 
   return c.json(updated, api.STATUS_CODES.OK);
@@ -85,10 +85,10 @@ export const updateNotification: ApiHandler<UpdateNotificationRoute> = async (
 export const deleteNotification: ApiHandler<DeleteNotificationRoute> = async (
   c,
 ) => {
-  const { id } = c.req.valid("query");
+  const { uuid } = c.req.valid("query");
 
   const existing = await db.query.notifications.findFirst({
-    where: (t, { eq }) => eq(t.id, id),
+    where: (t, { eq }) => eq(t.uuid, uuid),
   });
   if (!existing) {
     return c.json(
@@ -99,7 +99,7 @@ export const deleteNotification: ApiHandler<DeleteNotificationRoute> = async (
 
   const [deleted] = await db
     .delete(notifications)
-    .where(eq(notifications.id, id))
+    .where(eq(notifications.uuid, uuid))
     .returning();
 
   return c.json(deleted, api.STATUS_CODES.OK);

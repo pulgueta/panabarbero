@@ -9,7 +9,7 @@ import {
 
 import { jsonContent, requiredJsonContent } from "@/utils/parsers/json";
 import { createErrorSchema, defaultResponse } from "@/utils/responses";
-import { idParamsSchema, idQuerySchema } from "@/utils/schemas";
+import { uuidParamsSchema, uuidQuerySchema } from "@/utils/schemas";
 
 export const createBarber = createRoute({
   method: "post",
@@ -53,7 +53,7 @@ export const updateBarber = createRoute({
   method: "put",
   path: "/barbers",
   request: {
-    query: idQuerySchema,
+    query: uuidQuerySchema,
     body: requiredJsonContent(updateBarberSchema, "The barber to update"),
   },
   responses: {
@@ -76,8 +76,7 @@ export const deleteBarber = createRoute({
   method: "delete",
   path: "/barbers",
   request: {
-    query: idQuerySchema,
-    body: requiredJsonContent(barberSchema, "The barber to update"),
+    query: uuidQuerySchema,
   },
   responses: {
     [api.STATUS_CODES.OK]: jsonContent(barberSchema, "The deleted barber"),
@@ -89,9 +88,9 @@ export const deleteBarber = createRoute({
 
 export const getBarber = createRoute({
   method: "get",
-  path: "/barbers/{id}",
+  path: "/barbers/{uuid}",
   request: {
-    params: idParamsSchema,
+    params: uuidParamsSchema,
   },
   responses: {
     [api.STATUS_CODES.OK]: jsonContent(barberSchema, "The barber"),
@@ -99,7 +98,7 @@ export const getBarber = createRoute({
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
     [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
-      idParamsSchema,
+      uuidParamsSchema,
       "Validation error",
     ),
   },

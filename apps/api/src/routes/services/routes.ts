@@ -9,7 +9,7 @@ import {
 
 import { jsonContent, requiredJsonContent } from "@/utils/parsers/json";
 import { createErrorSchema, defaultResponse } from "@/utils/responses";
-import { idParamsSchema, idQuerySchema } from "@/utils/schemas";
+import { uuidParamsSchema, uuidQuerySchema } from "@/utils/schemas";
 
 export const createService = createRoute({
   method: "post",
@@ -53,7 +53,7 @@ export const updateService = createRoute({
   method: "put",
   path: "/services",
   request: {
-    query: idQuerySchema,
+    query: uuidQuerySchema,
     body: requiredJsonContent(updateServiceSchema, "The service to update"),
   },
   responses: {
@@ -76,8 +76,7 @@ export const deleteService = createRoute({
   method: "delete",
   path: "/services",
   request: {
-    query: idQuerySchema,
-    body: requiredJsonContent(serviceSchema, "The service to update"),
+    query: uuidQuerySchema,
   },
   responses: {
     [api.STATUS_CODES.OK]: jsonContent(serviceSchema, "The deleted service"),
@@ -89,9 +88,9 @@ export const deleteService = createRoute({
 
 export const getService = createRoute({
   method: "get",
-  path: "/services/{id}",
+  path: "/services/{uuid}",
   request: {
-    params: idParamsSchema,
+    params: uuidParamsSchema,
   },
   responses: {
     [api.STATUS_CODES.OK]: jsonContent(serviceSchema, "The service"),
@@ -99,7 +98,7 @@ export const getService = createRoute({
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
     [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
-      idParamsSchema,
+      uuidParamsSchema,
       "Validation error",
     ),
   },

@@ -11,7 +11,7 @@ import { array } from "zod";
 
 import { jsonContent, requiredJsonContent } from "@/utils/parsers/json";
 import { createErrorSchema, defaultResponse } from "@/utils/responses";
-import { idParamsSchema, idQuerySchema } from "@/utils/schemas";
+import { uuidParamsSchema, uuidQuerySchema } from "@/utils/schemas";
 
 export const createBarbershop = createRoute({
   method: "post",
@@ -58,7 +58,7 @@ export const updateBarbershop = createRoute({
   method: "put",
   path: "/barbershops",
   request: {
-    query: idQuerySchema,
+    query: uuidQuerySchema,
     body: requiredJsonContent(
       updateBarbershopSchema,
       "The barbershop to update",
@@ -87,7 +87,7 @@ export const deleteBarbershop = createRoute({
   method: "delete",
   path: "/barbershops",
   request: {
-    query: idQuerySchema,
+    query: uuidQuerySchema,
     body: requiredJsonContent(barbershopSchema, "The barbershop to update"),
   },
   responses: {
@@ -103,9 +103,9 @@ export const deleteBarbershop = createRoute({
 
 export const getBarbershop = createRoute({
   method: "get",
-  path: "/barbershops/{id}",
+  path: "/barbershops/{uuid}",
   request: {
-    params: idParamsSchema,
+    params: uuidParamsSchema,
   },
   responses: {
     [api.STATUS_CODES.OK]: jsonContent(barbershopSchema, "The barbershop"),
@@ -113,7 +113,7 @@ export const getBarbershop = createRoute({
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
     [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
-      idParamsSchema,
+      uuidParamsSchema,
       "Validation error",
     ),
   },
