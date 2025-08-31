@@ -79,7 +79,7 @@ export const deletePayment = createRoute({
     query: uuidQuerySchema,
   },
   responses: {
-    [api.STATUS_CODES.OK]: jsonContent(paymentSchema, "The deleted payment"),
+    [api.STATUS_CODES.OK]: defaultResponse("Payment deleted"),
     [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Payment not found"),
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
@@ -88,7 +88,7 @@ export const deletePayment = createRoute({
 
 export const getPayment = createRoute({
   method: "get",
-  path: "/payments/{uuid}",
+  path: "/payments",
   request: {
     params: uuidParamsSchema,
   },

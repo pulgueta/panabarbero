@@ -79,7 +79,7 @@ export const deleteReview = createRoute({
     query: uuidQuerySchema,
   },
   responses: {
-    [api.STATUS_CODES.OK]: jsonContent(reviewSchema, "The deleted review"),
+    [api.STATUS_CODES.OK]: defaultResponse("Review deleted"),
     [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Review not found"),
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
@@ -88,7 +88,7 @@ export const deleteReview = createRoute({
 
 export const getReview = createRoute({
   method: "get",
-  path: "/reviews/{uuid}",
+  path: "/reviews",
   request: {
     params: uuidParamsSchema,
   },

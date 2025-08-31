@@ -88,10 +88,7 @@ export const deleteNotification = createRoute({
     query: uuidQuerySchema,
   },
   responses: {
-    [api.STATUS_CODES.OK]: jsonContent(
-      notificationSchema,
-      "The deleted notification",
-    ),
+    [api.STATUS_CODES.OK]: defaultResponse("Notification deleted"),
     [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Notification not found"),
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
@@ -100,7 +97,7 @@ export const deleteNotification = createRoute({
 
 export const getNotification = createRoute({
   method: "get",
-  path: "/notifications/{uuid}",
+  path: "/notifications",
   request: {
     params: uuidParamsSchema,
   },

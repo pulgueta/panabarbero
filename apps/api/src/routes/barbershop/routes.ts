@@ -90,10 +90,7 @@ export const deleteBarbershop = createRoute({
     query: uuidQuerySchema,
   },
   responses: {
-    [api.STATUS_CODES.OK]: jsonContent(
-      barbershopSchema,
-      "The deleted barbershop",
-    ),
+    [api.STATUS_CODES.OK]: defaultResponse("Barbershop deleted"),
     [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Barbershop not found"),
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),

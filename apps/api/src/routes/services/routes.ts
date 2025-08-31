@@ -79,7 +79,7 @@ export const deleteService = createRoute({
     query: uuidQuerySchema,
   },
   responses: {
-    [api.STATUS_CODES.OK]: jsonContent(serviceSchema, "The deleted service"),
+    [api.STATUS_CODES.OK]: defaultResponse("Service deleted"),
     [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Service not found"),
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),

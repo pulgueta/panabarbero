@@ -92,10 +92,7 @@ export const deleteMobilePushToken = createRoute({
     query: uuidQuerySchema,
   },
   responses: {
-    [api.STATUS_CODES.OK]: jsonContent(
-      mobilePushTokenSchema,
-      "The deleted mobile push token",
-    ),
+    [api.STATUS_CODES.OK]: defaultResponse("Mobile push token deleted"),
     [api.STATUS_CODES.NOT_FOUND]: defaultResponse(
       "Mobile push token not found",
     ),
@@ -106,7 +103,7 @@ export const deleteMobilePushToken = createRoute({
 
 export const getMobilePushToken = createRoute({
   method: "get",
-  path: "/push-tokens/{uuid}",
+  path: "/push-tokens",
   request: {
     params: uuidParamsSchema,
   },

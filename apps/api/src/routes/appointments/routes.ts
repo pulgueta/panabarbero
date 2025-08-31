@@ -86,13 +86,9 @@ export const deleteAppointment = createRoute({
   path: "/appointments",
   request: {
     query: uuidQuerySchema,
-    body: requiredJsonContent(appointmentSchema, "The appointment to update"),
   },
   responses: {
-    [api.STATUS_CODES.OK]: jsonContent(
-      appointmentSchema,
-      "The deleted appointment",
-    ),
+    [api.STATUS_CODES.OK]: defaultResponse("Appointment deleted"),
     [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Appointment not found"),
     [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
     [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
@@ -101,7 +97,7 @@ export const deleteAppointment = createRoute({
 
 export const getAppointment = createRoute({
   method: "get",
-  path: "/appointments/{uuid}",
+  path: "/appointments",
   request: {
     params: uuidParamsSchema,
   },
