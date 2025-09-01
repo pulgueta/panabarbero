@@ -38,6 +38,7 @@
     "packages/*"
   ],
   "dependencies": {
-    "@asteasolutions/zod-to-openapi": "^8.1.0"
+    "@t3-oss/env-core": "^0.13.8",
+    "zod": "^4.0.17"
   }
 }

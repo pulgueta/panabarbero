@@ -1,4 +1,12 @@
 {
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    ".turbo",
+    ".cache"
+  ],
+  "include": ["./src/**/*.ts", "./src/**/*.tsx", "./env/**/*.ts"],
   "compilerOptions": {
     "verbatimModuleSyntax": true,
     "module": "ESNext",

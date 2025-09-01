@@ -7,6 +7,9 @@
     ".": {
       "default": "./src/index.ts"
     },
+    "./env": {
+      "default": "./env/index.ts"
+    },
     "./client": {
       "default": "./src/client.ts"
     },
@@ -28,8 +31,7 @@
   "dependencies": {
     "dotenv": "^17.2.1",
     "drizzle-orm": "^0.44.4",
-    "drizzle-zod": "^0.8.3",
-    "zod": "^4.0.17"
+    "drizzle-zod": "^0.8.3"
   },
   "devDependencies": {
     "@types/bun": "^1.2.20",

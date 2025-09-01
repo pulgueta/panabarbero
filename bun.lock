@@ -4,7 +4,8 @@
     "": {
       "name": "panabarbero",
       "dependencies": {
-        "@asteasolutions/zod-to-openapi": "^8.1.0",
+        "@t3-oss/env-core": "^0.13.8",
+        "zod": "^4.0.17",
       },
       "devDependencies": {
         "@biomejs/biome": "^2.2.2",
@@ -25,13 +26,12 @@
       "name": "@panabarbero/api",
       "version": "0.0.1",
       "dependencies": {
+        "@asteasolutions/zod-to-openapi": "^8.1.0",
         "@hono/zod-openapi": "^1.1.0",
         "@panabarbero/auth": "workspace:*",
         "@panabarbero/constants": "workspace:*",
         "@scalar/hono-api-reference": "^0.9.16",
-        "@t3-oss/env-core": "^0.13.8",
         "hono": "^4.9.5",
-        "zod": "^4.1.5",
       },
       "devDependencies": {
         "@types/bun": "^1.2.21",
@@ -78,11 +78,9 @@
         "@better-auth/expo": "1.3.4",
         "@panabarbero/constants": "workspace:*",
         "@panabarbero/db": "workspace:*",
-        "@t3-oss/env-core": "^0.13.8",
         "better-auth": "1.3.4",
         "react": "^19.1.1",
         "react-dom": "^19.1.1",
-        "zod": "^4.0.14",
       },
       "devDependencies": {
         "@better-auth/cli": "^1.3.4",
@@ -126,7 +124,6 @@
         "dotenv": "^17.2.1",
         "drizzle-orm": "^0.44.4",
         "drizzle-zod": "^0.8.3",
-        "zod": "^4.0.17",
       },
       "devDependencies": {
         "@types/bun": "^1.2.20",

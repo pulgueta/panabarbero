@@ -13,13 +13,12 @@
     "start": "bun run build/index.js"
   },
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^8.1.0",
     "@hono/zod-openapi": "^1.1.0",
     "@panabarbero/auth": "workspace:*",
     "@panabarbero/constants": "workspace:*",
     "@scalar/hono-api-reference": "^0.9.16",
-    "@t3-oss/env-core": "^0.13.8",
-    "hono": "^4.9.5",
-    "zod": "^4.1.5"
+    "hono": "^4.9.5"
   },
   "devDependencies": {
     "@types/bun": "^1.2.21"
