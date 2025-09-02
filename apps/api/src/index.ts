@@ -3,12 +3,13 @@ import { createOpenApiConfig } from "@/config/openapi";
 import { authRouter } from "@/routes/auth";
 import { barbersRouter } from "@/routes/barbers";
 import { barbershopRouter } from "@/routes/barbershop";
-import { appointmentsRouter } from "@/routes/barbershop/appointments";
 import { notificationsRouter } from "@/routes/notifications";
 import { paymentsRouter } from "@/routes/payments";
 import { pushTokensRouter } from "@/routes/push-tokens";
-import { reviewsRouter } from "@/routes/reviews";
-import { servicesRouter } from "@/routes/services";
+
+// Reviews are now chained under barbershops
+
+// Services and appointments are now chained under barbershops
 
 const app = createBackend().basePath("/api");
 
@@ -17,9 +18,6 @@ createOpenApiConfig(app);
 const routes = [
   barbershopRouter,
   barbersRouter,
-  servicesRouter,
-  reviewsRouter,
-  appointmentsRouter,
   paymentsRouter,
   notificationsRouter,
   pushTokensRouter,

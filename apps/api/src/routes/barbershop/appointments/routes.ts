@@ -13,7 +13,7 @@ import { uuidParamsSchema, uuidQuerySchema } from "@/utils/schemas";
 
 export const createAppointment = createRoute({
   method: "post",
-  path: "/barbershops/appointments",
+  path: "/appointments",
   request: {
     query: uuidQuerySchema,
     body: requiredJsonContent(
@@ -41,7 +41,7 @@ export const createAppointment = createRoute({
 
 export const getAppointments = createRoute({
   method: "get",
-  path: "/barbershops/appointments",
+  path: "/appointments",
   request: {
     query: uuidQuerySchema,
   },
@@ -58,7 +58,7 @@ export const getAppointments = createRoute({
 
 export const updateAppointment = createRoute({
   method: "put",
-  path: "/barbershops/appointments",
+  path: "/appointments",
   request: {
     query: uuidQuerySchema,
     body: requiredJsonContent(
@@ -87,7 +87,7 @@ export const updateAppointment = createRoute({
 
 export const deleteAppointment = createRoute({
   method: "delete",
-  path: "/barbershops/appointments",
+  path: "/appointments",
   request: {
     query: uuidQuerySchema,
   },
@@ -101,7 +101,7 @@ export const deleteAppointment = createRoute({
 
 export const getAppointment = createRoute({
   method: "get",
-  path: "/barbershops/appointments",
+  path: "/appointments",
   request: {
     params: uuidParamsSchema,
   },
