@@ -6,7 +6,7 @@ import {
 } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
-import { clientEnv } from "@/env/client";
+import { authClientEnv } from "@/env/client";
 import type { auth } from ".";
 
 export const {
@@ -22,7 +22,7 @@ export const {
   twoFactor,
   getSession,
 } = createAuthClient({
-  baseURL: clientEnv.VITE_API_URL,
+  baseURL: authClientEnv.VITE_API_URL,
   fetchOptions: {
     credentials: "include",
   },
