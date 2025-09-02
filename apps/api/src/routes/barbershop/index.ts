@@ -1,5 +1,6 @@
 import { createBackendRouter } from "@/config";
 import { appointmentsRouter } from "./appointments";
+import { barbersRouter as barbersSubrouter } from "./barbers";
 import * as handlers from "./handlers";
 import { reviewsRouter } from "./reviews";
 import * as routes from "./routes";
@@ -12,5 +13,6 @@ export const barbershopRouter = createBackendRouter()
   .openapi(routes.updateBarbershop, handlers.updateBarbershop)
   .openapi(routes.deleteBarbershop, handlers.deleteBarbershop)
   .route("/barbershops", appointmentsRouter)
+  .route("/barbershops", barbersSubrouter)
   .route("/barbershops", servicesRouter)
   .route("/barbershops", reviewsRouter);

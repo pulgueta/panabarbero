@@ -69,6 +69,7 @@ export const getBarber: ApiHandler<GetBarberRoute> = async (c) => {
     barber = cachedBarber;
   } else {
     barber = await db.query.barbers.findFirst({
+      where: (t, { eq }) => eq(t.uuid, uuid),
       columns: {
         id: false,
         createdAt: false,
