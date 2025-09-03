@@ -12,8 +12,8 @@ import {
 } from "better-auth/plugins";
 import { passkey } from "better-auth/plugins/passkey";
 
-import { clientEnv } from "@/env/client";
-import { serverEnv } from "@/env/server";
+import { authClientEnv } from "@/env/client";
+import { authServerEnv } from "@/env/server";
 import { ac, roles } from "./rbac";
 
 export const auth = betterAuth({
@@ -21,12 +21,12 @@ export const auth = betterAuth({
     provider: "pg",
     schema,
   }),
-  baseURL: clientEnv.VITE_API_URL,
-  secret: serverEnv.AUTH_SECRET,
+  baseURL: authClientEnv.VITE_API_URL,
+  secret: authServerEnv.AUTH_SECRET,
   plugins: [
     oAuthProxy({
-      currentURL: clientEnv.VITE_API_URL,
-      productionURL: clientEnv.VITE_API_URL,
+      currentURL: authClientEnv.VITE_API_URL,
+      productionURL: authClientEnv.VITE_API_URL,
     }),
     passkey(),
     organization({
@@ -43,12 +43,16 @@ export const auth = betterAuth({
   ],
   socialProviders: {
     google: {
-      clientId: serverEnv.GOOGLE_CLIENT_ID,
-      clientSecret: serverEnv.GOOGLE_CLIENT_SECRET,
+      clientId: authServerEnv.GOOGLE_CLIENT_ID,
+      clientSecret: authServerEnv.GOOGLE_CLIENT_SECRET,
     },
   },
   appName: APP_NAME,
-  trustedOrigins: ["expo://", "http://localhost:5173", clientEnv.VITE_API_URL],
+  trustedOrigins: [
+    "expo://",
+    "http://localhost:5173",
+    authClientEnv.VITE_API_URL,
+  ],
   user: {
     additionalFields: {
       role: {

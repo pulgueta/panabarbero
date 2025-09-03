@@ -1,7 +1,7 @@
 import { createEnv } from "@t3-oss/env-core";
 import { string } from "zod/v4";
 
-export const serverEnv = createEnv({
+export const authServerEnv = createEnv({
   server: {
     AUTH_SECRET: string().min(1),
     GOOGLE_CLIENT_ID: string().min(1),

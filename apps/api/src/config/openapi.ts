@@ -11,6 +11,7 @@ export function createOpenApiConfig(ctx: ApiContext) {
     info: {
       title: `${APP_NAME} API`,
       version,
+      description: "API for the PanaBarbero app",
     },
   });
 
