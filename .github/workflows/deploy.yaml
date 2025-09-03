@@ -25,6 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.ref == 'refs/heads/main' }}
     container: ghcr.io/railwayapp/cli:latest
+    needs: [version, migrations]
     env:
       SVC_ID: ${{ vars.SERVICE_ID }}
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
@@ -44,6 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.ref == 'refs/heads/demo' }}
     container: ghcr.io/railwayapp/cli:latest
+    needs: [version, migrations]
     env:
       SVC_ID: ${{ vars.PREVIEW_SERVICE_ID }}
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
