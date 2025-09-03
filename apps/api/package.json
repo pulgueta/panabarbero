@@ -4,17 +4,23 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": {
-      "import": "./src/index.ts"
-    }
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts"
   },
   "scripts": {
-    "dev": "bun run --hot src/index.ts"
+    "dev": "bun run --hot src/index.ts",
+    "build": "bun build src/index.ts --outdir=build --target bun --splitting",
+    "start": "bun run build/index.js"
   },
   "dependencies": {
-    "hono": "^4.8.12"
+    "@asteasolutions/zod-to-openapi": "^8.1.0",
+    "@hono/zod-openapi": "^1.1.0",
+    "@panabarbero/auth": "workspace:*",
+    "@panabarbero/constants": "workspace:*",
+    "@scalar/hono-api-reference": "^0.9.16",
+    "hono": "^4.9.5"
   },
   "devDependencies": {
-    "@types/bun": "^1.2.19"
+    "@types/bun": "^1.2.21"
   }
 }

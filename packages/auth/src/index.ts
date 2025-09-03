@@ -1,50 +1,69 @@
 import { expo } from "@better-auth/expo";
+import { APP_NAME } from "@panabarbero/constants";
 import { db } from "@panabarbero/db/client";
 import * as schema from "@panabarbero/db/schema";
-import type { BetterAuthOptions } from "better-auth";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { oAuthProxy } from "better-auth/plugins";
+import {
+  oAuthProxy,
+  openAPI,
+  organization,
+  twoFactor,
+} from "better-auth/plugins";
+import { passkey } from "better-auth/plugins/passkey";
 
-export function initAuth(options: {
-  baseUrl: string;
-  productionUrl: string;
-  secret: string | undefined;
+import { authClientEnv } from "@/env/client";
+import { authServerEnv } from "@/env/server";
+import { ac, roles } from "./rbac";
 
-  discordClientId: string;
-  discordClientSecret: string;
-}) {
-  const config = {
-    database: drizzleAdapter(db, {
-      provider: "pg",
-      schema: {
-        user: schema.user,
-        session: schema.session,
-        verification: schema.verification,
-        account: schema.account,
-      },
+export const auth = betterAuth({
+  database: drizzleAdapter(db, {
+    provider: "pg",
+    schema,
+  }),
+  baseURL: authClientEnv.VITE_API_URL,
+  secret: authServerEnv.AUTH_SECRET,
+  plugins: [
+    oAuthProxy({
+      currentURL: authClientEnv.VITE_API_URL,
+      productionURL: authClientEnv.VITE_API_URL,
     }),
-    baseURL: options.baseUrl,
-    secret: options.secret,
-    plugins: [
-      oAuthProxy({
-        currentURL: options.baseUrl,
-        productionURL: options.productionUrl,
-      }),
-      expo(),
-    ],
-    socialProviders: {
-      discord: {
-        clientId: options.discordClientId,
-        clientSecret: options.discordClientSecret,
-        redirectURI: `${options.productionUrl}/api/auth/callback/discord`,
+    passkey(),
+    organization({
+      ac,
+      roles,
+      defaultRole: roles.barber,
+      creatorRole: "owner",
+    }),
+    twoFactor({
+      issuer: APP_NAME,
+    }),
+    expo(),
+    openAPI(),
+  ],
+  socialProviders: {
+    google: {
+      clientId: authServerEnv.GOOGLE_CLIENT_ID,
+      clientSecret: authServerEnv.GOOGLE_CLIENT_SECRET,
+    },
+  },
+  appName: APP_NAME,
+  trustedOrigins: [
+    "expo://",
+    "http://localhost:5173",
+    authClientEnv.VITE_API_URL,
+  ],
+  user: {
+    additionalFields: {
+      role: {
+        type: schema.role.enumValues,
+        required: false,
+        defaultValue: schema.role.enumValues[2],
       },
     },
-    trustedOrigins: ["expo://"],
-  } satisfies BetterAuthOptions;
+  },
+});
 
-  return betterAuth(config);
-}
-
-export type Auth = ReturnType<typeof initAuth>;
-export type Session = Auth["$Infer"]["Session"];
+export type Auth = typeof auth;
+export type Session = Auth["$Infer"]["Session"]["session"];
+export type User = Auth["$Infer"]["Session"]["user"];

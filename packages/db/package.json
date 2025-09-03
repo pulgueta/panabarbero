@@ -5,34 +5,36 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
       "default": "./src/index.ts"
     },
+    "./env": {
+      "default": "./env/index.ts"
+    },
     "./client": {
-      "types": "./dist/client.d.ts",
       "default": "./src/client.ts"
     },
     "./schema": {
-      "types": "./dist/schema.d.ts",
-      "default": "./src/schema.ts"
+      "import": "./src/schema.ts"
+    },
+    "./schema/zod": {
+      "import": "./src/zod/index.ts"
     }
   },
   "license": "MIT",
   "scripts": {
-    "build": "tsc",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
-    "push": "yarn with-env drizzle-kit push",
-    "studio": "yarn with-env drizzle-kit studio",
-    "with-env": "dotenv -e ../../.env --"
+    "generate": "drizzle-kit generate",
+    "migrate": "drizzle-kit migrate",
+    "push": "drizzle-kit push",
+    "studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "dotenv": "^17.2.1",
     "drizzle-orm": "^0.44.4",
-    "drizzle-zod": "^0.8.2",
-    "postgres": "^3.4.7",
-    "zod": "^4.0.14"
+    "drizzle-zod": "^0.8.3"
   },
   "devDependencies": {
-    "@types/node": "^22.17.1",
+    "@types/bun": "^1.2.20",
     "dotenv-cli": "^10.0.0",
     "drizzle-kit": "^0.31.4",
     "typescript": "^5.9.2"
