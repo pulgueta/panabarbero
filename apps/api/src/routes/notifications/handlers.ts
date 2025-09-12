@@ -1,4 +1,4 @@
-import { api } from "@panabarbero/constants";
+import { STATUS_CODES } from "@panabarbero/constants/api";
 import { eq } from "@panabarbero/db";
 import { db } from "@panabarbero/db/client";
 import { notifications } from "@panabarbero/db/schema";
@@ -31,7 +31,7 @@ export const createNotification: ApiHandler<CreateNotificationRoute> = async (
 
   await setCacheFromKey(`notifications:${created.uuid}`, created);
 
-  return c.json({ id: created.uuid }, api.STATUS_CODES.CREATED);
+  return c.json({ id: created.uuid }, STATUS_CODES.CREATED);
 };
 
 export const getNotifications: ApiHandler<GetNotificationsRoute> = async (
@@ -59,13 +59,13 @@ export const getNotifications: ApiHandler<GetNotificationsRoute> = async (
   if (!notifications || notifications.length === 0) {
     return c.json(
       { message: "Notifications not found" },
-      api.STATUS_CODES.NOT_FOUND,
+      STATUS_CODES.NOT_FOUND,
     );
   }
 
   await setCacheFromKey("notifications", notifications);
 
-  return c.json(notifications, api.STATUS_CODES.OK);
+  return c.json(notifications, STATUS_CODES.OK);
 };
 
 export const getNotification: ApiHandler<GetNotificationRoute> = async (c) => {
@@ -94,13 +94,13 @@ export const getNotification: ApiHandler<GetNotificationRoute> = async (c) => {
   if (!notification) {
     return c.json(
       { message: "Notification not found" },
-      api.STATUS_CODES.NOT_FOUND,
+      STATUS_CODES.NOT_FOUND,
     );
   }
 
   await setCacheFromKey(`notifications:${uuid}`, notification);
 
-  return c.json(notification, api.STATUS_CODES.OK);
+  return c.json(notification, STATUS_CODES.OK);
 };
 
 export const updateNotification: ApiHandler<UpdateNotificationRoute> = async (
@@ -132,7 +132,7 @@ export const updateNotification: ApiHandler<UpdateNotificationRoute> = async (
   if (!existing) {
     return c.json(
       { message: "Notification not found" },
-      api.STATUS_CODES.NOT_FOUND,
+      STATUS_CODES.NOT_FOUND,
     );
   }
 
@@ -151,7 +151,7 @@ export const updateNotification: ApiHandler<UpdateNotificationRoute> = async (
 
   await setCacheFromKey(`notifications:${uuid}`, updated);
 
-  return c.json(updated, api.STATUS_CODES.OK);
+  return c.json(updated, STATUS_CODES.OK);
 };
 
 export const deleteNotification: ApiHandler<DeleteNotificationRoute> = async (
@@ -182,7 +182,7 @@ export const deleteNotification: ApiHandler<DeleteNotificationRoute> = async (
   if (!existing) {
     return c.json(
       { message: "Notification not found" },
-      api.STATUS_CODES.NOT_FOUND,
+      STATUS_CODES.NOT_FOUND,
     );
   }
 
@@ -198,5 +198,5 @@ export const deleteNotification: ApiHandler<DeleteNotificationRoute> = async (
     deleteCacheFromKey(`notifications:${uuid}`),
   ]);
 
-  return c.json({ message: "Notification deleted" }, api.STATUS_CODES.OK);
+  return c.json({ message: "Notification deleted" }, STATUS_CODES.OK);
 };

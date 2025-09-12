@@ -1,4 +1,4 @@
-import { api } from "@panabarbero/constants";
+import { STATUS_CODES } from "@panabarbero/constants/api";
 import { eq } from "@panabarbero/db";
 import { db } from "@panabarbero/db/client";
 import { reviews } from "@panabarbero/db/schema";
@@ -27,7 +27,7 @@ export const createReview: ApiHandler<CreateReviewRoute> = async (c) => {
     .values(json)
     .returning({ id: reviews.uuid });
 
-  return c.json({ id: created.id }, api.STATUS_CODES.CREATED);
+  return c.json({ id: created.id }, STATUS_CODES.CREATED);
 };
 
 export const getReviews: ApiHandler<GetReviewsRoute> = async (c) => {
@@ -44,12 +44,12 @@ export const getReviews: ApiHandler<GetReviewsRoute> = async (c) => {
   }
 
   if (!list || list.length === 0) {
-    return c.json({ message: "Reviews not found" }, api.STATUS_CODES.NOT_FOUND);
+    return c.json({ message: "Reviews not found" }, STATUS_CODES.NOT_FOUND);
   }
 
   await setCacheFromKey("reviews", list);
 
-  return c.json(list, api.STATUS_CODES.OK);
+  return c.json(list, STATUS_CODES.OK);
 };
 
 export const getReview: ApiHandler<GetReviewRoute> = async (c) => {
@@ -69,12 +69,12 @@ export const getReview: ApiHandler<GetReviewRoute> = async (c) => {
   }
 
   if (!review) {
-    return c.json({ message: "Review not found" }, api.STATUS_CODES.NOT_FOUND);
+    return c.json({ message: "Review not found" }, STATUS_CODES.NOT_FOUND);
   }
 
   await setCacheFromKey(`reviews:${uuid}`, review);
 
-  return c.json(review, api.STATUS_CODES.OK);
+  return c.json(review, STATUS_CODES.OK);
 };
 
 export const updateReview: ApiHandler<UpdateReviewRoute> = async (c) => {
@@ -95,7 +95,7 @@ export const updateReview: ApiHandler<UpdateReviewRoute> = async (c) => {
   }
 
   if (!review) {
-    return c.json({ message: "Review not found" }, api.STATUS_CODES.NOT_FOUND);
+    return c.json({ message: "Review not found" }, STATUS_CODES.NOT_FOUND);
   }
   const [updated] = await db
     .update(reviews)
@@ -111,7 +111,7 @@ export const updateReview: ApiHandler<UpdateReviewRoute> = async (c) => {
 
   await setCacheFromKey(`reviews:${uuid}`, updated);
 
-  return c.json(updated, api.STATUS_CODES.OK);
+  return c.json(updated, STATUS_CODES.OK);
 };
 
 export const deleteReview: ApiHandler<DeleteReviewRoute> = async (c) => {
@@ -131,7 +131,7 @@ export const deleteReview: ApiHandler<DeleteReviewRoute> = async (c) => {
   }
 
   if (!review) {
-    return c.json({ message: "Review not found" }, api.STATUS_CODES.NOT_FOUND);
+    return c.json({ message: "Review not found" }, STATUS_CODES.NOT_FOUND);
   }
 
   await Promise.all([
@@ -139,5 +139,5 @@ export const deleteReview: ApiHandler<DeleteReviewRoute> = async (c) => {
     deleteCacheFromKey(`reviews:${uuid}`),
   ]);
 
-  return c.json({ message: "Review deleted" }, api.STATUS_CODES.OK);
+  return c.json({ message: "Review deleted" }, STATUS_CODES.OK);
 };

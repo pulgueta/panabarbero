@@ -1,4 +1,4 @@
-import { api } from "@panabarbero/constants";
+import { STATUS_CODES } from "@panabarbero/constants/api";
 import { eq } from "@panabarbero/db";
 import { db } from "@panabarbero/db/client";
 import { payments } from "@panabarbero/db/schema";
@@ -27,7 +27,7 @@ export const createPayment: ApiHandler<CreatePaymentRoute> = async (c) => {
     .values(json)
     .returning({ id: payments.uuid });
 
-  return c.json({ id: created.id }, api.STATUS_CODES.CREATED);
+  return c.json({ id: created.id }, STATUS_CODES.CREATED);
 };
 
 export const getPayments: ApiHandler<GetPaymentsRoute> = async (c) => {
@@ -51,15 +51,12 @@ export const getPayments: ApiHandler<GetPaymentsRoute> = async (c) => {
   }
 
   if (!payments || payments.length === 0) {
-    return c.json(
-      { message: "Payments not found" },
-      api.STATUS_CODES.NOT_FOUND,
-    );
+    return c.json({ message: "Payments not found" }, STATUS_CODES.NOT_FOUND);
   }
 
   await setCacheFromKey("payments", payments);
 
-  return c.json(payments, api.STATUS_CODES.OK);
+  return c.json(payments, STATUS_CODES.OK);
 };
 
 export const getPayment: ApiHandler<GetPaymentRoute> = async (c) => {
@@ -86,12 +83,12 @@ export const getPayment: ApiHandler<GetPaymentRoute> = async (c) => {
   }
 
   if (!payment) {
-    return c.json({ message: "Payment not found" }, api.STATUS_CODES.NOT_FOUND);
+    return c.json({ message: "Payment not found" }, STATUS_CODES.NOT_FOUND);
   }
 
   await setCacheFromKey(`payments:${uuid}`, payment);
 
-  return c.json(payment, api.STATUS_CODES.OK);
+  return c.json(payment, STATUS_CODES.OK);
 };
 
 export const updatePayment: ApiHandler<UpdatePaymentRoute> = async (c) => {
@@ -119,7 +116,7 @@ export const updatePayment: ApiHandler<UpdatePaymentRoute> = async (c) => {
   }
 
   if (!payment) {
-    return c.json({ message: "Payment not found" }, api.STATUS_CODES.NOT_FOUND);
+    return c.json({ message: "Payment not found" }, STATUS_CODES.NOT_FOUND);
   }
 
   const [updated] = await db
@@ -138,7 +135,7 @@ export const updatePayment: ApiHandler<UpdatePaymentRoute> = async (c) => {
 
   await setCacheFromKey(`payments:${uuid}`, updated);
 
-  return c.json(updated, api.STATUS_CODES.OK);
+  return c.json(updated, STATUS_CODES.OK);
 };
 
 export const deletePayment: ApiHandler<DeletePaymentRoute> = async (c) => {
@@ -165,7 +162,7 @@ export const deletePayment: ApiHandler<DeletePaymentRoute> = async (c) => {
   }
 
   if (!payment) {
-    return c.json({ message: "Payment not found" }, api.STATUS_CODES.NOT_FOUND);
+    return c.json({ message: "Payment not found" }, STATUS_CODES.NOT_FOUND);
   }
 
   await Promise.all([
@@ -180,5 +177,5 @@ export const deletePayment: ApiHandler<DeletePaymentRoute> = async (c) => {
     deleteCacheFromKey(`payments:${uuid}`),
   ]);
 
-  return c.json({ message: "Payment deleted" }, api.STATUS_CODES.OK);
+  return c.json({ message: "Payment deleted" }, STATUS_CODES.OK);
 };

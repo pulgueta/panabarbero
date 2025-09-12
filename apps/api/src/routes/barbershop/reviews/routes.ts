@@ -1,5 +1,5 @@
 import { createRoute } from "@hono/zod-openapi";
-import { api } from "@panabarbero/constants";
+import { STATUS_CODES } from "@panabarbero/constants/api";
 import {
   createdResourceSchema,
   createReviewSchema,
@@ -18,17 +18,17 @@ export const createReview = createRoute({
     body: requiredJsonContent(createReviewSchema, "The review to create"),
   },
   responses: {
-    [api.STATUS_CODES.CREATED]: jsonContent(
+    [STATUS_CODES.CREATED]: jsonContent(
       createdResourceSchema,
       "Review created",
     ),
-    [api.STATUS_CODES.BAD_REQUEST]: createErrorSchema(
+    [STATUS_CODES.BAD_REQUEST]: createErrorSchema(
       createReviewSchema,
       "The review is not valid",
     ),
-    [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
-    [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
-    [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
+    [STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
+    [STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
+    [STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
       createReviewSchema,
       "Validation error",
     ),
@@ -39,13 +39,13 @@ export const getReviews = createRoute({
   method: "get",
   path: "/reviews",
   responses: {
-    [api.STATUS_CODES.OK]: jsonContent(
+    [STATUS_CODES.OK]: jsonContent(
       reviewSchema.array(),
       "The existing reviews",
     ),
-    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Reviews not found"),
-    [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
-    [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
+    [STATUS_CODES.NOT_FOUND]: defaultResponse("Reviews not found"),
+    [STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
+    [STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
   },
 });
 
@@ -57,15 +57,15 @@ export const updateReview = createRoute({
     body: requiredJsonContent(updateReviewSchema, "The review to update"),
   },
   responses: {
-    [api.STATUS_CODES.OK]: jsonContent(reviewSchema, "The updated review"),
-    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Review not found"),
-    [api.STATUS_CODES.BAD_REQUEST]: createErrorSchema(
+    [STATUS_CODES.OK]: jsonContent(reviewSchema, "The updated review"),
+    [STATUS_CODES.NOT_FOUND]: defaultResponse("Review not found"),
+    [STATUS_CODES.BAD_REQUEST]: createErrorSchema(
       updateReviewSchema,
       "The review is not valid",
     ),
-    [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
-    [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
-    [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
+    [STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
+    [STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
+    [STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
       updateReviewSchema,
       "Validation error",
     ),
@@ -79,10 +79,10 @@ export const deleteReview = createRoute({
     query: uuidQuerySchema,
   },
   responses: {
-    [api.STATUS_CODES.OK]: defaultResponse("Review deleted"),
-    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Review not found"),
-    [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
-    [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
+    [STATUS_CODES.OK]: defaultResponse("Review deleted"),
+    [STATUS_CODES.NOT_FOUND]: defaultResponse("Review not found"),
+    [STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
+    [STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
   },
 });
 
@@ -93,11 +93,11 @@ export const getReview = createRoute({
     params: uuidParamsSchema,
   },
   responses: {
-    [api.STATUS_CODES.OK]: jsonContent(reviewSchema, "The review"),
-    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Review not found"),
-    [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
-    [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
-    [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
+    [STATUS_CODES.OK]: jsonContent(reviewSchema, "The review"),
+    [STATUS_CODES.NOT_FOUND]: defaultResponse("Review not found"),
+    [STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
+    [STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
+    [STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
       uuidParamsSchema,
       "Validation error",
     ),

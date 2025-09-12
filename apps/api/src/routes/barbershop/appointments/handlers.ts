@@ -1,9 +1,15 @@
-import { api } from "@panabarbero/constants";
+import { STATUS_CODES } from "@panabarbero/constants/api";
 import { eq } from "@panabarbero/db";
 import { db } from "@panabarbero/db/client";
 import { appointments } from "@panabarbero/db/schema";
-import type { Appointment } from "@panabarbero/db/schema/zod";
-import { appointmentSchema } from "@panabarbero/db/schema/zod";
+import type {
+  Appointment,
+  AppointmentWithRelations,
+} from "@panabarbero/db/schema/zod";
+import {
+  appointmentSchema,
+  appointmentWithRelationsSchema,
+} from "@panabarbero/db/schema/zod";
 
 import type { ApiHandler } from "@/config/types";
 import {
@@ -32,34 +38,38 @@ export const createAppointment: ApiHandler<CreateAppointmentRoute> = async (
 
   await setCacheFromKey(`appointments:${created.id}`, created);
 
-  return c.json({ id: created.id }, api.STATUS_CODES.CREATED);
+  return c.json({ id: created.id }, STATUS_CODES.CREATED);
 };
 
 export const getAppointments: ApiHandler<GetAppointmentsRoute> = async (c) => {
   const { uuid } = c.req.valid("query");
-  let appointments: Appointment[] | undefined;
+  let appointments: AppointmentWithRelations[] | undefined;
 
   const cachedAppointments = await getCacheFromKey(
-    `appointments:${uuid}`,
-    appointmentSchema.array(),
+    `appointments_with_relations:${uuid}`,
+    appointmentWithRelationsSchema.array(),
   );
 
   if (cachedAppointments) {
     appointments = cachedAppointments;
   } else {
     appointments = await db.query.appointments.findMany({
-      where: (t, { eq }) => eq(t.barbershopId, uuid),
+      where: (t, { eq }) => eq(t.uuid, uuid),
       columns: { id: false, createdAt: false, updatedAt: false },
+      with: {
+        service: true,
+        barbershop: true,
+      },
     });
   }
 
   if (appointments) {
-    return c.json(appointments, api.STATUS_CODES.OK);
+    return c.json(appointments, STATUS_CODES.OK);
   }
 
-  await setCacheFromKey(`appointments:${uuid}`, appointments);
+  await setCacheFromKey(`appointments_with_relations:${uuid}`, appointments);
 
-  return c.json(appointments, api.STATUS_CODES.OK);
+  return c.json(appointments, STATUS_CODES.OK);
 };
 
 export const getAppointment: ApiHandler<GetAppointmentRoute> = async (c) => {
@@ -86,15 +96,12 @@ export const getAppointment: ApiHandler<GetAppointmentRoute> = async (c) => {
   }
 
   if (!appointment) {
-    return c.json(
-      { message: "Appointment not found" },
-      api.STATUS_CODES.NOT_FOUND,
-    );
+    return c.json({ message: "Appointment not found" }, STATUS_CODES.NOT_FOUND);
   }
 
   await setCacheFromKey(`appointments:${uuid}`, appointment);
 
-  return c.json(appointment, api.STATUS_CODES.OK);
+  return c.json(appointment, STATUS_CODES.OK);
 };
 
 export const updateAppointment: ApiHandler<UpdateAppointmentRoute> = async (
@@ -124,10 +131,7 @@ export const updateAppointment: ApiHandler<UpdateAppointmentRoute> = async (
   }
 
   if (!appointment) {
-    return c.json(
-      { message: "Appointment not found" },
-      api.STATUS_CODES.NOT_FOUND,
-    );
+    return c.json({ message: "Appointment not found" }, STATUS_CODES.NOT_FOUND);
   }
 
   const [updated] = await db
@@ -149,7 +153,7 @@ export const updateAppointment: ApiHandler<UpdateAppointmentRoute> = async (
 
   await setCacheFromKey(`appointments:${uuid}`, updated);
 
-  return c.json(updated, api.STATUS_CODES.OK);
+  return c.json(updated, STATUS_CODES.OK);
 };
 
 export const deleteAppointment: ApiHandler<DeleteAppointmentRoute> = async (
@@ -178,10 +182,7 @@ export const deleteAppointment: ApiHandler<DeleteAppointmentRoute> = async (
   }
 
   if (!appointment) {
-    return c.json(
-      { message: "Appointment not found" },
-      api.STATUS_CODES.NOT_FOUND,
-    );
+    return c.json({ message: "Appointment not found" }, STATUS_CODES.NOT_FOUND);
   }
 
   await Promise.all([
@@ -189,5 +190,5 @@ export const deleteAppointment: ApiHandler<DeleteAppointmentRoute> = async (
     deleteCacheFromKey(`appointments:${uuid}`),
   ]);
 
-  return c.json({ message: "Appointment deleted" }, api.STATUS_CODES.OK);
+  return c.json({ message: "Appointment deleted" }, STATUS_CODES.OK);
 };

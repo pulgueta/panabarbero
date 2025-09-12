@@ -1,4 +1,4 @@
-import { api } from "@panabarbero/constants";
+import { STATUS_CODES } from "@panabarbero/constants/api";
 import { eq } from "@panabarbero/db";
 import { db } from "@panabarbero/db/client";
 import { services } from "@panabarbero/db/schema";
@@ -27,7 +27,7 @@ export const createService: ApiHandler<CreateServiceRoute> = async (c) => {
     .values(json)
     .returning({ id: services.uuid });
 
-  return c.json({ id: created.id }, api.STATUS_CODES.CREATED);
+  return c.json({ id: created.id }, STATUS_CODES.CREATED);
 };
 
 export const getServices: ApiHandler<GetServicesRoute> = async (c) => {
@@ -47,15 +47,12 @@ export const getServices: ApiHandler<GetServicesRoute> = async (c) => {
   }
 
   if (!services || services.length === 0) {
-    return c.json(
-      { message: "Services not found" },
-      api.STATUS_CODES.NOT_FOUND,
-    );
+    return c.json({ message: "Services not found" }, STATUS_CODES.NOT_FOUND);
   }
 
   await setCacheFromKey("services", services);
 
-  return c.json(services, api.STATUS_CODES.OK);
+  return c.json(services, STATUS_CODES.OK);
 };
 
 export const getService: ApiHandler<GetServiceRoute> = async (c) => {
@@ -78,12 +75,12 @@ export const getService: ApiHandler<GetServiceRoute> = async (c) => {
   }
 
   if (!service) {
-    return c.json({ message: "Service not found" }, api.STATUS_CODES.NOT_FOUND);
+    return c.json({ message: "Service not found" }, STATUS_CODES.NOT_FOUND);
   }
 
   await setCacheFromKey(`services:${uuid}`, service);
 
-  return c.json(service, api.STATUS_CODES.OK);
+  return c.json(service, STATUS_CODES.OK);
 };
 
 export const updateService: ApiHandler<UpdateServiceRoute> = async (c) => {
@@ -106,7 +103,7 @@ export const updateService: ApiHandler<UpdateServiceRoute> = async (c) => {
     });
   }
   if (!service) {
-    return c.json({ message: "Service not found" }, api.STATUS_CODES.NOT_FOUND);
+    return c.json({ message: "Service not found" }, STATUS_CODES.NOT_FOUND);
   }
 
   const [updated] = await db
@@ -117,7 +114,7 @@ export const updateService: ApiHandler<UpdateServiceRoute> = async (c) => {
 
   await setCacheFromKey(`services:${uuid}`, updated);
 
-  return c.json(updated, api.STATUS_CODES.OK);
+  return c.json(updated, STATUS_CODES.OK);
 };
 
 export const deleteService: ApiHandler<DeleteServiceRoute> = async (c) => {
@@ -139,7 +136,7 @@ export const deleteService: ApiHandler<DeleteServiceRoute> = async (c) => {
     });
   }
   if (!service) {
-    return c.json({ message: "Service not found" }, api.STATUS_CODES.NOT_FOUND);
+    return c.json({ message: "Service not found" }, STATUS_CODES.NOT_FOUND);
   }
 
   await Promise.all([
@@ -147,5 +144,5 @@ export const deleteService: ApiHandler<DeleteServiceRoute> = async (c) => {
     deleteCacheFromKey(`services:${uuid}`),
   ]);
 
-  return c.json({ message: "Service deleted" }, api.STATUS_CODES.OK);
+  return c.json({ message: "Service deleted" }, STATUS_CODES.OK);
 };

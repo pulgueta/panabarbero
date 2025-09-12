@@ -1,5 +1,5 @@
 import type { Hook } from "@hono/zod-openapi";
-import { api } from "@panabarbero/constants";
+import { STATUS_CODES } from "@panabarbero/constants/api";
 import type { Context } from "hono";
 
 export function notFound(c: Context) {
@@ -8,7 +8,7 @@ export function notFound(c: Context) {
       path: c.req.path,
       message: "The requested resource was not found",
     },
-    api.STATUS_CODES.NOT_FOUND,
+    STATUS_CODES.NOT_FOUND,
   );
 }
 
@@ -20,7 +20,7 @@ export const defaultHookHandler: Hook<any, any, any, any> = (res, c) => {
         success: res.success,
         error: res.error,
       },
-      api.STATUS_CODES.UNPROCESSABLE_ENTITY,
+      STATUS_CODES.UNPROCESSABLE_ENTITY,
     );
   }
 };

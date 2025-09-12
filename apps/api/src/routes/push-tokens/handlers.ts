@@ -1,4 +1,4 @@
-import { api } from "@panabarbero/constants";
+import { STATUS_CODES } from "@panabarbero/constants/api";
 import { eq } from "@panabarbero/db";
 import { db } from "@panabarbero/db/client";
 import { mobilePushTokens } from "@panabarbero/db/schema";
@@ -29,7 +29,7 @@ export const createMobilePushToken: ApiHandler<
     .values(json)
     .returning({ id: mobilePushTokens.uuid });
 
-  return c.json({ id: created.id }, api.STATUS_CODES.CREATED);
+  return c.json({ id: created.id }, STATUS_CODES.CREATED);
 };
 
 export const getMobilePushTokens: ApiHandler<GetMobilePushTokensRoute> = async (
@@ -53,13 +53,13 @@ export const getMobilePushTokens: ApiHandler<GetMobilePushTokensRoute> = async (
   if (!tokens || tokens.length === 0) {
     return c.json(
       { message: "Mobile push tokens not found" },
-      api.STATUS_CODES.NOT_FOUND,
+      STATUS_CODES.NOT_FOUND,
     );
   }
 
   await setCacheFromKey("push-tokens", tokens);
 
-  return c.json(tokens, api.STATUS_CODES.OK);
+  return c.json(tokens, STATUS_CODES.OK);
 };
 
 export const getMobilePushToken: ApiHandler<GetMobilePushTokenRoute> = async (
@@ -86,13 +86,13 @@ export const getMobilePushToken: ApiHandler<GetMobilePushTokenRoute> = async (
   if (!token) {
     return c.json(
       { message: "Mobile push token not found" },
-      api.STATUS_CODES.NOT_FOUND,
+      STATUS_CODES.NOT_FOUND,
     );
   }
 
   await setCacheFromKey(`push-tokens:${uuid}`, token);
 
-  return c.json(token, api.STATUS_CODES.OK);
+  return c.json(token, STATUS_CODES.OK);
 };
 
 export const updateMobilePushToken: ApiHandler<
@@ -120,7 +120,7 @@ export const updateMobilePushToken: ApiHandler<
   if (!token) {
     return c.json(
       { message: "Mobile push token not found" },
-      api.STATUS_CODES.NOT_FOUND,
+      STATUS_CODES.NOT_FOUND,
     );
   }
 
@@ -136,7 +136,7 @@ export const updateMobilePushToken: ApiHandler<
 
   await setCacheFromKey(`push-tokens:${uuid}`, updated);
 
-  return c.json(updated, api.STATUS_CODES.OK);
+  return c.json(updated, STATUS_CODES.OK);
 };
 
 export const deleteMobilePushToken: ApiHandler<
@@ -162,7 +162,7 @@ export const deleteMobilePushToken: ApiHandler<
   if (!token) {
     return c.json(
       { message: "Mobile push token not found" },
-      api.STATUS_CODES.NOT_FOUND,
+      STATUS_CODES.NOT_FOUND,
     );
   }
 
@@ -174,5 +174,5 @@ export const deleteMobilePushToken: ApiHandler<
     deleteCacheFromKey(`push-tokens:${uuid}`),
   ]);
 
-  return c.json({ message: "Mobile push token deleted" }, api.STATUS_CODES.OK);
+  return c.json({ message: "Mobile push token deleted" }, STATUS_CODES.OK);
 };

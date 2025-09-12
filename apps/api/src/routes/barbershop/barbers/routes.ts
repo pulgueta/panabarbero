@@ -1,5 +1,5 @@
 import { createRoute } from "@hono/zod-openapi";
-import { api } from "@panabarbero/constants";
+import { STATUS_CODES } from "@panabarbero/constants/api";
 import {
   barberSchema,
   createBarberSchema,
@@ -18,17 +18,17 @@ export const createBarber = createRoute({
     body: requiredJsonContent(createBarberSchema, "The barber to create"),
   },
   responses: {
-    [api.STATUS_CODES.CREATED]: jsonContent(
+    [STATUS_CODES.CREATED]: jsonContent(
       createdResourceSchema,
       "Barber created",
     ),
-    [api.STATUS_CODES.BAD_REQUEST]: createErrorSchema(
+    [STATUS_CODES.BAD_REQUEST]: createErrorSchema(
       createBarberSchema,
       "The barber is not valid",
     ),
-    [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
-    [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
-    [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
+    [STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
+    [STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
+    [STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
       createBarberSchema,
       "Validation error",
     ),
@@ -39,13 +39,13 @@ export const getBarbers = createRoute({
   method: "get",
   path: "/barbers",
   responses: {
-    [api.STATUS_CODES.OK]: jsonContent(
+    [STATUS_CODES.OK]: jsonContent(
       barberSchema.array(),
       "The existing barbers",
     ),
-    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Barbers not found"),
-    [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
-    [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
+    [STATUS_CODES.NOT_FOUND]: defaultResponse("Barbers not found"),
+    [STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
+    [STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
   },
 });
 
@@ -57,15 +57,15 @@ export const updateBarber = createRoute({
     body: requiredJsonContent(updateBarberSchema, "The barber to update"),
   },
   responses: {
-    [api.STATUS_CODES.OK]: jsonContent(barberSchema, "The updated barber"),
-    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Barber not found"),
-    [api.STATUS_CODES.BAD_REQUEST]: createErrorSchema(
+    [STATUS_CODES.OK]: jsonContent(barberSchema, "The updated barber"),
+    [STATUS_CODES.NOT_FOUND]: defaultResponse("Barber not found"),
+    [STATUS_CODES.BAD_REQUEST]: createErrorSchema(
       updateBarberSchema,
       "The barber is not valid",
     ),
-    [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
-    [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
-    [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
+    [STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
+    [STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
+    [STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
       updateBarberSchema,
       "Validation error",
     ),
@@ -79,10 +79,10 @@ export const deleteBarber = createRoute({
     query: uuidQuerySchema,
   },
   responses: {
-    [api.STATUS_CODES.OK]: defaultResponse("Barber deleted"),
-    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Barber not found"),
-    [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
-    [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
+    [STATUS_CODES.OK]: defaultResponse("Barber deleted"),
+    [STATUS_CODES.NOT_FOUND]: defaultResponse("Barber not found"),
+    [STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
+    [STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
   },
 });
 
@@ -93,11 +93,11 @@ export const getBarber = createRoute({
     params: uuidParamsSchema,
   },
   responses: {
-    [api.STATUS_CODES.OK]: jsonContent(barberSchema, "The barber"),
-    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Barber not found"),
-    [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
-    [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
-    [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
+    [STATUS_CODES.OK]: jsonContent(barberSchema, "The barber"),
+    [STATUS_CODES.NOT_FOUND]: defaultResponse("Barber not found"),
+    [STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
+    [STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
+    [STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
       uuidParamsSchema,
       "Validation error",
     ),

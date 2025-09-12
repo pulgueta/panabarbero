@@ -1,5 +1,5 @@
 import { createRoute } from "@hono/zod-openapi";
-import { api } from "@panabarbero/constants";
+import { STATUS_CODES } from "@panabarbero/constants/api";
 import {
   createdResourceSchema,
   createPaymentSchema,
@@ -18,17 +18,17 @@ export const createPayment = createRoute({
     body: requiredJsonContent(createPaymentSchema, "The payment to create"),
   },
   responses: {
-    [api.STATUS_CODES.CREATED]: jsonContent(
+    [STATUS_CODES.CREATED]: jsonContent(
       createdResourceSchema,
       "Payment created",
     ),
-    [api.STATUS_CODES.BAD_REQUEST]: createErrorSchema(
+    [STATUS_CODES.BAD_REQUEST]: createErrorSchema(
       createPaymentSchema,
       "The payment is not valid",
     ),
-    [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
-    [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
-    [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
+    [STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
+    [STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
+    [STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
       createPaymentSchema,
       "Validation error",
     ),
@@ -39,13 +39,13 @@ export const getPayments = createRoute({
   method: "get",
   path: "/payments",
   responses: {
-    [api.STATUS_CODES.OK]: jsonContent(
+    [STATUS_CODES.OK]: jsonContent(
       paymentSchema.array(),
       "The existing payments",
     ),
-    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Payments not found"),
-    [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
-    [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
+    [STATUS_CODES.NOT_FOUND]: defaultResponse("Payments not found"),
+    [STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
+    [STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
   },
 });
 
@@ -57,15 +57,15 @@ export const updatePayment = createRoute({
     body: requiredJsonContent(updatePaymentSchema, "The payment to update"),
   },
   responses: {
-    [api.STATUS_CODES.OK]: jsonContent(paymentSchema, "The updated payment"),
-    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Payment not found"),
-    [api.STATUS_CODES.BAD_REQUEST]: createErrorSchema(
+    [STATUS_CODES.OK]: jsonContent(paymentSchema, "The updated payment"),
+    [STATUS_CODES.NOT_FOUND]: defaultResponse("Payment not found"),
+    [STATUS_CODES.BAD_REQUEST]: createErrorSchema(
       updatePaymentSchema,
       "The payment is not valid",
     ),
-    [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
-    [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
-    [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
+    [STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
+    [STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
+    [STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
       updatePaymentSchema,
       "Validation error",
     ),
@@ -79,10 +79,10 @@ export const deletePayment = createRoute({
     query: uuidQuerySchema,
   },
   responses: {
-    [api.STATUS_CODES.OK]: defaultResponse("Payment deleted"),
-    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Payment not found"),
-    [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
-    [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
+    [STATUS_CODES.OK]: defaultResponse("Payment deleted"),
+    [STATUS_CODES.NOT_FOUND]: defaultResponse("Payment not found"),
+    [STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
+    [STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
   },
 });
 
@@ -93,11 +93,11 @@ export const getPayment = createRoute({
     params: uuidParamsSchema,
   },
   responses: {
-    [api.STATUS_CODES.OK]: jsonContent(paymentSchema, "The payment"),
-    [api.STATUS_CODES.NOT_FOUND]: defaultResponse("Payment not found"),
-    [api.STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
-    [api.STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
-    [api.STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
+    [STATUS_CODES.OK]: jsonContent(paymentSchema, "The payment"),
+    [STATUS_CODES.NOT_FOUND]: defaultResponse("Payment not found"),
+    [STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
+    [STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
+    [STATUS_CODES.UNPROCESSABLE_ENTITY]: createErrorSchema(
       uuidParamsSchema,
       "Validation error",
     ),

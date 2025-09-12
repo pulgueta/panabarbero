@@ -1,5 +1,5 @@
 import { auth } from "@panabarbero/auth";
-import { api } from "@panabarbero/constants";
+import { CACHE_KEYS, STATUS_CODES } from "@panabarbero/constants/api";
 import { eq } from "@panabarbero/db";
 import { db } from "@panabarbero/db/client";
 import { barbershops } from "@panabarbero/db/schema";
@@ -76,18 +76,18 @@ export const createBarbershop: ApiHandler<CreateBarbershopRoute> = async (
     {
       id: created.id,
     },
-    api.STATUS_CODES.CREATED,
+    STATUS_CODES.CREATED,
   );
 };
 
 export const getBarbershops: ApiHandler<GetBarbershopsRoute> = async (c) => {
   const cachedBarbershops = await getCacheFromKey(
-    api.CACHE_KEYS.BARBERSHOP,
+    CACHE_KEYS.BARBERSHOP,
     barbershopWithOrganizationSchema.array(),
   );
 
   if (cachedBarbershops) {
-    return c.json(cachedBarbershops, api.STATUS_CODES.OK);
+    return c.json(cachedBarbershops, STATUS_CODES.OK);
   }
 
   const barbershopsWithOrganization = await db.query.barbershops.findMany({
@@ -97,15 +97,12 @@ export const getBarbershops: ApiHandler<GetBarbershopsRoute> = async (c) => {
   });
 
   if (!barbershopsWithOrganization) {
-    return c.json(
-      { message: "Barbershops not found" },
-      api.STATUS_CODES.NOT_FOUND,
-    );
+    return c.json({ message: "Barbershops not found" }, STATUS_CODES.NOT_FOUND);
   }
 
-  await setCacheFromKey(api.CACHE_KEYS.BARBERSHOP, barbershopsWithOrganization);
+  await setCacheFromKey(CACHE_KEYS.BARBERSHOP, barbershopsWithOrganization);
 
-  return c.json(barbershopsWithOrganization, api.STATUS_CODES.OK);
+  return c.json(barbershopsWithOrganization, STATUS_CODES.OK);
 };
 
 export const getBarbershop: ApiHandler<GetBarbershopRoute> = async (c) => {
@@ -135,15 +132,12 @@ export const getBarbershop: ApiHandler<GetBarbershopRoute> = async (c) => {
   }
 
   if (!barbershop) {
-    return c.json(
-      { message: "Barbershop not found" },
-      api.STATUS_CODES.NOT_FOUND,
-    );
+    return c.json({ message: "Barbershop not found" }, STATUS_CODES.NOT_FOUND);
   }
 
   await setCacheFromKey(`barbershops:${uuid}`, barbershop);
 
-  return c.json(barbershop, api.STATUS_CODES.OK);
+  return c.json(barbershop, STATUS_CODES.OK);
 };
 
 export const updateBarbershop: ApiHandler<UpdateBarbershopRoute> = async (
@@ -176,10 +170,7 @@ export const updateBarbershop: ApiHandler<UpdateBarbershopRoute> = async (
   }
 
   if (!barbershop) {
-    return c.json(
-      { message: "Barbershop not found" },
-      api.STATUS_CODES.NOT_FOUND,
-    );
+    return c.json({ message: "Barbershop not found" }, STATUS_CODES.NOT_FOUND);
   }
 
   const [updatedBarbershop] = await db
@@ -209,7 +200,7 @@ export const updateBarbershop: ApiHandler<UpdateBarbershopRoute> = async (
 
   await setCacheFromKey(`barbershops:${uuid}`, updatedBarbershop);
 
-  return c.json(updatedBarbershop, api.STATUS_CODES.OK);
+  return c.json(updatedBarbershop, STATUS_CODES.OK);
 };
 
 export const deleteBarbershop: ApiHandler<DeleteBarbershopRoute> = async (
@@ -241,10 +232,7 @@ export const deleteBarbershop: ApiHandler<DeleteBarbershopRoute> = async (
   }
 
   if (!barbershop) {
-    return c.json(
-      { message: "Barbershop not found" },
-      api.STATUS_CODES.NOT_FOUND,
-    );
+    return c.json({ message: "Barbershop not found" }, STATUS_CODES.NOT_FOUND);
   }
 
   await Promise.all([
@@ -252,5 +240,5 @@ export const deleteBarbershop: ApiHandler<DeleteBarbershopRoute> = async (
     deleteCacheFromKey(`barbershops:${uuid}`),
   ]);
 
-  return c.json({ message: "Barbershop deleted" }, api.STATUS_CODES.OK);
+  return c.json({ message: "Barbershop deleted" }, STATUS_CODES.OK);
 };
