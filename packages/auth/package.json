@@ -19,15 +19,15 @@
   "dependencies": {
     "@panabarbero/constants": "workspace:*",
     "@panabarbero/db": "workspace:*",
-    "@better-auth/expo": "1.3.4",
-    "better-auth": "1.3.4",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "@better-auth/expo": "1.3.9",
+    "better-auth": "1.3.9",
+    "react": "catalog:",
+    "react-dom": "catalog:"
   },
   "devDependencies": {
-    "@better-auth/cli": "^1.3.4",
+    "@better-auth/cli": "^1.3.9",
     "@types/bun": "^1.2.19",
-    "@types/react": "^19.1.9",
-    "typescript": "^5.9.2"
+    "@types/react": "catalog:",
+    "typescript": "catalog:"
   }
 }
