@@ -20,16 +20,16 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.2.2",
+    "@biomejs/biome": "^2.2.4",
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@commitlint/format": "^19.8.1",
     "@semantic-release/changelog": "^6.0.3",
-    "@types/bun": "^1.2.19",
+    "@types/bun": "^1.2.21",
     "conventional-changelog-atom": "^5.0.0",
     "husky": "^9.1.7",
     "postgres": "^3.4.7",
-    "semantic-release": "^24.2.7",
+    "semantic-release": "^24.2.8",
     "turbo": "^2.5.6",
     "typescript": "catalog:"
   },
@@ -48,7 +48,7 @@
   },
   "dependencies": {
     "@t3-oss/env-core": "^0.13.8",
-    "zod": "^4.0.17"
+    "zod": "^4.1.8"
   },
   "trustedDependencies": [
     "@prisma/client",

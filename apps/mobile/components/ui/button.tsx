@@ -108,7 +108,6 @@ type ButtonProps = React.ComponentProps<typeof Pressable> &
 function Button({ className, variant, size, ...props }: ButtonProps) {
   return (
     <TextClassContext.Provider value={buttonTextVariants({ variant, size })}>
-      {/** biome-ignore lint/a11y/useSemanticElements: React Native does not support semantic elements */}
       <Pressable
         className={cn(
           props.disabled && "opacity-50",
