@@ -37,6 +37,6 @@ export function can(role: Role, permissions: Permission[]) {
     const [resource, action] = permission.split(":") as [ForStatement, Action];
     const resourcePermissions = currentRole.statements[resource];
 
-    return resourcePermissions ? resourcePermissions.includes(action) : false;
+    return resourcePermissions.includes(action);
   });
 }

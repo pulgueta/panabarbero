@@ -31,14 +31,32 @@
     "postgres": "^3.4.7",
     "semantic-release": "^24.2.7",
     "turbo": "^2.5.6",
-    "typescript": "^5.9.2"
+    "typescript": "catalog:"
   },
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "workspaces": {
+    "packages": [
+      "apps/*",
+      "packages/*"
+    ],
+    "catalog": {
+      "react": "19.1.0",
+      "react-dom": "19.1.0",
+      "@types/react": "19.1.10",
+      "@types/react-dom": "19.1.9",
+      "typescript": "5.9.2"
+    }
+  },
   "dependencies": {
     "@t3-oss/env-core": "^0.13.8",
     "zod": "^4.0.17"
-  }
+  },
+  "trustedDependencies": [
+    "@prisma/client",
+    "@prisma/engines",
+    "@tailwindcss/oxide",
+    "better-sqlite3",
+    "esbuild",
+    "prisma",
+    "sharp"
+  ]
 }

@@ -12,8 +12,8 @@ import {
 } from "better-auth/plugins";
 import { passkey } from "better-auth/plugins/passkey";
 
-import { authClientEnv } from "@/env/client";
-import { authServerEnv } from "@/env/server";
+import { authClientEnv } from "../env/client";
+import { authServerEnv } from "../env/server";
 import { ac, roles } from "./rbac";
 
 export const auth = betterAuth({
@@ -21,12 +21,12 @@ export const auth = betterAuth({
     provider: "pg",
     schema,
   }),
-  baseURL: authClientEnv.VITE_API_URL,
-  secret: authServerEnv.AUTH_SECRET,
+  baseURL: authClientEnv.NEXT_PUBLIC_API_URL,
+  secret: authServerEnv.BETTER_AUTH_SECRET,
   plugins: [
     oAuthProxy({
-      currentURL: authClientEnv.VITE_API_URL,
-      productionURL: authClientEnv.VITE_API_URL,
+      currentURL: `https://${authClientEnv.VERCEL_BRANCH_URL}`,
+      productionURL: authClientEnv.NEXT_PUBLIC_API_URL,
     }),
     passkey(),
     organization({
@@ -50,8 +50,8 @@ export const auth = betterAuth({
   appName: APP_NAME,
   trustedOrigins: [
     "expo://",
-    "http://localhost:5173",
-    authClientEnv.VITE_API_URL,
+    authClientEnv.NEXT_PUBLIC_API_URL,
+    `https://${authClientEnv.VERCEL_BRANCH_URL}`,
   ],
   user: {
     additionalFields: {

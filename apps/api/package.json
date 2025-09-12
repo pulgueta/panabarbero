@@ -4,13 +4,15 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./client": "./src/client.ts"
+    ".":{
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
   },
   "scripts": {
-    "dev": "bun run --hot src/index.ts",
-    "build": "bun build src/index.ts --outdir=build --target bun --splitting",
-    "start": "bun run build/index.js"
+    "dev": "tsc --watch --project tsconfig.build.json & bun run --hot src/index.ts",
+    "build": "bun build src/index.ts --outdir=dist --target bun --splitting",
+    "start": "bun run dist/src/index.js"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^8.1.0",

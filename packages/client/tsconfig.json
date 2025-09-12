@@ -1,4 +1,25 @@
 {
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    },
+  },
   "exclude": [
     "node_modules",
     "dist",
@@ -10,22 +31,9 @@
     "./src/**/*.ts",
     "./src/**/*.tsx"
   ],
-  "compilerOptions": {
-    "verbatimModuleSyntax": true,
-    "module": "ESNext",
-    "jsx": "react-jsx",
-    "lib": [
-      "ES2022",
-      "DOM.Iterable"
-    ],
-    "baseUrl": ".",
-    "paths": {
-      "@/*": [
-        "./*"
-      ]
-    },
-    "moduleResolution": "bundler",
-    "target": "es2022",
-    "strict": true
-  }
+  "references": [
+    {
+      "path": "../../apps/api"
+    }
+  ]
 }

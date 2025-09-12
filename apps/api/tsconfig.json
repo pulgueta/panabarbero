@@ -1,12 +1,25 @@
 {
   "compilerOptions": {
-    "strict": true,
-    "verbatimModuleSyntax": true,
+    "target": "ESNext",
     "module": "ESNext",
-    "moduleResolution": "bundler",
-    "lib": ["ESNext"],
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "lib": [
+      "ESNext"
+    ],
+    "outDir": "./dist",
+    "declaration": true,
+    "declarationMap": true,
+    "verbatimModuleSyntax": true,
+    "composite": true,
     "paths": {
       "@/*": ["./src/*"]
     },
-  }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "package.json"
+  ]
 }

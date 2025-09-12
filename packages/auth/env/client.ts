@@ -1,12 +1,14 @@
 import { createEnv } from "@t3-oss/env-core";
-import { url } from "zod/v4";
+import { vercel } from "@t3-oss/env-core/presets-zod";
+import { url } from "zod";
 
 export const authClientEnv = createEnv({
   client: {
-    VITE_API_URL: url(),
+    NEXT_PUBLIC_API_URL: url(),
   },
-  clientPrefix: "VITE_",
+  clientPrefix: "NEXT_PUBLIC_",
   runtimeEnv: process.env,
   skipValidation:
     !!process.env.CI || process.env.npm_lifecycle_event === "lint",
+  extends: [vercel()],
 });

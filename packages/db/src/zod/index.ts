@@ -210,9 +210,23 @@ export const appointmentSchema = createSelectSchema(appointments).omit({
   updatedAt: true,
 });
 
+export const appointmentWithRelationsSchema = createSelectSchema(appointments)
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    service: createSelectSchema(services),
+    barbershop: createSelectSchema(barbershops),
+  });
+
 export type CreateAppointment = output<typeof createAppointmentSchema>;
 export type UpdateAppointment = output<typeof updateAppointmentSchema>;
 export type Appointment = output<typeof appointmentSchema>;
+export type AppointmentWithRelations = output<
+  typeof appointmentWithRelationsSchema
+>;
 
 export const createMobilePushTokenSchema = createInsertSchema(
   mobilePushTokens,
