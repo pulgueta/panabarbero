@@ -1,30 +1,95 @@
-import { Text as SlotText } from "@rn-primitives/slot";
-import type { ComponentProps, RefObject } from "react";
+import * as Slot from "@rn-primitives/slot";
+import { cva, type VariantProps } from "class-variance-authority";
+import type { ComponentProps, RefAttributes } from "react";
 import { createContext, useContext } from "react";
-import { Text as RNText } from "react-native";
+import type { Role } from "react-native";
+import { Platform, Text as RNText } from "react-native";
 
 import { cn } from "@/lib/utils";
+
+const textVariants = cva(
+  cn(
+    "text-base text-foreground",
+    Platform.select({
+      web: "select-text",
+    }),
+  ),
+  {
+    variants: {
+      variant: {
+        default: "",
+        h1: cn(
+          "text-center font-extrabold text-4xl tracking-tight",
+          Platform.select({ web: "scroll-m-20 text-balance" }),
+        ),
+        h2: cn(
+          "border-border border-b pb-2 font-semibold text-3xl tracking-tight",
+          Platform.select({ web: "scroll-m-20 first:mt-0" }),
+        ),
+        h3: cn(
+          "font-semibold text-2xl tracking-tight",
+          Platform.select({ web: "scroll-m-20" }),
+        ),
+        h4: cn(
+          "font-semibold text-xl tracking-tight",
+          Platform.select({ web: "scroll-m-20" }),
+        ),
+        p: "mt-3 leading-7 sm:mt-6",
+        blockquote: "mt-4 border-l-2 pl-3 italic sm:mt-6 sm:pl-6",
+        code: cn(
+          "relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono font-semibold text-sm",
+        ),
+        lead: "text-muted-foreground text-xl",
+        large: "font-semibold text-lg",
+        small: "font-medium text-sm leading-none",
+        muted: "text-muted-foreground text-sm",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  },
+);
+
+type TextVariantProps = VariantProps<typeof textVariants>;
+
+type TextVariant = NonNullable<TextVariantProps["variant"]>;
+
+const ROLE: Partial<Record<TextVariant, Role>> = {
+  h1: "heading",
+  h2: "heading",
+  h3: "heading",
+  h4: "heading",
+  blockquote: Platform.select({ web: "blockquote" as Role }),
+  code: Platform.select({ web: "code" as Role }),
+};
+
+const ARIA_LEVEL: Partial<Record<TextVariant, string>> = {
+  h1: "1",
+  h2: "2",
+  h3: "3",
+  h4: "4",
+};
 
 const TextClassContext = createContext<string | undefined>(undefined);
 
 function Text({
   className,
   asChild = false,
+  variant = "default",
   ...props
-}: ComponentProps<typeof RNText> & {
-  ref?: RefObject<RNText>;
-  asChild?: boolean;
-}) {
+}: ComponentProps<typeof RNText> &
+  TextVariantProps &
+  RefAttributes<RNText> & {
+    asChild?: boolean;
+  }) {
   const textClass = useContext(TextClassContext);
-  const Component = asChild ? SlotText : RNText;
-
+  const Component = asChild ? Slot.Text : RNText;
   return (
     <Component
-      className={cn(
-        "text-pretty text-base text-foreground",
-        textClass,
-        className,
-      )}
+      className={cn(textVariants({ variant }), textClass, className)}
+      role={variant ? ROLE[variant] : undefined}
+      aria-level={variant ? ARIA_LEVEL[variant] : undefined}
       {...props}
     />
   );

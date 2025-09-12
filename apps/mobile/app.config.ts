@@ -78,6 +78,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
   ],
+  web: {
+    bundler: "metro",
+  },
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
