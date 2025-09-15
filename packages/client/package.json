@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./providers": "./src/providers/index.tsx",
-    "./hooks": "./src/hooks/index.ts"
+    "./hooks": "./src/hooks/index.ts",
+    "./utils": "./src/utils/index.ts"
   },
   "license": "MIT",
   "scripts": {
@@ -15,12 +16,13 @@
   "dependencies": {
     "@panabarbero/constants": "workspace:*",
     "@panabarbero/api": "workspace:*",
-    "@tanstack/react-query": "^5.84.2",
-    "hono": "^4.9.0",
+    "@tanstack/react-query": "^5.87.4",
+    "hono": "catalog:"
+  },
+  "peerDependencies": {
     "react": "catalog:"
   },
   "devDependencies": {
-    "@types/react": "catalog:",
     "typescript": "catalog:"
   }
 }

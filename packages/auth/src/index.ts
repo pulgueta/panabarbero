@@ -5,6 +5,7 @@ import * as schema from "@panabarbero/db/schema";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import {
+  lastLoginMethod,
   oAuthProxy,
   openAPI,
   organization,
@@ -40,6 +41,7 @@ export const auth = betterAuth({
     }),
     expo(),
     openAPI(),
+    lastLoginMethod(),
   ],
   socialProviders: {
     google: {

@@ -1,5 +1,6 @@
 import {
   inferAdditionalFields,
+  lastLoginMethodClient,
   organizationClient,
   passkeyClient,
   twoFactorClient,
@@ -21,6 +22,8 @@ export const {
   passkey,
   twoFactor,
   getSession,
+  isLastUsedLoginMethod,
+  getLastUsedLoginMethod,
 } = createAuthClient({
   baseURL: authClientEnv.NEXT_PUBLIC_API_URL,
   fetchOptions: {
@@ -30,6 +33,7 @@ export const {
     organizationClient(),
     passkeyClient(),
     twoFactorClient(),
+    lastLoginMethodClient(),
     inferAdditionalFields<typeof auth>(),
   ],
 });
