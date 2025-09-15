@@ -12,6 +12,7 @@
       "outputs": [".cache/tsbuildinfo.json", "dist/**", "build/**"]
     },
     "dev": {
+      "outputs": [".next/**"],
       "dependsOn": ["^dev"],
       "cache": false,
       "persistent": false

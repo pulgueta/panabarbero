@@ -12,6 +12,7 @@ import {
   getCacheFromKey,
   setCacheFromKey,
 } from "@/services/cache";
+import { getQueryConditions } from "@/utils/conditions";
 import { slugify } from "@/utils/lib";
 import type {
   CreateBarbershopRoute,
@@ -68,16 +69,11 @@ export const createBarbershop: ApiHandler<CreateBarbershopRoute> = async (
       ...jsonBarbershop,
       organizationId: createdBarbershopOrganization?.id ?? "",
     })
-    .returning({ id: barbershops.uuid });
+    .returning();
 
-  await setCacheFromKey(`barbershops:${created.id}`, created);
+  await setCacheFromKey(`barbershops:${created.uuid}`, created);
 
-  return c.json(
-    {
-      id: created.id,
-    },
-    STATUS_CODES.CREATED,
-  );
+  return c.json(created, STATUS_CODES.CREATED);
 };
 
 export const getBarbershops: ApiHandler<GetBarbershopsRoute> = async (c) => {
@@ -90,15 +86,20 @@ export const getBarbershops: ApiHandler<GetBarbershopsRoute> = async (c) => {
     return c.json(cachedBarbershops, STATUS_CODES.OK);
   }
 
+  const filters = c.req.valid("query");
+
+  const whereClauses = getQueryConditions(barbershops, filters);
+
   const barbershopsWithOrganization = await db.query.barbershops.findMany({
+    where: whereClauses,
     with: {
       organization: true,
     },
+    orderBy: (_, { asc }) =>
+      filters.orderBy === "created_at"
+        ? [asc(barbershops.createdAt)]
+        : [asc(barbershops.updatedAt)],
   });
-
-  if (!barbershopsWithOrganization) {
-    return c.json({ message: "Barbershops not found" }, STATUS_CODES.NOT_FOUND);
-  }
 
   await setCacheFromKey(CACHE_KEYS.BARBERSHOP, barbershopsWithOrganization);
 

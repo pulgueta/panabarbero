@@ -7,10 +7,13 @@
     ".":{
       "import": "./src/index.ts",
       "types": "./src/index.ts"
+    },
+    "./schemas": {
+      "import": "./src/utils/schemas/index.ts"
     }
   },
   "scripts": {
-    "dev": "tsc --watch --project tsconfig.build.json & bun run --hot src/index.ts",
+    "dev": "tsc --watch --project tsconfig.json & bun run --hot src/index.ts",
     "build": "bun build src/index.ts --outdir=dist --target bun --splitting",
     "start": "bun run dist/src/index.js"
   },
@@ -19,10 +22,10 @@
     "@hono/zod-openapi": "^1.1.0",
     "@panabarbero/auth": "workspace:*",
     "@panabarbero/constants": "workspace:*",
-    "@scalar/hono-api-reference": "^0.9.16",
-    "hono": "^4.9.5"
+    "@scalar/hono-api-reference": "^0.9.18",
+    "hono": "catalog:"
   },
   "devDependencies": {
-    "@types/bun": "^1.2.21"
+    "@types/bun": "^1.2.22"
   }
 }

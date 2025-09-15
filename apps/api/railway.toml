@@ -1,5 +1,5 @@
 [phases.install]
-cmds = ["bun install --omit=dev"]
+cmds = ["bun install --linker isolated"]
 
 [build]
 builder = "railpack"

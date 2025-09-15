@@ -28,7 +28,6 @@
     "@types/bun": "^1.2.21",
     "conventional-changelog-atom": "^5.0.0",
     "husky": "^9.1.7",
-    "postgres": "^3.4.7",
     "semantic-release": "^24.2.8",
     "turbo": "^2.5.6",
     "typescript": "catalog:"
@@ -39,6 +38,7 @@
       "packages/*"
     ],
     "catalog": {
+      "hono": "4.9.7",
       "react": "19.1.0",
       "react-dom": "19.1.0",
       "@types/react": "19.1.10",

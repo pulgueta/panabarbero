@@ -4,14 +4,17 @@ import {
   barbershopSchema,
   barbershopWithOrganizationSchema,
   createBarbershopSchema,
-  createdResourceSchema,
   updateBarbershopSchema,
 } from "@panabarbero/db/schema/zod";
 import { array } from "zod";
 
 import { jsonContent, requiredJsonContent } from "@/utils/parsers/json";
 import { createErrorSchema, defaultResponse } from "@/utils/responses";
-import { uuidParamsSchema, uuidQuerySchema } from "@/utils/schemas";
+import {
+  filtersSchema,
+  uuidParamsSchema,
+  uuidQuerySchema,
+} from "@/utils/schemas";
 
 export const createBarbershop = createRoute({
   method: "post",
@@ -23,10 +26,7 @@ export const createBarbershop = createRoute({
     ),
   },
   responses: {
-    [STATUS_CODES.CREATED]: jsonContent(
-      createdResourceSchema,
-      "Barbershop created",
-    ),
+    [STATUS_CODES.CREATED]: jsonContent(barbershopSchema, "Barbershop created"),
     [STATUS_CODES.BAD_REQUEST]: createErrorSchema(
       createBarbershopSchema,
       "The barbershop is not valid",
@@ -43,14 +43,14 @@ export const createBarbershop = createRoute({
 export const getBarbershops = createRoute({
   method: "get",
   path: "/barbershops",
+  request: {
+    query: filtersSchema,
+  },
   responses: {
     [STATUS_CODES.OK]: jsonContent(
       array(barbershopWithOrganizationSchema),
       "The existing barbershops",
     ),
-    [STATUS_CODES.NOT_FOUND]: defaultResponse("Barbershops not found"),
-    [STATUS_CODES.UNAUTHORIZED]: defaultResponse("Unauthorized"),
-    [STATUS_CODES.FORBIDDEN]: defaultResponse("Forbidden"),
   },
 });
 
@@ -96,7 +96,7 @@ export const deleteBarbershop = createRoute({
 
 export const getBarbershop = createRoute({
   method: "get",
-  path: "/barbershops",
+  path: "/barbershop",
   request: {
     params: uuidParamsSchema,
   },
