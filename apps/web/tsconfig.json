@@ -28,6 +28,9 @@
   "references": [
     {
       "path": "../api"
+    },
+    {
+      "path": "../../packages/client"
     }
   ]
 }

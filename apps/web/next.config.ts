@@ -3,7 +3,11 @@ import type { NextConfig } from "next";
 const nextConfig = {
   typedRoutes: true,
   poweredByHeader: false,
-  transpilePackages: ["@panabarbero/client", "@panabarbero/auth"],
+  transpilePackages: [
+    "@panabarbero/client",
+    "@panabarbero/auth",
+    "@panabarbero/api",
+  ],
   logging: {
     fetches: {
       fullUrl: true,
