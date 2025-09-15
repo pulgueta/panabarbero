@@ -119,11 +119,15 @@ export const updateBarbershopSchema = createUpdateSchema(barbershops, {
   uuid: true,
 });
 
-export const barbershopSchema = createSelectSchema(barbershops).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const barbershopSchema = createSelectSchema(barbershops)
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    logo: url().optional(),
+  });
 
 export const barbershopWithOrganizationSchema = createSelectSchema(barbershops)
   .omit({
