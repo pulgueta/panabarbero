@@ -1,7 +1,8 @@
 {
   "editor.codeActionsOnSave": {
     "source.fixAll.biome": "always",
-    "source.organizeImports": "always"
+    "source.organizeImports": "always",
+    "source.biome": "always"
   },
   "editor.defaultFormatter": "biomejs.biome",
   "[typescript,typescriptreact]": {
