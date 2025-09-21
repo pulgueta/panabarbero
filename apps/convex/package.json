@@ -7,9 +7,16 @@
     "predev": "convex dev --until-success && convex dashboard",
     "logs": "convex logs"
   },
+  "exports": {
+    "./api": {
+      "import": "./convex/_generated/api.js",
+      "types": "./convex/_generated/api.d.ts"
+    }
+  },
   "dependencies": {
     "@better-auth/expo": "1.3.8",
     "@convex-dev/better-auth": "^0.8.4",
+    "@convex-dev/geospatial": "^0.1.9",
     "better-auth": "1.3.8",
     "convex": "^1.27.0",
     "expo-secure-store": "^15.0.7"

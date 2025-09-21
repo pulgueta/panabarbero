@@ -10,6 +10,7 @@
 
 import type * as auth from "../auth.js";
 import type * as http from "../http.js";
+import type * as index from "../index.js";
 import type * as myFunctions from "../myFunctions.js";
 
 import type {
@@ -29,6 +30,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   http: typeof http;
+  index: typeof index;
   myFunctions: typeof myFunctions;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
@@ -5309,6 +5311,143 @@ export declare const components: {
               };
         },
         any
+      >;
+    };
+  };
+  geospatial: {
+    document: {
+      get: FunctionReference<
+        "query",
+        "internal",
+        { key: string },
+        {
+          coordinates: { latitude: number; longitude: number };
+          filterKeys: Record<
+            string,
+            | string
+            | number
+            | boolean
+            | null
+            | bigint
+            | Array<string | number | boolean | null | bigint>
+          >;
+          key: string;
+          sortKey: number;
+        } | null
+      >;
+      insert: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          document: {
+            coordinates: { latitude: number; longitude: number };
+            filterKeys: Record<
+              string,
+              | string
+              | number
+              | boolean
+              | null
+              | bigint
+              | Array<string | number | boolean | null | bigint>
+            >;
+            key: string;
+            sortKey: number;
+          };
+          levelMod: number;
+          maxCells: number;
+          maxLevel: number;
+          minLevel: number;
+        },
+        null
+      >;
+      remove: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          key: string;
+          levelMod: number;
+          maxCells: number;
+          maxLevel: number;
+          minLevel: number;
+        },
+        boolean
+      >;
+    };
+    query: {
+      debugCells: FunctionReference<
+        "query",
+        "internal",
+        {
+          levelMod: number;
+          maxCells: number;
+          maxLevel: number;
+          minLevel: number;
+          rectangle: {
+            east: number;
+            north: number;
+            south: number;
+            west: number;
+          };
+        },
+        Array<{
+          token: string;
+          vertices: Array<{ latitude: number; longitude: number }>;
+        }>
+      >;
+      execute: FunctionReference<
+        "query",
+        "internal",
+        {
+          cursor?: string;
+          levelMod: number;
+          logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
+          maxCells: number;
+          maxLevel: number;
+          minLevel: number;
+          query: {
+            filtering: Array<{
+              filterKey: string;
+              filterValue: string | number | boolean | null | bigint;
+              occur: "should" | "must";
+            }>;
+            maxResults: number;
+            rectangle: {
+              east: number;
+              north: number;
+              south: number;
+              west: number;
+            };
+            sorting: {
+              interval: { endExclusive?: number; startInclusive?: number };
+            };
+          };
+        },
+        {
+          nextCursor?: string;
+          results: Array<{
+            coordinates: { latitude: number; longitude: number };
+            key: string;
+          }>;
+        }
+      >;
+      nearestPoints: FunctionReference<
+        "query",
+        "internal",
+        {
+          levelMod: number;
+          logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
+          maxDistance?: number;
+          maxLevel: number;
+          maxResults: number;
+          minLevel: number;
+          nextCursor?: string;
+          point: { latitude: number; longitude: number };
+        },
+        Array<{
+          coordinates: { latitude: number; longitude: number };
+          distance: number;
+          key: string;
+        }>
       >;
     };
   };
