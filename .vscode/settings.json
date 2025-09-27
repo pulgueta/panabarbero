@@ -8,6 +8,15 @@
   "[typescript,typescriptreact]": {
     "editor.defaultFormatter": "biomejs.biome"
   },
+  "files.watcherExclude": {
+    "**/routeTree.gen.ts": true
+  },
+  "search.exclude": {
+    "**/routeTree.gen.ts": true
+  },
+  "files.readonlyInclude": {
+    "**/routeTree.gen.ts": true
+  },
   "prettier.enable": false,
   "editor.formatOnPaste": true,
   "editor.formatOnSave": true,

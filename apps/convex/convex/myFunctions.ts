@@ -18,7 +18,7 @@ export const myQuery = internalQuery({
   },
 
   // Query implementation.
-  handler: async (ctx, args: any) => {
+  handler: async (_ctx, args: any) => {
     //// Read the database as many times as you need here.
     //// See https://docs.convex.dev/database/reading-data.
     // const documents = await ctx.db.query("tableName").collect();
@@ -38,7 +38,7 @@ export const myMutation = internalMutation({
   },
 
   // Mutation implementation.
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
     //// Insert or modify documents in the database here.
     //// Mutations can also read from the database like queries.
     //// See https://docs.convex.dev/database/writing-data.
