@@ -1,1 +1,1 @@
-export * from "./use-hello";
+export * from "./use-barbershop";

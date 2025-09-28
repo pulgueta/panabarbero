@@ -38,9 +38,7 @@ function LastName() {
 function FullName() {
   const fName = useStore(fullName);
   return (
-    <div className="rounded-lg bg-white/10 px-4 py-2 outline-none">
-      {fName}
-    </div>
+    <div className="rounded-lg bg-white/10 px-4 py-2 outline-none">{fName}</div>
   );
 }
 

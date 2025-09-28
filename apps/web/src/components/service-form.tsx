@@ -30,12 +30,12 @@ interface ServiceFormProps {
   barbershopId?: string;
 }
 
-export function ServiceForm({
+export const ServiceForm = ({
   onSuccess,
   initialData,
   mode = "create",
   barbershopId,
-}: ServiceFormProps) {
+}: ServiceFormProps) => {
   // Mock data for barbershops - in real app this would come from backend
   const barbershops = [
     { id: "1", name: "Barbería El Clásico" },
@@ -54,7 +54,7 @@ export function ServiceForm({
     },
   });
 
-  function onSubmit(data: ServiceFormData) {
+  const onSubmit = (data: ServiceFormData) => {
     handleFormSubmit(data);
     toast.success(
       mode === "create"
@@ -63,7 +63,7 @@ export function ServiceForm({
     );
 
     onSuccess?.();
-  }
+  };
 
   const watchedPrice = form.watch("price");
   const watchedDuration = form.watch("duration");
@@ -204,4 +204,4 @@ export function ServiceForm({
       </form>
     </Form>
   );
-}
+};

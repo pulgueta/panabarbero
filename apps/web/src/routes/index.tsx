@@ -1,315 +1,220 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { createFileRoute } from "@tanstack/react-router";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  CalendarDays,
+  CalendarIcon,
   Clock,
   DollarSign,
   Scissors,
   Star,
   Store,
-  TrendingUp,
+  Users,
 } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
 });
 
 function Dashboard() {
-  // Mock statistics - in real app these would come from backend
-  const stats = {
-    barbershops: 3,
-    services: 12,
-    appointments: {
-      today: 5,
-      week: 24,
-      month: 87,
-    },
-    revenue: {
-      today: 450000,
-      week: 2340000,
-      month: 9870000,
-    },
-    reviews: {
-      total: 45,
-      average: 4.5,
-    },
+  // Mock data for key metrics - in a real app, this would come from a backend API.
+  const metrics = {
+    totalAppointments: 1250,
+    pendingAppointments: 45,
+    totalRevenue: 25000000, // COP
+    averageRating: 4.7,
+    totalBarbershops: 5,
+    totalServices: 20,
+    totalBarbers: 15,
+    customerSatisfaction: 92, // percentage
   };
 
-  const recentAppointments = [
+  // Mock data for recent activities - in a real app, this would be dynamic.
+  const recentActivities = [
     {
       id: "1",
-      customer: "Juan Pérez",
-      time: "10:00",
-      service: "Corte de Cabello",
-      barbershop: "Barbería El Clásico",
-      status: "confirmed",
+      type: "appointment",
+      description: "Nueva cita agendada por Juan P. en Barbería El Clásico",
+      time: "Hace 5 min",
     },
     {
       id: "2",
-      customer: "María García",
-      time: "11:30",
-      service: "Corte Premium",
-      barbershop: "The Gentleman's Cut",
-      status: "pending",
+      type: "review",
+      description: "Nueva reseña de María G. para The Gentleman's Cut",
+      time: "Hace 30 min",
     },
     {
       id: "3",
-      customer: "Pedro López",
-      time: "14:00",
-      service: "Afeitado Clásico",
-      barbershop: "Barbería Tradicional",
-      status: "confirmed",
+      type: "barbershop",
+      description: "Nueva barbería 'Barbería Moderna' registrada",
+      time: "Hace 1 hora",
+    },
+    {
+      id: "4",
+      type: "service",
+      description: "Nuevo servicio 'Corte Fade' añadido",
+      time: "Hace 2 horas",
+    },
+    {
+      id: "5",
+      type: "appointment",
+      description: "Cita confirmada para Pedro L. en Barbería Tradicional",
+      time: "Hace 3 horas",
     },
   ];
 
-  const quickActions = [
-    {
-      title: "Nueva Barbería",
-      description: "Registrar una nueva barbería",
-      icon: Store,
-      to: "/barbershops/new",
-      color: "bg-blue-500",
-    },
-    {
-      title: "Nuevo Servicio",
-      description: "Agregar un servicio al catálogo",
-      icon: Scissors,
-      to: "/services/new",
-      color: "bg-green-500",
-    },
-    {
-      title: "Nueva Cita",
-      description: "Reservar una cita para un cliente",
-      icon: CalendarDays,
-      to: "/appointments/new",
-      color: "bg-purple-500",
-    },
-    {
-      title: "Nueva Reseña",
-      description: "Compartir una experiencia",
-      icon: Star,
-      to: "/reviews/new",
-      color: "bg-yellow-500",
-    },
-  ];
-
-  function formatCurrency(amount: number): string {
+  // Helper function for currency formatting (could be in a utils file)
+  const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat("es-CO", {
       style: "currency",
       currency: "COP",
       minimumFractionDigits: 0,
     }).format(amount);
-  }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Welcome Section */}
-      <div className="mb-8">
-        <h1 className="mb-2 font-bold text-4xl">Panel de Control</h1>
-        <p className="text-muted-foreground">
-          Bienvenido al sistema de gestión de barberías
-        </p>
-      </div>
+      <h1 className="mb-6 font-bold text-3xl">Panel de Administración</h1>
 
-      {/* Quick Actions */}
-      <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {quickActions.map((action) => {
-          const Icon = action.icon;
-          return (
-            <Link key={action.to} to={action.to}>
-              <Card className="h-full cursor-pointer transition-all hover:scale-105 hover:shadow-lg">
-                <CardHeader>
-                  <div
-                    className={`h-12 w-12 ${action.color} mb-2 flex items-center justify-center rounded-lg`}
-                  >
-                    <Icon className="h-6 w-6 text-white" />
-                  </div>
-                  <CardTitle className="text-lg">{action.title}</CardTitle>
-                  <CardDescription>{action.description}</CardDescription>
-                </CardHeader>
-              </Card>
-            </Link>
-          );
-        })}
-      </div>
-
-      {/* Statistics Cards */}
-      <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+      {/* Key Metrics */}
+      <div className="mb-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Barberías Activas</CardDescription>
-            <CardTitle className="text-3xl">{stats.barbershops}</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="font-medium text-sm">Citas Totales</CardTitle>
+            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <Link to="/barbershops">
-              <Button variant="link" className="px-0">
-                Ver todas →
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Servicios Disponibles</CardDescription>
-            <CardTitle className="text-3xl">{stats.services}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Link to="/services">
-              <Button variant="link" className="px-0">
-                Ver catálogo →
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Citas Este Mes</CardDescription>
-            <CardTitle className="text-3xl">
-              {stats.appointments.month}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center text-muted-foreground text-sm">
-              <TrendingUp className="mr-1 h-4 w-4 text-green-500" />
-              <span>{stats.appointments.today} hoy</span>
+            <div className="font-bold text-2xl">
+              {metrics.totalAppointments}
             </div>
+            <p className="text-muted-foreground text-xs">
+              +{metrics.pendingAppointments} pendientes
+            </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Calificación Promedio</CardDescription>
-            <CardTitle className="flex items-center text-3xl">
-              {stats.reviews.average}
-              <Star className="ml-2 h-6 w-6 fill-yellow-400 text-yellow-400" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="font-medium text-sm">
+              Ingresos Totales
             </CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-muted-foreground text-sm">
-              {stats.reviews.total} reseñas totales
+            <div className="font-bold text-2xl">
+              {formatCurrency(metrics.totalRevenue)}
             </div>
+            <p className="text-muted-foreground text-xs">
+              Generados hasta la fecha
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="font-medium text-sm">
+              Calificación Promedio
+            </CardTitle>
+            <Star className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="font-bold text-2xl">
+              {metrics.averageRating} / 5.0
+            </div>
+            <p className="text-muted-foreground text-xs">
+              De {metrics.totalBarbers} reseñas
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="font-medium text-sm">
+              Barberías Activas
+            </CardTitle>
+            <Store className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="font-bold text-2xl">{metrics.totalBarbershops}</div>
+            <p className="text-muted-foreground text-xs">Total registradas</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        {/* Today's Appointments */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Recent Activities */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Citas de Hoy</CardTitle>
-              <Link to="/appointments">
-                <Button variant="outline" size="sm">
-                  Ver Todas
-                </Button>
-              </Link>
-            </div>
+            <CardTitle>Actividad Reciente</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentAppointments.map((appointment) => (
-                <div
-                  key={appointment.id}
-                  className="flex items-center justify-between rounded-lg border p-3"
-                >
-                  <div className="space-y-1">
-                    <p className="font-medium">{appointment.customer}</p>
-                    <p className="text-muted-foreground text-sm">
-                      {appointment.service} - {appointment.barbershop}
+              {recentActivities.map((activity) => (
+                <div key={activity.id} className="flex items-center space-x-4">
+                  <div className="flex-shrink-0">
+                    {activity.type === "appointment" && (
+                      <Clock className="h-5 w-5 text-blue-500" />
+                    )}
+                    {activity.type === "review" && (
+                      <Star className="h-5 w-5 text-yellow-500" />
+                    )}
+                    {activity.type === "barbershop" && (
+                      <Store className="h-5 w-5 text-green-500" />
+                    )}
+                    {activity.type === "service" && (
+                      <Scissors className="h-5 w-5 text-purple-500" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">
+                      {activity.description}
+                    </p>
+                    <p className="text-muted-foreground text-xs">
+                      {activity.time}
                     </p>
                   </div>
-                  <div className="space-y-1 text-right">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium text-sm">
-                        {appointment.time}
-                      </span>
-                    </div>
-                    <Badge
-                      variant={
-                        appointment.status === "confirmed"
-                          ? "default"
-                          : "secondary"
-                      }
-                    >
-                      {appointment.status === "confirmed"
-                        ? "Confirmada"
-                        : "Pendiente"}
-                    </Badge>
-                  </div>
+                  <Badge variant="outline" className="capitalize">
+                    {activity.type}
+                  </Badge>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
 
-        {/* Revenue Summary */}
+        {/* Quick Stats/Overview (Example: Barbers and Services) */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Resumen de Ingresos</CardTitle>
-              <DollarSign className="h-5 w-5 text-muted-foreground" />
-            </div>
+            <CardTitle>Resumen Rápido</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground text-sm">Hoy</span>
-                  <span className="font-bold text-lg">
-                    {formatCurrency(stats.revenue.today)}
-                  </span>
+            <div className="grid gap-4">
+              <div className="flex items-center justify-between rounded-md bg-muted/50 p-3">
+                <div className="flex items-center space-x-2">
+                  <Users className="h-5 w-5 text-muted-foreground" />
+                  <p className="font-medium">Barberos Registrados</p>
                 </div>
-                <div className="h-2 w-full rounded-full bg-muted">
-                  <div
-                    className="h-2 rounded-full bg-primary"
-                    style={{ width: "25%" }}
-                  />
-                </div>
+                <span className="font-bold text-lg">
+                  {metrics.totalBarbers}
+                </span>
               </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground text-sm">
-                    Esta Semana
-                  </span>
-                  <span className="font-bold text-lg">
-                    {formatCurrency(stats.revenue.week)}
-                  </span>
+              <div className="flex items-center justify-between rounded-md bg-muted/50 p-3">
+                <div className="flex items-center space-x-2">
+                  <Scissors className="h-5 w-5 text-muted-foreground" />
+                  <p className="font-medium">Servicios Ofrecidos</p>
                 </div>
-                <div className="h-2 w-full rounded-full bg-muted">
-                  <div
-                    className="h-2 rounded-full bg-primary"
-                    style={{ width: "60%" }}
-                  />
-                </div>
+                <span className="font-bold text-lg">
+                  {metrics.totalServices}
+                </span>
               </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground text-sm">
-                    Este Mes
-                  </span>
-                  <span className="font-bold text-lg">
-                    {formatCurrency(stats.revenue.month)}
-                  </span>
+              <div className="flex items-center justify-between rounded-md bg-muted/50 p-3">
+                <div className="flex items-center space-x-2">
+                  <Star className="h-5 w-5 text-muted-foreground" />
+                  <p className="font-medium">Satisfacción del Cliente</p>
                 </div>
-                <div className="h-2 w-full rounded-full bg-muted">
-                  <div
-                    className="h-2 rounded-full bg-primary"
-                    style={{ width: "85%" }}
-                  />
-                </div>
+                <span className="font-bold text-lg">
+                  {metrics.customerSatisfaction}%
+                </span>
               </div>
             </div>
           </CardContent>

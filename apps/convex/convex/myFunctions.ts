@@ -1,10 +1,10 @@
 import { v } from "convex/values";
-import {
-  internalQuery,
-  internalMutation,
-  internalAction,
-} from "./_generated/server";
 import { internal } from "./_generated/api";
+import {
+  internalAction,
+  internalMutation,
+  internalQuery,
+} from "./_generated/server";
 
 // Write your Convex functions in any file inside this directory (`convex`).
 // See https://docs.convex.dev/functions for more.
@@ -18,7 +18,7 @@ export const myQuery = internalQuery({
   },
 
   // Query implementation.
-  handler: async (_ctx, args: any) => {
+  handler: async (_ctx, args) => {
     //// Read the database as many times as you need here.
     //// See https://docs.convex.dev/database/reading-data.
     // const documents = await ctx.db.query("tableName").collect();

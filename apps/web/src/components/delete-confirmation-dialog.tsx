@@ -33,10 +33,8 @@ export function DeleteConfirmationDialog({
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>
             {description}
-            {itemName && (
-              <span className="font-medium"> "{itemName}"</span>
-            )}
-            . Esta acción no se puede deshacer.
+            {itemName && <span className="font-medium"> "{itemName}"</span>}.
+            Esta acción no se puede deshacer.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

@@ -14,11 +14,7 @@ import { Route as ServicesIndexRouteImport } from './routes/services.index'
 import { Route as ReviewsIndexRouteImport } from './routes/reviews.index'
 import { Route as BarbershopsIndexRouteImport } from './routes/barbershops.index'
 import { Route as AppointmentsIndexRouteImport } from './routes/appointments.index'
-import { Route as ServicesNewRouteImport } from './routes/services.new'
-import { Route as ReviewsNewRouteImport } from './routes/reviews.new'
 import { Route as DemoStoreRouteImport } from './routes/demo.store'
-import { Route as BarbershopsNewRouteImport } from './routes/barbershops.new'
-import { Route as AppointmentsNewRouteImport } from './routes/appointments.new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -45,39 +41,15 @@ const AppointmentsIndexRoute = AppointmentsIndexRouteImport.update({
   path: '/appointments/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ServicesNewRoute = ServicesNewRouteImport.update({
-  id: '/services/new',
-  path: '/services/new',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReviewsNewRoute = ReviewsNewRouteImport.update({
-  id: '/reviews/new',
-  path: '/reviews/new',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DemoStoreRoute = DemoStoreRouteImport.update({
   id: '/demo/store',
   path: '/demo/store',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BarbershopsNewRoute = BarbershopsNewRouteImport.update({
-  id: '/barbershops/new',
-  path: '/barbershops/new',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppointmentsNewRoute = AppointmentsNewRouteImport.update({
-  id: '/appointments/new',
-  path: '/appointments/new',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/appointments/new': typeof AppointmentsNewRoute
-  '/barbershops/new': typeof BarbershopsNewRoute
   '/demo/store': typeof DemoStoreRoute
-  '/reviews/new': typeof ReviewsNewRoute
-  '/services/new': typeof ServicesNewRoute
   '/appointments': typeof AppointmentsIndexRoute
   '/barbershops': typeof BarbershopsIndexRoute
   '/reviews': typeof ReviewsIndexRoute
@@ -85,11 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/appointments/new': typeof AppointmentsNewRoute
-  '/barbershops/new': typeof BarbershopsNewRoute
   '/demo/store': typeof DemoStoreRoute
-  '/reviews/new': typeof ReviewsNewRoute
-  '/services/new': typeof ServicesNewRoute
   '/appointments': typeof AppointmentsIndexRoute
   '/barbershops': typeof BarbershopsIndexRoute
   '/reviews': typeof ReviewsIndexRoute
@@ -98,11 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/appointments/new': typeof AppointmentsNewRoute
-  '/barbershops/new': typeof BarbershopsNewRoute
   '/demo/store': typeof DemoStoreRoute
-  '/reviews/new': typeof ReviewsNewRoute
-  '/services/new': typeof ServicesNewRoute
   '/appointments/': typeof AppointmentsIndexRoute
   '/barbershops/': typeof BarbershopsIndexRoute
   '/reviews/': typeof ReviewsIndexRoute
@@ -112,11 +76,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/appointments/new'
-    | '/barbershops/new'
     | '/demo/store'
-    | '/reviews/new'
-    | '/services/new'
     | '/appointments'
     | '/barbershops'
     | '/reviews'
@@ -124,11 +84,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/appointments/new'
-    | '/barbershops/new'
     | '/demo/store'
-    | '/reviews/new'
-    | '/services/new'
     | '/appointments'
     | '/barbershops'
     | '/reviews'
@@ -136,11 +92,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/appointments/new'
-    | '/barbershops/new'
     | '/demo/store'
-    | '/reviews/new'
-    | '/services/new'
     | '/appointments/'
     | '/barbershops/'
     | '/reviews/'
@@ -149,11 +101,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AppointmentsNewRoute: typeof AppointmentsNewRoute
-  BarbershopsNewRoute: typeof BarbershopsNewRoute
   DemoStoreRoute: typeof DemoStoreRoute
-  ReviewsNewRoute: typeof ReviewsNewRoute
-  ServicesNewRoute: typeof ServicesNewRoute
   AppointmentsIndexRoute: typeof AppointmentsIndexRoute
   BarbershopsIndexRoute: typeof BarbershopsIndexRoute
   ReviewsIndexRoute: typeof ReviewsIndexRoute
@@ -197,20 +145,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppointmentsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/services/new': {
-      id: '/services/new'
-      path: '/services/new'
-      fullPath: '/services/new'
-      preLoaderRoute: typeof ServicesNewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reviews/new': {
-      id: '/reviews/new'
-      path: '/reviews/new'
-      fullPath: '/reviews/new'
-      preLoaderRoute: typeof ReviewsNewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/demo/store': {
       id: '/demo/store'
       path: '/demo/store'
@@ -218,30 +152,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DemoStoreRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/barbershops/new': {
-      id: '/barbershops/new'
-      path: '/barbershops/new'
-      fullPath: '/barbershops/new'
-      preLoaderRoute: typeof BarbershopsNewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/appointments/new': {
-      id: '/appointments/new'
-      path: '/appointments/new'
-      fullPath: '/appointments/new'
-      preLoaderRoute: typeof AppointmentsNewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AppointmentsNewRoute: AppointmentsNewRoute,
-  BarbershopsNewRoute: BarbershopsNewRoute,
   DemoStoreRoute: DemoStoreRoute,
-  ReviewsNewRoute: ReviewsNewRoute,
-  ServicesNewRoute: ServicesNewRoute,
   AppointmentsIndexRoute: AppointmentsIndexRoute,
   BarbershopsIndexRoute: BarbershopsIndexRoute,
   ReviewsIndexRoute: ReviewsIndexRoute,

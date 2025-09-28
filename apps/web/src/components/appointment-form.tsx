@@ -40,11 +40,11 @@ interface AppointmentFormProps {
   mode?: "create" | "edit";
 }
 
-export function AppointmentForm({
+export const AppointmentForm = ({
   onSuccess,
   initialData,
   mode = "create",
-}: AppointmentFormProps) {
+}: AppointmentFormProps) => {
   // Mock data - in real app this would come from backend
   const barbershops = [
     { id: "1", name: "Barbería El Clásico" },
@@ -133,7 +133,7 @@ export function AppointmentForm({
     }
   }
 
-  function onSubmit(data: AppointmentFormData) {
+  const onSubmit = (data: AppointmentFormData) => {
     const formData = {
       ...data,
       date: data.date.toISOString(),
@@ -152,7 +152,7 @@ export function AppointmentForm({
     );
 
     onSuccess?.();
-  }
+  };
 
   return (
     <Form {...form}>
@@ -448,4 +448,4 @@ export function AppointmentForm({
       </form>
     </Form>
   );
-}
+};

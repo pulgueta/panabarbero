@@ -80,7 +80,7 @@ export default defineSchema(
     barbers: defineTable({
       userId: v.string(),
       memberId: v.string(),
-      barbershopId: v.id("barbershops"),
+      barbershopId: v.string(),
     })
       .index("by_userId", ["userId"])
       .index("by_barbershopId", ["barbershopId"])
@@ -92,7 +92,7 @@ export default defineSchema(
       price: v.number(),
       duration: v.optional(v.number()),
       nameVector: v.optional(v.array(v.float64())),
-      barbershopId: v.id("barbershops"),
+      barbershopId: v.string(),
     })
       .index("by_barbershopId", ["barbershopId"])
       .vectorIndex("name_vector_idx", {
@@ -105,16 +105,16 @@ export default defineSchema(
       rating: v.number(),
       comment: v.optional(v.string()),
       userId: v.string(),
-      barbershopId: v.id("barbershops"),
+      barbershopId: v.string(),
     })
       .index("by_userId", ["userId"])
       .index("by_barbershopId", ["barbershopId"]),
 
     appointments: defineTable({
       userId: v.string(),
-      barbershopId: v.id("barbershops"),
-      serviceId: v.id("services"),
-      barberId: v.id("barbers"),
+      barbershopId: v.string(),
+      serviceId: v.string(),
+      barberId: v.string(),
       date: v.number(),
       startAt: v.number(),
       endAt: v.number(),
@@ -135,7 +135,7 @@ export default defineSchema(
       .index("by_status", ["status"]),
 
     payments: defineTable({
-      appointmentId: v.id("appointments"),
+      appointmentId: v.string(),
       transactionId: v.string(),
       paymentDate: v.number(),
       amount: v.number(),

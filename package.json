@@ -46,5 +46,9 @@
   "dependencies": {
     "@t3-oss/env-core": "^0.13.8",
     "zod": "^4.0.17"
-  }
+  },
+  "trustedDependencies": [
+    "@tailwindcss/oxide",
+    "core-js"
+  ]
 }

@@ -47,12 +47,12 @@ const ratingOptions = [
   { value: 1, label: "⭐ Malo", description: "No recomendaría este lugar" },
 ];
 
-export function ReviewForm({
+export const ReviewForm = ({
   onSuccess,
   initialData,
   mode = "create",
   barbershopId,
-}: ReviewFormProps) {
+}: ReviewFormProps) => {
   // Mock data - in real app this would come from backend
   const barbershops = [
     { id: "1", name: "Barbería El Clásico" },
@@ -75,7 +75,7 @@ export function ReviewForm({
   const watchedComment = form.watch("comment");
   const watchedCustomerName = form.watch("customerName");
 
-  function onSubmit(data: ReviewFormData) {
+  const onSubmit = (data: ReviewFormData) => {
     handleFormSubmit(data);
     toast.success(
       mode === "create"
@@ -84,11 +84,11 @@ export function ReviewForm({
     );
 
     onSuccess?.();
-  }
+  };
 
-  function getRatingStars(value: number) {
+  const getRatingStars = (value: number) => {
     return "⭐".repeat(value) + "☆".repeat(5 - value);
-  }
+  };
 
   return (
     <Form {...form}>
@@ -157,10 +157,7 @@ export function ReviewForm({
                       key={option.value}
                       className="flex cursor-pointer items-start space-x-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
                     >
-                      <RadioGroupItem
-                        value={option.value.toString()}
-                        id={`rating-${option.value}`}
-                      />
+                      <RadioGroupItem value={option.value.toString()} />
                       <div className="flex-1">
                         <FormLabel
                           htmlFor={`rating-${option.value}`}
@@ -230,4 +227,4 @@ export function ReviewForm({
       </form>
     </Form>
   );
-}
+};

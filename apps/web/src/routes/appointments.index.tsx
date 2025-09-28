@@ -1,7 +1,11 @@
-import { AppointmentForm } from "@/components/appointment-form";
+import { createFileRoute } from "@tanstack/react-router";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { CheckCircle, Edit, Plus, Star, Trash2, XCircle } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
-import { FormDialog } from "@/components/form-dialog";
-import { ReviewForm } from "@/components/review-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,130 +16,199 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { APPOINTMENT_STATUS, formatCurrency } from "@/lib/form-utils";
-import { createFileRoute } from "@tanstack/react-router";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
-import { CheckCircle, Edit, Plus, Star, Trash2, XCircle } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
+import type { AppointmentFormData } from "@/lib/schemas";
 
-export const Route = createFileRoute("/appointments/")({
-  component: AppointmentsListPage,
-});
-
-function AppointmentsListPage() {
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+export const AppointmentsListPage = () => {
+  const [_createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [_editDialogOpen, setEditDialogOpen] = useState(false);
+  const [_reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
+  const [selectedAppointment, setSelectedAppointment] = useState<
+    | (AppointmentFormData & {
+        id: string;
+        barbershop: string;
+        barber: string;
+        service: string;
+        phone: string;
+        email: string;
+        price: number;
+        duration: number;
+      })
+    | null
+  >(null);
 
   // Mock data - in real app this would come from backend
-  const mockAppointments = [
+  const mockAppointments: (AppointmentFormData & {
+    id: string;
+    barbershop: string;
+    barber: string;
+    service: string;
+    phone: string;
+    email: string;
+    price: number;
+    duration: number;
+  })[] = [
     {
       id: "1",
       customerName: "Juan Pérez",
+      phone: "3001112233",
+      email: "juan.perez@example.com",
       barbershop: "Barbería El Clásico",
+      barbershopId: "1",
       barber: "Carlos Rodríguez",
+      barberId: "1",
       service: "Corte de Cabello Clásico",
-      date: new Date("2024-01-15T10:00:00"),
-      duration: 30,
+      serviceId: "1",
       price: 30000,
+      duration: 30,
+      date: new Date("2024-03-10T10:00:00"),
+      startTime: "10:00",
       status: "confirmed",
-      phone: "3001234567",
+      notes: "Cliente habitual, prefiere corte a tijera.",
     },
     {
       id: "2",
       customerName: "María García",
+      phone: "3102223344",
+      email: "maria.garcia@example.com",
       barbershop: "The Gentleman's Cut",
+      barbershopId: "2",
       barber: "Miguel Ángel",
+      barberId: "3",
       service: "Corte Premium",
-      date: new Date("2024-01-15T14:30:00"),
-      duration: 60,
+      serviceId: "4",
       price: 60000,
+      duration: 60,
+      date: new Date("2024-03-11T11:30:00"),
+      startTime: "11:30",
       status: "pending",
-      phone: "3007654321",
+      notes: "Primera visita, recomendar productos para el cuidado de barba.",
     },
     {
       id: "3",
       customerName: "Pedro López",
+      phone: "3203334455",
+      email: "pedro.lopez@example.com",
       barbershop: "Barbería Tradicional",
+      barbershopId: "3",
       barber: "Pedro Gómez",
+      barberId: "5",
       service: "Afeitado Clásico",
-      date: new Date("2024-01-16T09:00:00"),
-      duration: 40,
+      serviceId: "5",
       price: 35000,
-      status: "completed",
-      phone: "3009876543",
+      duration: 40,
+      date: new Date("2024-03-12T14:00:00"),
+      startTime: "14:00",
+      status: "cancelled",
+      notes: "Canceló por emergencia.",
     },
     {
       id: "4",
-      customerName: "Ana Martínez",
+      customerName: "Laura Martínez",
+      phone: "3014445566",
+      email: "laura.martinez@example.com",
       barbershop: "Barbería El Clásico",
+      barbershopId: "1",
       barber: "Juan Pérez",
+      barberId: "1",
       service: "Corte + Barba",
-      date: new Date("2024-01-16T11:00:00"),
-      duration: 45,
+      serviceId: "2",
       price: 45000,
-      status: "cancelled",
-      phone: "3005555555",
+      duration: 45,
+      date: new Date("2024-03-10T16:00:00"),
+      startTime: "16:00",
+      status: "completed",
+      notes: "Quedó muy satisfecho.",
     },
   ];
 
-  function getStatusBadgeVariant(status: string) {
+  const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case "confirmed":
         return "default";
       case "pending":
         return "secondary";
-      case "completed":
-        return "outline";
       case "cancelled":
         return "destructive";
+      case "completed":
+        return "success";
       default:
-        return "secondary";
+        return "outline";
     }
-  }
+  };
 
-  function getStatusLabel(status: string) {
+  const getStatusLabel = (status: string) => {
     const statusInfo = APPOINTMENT_STATUS.find((s) => s.value === status);
     return statusInfo?.label || status;
-  }
+  };
 
-  function handleEdit(appointment: any) {
+  const handleEdit = (
+    appointment: AppointmentFormData & {
+      id: string;
+      barbershop: string;
+      barber: string;
+      service: string;
+      phone: string;
+      email: string;
+      price: number;
+      duration: number;
+    },
+  ) => {
     setSelectedAppointment(appointment);
     setEditDialogOpen(true);
-  }
+  };
 
-  function handleDelete(appointment: any) {
+  const handleDelete = (
+    appointment: AppointmentFormData & {
+      id: string;
+      barbershop: string;
+      barber: string;
+      service: string;
+      phone: string;
+      email: string;
+      price: number;
+      duration: number;
+    },
+  ) => {
     setSelectedAppointment(appointment);
     setDeleteDialogOpen(true);
-  }
+  };
 
-  function handleAddReview(appointment: any) {
+  const handleAddReview = (
+    appointment: AppointmentFormData & {
+      id: string;
+      barbershop: string;
+      barber: string;
+      service: string;
+      phone: string;
+      email: string;
+      price: number;
+      duration: number;
+    },
+  ) => {
     setSelectedAppointment(appointment);
     setReviewDialogOpen(true);
-  }
+  };
 
-  function handleCancelAppointment(_appointmentId: string) {
+  const handleCancelAppointment = (_appointmentId: string) => {
     toast.success("Cita cancelada exitosamente");
-  }
+  };
 
-  function handleConfirmAppointment(_appointmentId: string) {
+  const handleConfirmAppointment = (_appointmentId: string) => {
     toast.success("Cita confirmada exitosamente");
-  }
+  };
 
-  function handleCompleteAppointment(_appointmentId: string) {
+  const handleCompleteAppointment = (_appointmentId: string) => {
     toast.success("Cita completada exitosamente");
-  }
+  };
 
-  function handleDeleteConfirm() {
+  const handleDeleteConfirm = () => {
     toast.success(
       `Cita de "${selectedAppointment?.customerName}" eliminada exitosamente`,
     );
     setDeleteDialogOpen(false);
     setSelectedAppointment(null);
-  }
+  };
 
   return (
     <>
@@ -289,7 +362,7 @@ function AppointmentsListPage() {
       </div>
 
       {/* Create Appointment Dialog */}
-      <FormDialog
+      {/* <FormDialog
         trigger={<></>}
         title="Nueva Cita"
         description="Reserve una cita en la barbería de su preferencia"
@@ -300,10 +373,10 @@ function AppointmentsListPage() {
           mode="create"
           onSuccess={() => setCreateDialogOpen(false)}
         />
-      </FormDialog>
+      </FormDialog> */}
 
       {/* Edit Appointment Dialog */}
-      <FormDialog
+      {/* <FormDialog
         trigger={<></>}
         title="Editar Cita"
         description="Actualice la información de la cita"
@@ -315,10 +388,10 @@ function AppointmentsListPage() {
           initialData={selectedAppointment}
           onSuccess={() => setEditDialogOpen(false)}
         />
-      </FormDialog>
+      </FormDialog> */}
 
       {/* Add Review Dialog */}
-      <FormDialog
+      {/* <FormDialog
         trigger={<></>}
         title="Nueva Reseña"
         description={`Comparta su experiencia en ${selectedAppointment?.barbershop}`}
@@ -330,7 +403,7 @@ function AppointmentsListPage() {
           barbershopId={selectedAppointment?.barbershopId}
           onSuccess={() => setReviewDialogOpen(false)}
         />
-      </FormDialog>
+      </FormDialog> */}
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmationDialog
@@ -343,4 +416,8 @@ function AppointmentsListPage() {
       />
     </>
   );
-}
+};
+
+export const Route = createFileRoute("/appointments/")({
+  component: AppointmentsListPage,
+});

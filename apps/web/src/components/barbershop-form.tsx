@@ -1,3 +1,8 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { useFieldArray, useForm } from "react-hook-form";
+import { toast } from "sonner";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,10 +32,6 @@ import {
   dayMapping,
   socialPlatforms,
 } from "@/lib/schemas";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
-import { toast } from "sonner";
 
 interface BarbershopFormProps {
   onSuccess?: () => void;
@@ -48,30 +49,30 @@ const DAYS_OF_WEEK = [
   "domingo",
 ] as const;
 
-export function BarbershopForm({
+export const BarbershopForm = ({
   onSuccess,
   initialData,
   mode = "create",
-}: BarbershopFormProps) {
+}: BarbershopFormProps) => {
   const [newSocialPlatform, setNewSocialPlatform] = useState("");
   const [newSocialUrl, setNewSocialUrl] = useState("");
 
   const form = useForm<BarbershopFormData>({
     resolver: zodResolver(barbershopFormSchema),
     defaultValues: {
-      name: initialData?.name || "",
-      description: initialData?.description || "",
-      address: initialData?.address || "",
-      city: initialData?.city || "",
-      state: initialData?.state || "",
-      zipCode: initialData?.zipCode || "",
-      contactPhone: initialData?.contactPhone || "",
-      contactEmail: initialData?.contactEmail || "",
-      websiteUrl: initialData?.websiteUrl || "",
-      bannerUrl: initialData?.bannerUrl || "",
-      isActive: initialData?.isActive || false,
-      gracePeriodMinutes: initialData?.gracePeriodMinutes || 5,
-      availableDays: initialData?.availableDays || {
+      name: initialData?.name ?? "",
+      description: initialData?.description ?? "",
+      address: initialData?.address ?? "",
+      city: initialData?.city ?? "",
+      state: initialData?.state ?? "",
+      zipCode: initialData?.zipCode ?? "",
+      contactPhone: initialData?.contactPhone ?? "",
+      contactEmail: initialData?.contactEmail ?? "",
+      websiteUrl: initialData?.websiteUrl ?? "",
+      bannerUrl: initialData?.bannerUrl ?? "",
+      isActive: initialData?.isActive ?? false,
+      gracePeriodMinutes: initialData?.gracePeriodMinutes ?? 5,
+      availableDays: initialData?.availableDays ?? {
         lunes: { open: "09:00", close: "18:00", active: true },
         martes: { open: "09:00", close: "18:00", active: true },
         miércoles: { open: "09:00", close: "18:00", active: true },
@@ -80,7 +81,7 @@ export function BarbershopForm({
         sábado: { open: "09:00", close: "14:00", active: true },
         domingo: { open: "", close: "", active: false },
       },
-      socialMedia: initialData?.socialMedia || [],
+      socialMedia: initialData?.socialMedia ?? [],
     },
   });
 
@@ -93,19 +94,22 @@ export function BarbershopForm({
     name: "socialMedia",
   });
 
-  function handleAddSocialMedia() {
+  const handleAddSocialMedia = () => {
     if (newSocialPlatform && newSocialUrl) {
       appendSocialMedia({
-        platform: newSocialPlatform as any,
+        platform: newSocialPlatform as Exclude<
+          (typeof socialPlatforms)[number],
+          ""
+        >,
         url: newSocialUrl,
       });
       setNewSocialPlatform("");
       setNewSocialUrl("");
       toast.success("Red social agregada");
     }
-  }
+  };
 
-  function onSubmit(data: BarbershopFormData) {
+  const onSubmit = (data: BarbershopFormData) => {
     // Transform available days to match backend format
     const transformedData = {
       ...data,
@@ -117,7 +121,10 @@ export function BarbershopForm({
             : null;
           return acc;
         },
-        {} as any,
+        {} as Record<
+          keyof typeof dayMapping,
+          { open: string; close: string } | null
+        >,
       ),
     };
 
@@ -129,7 +136,7 @@ export function BarbershopForm({
     );
 
     onSuccess?.();
-  }
+  };
 
   return (
     <Form {...form}>
@@ -471,4 +478,4 @@ export function BarbershopForm({
       </form>
     </Form>
   );
-}
+};

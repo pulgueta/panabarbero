@@ -1,7 +1,9 @@
-import { BarbershopForm } from "@/components/barbershop-form";
+import { createFileRoute } from "@tanstack/react-router";
+import { Edit, Plus, Store, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
-import { FormDialog } from "@/components/form-dialog";
-import { ServiceForm } from "@/components/service-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,21 +13,31 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { createFileRoute } from "@tanstack/react-router";
-import { Edit, Plus, Store, Trash2 } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
+
+interface Barbershop {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  isActive: boolean;
+}
 
 export const Route = createFileRoute("/barbershops/")({
   component: BarbershopsListPage,
 });
 
 function BarbershopsListPage() {
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [serviceDialogOpen, setServiceDialogOpen] = useState(false);
+  const [_createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [_editDialogOpen, setEditDialogOpen] = useState(false);
+  const [_serviceDialogOpen, setServiceDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedBarbershop, setSelectedBarbershop] = useState<any>(null);
+  const [selectedBarbershop, setSelectedBarbershop] = useState<{
+    id: string;
+    name: string;
+    address: string;
+    city: string;
+    isActive: boolean;
+  } | null>(null);
 
   // This would normally fetch data from the backend
   const mockBarbershops = [
@@ -58,28 +70,28 @@ function BarbershopsListPage() {
     },
   ];
 
-  function handleEdit(barbershop: any) {
+  const handleEdit = (barbershop: Barbershop) => {
     setSelectedBarbershop(barbershop);
     setEditDialogOpen(true);
-  }
+  };
 
-  function handleDelete(barbershop: any) {
+  const handleDelete = (barbershop: Barbershop) => {
     setSelectedBarbershop(barbershop);
     setDeleteDialogOpen(true);
-  }
+  };
 
-  function handleAddService(barbershop: any) {
+  const handleAddService = (barbershop: Barbershop) => {
     setSelectedBarbershop(barbershop);
     setServiceDialogOpen(true);
-  }
+  };
 
-  function handleDeleteConfirm() {
+  const handleDeleteConfirm = () => {
     toast.success(
       `Barbería "${selectedBarbershop?.name}" eliminada exitosamente`,
     );
     setDeleteDialogOpen(false);
     setSelectedBarbershop(null);
-  }
+  };
 
   return (
     <>
@@ -159,7 +171,7 @@ function BarbershopsListPage() {
       </div>
 
       {/* Create Barbershop Dialog */}
-      <FormDialog
+      {/* <FormDialog
         trigger={<></>}
         title="Nueva Barbería"
         description="Complete la información para registrar una nueva barbería"
@@ -172,7 +184,6 @@ function BarbershopsListPage() {
         />
       </FormDialog>
 
-      {/* Edit Barbershop Dialog */}
       <FormDialog
         trigger={<></>}
         title="Editar Barbería"
@@ -187,7 +198,7 @@ function BarbershopsListPage() {
         />
       </FormDialog>
 
-      {/* Add Service Dialog */}
+
       <FormDialog
         trigger={<></>}
         title="Nuevo Servicio"
@@ -200,7 +211,7 @@ function BarbershopsListPage() {
           barbershopId={selectedBarbershop?.id}
           onSuccess={() => setServiceDialogOpen(false)}
         />
-      </FormDialog>
+      </FormDialog> */}
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmationDialog

@@ -1,6 +1,6 @@
 // Utility functions for form handling
 
-export function handleFormSubmit(data: any) {
+export function handleFormSubmit(data: unknown) {
   // This is a placeholder function
   // In the future, this will send data to the backend
   console.log("Form submitted with data:", data);
