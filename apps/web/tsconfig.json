@@ -1,9 +1,9 @@
 {
   "include": ["**/*.ts", "**/*.tsx"],
   "compilerOptions": {
-    "target": "ES2022",
+    "target": "esnext",
     "jsx": "preserve",
-    "module": "ESNext",
+    "module": "esnext",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
 
     /* Bundler mode */

@@ -1,21 +1,21 @@
-"use client";
-
-import * as React from "react";
+/** biome-ignore-all lint/correctness/noNestedComponentDefinitions: Shadcn UI */
 import {
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "lucide-react";
+import type { ComponentProps, Ref } from "react";
+import { useEffect, useRef } from "react";
 import {
   type DayButton,
   DayPicker,
   getDefaultClassNames,
 } from "react-day-picker";
 
-import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-function Calendar({
+export const Calendar = ({
   className,
   classNames,
   showOutsideDays = true,
@@ -24,9 +24,9 @@ function Calendar({
   formatters,
   components,
   ...props
-}: React.ComponentProps<typeof DayPicker> & {
-  buttonVariant?: React.ComponentProps<typeof Button>["variant"];
-}) {
+}: ComponentProps<typeof DayPicker> & {
+  buttonVariant?: ComponentProps<typeof Button>["variant"];
+}) => {
   const defaultClassNames = getDefaultClassNames();
 
   return (
@@ -133,7 +133,7 @@ function Calendar({
           return (
             <div
               data-slot="calendar"
-              ref={rootRef}
+              ref={rootRef as Ref<HTMLDivElement>}
               className={cn(className)}
               {...props}
             />
@@ -174,18 +174,18 @@ function Calendar({
       {...props}
     />
   );
-}
+};
 
-function CalendarDayButton({
+export const CalendarDayButton = ({
   className,
   day,
   modifiers,
   ...props
-}: React.ComponentProps<typeof DayButton>) {
+}: ComponentProps<typeof DayButton>) => {
   const defaultClassNames = getDefaultClassNames();
 
-  const ref = React.useRef<HTMLButtonElement>(null);
-  React.useEffect(() => {
+  const ref = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
     if (modifiers.focused) ref.current?.focus();
   }, [modifiers.focused]);
 
@@ -212,6 +212,4 @@ function CalendarDayButton({
       {...props}
     />
   );
-}
-
-export { Calendar, CalendarDayButton };
+};

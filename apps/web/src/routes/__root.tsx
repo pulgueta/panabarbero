@@ -4,7 +4,6 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 
 import { Header } from "@/components/header";
 import { Toaster } from "@/components/ui/sonner";
-
 import StoreDevtools from "@/lib/demo-store-devtools";
 
 export const Route = createRootRoute({

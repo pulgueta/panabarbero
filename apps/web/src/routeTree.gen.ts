@@ -8,150 +8,150 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as ServicesIndexRouteImport } from './routes/services.index'
-import { Route as ReviewsIndexRouteImport } from './routes/reviews.index'
-import { Route as BarbershopsIndexRouteImport } from './routes/barbershops.index'
-import { Route as AppointmentsIndexRouteImport } from './routes/appointments.index'
-import { Route as DemoStoreRouteImport } from './routes/demo.store'
+import { Route as rootRouteImport } from "./routes/__root";
+import { Route as IndexRouteImport } from "./routes/index";
+import { Route as ServicesIndexRouteImport } from "./routes/services.index";
+import { Route as ReviewsIndexRouteImport } from "./routes/reviews.index";
+import { Route as BarbershopsIndexRouteImport } from "./routes/barbershops.index";
+import { Route as AppointmentsIndexRouteImport } from "./routes/appointments.index";
+import { Route as DemoStoreRouteImport } from "./routes/demo.store";
 
 const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const ServicesIndexRoute = ServicesIndexRouteImport.update({
-  id: '/services/',
-  path: '/services/',
+  id: "/services/",
+  path: "/services/",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const ReviewsIndexRoute = ReviewsIndexRouteImport.update({
-  id: '/reviews/',
-  path: '/reviews/',
+  id: "/reviews/",
+  path: "/reviews/",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const BarbershopsIndexRoute = BarbershopsIndexRouteImport.update({
-  id: '/barbershops/',
-  path: '/barbershops/',
+  id: "/barbershops/",
+  path: "/barbershops/",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const AppointmentsIndexRoute = AppointmentsIndexRouteImport.update({
-  id: '/appointments/',
-  path: '/appointments/',
+  id: "/appointments/",
+  path: "/appointments/",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const DemoStoreRoute = DemoStoreRouteImport.update({
-  id: '/demo/store',
-  path: '/demo/store',
+  id: "/demo/store",
+  path: "/demo/store",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/demo/store': typeof DemoStoreRoute
-  '/appointments': typeof AppointmentsIndexRoute
-  '/barbershops': typeof BarbershopsIndexRoute
-  '/reviews': typeof ReviewsIndexRoute
-  '/services': typeof ServicesIndexRoute
+  "/": typeof IndexRoute;
+  "/demo/store": typeof DemoStoreRoute;
+  "/appointments": typeof AppointmentsIndexRoute;
+  "/barbershops": typeof BarbershopsIndexRoute;
+  "/reviews": typeof ReviewsIndexRoute;
+  "/services": typeof ServicesIndexRoute;
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/demo/store': typeof DemoStoreRoute
-  '/appointments': typeof AppointmentsIndexRoute
-  '/barbershops': typeof BarbershopsIndexRoute
-  '/reviews': typeof ReviewsIndexRoute
-  '/services': typeof ServicesIndexRoute
+  "/": typeof IndexRoute;
+  "/demo/store": typeof DemoStoreRoute;
+  "/appointments": typeof AppointmentsIndexRoute;
+  "/barbershops": typeof BarbershopsIndexRoute;
+  "/reviews": typeof ReviewsIndexRoute;
+  "/services": typeof ServicesIndexRoute;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/demo/store': typeof DemoStoreRoute
-  '/appointments/': typeof AppointmentsIndexRoute
-  '/barbershops/': typeof BarbershopsIndexRoute
-  '/reviews/': typeof ReviewsIndexRoute
-  '/services/': typeof ServicesIndexRoute
+  __root__: typeof rootRouteImport;
+  "/": typeof IndexRoute;
+  "/demo/store": typeof DemoStoreRoute;
+  "/appointments/": typeof AppointmentsIndexRoute;
+  "/barbershops/": typeof BarbershopsIndexRoute;
+  "/reviews/": typeof ReviewsIndexRoute;
+  "/services/": typeof ServicesIndexRoute;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
+  fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
-    | '/'
-    | '/demo/store'
-    | '/appointments'
-    | '/barbershops'
-    | '/reviews'
-    | '/services'
-  fileRoutesByTo: FileRoutesByTo
+    | "/"
+    | "/demo/store"
+    | "/appointments"
+    | "/barbershops"
+    | "/reviews"
+    | "/services";
+  fileRoutesByTo: FileRoutesByTo;
   to:
-    | '/'
-    | '/demo/store'
-    | '/appointments'
-    | '/barbershops'
-    | '/reviews'
-    | '/services'
+    | "/"
+    | "/demo/store"
+    | "/appointments"
+    | "/barbershops"
+    | "/reviews"
+    | "/services";
   id:
-    | '__root__'
-    | '/'
-    | '/demo/store'
-    | '/appointments/'
-    | '/barbershops/'
-    | '/reviews/'
-    | '/services/'
-  fileRoutesById: FileRoutesById
+    | "__root__"
+    | "/"
+    | "/demo/store"
+    | "/appointments/"
+    | "/barbershops/"
+    | "/reviews/"
+    | "/services/";
+  fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  DemoStoreRoute: typeof DemoStoreRoute
-  AppointmentsIndexRoute: typeof AppointmentsIndexRoute
-  BarbershopsIndexRoute: typeof BarbershopsIndexRoute
-  ReviewsIndexRoute: typeof ReviewsIndexRoute
-  ServicesIndexRoute: typeof ServicesIndexRoute
+  IndexRoute: typeof IndexRoute;
+  DemoStoreRoute: typeof DemoStoreRoute;
+  AppointmentsIndexRoute: typeof AppointmentsIndexRoute;
+  BarbershopsIndexRoute: typeof BarbershopsIndexRoute;
+  ReviewsIndexRoute: typeof ReviewsIndexRoute;
+  ServicesIndexRoute: typeof ServicesIndexRoute;
 }
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/services/': {
-      id: '/services/'
-      path: '/services'
-      fullPath: '/services'
-      preLoaderRoute: typeof ServicesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reviews/': {
-      id: '/reviews/'
-      path: '/reviews'
-      fullPath: '/reviews'
-      preLoaderRoute: typeof ReviewsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/barbershops/': {
-      id: '/barbershops/'
-      path: '/barbershops'
-      fullPath: '/barbershops'
-      preLoaderRoute: typeof BarbershopsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/appointments/': {
-      id: '/appointments/'
-      path: '/appointments'
-      fullPath: '/appointments'
-      preLoaderRoute: typeof AppointmentsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/demo/store': {
-      id: '/demo/store'
-      path: '/demo/store'
-      fullPath: '/demo/store'
-      preLoaderRoute: typeof DemoStoreRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+    "/": {
+      id: "/";
+      path: "/";
+      fullPath: "/";
+      preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/services/": {
+      id: "/services/";
+      path: "/services";
+      fullPath: "/services";
+      preLoaderRoute: typeof ServicesIndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/reviews/": {
+      id: "/reviews/";
+      path: "/reviews";
+      fullPath: "/reviews";
+      preLoaderRoute: typeof ReviewsIndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/barbershops/": {
+      id: "/barbershops/";
+      path: "/barbershops";
+      fullPath: "/barbershops";
+      preLoaderRoute: typeof BarbershopsIndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/appointments/": {
+      id: "/appointments/";
+      path: "/appointments";
+      fullPath: "/appointments";
+      preLoaderRoute: typeof AppointmentsIndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/demo/store": {
+      id: "/demo/store";
+      path: "/demo/store";
+      fullPath: "/demo/store";
+      preLoaderRoute: typeof DemoStoreRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
   }
 }
 
@@ -162,7 +162,7 @@ const rootRouteChildren: RootRouteChildren = {
   BarbershopsIndexRoute: BarbershopsIndexRoute,
   ReviewsIndexRoute: ReviewsIndexRoute,
   ServicesIndexRoute: ServicesIndexRoute,
-}
+};
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+  ._addFileTypes<FileRouteTypes>();

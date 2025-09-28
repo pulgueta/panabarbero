@@ -26,10 +26,13 @@
     {
       "includes": [
         "apps/web/src/routeTree.gen.ts",
-        "apps/convex/convex/_generated/*.ts"
+        "apps/convex/convex/_generated/**/*.ts"
       ],
       "linter": {
         "rules": {
+          "complexity": {
+            "noBannedTypes": "off"
+          },
           "correctness": {
             "noUnusedVariables": "off",
             "noUnusedImports": "off"
