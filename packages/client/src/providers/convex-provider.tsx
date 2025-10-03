@@ -2,7 +2,6 @@ import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import { authClient } from "@panabarbero/convex/auth";
 import { ConvexReactClient } from "convex/react";
 import type { FC, PropsWithChildren } from "react";
-import { useMemo } from "react";
 
 interface ConvexProviderProps extends PropsWithChildren {
   url: string;
@@ -13,11 +12,9 @@ export const ConvexProvider: FC<ConvexProviderProps> = ({ children, url }) => {
     expectAuth: true,
   });
 
-  const betterAuthClient = useMemo(() => {
-    return authClient({
-      baseURL: url,
-    });
-  }, [url]);
+  const betterAuthClient = authClient({
+    baseURL: url,
+  });
 
   return (
     <ConvexBetterAuthProvider client={convex} authClient={betterAuthClient}>

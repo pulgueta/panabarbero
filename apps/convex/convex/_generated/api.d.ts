@@ -13,6 +13,7 @@ import type * as barbershops from "../barbershops.js";
 import type * as http from "../http.js";
 import type * as index from "../index.js";
 import type * as myFunctions from "../myFunctions.js";
+import type * as tables from "../tables.js";
 
 import type {
   ApiFromModules,
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   index: typeof index;
   myFunctions: typeof myFunctions;
+  tables: typeof tables;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 

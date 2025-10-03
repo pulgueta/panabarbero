@@ -13,3 +13,5 @@ export const authClient = (opts?: AuthClientProps) =>
     baseURL: opts?.baseURL,
     plugins: [convexClient(), crossDomainClient()],
   });
+
+export const { useSession, signIn, signOut } = authClient();

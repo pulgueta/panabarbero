@@ -1,4 +1,4 @@
-import { ConvexProvider } from "@panabarbero/client/providers";
+import { ConvexProvider } from "@panabarbero/client/providers/web";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";

@@ -64,31 +64,4 @@ interface HeaderProps {
 const Header: FC<HeaderProps> = ({ title }) => {
   return <h1>{title}</h1>;
 }
-
-// Smart selection of hooks and JSX
-interface UserProfileProps {
-    userId: string;
-}
-
-const UserProfile: FC<UserProfileProps> = ({ userId }) => {
-  const [user, setUser] = useState(null);
-  const theme = useContext(ThemeContext);
-
-  useEffect(() => {
-    fetchUser(userId).then(setUser);
-  }, [userId]);
-
-  return (
-    <div className={theme.profile}>
-      {user ? (
-        <>
-          <Header title={user.name} />
-          <p>{user.bio}</p>
-        </>
-      ) : (
-        <Loading />
-      )}
-    </div>
-  );
-}
 ``

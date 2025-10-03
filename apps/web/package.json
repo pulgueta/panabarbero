@@ -9,6 +9,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@convex-dev/react-query": "^0.0.0-alpha.11",
     "@hookform/resolvers": "^5.2.2",
     "@panabarbero/client": "workspace:*",
     "@panabarbero/convex": "workspace:*",
@@ -36,6 +37,7 @@
     "@tanstack/store": "^0.7.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
     "convex": "^1.27.3",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.544.0",

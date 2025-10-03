@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./providers": "./src/providers/index.tsx",
+    "./providers/web": "./src/providers/convex-provider.tsx",
+    "./providers/expo": "./src/providers/expo-convex-provider.tsx",
     "./hooks": "./src/hooks/index.ts"
   },
   "license": "MIT",

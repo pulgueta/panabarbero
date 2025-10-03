@@ -25,3 +25,5 @@ export const authClient = (opts?: AuthClientProps) =>
       crossDomainClient(),
     ],
   });
+
+export const { useSession, signIn, signOut } = authClient();
