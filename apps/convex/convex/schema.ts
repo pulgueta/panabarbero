@@ -13,7 +13,6 @@ export default defineSchema(
     })
       .index("by_ownerId", ["ownerId"])
       .index("by_city_and_state", ["city", "state"])
-      .index("by_organizationId", ["organizationId"])
       .index("by_uuid", ["uuid"]),
 
     barbers: defineTable({
@@ -21,7 +20,6 @@ export default defineSchema(
     })
       .index("by_userId", ["userId"])
       .index("by_barbershopId", ["barbershopId"])
-      .index("by_memberId", ["memberId"])
       .index("by_uuid", ["uuid"]),
 
     services: defineTable({

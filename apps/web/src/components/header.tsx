@@ -30,7 +30,6 @@ export const Header = () => {
   const [selectedBarbershop, setSelectedBarbershop] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const isAuthenticated = !!session?.user;
   const isBarber = barberStatus?.isBarber ?? false;
 
   const handleSignIn = async () => {
@@ -75,7 +74,7 @@ export const Header = () => {
         {/* Navigation - Conditional based on auth state */}
         <nav className="flex flex-1 items-center space-x-6">
           {/* Barber Navigation */}
-          {isAuthenticated && isBarber && (
+          {session?.user && isBarber && (
             <>
               <Combobox
                 options={barbershopOptions}
@@ -107,7 +106,7 @@ export const Header = () => {
           )}
 
           {/* Regular User Navigation */}
-          {isAuthenticated && !isBarber && (
+          {session?.user && !isBarber && (
             <Link
               to="/barbershops"
               className="font-medium text-sm transition-colors hover:text-primary"
@@ -117,7 +116,7 @@ export const Header = () => {
           )}
 
           {/* Unauthenticated Navigation */}
-          {!isAuthenticated && (
+          {!session?.user && (
             <Link
               to="/barbershops"
               className="font-medium text-sm transition-colors hover:text-primary"
@@ -141,7 +140,7 @@ export const Header = () => {
 
           {/* Right Side Actions */}
           <div className="flex items-center space-x-2">
-            {!isAuthenticated && (
+            {!session?.user && (
               <>
                 <Link to="/become-barber">
                   <Button variant="ghost" size="sm">
@@ -154,7 +153,7 @@ export const Header = () => {
               </>
             )}
 
-            {isAuthenticated && (
+            {session?.user && (
               <Popover>
                 <PopoverTrigger asChild>
                   <Button

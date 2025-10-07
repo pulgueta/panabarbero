@@ -5,7 +5,6 @@ export const tables = {
     uuid: v.string(),
     name: v.string(),
     description: v.optional(v.string()),
-    organizationId: v.string(),
     address: v.object({
       fullAddress: v.string(),
       details: v.optional(v.string()),
@@ -17,64 +16,58 @@ export const tables = {
       }),
     ),
     contactPhone: v.optional(v.string()),
-    socialMedia: v.optional(
-      v.array(
-        v.object({
-          platform: v.union(
-            v.literal("tiktok"),
-            v.literal("instagram"),
-            v.literal("facebook"),
-            v.literal("twitter"),
-            v.literal("youtube"),
-          ),
-          url: v.string(),
-        }),
-      ),
-    ),
     isActive: v.boolean(),
     gracePeriodMinutes: v.optional(v.number()),
     ownerId: v.string(),
-    availableDays: v.object({
-      monday: v.union(
-        v.object({ open: v.string(), close: v.string() }),
-        v.null(),
-      ),
-      tuesday: v.union(
-        v.object({ open: v.string(), close: v.string() }),
-        v.null(),
-      ),
-      wednesday: v.union(
-        v.object({ open: v.string(), close: v.string() }),
-        v.null(),
-      ),
-      thursday: v.union(
-        v.object({ open: v.string(), close: v.string() }),
-        v.null(),
-      ),
-      friday: v.union(
-        v.object({ open: v.string(), close: v.string() }),
-        v.null(),
-      ),
-      saturday: v.union(
-        v.object({ open: v.string(), close: v.string() }),
-        v.null(),
-      ),
-      sunday: v.union(
-        v.object({ open: v.string(), close: v.string() }),
-        v.null(),
-      ),
-    }),
+    availability: v.array(
+      v.object({
+        weekDay: v.object({
+          day: v.union(
+            v.literal("monday"),
+            v.literal("tuesday"),
+            v.literal("wednesday"),
+            v.literal("thursday"),
+            v.literal("friday"),
+            v.literal("saturday"),
+            v.literal("sunday"),
+          ),
+          isActive: v.boolean(),
+        }),
+        openAt: v.optional(v.string()),
+        closeAt: v.optional(v.string()),
+      }),
+    ),
     city: v.string(),
     state: v.string(),
     zipCode: v.optional(v.string()),
     bannerUrl: v.optional(v.string()),
-    contactEmail: v.optional(v.string()),
-    websiteUrl: v.optional(v.string()),
+    metadata: v.optional(
+      v.object({
+        websiteUrl: v.optional(v.string()),
+        contactEmail: v.optional(v.string()),
+        completedAppointments: v.optional(v.number()),
+        reviews: v.optional(v.number()),
+        rating: v.optional(v.number()),
+        socialMedia: v.optional(
+          v.array(
+            v.object({
+              platform: v.union(
+                v.literal("tiktok"),
+                v.literal("instagram"),
+                v.literal("facebook"),
+                v.literal("twitter"),
+                v.literal("youtube"),
+              ),
+              url: v.string(),
+            }),
+          ),
+        ),
+      }),
+    ),
   },
   barbers: {
     uuid: v.string(),
     userId: v.string(),
-    memberId: v.string(),
     barbershopId: v.id("barbershops"),
   },
   services: {
