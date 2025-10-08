@@ -8,11 +8,18 @@
  * @module
  */
 
+import type * as appointments from "../appointments.js";
 import type * as auth from "../auth.js";
+import type * as barbers from "../barbers.js";
 import type * as barbershops from "../barbershops.js";
 import type * as http from "../http.js";
 import type * as index from "../index.js";
-import type * as myFunctions from "../myFunctions.js";
+import type * as mobilePushTokens from "../mobilePushTokens.js";
+import type * as notifications from "../notifications.js";
+import type * as payments from "../payments.js";
+import type * as reminders from "../reminders.js";
+import type * as reviews from "../reviews.js";
+import type * as services from "../services.js";
 import type * as tables from "../tables.js";
 
 import type {
@@ -30,11 +37,18 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  appointments: typeof appointments;
   auth: typeof auth;
+  barbers: typeof barbers;
   barbershops: typeof barbershops;
   http: typeof http;
   index: typeof index;
-  myFunctions: typeof myFunctions;
+  mobilePushTokens: typeof mobilePushTokens;
+  notifications: typeof notifications;
+  payments: typeof payments;
+  reminders: typeof reminders;
+  reviews: typeof reviews;
+  services: typeof services;
   tables: typeof tables;
 }>;
 declare const fullApiWithMounts: typeof fullApi;

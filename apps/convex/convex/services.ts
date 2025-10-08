@@ -1,6 +1,68 @@
+import { openai } from "@ai-sdk/openai";
+import { embed } from "ai";
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
+import {
+  action,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "./_generated/server";
 import { tables } from "./tables";
+
+export const genreateEmbedding = internalMutation({
+  args: {
+    text: v.string(),
+  },
+  handler: async (_, args) => {
+    const ai = openai.textEmbedding("text-embedding-3-small");
+
+    const { embedding } = await embed({
+      model: ai,
+      value: args.text,
+    });
+
+    return embedding;
+  },
+});
+
+type ServiceResult = {
+  _id: Id<"services">;
+  score: number;
+  name: string;
+};
+
+export const searchServices = action({
+  args: {
+    service: v.string(),
+  },
+  handler: async (ctx, args): Promise<ServiceResult[]> => {
+    const embedding = await ctx.runMutation(
+      internal.services.genreateEmbedding,
+      { text: args.service },
+    );
+
+    const vectorSearchResults = await ctx.vectorSearch(
+      "services",
+      "name_vector_idx",
+      {
+        vector: embedding,
+        limit: 10,
+      },
+    );
+
+    const vectorResults = await ctx.runQuery(
+      internal.services.getServicesFromVectorSearchResults,
+      {
+        results: vectorSearchResults,
+      },
+    );
+
+    return vectorResults;
+  },
+});
 
 export const createService = mutation({
   args: {
@@ -11,19 +73,25 @@ export const createService = mutation({
   handler: async (ctx, args) => {
     const { service } = args;
 
-    const serviceId = await ctx.db.insert("services", service);
+    const embeddedName = await ctx.runMutation(
+      internal.services.genreateEmbedding,
+      { text: service.name },
+    );
 
-    return serviceId;
+    await ctx.db.insert("services", {
+      ...service,
+      nameVector: embeddedName,
+    });
   },
 });
 
-export const getServices = query({
-  handler: async (ctx) => {
-    const services = await ctx.db.query("services").collect();
+// export const getServices = query({
+//   handler: async (ctx) => {
+//     const services = await ctx.db.query("services").collect();
 
-    return services;
-  },
-});
+//     return services;
+//   },
+// });
 
 export const getServiceByUuid = query({
   args: {
@@ -33,6 +101,7 @@ export const getServiceByUuid = query({
     const service = await ctx.db
       .query("services")
       .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
+      .withIndex("by_uuid")
       .unique();
 
     return service;
@@ -47,6 +116,7 @@ export const getServicesByBarbershopId = query({
     const services = await ctx.db
       .query("services")
       .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
+      .withIndex("by_barbershopId")
       .collect();
 
     return services;
@@ -63,9 +133,15 @@ export const updateService = mutation({
   handler: async (ctx, args) => {
     const { service, serviceId } = args;
 
-    const updatedService = await ctx.db.patch(serviceId, service);
+    const embeddedName = await ctx.runMutation(
+      internal.services.genreateEmbedding,
+      { text: service.name },
+    );
 
-    return updatedService;
+    await ctx.db.patch(serviceId, {
+      ...service,
+      nameVector: embeddedName,
+    });
   },
 });
 
@@ -77,5 +153,33 @@ export const deleteService = mutation({
     const { serviceId } = args;
 
     await ctx.db.delete(serviceId);
+  },
+});
+
+export const getServicesFromVectorSearchResults = internalQuery({
+  args: {
+    results: v.array(
+      v.object({
+        _id: v.id("services"),
+        _score: v.number(),
+      }),
+    ),
+  },
+  handler: async (ctx, { results }) => {
+    const services = await Promise.all(
+      results.map(async ({ _id, _score }) => {
+        const service = await ctx.db.get(_id);
+
+        if (!service) return null;
+
+        return {
+          _id,
+          score: _score,
+          name: service.name,
+        };
+      }),
+    );
+
+    return services.filter((s) => s != null);
   },
 });
