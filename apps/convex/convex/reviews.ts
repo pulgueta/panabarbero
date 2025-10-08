@@ -9,6 +9,13 @@ export const createReview = mutation({
     }),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const reviewId = await ctx.db.insert("reviews", args.review);
 
     return reviewId;
@@ -18,6 +25,7 @@ export const createReview = mutation({
 export const getReviewsByBarbershopId = query({
   args: { barbershopId: v.id("barbershops") },
   handler: async (ctx, args) => {
+    // Public read; no auth wall added
     const reviews = await ctx.db
       .query("reviews")
       .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
@@ -31,6 +39,13 @@ export const getReviewsByBarbershopId = query({
 export const getReviewsByUserId = query({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const reviews = await ctx.db
       .query("reviews")
       .filter(({ eq, field }) => eq(field("userId"), args.userId))
@@ -47,6 +62,13 @@ export const updateReview = mutation({
     review: v.object({ ...tables.reviews }),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const updated = await ctx.db.patch(args.reviewId, args.review);
 
     return updated;
@@ -56,6 +78,13 @@ export const updateReview = mutation({
 export const deleteReview = mutation({
   args: { reviewId: v.id("reviews") },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     await ctx.db.delete(args.reviewId);
   },
 });

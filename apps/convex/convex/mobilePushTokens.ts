@@ -9,6 +9,13 @@ export const upsertMobilePushToken = mutation({
     }),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const existing = await ctx.db
       .query("mobile_push_tokens")
       .filter(({ eq, field, and }) =>
@@ -33,6 +40,13 @@ export const upsertMobilePushToken = mutation({
 export const getMobilePushTokensForUser = query({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const tokens = await ctx.db
       .query("mobile_push_tokens")
       .filter(({ eq, field }) => eq(field("userId"), args.userId))

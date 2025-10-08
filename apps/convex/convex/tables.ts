@@ -124,6 +124,7 @@ export const tables = {
       v.literal("pse"),
       v.literal("daviplata"),
       v.literal("safetypay"),
+      v.literal("nequi"),
     ),
   },
   mobilePushTokens: {

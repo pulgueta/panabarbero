@@ -9,6 +9,13 @@ export const createNotification = mutation({
     }),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const notificationId = await ctx.db.insert(
       "notifications",
       args.notification,
@@ -21,6 +28,13 @@ export const createNotification = mutation({
 export const getNotificationsForUser = query({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const notifications = await ctx.db
       .query("notifications")
       .filter(({ eq, field }) => eq(field("receiverUserId"), args.userId))
@@ -35,6 +49,13 @@ export const getNotificationsForUser = query({
 export const getNotificationsByReason = query({
   args: { reason: tables.notifications.reason },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const notifications = await ctx.db
       .query("notifications")
       .filter(({ eq, field }) => eq(field("reason"), args.reason))
@@ -48,6 +69,13 @@ export const getNotificationsByReason = query({
 export const getNotificationsByAppointment = query({
   args: { appointmentId: v.id("appointments") },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const notifications = await ctx.db
       .query("notifications")
       .filter(({ eq, field }) => eq(field("appointmentId"), args.appointmentId))

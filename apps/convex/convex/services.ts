@@ -71,6 +71,13 @@ export const createService = mutation({
     }),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const { service } = args;
 
     const embeddedName = await ctx.runMutation(
@@ -98,6 +105,7 @@ export const getServiceByUuid = query({
     uuid: v.string(),
   },
   handler: async (ctx, args) => {
+    // Public read; no auth wall added
     const service = await ctx.db
       .query("services")
       .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
@@ -113,6 +121,7 @@ export const getServicesByBarbershopId = query({
     barbershopId: v.id("barbershops"),
   },
   handler: async (ctx, args) => {
+    // Public read; no auth wall added
     const services = await ctx.db
       .query("services")
       .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
@@ -131,6 +140,13 @@ export const updateService = mutation({
     serviceId: v.id("services"),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const { service, serviceId } = args;
 
     const embeddedName = await ctx.runMutation(
@@ -150,6 +166,13 @@ export const deleteService = mutation({
     serviceId: v.id("services"),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const { serviceId } = args;
 
     await ctx.db.delete(serviceId);

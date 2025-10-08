@@ -5,12 +5,15 @@ import { tables } from "./tables";
 
 function parseTimeToMinutes(time: string): number {
   const [hh, mm] = time.split(":").map((n) => Number(n));
+
   if (Number.isNaN(hh) || Number.isNaN(mm)) return NaN;
+
   return hh * 60 + mm;
 }
 
 function minutesOfDay(ts: number): number {
   const d = new Date(ts);
+
   return d.getHours() * 60 + d.getMinutes();
 }
 
@@ -20,13 +23,16 @@ function withinOpenHours(
   startAt: number,
   endAt: number,
 ): boolean {
-  if (!openAt || !closeAt) return true; // No explicit window set
+  if (!openAt || !closeAt) return true;
+
   const openMin = parseTimeToMinutes(openAt);
   const closeMin = parseTimeToMinutes(closeAt);
+
   if (Number.isNaN(openMin) || Number.isNaN(closeMin)) return true;
-  // Same-day windows only
+
   const startMin = minutesOfDay(startAt);
   const endMin = minutesOfDay(endAt);
+
   return startMin >= openMin && endMin <= closeMin;
 }
 
@@ -37,6 +43,14 @@ export const createAppointment = mutation({
     }),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
+
     const { appointment } = args;
 
     const appointmentOverlaps = await ctx.db
@@ -117,6 +131,13 @@ export const getAppointmentsByUserId = query({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const appointments = await ctx.db
       .query("appointments")
       .filter(({ eq, field }) => eq(field("userId"), args.userId))
@@ -133,6 +154,13 @@ export const getAppointmentsByBarbershopId = query({
     barbershopId: v.id("barbershops"),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const appointments = await ctx.db
       .query("appointments")
       .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
@@ -149,6 +177,13 @@ export const getAppointmentByUuid = query({
     uuid: v.string(),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const appointment = await ctx.db
       .query("appointments")
       .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
@@ -165,6 +200,13 @@ export const getAppointmentByUserIdAndBarbershopId = query({
     barbershopId: v.id("barbershops"),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const appointment = await ctx.db
       .query("appointments")
       .filter(({ eq, field, and }) =>
@@ -184,6 +226,13 @@ export const getAppointmentsByBarberId = query({
     barberId: v.id("barbers"),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const appointments = await ctx.db
       .query("appointments")
       .filter(({ eq, field }) => eq(field("barberId"), args.barberId))
@@ -202,6 +251,13 @@ export const getAppointmentsByBarbershopAndRange = query({
     endAt: v.number(),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const appointments = await ctx.db
       .query("appointments")
       .filter(({ and, gte, lte, field, eq }) =>
@@ -225,6 +281,13 @@ export const setAppointmentStatus = mutation({
     status: tables.appointments.status,
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const updatedAppointment = await ctx.db.patch(args.appointmentId, {
       status: args.status,
     });
@@ -281,6 +344,13 @@ export const updateAppointment = mutation({
     appointmentId: v.id("appointments"),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const { appointment, appointmentId } = args;
 
     const original = await ctx.db.get(appointmentId);
@@ -370,6 +440,13 @@ export const deleteAppointment = mutation({
     appointmentId: v.id("appointments"),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const { appointmentId } = args;
 
     await ctx.db.delete(appointmentId);
@@ -383,6 +460,13 @@ export const cancelAppointment = mutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const appt = await ctx.db.get(args.appointmentId);
 
     if (!appt) throw new Error("Appointment not found");
@@ -414,6 +498,13 @@ export const requestReschedule = mutation({
     note: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const appt = await ctx.db.get(args.appointmentId);
 
     if (!appt) throw new Error("Appointment not found");
@@ -460,26 +551,3 @@ export const notifyUpcomingAppointment = internalMutation({
     });
   },
 });
-
-// export const notifyPossibleNoShow = internalMutation({
-//   args: {
-//     appointmentId: v.id("appointments"),
-//     barbershopId: v.id("barbershops"),
-//     userId: v.string(),
-//     barberId: v.id("barbers"),
-//   },
-//   handler: async (ctx, args) => {
-//     const barbershop = await ctx.db.get(args.barbershopId);
-
-//     await ctx.db.insert("notifications", {
-//       uuid: crypto.randomUUID(),
-//       type: "sms",
-//       reason: "appointment_no_show",
-//       title: "Recordatorio de cita",
-//       body: `Tienes una cita con ${barbershop?.name}`,
-//       senderUserId: args.barberId ?? "system",
-//       receiverUserId: args.userId,
-//       appointmentId: args.appointmentId,
-//     });
-//   },
-// });

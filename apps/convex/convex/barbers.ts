@@ -9,6 +9,13 @@ export const createBarber = mutation({
     }),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const { barber } = args;
 
     const barberId = await ctx.db.insert("barbers", barber);
@@ -66,6 +73,13 @@ export const updateBarber = mutation({
     }),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const updatedBarber = await ctx.db.patch(args.barberId, args.barber);
 
     return updatedBarber;
@@ -77,6 +91,13 @@ export const deleteBarber = mutation({
     barberId: v.id("barbers"),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const deletedBarber = await ctx.db.delete(args.barberId);
 
     return deletedBarber;

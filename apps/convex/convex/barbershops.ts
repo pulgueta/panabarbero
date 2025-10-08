@@ -10,6 +10,13 @@ export const createBarbershop = mutation({
     }),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const { barbershop } = args;
 
     const barbershopId = await ctx.db.insert("barbershops", barbershop);
@@ -109,6 +116,13 @@ export const updateBarbershopDayAvailability = mutation({
     closeAt: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const shop = await ctx.db.get(args.barbershopId);
     if (!shop) throw new Error("Barbershop not found");
 

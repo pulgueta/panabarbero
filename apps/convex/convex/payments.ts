@@ -9,6 +9,13 @@ export const createPayment = mutation({
     }),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const paymentId = await ctx.db.insert("payments", args.payment);
     return paymentId;
   },
@@ -17,6 +24,13 @@ export const createPayment = mutation({
 export const getPaymentsByAppointmentId = query({
   args: { appointmentId: v.id("appointments") },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const payments = await ctx.db
       .query("payments")
       .filter(({ eq, field }) => eq(field("appointmentId"), args.appointmentId))
@@ -30,6 +44,13 @@ export const getPaymentsByAppointmentId = query({
 export const getPaymentByTransactionId = query({
   args: { transactionId: v.string() },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const payment = await ctx.db
       .query("payments")
       .filter(({ eq, field }) => eq(field("transactionId"), args.transactionId))
@@ -45,6 +66,13 @@ export const updatePayment = mutation({
     payment: v.object({ ...tables.payments }),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     const updated = await ctx.db.patch(args.paymentId, args.payment);
 
     return updated;
@@ -54,6 +82,13 @@ export const updatePayment = mutation({
 export const deletePayment = mutation({
   args: { paymentId: v.id("payments") },
   handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
     await ctx.db.delete(args.paymentId);
   },
 });
