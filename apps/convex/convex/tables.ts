@@ -95,6 +95,8 @@ export const tables = {
     date: v.number(),
     startAt: v.number(),
     endAt: v.number(),
+    contactPhone: v.string(),
+    contactEmail: v.string(),
     status: v.union(
       v.literal("pending"),
       v.literal("confirmed"),
@@ -144,5 +146,6 @@ export const tables = {
     preview: v.optional(v.string()),
     senderUserId: v.string(),
     receiverUserId: v.string(),
+    appointmentId: v.optional(v.id("appointments")),
   },
 };

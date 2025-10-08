@@ -48,7 +48,8 @@ export default defineSchema(
       .index("by_barbershopId", ["barbershopId"])
       .index("by_serviceId", ["serviceId"])
       .index("by_barberId", ["barberId"])
-      .index("by_status", ["status"]),
+      .index("by_status", ["status"])
+      .index("by_startAt", ["startAt"]),
 
     payments: defineTable({
       ...tables.payments,
@@ -64,7 +65,8 @@ export default defineSchema(
       .index("by_senderUserId", ["senderUserId"])
       .index("by_receiverUserId", ["receiverUserId"])
       .index("by_type", ["type"])
-      .index("by_reason", ["reason"]),
+      .index("by_reason", ["reason"])
+      .index("by_appointmentId", ["appointmentId"]),
 
     mobile_push_tokens: defineTable({
       ...tables.mobilePushTokens,

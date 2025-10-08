@@ -44,3 +44,16 @@ export const getNotificationsByReason = query({
     return notifications;
   },
 });
+
+export const getNotificationsByAppointment = query({
+  args: { appointmentId: v.id("appointments") },
+  handler: async (ctx, args) => {
+    const notifications = await ctx.db
+      .query("notifications")
+      .filter(({ eq, field }) => eq(field("appointmentId"), args.appointmentId))
+      .withIndex("by_appointmentId")
+      .collect();
+
+    return notifications;
+  },
+});

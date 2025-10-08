@@ -215,7 +215,46 @@ export const setAppointmentStatus = mutation({
     const updatedAppointment = await ctx.db.patch(args.appointmentId, {
       status: args.status,
     });
-
+    // Emit notification on status change
+    const appt = await ctx.db.get(args.appointmentId);
+    if (appt) {
+      const titleMap: Record<string, string> = {
+        confirmed: "Appointment confirmed",
+        cancelled: "Appointment cancelled",
+        completed: "Appointment completed",
+        "no-show": "Appointment marked as no-show",
+        rescheduled: "Appointment rescheduled",
+        pending: "Appointment pending",
+      };
+      const reasonMap: Record<
+        string,
+        (typeof tables.notifications)["reason"]["type"]
+      > = {
+        confirmed: "appointment_confirmed",
+        cancelled: "appointment_cancelled",
+        completed: "appointment_confirmed",
+        "no-show": "appointment_no_show",
+        rescheduled: "appointment_rescheduled",
+        pending: "appointment_confirmed",
+      } as const;
+      const reason = reasonMap[args.status as keyof typeof reasonMap];
+      const title =
+        titleMap[args.status as keyof typeof titleMap] ?? "Appointment update";
+      await ctx.db.insert("notifications", {
+        uuid: crypto.randomUUID(),
+        type: "sms",
+        reason,
+        title,
+        body: title,
+        senderUserId: await (async () => {
+          const barber = await ctx.db.get(appt.barberId);
+          // barber table stores userId
+          return (barber as any)?.userId ?? "system";
+        })(),
+        receiverUserId: appt.userId,
+        appointmentId: args.appointmentId,
+      });
+    }
     return updatedAppointment;
   },
 });
@@ -229,6 +268,8 @@ export const updateAppointment = mutation({
   },
   handler: async (ctx, args) => {
     const { appointment, appointmentId } = args;
+
+    const original = await ctx.db.get(appointmentId);
 
     const overlap = await ctx.db
       .query("appointments")
@@ -286,7 +327,27 @@ export const updateAppointment = mutation({
     }
 
     const updatedAppointment = await ctx.db.patch(appointmentId, appointment);
-
+    // Emit rescheduled notification if status set to rescheduled or time changed
+    const isRescheduled =
+      appointment.status === "rescheduled" ||
+      (original &&
+        (original.startAt !== appointment.startAt ||
+          original.endAt !== appointment.endAt));
+    if (isRescheduled) {
+      await ctx.db.insert("notifications", {
+        uuid: crypto.randomUUID(),
+        type: "sms",
+        reason: "appointment_rescheduled",
+        title: "Appointment rescheduled",
+        body: "Your appointment has been rescheduled.",
+        senderUserId: await (async () => {
+          const barber = await ctx.db.get(appointment.barberId);
+          return (barber as any)?.userId ?? "system";
+        })(),
+        receiverUserId: appointment.userId,
+        appointmentId,
+      });
+    }
     return updatedAppointment;
   },
 });
@@ -299,5 +360,63 @@ export const deleteAppointment = mutation({
     const { appointmentId } = args;
 
     await ctx.db.delete(appointmentId);
+  },
+});
+
+export const cancelAppointment = mutation({
+  args: {
+    appointmentId: v.id("appointments"),
+    cancelledByUserId: v.string(),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const appt = await ctx.db.get(args.appointmentId);
+    if (!appt) throw new Error("Appointment not found");
+    await ctx.db.patch(args.appointmentId, {
+      status: "cancelled",
+      notes: args.reason,
+    });
+    await ctx.db.insert("notifications", {
+      uuid: crypto.randomUUID(),
+      type: "sms",
+      reason: "appointment_cancelled",
+      title: "Appointment cancelled",
+      body: args.reason ?? "Your appointment was cancelled.",
+      senderUserId: args.cancelledByUserId,
+      receiverUserId: appt.userId,
+      appointmentId: args.appointmentId,
+    });
+    return null;
+  },
+});
+
+export const requestReschedule = mutation({
+  args: {
+    appointmentId: v.id("appointments"),
+    proposedStartAt: v.number(),
+    proposedEndAt: v.number(),
+    requestedByUserId: v.string(),
+    note: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const appt = await ctx.db.get(args.appointmentId);
+    if (!appt) throw new Error("Appointment not found");
+    await ctx.db.patch(args.appointmentId, {
+      status: "rescheduled",
+      notes: args.note,
+      startAt: args.proposedStartAt,
+      endAt: args.proposedEndAt,
+    });
+    await ctx.db.insert("notifications", {
+      uuid: crypto.randomUUID(),
+      type: "sms",
+      reason: "appointment_rescheduled",
+      title: "Reschedule requested",
+      body: "A reschedule has been requested for your appointment.",
+      senderUserId: args.requestedByUserId,
+      receiverUserId: appt.userId,
+      appointmentId: args.appointmentId,
+    });
+    return null;
   },
 });
