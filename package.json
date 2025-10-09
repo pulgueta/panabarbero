@@ -4,7 +4,7 @@
   "engines": {
     "bun": ">=1.2.21"
   },
-  "packageManager": "bun@1.2.21",
+  "packageManager": "bun@1.2.22",
   "scripts": {
     "start": "turbo run start",
     "build": "turbo run build",
@@ -20,25 +20,35 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.2.2",
+    "@biomejs/biome": "^2.2.4",
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@commitlint/format": "^19.8.1",
+    "@commitlint/types": "^19.8.1",
     "@semantic-release/changelog": "^6.0.3",
-    "@types/bun": "^1.2.19",
+    "@types/bun": "catalog:",
     "conventional-changelog-atom": "^5.0.0",
     "husky": "^9.1.7",
-    "postgres": "^3.4.7",
     "semantic-release": "^24.2.7",
     "turbo": "^2.5.6",
-    "typescript": "^5.9.2"
+    "typescript": "catalog:"
   },
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
+  "catalog": {
+    "@types/bun": "^1.2.22",
+    "@types/react": "19.0.10",
+    "react": "19.0.0",
+    "typescript": "^5.8.3"
+  },
   "dependencies": {
     "@t3-oss/env-core": "^0.13.8",
     "zod": "^4.0.17"
-  }
+  },
+  "trustedDependencies": [
+    "@tailwindcss/oxide",
+    "core-js"
+  ]
 }

@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./providers": "./src/providers/index.tsx",
+    "./providers/web": "./src/providers/convex-provider.tsx",
+    "./providers/expo": "./src/providers/expo-convex-provider.tsx",
     "./hooks": "./src/hooks/index.ts"
   },
   "license": "MIT",
@@ -13,14 +14,17 @@
     "clean": "git clean -xdf .cache .turbo dist node_modules"
   },
   "dependencies": {
-    "@panabarbero/constants": "workspace:*",
+    "@convex-dev/better-auth": "^0.8.6",
     "@panabarbero/api": "workspace:*",
+    "@panabarbero/constants": "workspace:*",
+    "@panabarbero/convex": "workspace:*",
     "@tanstack/react-query": "^5.84.2",
+    "convex": "^1.27.3",
     "hono": "^4.9.0",
-    "react": "19.0.0"
+    "react": "catalog:"
   },
   "devDependencies": {
-    "@types/react": "~19.0.10",
+    "@types/react": "catalog:",
     "typescript": "^5.9.2"
   }
 }

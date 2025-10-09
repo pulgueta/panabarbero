@@ -13,7 +13,7 @@
   "compilerOptions": {
     "verbatimModuleSyntax": true,
     "module": "ESNext",
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "lib": [
       "ES2022",
       "DOM.Iterable"

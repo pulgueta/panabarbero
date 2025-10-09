@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.2.2/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.2.4/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -8,7 +8,8 @@
     "root": "."
   },
   "files": {
-    "ignoreUnknown": true
+    "ignoreUnknown": true,
+    "experimentalScannerIgnores": ["apps/web/src/routeTree.gen.ts"]
   },
   "formatter": {
     "enabled": true,
@@ -18,16 +19,40 @@
       "apps/**/*.ts",
       "apps/**/*.tsx",
       "packages/**/*.ts",
-      "packages/**/*.tsx",
-      "apps/**/*.js"
+      "packages/**/*.tsx"
     ]
   },
+  "overrides": [
+    {
+      "includes": [
+        "apps/web/src/routeTree.gen.ts",
+        "apps/convex/convex/_generated/**/*.ts"
+      ],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noBannedTypes": "off"
+          },
+          "correctness": {
+            "noUnusedVariables": "off",
+            "noUnusedImports": "off"
+          },
+          "suspicious": {
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    }
+  ],
   "linter": {
     "enabled": true,
     "rules": {
       "recommended": true,
       "style": {
         "useImportType": "warn"
+      },
+      "suspicious": {
+        "noUnknownAtRules": "off"
       },
       "nursery": {
         "useSortedClasses": {

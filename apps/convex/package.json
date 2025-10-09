@@ -1,0 +1,35 @@
+{
+  "name": "@panabarbero/convex",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "convex dev",
+    "predev": "convex dev --until-success",
+    "logs": "convex logs"
+  },
+  "exports": {
+    "./api": {
+      "import": "./convex/_generated/api.js",
+      "types": "./convex/_generated/api.d.ts"
+    },
+    "./auth": {
+      "import": "./src/lib/auth-client.ts"
+    },
+    "./auth/expo": {
+      "import": "./src/lib/expo-auth-client.ts"
+    }
+  },
+  "dependencies": {
+    "@better-auth/expo": "1.3.27",
+    "@convex-dev/better-auth": "^0.9.0",
+    "@convex-dev/geospatial": "^0.1.9",
+    "better-auth": "1.3.27",
+    "@ai-sdk/openai": "^2.0.44",
+    "ai": "^5.0.60",
+    "convex": "^1.27.4",
+    "expo-secure-store": "^15.0.7"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}

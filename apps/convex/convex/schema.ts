@@ -1,0 +1,78 @@
+// NOTE: You can remove this file. Declaring the shape
+// of the database is entirely optional in Convex.
+// See https://docs.convex.dev/database/schemas.
+
+import { defineSchema, defineTable } from "convex/server";
+
+import { tables } from "./tables";
+
+export default defineSchema(
+  {
+    barbershops: defineTable({
+      ...tables.barbershops,
+    })
+      .index("by_ownerId", ["ownerId"])
+      .index("by_city_and_state", ["city", "state"])
+      .index("by_uuid", ["uuid"]),
+
+    barbers: defineTable({
+      ...tables.barbers,
+    })
+      .index("by_userId", ["userId"])
+      .index("by_barbershopId", ["barbershopId"])
+      .index("by_uuid", ["uuid"]),
+
+    services: defineTable({
+      ...tables.services,
+    })
+      .index("by_barbershopId", ["barbershopId"])
+      .searchIndex("by_name_search_idx", { searchField: "name" })
+      .vectorIndex("name_vector_idx", {
+        dimensions: 1536,
+        vectorField: "nameVector",
+        filterFields: ["name"],
+      })
+      .index("by_uuid", ["uuid"]),
+
+    reviews: defineTable({
+      ...tables.reviews,
+    })
+      .index("by_userId", ["userId"])
+      .index("by_barbershopId", ["barbershopId"]),
+
+    appointments: defineTable({
+      ...tables.appointments,
+    })
+      .index("by_uuid", ["uuid"])
+      .index("by_userId", ["userId"])
+      .index("by_barbershopId", ["barbershopId"])
+      .index("by_serviceId", ["serviceId"])
+      .index("by_barberId", ["barberId"])
+      .index("by_status", ["status"])
+      .index("by_startAt", ["startAt"]),
+
+    payments: defineTable({
+      ...tables.payments,
+    })
+      .index("by_appointmentId", ["appointmentId"])
+      .index("by_status", ["status"])
+      .index("by_method", ["method"]),
+
+    notifications: defineTable({
+      ...tables.notifications,
+    })
+      .index("by_uuid", ["uuid"])
+      .index("by_senderUserId", ["senderUserId"])
+      .index("by_receiverUserId", ["receiverUserId"])
+      .index("by_type", ["type"])
+      .index("by_reason", ["reason"])
+      .index("by_appointmentId", ["appointmentId"]),
+
+    mobile_push_tokens: defineTable({
+      ...tables.mobilePushTokens,
+    })
+      .index("by_userId", ["userId"])
+      .index("by_uuid", ["uuid"]),
+  },
+  { schemaValidation: true },
+);

@@ -1,0 +1,67 @@
+---
+description: Enforces best practices for React development, focusing on component architecture, hooks usage, and JSX patterns. Provides comprehensive guidelines for writing clean, efficient, and maintainable React applications.
+globs: ["**/*.jsx", "**/*.tsx", "**/*.js", "**/*.ts"]
+alwaysApply: true
+---
+
+## React-Specific Rules
+
+Cursor rules in React provide intelligent navigation and manipulation capabilities designed specifically for React development. These rules help you work more efficiently with React components, hooks, and JSX syntax.
+
+### Component Navigation
+
+- Navigate between component definitions and their usages
+- Jump to hook declarations and dependencies
+- Move between JSX elements and their props
+- Quick access to component lifecycle methods
+
+### Smart Selection
+
+- Select complete JSX blocks and expressions
+- Expand selection to include component props
+- Smart hook usage and dependency selection
+- Select complete component definitions
+
+### Code Manipulation
+
+- Quick component creation and refactoring
+- Automated prop type management
+- Hook declaration and cleanup optimization
+- JSX structure manipulation
+
+## Best Practices
+
+- Use component-aware navigation for better code organization
+- Leverage hook-specific cursor movements
+- Utilize JSX-aware selection patterns
+- Follow React component lifecycle patterns
+
+## Examples
+
+```jsx
+import type { FC, PropsWithChildren, ReactNode } from "react"
+
+interface AnotherComponentProps {
+    leftIcon?: ReactNode;
+}
+
+const AnotherComponent: FC<AnotherComponentProps> = ({ leftIcon }) => {
+  return <h1>{leftIcon}</h1>;
+}
+
+interface MyComponentProps extends PropsWithChildren {
+    // props
+}
+
+const MyComponent: FC<MyComponentProps> = ({ children }) => {
+  return <h1>{children}</h1>;
+}
+
+interface HeaderProps {
+    title: string;
+}
+
+const Header: FC<HeaderProps> = ({ title }) => {
+  return <h1>{title}</h1>;
+}
+``
