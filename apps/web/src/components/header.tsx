@@ -24,7 +24,6 @@ export const Header = () => {
   const { data: session } = useSession();
   // const barberStatus = useQuery(api.auth.checkIsBarber, {});
   const [selectedBarbershop, setSelectedBarbershop] = useState<string>("");
-  const [searchQuery, setSearchQuery] = useState("");
 
   const isBarber = true; // barberStatus?.isBarber ?? false;
 
@@ -59,13 +58,14 @@ export const Header = () => {
   // : [];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 px-2 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-4">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-4">
       <div className="container mx-auto flex h-16 items-center">
         <div className="mr-6 flex">
-          <Link to="/profile" className="flex items-center space-x-2">
-            <span className="font-bold text-3xl tracking-tighter">
-              PanaBarbero
-            </span>
+          <Link
+            to="/profile"
+            className="font-bold text-2xl tracking-tighter lg:text-3xl"
+          >
+            PanaBarbero
           </Link>
         </div>
 

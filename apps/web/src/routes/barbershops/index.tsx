@@ -49,7 +49,7 @@ function BarbershopsPage() {
         </div>
       </header>
 
-      <main className="grid grid-cols-1 gap-x-4 gap-y-8 px-4 md:grid-cols-2 lg:grid-cols-3">
+      <main className="grid grid-cols-1 gap-x-6 gap-y-8 px-8 md:grid-cols-2 lg:grid-cols-3">
         {barbershops.map((barbershop) => (
           <Card
             className="shadow-sm transition-shadow hover:shadow-md"
