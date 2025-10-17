@@ -1,0 +1,26 @@
+name: Deploy Convex functions
+
+on:
+    pull_request:
+        branches: ["*"]
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Setup
+              uses: ./.github/setup
+
+            - name: Deploy Convex functions
+              env:
+                  CONVEX_SITE_URL: ${{ secrets.CONVEX_SITE_URL }}
+                  CONVEX_DASHBOARD: ${{ secrets.CONVEX_DASHBOARD }}
+              run: cd apps/convex && bunx convex deploy
