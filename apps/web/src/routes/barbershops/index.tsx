@@ -32,7 +32,7 @@ function BarbershopsPage() {
 
   return (
     <div className="container mx-auto min-h-[calc(100dvh-65px)] border-x">
-      <header className="mb-4 flex flex-col items-center justify-between gap-4 border-b py-8">
+      <header className="mb-8 flex flex-col items-center justify-between gap-4 border-b py-8">
         <section className="px-4">
           <h1 className="text-balance text-center font-bold text-3xl tracking-tight">
             ¿Qué estilo buscas hoy?
@@ -49,11 +49,11 @@ function BarbershopsPage() {
         </div>
       </header>
 
-      <main className="grid grid-cols-1 gap-4 px-4 md:grid-cols-2 lg:grid-cols-3">
+      <main className="grid grid-cols-1 gap-x-4 gap-y-8 px-4 md:grid-cols-2 lg:grid-cols-3">
         {barbershops.map((barbershop) => (
           <Card
-            key={barbershop._id}
             className="shadow-sm transition-shadow hover:shadow-md"
+            key={barbershop._id}
           >
             <CardHeader>
               <div className="flex items-start justify-between">

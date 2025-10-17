@@ -65,19 +65,16 @@ export const RatingButton = ({
   const index = providedIndex ?? 0;
   const currentRating = hoverValue ?? focusedStar ?? value ?? 0;
 
-  // Calculate fill percentage for this star
   const getFillPercentage = (): number => {
     if (index + 1 < currentRating) {
-      // Fully filled
       return 100;
     } else if (
       index + 1 === Math.ceil(currentRating) &&
       currentRating % 1 !== 0
     ) {
-      // Partial fill: get the decimal part as a percentage
       return (currentRating % 1) * 100;
     }
-    // Not filled
+
     return 0;
   };
 
