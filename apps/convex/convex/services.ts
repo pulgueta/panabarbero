@@ -105,7 +105,6 @@ export const getServiceByUuid = query({
     uuid: v.string(),
   },
   handler: async (ctx, args) => {
-    // Public read; no auth wall added
     const service = await ctx.db
       .query("services")
       .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
@@ -116,16 +115,15 @@ export const getServiceByUuid = query({
   },
 });
 
-export const getServicesByBarbershopId = query({
+export const getServicesByBarbershopId = internalQuery({
   args: {
     barbershopId: v.id("barbershops"),
   },
   handler: async (ctx, args) => {
-    // Public read; no auth wall added
     const services = await ctx.db
       .query("services")
-      .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
       .withIndex("by_barbershopId")
+      .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
       .collect();
 
     return services;

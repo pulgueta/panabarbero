@@ -172,6 +172,14 @@ export const getAppointmentsByBarbershopId = query({
   },
 });
 
+export const getAppointments = query({
+  handler: async (ctx) => {
+    const appointments = await ctx.db.query("appointments").collect();
+
+    return appointments;
+  },
+});
+
 export const getAppointmentByUuid = query({
   args: {
     uuid: v.string(),

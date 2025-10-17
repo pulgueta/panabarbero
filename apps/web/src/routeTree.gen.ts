@@ -9,20 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from "./routes/__root"
-import { Route as IndexRouteImport } from "./routes/index"
+import { Route as LoginRouteImport } from "./routes/login"
 import { Route as ServicesIndexRouteImport } from "./routes/services.index"
 import { Route as ReviewsIndexRouteImport } from "./routes/reviews.index"
 import { Route as ProfileIndexRouteImport } from "./routes/profile.index"
 import { Route as BecomeBarberIndexRouteImport } from "./routes/become-barber.index"
-import { Route as BarbershopsIndexRouteImport } from "./routes/barbershops.index"
+import { Route as BarbershopsIndexRouteImport } from "./routes/barbershops/index"
 import { Route as BarbershopSettingsIndexRouteImport } from "./routes/barbershop-settings.index"
 import { Route as AppointmentsIndexRouteImport } from "./routes/appointments.index"
 import { Route as AnalyticsIndexRouteImport } from "./routes/analytics.index"
-import { Route as DemoStoreRouteImport } from "./routes/demo.store"
+import { Route as BarbershopsBarbershopIdRouteImport } from "./routes/barbershops/$barbershopId"
 
-const IndexRoute = IndexRouteImport.update({
-  id: "/",
-  path: "/",
+const LoginRoute = LoginRouteImport.update({
+  id: "/login",
+  path: "/login",
   getParentRoute: () => rootRouteImport,
 } as any)
 const ServicesIndexRoute = ServicesIndexRouteImport.update({
@@ -65,15 +65,15 @@ const AnalyticsIndexRoute = AnalyticsIndexRouteImport.update({
   path: "/analytics/",
   getParentRoute: () => rootRouteImport,
 } as any)
-const DemoStoreRoute = DemoStoreRouteImport.update({
-  id: "/demo/store",
-  path: "/demo/store",
+const BarbershopsBarbershopIdRoute = BarbershopsBarbershopIdRouteImport.update({
+  id: "/barbershops/$barbershopId",
+  path: "/barbershops/$barbershopId",
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute
-  "/demo/store": typeof DemoStoreRoute
+  "/login": typeof LoginRoute
+  "/barbershops/$barbershopId": typeof BarbershopsBarbershopIdRoute
   "/analytics": typeof AnalyticsIndexRoute
   "/appointments": typeof AppointmentsIndexRoute
   "/barbershop-settings": typeof BarbershopSettingsIndexRoute
@@ -84,8 +84,8 @@ export interface FileRoutesByFullPath {
   "/services": typeof ServicesIndexRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute
-  "/demo/store": typeof DemoStoreRoute
+  "/login": typeof LoginRoute
+  "/barbershops/$barbershopId": typeof BarbershopsBarbershopIdRoute
   "/analytics": typeof AnalyticsIndexRoute
   "/appointments": typeof AppointmentsIndexRoute
   "/barbershop-settings": typeof BarbershopSettingsIndexRoute
@@ -97,8 +97,8 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  "/": typeof IndexRoute
-  "/demo/store": typeof DemoStoreRoute
+  "/login": typeof LoginRoute
+  "/barbershops/$barbershopId": typeof BarbershopsBarbershopIdRoute
   "/analytics/": typeof AnalyticsIndexRoute
   "/appointments/": typeof AppointmentsIndexRoute
   "/barbershop-settings/": typeof BarbershopSettingsIndexRoute
@@ -111,8 +111,8 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | "/"
-    | "/demo/store"
+    | "/login"
+    | "/barbershops/$barbershopId"
     | "/analytics"
     | "/appointments"
     | "/barbershop-settings"
@@ -123,8 +123,8 @@ export interface FileRouteTypes {
     | "/services"
   fileRoutesByTo: FileRoutesByTo
   to:
-    | "/"
-    | "/demo/store"
+    | "/login"
+    | "/barbershops/$barbershopId"
     | "/analytics"
     | "/appointments"
     | "/barbershop-settings"
@@ -135,8 +135,8 @@ export interface FileRouteTypes {
     | "/services"
   id:
     | "__root__"
-    | "/"
-    | "/demo/store"
+    | "/login"
+    | "/barbershops/$barbershopId"
     | "/analytics/"
     | "/appointments/"
     | "/barbershop-settings/"
@@ -148,8 +148,8 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  DemoStoreRoute: typeof DemoStoreRoute
+  LoginRoute: typeof LoginRoute
+  BarbershopsBarbershopIdRoute: typeof BarbershopsBarbershopIdRoute
   AnalyticsIndexRoute: typeof AnalyticsIndexRoute
   AppointmentsIndexRoute: typeof AppointmentsIndexRoute
   BarbershopSettingsIndexRoute: typeof BarbershopSettingsIndexRoute
@@ -162,11 +162,11 @@ export interface RootRouteChildren {
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    "/": {
-      id: "/"
-      path: "/"
-      fullPath: "/"
-      preLoaderRoute: typeof IndexRouteImport
+    "/login": {
+      id: "/login"
+      path: "/login"
+      fullPath: "/login"
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/services/": {
@@ -225,19 +225,19 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AnalyticsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/demo/store": {
-      id: "/demo/store"
-      path: "/demo/store"
-      fullPath: "/demo/store"
-      preLoaderRoute: typeof DemoStoreRouteImport
+    "/barbershops/$barbershopId": {
+      id: "/barbershops/$barbershopId"
+      path: "/barbershops/$barbershopId"
+      fullPath: "/barbershops/$barbershopId"
+      preLoaderRoute: typeof BarbershopsBarbershopIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  DemoStoreRoute: DemoStoreRoute,
+  LoginRoute: LoginRoute,
+  BarbershopsBarbershopIdRoute: BarbershopsBarbershopIdRoute,
   AnalyticsIndexRoute: AnalyticsIndexRoute,
   AppointmentsIndexRoute: AppointmentsIndexRoute,
   BarbershopSettingsIndexRoute: BarbershopSettingsIndexRoute,

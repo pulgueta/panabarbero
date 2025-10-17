@@ -15,6 +15,7 @@ export const tables = {
         y: v.number(),
       }),
     ),
+    services: v.optional(v.array(v.id("services"))),
     contactPhone: v.optional(v.string()),
     isActive: v.boolean(),
     gracePeriodMinutes: v.optional(v.number()),

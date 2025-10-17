@@ -1,28 +1,55 @@
-import { ConvexProvider } from "@panabarbero/client/providers/web";
+import { ConvexQueryClient } from "@convex-dev/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
+import { routerWithQueryClient } from "@tanstack/react-router-with-query";
+import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { env } from "@/env";
 import reportWebVitals from "./reportWebVitals.ts";
-// Import the generated route tree
 import { routeTree } from "./routeTree.gen";
 import "./styles.css";
 
-// Create a new router instance
-const router = createRouter({
-  routeTree,
-  context: {},
-  defaultPreload: "intent",
-  scrollRestoration: true,
-  defaultStructuralSharing: true,
-  defaultPreloadStaleTime: 0,
-});
+function getRouter() {
+  const convex = new ConvexReactClient(env.PUBLIC_CONVEX_URL);
+  const convexQueryClient = new ConvexQueryClient(convex);
+
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        queryKeyHashFn: convexQueryClient.hashFn(),
+        queryFn: convexQueryClient.queryFn(),
+      },
+    },
+  });
+
+  convexQueryClient.connect(queryClient);
+
+  const router = routerWithQueryClient(
+    createRouter({
+      routeTree,
+      defaultPreload: "intent",
+      context: { queryClient },
+      scrollRestoration: true,
+      Wrap: ({ children }) => (
+        <ConvexProvider client={convex}>
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        </ConvexProvider>
+      ),
+    }),
+    queryClient,
+  );
+
+  return router;
+}
 
 // Register the router instance for type safety
 declare module "@tanstack/react-router" {
   interface Register {
-    router: typeof router;
+    router: ReturnType<typeof getRouter>;
   }
 }
 
@@ -32,9 +59,7 @@ if (rootElement && !rootElement.innerHTML) {
   const root = createRoot(rootElement);
   root.render(
     <StrictMode>
-      <ConvexProvider url={env.PUBLIC_CONVEX_URL}>
-        <RouterProvider router={router} />
-      </ConvexProvider>
+      <RouterProvider router={getRouter()} />
     </StrictMode>,
   );
 }

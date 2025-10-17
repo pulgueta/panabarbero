@@ -1,13 +1,10 @@
-import { api } from "@panabarbero/convex/api";
 import { signIn, signOut, useSession } from "@panabarbero/convex/auth";
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import {
   BarChart3,
   Briefcase,
   Calendar,
   LogOut,
-  Search,
   Star,
   User,
 } from "lucide-react";
@@ -16,7 +13,6 @@ import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
-import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -26,11 +22,11 @@ import { Separator } from "@/components/ui/separator";
 
 export const Header = () => {
   const { data: session } = useSession();
-  const barberStatus = useQuery(api.auth.checkIsBarber, {});
+  // const barberStatus = useQuery(api.auth.checkIsBarber, {});
   const [selectedBarbershop, setSelectedBarbershop] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const isBarber = barberStatus?.isBarber ?? false;
+  const isBarber = true; // barberStatus?.isBarber ?? false;
 
   const handleSignIn = async () => {
     await signIn.social({
@@ -54,20 +50,22 @@ export const Header = () => {
   };
 
   const barbershopOptions =
-    isBarber && barberStatus?.isBarber
-      ? barberStatus.barbershops.map((shop) => ({
-          value: shop._id,
-          label: shop.name,
-        }))
-      : [];
+    isBarber && true ? [{ value: "1", label: "Barbería 1" }] : [];
+  // isBarber && barberStatus?.isBarber
+  // ? barberStatus.barbershops.map((shop) => ({
+  //     value: shop._id,
+  //     label: shop.name,
+  //   }))
+  // : [];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center">
-        {/* Logo */}
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 px-2 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-4">
+      <div className="container mx-auto flex h-16 items-center">
         <div className="mr-6 flex">
-          <Link to="/" className="flex items-center space-x-2">
-            <span className="font-bold text-xl">PanaBarbero</span>
+          <Link to="/profile" className="flex items-center space-x-2">
+            <span className="font-bold text-3xl tracking-tighter">
+              PanaBarbero
+            </span>
           </Link>
         </div>
 
@@ -128,7 +126,7 @@ export const Header = () => {
 
         {/* Search Bar - For all users */}
         <div className="flex items-center space-x-4">
-          <div className="relative">
+          {/* <div className="relative">
             <Search className="absolute top-2.5 left-2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="¿Qué servicio buscas hoy?"
@@ -136,21 +134,14 @@ export const Header = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-          </div>
+          </div> */}
 
           {/* Right Side Actions */}
           <div className="flex items-center space-x-2">
             {!session?.user && (
-              <>
-                <Link to="/become-barber">
-                  <Button variant="ghost" size="sm">
-                    Convertirse en Barbero
-                  </Button>
-                </Link>
-                <Button size="sm" onClick={handleSignIn}>
-                  Iniciar Sesión
-                </Button>
-              </>
+              <Button size="sm" onClick={handleSignIn}>
+                <Link to="/login">Iniciar Sesión</Link>
+              </Button>
             )}
 
             {session?.user && (

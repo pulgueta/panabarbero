@@ -3,4 +3,4 @@ import { components } from "./_generated/api";
 
 export const geospatial = new GeospatialIndex(components.geospatial);
 
-export { checkIsBarber, getCurrentUser } from "./auth";
+export { getCurrentUser } from "./auth";

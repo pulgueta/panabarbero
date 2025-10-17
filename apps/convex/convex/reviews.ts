@@ -18,6 +18,13 @@ export const createReview = mutation({
     }
     const reviewId = await ctx.db.insert("reviews", args.review);
 
+    // const increaseBarbershopRating = await ctx.runMutation(
+    //   internal.barbershops.increaseBarbershopRating,
+    //   {
+    //     barbershopId: args.review.barbershopId,
+    //   },
+    // );
+
     return reviewId;
   },
 });
@@ -25,11 +32,10 @@ export const createReview = mutation({
 export const getReviewsByBarbershopId = query({
   args: { barbershopId: v.id("barbershops") },
   handler: async (ctx, args) => {
-    // Public read; no auth wall added
     const reviews = await ctx.db
       .query("reviews")
-      .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
       .withIndex("by_barbershopId")
+      .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
       .collect();
 
     return reviews;
