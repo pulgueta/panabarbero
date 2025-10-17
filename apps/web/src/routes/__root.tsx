@@ -17,18 +17,20 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       <Header />
       <Outlet />
       <Toaster />
-      <TanstackDevtools
-        config={{
-          position: "bottom-left",
-        }}
-        plugins={[
-          {
-            name: "Tanstack Router",
-            render: <TanStackRouterDevtoolsPanel />,
-          },
-          StoreDevtools,
-        ]}
-      />
+      {process.env.NODE_ENV === "development" && (
+        <TanstackDevtools
+          config={{
+            position: "bottom-left",
+          }}
+          plugins={[
+            {
+              name: "Tanstack Router",
+              render: <TanStackRouterDevtoolsPanel />,
+            },
+            StoreDevtools,
+          ]}
+        />
+      )}
     </>
   ),
 });
