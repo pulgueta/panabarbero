@@ -71,5 +71,3 @@ export const useIsMobile = (): UseIsMobileReturn => {
     isLoading,
   };
 };
-
-export default useIsMobile;

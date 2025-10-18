@@ -8,11 +8,9 @@ import {
   Star,
   User,
 } from "lucide-react";
-import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Combobox } from "@/components/ui/combobox";
 import {
   Popover,
   PopoverContent,
@@ -23,7 +21,6 @@ import { Separator } from "@/components/ui/separator";
 export const Header = () => {
   const { data: session } = useSession();
   // const barberStatus = useQuery(api.auth.checkIsBarber, {});
-  const [selectedBarbershop, setSelectedBarbershop] = useState<string>("");
 
   const isBarber = true; // barberStatus?.isBarber ?? false;
 
@@ -48,7 +45,7 @@ export const Header = () => {
       .slice(0, 2);
   };
 
-  const barbershopOptions =
+  const _barbershopOptions =
     isBarber && true ? [{ value: "1", label: "Barbería 1" }] : [];
   // isBarber && barberStatus?.isBarber
   // ? barberStatus.barbershops.map((shop) => ({
@@ -69,59 +66,13 @@ export const Header = () => {
           </Link>
         </div>
 
-        {/* Navigation - Conditional based on auth state */}
-        <nav className="flex flex-1 items-center space-x-6">
-          {/* Barber Navigation */}
-          {session?.user && isBarber && (
-            <>
-              <Combobox
-                options={barbershopOptions}
-                value={selectedBarbershop}
-                onValueChange={setSelectedBarbershop}
-                placeholder="Seleccionar barbería"
-                searchPlaceholder="Buscar barbería..."
-                emptyText="No se encontraron barberías"
-              />
-              <Link
-                to="/services"
-                className="font-medium text-sm transition-colors hover:text-primary"
-              >
-                Mis Servicios
-              </Link>
-              <Link
-                to="/analytics"
-                className="font-medium text-sm transition-colors hover:text-primary"
-              >
-                Analíticas
-              </Link>
-              <Link
-                to="/reviews"
-                className="font-medium text-sm transition-colors hover:text-primary"
-              >
-                Reseñas
-              </Link>
-            </>
-          )}
-
-          {/* Regular User Navigation */}
-          {session?.user && !isBarber && (
-            <Link
-              to="/barbershops"
-              className="font-medium text-sm transition-colors hover:text-primary"
-            >
-              Barberías
-            </Link>
-          )}
-
-          {/* Unauthenticated Navigation */}
-          {!session?.user && (
-            <Link
-              to="/barbershops"
-              className="font-medium text-sm transition-colors hover:text-primary"
-            >
-              Barberías
-            </Link>
-          )}
+        {/* Navigation - Centered for tablet and desktop */}
+        <nav className="flex flex-1 items-center justify-center">
+          <div className="flex items-center space-x-16 font-medium text-sm">
+            <Link to="/">Inicio</Link>
+            <Link to="/barbershops">Barberías</Link>
+            <Link to="/appointments">Citas</Link>
+          </div>
         </nav>
 
         {/* Search Bar - For all users */}

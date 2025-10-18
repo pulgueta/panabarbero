@@ -6,7 +6,7 @@ import { Toaster } from "sonner";
 
 import { BottomBar } from "@/components/bottom-bar";
 import { Header } from "@/components/header";
-import useIsMobile from "@/hooks/use-is-mobile";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import StoreDevtools from "@/lib/demo-store-devtools";
 
 type RouterContext = {

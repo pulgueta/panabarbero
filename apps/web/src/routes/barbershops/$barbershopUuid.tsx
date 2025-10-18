@@ -3,11 +3,20 @@ import { api } from "@panabarbero/convex/api";
 import { useSession } from "@panabarbero/convex/auth";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Clock } from "lucide-react";
+import { useEffect, useState } from "react";
+import { LazyLoadImage } from "react-lazy-load-image-component";
 
 import { BarbershopRating } from "@/components/barbershops/rating";
 import { ReviewForm } from "@/components/barbershops/reviews/review-form";
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import type { CarouselApi } from "@/components/ui/carousel";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel";
 import {
   Drawer,
   DrawerContent,
@@ -22,7 +31,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import useIsMobile from "@/hooks/use-is-mobile";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useIsMobile } from "@/hooks/use-is-mobile";
+import { formatCurrency } from "@/lib/form-utils";
+
+import "react-lazy-load-image-component/src/effects/blur.css";
 
 export const Route = createFileRoute("/barbershops/$barbershopUuid")({
   component: RouteComponent,
@@ -37,8 +50,11 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
 });
 
 function RouteComponent() {
+  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
+  const [_current, setCurrent] = useState(0);
+
   const params = Route.useParams();
-  const { data: barbershop } = useSuspenseQuery(
+  const { data: barbershop, isLoading } = useSuspenseQuery(
     convexQuery(api.barbershops.getBarbershopByUuid, {
       uuid: params.barbershopUuid,
     }),
@@ -62,6 +78,18 @@ function RouteComponent() {
       barbershopId: barbershop?._id!,
     }),
   );
+
+  useEffect(() => {
+    if (!carouselApi) {
+      return;
+    }
+
+    setCurrent(carouselApi.selectedScrollSnap() + 1);
+
+    carouselApi.on("select", () => {
+      setCurrent(carouselApi.selectedScrollSnap() + 1);
+    });
+  }, [carouselApi]);
 
   const formHeadLabel = "¡Tu opinión ayuda a mejorar el trabajo de todos!";
 
@@ -159,38 +187,62 @@ function RouteComponent() {
             )}
           </section>
           <section>
-            <Avatar className="size-16 md:size-24 lg:size-28">
-              <AvatarImage src={barbershop?.bannerUrl ?? "/default-logo.png"} />
-            </Avatar>
+            {isLoading ? (
+              <Skeleton className="size-16 rounded-full object-cover md:size-24 lg:size-28" />
+            ) : (
+              <LazyLoadImage
+                effect="blur"
+                alt={`Banner de ${barbershop?.name}`}
+                src={barbershop?.bannerUrl ?? "/default-logo.png"}
+                className="size-16 rounded-full object-cover md:size-24 lg:size-28"
+              />
+            )}
           </section>
         </header>
 
         <Separator className="mt-8 mb-6" />
 
         <section className="space-y-4">
-          <h2 className="text-balance text-center font-semibold text-lg tracking-tight">
+          <h2 className="my-6 text-balance text-center font-semibold text-xl tracking-tight">
             Servicios ofrecidos:
           </h2>
           {services && services.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-              {services.map((service) => (
-                <div
-                  key={service._id}
-                  className="flex flex-col gap-2 rounded-lg border bg-white p-4 shadow-sm"
-                >
-                  <h3 className="font-semibold text-lg">{service.name}</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Precio: $
-                    {service.price?.toFixed
-                      ? service.price.toFixed(2)
-                      : service.price}
-                  </p>
-                  <p className="text-muted-foreground text-sm">
-                    Duración: {service.duration} min
-                  </p>
-                </div>
-              ))}
-            </div>
+            <Carousel
+              setApi={setCarouselApi}
+              className="mx-auto w-full max-w-6xl"
+              opts={{ loop: true }}
+            >
+              <CarouselContent>
+                {services.map((service) => (
+                  <CarouselItem
+                    key={service._id}
+                    className="md:basis-1/2 lg:basis-1/3"
+                  >
+                    <Card className="transition-transform duration-500">
+                      <CardContent className="flex min-h-48 flex-col gap-1 px-4">
+                        <section className="flex-1 space-y-1">
+                          <p className="text-pretty font-semibold tracking-tight">
+                            {service.name}
+                          </p>
+                          <p className="text-muted-foreground text-sm">
+                            {formatCurrency(service.price)}
+                          </p>
+                        </section>
+                        {service.duration && (
+                          <p className="inline-flex items-center gap-1 text-muted-foreground text-sm tracking-tight">
+                            <Clock className="size-3" /> {service.duration}{" "}
+                            minutos
+                          </p>
+                        )}
+                        <Button variant="outline" size="sm">
+                          Reservar
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+            </Carousel>
           ) : (
             <p className="text-center text-muted-foreground">
               No hay servicios disponibles.
