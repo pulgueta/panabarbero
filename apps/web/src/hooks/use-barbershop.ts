@@ -1,4 +1,4 @@
-import { convexQuery } from "@convex-dev/react-query";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@panabarbero/convex/api";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 
@@ -20,13 +20,15 @@ export function useActiveBarbershops() {
 
 export function useBarbershopActions() {
   const createBarbershop = useMutation({
-    mutationFn: api.barbershops.createBarbershop,
+    mutationFn: useConvexMutation(api.barbershops.createBarbershop),
   });
   const updateBarbershop = useMutation({
-    mutationFn: api.barbershops.updateBarbershop,
+    mutationFn: useConvexMutation(api.barbershops.updateBarbershop),
   });
   const updateBarbershopDayAvailability = useMutation({
-    mutationFn: api.barbershops.updateBarbershopDayAvailability,
+    mutationFn: useConvexMutation(
+      api.barbershops.updateBarbershopDayAvailability,
+    ),
   });
 
   return {

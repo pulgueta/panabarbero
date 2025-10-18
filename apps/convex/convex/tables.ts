@@ -1,5 +1,6 @@
 import type { Infer } from "convex/values";
 import { v } from "convex/values";
+import type { Id, TableNames } from "./_generated/dataModel";
 
 export const tables = {
   barbershops: {
@@ -156,5 +157,42 @@ export const tables = {
 const barbershopSchema = v.object({
   ...tables.barbershops,
 });
+const barberSchema = v.object({
+  ...tables.barbers,
+});
+const serviceSchema = v.object({
+  ...tables.services,
+});
+const reviewSchema = v.object({
+  ...tables.reviews,
+});
+const appointmentSchema = v.object({
+  ...tables.appointments,
+});
+const paymentSchema = v.object({
+  ...tables.payments,
+});
+const mobilePushTokenSchema = v.object({
+  ...tables.mobilePushTokens,
+});
+const notificationSchema = v.object({
+  ...tables.notifications,
+});
 
-export type Barbershop = Infer<typeof barbershopSchema>;
+type ConvexRows<T extends TableNames> = {
+  _id: Id<T>;
+  _creationTime: number;
+};
+
+export type Barbershop = ConvexRows<"barbershops"> &
+  Infer<typeof barbershopSchema>;
+export type Barber = ConvexRows<"barbers"> & Infer<typeof barberSchema>;
+export type Service = ConvexRows<"services"> & Infer<typeof serviceSchema>;
+export type Review = ConvexRows<"reviews"> & Infer<typeof reviewSchema>;
+export type Appointment = ConvexRows<"appointments"> &
+  Infer<typeof appointmentSchema>;
+export type Payment = ConvexRows<"payments"> & Infer<typeof paymentSchema>;
+export type MobilePushToken = ConvexRows<"mobile_push_tokens"> &
+  Infer<typeof mobilePushTokenSchema>;
+export type Notification = ConvexRows<"notifications"> &
+  Infer<typeof notificationSchema>;
