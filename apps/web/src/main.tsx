@@ -11,6 +11,7 @@ import { createRoot } from "react-dom/client";
 import { env } from "@/env";
 import reportWebVitals from "./reportWebVitals.ts";
 import { routeTree } from "./routeTree.gen";
+// @ts-expect-error
 import "./styles.css";
 
 export function getRouter() {

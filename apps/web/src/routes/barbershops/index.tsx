@@ -1,6 +1,7 @@
-import { convexQuery } from "@convex-dev/react-query";
-import { api } from "@panabarbero/convex/api";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import {
+  activeBarbershopsQueryOptions,
+  useActiveBarbershops,
+} from "@panabarbero/client/hooks";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Scissors, Search } from "lucide-react";
 
@@ -20,16 +21,14 @@ export const Route = createFileRoute("/barbershops/")({
   component: BarbershopsPage,
   loader: async (opts) => {
     await opts.context.queryClient.ensureQueryData(
-      convexQuery(api.barbershops.getActiveBarbershops, {}),
+      activeBarbershopsQueryOptions(),
     );
   },
   pendingComponent: () => <div>Loading...</div>,
 });
 
 function BarbershopsPage() {
-  const { data: barbershops } = useSuspenseQuery(
-    convexQuery(api.barbershops.getActiveBarbershops, {}),
-  );
+  const { data: barbershops } = useActiveBarbershops();
 
   return (
     <div className="container mx-auto min-h-[calc(100dvh-65px)] border-x">

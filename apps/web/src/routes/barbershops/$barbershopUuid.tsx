@@ -1,22 +1,25 @@
-import { convexQuery } from "@convex-dev/react-query";
-import { api } from "@panabarbero/convex/api";
+/** biome-ignore-all lint/style/noNonNullAssertion: objects are guaranteed to be not null */
+import {
+  barbershopByUuidQueryOptions,
+  useBarbershopByUuid,
+  useCanReview,
+  useServicesFromBarbershop,
+} from "@panabarbero/client/hooks";
 import { useSession } from "@panabarbero/convex/auth";
 import type { Barbershop } from "@panabarbero/convex/schemas";
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Clock } from "lucide-react";
-import { useEffect, useState } from "react";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 
 import { BarbershopRating } from "@/components/barbershops/rating";
 import { ReviewForm } from "@/components/barbershops/reviews/review-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import type { CarouselApi } from "@/components/ui/carousel";
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
+  useCarouselApi,
 } from "@/components/ui/carousel";
 import {
   Drawer,
@@ -37,15 +40,14 @@ import { useIsMobile } from "@/hooks/use-is-mobile";
 import { formatCurrency } from "@/lib/form-utils";
 import { barbershopSeo } from "@/lib/utils";
 
+// @ts-expect-error
 import "react-lazy-load-image-component/src/effects/blur.css";
 
 export const Route = createFileRoute("/barbershops/$barbershopUuid")({
   component: RouteComponent,
   loader: async ({ context, params }) => {
     return await context.queryClient.ensureQueryData(
-      convexQuery(api.barbershops.getBarbershopByUuid, {
-        uuid: params.barbershopUuid,
-      }),
+      barbershopByUuidQueryOptions(params.barbershopUuid),
     );
   },
   head: ({ loaderData }) => {
@@ -57,46 +59,23 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
 });
 
 function RouteComponent() {
-  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
-  const [_current, setCurrent] = useState(0);
+  const [_, setCarouselApi] = useCarouselApi();
 
   const params = Route.useParams();
-  const { data: barbershop, isLoading } = useSuspenseQuery(
-    convexQuery(api.barbershops.getBarbershopByUuid, {
-      uuid: params.barbershopUuid,
-    }),
+
+  const { data: barbershop, isLoading } = useBarbershopByUuid(
+    params.barbershopUuid,
   );
+  const { data: services } = useServicesFromBarbershop(barbershop?._id!);
 
   const { data } = useSession();
 
   const { isMobile } = useIsMobile();
 
-  const { data: services } = useQuery(
-    convexQuery(api.services.getServicesByBarbershopId, {
-      // biome-ignore lint/style/noNonNullAssertion: barbershop is guaranteed to be not null
-      barbershopId: barbershop?._id!,
-    }),
-  );
-
-  const { data: canReview } = useQuery(
-    convexQuery(api.reviews.canReview, {
-      userId: data?.user?.id ?? "",
-      // biome-ignore lint/style/noNonNullAssertion: barbershop is guaranteed to be not null
-      barbershopId: barbershop?._id!,
-    }),
-  );
-
-  useEffect(() => {
-    if (!carouselApi) {
-      return;
-    }
-
-    setCurrent(carouselApi.selectedScrollSnap() + 1);
-
-    carouselApi.on("select", () => {
-      setCurrent(carouselApi.selectedScrollSnap() + 1);
-    });
-  }, [carouselApi]);
+  const canReview = useCanReview({
+    userId: data?.user?.id!,
+    barbershopId: barbershop?._id!,
+  });
 
   const formHeadLabel = "¡Tu opinión ayuda a mejorar el trabajo de todos!";
 
@@ -138,9 +117,7 @@ function RouteComponent() {
                         {data?.user ? (
                           canReview ? (
                             <ReviewForm
-                              // biome-ignore lint/style/noNonNullAssertion: barbershop is guaranteed to be not null
                               barbershopId={barbershop?._id!}
-                              // biome-ignore lint/style/noNonNullAssertion: user is guaranteed to be not null
                               userId={data?.user?.id!}
                             />
                           ) : (
@@ -179,9 +156,7 @@ function RouteComponent() {
                       {data?.user ? (
                         canReview ? (
                           <ReviewForm
-                            // biome-ignore lint/style/noNonNullAssertion: barbershop is guaranteed to be not null
                             barbershopId={barbershop?._id!}
-                            // biome-ignore lint/style/noNonNullAssertion: user is guaranteed to be not null
                             userId={data?.user?.id!}
                             formHeadLabel="¡Tu opinión ayuda a mejorar el trabajo de todos!"
                           />

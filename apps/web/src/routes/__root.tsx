@@ -1,4 +1,4 @@
-import { TanstackDevtools } from "@tanstack/react-devtools";
+import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { QueryClient } from "@tanstack/react-query";
 import {
   createRootRouteWithContext,
@@ -68,7 +68,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         {isMobile && <BottomBar />}
 
         {process.env.NODE_ENV === "development" && (
-          <TanstackDevtools
+          <TanStackDevtools
             config={{
               position: "bottom-left",
             }}

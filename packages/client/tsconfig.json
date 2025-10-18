@@ -14,7 +14,9 @@
     "verbatimModuleSyntax": true,
     "module": "ESNext",
     "jsx": "preserve",
+    "skipLibCheck": true,
     "lib": [
+      "DOM",
       "ES2022",
       "DOM.Iterable"
     ],
