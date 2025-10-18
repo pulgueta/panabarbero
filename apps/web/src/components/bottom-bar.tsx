@@ -1,69 +1,46 @@
+import { tanstack } from "@panabarbero/constants";
 import { useSession } from "@panabarbero/convex/auth";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Calendar, Home, Scissors, User } from "lucide-react";
-import type { ComponentType } from "react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-interface BottomBarItem {
-  icon: ComponentType<{ className?: string }>;
-  label: string;
-  to: string;
-  activePattern?: string;
-}
+type NavigationRoute = (typeof tanstack.routes.navigation)[number];
 
-const navigationItems: BottomBarItem[] = [
-  {
-    icon: Home,
-    label: "Inicio",
-    to: "/",
-    activePattern: "^/$",
-  },
-  {
-    icon: Scissors,
-    label: "Barberías",
-    to: "/barbershops",
-    activePattern: "^/barbershops",
-  },
-  {
-    icon: Calendar,
-    label: "Citas",
-    to: "/appointments",
-    activePattern: "^/appointments",
-  },
-];
-
-export function BottomBar() {
+export const BottomBar = () => {
   const { data: session } = useSession();
   const router = useRouterState();
   const currentPath = router.location.pathname;
 
-  const isActive = (item: BottomBarItem) => {
+  const isActive = (item: NavigationRoute) => {
     if (item.activePattern) {
       return new RegExp(item.activePattern).test(currentPath);
     }
 
+    // @ts-expect-error - item.to is defined
     return currentPath === item.to;
   };
 
-  const allItems = session?.user
-    ? [
-        ...navigationItems,
-        {
-          icon: User,
-          label: "Perfil",
-          to: "/profile",
-          activePattern: "^/profile",
-        },
-      ]
-    : navigationItems;
+  const navigationRoutes = tanstack
+    .getNavigationRoutes(session?.user?.id)
+    .map((route) => ({
+      ...route,
+      icon:
+        route.label === "Inicio"
+          ? Home
+          : route.label === "Barberías"
+            ? Scissors
+            : route.label === "Citas"
+              ? Calendar
+              : User,
+    }));
 
   return (
     <div className="fixed right-0 bottom-0 left-0 z-50 border-border border-t bg-background/90 backdrop-blur-sm">
       <div className="container mx-auto max-w-md">
         <nav className="flex items-center justify-around p-4">
-          {allItems.map((item) => {
+          {navigationRoutes.map((item) => {
             const Icon = item.icon;
             const active = isActive(item);
 
@@ -97,4 +74,4 @@ export function BottomBar() {
       </div>
     </div>
   );
-}
+};

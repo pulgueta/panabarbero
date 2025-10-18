@@ -1,3 +1,4 @@
+import type { Infer } from "convex/values";
 import { v } from "convex/values";
 
 export const tables = {
@@ -151,3 +152,9 @@ export const tables = {
     appointmentId: v.optional(v.id("appointments")),
   },
 };
+
+const barbershopSchema = v.object({
+  ...tables.barbershops,
+});
+
+export type Barbershop = Infer<typeof barbershopSchema>;

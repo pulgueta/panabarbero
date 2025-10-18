@@ -1,7 +1,35 @@
-import type { Barbershop } from "@panabarbero/db/schema/zod";
-
-export const QUERY_KEYS = {
-  HELLO: ["hello"],
-  BARBERSHOP: ["barbershop"],
-  BARBERSHOP_BY_ID: (id: Barbershop["id"]) => [...QUERY_KEYS.BARBERSHOP, id],
+export const routes = {
+  navigation: [
+    {
+      label: "Inicio",
+      to: "/",
+      activePattern: "^/$",
+    },
+    {
+      label: "Barberías",
+      to: "/barbershops",
+      activePattern: "^/barbershops",
+    },
+    {
+      label: "Citas",
+      to: "/appointments",
+      activePattern: "^/appointments",
+    },
+    {
+      label: "Perfil",
+      to: "/profile",
+      activePattern: "^/profile",
+    },
+  ],
+  barbershop: {
+    index: "/barbershops",
+    create: "/barbershops/create",
+    edit: "/barbershops/$barbershopUuid/edit",
+    show: "/barbershops/$barbershopUuid",
+  },
 } as const;
+
+export const getNavigationRoutes = (userId?: string) =>
+  userId
+    ? routes.navigation
+    : routes.navigation.filter((route) => route.to !== "/profile");

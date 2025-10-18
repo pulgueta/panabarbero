@@ -1,6 +1,10 @@
 import { TanstackDevtools } from "@tanstack/react-devtools";
 import type { QueryClient } from "@tanstack/react-query";
-import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
+import {
+  createRootRouteWithContext,
+  HeadContent,
+  Outlet,
+} from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { Toaster } from "sonner";
 
@@ -14,11 +18,49 @@ type RouterContext = {
 };
 
 export const Route = createRootRouteWithContext<RouterContext>()({
+  head: () => {
+    return {
+      meta: [
+        {
+          title: "PanaBarbero - La solución para las barberías",
+        },
+        {
+          name: "description",
+          content: "PanaBarbero - La solución para las barberías",
+        },
+        {
+          name: "og:title",
+          content: "PanaBarbero - La solución para las barberías",
+        },
+        {
+          name: "og:description",
+          content: "PanaBarbero - La solución para las barberías",
+        },
+        {
+          name: "og:image",
+          content: "/logo.png",
+        },
+        {
+          name: "og:url",
+          content: "https://pana-barbero.com",
+        },
+        {
+          name: "og:type",
+          content: "website",
+        },
+        {
+          name: "og:locale",
+          content: "es_CO",
+        },
+      ],
+    };
+  },
   component: () => {
     const { isMobile } = useIsMobile();
 
     return (
       <>
+        <HeadContent />
         <Toaster richColors position="top-center" />
 
         {!isMobile && <Header />}

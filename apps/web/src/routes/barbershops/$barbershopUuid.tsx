@@ -1,6 +1,7 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@panabarbero/convex/api";
 import { useSession } from "@panabarbero/convex/auth";
+import type { Barbershop } from "@panabarbero/convex/schemas";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Clock } from "lucide-react";
@@ -34,17 +35,23 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { formatCurrency } from "@/lib/form-utils";
+import { barbershopSeo } from "@/lib/utils";
 
 import "react-lazy-load-image-component/src/effects/blur.css";
 
 export const Route = createFileRoute("/barbershops/$barbershopUuid")({
   component: RouteComponent,
   loader: async ({ context, params }) => {
-    await context.queryClient.ensureQueryData(
+    return await context.queryClient.ensureQueryData(
       convexQuery(api.barbershops.getBarbershopByUuid, {
         uuid: params.barbershopUuid,
       }),
     );
+  },
+  head: ({ loaderData }) => {
+    return {
+      meta: barbershopSeo(loaderData as Barbershop),
+    };
   },
   ssr: true,
 });

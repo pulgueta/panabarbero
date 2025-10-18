@@ -1,3 +1,4 @@
+import { tanstack } from "@panabarbero/constants";
 import { signIn, signOut, useSession } from "@panabarbero/convex/auth";
 import { Link } from "@tanstack/react-router";
 import {
@@ -54,6 +55,8 @@ export const Header = () => {
   //   }))
   // : [];
 
+  const navigationRoutes = tanstack.getNavigationRoutes(session?.user?.id);
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-4">
       <div className="container mx-auto flex h-16 items-center">
@@ -66,28 +69,17 @@ export const Header = () => {
           </Link>
         </div>
 
-        {/* Navigation - Centered for tablet and desktop */}
         <nav className="flex flex-1 items-center justify-center">
           <div className="flex items-center space-x-16 font-medium text-sm">
-            <Link to="/">Inicio</Link>
-            <Link to="/barbershops">Barberías</Link>
-            <Link to="/appointments">Citas</Link>
+            {navigationRoutes.map((route) => (
+              <Link key={route.to} to={route.to}>
+                {route.label}
+              </Link>
+            ))}
           </div>
         </nav>
 
-        {/* Search Bar - For all users */}
         <div className="flex items-center space-x-4">
-          {/* <div className="relative">
-            <Search className="absolute top-2.5 left-2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="¿Qué servicio buscas hoy?"
-              className="w-[300px] pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div> */}
-
-          {/* Right Side Actions */}
           <div className="flex items-center space-x-2">
             {!session?.user && (
               <Button size="sm" onClick={handleSignIn}>
