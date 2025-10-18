@@ -62,8 +62,12 @@ if (rootElement && !rootElement.innerHTML) {
   const root = createRoot(rootElement);
   root.render(
     <StrictMode>
-      <SpeedInsights />
-      <Analytics />
+      {process.env.NODE_ENV === "production" && (
+        <>
+          <SpeedInsights />
+          <Analytics />
+        </>
+      )}
       <RouterProvider router={getRouter()} />
     </StrictMode>,
   );

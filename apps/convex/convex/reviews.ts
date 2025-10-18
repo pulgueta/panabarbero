@@ -94,7 +94,7 @@ export const deleteReview = mutation({
 });
 
 export const canReview = query({
-  args: { userId: v.string(), barbershopId: v.id("barbershops") },
+  args: { userId: v.optional(v.string()), barbershopId: v.id("barbershops") },
   handler: async (ctx, args) => {
     const user = await ctx.auth.getUserIdentity();
 

@@ -111,9 +111,16 @@ export const getActiveBarbershops = query({
     await Promise.all(
       barbershops.map(async (barbershop) => {
         if (barbershop.bannerUrl) {
-          const url = await ctx.storage.getUrl(barbershop.bannerUrl);
+          const isAlreadyUrl = /^https?:\/\//i.test(barbershop.bannerUrl);
 
-          barbershop.bannerUrl = url === null ? undefined : url;
+          if (!isAlreadyUrl) {
+            try {
+              const url = await ctx.storage.getUrl(barbershop.bannerUrl);
+              barbershop.bannerUrl = url === null ? undefined : url;
+            } catch (error) {
+              console.error(error);
+            }
+          }
         }
 
         const services = await ctx.runQuery(

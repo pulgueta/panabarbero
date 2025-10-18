@@ -1,7 +1,3 @@
-import {
-  activeBarbershopsQueryOptions,
-  useActiveBarbershops,
-} from "@panabarbero/client/hooks";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Scissors, Search } from "lucide-react";
 
@@ -16,6 +12,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  activeBarbershopsQueryOptions,
+  useActiveBarbershops,
+} from "@/hooks/use-barbershop";
 
 export const Route = createFileRoute("/barbershops/")({
   component: BarbershopsPage,

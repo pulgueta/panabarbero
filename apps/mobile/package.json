@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@panabarbero/constants": "workspace:*",
-    "@panabarbero/client": "workspace:*",
     "@react-navigation/native": "^7.1.17",
     "@rn-primitives/slot": "^1.2.0",
     "class-variance-authority": "^0.7.1",

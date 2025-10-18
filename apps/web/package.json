@@ -11,7 +11,6 @@
   "dependencies": {
     "@convex-dev/react-query": "^0.0.0-alpha.11",
     "@hookform/resolvers": "^5.2.2",
-    "@panabarbero/client": "workspace:*",
     "@panabarbero/convex": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-slot": "^1.2.3",

@@ -1,10 +1,4 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: objects are guaranteed to be not null */
-import {
-  barbershopByUuidQueryOptions,
-  useBarbershopByUuid,
-  useCanReview,
-  useServicesFromBarbershop,
-} from "@panabarbero/client/hooks";
 import { useSession } from "@panabarbero/convex/auth";
 import type { Barbershop } from "@panabarbero/convex/schemas";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -36,7 +30,13 @@ import {
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCanReview } from "@/hooks/use-actions";
+import {
+  barbershopByUuidQueryOptions,
+  useBarbershopByUuid,
+} from "@/hooks/use-barbershop";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useServicesFromBarbershop } from "@/hooks/use-services";
 import { formatCurrency } from "@/lib/form-utils";
 import { barbershopSeo } from "@/lib/utils";
 
