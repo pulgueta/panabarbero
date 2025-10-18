@@ -48,7 +48,13 @@
     "zod": "^4.0.17"
   },
   "trustedDependencies": [
+    "@prisma/client",
+    "@prisma/engines",
     "@tailwindcss/oxide",
-    "core-js"
+    "@vercel/speed-insights",
+    "better-sqlite3",
+    "core-js",
+    "esbuild",
+    "prisma"
   ]
 }

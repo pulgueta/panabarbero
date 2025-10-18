@@ -2,6 +2,8 @@ import { ConvexQueryClient } from "@convex-dev/react-query";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { routerWithQueryClient } from "@tanstack/react-router-with-query";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -59,6 +61,8 @@ if (rootElement && !rootElement.innerHTML) {
   const root = createRoot(rootElement);
   root.render(
     <StrictMode>
+      <SpeedInsights />
+      <Analytics />
       <RouterProvider router={getRouter()} />
     </StrictMode>,
   );
