@@ -55,6 +55,7 @@ export const createAppointment = mutation({
 
     const appointmentOverlaps = await ctx.db
       .query("appointments")
+      .withIndex("by_barbershopId")
       .filter(({ eq, field, and, lte, gte, or }) =>
         and(
           eq(field("barbershopId"), appointment.barbershopId),
@@ -66,7 +67,6 @@ export const createAppointment = mutation({
           or(eq(field("status"), "pending"), eq(field("status"), "confirmed")),
         ),
       )
-      .withIndex("by_barbershopId")
       .first();
 
     if (appointmentOverlaps) {
@@ -108,7 +108,11 @@ export const createAppointment = mutation({
       throw new Error("Appointment is outside working hours");
     }
 
-    const appointmentId = await ctx.db.insert("appointments", appointment);
+    const appointmentId = await ctx.db.insert("appointments", {
+      ...appointment,
+      uuid: crypto.randomUUID(),
+      status: "pending",
+    });
 
     const thirtyMinutesBeforeAppointment = appointment.startAt - 30 * 60 * 1000;
 

@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import { tables } from "./tables";
 
@@ -18,12 +19,9 @@ export const createReview = mutation({
     }
     const reviewId = await ctx.db.insert("reviews", args.review);
 
-    // const increaseBarbershopRating = await ctx.runMutation(
-    //   internal.barbershops.increaseBarbershopRating,
-    //   {
-    //     barbershopId: args.review.barbershopId,
-    //   },
-    // );
+    await ctx.runMutation(internal.barbershops.increaseBarbershopRating, {
+      barbershopId: args.review.barbershopId,
+    });
 
     return reviewId;
   },
