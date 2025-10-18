@@ -21,6 +21,10 @@
     },
     "./auth/expo": {
       "import": "./src/lib/expo-auth-client.ts"
+    },
+    "./dataModel": {
+      "import": "./convex/_generated/dataModel.ts",
+      "types": "./convex/_generated/dataModel.d.ts"
     }
   },
   "dependencies": {

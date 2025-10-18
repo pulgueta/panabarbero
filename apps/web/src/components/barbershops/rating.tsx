@@ -51,7 +51,7 @@ type RatingButtonProps = LucideProps & {
   icon?: ReactElement<LucideProps>;
 };
 
-const RatingButton = ({
+export const RatingButton = ({
   index: providedIndex,
   size = 20,
   className,
@@ -186,7 +186,7 @@ type RatingProps = {
   children?: ReactNode;
 };
 
-const Rating = ({
+export const Rating = ({
   value: controlledValue,
   onValueChange: controlledOnValueChange,
   defaultValue = 0,

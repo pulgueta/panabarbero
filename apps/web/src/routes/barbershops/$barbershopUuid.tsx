@@ -1,11 +1,28 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@panabarbero/convex/api";
+import { useSession } from "@panabarbero/convex/auth";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { BarbershopRating } from "@/components/barbershops/rating";
+import { ReviewForm } from "@/components/barbershops/reviews/review-form";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
+import useIsMobile from "@/hooks/use-is-mobile";
 
 export const Route = createFileRoute("/barbershops/$barbershopUuid")({
   component: RouteComponent,
@@ -27,12 +44,26 @@ function RouteComponent() {
     }),
   );
 
+  const { data } = useSession();
+
+  const { isMobile } = useIsMobile();
+
   const { data: services } = useQuery(
     convexQuery(api.services.getServicesByBarbershopId, {
       // biome-ignore lint/style/noNonNullAssertion: barbershop is guaranteed to be not null
       barbershopId: barbershop?._id!,
     }),
   );
+
+  const { data: canReview } = useQuery(
+    convexQuery(api.reviews.canReview, {
+      userId: data?.user?.id ?? "",
+      // biome-ignore lint/style/noNonNullAssertion: barbershop is guaranteed to be not null
+      barbershopId: barbershop?._id!,
+    }),
+  );
+
+  const formHeadLabel = "¡Tu opinión ayuda a mejorar el trabajo de todos!";
 
   return (
     <div className="w-full">
@@ -48,14 +79,82 @@ function RouteComponent() {
                 value={barbershop?.metadata?.rating ?? 0}
                 readOnly
               />
-              <p className="mt-px text-muted-foreground text-xs md:text-sm">
-                {barbershop?.metadata?.reviews} calificaciones
+
+              <p className="mt-px inline-flex items-center gap-1 text-muted-foreground text-xs md:text-sm">
+                {barbershop?.metadata?.reviews} calificaciones.
+                {isMobile ? (
+                  <Drawer>
+                    <DrawerTrigger asChild>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="px-0 text-muted-foreground text-xs md:text-sm"
+                      >
+                        Calificar
+                      </Button>
+                    </DrawerTrigger>
+                    <DrawerContent>
+                      <DrawerHeader>
+                        <DrawerTitle>{formHeadLabel}</DrawerTitle>
+                      </DrawerHeader>
+                      <DrawerFooter>
+                        <ReviewForm
+                          // biome-ignore lint/style/noNonNullAssertion: barbershop is guaranteed to be not null
+                          barbershopId={barbershop?._id!}
+                          // biome-ignore lint/style/noNonNullAssertion: user is guaranteed to be not null
+                          userId={data?.user?.id!}
+                        />
+                      </DrawerFooter>
+                    </DrawerContent>
+                  </Drawer>
+                ) : (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="px-0 text-muted-foreground text-xs md:text-sm"
+                      >
+                        Calificar
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full max-w-sm">
+                      {data?.user ? (
+                        canReview ? (
+                          <ReviewForm
+                            // biome-ignore lint/style/noNonNullAssertion: barbershop is guaranteed to be not null
+                            barbershopId={barbershop?._id!}
+                            // biome-ignore lint/style/noNonNullAssertion: user is guaranteed to be not null
+                            userId={data?.user?.id!}
+                            formHeadLabel="¡Tu opinión ayuda a mejorar el trabajo de todos!"
+                          />
+                        ) : (
+                          <p className="text-pretty text-center text-muted-foreground text-sm">
+                            Necesitas haber asistido a la barbería mediante una
+                            cita para poder calificar.
+                          </p>
+                        )
+                      ) : (
+                        <Button
+                          asChild
+                          variant="link"
+                          size="sm"
+                          className="text-muted-foreground"
+                        >
+                          <Link to="/login">
+                            Necesitas una cuenta para poder calificar.
+                          </Link>
+                        </Button>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                )}
               </p>
             </div>
 
             {barbershop?.description && (
               <p className="text-pretty text-muted-foreground text-sm md:text-base">
-                {barbershop.description}
+                {barbershop.description ?? "No hay descripción disponible."}
               </p>
             )}
           </section>

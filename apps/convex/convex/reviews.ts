@@ -94,3 +94,28 @@ export const deleteReview = mutation({
     await ctx.db.delete(args.reviewId);
   },
 });
+
+export const canReview = query({
+  args: { userId: v.string(), barbershopId: v.id("barbershops") },
+  handler: async (ctx, args) => {
+    const user = await ctx.auth.getUserIdentity();
+
+    if (!user) {
+      return false;
+    }
+
+    const userHasAttended = await ctx.db
+      .query("appointments")
+      .withIndex("by_barbershopId")
+      .filter(({ eq, field, and }) =>
+        and(
+          eq(field("barbershopId"), args.barbershopId),
+          eq(field("userId"), args.userId),
+          eq(field("status"), "completed"),
+        ),
+      )
+      .first();
+
+    return !!userHasAttended;
+  },
+});
