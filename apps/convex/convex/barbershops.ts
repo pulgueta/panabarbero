@@ -4,11 +4,26 @@ import { api, internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { tables } from "./tables";
 
+export const saveBarbershopBanner = internalMutation({
+  args: {
+    storageId: v.id("_storage"),
+    barbershopId: v.id("barbershops"),
+  },
+  handler: async (ctx, args) => {
+    const updatedBarbershop = await ctx.db.patch(args.barbershopId, {
+      bannerUrl: args.storageId,
+    });
+
+    return updatedBarbershop;
+  },
+});
+
 export const createBarbershop = mutation({
   args: {
     barbershop: v.object({
       ...tables.barbershops,
     }),
+    storageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     const user = await ctx.auth.getUserIdentity();
@@ -32,6 +47,13 @@ export const createBarbershop = mutation({
         websiteUrl: barbershop.metadata?.websiteUrl ?? "",
       },
     });
+
+    if (args.storageId) {
+      await ctx.runMutation(internal.barbershops.saveBarbershopBanner, {
+        barbershopId,
+        storageId: args.storageId,
+      });
+    }
 
     if (barbershop.coordinates) {
       await geospatial.insert(
@@ -77,23 +99,33 @@ export const getBarbershops = query({
     return barbershops;
   },
 });
+
 export const getActiveBarbershops = query({
   handler: async (ctx) => {
     const barbershops = await ctx.db
       .query("barbershops")
+      .withIndex("by_isActive")
       .filter(({ field, eq }) => eq(field("isActive"), true))
       .collect();
 
-    for (const barbershop of barbershops) {
-      const services = await ctx.runQuery(
-        api.services.getServicesByBarbershopId,
-        {
-          barbershopId: barbershop._id,
-        },
-      );
+    await Promise.all(
+      barbershops.map(async (barbershop) => {
+        if (barbershop.bannerUrl) {
+          const url = await ctx.storage.getUrl(barbershop.bannerUrl);
 
-      barbershop.services = services.map((service) => service._id);
-    }
+          barbershop.bannerUrl = url === null ? undefined : url;
+        }
+
+        const services = await ctx.runQuery(
+          api.services.getServicesByBarbershopId,
+          {
+            barbershopId: barbershop._id,
+          },
+        );
+
+        barbershop.services = services.map((service) => service._id);
+      }),
+    );
 
     return barbershops;
   },
@@ -221,6 +253,7 @@ export const updateBarbershopDayAvailability = mutation({
 export const updateBarbershop = mutation({
   args: {
     barbershopId: v.id("barbershops"),
+    storageId: v.optional(v.id("_storage")),
     barbershop: v.object({
       ...tables.barbershops,
     }),
@@ -235,6 +268,13 @@ export const updateBarbershop = mutation({
     }
 
     await ctx.db.patch(args.barbershopId, args.barbershop);
+
+    if (args.storageId) {
+      await ctx.runMutation(internal.barbershops.saveBarbershopBanner, {
+        barbershopId: args.barbershopId,
+        storageId: args.storageId,
+      });
+    }
 
     if (args.barbershop.coordinates) {
       await geospatial.insert(

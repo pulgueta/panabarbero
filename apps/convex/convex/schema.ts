@@ -13,6 +13,7 @@ export default defineSchema(
     })
       .index("by_ownerId", ["ownerId"])
       .index("by_city_and_state", ["city", "state"])
+      .index("by_isActive", ["isActive"])
       .index("by_uuid", ["uuid"]),
 
     barbers: defineTable({
