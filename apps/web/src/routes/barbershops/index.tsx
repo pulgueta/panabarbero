@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Scissors, Search } from "lucide-react";
+import { LazyLoadImage } from "react-lazy-load-image-component";
 
 import { BarbershopRating } from "@/components/barbershops/rating";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,9 @@ import {
   activeBarbershopsQueryOptions,
   useActiveBarbershops,
 } from "@/hooks/use-barbershop";
+
+// @ts-expect-error
+import "react-lazy-load-image-component/src/effects/blur.css";
 
 export const Route = createFileRoute("/barbershops/")({
   component: BarbershopsPage,
@@ -57,16 +61,29 @@ function BarbershopsPage() {
           >
             <CardHeader>
               <div className="flex items-start justify-between">
-                <div className="flex items-start gap-2.5">
-                  <Scissors className="mt-1.5 size-5 text-muted-foreground" />
-                  <div>
-                    <CardTitle className="text-balance font-bold text-xl tracking-tight">
-                      {barbershop.name}
-                    </CardTitle>
-                    <p className="text-muted-foreground text-xs">
-                      {barbershop.city}, {barbershop.state}
-                    </p>
+                <div className="flex w-full items-start justify-between">
+                  <div className="flex items-start gap-2.5">
+                    <Scissors className="mt-1.5 size-5 text-muted-foreground" />
+                    <div>
+                      <CardTitle
+                        className="text-balance font-bold text-xl tracking-tight"
+                        style={{
+                          viewTransitionName: `barbershop-${barbershop.uuid}`,
+                        }}
+                      >
+                        {barbershop.name}
+                      </CardTitle>
+                      <p className="text-muted-foreground text-xs">
+                        {barbershop.city}, {barbershop.state}
+                      </p>
+                    </div>
                   </div>
+                  <LazyLoadImage
+                    effect="blur"
+                    alt={`Banner de ${barbershop?.name}`}
+                    src={barbershop?.bannerUrl ?? "/default-logo.png"}
+                    className="size-16 rounded-full object-cover md:size-24 lg:size-28"
+                  />
                 </div>
               </div>
               <CardDescription>
@@ -87,6 +104,8 @@ function BarbershopsPage() {
                   params={{
                     barbershopUuid: barbershop.uuid,
                   }}
+                  preload="intent"
+                  viewTransition
                 >
                   Ver servicios
                 </Link>

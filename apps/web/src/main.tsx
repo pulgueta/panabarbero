@@ -35,6 +35,7 @@ export function getRouter() {
       defaultPreload: "intent",
       context: { queryClient },
       scrollRestoration: true,
+      defaultViewTransition: true,
       Wrap: ({ children }) => (
         <ConvexProvider client={convex}>
           <QueryClientProvider client={queryClient}>

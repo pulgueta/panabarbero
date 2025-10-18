@@ -1,8 +1,10 @@
 "use client";
 
 import { useControllableState } from "@radix-ui/react-use-controllable-state";
-import { type LucideProps, StarIcon } from "lucide-react";
+import type { LucideProps } from "lucide-react";
+import { StarIcon } from "lucide-react";
 import type {
+  CSSProperties,
   FC,
   KeyboardEvent,
   MouseEvent,
@@ -295,7 +297,9 @@ export const Rating = ({
   );
 };
 
-interface BarbershopRatingProps extends RatingProps {}
+interface BarbershopRatingProps extends RatingProps {
+  style?: CSSProperties;
+}
 
 export const BarbershopRating: FC<BarbershopRatingProps> = ({
   value,

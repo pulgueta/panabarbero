@@ -3,7 +3,6 @@ import { useSession } from "@panabarbero/convex/auth";
 import type { Barbershop } from "@panabarbero/convex/schemas";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Clock } from "lucide-react";
-import { LazyLoadImage } from "react-lazy-load-image-component";
 
 import { BarbershopRating } from "@/components/barbershops/rating";
 import { ReviewForm } from "@/components/barbershops/reviews/review-form";
@@ -84,7 +83,12 @@ function RouteComponent() {
       <main className="container mx-auto min-h-[calc(100dvh-65px)] border-x px-4 py-8 md:px-8 lg:px-16">
         <header className="flex w-full flex-row justify-between gap-4">
           <section className="space-y-1">
-            <h1 className="text-balance font-bold text-2xl tracking-tight">
+            <h1
+              className="text-balance font-bold text-2xl tracking-tight"
+              style={{
+                viewTransitionName: `barbershop-${barbershop?.uuid}`,
+              }}
+            >
               {barbershop?.name}
             </h1>
 
@@ -194,10 +198,14 @@ function RouteComponent() {
             {isLoading ? (
               <Skeleton className="size-16 rounded-full object-cover md:size-24 lg:size-28" />
             ) : (
-              <LazyLoadImage
-                effect="blur"
+              <img
+                loading="lazy"
+                decoding="async"
                 alt={`Banner de ${barbershop?.name}`}
                 src={barbershop?.bannerUrl ?? "/default-logo.png"}
+                style={{
+                  viewTransitionName: `barbershop-${barbershop?.uuid}-banner`,
+                }}
                 className="size-16 rounded-full object-cover md:size-24 lg:size-28"
               />
             )}
