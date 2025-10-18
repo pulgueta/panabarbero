@@ -115,7 +115,7 @@ export const getServiceByUuid = query({
   },
 });
 
-export const getServicesByBarbershopId = internalQuery({
+export const getServicesByBarbershopId = query({
   args: {
     barbershopId: v.id("barbershops"),
   },

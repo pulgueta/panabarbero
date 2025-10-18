@@ -11,7 +11,7 @@ import reportWebVitals from "./reportWebVitals.ts";
 import { routeTree } from "./routeTree.gen";
 import "./styles.css";
 
-function getRouter() {
+export function getRouter() {
   const convex = new ConvexReactClient(env.PUBLIC_CONVEX_URL);
   const convexQueryClient = new ConvexQueryClient(convex);
 

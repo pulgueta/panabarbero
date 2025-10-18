@@ -22,6 +22,7 @@ export const createBarbershop = mutation({
 
     const barbershopId = await ctx.db.insert("barbershops", {
       ...barbershop,
+      uuid: crypto.randomUUID(),
       metadata: {
         completedAppointments: 0,
         contactEmail: barbershop.metadata?.contactEmail ?? "",
@@ -64,7 +65,7 @@ export const getBarbershops = query({
 
     for (const barbershop of barbershops) {
       const services = await ctx.runQuery(
-        internal.services.getServicesByBarbershopId,
+        api.services.getServicesByBarbershopId,
         {
           barbershopId: barbershop._id,
         },
@@ -85,7 +86,7 @@ export const getActiveBarbershops = query({
 
     for (const barbershop of barbershops) {
       const services = await ctx.runQuery(
-        internal.services.getServicesByBarbershopId,
+        api.services.getServicesByBarbershopId,
         {
           barbershopId: barbershop._id,
         },
@@ -100,13 +101,13 @@ export const getActiveBarbershops = query({
 
 export const getBarbershopByUuid = query({
   args: {
-    uuid: v.string(),
+    uuid: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const barbershop = await ctx.db
       .query("barbershops")
-      .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
       .withIndex("by_uuid")
+      .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
       .unique();
 
     return barbershop;

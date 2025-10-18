@@ -2,7 +2,13 @@
 
 import { useControllableState } from "@radix-ui/react-use-controllable-state";
 import { type LucideProps, StarIcon } from "lucide-react";
-import type { KeyboardEvent, MouseEvent, ReactElement, ReactNode } from "react";
+import type {
+  FC,
+  KeyboardEvent,
+  MouseEvent,
+  ReactElement,
+  ReactNode,
+} from "react";
 import {
   Children,
   cloneElement,
@@ -40,12 +46,12 @@ const useRating = () => {
   return context;
 };
 
-export type RatingButtonProps = LucideProps & {
+type RatingButtonProps = LucideProps & {
   index?: number;
   icon?: ReactElement<LucideProps>;
 };
 
-export const RatingButton = ({
+const RatingButton = ({
   index: providedIndex,
   size = 20,
   className,
@@ -167,7 +173,7 @@ export const RatingButton = ({
   );
 };
 
-export type RatingProps = {
+type RatingProps = {
   defaultValue?: number;
   value?: number;
   onChange?: (
@@ -180,7 +186,7 @@ export type RatingProps = {
   children?: ReactNode;
 };
 
-export const Rating = ({
+const Rating = ({
   value: controlledValue,
   onValueChange: controlledOnValueChange,
   defaultValue = 0,
@@ -269,7 +275,7 @@ export const Rating = ({
     <RatingContext.Provider value={contextValue}>
       <div
         aria-label="Calificación"
-        className={cn("inline-flex items-center gap-0.5", className)}
+        className={cn("space-x-0.5", className)}
         onMouseLeave={() => setHoverValue(null)}
         ref={containerRef}
         role="radiogroup"
@@ -286,5 +292,21 @@ export const Rating = ({
         })}
       </div>
     </RatingContext.Provider>
+  );
+};
+
+interface BarbershopRatingProps extends RatingProps {}
+
+export const BarbershopRating: FC<BarbershopRatingProps> = ({
+  value,
+  readOnly,
+  ...props
+}) => {
+  return (
+    <Rating value={value} readOnly={readOnly} {...props}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <RatingButton key={star} />
+      ))}
+    </Rating>
   );
 };

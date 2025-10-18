@@ -1,12 +1,14 @@
 {
   "editor.codeActionsOnSave": {
-    "source.fixAll.biome": "always",
-    "source.organizeImports": "always",
-    "source.biome": "always"
+    "source.fixAll.biome": "explicit",
+    "source.organizeImports": "always"
   },
   "editor.defaultFormatter": "biomejs.biome",
   "[typescript,typescriptreact]": {
     "editor.defaultFormatter": "biomejs.biome"
+  },
+  "files.associations": {
+    "*.css": "tailwindcss"
   },
   "files.watcherExclude": {
     "**/routeTree.gen.ts": true
@@ -21,7 +23,6 @@
   "editor.formatOnPaste": true,
   "editor.formatOnSave": true,
   "tailwindCSS.classFunctions": ["cva", "cx", "cn"],
-  "tailwindCSS.experimental.configFile": "../apps/mobile/tailwind.config.js",
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "typescript.preferences.autoImportFileExcludePatterns": [
     "zod/dist/types/index.d.ts", // Force auto-imports to v4

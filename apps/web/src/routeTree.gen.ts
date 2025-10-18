@@ -18,7 +18,7 @@ import { Route as BarbershopsIndexRouteImport } from "./routes/barbershops/index
 import { Route as BarbershopSettingsIndexRouteImport } from "./routes/barbershop-settings.index"
 import { Route as AppointmentsIndexRouteImport } from "./routes/appointments.index"
 import { Route as AnalyticsIndexRouteImport } from "./routes/analytics.index"
-import { Route as BarbershopsBarbershopIdRouteImport } from "./routes/barbershops/$barbershopId"
+import { Route as BarbershopsBarbershopUuidRouteImport } from "./routes/barbershops/$barbershopUuid"
 
 const LoginRoute = LoginRouteImport.update({
   id: "/login",
@@ -65,15 +65,16 @@ const AnalyticsIndexRoute = AnalyticsIndexRouteImport.update({
   path: "/analytics/",
   getParentRoute: () => rootRouteImport,
 } as any)
-const BarbershopsBarbershopIdRoute = BarbershopsBarbershopIdRouteImport.update({
-  id: "/barbershops/$barbershopId",
-  path: "/barbershops/$barbershopId",
-  getParentRoute: () => rootRouteImport,
-} as any)
+const BarbershopsBarbershopUuidRoute =
+  BarbershopsBarbershopUuidRouteImport.update({
+    id: "/barbershops/$barbershopUuid",
+    path: "/barbershops/$barbershopUuid",
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   "/login": typeof LoginRoute
-  "/barbershops/$barbershopId": typeof BarbershopsBarbershopIdRoute
+  "/barbershops/$barbershopUuid": typeof BarbershopsBarbershopUuidRoute
   "/analytics": typeof AnalyticsIndexRoute
   "/appointments": typeof AppointmentsIndexRoute
   "/barbershop-settings": typeof BarbershopSettingsIndexRoute
@@ -85,7 +86,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   "/login": typeof LoginRoute
-  "/barbershops/$barbershopId": typeof BarbershopsBarbershopIdRoute
+  "/barbershops/$barbershopUuid": typeof BarbershopsBarbershopUuidRoute
   "/analytics": typeof AnalyticsIndexRoute
   "/appointments": typeof AppointmentsIndexRoute
   "/barbershop-settings": typeof BarbershopSettingsIndexRoute
@@ -98,7 +99,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   "/login": typeof LoginRoute
-  "/barbershops/$barbershopId": typeof BarbershopsBarbershopIdRoute
+  "/barbershops/$barbershopUuid": typeof BarbershopsBarbershopUuidRoute
   "/analytics/": typeof AnalyticsIndexRoute
   "/appointments/": typeof AppointmentsIndexRoute
   "/barbershop-settings/": typeof BarbershopSettingsIndexRoute
@@ -112,7 +113,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | "/login"
-    | "/barbershops/$barbershopId"
+    | "/barbershops/$barbershopUuid"
     | "/analytics"
     | "/appointments"
     | "/barbershop-settings"
@@ -124,7 +125,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | "/login"
-    | "/barbershops/$barbershopId"
+    | "/barbershops/$barbershopUuid"
     | "/analytics"
     | "/appointments"
     | "/barbershop-settings"
@@ -136,7 +137,7 @@ export interface FileRouteTypes {
   id:
     | "__root__"
     | "/login"
-    | "/barbershops/$barbershopId"
+    | "/barbershops/$barbershopUuid"
     | "/analytics/"
     | "/appointments/"
     | "/barbershop-settings/"
@@ -149,7 +150,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
-  BarbershopsBarbershopIdRoute: typeof BarbershopsBarbershopIdRoute
+  BarbershopsBarbershopUuidRoute: typeof BarbershopsBarbershopUuidRoute
   AnalyticsIndexRoute: typeof AnalyticsIndexRoute
   AppointmentsIndexRoute: typeof AppointmentsIndexRoute
   BarbershopSettingsIndexRoute: typeof BarbershopSettingsIndexRoute
@@ -225,11 +226,11 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AnalyticsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/barbershops/$barbershopId": {
-      id: "/barbershops/$barbershopId"
-      path: "/barbershops/$barbershopId"
-      fullPath: "/barbershops/$barbershopId"
-      preLoaderRoute: typeof BarbershopsBarbershopIdRouteImport
+    "/barbershops/$barbershopUuid": {
+      id: "/barbershops/$barbershopUuid"
+      path: "/barbershops/$barbershopUuid"
+      fullPath: "/barbershops/$barbershopUuid"
+      preLoaderRoute: typeof BarbershopsBarbershopUuidRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -237,7 +238,7 @@ declare module "@tanstack/react-router" {
 
 const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
-  BarbershopsBarbershopIdRoute: BarbershopsBarbershopIdRoute,
+  BarbershopsBarbershopUuidRoute: BarbershopsBarbershopUuidRoute,
   AnalyticsIndexRoute: AnalyticsIndexRoute,
   AppointmentsIndexRoute: AppointmentsIndexRoute,
   BarbershopSettingsIndexRoute: BarbershopSettingsIndexRoute,

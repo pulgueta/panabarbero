@@ -1,10 +1,11 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@panabarbero/convex/api";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { Search, Store } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Scissors, Search } from "lucide-react";
 
-import { Rating, RatingButton } from "@/components/barbershops/rating";
+import { BarbershopRating } from "@/components/barbershops/rating";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -32,7 +33,7 @@ function BarbershopsPage() {
 
   return (
     <div className="container mx-auto min-h-[calc(100dvh-65px)] border-x">
-      <header className="mb-8 flex flex-col items-center justify-between gap-4 border-b py-8">
+      <header className="flex flex-col items-center justify-between gap-2.5 border-b py-12 md:py-16">
         <section className="px-4">
           <h1 className="text-balance text-center font-bold text-3xl tracking-tight">
             ¿Qué estilo buscas hoy?
@@ -49,7 +50,7 @@ function BarbershopsPage() {
         </div>
       </header>
 
-      <main className="grid grid-cols-1 gap-x-6 gap-y-8 px-4 md:grid-cols-2 md:px-8 lg:grid-cols-3">
+      <main className="grid grid-cols-1 gap-x-6 gap-y-8 px-4 py-8 sm:grid-cols-2 md:px-8 lg:grid-cols-3">
         {barbershops.map((barbershop) => (
           <Card
             className="shadow-sm transition-shadow hover:shadow-md"
@@ -58,38 +59,44 @@ function BarbershopsPage() {
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-2.5">
-                  <Store className="mt-1.5 size-5 text-muted-foreground" />
+                  <Scissors className="mt-1.5 size-5 text-muted-foreground" />
                   <div>
                     <CardTitle className="text-balance font-bold text-xl tracking-tight">
                       {barbershop.name}
                     </CardTitle>
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-muted-foreground text-xs">
                       {barbershop.city}, {barbershop.state}
                     </p>
                   </div>
                 </div>
               </div>
-              <CardDescription>{barbershop.description}</CardDescription>
               <CardDescription>
                 {barbershop.address.fullAddress}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="mb-4 flex items-center justify-between">
-                <span className="text-muted-foreground text-sm">
+                <p className="text-muted-foreground text-sm">
                   {barbershop.services?.length} servicios
-                </span>
+                </p>
               </div>
             </CardContent>
-            <CardFooter>
-              <Rating value={barbershop.metadata?.rating ?? 0} readOnly>
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <RatingButton key={star} />
-                ))}
-                <span className="ml-2 text-muted-foreground text-sm">
-                  {barbershop.metadata?.rating ?? 0} estrellas
-                </span>
-              </Rating>
+            <CardFooter className="justify-between">
+              <Button asChild>
+                <Link
+                  to="/barbershops/$barbershopUuid"
+                  params={{
+                    barbershopUuid: barbershop.uuid,
+                  }}
+                >
+                  Ver servicios
+                </Link>
+              </Button>
+
+              <BarbershopRating
+                value={barbershop.metadata?.rating ?? 0}
+                readOnly
+              />
             </CardFooter>
           </Card>
         ))}
