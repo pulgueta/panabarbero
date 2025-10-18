@@ -122,16 +122,38 @@ function RouteComponent() {
                       </Button>
                     </DrawerTrigger>
                     <DrawerContent>
-                      <DrawerHeader>
-                        <DrawerTitle>{formHeadLabel}</DrawerTitle>
-                      </DrawerHeader>
+                      {data?.user && (
+                        <DrawerHeader>
+                          <DrawerTitle>{formHeadLabel}</DrawerTitle>
+                        </DrawerHeader>
+                      )}
                       <DrawerFooter>
-                        <ReviewForm
-                          // biome-ignore lint/style/noNonNullAssertion: barbershop is guaranteed to be not null
-                          barbershopId={barbershop?._id!}
-                          // biome-ignore lint/style/noNonNullAssertion: user is guaranteed to be not null
-                          userId={data?.user?.id!}
-                        />
+                        {data?.user ? (
+                          canReview ? (
+                            <ReviewForm
+                              // biome-ignore lint/style/noNonNullAssertion: barbershop is guaranteed to be not null
+                              barbershopId={barbershop?._id!}
+                              // biome-ignore lint/style/noNonNullAssertion: user is guaranteed to be not null
+                              userId={data?.user?.id!}
+                            />
+                          ) : (
+                            <p className="text-pretty text-center text-muted-foreground text-sm">
+                              Necesitas haber asistido a la barbería mediante
+                              una cita para poder calificar.
+                            </p>
+                          )
+                        ) : (
+                          <Button
+                            asChild
+                            variant="link"
+                            size="sm"
+                            className="pb-4 text-muted-foreground"
+                          >
+                            <Link to="/login">
+                              Necesitas una cuenta para poder calificar.
+                            </Link>
+                          </Button>
+                        )}
                       </DrawerFooter>
                     </DrawerContent>
                   </Drawer>
