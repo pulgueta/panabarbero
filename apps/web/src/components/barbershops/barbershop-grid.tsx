@@ -5,14 +5,16 @@ import { useActiveBarbershops } from "@/hooks/use-barbershop";
 import type { BarbershopSearch } from "@/routes/barbershops";
 import { BarbershopListCard } from "./barbershop-list-card";
 
-interface BarbershopGridProps extends BarbershopSearch {}
+interface BarbershopGridProps {
+  filters: BarbershopSearch;
+}
 
-export const BarbershopGrid: FC<BarbershopGridProps> = ({ city, state }) => {
+export const BarbershopGrid: FC<BarbershopGridProps> = ({ filters }) => {
   const {
     data: barbershops,
     isFetching,
     isLoading,
-  } = useActiveBarbershops({ city, state });
+  } = useActiveBarbershops(filters);
 
   if (isLoading || isFetching) {
     return (
