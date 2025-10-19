@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Scissors } from "lucide-react";
 import type { FC } from "react";
-import { LazyLoadImage } from "react-lazy-load-image-component";
 
 import { BarbershopRating } from "@/components/barbershops/rating";
 import { Button } from "@/components/ui/button";
@@ -61,8 +60,8 @@ export const BarbershopGrid: FC<BarbershopGridProps> = ({ city, state }) => {
                     </p>
                   </div>
                 </div>
-                <LazyLoadImage
-                  effect="blur"
+                <img
+                  loading="lazy"
                   alt={`Banner de ${barbershop?.name}`}
                   src={barbershop?.bannerUrl ?? "/default-logo.png"}
                   className="size-8 rounded-full object-cover md:size-12"

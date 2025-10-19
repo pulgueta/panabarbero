@@ -7,9 +7,6 @@ import { LocationGate } from "@/components/barbershops/location-gate";
 import { Input } from "@/components/ui/input";
 import { activeBarbershopsQueryOptions } from "@/hooks/use-barbershop";
 
-// @ts-expect-error
-import "react-lazy-load-image-component/src/effects/blur.css";
-
 export type BarbershopSearch = {
   city?: string;
   state?: string;

@@ -17,9 +17,6 @@ import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useServicesFromBarbershop } from "@/hooks/use-services";
 import { barbershopSeo } from "@/lib/utils";
 
-// @ts-expect-error
-import "react-lazy-load-image-component/src/effects/blur.css";
-
 export const Route = createFileRoute("/barbershops/$barbershopUuid")({
   component: RouteComponent,
   loader: async ({ context, params }) => {
