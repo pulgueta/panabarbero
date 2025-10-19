@@ -1,3 +1,4 @@
+import type { ConvexQueryClient } from "@convex-dev/react-query";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { QueryClient } from "@tanstack/react-query";
 import {
@@ -6,6 +7,7 @@ import {
   Outlet,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import type { ConvexReactClient } from "convex/react";
 import { Toaster } from "sonner";
 
 import { BottomBar } from "@/components/layout/bottom-bar";
@@ -15,6 +17,8 @@ import StoreDevtools from "@/lib/demo-store-devtools";
 
 type RouterContext = {
   queryClient: QueryClient;
+  convexClient: ConvexReactClient;
+  convexQueryClient: ConvexQueryClient;
 };
 
 export const Route = createRootRouteWithContext<RouterContext>()({

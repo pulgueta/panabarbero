@@ -1,5 +1,5 @@
 import { SiApple, SiGoogle } from "@icons-pack/react-simple-icons";
-import { signIn } from "@panabarbero/convex/auth";
+import { signIn, useSession } from "@panabarbero/convex/auth";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { KeyRound } from "lucide-react";
 import { toast } from "sonner";
@@ -14,6 +14,18 @@ export const Route = createFileRoute("/login")({
 type Provider = "google" | "apple" | "passkey";
 
 function LoginPage() {
+  const { data: session } = useSession();
+
+  if (session?.user) {
+    throw redirect({
+      to: "/barbershops",
+      search: {
+        city: undefined,
+        state: undefined,
+      },
+    });
+  }
+
   const handleSignIn = async (provider: Provider) => {
     if (provider === "passkey") {
       await signIn.passkey({
@@ -22,20 +34,23 @@ function LoginPage() {
     } else {
       const { error } = await signIn.social({
         provider,
+        fetchOptions: {
+          onSuccess: () => {
+            redirect({
+              to: "/barbershops",
+              search: {
+                city: undefined,
+                state: undefined,
+              },
+            });
+          },
+        },
       });
 
       if (error) {
         toast.error(error.message);
         return;
       }
-
-      throw redirect({
-        to: "/barbershops",
-        search: {
-          city: undefined,
-          state: undefined,
-        },
-      });
     }
   };
 

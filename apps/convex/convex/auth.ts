@@ -70,7 +70,6 @@ export const createAuth = (
         clientId: process.env.GOOGLE_CLIENT_ID ?? "",
         clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
         enabled: true,
-        redirectURI: siteUrl,
       },
     },
     plugins: [expo(), convex(), crossDomain({ siteUrl }), passkey()],
