@@ -3,22 +3,18 @@ export const routes = {
     {
       label: "Inicio",
       to: "/",
-      activePattern: "^/$",
     },
     {
       label: "Barberías",
       to: "/barbershops",
-      activePattern: "^/barbershops",
     },
     {
-      label: "Citas",
-      to: "/appointments",
-      activePattern: "^/appointments",
+      label: "Agendar cita",
+      to: "/appointments/create",
     },
     {
       label: "Perfil",
       to: "/profile",
-      activePattern: "^/profile",
     },
   ],
   barbershop: {
@@ -27,7 +23,7 @@ export const routes = {
     edit: "/barbershops/$barbershopUuid/edit",
     show: "/barbershops/$barbershopUuid",
   },
-} as const;
+};
 
 export const getNavigationRoutes = (userId?: string) =>
   userId

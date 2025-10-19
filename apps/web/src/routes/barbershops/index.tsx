@@ -1,124 +1,78 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Scissors, Search } from "lucide-react";
-import { LazyLoadImage } from "react-lazy-load-image-component";
+import { createFileRoute } from "@tanstack/react-router";
+import { Search } from "lucide-react";
 
-import { BarbershopRating } from "@/components/barbershops/rating";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { BarbershopFilters } from "@/components/barbershops/barbershop-filters";
+import { BarbershopGrid } from "@/components/barbershops/barbershop-grid";
+import { LocationGate } from "@/components/barbershops/location-gate";
 import { Input } from "@/components/ui/input";
-import {
-  activeBarbershopsQueryOptions,
-  useActiveBarbershops,
-} from "@/hooks/use-barbershop";
+import { activeBarbershopsQueryOptions } from "@/hooks/use-barbershop";
 
 // @ts-expect-error
 import "react-lazy-load-image-component/src/effects/blur.css";
 
+export type BarbershopSearch = {
+  city?: string;
+  state?: string;
+};
+
 export const Route = createFileRoute("/barbershops/")({
+  validateSearch: (search: BarbershopSearch) => {
+    return {
+      city: search.city,
+      state: search.state,
+    };
+  },
   component: BarbershopsPage,
   loader: async (opts) => {
+    const search = opts.location.search;
+
     await opts.context.queryClient.ensureQueryData(
-      activeBarbershopsQueryOptions(),
+      activeBarbershopsQueryOptions(search),
     );
   },
-  pendingComponent: () => <div>Loading...</div>,
 });
 
 function BarbershopsPage() {
-  const { data: barbershops } = useActiveBarbershops();
+  const { city, state } = Route.useSearch();
+
+  const fromLocalStorage = {
+    city: localStorage.getItem("pb_city"),
+    state: localStorage.getItem("pb_state"),
+  };
+
+  const showModal =
+    (!fromLocalStorage.city || !fromLocalStorage.state) && (!city || !state);
+
+  const searchCity = fromLocalStorage.city ?? city;
+  const searchState = fromLocalStorage.state ?? state;
 
   return (
     <div className="container mx-auto min-h-[calc(100dvh-65px)] border-x">
       <header className="flex flex-col items-center justify-between gap-2.5 border-b py-12 md:py-16">
-        <section className="px-4">
+        <section className="mx-auto w-full max-w-xl space-y-4">
           <h1 className="text-balance text-center font-bold text-3xl tracking-tight">
             ¿Qué estilo buscas hoy?
           </h1>
-        </section>
 
-        <div className="relative mx-auto w-full max-w-xl px-4">
-          <Search className="absolute top-2.5 left-7 size-4 text-muted-foreground" />
-          <Input
-            placeholder="Corte y barba..."
-            className="pl-9"
-            role="search"
-          />
-        </div>
+          <div className="relative mx-auto w-full px-4">
+            <Search className="absolute top-2.5 left-7 size-4 text-muted-foreground" />
+            <Input
+              placeholder="Corte y barba..."
+              className="pl-9"
+              role="search"
+            />
+          </div>
+        </section>
       </header>
 
-      <main className="grid grid-cols-1 gap-x-6 gap-y-8 px-4 py-8 sm:grid-cols-2 md:px-8 lg:grid-cols-3">
-        {barbershops.map((barbershop) => (
-          <Card
-            className="shadow-sm transition-shadow hover:shadow-md"
-            key={barbershop._id}
-          >
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex w-full items-start justify-between">
-                  <div className="flex items-start gap-2.5">
-                    <Scissors className="mt-1.5 size-5 text-muted-foreground" />
-                    <div>
-                      <CardTitle
-                        className="text-balance font-bold text-xl tracking-tight"
-                        style={{
-                          viewTransitionName: `barbershop-${barbershop.uuid}`,
-                        }}
-                      >
-                        {barbershop.name}
-                      </CardTitle>
-                      <p className="text-muted-foreground text-xs">
-                        {barbershop.city}, {barbershop.state}
-                      </p>
-                    </div>
-                  </div>
-                  <LazyLoadImage
-                    effect="blur"
-                    alt={`Banner de ${barbershop?.name}`}
-                    src={barbershop?.bannerUrl ?? "/default-logo.png"}
-                    className="size-16 rounded-full object-cover md:size-24 lg:size-28"
-                  />
-                </div>
-              </div>
-              <CardDescription>
-                {barbershop.address.fullAddress}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4 flex items-center justify-between">
-                <p className="text-muted-foreground text-sm">
-                  {barbershop.services?.length} servicios
-                </p>
-              </div>
-            </CardContent>
-            <CardFooter className="justify-between">
-              <Button asChild>
-                <Link
-                  to="/barbershops/$barbershopUuid"
-                  params={{
-                    barbershopUuid: barbershop.uuid,
-                  }}
-                  preload="intent"
-                  viewTransition
-                >
-                  Ver servicios
-                </Link>
-              </Button>
-
-              <BarbershopRating
-                value={barbershop.metadata?.rating ?? 0}
-                readOnly
-              />
-            </CardFooter>
-          </Card>
-        ))}
-      </main>
+      <div className="relative mx-auto w-full max-w-xl p-4">
+        <BarbershopFilters />
+      </div>
+      {showModal ? (
+        <LocationGate />
+      ) : (
+        <BarbershopGrid city={searchCity} state={searchState} />
+      )}
     </div>
   );
 }

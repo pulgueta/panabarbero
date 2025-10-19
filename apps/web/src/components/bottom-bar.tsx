@@ -1,7 +1,7 @@
 import { tanstack } from "@panabarbero/constants";
 import { useSession } from "@panabarbero/convex/auth";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Calendar, Home, Scissors, User } from "lucide-react";
+import { CalendarPlus, Home, Scissors, User } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -9,16 +9,13 @@ import { cn } from "@/lib/utils";
 type NavigationRoute = (typeof tanstack.routes.navigation)[number];
 
 export const BottomBar = () => {
-  const { data: session } = useSession();
   const router = useRouterState();
+
   const currentPath = router.location.pathname;
 
-  const isActive = (item: NavigationRoute) => {
-    if (item.activePattern) {
-      return new RegExp(item.activePattern).test(currentPath);
-    }
+  const { data: session } = useSession();
 
-    // @ts-expect-error - item.to is defined
+  const isActive = (item: NavigationRoute) => {
     return currentPath === item.to;
   };
 
@@ -31,8 +28,8 @@ export const BottomBar = () => {
           ? Home
           : route.label === "Barberías"
             ? Scissors
-            : route.label === "Citas"
-              ? Calendar
+            : route.label === "Agendar cita"
+              ? CalendarPlus
               : User,
     }));
 
@@ -48,12 +45,16 @@ export const BottomBar = () => {
               <Link
                 key={item.to}
                 to={item.to}
+                disabled={isActive(item)}
                 className={cn(
                   "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-3 py-2 transition-colors",
                   active
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground",
                 )}
+                style={{
+                  viewTransitionName: item.to,
+                }}
               >
                 <Icon className="size-5 shrink-0" />
                 <span className="truncate font-medium text-xs leading-none">

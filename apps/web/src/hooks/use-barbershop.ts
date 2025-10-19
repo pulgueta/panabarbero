@@ -2,8 +2,10 @@ import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@panabarbero/convex/api";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 
-export function activeBarbershopsQueryOptions() {
-  return convexQuery(api.barbershops.getActiveBarbershops, {});
+import type { BarbershopSearch } from "@/routes/barbershops";
+
+export function activeBarbershopsQueryOptions(search: BarbershopSearch) {
+  return convexQuery(api.barbershops.getActiveBarbershops, search);
 }
 
 export function barbershopByUuidQueryOptions(uuid: string) {
@@ -14,8 +16,8 @@ export function useBarbershopByUuid(uuid: string) {
   return useSuspenseQuery(barbershopByUuidQueryOptions(uuid));
 }
 
-export function useActiveBarbershops() {
-  return useSuspenseQuery(activeBarbershopsQueryOptions());
+export function useActiveBarbershops(search: BarbershopSearch) {
+  return useSuspenseQuery(activeBarbershopsQueryOptions(search));
 }
 
 export function useBarbershopActions() {
