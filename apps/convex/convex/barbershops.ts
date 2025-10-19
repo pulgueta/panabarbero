@@ -101,11 +101,21 @@ export const getBarbershops = query({
 });
 
 export const getActiveBarbershops = query({
-  handler: async (ctx) => {
+  args: {
+    city: v.optional(v.string()),
+    state: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
     const barbershops = await ctx.db
       .query("barbershops")
       .withIndex("by_isActive")
-      .filter(({ field, eq }) => eq(field("isActive"), true))
+      .filter(({ field, eq, and }) =>
+        and(
+          eq(field("isActive"), true),
+          eq(field("city"), args.city),
+          eq(field("state"), args.state),
+        ),
+      )
       .collect();
 
     await Promise.all(
