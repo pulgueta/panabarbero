@@ -1,5 +1,5 @@
 import { tanstack } from "@panabarbero/constants";
-import { signIn, signOut, useSession } from "@panabarbero/convex/auth";
+import { signOut, useSession } from "@panabarbero/convex/auth";
 import { Link } from "@tanstack/react-router";
 import {
   BarChart3,
@@ -26,13 +26,6 @@ export const Header = () => {
 
   const isBarber = true; // barberStatus?.isBarber ?? false;
 
-  const handleSignIn = async () => {
-    await signIn.social({
-      provider: "google",
-      callbackURL: window.location.origin,
-    });
-  };
-
   const handleSignOut = async () => {
     await signOut();
   };
@@ -47,8 +40,8 @@ export const Header = () => {
       .slice(0, 2);
   };
 
-  const _barbershopOptions =
-    isBarber && true ? [{ value: "1", label: "Barbería 1" }] : [];
+  // const _barbershopOptions =
+  //   isBarber && true ? [{ value: "1", label: "Barbería 1" }] : [];
   // isBarber && barberStatus?.isBarber
   // ? barberStatus.barbershops.map((shop) => ({
   //     value: shop._id,
@@ -56,7 +49,9 @@ export const Header = () => {
   //   }))
   // : [];
 
-  const navigationRoutes = tanstack.getNavigationRoutes(session?.user?.id);
+  const navigationRoutesWithoutSettings = tanstack
+    .getNavigationRoutes(session?.user?.id)
+    .filter((route) => route.to !== "/settings");
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-4">
@@ -72,8 +67,14 @@ export const Header = () => {
 
         <nav className="flex flex-1 items-center justify-center">
           <div className="flex items-center space-x-16 font-medium text-sm">
-            {navigationRoutes.map((route) => (
-              <Link key={route.to} to={route.to}>
+            {navigationRoutesWithoutSettings.map((route) => (
+              <Link
+                key={route.to}
+                to={route.to}
+                style={{
+                  viewTransitionName: route.to,
+                }}
+              >
                 {route.label}
               </Link>
             ))}
@@ -83,7 +84,7 @@ export const Header = () => {
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
             {!session?.user && (
-              <Button size="sm" onClick={handleSignIn}>
+              <Button size="sm" asChild>
                 <Link to="/login">Iniciar Sesión</Link>
               </Button>
             )}

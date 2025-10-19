@@ -5,18 +5,12 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-type NavigationRoute = (typeof tanstack.routes.navigation)[number];
-
 export const BottomBar = () => {
   const router = useRouterState();
 
   const currentPath = router.location.pathname;
 
   const { data: session } = useSession();
-
-  const isActive = (item: NavigationRoute) => {
-    return currentPath === item.to;
-  };
 
   const navigationRoutes = tanstack.getNavigationRoutes(session?.user?.id);
 
@@ -26,18 +20,17 @@ export const BottomBar = () => {
         <nav className="flex items-center justify-around p-4">
           {navigationRoutes.map((item) => {
             const Icon = item.icon;
-            const active = isActive(item);
 
             return (
               <Link
                 key={item.to}
                 to={item.to}
-                disabled={isActive(item)}
+                disabled={currentPath === item.to}
+                activeProps={{
+                  className: "bg-primary/10 text-primary",
+                }}
                 className={cn(
-                  "flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 rounded-lg px-3 py-2 transition-colors",
-                  active
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                  "flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
                 )}
                 style={{
                   viewTransitionName: item.to,

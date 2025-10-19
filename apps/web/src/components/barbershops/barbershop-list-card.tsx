@@ -23,10 +23,10 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
 }) => {
   return (
     <Card
-      className="shadow-sm transition-shadow hover:shadow-md"
+      className="gap-4 shadow-sm transition-shadow hover:shadow-md"
       key={barbershop._id}
     >
-      <CardHeader>
+      <CardHeader className="border-b [.border-b]:pb-4">
         <div className="flex items-start justify-between">
           <div className="flex w-full items-start justify-between">
             <div className="flex items-start gap-2.5">
@@ -53,12 +53,15 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
             />
           </div>
         </div>
-        <CardDescription>{barbershop.address.fullAddress}</CardDescription>
       </CardHeader>
       <CardContent>
+        <CardDescription className="mb-2">
+          Ubicación: {barbershop.address.fullAddress}
+        </CardDescription>
+
         <div className="mb-4 flex items-center justify-between">
           <p className="text-muted-foreground text-sm">
-            {barbershop.services?.length} servicios
+            {barbershop.services?.length} servicios disponibles.
           </p>
         </div>
       </CardContent>
