@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { useTheme } from "@/components/theme";
 import { ThemeToggler } from "@/components/theme-toggler";
@@ -6,6 +6,16 @@ import { Separator } from "@/components/ui/separator";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
+  beforeLoad: () => {
+    const isMobile = window.innerWidth <= 768;
+
+    if (!isMobile) {
+      throw redirect({
+        to: "/",
+        replace: true,
+      });
+    }
+  },
 });
 
 function SettingsPage() {
