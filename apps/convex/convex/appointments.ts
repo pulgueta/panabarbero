@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
+import { authComponent } from "./auth";
 import { tables } from "./tables";
 
 function parseTimeToMinutes(time: string): number {
@@ -43,7 +44,7 @@ export const createAppointment = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -135,7 +136,7 @@ export const getAppointmentsByUserId = query({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -158,7 +159,7 @@ export const getAppointmentsByBarbershopId = query({
     barbershopId: v.id("barbershops"),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -189,7 +190,7 @@ export const getAppointmentByUuid = query({
     uuid: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -212,7 +213,7 @@ export const getAppointmentByUserIdAndBarbershopId = query({
     barbershopId: v.id("barbershops"),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -238,7 +239,7 @@ export const getAppointmentsByBarberId = query({
     barberId: v.id("barbers"),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -263,7 +264,7 @@ export const getAppointmentsByBarbershopAndRange = query({
     endAt: v.number(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -293,7 +294,7 @@ export const setAppointmentStatus = mutation({
     status: tables.appointments.status,
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -356,7 +357,7 @@ export const updateAppointment = mutation({
     appointmentId: v.id("appointments"),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -452,7 +453,7 @@ export const deleteAppointment = mutation({
     appointmentId: v.id("appointments"),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -472,7 +473,7 @@ export const cancelAppointment = mutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -510,7 +511,7 @@ export const requestReschedule = mutation({
     note: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {

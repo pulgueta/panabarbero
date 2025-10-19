@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { authComponent } from "./auth";
 import { tables } from "./tables";
 
 export const createPayment = mutation({
@@ -9,14 +10,19 @@ export const createPayment = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
         cause: user,
       });
     }
-    const paymentId = await ctx.db.insert("payments", args.payment);
+
+    const paymentId = await ctx.db.insert("payments", {
+      ...args.payment,
+      uuid: crypto.randomUUID(),
+    });
+
     return paymentId;
   },
 });
@@ -24,7 +30,7 @@ export const createPayment = mutation({
 export const getPaymentsByAppointmentId = query({
   args: { appointmentId: v.id("appointments") },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -33,8 +39,8 @@ export const getPaymentsByAppointmentId = query({
     }
     const payments = await ctx.db
       .query("payments")
-      .filter(({ eq, field }) => eq(field("appointmentId"), args.appointmentId))
       .withIndex("by_appointmentId")
+      .filter(({ eq, field }) => eq(field("appointmentId"), args.appointmentId))
       .collect();
 
     return payments;
@@ -44,7 +50,7 @@ export const getPaymentsByAppointmentId = query({
 export const getPaymentByTransactionId = query({
   args: { transactionId: v.string() },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -66,13 +72,14 @@ export const updatePayment = mutation({
     payment: v.object({ ...tables.payments }),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
         cause: user,
       });
     }
+
     const updated = await ctx.db.patch(args.paymentId, args.payment);
 
     return updated;
@@ -82,13 +89,14 @@ export const updatePayment = mutation({
 export const deletePayment = mutation({
   args: { paymentId: v.id("payments") },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
         cause: user,
       });
     }
+
     await ctx.db.delete(args.paymentId);
   },
 });

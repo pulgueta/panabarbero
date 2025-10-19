@@ -10,6 +10,7 @@ import {
   mutation,
   query,
 } from "./_generated/server";
+import { authComponent } from "./auth";
 import { tables } from "./tables";
 
 export const genreateEmbedding = internalMutation({
@@ -71,7 +72,7 @@ export const createService = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -107,8 +108,8 @@ export const getServiceByUuid = query({
   handler: async (ctx, args) => {
     const service = await ctx.db
       .query("services")
-      .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
       .withIndex("by_uuid")
+      .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
       .unique();
 
     return service;
@@ -138,7 +139,7 @@ export const updateService = mutation({
     serviceId: v.id("services"),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -164,7 +165,7 @@ export const deleteService = mutation({
     serviceId: v.id("services"),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {

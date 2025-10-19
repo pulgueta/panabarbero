@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { geospatial } from ".";
 import { api, internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
+import { authComponent } from "./auth";
 import { tables } from "./tables";
 
 export const saveBarbershopBanner = internalMutation({
@@ -26,7 +27,7 @@ export const createBarbershop = mutation({
     storageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -38,7 +39,7 @@ export const createBarbershop = mutation({
     const barbershopId = await ctx.db.insert("barbershops", {
       ...barbershop,
       uuid: crypto.randomUUID(),
-      ownerId: user.subject,
+      ownerId: user.userId ?? "",
       metadata: {
         completedAppointments: 0,
         contactEmail: barbershop.metadata?.contactEmail ?? "",
@@ -73,7 +74,7 @@ export const createBarbershop = mutation({
     await ctx.runMutation(internal.barbers.createBarber, {
       barber: {
         barbershopId,
-        userId: user.subject,
+        userId: user.userId ?? "",
         uuid: crypto.randomUUID(),
       },
     });
@@ -232,7 +233,7 @@ export const updateBarbershopDayAvailability = mutation({
     closeAt: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -277,7 +278,7 @@ export const updateBarbershop = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {

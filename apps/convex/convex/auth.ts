@@ -3,6 +3,7 @@ import type { AuthFunctions, GenericCtx } from "@convex-dev/better-auth";
 import { createClient } from "@convex-dev/better-auth";
 import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
 import { betterAuth } from "better-auth";
+import { passkey } from "better-auth/plugins/passkey";
 import { components, internal } from "./_generated/api";
 import type { DataModel, Id } from "./_generated/dataModel";
 import { query } from "./_generated/server";
@@ -16,19 +17,18 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
       onCreate: async (ctx, doc) => {
         await ctx.runMutation(internal.userProfileData.createProfile, {
           data: {
-            userId: doc.userId ?? "",
+            userId: doc.userId as string,
             uuid: crypto.randomUUID(),
-            notificationsPreferences: {
-              email: {
-                enabled: true,
-              },
-              push: {
+            notificationsPreferences: [
+              {
+                type: "push",
                 enabled: false,
               },
-              sms: {
+              {
+                type: "sms",
                 enabled: false,
               },
-            },
+            ],
           },
         });
       },
@@ -49,16 +49,18 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
 export const { onCreate, onUpdate, onDelete } = authComponent.triggersApi();
 
 const siteUrl = process.env.SITE_URL ?? "";
+const previewSiteUrl = process.env.PREVIEW_SITE_URL ?? "";
 
 export const createAuth = (
   ctx: GenericCtx<DataModel>,
   { optionsOnly } = { optionsOnly: false },
 ) => {
   return betterAuth({
+    baseURL: siteUrl,
     logger: {
       disabled: optionsOnly,
     },
-    trustedOrigins: ["panabarbero://", siteUrl],
+    trustedOrigins: ["panabarbero://", siteUrl, previewSiteUrl],
     database: authComponent.adapter(ctx),
     emailAndPassword: {
       enabled: false,
@@ -68,11 +70,19 @@ export const createAuth = (
         clientId: process.env.GOOGLE_CLIENT_ID ?? "",
         clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
         enabled: true,
+        redirectURI: siteUrl,
       },
     },
-    plugins: [expo(), convex(), crossDomain({ siteUrl })],
+    plugins: [expo(), convex(), crossDomain({ siteUrl }), passkey()],
   });
 };
+
+export const getAuthUser = query({
+  args: {},
+  handler: async (ctx) => {
+    return await authComponent.getAuthUser(ctx);
+  },
+});
 
 export const checkIsBarber = query({
   args: {},

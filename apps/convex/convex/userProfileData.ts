@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
+import { authComponent } from "./auth";
 import { tables } from "./tables";
 
 export const createProfile = internalMutation({
@@ -9,7 +10,7 @@ export const createProfile = internalMutation({
     }),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -19,13 +20,13 @@ export const createProfile = internalMutation({
 
     const profile = await ctx.db.insert("userProfileData", {
       ...args.data,
-      notificationsPreferences: {
-        ...args.data.notificationsPreferences,
-        email: {
+      notificationsPreferences: args.data.notificationsPreferences.concat([
+        {
+          type: "email",
           enabled: true,
         },
-      },
-      userId: user.subject,
+      ]),
+      userId: user.userId ?? "",
       uuid: crypto.randomUUID(),
     });
 
@@ -39,7 +40,7 @@ export const updateProfile = internalMutation({
     data: tables.userProfileData.notificationsPreferences,
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
