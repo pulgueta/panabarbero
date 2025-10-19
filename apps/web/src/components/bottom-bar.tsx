@@ -1,7 +1,6 @@
 import { tanstack } from "@panabarbero/constants";
 import { useSession } from "@panabarbero/convex/auth";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { CalendarPlus, Home, Scissors, User } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -19,19 +18,7 @@ export const BottomBar = () => {
     return currentPath === item.to;
   };
 
-  const navigationRoutes = tanstack
-    .getNavigationRoutes(session?.user?.id)
-    .map((route) => ({
-      ...route,
-      icon:
-        route.label === "Inicio"
-          ? Home
-          : route.label === "Barberías"
-            ? Scissors
-            : route.label === "Agendar cita"
-              ? CalendarPlus
-              : User,
-    }));
+  const navigationRoutes = tanstack.getNavigationRoutes(session?.user?.id);
 
   return (
     <div className="fixed right-0 bottom-0 left-0 z-50 border-border border-t bg-background/90 backdrop-blur-sm">
@@ -47,7 +34,7 @@ export const BottomBar = () => {
                 to={item.to}
                 disabled={isActive(item)}
                 className={cn(
-                  "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-3 py-2 transition-colors",
+                  "flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 rounded-lg px-3 py-2 transition-colors",
                   active
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground",

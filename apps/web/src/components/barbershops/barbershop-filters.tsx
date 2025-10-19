@@ -18,7 +18,6 @@ type FiltersState = {
   departments: string[];
   cities: Record<string, string[]>;
   filteredCities: string[];
-  isLoading: boolean;
 };
 
 const filtersStore = new Store<FiltersState>({
@@ -27,7 +26,6 @@ const filtersStore = new Store<FiltersState>({
   departments: [],
   cities: {},
   filteredCities: [],
-  isLoading: true,
 });
 
 const LS_CITY = "pb_city";
@@ -89,11 +87,9 @@ export const BarbershopFilters: FC = () => {
           cities: citiesMap,
           filteredCities:
             s.state && citiesMap[s.state] ? citiesMap[s.state] : [],
-          isLoading: false,
         }));
       } catch (err) {
         console.error("Failed to fetch departments/cities", err);
-        filtersStore.setState((s) => ({ ...s, isLoading: false }));
       }
     };
 
@@ -141,15 +137,15 @@ export const BarbershopFilters: FC = () => {
   };
 
   return (
-    <div className="grid w-full max-w-xl grid-cols-1 gap-3 sm:grid-cols-3">
+    <div className="mx-auto grid w-full max-w-xl grid-cols-1 gap-3 sm:grid-cols-3">
       <div className="flex flex-row items-center gap-2">
         <Select
-          value={filters.state ?? ""}
+          value={filters.state}
           onValueChange={(v) =>
             apply({ state: v || undefined, city: undefined })
           }
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-full min-w-48 bg-background dark:bg-card">
             <SelectValue placeholder="Departamento" />
           </SelectTrigger>
           <SelectContent>
@@ -162,11 +158,11 @@ export const BarbershopFilters: FC = () => {
         </Select>
 
         <Select
-          value={filters.city ?? ""}
+          value={filters.city}
           onValueChange={(v) => apply({ city: v || undefined })}
           disabled={!filters.state}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-full min-w-48 bg-background dark:bg-card">
             <SelectValue placeholder="Ciudad" />
           </SelectTrigger>
           <SelectContent>
