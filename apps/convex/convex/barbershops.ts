@@ -151,7 +151,7 @@ export const getActiveBarbershops = query({
 
 export const getBarbershopByUuid = query({
   args: {
-    uuid: v.optional(v.string()),
+    uuid: v.optional(tables.barbershops.uuid),
   },
   handler: async (ctx, args) => {
     const barbershop = await ctx.db

@@ -4,8 +4,6 @@ import { mutation } from "./_generated/server";
 
 export const geospatial = new GeospatialIndex(components.geospatial);
 
-export { getCurrentUser } from "./auth";
-
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
