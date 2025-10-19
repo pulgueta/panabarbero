@@ -8,6 +8,11 @@ import { tables } from "./tables";
 
 export default defineSchema(
   {
+    userProfileData: defineTable({
+      ...tables.userProfileData,
+    })
+      .index("by_userId", ["userId"])
+      .index("by_uuid", ["uuid"]),
     barbershops: defineTable({
       ...tables.barbershops,
     })

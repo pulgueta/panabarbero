@@ -3,6 +3,21 @@ import { v } from "convex/values";
 import type { Id, TableNames } from "./_generated/dataModel";
 
 export const tables = {
+  userProfileData: {
+    uuid: v.string(),
+    userId: v.string(),
+    notificationsPreferences: v.object({
+      email: v.object({
+        enabled: v.boolean(),
+      }),
+      push: v.object({
+        enabled: v.boolean(),
+      }),
+      sms: v.object({
+        enabled: v.boolean(),
+      }),
+    }),
+  },
   barbershops: {
     uuid: v.string(),
     name: v.string(),

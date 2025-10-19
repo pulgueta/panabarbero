@@ -22,6 +22,7 @@ import type * as payments from "../payments.js";
 import type * as reviews from "../reviews.js";
 import type * as services from "../services.js";
 import type * as tables from "../tables.js";
+import type * as userProfileData from "../userProfileData.js";
 
 import type {
   ApiFromModules,
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   reviews: typeof reviews;
   services: typeof services;
   tables: typeof tables;
+  userProfileData: typeof userProfileData;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 

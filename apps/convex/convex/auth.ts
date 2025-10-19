@@ -1,15 +1,54 @@
 import { expo } from "@better-auth/expo";
-import type { GenericCtx } from "@convex-dev/better-auth";
+import type { AuthFunctions, GenericCtx } from "@convex-dev/better-auth";
 import { createClient } from "@convex-dev/better-auth";
 import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
 import { betterAuth } from "better-auth";
-import { components } from "./_generated/api";
-import type { DataModel } from "./_generated/dataModel";
+import { components, internal } from "./_generated/api";
+import type { DataModel, Id } from "./_generated/dataModel";
 import { query } from "./_generated/server";
 
-export const authComponent = createClient<DataModel>(components.betterAuth);
+const authFunctions: AuthFunctions = internal.auth;
 
-const siteUrl = process.env.WEB_URL ?? "";
+export const authComponent = createClient<DataModel>(components.betterAuth, {
+  authFunctions,
+  triggers: {
+    user: {
+      onCreate: async (ctx, doc) => {
+        await ctx.runMutation(internal.userProfileData.createProfile, {
+          data: {
+            userId: doc.userId ?? "",
+            uuid: crypto.randomUUID(),
+            notificationsPreferences: {
+              email: {
+                enabled: true,
+              },
+              push: {
+                enabled: false,
+              },
+              sms: {
+                enabled: false,
+              },
+            },
+          },
+        });
+      },
+      onDelete: async (ctx, doc) => {
+        const profile = await ctx.db
+          .query("userProfileData")
+          .withIndex("by_userId", ({ eq }) => eq("userId", doc.userId ?? ""))
+          .unique();
+
+        await ctx.runMutation(internal.userProfileData.deleteProfile, {
+          profileId: profile?._id as Id<"userProfileData">,
+        });
+      },
+    },
+  },
+});
+
+export const { onCreate, onUpdate, onDelete } = authComponent.triggersApi();
+
+const siteUrl = process.env.SITE_URL ?? "";
 
 export const createAuth = (
   ctx: GenericCtx<DataModel>,
@@ -35,69 +74,45 @@ export const createAuth = (
   });
 };
 
-export const getCurrentUser = query({
+export const checkIsBarber = query({
   args: {},
   handler: async (ctx) => {
-    // biome-ignore lint/suspicious/noExplicitAny: WIP
-    return await authComponent.getAuthUser(ctx as any);
+    const user = await authComponent.getAuthUser(ctx);
+
+    if (!user || !user.userId) {
+      return { isBarber: false as const };
+    }
+
+    const userId = user.userId;
+
+    const barberRecords = await ctx.db
+      .query("barbers")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+
+    if (barberRecords.length === 0) {
+      return { isBarber: false as const };
+    }
+
+    const barbershops = await Promise.all(
+      barberRecords.map(async (barber) => {
+        const barbershop = await ctx.db.get(barber.barbershopId);
+
+        if (!barbershop) return null;
+
+        return {
+          _id: barbershop._id,
+          uuid: barbershop.uuid,
+          name: barbershop.name,
+        };
+      }),
+    );
+
+    const validBarbershops = barbershops.filter((b) => b !== null);
+
+    return {
+      isBarber: true as const,
+      barbershops: validBarbershops,
+    };
   },
 });
-
-// export const checkIsBarber = query({
-//   args: {},
-//   returns: v.union(
-//     v.object({
-//       isBarber: v.literal(true),
-//       barbershops: v.array(
-//         v.object({
-//           _id: v.id("barbershops"),
-//           uuid: v.string(),
-//           name: v.string(),
-//         }),
-//       ),
-//     }),
-//     v.object({
-//       isBarber: v.literal(false),
-//     }),
-//   ),
-//   handler: async (ctx) => {
-//     // biome-ignore lint/suspicious/noExplicitAny: WIP
-//     const user = await authComponent.getAuthUser(ctx as any);
-
-//     if (!user || !user.userId) {
-//       return { isBarber: false as const };
-//     }
-
-//     const userId = user.userId;
-
-//     // Check if user is a barber
-//     const barberRecords = await ctx.db
-//       .query("barbers")
-//       .withIndex("by_userId", (q) => q.eq("userId", userId))
-//       .collect();
-
-//     if (barberRecords.length === 0) {
-//       return { isBarber: false as const };
-//     }
-
-//     // Get all barbershops owned by this user
-//     const barbershops = await Promise.all(
-//       barberRecords.map(async (barber) => {
-//         const barbershop = await ctx.db.get(barber.barbershopId);
-//         if (!barbershop) return null;
-//         return {
-//           _id: barbershop._id,
-//           uuid: barbershop.uuid,
-//           name: barbershop.name,
-//         };
-//       }),
-//     );
-
-//     const validBarbershops = barbershops.filter((b) => b !== null);
-
-//     return {
-//       isBarber: true as const,
-//       barbershops: validBarbershops,
-//     };
-//   },
-// });

@@ -38,6 +38,7 @@ export const createBarbershop = mutation({
     const barbershopId = await ctx.db.insert("barbershops", {
       ...barbershop,
       uuid: crypto.randomUUID(),
+      ownerId: user.subject,
       metadata: {
         completedAppointments: 0,
         contactEmail: barbershop.metadata?.contactEmail ?? "",
