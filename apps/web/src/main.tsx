@@ -8,8 +8,9 @@ import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { ThemeProvider } from "@/components/theme";
 import { env } from "@/env";
-import reportWebVitals from "./reportWebVitals.ts";
+import reportWebVitals from "./reportWebVitals";
 import { routeTree } from "./routeTree.gen";
 // @ts-expect-error
 import "./styles.css";
@@ -37,11 +38,13 @@ export function getRouter() {
       scrollRestoration: true,
       defaultViewTransition: true,
       Wrap: ({ children }) => (
-        <ConvexProvider client={convex}>
-          <QueryClientProvider client={queryClient}>
-            {children}
-          </QueryClientProvider>
-        </ConvexProvider>
+        <ThemeProvider>
+          <ConvexProvider client={convex}>
+            <QueryClientProvider client={queryClient}>
+              {children}
+            </QueryClientProvider>
+          </ConvexProvider>
+        </ThemeProvider>
       ),
     }),
     queryClient,

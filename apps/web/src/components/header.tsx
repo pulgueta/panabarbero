@@ -18,6 +18,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
+import { ThemeToggler } from "./theme-toggler";
 
 export const Header = () => {
   const { data: session } = useSession();
@@ -186,6 +187,8 @@ export const Header = () => {
                 </PopoverContent>
               </Popover>
             )}
+
+            <ThemeToggler />
           </div>
         </div>
       </div>
