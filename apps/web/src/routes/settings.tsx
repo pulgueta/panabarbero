@@ -1,8 +1,7 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-
+import { ThemeToggler } from "@/components/layout/theme-toggler";
 import { useTheme } from "@/components/theme";
-import { ThemeToggler } from "@/components/theme-toggler";
 import { Separator } from "@/components/ui/separator";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,

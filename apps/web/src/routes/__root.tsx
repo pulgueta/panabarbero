@@ -8,8 +8,8 @@ import {
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { Toaster } from "sonner";
 
-import { BottomBar } from "@/components/bottom-bar";
-import { Header } from "@/components/header";
+import { BottomBar } from "@/components/layout/bottom-bar";
+import { Header } from "@/components/layout/header";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import StoreDevtools from "@/lib/demo-store-devtools";
 

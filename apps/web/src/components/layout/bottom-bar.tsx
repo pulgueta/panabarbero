@@ -12,6 +12,8 @@ export const BottomBar = () => {
 
   const { data: session } = useSession();
 
+  console.log(session);
+
   const navigationRoutes = tanstack.getNavigationRoutes(session?.user?.id);
 
   return (

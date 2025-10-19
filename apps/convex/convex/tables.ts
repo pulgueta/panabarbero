@@ -6,17 +6,12 @@ export const tables = {
   userProfileData: {
     uuid: v.string(),
     userId: v.string(),
-    notificationsPreferences: v.object({
-      email: v.object({
+    notificationsPreferences: v.array(
+      v.object({
+        type: v.union(v.literal("email"), v.literal("push"), v.literal("sms")),
         enabled: v.boolean(),
       }),
-      push: v.object({
-        enabled: v.boolean(),
-      }),
-      sms: v.object({
-        enabled: v.boolean(),
-      }),
-    }),
+    ),
   },
   barbershops: {
     uuid: v.string(),
@@ -169,6 +164,9 @@ export const tables = {
   },
 };
 
+const userProfileDataSchema = v.object({
+  ...tables.userProfileData,
+});
 const barbershopSchema = v.object({
   ...tables.barbershops,
 });
@@ -199,6 +197,8 @@ type ConvexRows<T extends TableNames> = {
   _creationTime: number;
 };
 
+export type UserProfileData = ConvexRows<"userProfileData"> &
+  Infer<typeof userProfileDataSchema>;
 export type Barbershop = ConvexRows<"barbershops"> &
   Infer<typeof barbershopSchema>;
 export type Barber = ConvexRows<"barbers"> & Infer<typeof barberSchema>;

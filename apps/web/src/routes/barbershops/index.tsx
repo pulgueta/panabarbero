@@ -13,10 +13,10 @@ export type BarbershopSearch = {
 };
 
 export const Route = createFileRoute("/barbershops/")({
-  validateSearch: (search: BarbershopSearch) => {
+  validateSearch: (search?: BarbershopSearch | undefined) => {
     return {
-      city: search.city,
-      state: search.state,
+      city: search?.city,
+      state: search?.state,
     };
   },
   component: BarbershopsPage,
