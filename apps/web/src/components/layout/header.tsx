@@ -1,5 +1,5 @@
 import { tanstack } from "@panabarbero/constants";
-import { signOut, useSession } from "@panabarbero/convex/auth";
+import { signOut } from "@panabarbero/convex/auth";
 import { Link } from "@tanstack/react-router";
 import {
   BarChart3,
@@ -21,7 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { ThemeToggler } from "./theme-toggler";
 
 export const Header = () => {
-  const { data: session } = useSession();
+  // const { data: session } = useSession();
   // const barberStatus = useQuery(api.auth.checkIsBarber, {});
 
   const isBarber = true; // barberStatus?.isBarber ?? false;
@@ -31,13 +31,14 @@ export const Header = () => {
   };
 
   const getUserInitials = () => {
-    if (!session?.user?.name) return "U";
-    const names = session.user.name.split(" ");
-    return names
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
+    return "U";
+    // if (!session?.user?.name) return "U";
+    // const names = session.user.name.split(" ");
+    // return names
+    //   .map((n) => n[0])
+    //   .join("")
+    //   .toUpperCase()
+    //   .slice(0, 2);
   };
 
   // const _barbershopOptions =
@@ -50,7 +51,7 @@ export const Header = () => {
   // : [];
 
   const navigationRoutesWithoutSettings = tanstack
-    .getNavigationRoutes(session?.user?.id)
+    .getNavigationRoutes("123")
     .filter((route) => route.to !== "/settings");
 
   return (
@@ -83,13 +84,13 @@ export const Header = () => {
 
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
-            {!session?.user && (
+            {true && (
               <Button size="sm" asChild>
                 <Link to="/login">Iniciar Sesión</Link>
               </Button>
             )}
 
-            {session?.user && (
+            {false && (
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -97,18 +98,18 @@ export const Header = () => {
                     className="relative h-10 w-10 rounded-full"
                   >
                     <Avatar>
-                      <AvatarImage src={session?.user?.image ?? undefined} />
+                      <AvatarImage src={undefined} />
                       <AvatarFallback>{getUserInitials()}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-56" align="end">
+                <PopoverContent className="w-full max-w-sm" align="end">
                   <div className="flex flex-col space-y-1">
                     <p className="font-medium text-sm leading-none">
-                      {session?.user?.name}
+                      {undefined}
                     </p>
                     <p className="text-muted-foreground text-xs leading-none">
-                      {session?.user?.email}
+                      {undefined}
                     </p>
                   </div>
                   <Separator className="my-2" />
@@ -175,13 +176,13 @@ export const Header = () => {
                     )}
 
                     <Separator className="my-2" />
+
                     <Button
-                      variant="ghost"
-                      className="w-full justify-start"
+                      variant="destructive"
                       size="sm"
                       onClick={handleSignOut}
                     >
-                      <LogOut className="mr-2 h-4 w-4" />
+                      <LogOut className="size-4" />
                       Cerrar Sesión
                     </Button>
                   </div>

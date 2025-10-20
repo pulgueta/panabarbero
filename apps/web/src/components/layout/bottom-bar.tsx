@@ -1,5 +1,4 @@
 import { tanstack } from "@panabarbero/constants";
-import { useSession } from "@panabarbero/convex/auth";
 import { Link, useRouterState } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
@@ -10,11 +9,9 @@ export const BottomBar = () => {
 
   const currentPath = router.location.pathname;
 
-  const { data: session } = useSession();
+  // const { data: session } = useSession();
 
-  console.log(session);
-
-  const navigationRoutes = tanstack.getNavigationRoutes(session?.user?.id);
+  const navigationRoutes = tanstack.getNavigationRoutes("123");
 
   return (
     <div className="fixed right-0 bottom-0 left-0 z-50 border-border border-t bg-background/90 backdrop-blur-sm">
@@ -47,7 +44,7 @@ export const BottomBar = () => {
           })}
         </nav>
 
-        {!session?.user && (
+        {false && (
           <div className="px-4 pb-4">
             <Button asChild className="w-full">
               <Link to="/login">Iniciar sesión</Link>

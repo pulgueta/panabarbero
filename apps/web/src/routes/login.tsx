@@ -1,5 +1,5 @@
 import { SiApple, SiGoogle } from "@icons-pack/react-simple-icons";
-import { signIn, useSession } from "@panabarbero/convex/auth";
+import { signIn } from "@panabarbero/convex/auth";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { KeyRound } from "lucide-react";
 import { toast } from "sonner";
@@ -14,17 +14,17 @@ export const Route = createFileRoute("/login")({
 type Provider = "google" | "apple" | "passkey";
 
 function LoginPage() {
-  const { data: session } = useSession();
+  // const { data: session } = useSession();
 
-  if (session?.user) {
-    throw redirect({
-      to: "/barbershops",
-      search: {
-        city: undefined,
-        state: undefined,
-      },
-    });
-  }
+  // if (session?.user) {
+  //   throw redirect({
+  //     to: "/barbershops",
+  //     search: {
+  //       city: undefined,
+  //       state: undefined,
+  //     },
+  //   });
+  // }
 
   const handleSignIn = async (provider: Provider) => {
     if (provider === "passkey") {
