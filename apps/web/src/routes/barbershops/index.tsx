@@ -5,7 +5,6 @@ import { BarbershopFilters } from "@/components/barbershops/barbershop-filters";
 import { BarbershopGrid } from "@/components/barbershops/barbershop-grid";
 import { LocationGate } from "@/components/barbershops/location-gate";
 import { Input } from "@/components/ui/input";
-import { activeBarbershopsQueryOptions } from "@/hooks/use-barbershop";
 
 export type BarbershopSearch = {
   city?: string;
@@ -15,38 +14,17 @@ export type BarbershopSearch = {
 export const Route = createFileRoute("/barbershops/")({
   validateSearch: (search?: BarbershopSearch | undefined) => {
     return {
-      city: search?.city,
-      state: search?.state,
+      city: search?.city ?? "Barrancabermeja",
+      state: search?.state ?? "Santander",
     };
   },
   component: BarbershopsPage,
-  loader: async (opts) => {
-    const search = opts.location.search;
-
-    await opts.context.queryClient.ensureQueryData(
-      activeBarbershopsQueryOptions(search),
-    );
-  },
 });
 
 function BarbershopsPage() {
-  const { city, state } = Route.useSearch();
+  const search = Route.useSearch();
 
-  const fromLocalStorage = {
-    city: localStorage.getItem("pb_city"),
-    state: localStorage.getItem("pb_state"),
-  };
-
-  const showModal =
-    (!fromLocalStorage.city || !fromLocalStorage.state) && (!city || !state);
-
-  const searchCity = fromLocalStorage.city ?? city;
-  const searchState = fromLocalStorage.state ?? state;
-
-  const filters = {
-    city: searchCity,
-    state: searchState,
-  } satisfies BarbershopSearch;
+  const showModal = !search?.city || !search?.state;
 
   return (
     <div className="container mx-auto min-h-[calc(100dvh-65px)] border-x">
@@ -70,7 +48,7 @@ function BarbershopsPage() {
       <div className="relative mx-auto w-full bg-accent/20 p-4 dark:bg-accent/20">
         <BarbershopFilters />
       </div>
-      {showModal ? <LocationGate /> : <BarbershopGrid filters={filters} />}
+      {showModal ? <LocationGate /> : <BarbershopGrid filters={search} />}
     </div>
   );
 }

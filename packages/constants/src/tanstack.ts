@@ -13,7 +13,7 @@ export const routes = {
       icon: Scissors,
     },
     {
-      label: "Agendar cita",
+      label: "Agendar",
       to: "/appointments/create",
       icon: CalendarPlus,
     },

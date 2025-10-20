@@ -1,5 +1,5 @@
 import { tanstack } from "@panabarbero/constants";
-import { signOut } from "@panabarbero/convex/auth";
+import { signOut, useSession } from "@panabarbero/convex/auth";
 import { Link } from "@tanstack/react-router";
 import {
   BarChart3,
@@ -21,7 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { ThemeToggler } from "./theme-toggler";
 
 export const Header = () => {
-  // const { data: session } = useSession();
+  const { data: session } = useSession();
   // const barberStatus = useQuery(api.auth.checkIsBarber, {});
 
   const isBarber = true; // barberStatus?.isBarber ?? false;
@@ -51,7 +51,7 @@ export const Header = () => {
   // : [];
 
   const navigationRoutesWithoutSettings = tanstack
-    .getNavigationRoutes("123")
+    .getNavigationRoutes(session?.user?.id)
     .filter((route) => route.to !== "/settings");
 
   return (

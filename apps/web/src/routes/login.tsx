@@ -37,18 +37,14 @@ function LoginPage() {
         fetchOptions: {
           onSuccess: () => {
             redirect({
-              to: "/barbershops",
-              search: {
-                city: undefined,
-                state: undefined,
-              },
+              to: "/profile",
             });
           },
         },
       });
 
       if (error) {
-        toast.error(error.message);
+        toast.error(error.message ?? "Error al iniciar sesión");
         return;
       }
     }

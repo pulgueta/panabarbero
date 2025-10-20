@@ -18,9 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const LS_CITY = "pb_city";
-const LS_STATE = "pb_state";
-const SESSION_GATE_DISMISSED = "pb_gate_dismissed";
+// No persistent storage: rely on search params only
 
 export const LocationGate = () => {
   const search = useSearch({ from: "/barbershops/" });
@@ -34,22 +32,14 @@ export const LocationGate = () => {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: run once on mount
   useEffect(() => {
-    // Don't show gate if already dismissed this session
-    const dismissed = sessionStorage.getItem(SESSION_GATE_DISMISSED);
-    if (dismissed) return;
-
-    const lsCity = localStorage.getItem(LS_CITY) || undefined;
-    const lsState = localStorage.getItem(LS_STATE) || undefined;
-    const hasLS = !!lsCity && !!lsState;
     const hasSearch = !!search.city && !!search.state;
 
-    if (!hasLS && !hasSearch) {
+    if (!hasSearch) {
       setOpen(true);
     }
 
-    // Priority: searchParams > localStorage
-    setCity(search.city ?? lsCity);
-    setState(search.state ?? lsState);
+    setCity(search.city);
+    setState(search.state);
   }, []);
 
   // Fetch departments/cities once
@@ -77,9 +67,6 @@ export const LocationGate = () => {
 
   const confirm = () => {
     if (!state || !city) return;
-    localStorage.setItem(LS_STATE, state);
-    localStorage.setItem(LS_CITY, city);
-    sessionStorage.setItem(SESSION_GATE_DISMISSED, "true");
     navigate({ to: ".", search: (prev) => ({ ...prev, state, city }) });
     setOpen(false);
   };

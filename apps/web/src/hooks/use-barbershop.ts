@@ -1,6 +1,6 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@panabarbero/convex/api";
-import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 
 import type { BarbershopSearch } from "@/routes/barbershops";
 
@@ -17,7 +17,7 @@ export function useBarbershopByUuid(uuid: string) {
 }
 
 export function useActiveBarbershops(filters: BarbershopSearch) {
-  return useSuspenseQuery(activeBarbershopsQueryOptions(filters));
+  return useQuery(activeBarbershopsQueryOptions(filters));
 }
 
 export function useBarbershopActions() {

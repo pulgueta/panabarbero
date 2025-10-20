@@ -28,9 +28,6 @@ const filtersStore = new Store<FiltersState>({
   filteredCities: [],
 });
 
-const LS_CITY = "pb_city";
-const LS_STATE = "pb_state";
-
 export const BarbershopFilters: FC = () => {
   const filters = useStore(filtersStore);
   const search = useSearch({ from: "/barbershops/" });
@@ -43,27 +40,13 @@ export const BarbershopFilters: FC = () => {
     if (hydrated.current) return;
     hydrated.current = true;
 
-    const lsCity = localStorage.getItem(LS_CITY) || undefined;
-    const lsState = localStorage.getItem(LS_STATE) || undefined;
-
-    const nextState = search.state ?? lsState;
-    const nextCity = search.city ?? lsCity;
+    const nextState = search.state;
+    const nextCity = search.city;
 
     filtersStore.setState((s) => {
       if (s.city === nextCity && s.state === nextState) return s;
       return { ...s, city: nextCity, state: nextState };
     });
-
-    if (search.state) localStorage.setItem(LS_STATE, search.state);
-    if (search.city) localStorage.setItem(LS_CITY, search.city);
-
-    if (!search.state && lsState && !search.city && lsCity) {
-      navigate({
-        to: ".",
-        search: (prev) => ({ ...prev, state: lsState, city: lsCity }),
-        replace: true,
-      });
-    }
   }, []);
 
   useEffect(() => {
@@ -113,18 +96,6 @@ export const BarbershopFilters: FC = () => {
 
   const apply = (next: Partial<FiltersState>) => {
     filtersStore.setState((s) => ({ ...s, ...next }));
-
-    if ("state" in next) {
-      const v = next.state as string | undefined;
-      if (v) localStorage.setItem(LS_STATE, v);
-      else localStorage.removeItem(LS_STATE);
-    }
-
-    if ("city" in next) {
-      const v = next.city as string | undefined;
-      if (v) localStorage.setItem(LS_CITY, v);
-      else localStorage.removeItem(LS_CITY);
-    }
 
     navigate({
       to: ".",
