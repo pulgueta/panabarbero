@@ -8,10 +8,10 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import type { ConvexReactClient } from "convex/react";
-import { Toaster } from "sonner";
 
 import { BottomBar } from "@/components/layout/bottom-bar";
 import { Header } from "@/components/layout/header";
+import { Toaster } from "@/components/ui/sonner";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import StoreDevtools from "@/lib/demo-store-devtools";
 

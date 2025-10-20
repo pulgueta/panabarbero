@@ -34,19 +34,19 @@ export const createBarbershop = mutation({
         cause: user,
       });
     }
+
     const { barbershop } = args;
 
     const barbershopId = await ctx.db.insert("barbershops", {
       ...barbershop,
       uuid: crypto.randomUUID(),
       ownerId: user.userId ?? "",
+      isActive: false,
+      gracePeriodMinutes: 5,
       metadata: {
         completedAppointments: 0,
-        contactEmail: barbershop.metadata?.contactEmail ?? "",
         rating: 0,
         reviews: 0,
-        socialMedia: barbershop.metadata?.socialMedia ?? [],
-        websiteUrl: barbershop.metadata?.websiteUrl ?? "",
       },
     });
 

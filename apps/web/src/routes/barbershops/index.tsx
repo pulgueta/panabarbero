@@ -46,7 +46,7 @@ function BarbershopsPage() {
   const filters = {
     city: searchCity,
     state: searchState,
-  };
+  } satisfies BarbershopSearch;
 
   return (
     <div className="container mx-auto min-h-[calc(100dvh-65px)] border-x">

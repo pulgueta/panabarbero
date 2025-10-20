@@ -56,7 +56,7 @@ function LoginPage() {
 
   return (
     <div className="flex min-h-[calc(100dvh-65px)] flex-col items-center justify-center bg-background">
-      <div className="flex min-h-96 w-full max-w-sm flex-col items-center justify-start gap-4 rounded-lg bg-accent/20 p-4 shadow-xs">
+      <div className="flex min-h-96 w-full max-w-sm flex-col items-center justify-start gap-4 rounded-lg bg-accent/20 p-4 shadow-sm">
         <header>
           <h1 className="text-balance text-center font-bold text-3xl tracking-tight">
             Iniciar sesión
