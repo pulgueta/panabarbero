@@ -10,7 +10,7 @@ export const BarbershopLoadingGrid = () => {
           Cargando barberías...
         </p>
       </div>
-      <div className="grid w-full grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 md:grid-cols-3">
+      <div className="grid w-full grid-cols-1 gap-x-6 gap-y-8 pb-16 sm:grid-cols-2 md:grid-cols-3">
         {Array.from({ length: 6 }).map((_, index) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: key is not needed for skeleton
           <Skeleton key={index} className="h-48 w-full rounded-lg" />

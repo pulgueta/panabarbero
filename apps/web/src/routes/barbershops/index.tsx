@@ -5,6 +5,7 @@ import { BarbershopFilters } from "@/components/barbershops/barbershop-filters";
 import { BarbershopGrid } from "@/components/barbershops/barbershop-grid";
 import { LocationGate } from "@/components/barbershops/location-gate";
 import { Input } from "@/components/ui/input";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 
 export type BarbershopSearch = {
   city?: string;
@@ -27,8 +28,15 @@ export const Route = createFileRoute("/barbershops/")({
 
 function BarbershopsPage() {
   const search = Route.useSearch();
+  const [storedState] = useLocalStorage<string | undefined>(
+    "barbershops_state",
+  );
+  const [storedCity] = useLocalStorage<string | undefined>("barbershops_city");
 
-  const showModal = !search?.city || !search?.state;
+  const city = storedCity ?? search?.city;
+  const state = storedState ?? search?.state;
+
+  const showModal = !city || !state;
 
   return (
     <div className="container mx-auto min-h-[calc(100dvh-65px)] border-x">

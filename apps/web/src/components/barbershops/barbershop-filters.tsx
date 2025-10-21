@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 
 export const BarbershopFilters: FC = () => {
   const search = useSearch({ from: "/barbershops/" });
@@ -16,22 +17,29 @@ export const BarbershopFilters: FC = () => {
 
   const { states, citiesFromState } = useColombia();
 
-  const availableCities = search.state ? citiesFromState?.(search.state) : [];
+  const [storedState, setStoredState] = useLocalStorage<string | undefined>(
+    "barbershops_state",
+  );
+  const [storedCity, setStoredCity] = useLocalStorage<string | undefined>(
+    "barbershops_city",
+  );
+
+  const state = storedState ?? search.state;
+  const city = storedCity ?? search.city;
+
+  const availableCities = state ? citiesFromState?.(state) : [];
 
   const apply = (next: Partial<typeof search>) => {
-    navigate({
-      to: ".",
-      search: (prev) => {
-        return { ...prev, ...next };
-      },
-    });
+    setStoredState(next.state);
+    setStoredCity(next.city);
+    navigate({ to: ".", search: (prev) => ({ ...prev, ...next }) });
   };
 
   return (
     <div className="mx-auto grid w-full max-w-xl grid-cols-1 gap-3 sm:grid-cols-3">
       <div className="flex flex-row items-center gap-2">
         <Select
-          value={search.state}
+          value={state}
           onValueChange={(v) =>
             apply({ state: v || undefined, city: undefined })
           }
@@ -49,9 +57,9 @@ export const BarbershopFilters: FC = () => {
         </Select>
 
         <Select
-          value={search.city}
+          value={city}
           onValueChange={(v) => apply({ city: v || undefined })}
-          disabled={!search.state}
+          disabled={!state}
         >
           <SelectTrigger className="w-full min-w-48 bg-background dark:bg-card">
             <SelectValue placeholder="Ciudad" />
