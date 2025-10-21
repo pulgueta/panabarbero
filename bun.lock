@@ -44,8 +44,11 @@
         "@ai-sdk/openai": "^2.0.52",
         "@better-auth/expo": "1.3.28",
         "@convex-dev/better-auth": "^0.9.6",
+        "@convex-dev/expo-push-notifications": "^0.2.6",
         "@convex-dev/geospatial": "^0.1.9",
+        "@convex-dev/rate-limiter": "^0.2.14",
         "@convex-dev/resend": "^0.1.13",
+        "@convex-dev/twilio": "^0.1.7",
         "@react-email/components": "^0.5.7",
         "@react-email/render": "^1.4.0",
         "ai": "^5.0.76",
@@ -510,6 +513,8 @@
 
     "@convex-dev/better-auth": ["@convex-dev/better-auth@0.9.6", "", { "dependencies": { "common-tags": "^1.8.2", "convex-helpers": "^0.1.95", "remeda": "^2.32.0", "semver": "^7.7.3", "type-fest": "^4.39.1", "zod": "^3.24.4" }, "peerDependencies": { "better-auth": "1.3.27", "convex": "^1.26.2", "react": "^18.3.1 || ^19.0.0", "react-dom": "^18.3.1 || ^19.0.0" } }, "sha512-wqwGnvjJmy5WZeRK3nO+o0P95brdIfBbCFzIlJeRoXOP4CgYPaDBZNFZY+W5Zx6Zvnai8WZ2wjTr+jvd9bzJ2A=="],
 
+    "@convex-dev/expo-push-notifications": ["@convex-dev/expo-push-notifications@0.2.6", "", { "dependencies": { "convex-helpers": "^0.1.58" }, "peerDependencies": { "convex": ">=1.23.0 <1.35.0" } }, "sha512-m0R5FcP7GabbYbm7E6PVVEm++VxLyVu3ejywOiFg1QPmVojSo5BWEDjzoVYJNZ8/a93jN/0NM03+oDseohOxLQ=="],
+
     "@convex-dev/geospatial": ["@convex-dev/geospatial@0.1.9", "", { "dependencies": { "async-channel": "^0.2.0", "heap-js": "^2.5.0" }, "peerDependencies": { "convex": "~1.16.5 || >=1.17.0 <1.35.0" } }, "sha512-xYqMIzLZ3iWEzJ2RN3AZ6ArAp9Zx0qeG3Xkli0jo4vtdDZ/KhRl4GGd50ZI3E7QWmNIQSR9XJaw9aewwvNUSVQ=="],
 
     "@convex-dev/rate-limiter": ["@convex-dev/rate-limiter@0.2.14", "", { "peerDependencies": { "convex": ">=1.17.0 <1.35.0", "react": "^18.2.0 || ^19.0.0" }, "optionalPeers": ["react"] }, "sha512-6dQ2ceHFcU8HVXT0QdcgWXCahasMcjne/bWvLZ6qyyk5gZDP4JtjZyidy9HflAOCo1Nc428pgrROnbQBM0QPCQ=="],
@@ -517,6 +522,8 @@
     "@convex-dev/react-query": ["@convex-dev/react-query@0.0.0-alpha.11", "", { "dependencies": { "@auth/core": "^0.37.0", "@convex-dev/auth": "^0.0.83", "convex-helpers": "^0.1.85" }, "peerDependencies": { "@tanstack/react-query": "^5.0.0", "convex": "^1.24.8" } }, "sha512-Fy/p3JOvUUNrbBBQD0AEXcSU40PBu567gm3XRgExHkiKlv07kBOjnuXA0TvodKkryyuHLbuIxYP8XIv03i6DEw=="],
 
     "@convex-dev/resend": ["@convex-dev/resend@0.1.13", "", { "dependencies": { "@convex-dev/rate-limiter": "^0.2.10", "@convex-dev/workpool": "^0.2.17", "remeda": "^2.26.0", "svix": "^1.70.0" }, "peerDependencies": { "convex": "^1.23.0", "convex-helpers": "^0.1.99" } }, "sha512-caVvN3o1XgLti7ieo2fAlfgR7oK+WEVag/FS3P5tf5l4+u7ewxd414u+PftxbsUMb3liY4fdsH0QNgbTr8o9DA=="],
+
+    "@convex-dev/twilio": ["@convex-dev/twilio@0.1.7", "", { "peerDependencies": { "convex": "~1.16.5 || >=1.17.0 <1.35.0" } }, "sha512-wQlHlsVpXey68vGq6J5pk6WHMPP0IWRuRGaVYQF62IQa1y7w37cmks/1RS5335rn5gOc4PnQv7lmHW+pgSg2Zg=="],
 
     "@convex-dev/workpool": ["@convex-dev/workpool@0.2.19", "", { "peerDependencies": { "convex": ">=1.25.0 <1.35.0", "convex-helpers": "^0.1.94" } }, "sha512-U2KwYnsKILyxW1baWEhDv+ZtnL5FZbYFxBT5owQ0Lw/kseiudMZraA4clH+/6gowHSahWpkq4wndhcOfpfhuOA=="],
 

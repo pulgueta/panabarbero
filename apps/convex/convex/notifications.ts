@@ -1,9 +1,18 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { internalMutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
+import type { Notification, UserProfileData } from "./tables";
 import { tables } from "./tables";
 
-export const createNotification = mutation({
+export function isNotificationEnabled(
+  type: Notification["type"],
+  notificationsPreferences: UserProfileData["notificationsPreferences"],
+) {
+  return notificationsPreferences.some((n) => n.type === type && n.enabled);
+}
+
+export const createNotification = internalMutation({
   args: {
     notification: v.object({
       ...tables.notifications,
@@ -18,17 +27,60 @@ export const createNotification = mutation({
       });
     }
 
-    if (args.notification.senderUserId !== user.userId) {
+    const isSystemNotification = args.notification.senderUserId === "system";
+    const isSenderUser = args.notification.senderUserId === user.userId;
+
+    if (!isSystemNotification && !isSenderUser) {
       throw new Error("You are not authorized to create this notification", {
         cause: `Invalid sender user ID: ${args.notification.senderUserId}`,
       });
+    }
+
+    const userProfile = await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      {
+        userId: args.notification.receiverUserId,
+      },
+    );
+
+    if (!userProfile) {
+      throw new Error("User profile not found", {
+        cause: args.notification.receiverUserId,
+      });
+    }
+
+    if (isNotificationEnabled("email", userProfile.notificationsPreferences)) {
+      await ctx.scheduler.runAfter(0, internal.emails.sendEmail, {
+        emailType: args.notification.reason,
+        subject: args.notification.title,
+        to: userProfile.email,
+      });
+    }
+
+    if (isNotificationEnabled("sms", userProfile.notificationsPreferences)) {
+      await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
+        body: args.notification.body,
+        to: userProfile.phoneNumber ?? "",
+      });
+    }
+
+    if (isNotificationEnabled("push", userProfile.notificationsPreferences)) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.mobilePushTokens.sendPushNotification,
+        {
+          notification: {
+            ...args.notification,
+            uuid: crypto.randomUUID(),
+          },
+        },
+      );
     }
 
     const notificationId = await ctx.db.insert("notifications", {
       ...args.notification,
       uuid: crypto.randomUUID(),
       senderUserId: user.userId ?? "",
-      receiverUserId: args.notification.receiverUserId,
     });
 
     return notificationId;
