@@ -144,6 +144,7 @@ export const getAppointmentsByUserId = query({
         cause: user,
       });
     }
+
     const appointments = await ctx.db
       .query("appointments")
       .filter(({ eq, field }) => eq(field("userId"), args.userId))

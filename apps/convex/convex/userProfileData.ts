@@ -24,12 +24,6 @@ export const createProfile = internalMutation({
   handler: async (ctx, args) => {
     const profile = await ctx.db.insert("userProfileData", {
       ...args.data,
-      notificationsPreferences: args.data.notificationsPreferences.concat([
-        {
-          type: "email",
-          enabled: true,
-        },
-      ]),
       userId: args.data.userId ?? "",
       uuid: crypto.randomUUID(),
     });

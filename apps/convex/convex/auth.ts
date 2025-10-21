@@ -15,13 +15,26 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
   triggers: {
     user: {
       onCreate: async (ctx, doc) => {
+        await ctx.runMutation(components.betterAuth.adapter.updateOne, {
+          input: {
+            model: "user",
+            update: {
+              userId: crypto.randomUUID(),
+            },
+            where: [{ field: "_id", operator: "eq", value: doc._id }],
+          },
+        });
         await ctx.runMutation(internal.userProfileData.createProfile, {
           data: {
-            userId: doc._id,
+            userId: doc.userId as string,
             uuid: crypto.randomUUID(),
             email: doc.email,
             phoneNumber: doc.phoneNumber ?? undefined,
             notificationsPreferences: [
+              {
+                type: "email",
+                enabled: true,
+              },
               {
                 type: "push",
                 enabled: false,

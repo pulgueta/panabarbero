@@ -10,6 +10,12 @@ crons.interval(
   internal.crons.cleanupResend,
 );
 
+crons.interval(
+  "Delete user profiles for deleted users",
+  { hours: 24 * 7 },
+  internal.crons.deleteUserProfiles,
+);
+
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const cleanupResend = internalMutation({
@@ -18,11 +24,27 @@ export const cleanupResend = internalMutation({
     await ctx.scheduler.runAfter(0, components.resend.lib.cleanupOldEmails, {
       olderThan: ONE_WEEK_MS,
     });
+
     await ctx.scheduler.runAfter(
       0,
       components.resend.lib.cleanupAbandonedEmails,
       { olderThan: 4 * ONE_WEEK_MS },
     );
+  },
+});
+
+export const deleteUserProfiles = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db
+      .query("userProfileData")
+      .withIndex("by_userId")
+      .filter(({ eq, field }) => eq(field("userId"), null))
+      .collect();
+
+    for (const user of users) {
+      await ctx.db.delete(user._id);
+    }
   },
 });
 
