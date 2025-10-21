@@ -21,7 +21,7 @@ export const BarbershopGrid: FC<BarbershopGridProps> = ({ filters }) => {
           <BarbershopListCard key={barbershop._id} barbershop={barbershop} />
         ))
       ) : (
-        <div className="flex flex-col items-center justify-center gap-2">
+        <div className="col-span-3 flex flex-col items-center justify-center gap-2">
           <p className="text-pretty text-center text-muted-foreground text-sm">
             No se encontraron barberías disponibles.
           </p>

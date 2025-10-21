@@ -3,7 +3,7 @@ import { Spinner } from "@/components/ui/spinner";
 
 export const BarbershopLoadingGrid = () => {
   return (
-    <div className="flex flex-col items-center justify-center gap-6 bg-accent/20 px-4 py-2 dark:bg-accent/20">
+    <div className="flex flex-col items-center justify-center gap-6 bg-accent/20 px-4 dark:bg-accent/20">
       <div className="flex flex-col items-center justify-center gap-2">
         <Spinner className="size-6" />
         <p className="text-pretty text-center text-muted-foreground text-sm">
