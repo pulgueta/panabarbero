@@ -33,6 +33,7 @@
     "@convex-dev/better-auth": "^0.9.6",
     "@convex-dev/expo-push-notifications": "^0.2.6",
     "@convex-dev/geospatial": "^0.1.9",
+    "@convex-dev/r2": "^0.7.3",
     "@convex-dev/rate-limiter": "^0.2.14",
     "@convex-dev/resend": "^0.1.13",
     "@convex-dev/twilio": "^0.1.7",

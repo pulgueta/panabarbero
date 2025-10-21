@@ -3,6 +3,7 @@ import type { AuthFunctions, GenericCtx } from "@convex-dev/better-auth";
 import { createClient } from "@convex-dev/better-auth";
 import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
 import { betterAuth } from "better-auth";
+import { twoFactor } from "better-auth/plugins";
 import { passkey } from "better-auth/plugins/passkey";
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
@@ -94,7 +95,13 @@ export const createAuth = (
         enabled: true,
       },
     },
-    plugins: [expo(), convex(), crossDomain({ siteUrl }), passkey()],
+    plugins: [
+      expo(),
+      convex(),
+      crossDomain({ siteUrl }),
+      passkey(),
+      twoFactor(),
+    ],
   });
 };
 

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { geospatial } from ".";
+import { geospatial, r2 } from ".";
 import { api, internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
@@ -127,7 +127,7 @@ export const getActiveBarbershops = query({
 
           if (!isAlreadyUrl) {
             try {
-              const url = await ctx.storage.getUrl(barbershop.bannerUrl);
+              const url = await r2.getUrl(barbershop.bannerUrl);
               barbershop.bannerUrl = url === null ? undefined : url;
             } catch (error) {
               console.error(error);
