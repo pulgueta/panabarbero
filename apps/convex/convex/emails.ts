@@ -42,4 +42,6 @@ export const emailTemplates = {
   appointment_no_show: "<p>Hello, world!</p>",
   appointment_confirmed: "<p>Hello, world!</p>",
   appointment_rescheduled_request: "<p>Hello, world!</p>",
+  appointment_rescheduled_accepted: "<p>Hello, world!</p>",
+  appointment_rescheduled_denied: "<p>Hello, world!</p>",
 } satisfies EmailTemplate;

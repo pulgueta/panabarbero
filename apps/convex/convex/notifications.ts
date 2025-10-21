@@ -27,12 +27,12 @@ export const createNotification = internalMutation({
       });
     }
 
-    const isSystemNotification = args.notification.senderUserId === "system";
-    const isSenderUser = args.notification.senderUserId === user.userId;
+    const canSendNotification =
+      args.notification.receiverUserId === user.userId;
 
-    if (!isSystemNotification && !isSenderUser) {
-      throw new Error("You are not authorized to create this notification", {
-        cause: `Invalid sender user ID: ${args.notification.senderUserId}`,
+    if (!canSendNotification) {
+      throw new Error("You cannot send notifications to yourself", {
+        cause: args.notification.receiverUserId,
       });
     }
 

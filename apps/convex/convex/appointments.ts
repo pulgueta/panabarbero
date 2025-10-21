@@ -542,16 +542,16 @@ export const requestReschedule = mutation({
     if (!appt) throw new Error("Appointment not found");
 
     await ctx.db.patch(args.appointmentId, {
-      status: "rescheduled",
+      status: "pending",
       notes: args.note,
-      startAt: args.proposedStartAt,
-      endAt: args.proposedEndAt,
+      proposedStartAt: args.proposedStartAt,
+      proposedEndAt: args.proposedEndAt,
     });
 
     const userProfile = await ctx.runQuery(
       internal.userProfileData.getProfileByUserId,
       {
-        userId: appt.userId,
+        userId: user.userId ?? "",
       },
     );
 
@@ -655,6 +655,72 @@ export const notifyUpcomingAppointment = internalMutation({
           receiverUserId: args.userId,
           appointmentId: args.appointmentId,
           preview: notificationTexts.appointment_reminder(barbershop?.name),
+        },
+      });
+    }
+  },
+});
+
+export const answerRescheduleRequest = mutation({
+  args: {
+    appointmentId: v.id("appointments"),
+    accepted: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
+
+    const appt = await ctx.db.get(args.appointmentId);
+
+    if (!appt)
+      throw new Error("Appointment not found", {
+        cause: args.appointmentId,
+      });
+
+    await ctx.db.patch(args.appointmentId, {
+      status: args.accepted ? "confirmed" : "denied",
+    });
+
+    const userProfile = await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      {
+        userId: appt.userId,
+      },
+    );
+
+    if (!userProfile) {
+      throw new Error("User profile not found", {
+        cause: appt.userId,
+      });
+    }
+
+    const title = args.accepted
+      ? "Reagendamiento aceptado"
+      : "Reagendamiento rechazado";
+    const body = args.accepted
+      ? "Tu reagendamiento ha sido aceptado."
+      : "Tu reagendamiento ha sido rechazado.";
+    const reason = args.accepted
+      ? "appointment_rescheduled_accepted"
+      : "appointment_rescheduled_denied";
+
+    for (const notification of userProfile.notificationsPreferences) {
+      await ctx.runMutation(internal.notifications.createNotification, {
+        notification: {
+          body,
+          reason,
+          receiverUserId: userProfile.userId,
+          title,
+          uuid: crypto.randomUUID(),
+          senderUserId: "system",
+          type: notification.type,
+          appointmentId: args.appointmentId,
+          preview: title,
         },
       });
     }
