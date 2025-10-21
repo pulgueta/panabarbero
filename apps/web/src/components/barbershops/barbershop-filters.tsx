@@ -1,8 +1,6 @@
+import { useColombia } from "@panabarbero/constants";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { useStore } from "@tanstack/react-store";
-import { Store } from "@tanstack/store";
 import type { FC } from "react";
-import { useEffect, useRef } from "react";
 
 import {
   Select,
@@ -12,97 +10,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type FiltersState = {
-  city?: string;
-  state?: string;
-  departments: string[];
-  cities: Record<string, string[]>;
-  filteredCities: string[];
-};
-
-const filtersStore = new Store<FiltersState>({
-  city: undefined,
-  state: undefined,
-  departments: [],
-  cities: {},
-  filteredCities: [],
-});
-
 export const BarbershopFilters: FC = () => {
-  const filters = useStore(filtersStore);
   const search = useSearch({ from: "/barbershops/" });
   const navigate = useNavigate({ from: "/barbershops" });
 
-  const hydrated = useRef(false);
+  const { states, citiesFromState } = useColombia();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: run once on mount
-  useEffect(() => {
-    if (hydrated.current) return;
-    hydrated.current = true;
+  const availableCities = search.state ? citiesFromState?.(search.state) : [];
 
-    const nextState = search.state;
-    const nextCity = search.city;
-
-    filtersStore.setState((s) => {
-      if (s.city === nextCity && s.state === nextState) return s;
-      return { ...s, city: nextCity, state: nextState };
-    });
-  }, []);
-
-  useEffect(() => {
-    const fetchLocations = async () => {
-      try {
-        const res = await fetch(
-          "https://raw.githubusercontent.com/marcovega/colombia-json/master/colombia.json",
-        );
-        const data: { departamento: string; ciudades: string[] }[] =
-          await res.json();
-
-        const departments = data.map((d) => d.departamento);
-        const citiesMap: Record<string, string[]> = {};
-        data.forEach((d) => {
-          citiesMap[d.departamento] = d.ciudades;
-        });
-
-        filtersStore.setState((s) => ({
-          ...s,
-          departments,
-          cities: citiesMap,
-          filteredCities:
-            s.state && citiesMap[s.state] ? citiesMap[s.state] : [],
-        }));
-      } catch (err) {
-        console.error("Failed to fetch departments/cities", err);
-      }
-    };
-
-    fetchLocations();
-  }, []);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional partial dependencies
-  useEffect(() => {
-    const newCities =
-      filters.state && filters.cities[filters.state]
-        ? filters.cities[filters.state]
-        : [];
-
-    if (
-      newCities.length !== filters.filteredCities.length ||
-      newCities.some((c, i) => c !== filters.filteredCities[i])
-    ) {
-      filtersStore.setState((s) => ({ ...s, filteredCities: newCities }));
-    }
-  }, [filters.state, filters.cities]);
-
-  const apply = (next: Partial<FiltersState>) => {
-    filtersStore.setState((s) => ({ ...s, ...next }));
-
+  const apply = (next: Partial<typeof search>) => {
     navigate({
       to: ".",
       search: (prev) => {
-        const merged = { ...prev, ...next };
-        const same = merged.state === prev.state && merged.city === prev.city;
-        return same ? prev : merged;
+        return { ...prev, ...next };
       },
     });
   };
@@ -111,7 +31,7 @@ export const BarbershopFilters: FC = () => {
     <div className="mx-auto grid w-full max-w-xl grid-cols-1 gap-3 sm:grid-cols-3">
       <div className="flex flex-row items-center gap-2">
         <Select
-          value={filters.state}
+          value={search.state}
           onValueChange={(v) =>
             apply({ state: v || undefined, city: undefined })
           }
@@ -120,24 +40,24 @@ export const BarbershopFilters: FC = () => {
             <SelectValue placeholder="Departamento" />
           </SelectTrigger>
           <SelectContent>
-            {filters.departments.map((dept) => (
-              <SelectItem key={dept} value={dept}>
-                {dept}
+            {states.map((state) => (
+              <SelectItem key={state.state} value={state.state}>
+                {state.state}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
         <Select
-          value={filters.city}
+          value={search.city}
           onValueChange={(v) => apply({ city: v || undefined })}
-          disabled={!filters.state}
+          disabled={!search.state}
         >
           <SelectTrigger className="w-full min-w-48 bg-background dark:bg-card">
             <SelectValue placeholder="Ciudad" />
           </SelectTrigger>
           <SelectContent>
-            {filters.filteredCities.map((city) => (
+            {availableCities.map((city) => (
               <SelectItem key={city} value={city}>
                 {city}
               </SelectItem>

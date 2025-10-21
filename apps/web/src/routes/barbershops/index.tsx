@@ -14,13 +14,13 @@ export type BarbershopSearch = {
 export const Route = createFileRoute("/barbershops/")({
   validateSearch: (search?: BarbershopSearch | undefined) => {
     return {
-      city: search?.city ?? "Barrancabermeja",
-      state: search?.state ?? "Santander",
+      city: search?.city ?? undefined,
+      state: search?.state ?? undefined,
     };
   },
   loaderDeps: ({ search }) => ({
-    city: search?.city ?? "Barrancabermeja",
-    state: search?.state ?? "Santander",
+    city: search?.city ?? undefined,
+    state: search?.state ?? undefined,
   }),
   component: BarbershopsPage,
 });
