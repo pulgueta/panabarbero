@@ -1,5 +1,4 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: objects are guaranteed to be not null */
-import { useSession } from "@panabarbero/convex/auth";
 import type { Barbershop } from "@panabarbero/convex/schemas";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -15,6 +14,7 @@ import {
 } from "@/hooks/use-barbershop";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useServicesFromBarbershop } from "@/hooks/use-services";
+import { useSession } from "@/hooks/use-session";
 import { barbershopSeo } from "@/lib/utils";
 
 export const Route = createFileRoute("/barbershops/$barbershopUuid")({
@@ -42,12 +42,12 @@ function RouteComponent() {
   );
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
 
-  const { data } = useSession();
+  const { data: user } = useSession();
 
   const { isMobile } = useIsMobile();
 
   const canReview = useCanReview({
-    userId: data?.user?.id!,
+    userId: user?.userId!,
     barbershopId: barbershop?._id!,
   });
 
@@ -60,7 +60,7 @@ function RouteComponent() {
           <BarbershopHeader
             barbershop={barbershop}
             isMobile={isMobile}
-            userId={data?.user?.id}
+            userId={user?.userId ?? undefined}
             canReview={canReview}
             formHeadLabel={formHeadLabel}
           />

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -14,17 +15,14 @@ export const Route = createFileRoute("/login")({
 type Provider = "google" | "apple" | "passkey";
 
 function LoginPage() {
-  // const { data: session } = useSession();
+  const { data: user } = useSession();
 
-  // if (session?.user) {
-  //   throw redirect({
-  //     to: "/barbershops",
-  //     search: {
-  //       city: undefined,
-  //       state: undefined,
-  //     },
-  //   });
-  // }
+  if (user) {
+    throw redirect({
+      to: "/barbershops",
+      search: { city: "Barrancabermeja", state: "Santander" },
+    });
+  }
 
   const handleSignIn = async (provider: Provider) => {
     if (provider === "passkey") {

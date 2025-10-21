@@ -66,7 +66,6 @@ export const createAuth = (
   { optionsOnly } = { optionsOnly: false },
 ) => {
   return betterAuth({
-    baseURL: siteUrl,
     logger: {
       disabled: optionsOnly,
     },

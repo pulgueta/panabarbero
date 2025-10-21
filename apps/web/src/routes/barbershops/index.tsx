@@ -18,6 +18,10 @@ export const Route = createFileRoute("/barbershops/")({
       state: search?.state ?? "Santander",
     };
   },
+  loaderDeps: ({ search }) => ({
+    city: search?.city ?? "Barrancabermeja",
+    state: search?.state ?? "Santander",
+  }),
   component: BarbershopsPage,
 });
 

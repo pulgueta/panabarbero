@@ -1,5 +1,5 @@
 import { tanstack } from "@panabarbero/constants";
-import { signOut, useSession } from "@panabarbero/convex/auth";
+import { signOut } from "@panabarbero/convex/auth";
 import { Link } from "@tanstack/react-router";
 import {
   BarChart3,
@@ -18,10 +18,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
+import { useSession } from "@/hooks/use-session";
 import { ThemeToggler } from "./theme-toggler";
 
 export const Header = () => {
-  const { data: session } = useSession();
+  const { data: user } = useSession();
   // const barberStatus = useQuery(api.auth.checkIsBarber, {});
 
   const isBarber = true; // barberStatus?.isBarber ?? false;
@@ -31,14 +32,15 @@ export const Header = () => {
   };
 
   const getUserInitials = () => {
-    return "U";
-    // if (!session?.user?.name) return "U";
-    // const names = session.user.name.split(" ");
-    // return names
-    //   .map((n) => n[0])
-    //   .join("")
-    //   .toUpperCase()
-    //   .slice(0, 2);
+    if (!user?.name) return "AN";
+
+    const names = user.name.split(" ");
+
+    return names
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   // const _barbershopOptions =
@@ -51,7 +53,7 @@ export const Header = () => {
   // : [];
 
   const navigationRoutesWithoutSettings = tanstack
-    .getNavigationRoutes(session?.user?.id)
+    .getNavigationRoutes(user?._id)
     .filter((route) => route.to !== "/settings");
 
   return (
@@ -84,13 +86,7 @@ export const Header = () => {
 
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
-            {true && (
-              <Button size="sm" asChild>
-                <Link to="/login">Iniciar Sesión</Link>
-              </Button>
-            )}
-
-            {false && (
+            {user ? (
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -188,6 +184,10 @@ export const Header = () => {
                   </div>
                 </PopoverContent>
               </Popover>
+            ) : (
+              <Button size="sm" asChild>
+                <Link to="/login">Iniciar sesión</Link>
+              </Button>
             )}
 
             <ThemeToggler />

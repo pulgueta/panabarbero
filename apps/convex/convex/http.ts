@@ -6,6 +6,11 @@ import { twilio } from "./twilio";
 const http = httpRouter();
 
 twilio.registerRoutes(http);
-authComponent.registerRoutes(http, createAuth, { cors: true });
+authComponent.registerRoutes(http, createAuth, {
+  cors: {
+    allowedOrigins: ["*"],
+    allowedHeaders: ["*"],
+  },
+});
 
 export default http;
