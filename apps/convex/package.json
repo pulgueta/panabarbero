@@ -48,6 +48,6 @@
     "react-email": "^4.3.1"
   },
   "devDependencies": {
-    "typescript": "catalog:"
+    "typescript": "5.8.3"
   }
 }

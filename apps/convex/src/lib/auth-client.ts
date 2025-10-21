@@ -9,4 +9,11 @@ export const authClient = createAuthClient({
   plugins: [convexClient(), passkeyClient(), twoFactorClient()],
 });
 
-export const { useSession, signIn, signOut, passkey, twoFactor } = authClient;
+export const {
+  useSession,
+  signIn,
+  signOut,
+  passkey,
+  twoFactor,
+  useListPasskeys,
+} = authClient;
