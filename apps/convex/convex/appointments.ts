@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
+import { rateLimiter } from "./ratelimit";
 import { tables } from "./tables";
 
 function parseTimeToMinutes(time: string): number {
@@ -518,6 +519,24 @@ export const requestReschedule = mutation({
         cause: user,
       });
     }
+
+    const { ok, retryAfter } = await rateLimiter.limit(
+      ctx,
+      "requestReschedule",
+      {
+        key: user._id,
+      },
+    );
+
+    if (!ok) {
+      throw new Error(
+        `You cannot request a reschedule more than once every 30 minutes. Please try again at ${new Date(Date.now() + retryAfter).toLocaleString()}`,
+        {
+          cause: retryAfter,
+        },
+      );
+    }
+
     const appt = await ctx.db.get(args.appointmentId);
 
     if (!appt) throw new Error("Appointment not found");
@@ -529,19 +548,77 @@ export const requestReschedule = mutation({
       endAt: args.proposedEndAt,
     });
 
-    await ctx.db.insert("notifications", {
-      uuid: crypto.randomUUID(),
-      type: "sms",
-      reason: "appointment_rescheduled",
-      title: "Solicitud de reagendamiento",
-      body: "Se ha solicitado un reagendamiento para tu cita.",
-      senderUserId: args.requestedByUserId,
-      receiverUserId: appt.userId,
-      appointmentId: args.appointmentId,
-    });
-    return null;
+    const userProfile = await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      {
+        userId: appt.userId,
+      },
+    );
+
+    if (!userProfile) {
+      throw new Error("User profile not found", {
+        cause: appt.userId,
+      });
+    }
+
+    const barber = await ctx.db.get(appt.barberId);
+
+    if (!barber) {
+      throw new Error("Barber not found", {
+        cause: appt.barberId,
+      });
+    }
+
+    const barberProfile = await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      {
+        userId: barber.userId,
+      },
+    );
+
+    if (!barberProfile) {
+      throw new Error("Barber profile not found", {
+        cause: barber.userId,
+      });
+    }
+
+    for (const notification of userProfile.notificationsPreferences) {
+      await ctx.runMutation(internal.notifications.createNotification, {
+        notification: {
+          body: "Un cliente ha solicitado un reagendamiento.",
+          reason: "appointment_rescheduled_request",
+          receiverUserId: barberProfile.userId,
+          title: "Solicitud de reagendamiento",
+          uuid: crypto.randomUUID(),
+          senderUserId: userProfile.userId,
+          type: notification.type,
+          appointmentId: args.appointmentId,
+          preview: "Un cliente ha solicitado un reagendamiento.",
+        },
+      });
+
+      await ctx.runMutation(internal.notifications.createNotification, {
+        notification: {
+          body: "Se ha solicitado un reagendamiento para tu cita.",
+          reason: "appointment_rescheduled_request",
+          receiverUserId: appt.userId,
+          title: "Solicitud de reagendamiento",
+          uuid: crypto.randomUUID(),
+          senderUserId: args.requestedByUserId,
+          type: notification.type,
+          appointmentId: args.appointmentId,
+          preview: "Se ha solicitado un reagendamiento para tu cita.",
+        },
+      });
+    }
   },
 });
+
+const notificationTexts = {
+  appointment_reminder: (barbershopName?: string) =>
+    `Tienes una cita en ~30 minutos en ${barbershopName}`,
+  subject: "Recordatorio de cita",
+};
 
 export const notifyUpcomingAppointment = internalMutation({
   args: {
@@ -551,16 +628,35 @@ export const notifyUpcomingAppointment = internalMutation({
   },
   handler: async (ctx, args) => {
     const barbershop = await ctx.db.get(args.barbershopId);
+    const userProfileByUserId = await ctx.db
+      .query("userProfileData")
+      .withIndex("by_userId")
+      .filter(({ eq, field }) => eq(field("userId"), args.userId))
+      .unique();
 
-    await ctx.db.insert("notifications", {
-      uuid: crypto.randomUUID(),
-      type: "sms",
-      reason: "appointment_reminder",
-      title: "Recordatorio de cita",
-      body: `Tienes una cita en ~30 minutos en ${barbershop?.name}`,
-      senderUserId: "system",
-      receiverUserId: args.userId,
-      appointmentId: args.appointmentId,
-    });
+    const enabledNotifications =
+      userProfileByUserId?.notificationsPreferences.filter((n) => n.enabled);
+
+    if (!enabledNotifications) {
+      throw new Error("No enabled notifications found", {
+        cause: enabledNotifications,
+      });
+    }
+
+    for (const notification of enabledNotifications) {
+      await ctx.runMutation(internal.notifications.createNotification, {
+        notification: {
+          body: notificationTexts.appointment_reminder(barbershop?.name),
+          reason: "appointment_reminder",
+          senderUserId: "system",
+          title: notificationTexts.subject,
+          uuid: crypto.randomUUID(),
+          type: notification.type,
+          receiverUserId: args.userId,
+          appointmentId: args.appointmentId,
+          preview: notificationTexts.appointment_reminder(barbershop?.name),
+        },
+      });
+    }
   },
 });

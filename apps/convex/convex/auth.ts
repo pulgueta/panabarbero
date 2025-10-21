@@ -5,7 +5,7 @@ import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
 import { betterAuth } from "better-auth";
 import { passkey } from "better-auth/plugins/passkey";
 import { components, internal } from "./_generated/api";
-import type { DataModel, Id } from "./_generated/dataModel";
+import type { DataModel } from "./_generated/dataModel";
 import { query } from "./_generated/server";
 
 const authFunctions: AuthFunctions = internal.auth;
@@ -19,6 +19,8 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
           data: {
             userId: doc.userId as string,
             uuid: crypto.randomUUID(),
+            email: doc.email,
+            phoneNumber: doc.phoneNumber ?? undefined,
             notificationsPreferences: [
               {
                 type: "push",
@@ -33,13 +35,21 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
         });
       },
       onDelete: async (ctx, doc) => {
-        const profile = await ctx.db
-          .query("userProfileData")
-          .withIndex("by_userId", ({ eq }) => eq("userId", doc.userId ?? ""))
-          .unique();
+        const profile = await ctx.runQuery(
+          internal.userProfileData.getProfileByUserId,
+          {
+            userId: doc.userId ?? "",
+          },
+        );
+
+        if (!profile) {
+          throw new Error("Profile not found", {
+            cause: doc.userId,
+          });
+        }
 
         await ctx.runMutation(internal.userProfileData.deleteProfile, {
-          profileId: profile?._id as Id<"userProfileData">,
+          profileId: profile._id,
         });
       },
     },

@@ -5,17 +5,12 @@ import type { Infer } from "convex/values";
 import { v } from "convex/values";
 import type { ReactNode } from "react";
 import { components } from "./_generated/api";
-import { action } from "./_generated/server";
+import { internalAction } from "./_generated/server";
+import { tables } from "./tables";
 
 export const resend = new Resend(components.resend);
 
-const emailType = v.union(
-  v.literal("appointment_reminder"),
-  v.literal("appointment_cancelled"),
-  v.literal("appointment_rescheduled"),
-  v.literal("appointment_no_show"),
-  v.literal("appointment_confirmed"),
-);
+const emailType = tables.notifications.reason;
 
 type EmailType = Infer<typeof emailType>;
 
@@ -23,7 +18,7 @@ type EmailTemplate = {
   [key in EmailType]: ReactNode;
 };
 
-export const sendEmail = action({
+export const sendEmail = internalAction({
   args: {
     to: v.string(),
     subject: v.string(),
@@ -46,4 +41,5 @@ export const emailTemplates = {
   appointment_rescheduled: "<p>Hello, world!</p>",
   appointment_no_show: "<p>Hello, world!</p>",
   appointment_confirmed: "<p>Hello, world!</p>",
+  appointment_rescheduled_request: "<p>Hello, world!</p>",
 } satisfies EmailTemplate;

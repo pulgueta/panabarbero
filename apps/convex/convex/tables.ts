@@ -6,6 +6,8 @@ export const tables = {
   userProfileData: {
     uuid: v.string(),
     userId: v.string(),
+    email: v.string(),
+    phoneNumber: v.optional(v.string()),
     notificationsPreferences: v.array(
       v.object({
         type: v.union(v.literal("email"), v.literal("push"), v.literal("sms")),
@@ -152,6 +154,7 @@ export const tables = {
       v.literal("appointment_reminder"),
       v.literal("appointment_cancelled"),
       v.literal("appointment_rescheduled"),
+      v.literal("appointment_rescheduled_request"),
       v.literal("appointment_no_show"),
       v.literal("appointment_confirmed"),
     ),
@@ -161,6 +164,7 @@ export const tables = {
     senderUserId: v.string(),
     receiverUserId: v.string(),
     appointmentId: v.optional(v.id("appointments")),
+    pushNotificationId: v.optional(v.string()),
   },
 };
 

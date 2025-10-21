@@ -12,6 +12,8 @@ export default defineSchema(
       ...tables.userProfileData,
     })
       .index("by_userId", ["userId"])
+      .index("by_email", ["email"])
+      .index("by_phoneNumber", ["phoneNumber"])
       .index("by_uuid", ["uuid"]),
     barbershops: defineTable({
       ...tables.barbershops,

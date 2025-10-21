@@ -1,7 +1,18 @@
 import { v } from "convex/values";
-import { internalMutation } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 import { authComponent } from "./auth";
 import { tables } from "./tables";
+
+export const getProfileByUserId = internalQuery({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("userProfileData")
+      .withIndex("by_userId")
+      .filter(({ eq, field }) => eq(field("userId"), args.userId))
+      .unique();
+  },
+});
 
 export const createProfile = internalMutation({
   args: {
