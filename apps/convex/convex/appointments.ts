@@ -113,7 +113,7 @@ export const createAppointment = mutation({
     const appointmentId = await ctx.db.insert("appointments", {
       ...appointment,
       uuid: crypto.randomUUID(),
-      status: "pending",
+      status: "confirmed",
     });
 
     const thirtyMinutesBeforeAppointment = appointment.startAt - 30 * 60 * 1000;

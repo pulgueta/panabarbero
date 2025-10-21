@@ -17,7 +17,7 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
       onCreate: async (ctx, doc) => {
         await ctx.runMutation(internal.userProfileData.createProfile, {
           data: {
-            userId: doc.userId ?? "",
+            userId: doc._id,
             uuid: crypto.randomUUID(),
             email: doc.email,
             phoneNumber: doc.phoneNumber ?? undefined,

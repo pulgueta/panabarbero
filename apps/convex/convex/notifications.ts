@@ -49,10 +49,16 @@ export const createNotification = internalMutation({
       });
     }
 
+    const notificationId = await ctx.db.insert("notifications", {
+      ...args.notification,
+      uuid: crypto.randomUUID(),
+      senderUserId: user.userId ?? "",
+    });
+
     if (isNotificationEnabled("email", userProfile.notificationsPreferences)) {
       await ctx.scheduler.runAfter(0, internal.emails.sendEmail, {
         emailType: args.notification.reason,
-        subject: args.notification.title,
+        subject: notificationId,
         to: userProfile.email,
       });
     }
@@ -76,12 +82,6 @@ export const createNotification = internalMutation({
         },
       );
     }
-
-    const notificationId = await ctx.db.insert("notifications", {
-      ...args.notification,
-      uuid: crypto.randomUUID(),
-      senderUserId: user.userId ?? "",
-    });
 
     return notificationId;
   },
