@@ -18,17 +18,10 @@ export const createProfile = internalMutation({
   args: {
     data: v.object({
       ...tables.userProfileData,
+      userId: v.optional(v.string()),
     }),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
-
-    if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
-    }
-
     const profile = await ctx.db.insert("userProfileData", {
       ...args.data,
       notificationsPreferences: args.data.notificationsPreferences.concat([
@@ -37,7 +30,7 @@ export const createProfile = internalMutation({
           enabled: true,
         },
       ]),
-      userId: user.userId ?? "",
+      userId: args.data.userId ?? "",
       uuid: crypto.randomUUID(),
     });
 
