@@ -33,9 +33,8 @@ export const getReviewsByBarbershopId = query({
   handler: async (ctx, args) => {
     const reviews = await ctx.db
       .query("reviews")
-      .withIndex("by_barbershopId", ({ eq }) =>
-        eq("barbershopId", args.barbershopId),
-      )
+      .withIndex("by_barbershopId")
+      .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
       .collect();
 
     return reviews;
@@ -52,10 +51,10 @@ export const getReviewsByUserId = query({
         cause: user,
       });
     }
-
     const reviews = await ctx.db
       .query("reviews")
-      .withIndex("by_userId", ({ eq }) => eq("userId", args.userId))
+      .filter(({ eq, field }) => eq(field("userId"), args.userId))
+      .withIndex("by_userId")
       .collect();
 
     return reviews;
@@ -75,7 +74,6 @@ export const updateReview = mutation({
         cause: user,
       });
     }
-
     const updated = await ctx.db.patch(args.reviewId, args.review);
 
     return updated;
@@ -112,11 +110,13 @@ export const canReview = query({
 
     const userHasAttended = await ctx.db
       .query("appointments")
-      .withIndex("by_barbershopId", ({ eq }) =>
-        eq("barbershopId", args.barbershopId),
-      )
+      .withIndex("by_barbershopId")
       .filter(({ eq, field, and }) =>
-        and(eq(field("userId"), args.userId), eq(field("status"), "completed")),
+        and(
+          eq(field("barbershopId"), args.barbershopId),
+          eq(field("userId"), args.userId),
+          eq(field("status"), "completed"),
+        ),
       )
       .first();
 

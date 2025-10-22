@@ -15,23 +15,7 @@ export function isNotificationEnabled(
 export const createNotification = internalMutation({
   args: {
     notification: v.object({
-      receiverUserId: v.string(),
-      title: v.string(),
-      body: v.string(),
-      reason: v.union(
-        v.literal("appointment_reminder"),
-        v.literal("appointment_cancelled"),
-        v.literal("appointment_rescheduled"),
-        v.literal("appointment_rescheduled_request"),
-        v.literal("appointment_no_show"),
-        v.literal("appointment_confirmed"),
-        v.literal("appointment_rescheduled_accepted"),
-        v.literal("appointment_rescheduled_denied"),
-      ),
-      senderUserId: v.union(v.literal("system"), v.string()),
-      uuid: v.string(),
-      preview: v.optional(v.string()),
-      appointmentId: v.optional(v.id("appointments")),
+      ...tables.notifications,
     }),
   },
   handler: async (ctx, args) => {
@@ -65,47 +49,28 @@ export const createNotification = internalMutation({
       });
     }
 
-    if (isNotificationEnabled("email", userProfile.notificationsPreferences)) {
-      const notificationId = await ctx.db.insert("notifications", {
-        ...args.notification,
-        uuid: crypto.randomUUID(),
-        senderUserId: user.userId ?? "",
-        type: "email",
-      });
+    const notificationId = await ctx.db.insert("notifications", {
+      ...args.notification,
+      uuid: crypto.randomUUID(),
+      senderUserId: user.userId ?? "",
+    });
 
+    if (isNotificationEnabled("email", userProfile.notificationsPreferences)) {
       await ctx.scheduler.runAfter(0, internal.emails.sendEmail, {
         emailType: args.notification.reason,
-        subject: args.notification.title,
+        subject: notificationId,
         to: userProfile.email,
       });
-
-      return notificationId;
     }
 
     if (isNotificationEnabled("sms", userProfile.notificationsPreferences)) {
-      const notificationId = await ctx.db.insert("notifications", {
-        ...args.notification,
-        uuid: crypto.randomUUID(),
-        senderUserId: user.userId ?? "",
-        type: "sms",
-      });
-
       await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
         body: args.notification.body,
         to: userProfile.phoneNumber ?? "",
       });
-
-      return notificationId;
     }
 
     if (isNotificationEnabled("push", userProfile.notificationsPreferences)) {
-      const notificationId = await ctx.db.insert("notifications", {
-        ...args.notification,
-        uuid: crypto.randomUUID(),
-        senderUserId: user.userId ?? "",
-        type: "push",
-      });
-
       await ctx.scheduler.runAfter(
         0,
         internal.mobilePushTokens.sendPushNotification,
@@ -116,13 +81,9 @@ export const createNotification = internalMutation({
           },
         },
       );
-
-      return notificationId;
     }
 
-    throw new Error("No notification type enabled", {
-      cause: args.notification.receiverUserId,
-    });
+    return notificationId;
   },
 });
 

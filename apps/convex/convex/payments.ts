@@ -37,12 +37,10 @@ export const getPaymentsByAppointmentId = query({
         cause: user,
       });
     }
-
     const payments = await ctx.db
       .query("payments")
-      .withIndex("by_appointmentId", ({ eq }) =>
-        eq("appointmentId", args.appointmentId),
-      )
+      .withIndex("by_appointmentId")
+      .filter(({ eq, field }) => eq(field("appointmentId"), args.appointmentId))
       .collect();
 
     return payments;
@@ -61,9 +59,7 @@ export const getPaymentByTransactionId = query({
     }
     const payment = await ctx.db
       .query("payments")
-      .withIndex("by_transactionId", ({ eq }) =>
-        eq("transactionId", args.transactionId),
-      )
+      .filter(({ eq, field }) => eq(field("transactionId"), args.transactionId))
       .unique();
 
     return payment;

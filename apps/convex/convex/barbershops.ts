@@ -84,20 +84,8 @@ export const createBarbershop = mutation({
 });
 
 export const getBarbershops = query({
-  args: {
-    city: v.optional(v.string()),
-    state: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const barbershops = await ctx.db
-      .query("barbershops")
-      .filter(({ field, eq, and }) =>
-        and(
-          eq(field("city"), args.city ?? "Barrancabermeja"),
-          eq(field("state"), args.state ?? "Santander"),
-        ),
-      )
-      .collect();
+  handler: async (ctx) => {
+    const barbershops = await ctx.db.query("barbershops").collect();
 
     for (const barbershop of barbershops) {
       const services = await ctx.runQuery(
@@ -122,9 +110,10 @@ export const getActiveBarbershops = query({
   handler: async (ctx, args) => {
     const barbershops = await ctx.db
       .query("barbershops")
-      .withIndex("by_isActive", ({ eq }) => eq("isActive", true))
+      .withIndex("by_isActive")
       .filter(({ field, eq, and }) =>
         and(
+          eq(field("isActive"), true),
           eq(field("city"), args.city ?? "Barrancabermeja"),
           eq(field("state"), args.state ?? "Santander"),
         ),
@@ -163,12 +152,13 @@ export const getActiveBarbershops = query({
 
 export const getBarbershopByUuid = query({
   args: {
-    uuid: v.string(),
+    uuid: v.optional(tables.barbershops.uuid),
   },
   handler: async (ctx, args) => {
     const barbershop = await ctx.db
       .query("barbershops")
-      .withIndex("by_uuid", ({ eq }) => eq("uuid", args.uuid))
+      .withIndex("by_uuid")
+      .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
       .unique();
 
     return barbershop;
@@ -182,9 +172,7 @@ export const getBarbershopServices = query({
   handler: async (ctx, args) => {
     const services = await ctx.db
       .query("services")
-      .withIndex("by_barbershopId", ({ eq }) =>
-        eq("barbershopId", args.barbershopId),
-      )
+      .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
       .collect();
 
     return services;
@@ -253,7 +241,6 @@ export const updateBarbershopDayAvailability = mutation({
       });
     }
     const shop = await ctx.db.get(args.barbershopId);
-
     if (!shop) throw new Error("Barbershop not found");
 
     const idx = shop.availability.findIndex((a) => a.weekDay.day === args.day);

@@ -108,7 +108,8 @@ export const getServiceByUuid = query({
   handler: async (ctx, args) => {
     const service = await ctx.db
       .query("services")
-      .withIndex("by_uuid", ({ eq }) => eq("uuid", args.uuid))
+      .withIndex("by_uuid")
+      .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
       .unique();
 
     return service;
@@ -122,9 +123,8 @@ export const getServicesByBarbershopId = query({
   handler: async (ctx, args) => {
     const services = await ctx.db
       .query("services")
-      .withIndex("by_barbershopId", ({ eq }) =>
-        eq("barbershopId", args.barbershopId),
-      )
+      .withIndex("by_barbershopId")
+      .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
       .collect();
 
     return services;
@@ -146,7 +146,6 @@ export const updateService = mutation({
         cause: user,
       });
     }
-
     const { service, serviceId } = args;
 
     const embeddedName = await ctx.runMutation(
