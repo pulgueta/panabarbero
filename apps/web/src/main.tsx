@@ -1,28 +1,67 @@
-import { ConvexProvider } from "@panabarbero/client/providers/web";
+import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
+import { ConvexQueryClient } from "@convex-dev/react-query";
+import { authClient } from "@panabarbero/convex/auth";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
+import { routerWithQueryClient } from "@tanstack/react-router-with-query";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
+import { ConvexReactClient } from "convex/react";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { ThemeProvider } from "@/components/theme";
 import { env } from "@/env";
-import reportWebVitals from "./reportWebVitals.ts";
-// Import the generated route tree
+import reportWebVitals from "./reportWebVitals";
 import { routeTree } from "./routeTree.gen";
+// @ts-expect-error
 import "./styles.css";
 
-// Create a new router instance
-const router = createRouter({
-  routeTree,
-  context: {},
-  defaultPreload: "intent",
-  scrollRestoration: true,
-  defaultStructuralSharing: true,
-  defaultPreloadStaleTime: 0,
-});
+export function getRouter() {
+  const convex = new ConvexReactClient(env.PUBLIC_CONVEX_URL, {
+    expectAuth: true,
+  });
+  const convexQueryClient = new ConvexQueryClient(convex);
+
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        queryKeyHashFn: convexQueryClient.hashFn(),
+        queryFn: convexQueryClient.queryFn(),
+        experimental_prefetchInRender: true,
+      },
+    },
+  });
+
+  convexQueryClient.connect(queryClient);
+
+  const router = routerWithQueryClient(
+    createRouter({
+      routeTree,
+      defaultPreload: "intent",
+      context: { queryClient, convexClient: convex, convexQueryClient },
+      scrollRestoration: true,
+      defaultViewTransition: true,
+      Wrap: ({ children }) => (
+        <ThemeProvider>
+          <ConvexBetterAuthProvider client={convex} authClient={authClient}>
+            <QueryClientProvider client={queryClient}>
+              {children}
+            </QueryClientProvider>
+          </ConvexBetterAuthProvider>
+        </ThemeProvider>
+      ),
+    }),
+    queryClient,
+  );
+
+  return router;
+}
 
 // Register the router instance for type safety
 declare module "@tanstack/react-router" {
   interface Register {
-    router: typeof router;
+    router: ReturnType<typeof getRouter>;
   }
 }
 
@@ -32,9 +71,13 @@ if (rootElement && !rootElement.innerHTML) {
   const root = createRoot(rootElement);
   root.render(
     <StrictMode>
-      <ConvexProvider url={env.PUBLIC_CONVEX_URL}>
-        <RouterProvider router={router} />
-      </ConvexProvider>
+      {process.env.NODE_ENV === "production" && (
+        <>
+          <SpeedInsights />
+          <Analytics />
+        </>
+      )}
+      <RouterProvider router={getRouter()} />
     </StrictMode>,
   );
 }

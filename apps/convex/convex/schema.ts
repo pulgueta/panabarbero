@@ -8,11 +8,19 @@ import { tables } from "./tables";
 
 export default defineSchema(
   {
+    userProfileData: defineTable({
+      ...tables.userProfileData,
+    })
+      .index("by_userId", ["userId"])
+      .index("by_email", ["email"])
+      .index("by_phoneNumber", ["phoneNumber"])
+      .index("by_uuid", ["uuid"]),
     barbershops: defineTable({
       ...tables.barbershops,
     })
       .index("by_ownerId", ["ownerId"])
       .index("by_city_and_state", ["city", "state"])
+      .index("by_isActive", ["isActive"])
       .index("by_uuid", ["uuid"]),
 
     barbers: defineTable({
@@ -55,6 +63,7 @@ export default defineSchema(
       ...tables.payments,
     })
       .index("by_appointmentId", ["appointmentId"])
+      .index("by_transactionId", ["transactionId"])
       .index("by_status", ["status"])
       .index("by_method", ["method"]),
 

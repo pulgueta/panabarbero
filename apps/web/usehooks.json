@@ -1,0 +1,8 @@
+{
+  "style": "default",
+  "rsc": false,
+  "tsx": true,
+  "aliases": {
+    "hooks": "./src/hooks"
+  }
+}

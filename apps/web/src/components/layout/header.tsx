@@ -1,51 +1,41 @@
-import { api } from "@panabarbero/convex/api";
-import { signIn, signOut, useSession } from "@panabarbero/convex/auth";
+import { tanstack } from "@panabarbero/constants";
+import { signOut } from "@panabarbero/convex/auth";
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import {
   BarChart3,
   Briefcase,
   Calendar,
   LogOut,
-  Search,
   Star,
   User,
 } from "lucide-react";
-import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Combobox } from "@/components/ui/combobox";
-import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
+import { useSession } from "@/hooks/use-session";
+import { ThemeToggler } from "./theme-toggler";
 
 export const Header = () => {
-  const { data: session } = useSession();
-  const barberStatus = useQuery(api.auth.checkIsBarber, {});
-  const [selectedBarbershop, setSelectedBarbershop] = useState<string>("");
-  const [searchQuery, setSearchQuery] = useState("");
+  const { data: user } = useSession();
+  // const barberStatus = useQuery(api.auth.checkIsBarber, {});
 
-  const isBarber = barberStatus?.isBarber ?? false;
-
-  const handleSignIn = async () => {
-    await signIn.social({
-      provider: "google",
-      callbackURL: window.location.origin,
-    });
-  };
+  const isBarber = true; // barberStatus?.isBarber ?? false;
 
   const handleSignOut = async () => {
     await signOut();
   };
 
   const getUserInitials = () => {
-    if (!session?.user?.name) return "U";
-    const names = session.user.name.split(" ");
+    if (!user?.name) return "AN";
+
+    const names = user.name.split(" ");
+
     return names
       .map((n) => n[0])
       .join("")
@@ -53,107 +43,50 @@ export const Header = () => {
       .slice(0, 2);
   };
 
-  const barbershopOptions =
-    isBarber && barberStatus?.isBarber
-      ? barberStatus.barbershops.map((shop) => ({
-          value: shop._id,
-          label: shop.name,
-        }))
-      : [];
+  // const _barbershopOptions =
+  //   isBarber && true ? [{ value: "1", label: "Barbería 1" }] : [];
+  // isBarber && barberStatus?.isBarber
+  // ? barberStatus.barbershops.map((shop) => ({
+  //     value: shop._id,
+  //     label: shop.name,
+  //   }))
+  // : [];
+
+  const navigationRoutesWithoutSettings = tanstack
+    .getNavigationRoutes(user?._id)
+    .filter((route) => route.to !== "/settings");
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center">
-        {/* Logo */}
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-4">
+      <div className="container mx-auto flex h-16 items-center">
         <div className="mr-6 flex">
-          <Link to="/" className="flex items-center space-x-2">
-            <span className="font-bold text-xl">PanaBarbero</span>
+          <Link
+            to="/profile"
+            className="font-bold text-2xl tracking-tighter lg:text-3xl"
+          >
+            PanaBarbero
           </Link>
         </div>
 
-        {/* Navigation - Conditional based on auth state */}
-        <nav className="flex flex-1 items-center space-x-6">
-          {/* Barber Navigation */}
-          {session?.user && isBarber && (
-            <>
-              <Combobox
-                options={barbershopOptions}
-                value={selectedBarbershop}
-                onValueChange={setSelectedBarbershop}
-                placeholder="Seleccionar barbería"
-                searchPlaceholder="Buscar barbería..."
-                emptyText="No se encontraron barberías"
-              />
+        <nav className="flex flex-1 items-center justify-center">
+          <div className="flex items-center space-x-16 font-medium text-sm">
+            {navigationRoutesWithoutSettings.map((route) => (
               <Link
-                to="/services"
-                className="font-medium text-sm transition-colors hover:text-primary"
+                key={route.to}
+                to={route.to}
+                style={{
+                  viewTransitionName: route.to,
+                }}
               >
-                Mis Servicios
+                {route.label}
               </Link>
-              <Link
-                to="/analytics"
-                className="font-medium text-sm transition-colors hover:text-primary"
-              >
-                Analíticas
-              </Link>
-              <Link
-                to="/reviews"
-                className="font-medium text-sm transition-colors hover:text-primary"
-              >
-                Reseñas
-              </Link>
-            </>
-          )}
-
-          {/* Regular User Navigation */}
-          {session?.user && !isBarber && (
-            <Link
-              to="/barbershops"
-              className="font-medium text-sm transition-colors hover:text-primary"
-            >
-              Barberías
-            </Link>
-          )}
-
-          {/* Unauthenticated Navigation */}
-          {!session?.user && (
-            <Link
-              to="/barbershops"
-              className="font-medium text-sm transition-colors hover:text-primary"
-            >
-              Barberías
-            </Link>
-          )}
+            ))}
+          </div>
         </nav>
 
-        {/* Search Bar - For all users */}
         <div className="flex items-center space-x-4">
-          <div className="relative">
-            <Search className="absolute top-2.5 left-2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="¿Qué servicio buscas hoy?"
-              className="w-[300px] pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          {/* Right Side Actions */}
           <div className="flex items-center space-x-2">
-            {!session?.user && (
-              <>
-                <Link to="/become-barber">
-                  <Button variant="ghost" size="sm">
-                    Convertirse en Barbero
-                  </Button>
-                </Link>
-                <Button size="sm" onClick={handleSignIn}>
-                  Iniciar Sesión
-                </Button>
-              </>
-            )}
-
-            {session?.user && (
+            {user ? (
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -161,18 +94,18 @@ export const Header = () => {
                     className="relative h-10 w-10 rounded-full"
                   >
                     <Avatar>
-                      <AvatarImage src={session?.user?.image ?? undefined} />
+                      <AvatarImage src={undefined} />
                       <AvatarFallback>{getUserInitials()}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-56" align="end">
+                <PopoverContent className="w-full max-w-sm" align="end">
                   <div className="flex flex-col space-y-1">
                     <p className="font-medium text-sm leading-none">
-                      {session?.user?.name}
+                      {undefined}
                     </p>
                     <p className="text-muted-foreground text-xs leading-none">
-                      {session?.user?.email}
+                      {undefined}
                     </p>
                   </div>
                   <Separator className="my-2" />
@@ -239,19 +172,25 @@ export const Header = () => {
                     )}
 
                     <Separator className="my-2" />
+
                     <Button
-                      variant="ghost"
-                      className="w-full justify-start"
+                      variant="destructive"
                       size="sm"
                       onClick={handleSignOut}
                     >
-                      <LogOut className="mr-2 h-4 w-4" />
+                      <LogOut className="size-4" />
                       Cerrar Sesión
                     </Button>
                   </div>
                 </PopoverContent>
               </Popover>
+            ) : (
+              <Button size="sm" asChild>
+                <Link to="/login">Iniciar sesión</Link>
+              </Button>
             )}
+
+            <ThemeToggler />
           </div>
         </div>
       </div>

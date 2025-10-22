@@ -12,14 +12,19 @@ import type * as appointments from "../appointments.js";
 import type * as auth from "../auth.js";
 import type * as barbers from "../barbers.js";
 import type * as barbershops from "../barbershops.js";
+import type * as crons from "../crons.js";
+import type * as emails from "../emails.js";
 import type * as http from "../http.js";
 import type * as index from "../index.js";
 import type * as mobilePushTokens from "../mobilePushTokens.js";
 import type * as notifications from "../notifications.js";
 import type * as payments from "../payments.js";
+import type * as ratelimit from "../ratelimit.js";
 import type * as reviews from "../reviews.js";
 import type * as services from "../services.js";
 import type * as tables from "../tables.js";
+import type * as twilio from "../twilio.js";
+import type * as userProfileData from "../userProfileData.js";
 
 import type {
   ApiFromModules,
@@ -40,14 +45,19 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   barbers: typeof barbers;
   barbershops: typeof barbershops;
+  crons: typeof crons;
+  emails: typeof emails;
   http: typeof http;
   index: typeof index;
   mobilePushTokens: typeof mobilePushTokens;
   notifications: typeof notifications;
   payments: typeof payments;
+  ratelimit: typeof ratelimit;
   reviews: typeof reviews;
   services: typeof services;
   tables: typeof tables;
+  twilio: typeof twilio;
+  userProfileData: typeof userProfileData;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 
@@ -2294,6 +2304,857 @@ export declare const components: {
           distance: number;
           key: string;
         }>
+      >;
+    };
+  };
+  resend: {
+    lib: {
+      cancelEmail: FunctionReference<
+        "mutation",
+        "internal",
+        { emailId: string },
+        null
+      >;
+      cleanupAbandonedEmails: FunctionReference<
+        "mutation",
+        "internal",
+        { olderThan?: number },
+        null
+      >;
+      cleanupOldEmails: FunctionReference<
+        "mutation",
+        "internal",
+        { olderThan?: number },
+        null
+      >;
+      createManualEmail: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          from: string;
+          headers?: Array<{ name: string; value: string }>;
+          replyTo?: Array<string>;
+          subject: string;
+          to: string;
+        },
+        string
+      >;
+      get: FunctionReference<
+        "query",
+        "internal",
+        { emailId: string },
+        {
+          complained: boolean;
+          createdAt: number;
+          errorMessage?: string;
+          finalizedAt: number;
+          from: string;
+          headers?: Array<{ name: string; value: string }>;
+          html?: string;
+          opened: boolean;
+          replyTo: Array<string>;
+          resendId?: string;
+          segment: number;
+          status:
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
+          subject: string;
+          text?: string;
+          to: string;
+        } | null
+      >;
+      getStatus: FunctionReference<
+        "query",
+        "internal",
+        { emailId: string },
+        {
+          complained: boolean;
+          errorMessage: string | null;
+          opened: boolean;
+          status:
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
+        } | null
+      >;
+      handleEmailEvent: FunctionReference<
+        "mutation",
+        "internal",
+        { event: any },
+        null
+      >;
+      sendEmail: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          from: string;
+          headers?: Array<{ name: string; value: string }>;
+          html?: string;
+          options: {
+            apiKey: string;
+            initialBackoffMs: number;
+            onEmailEvent?: { fnHandle: string };
+            retryAttempts: number;
+            testMode: boolean;
+          };
+          replyTo?: Array<string>;
+          subject: string;
+          text?: string;
+          to: string;
+        },
+        string
+      >;
+      updateManualEmail: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          emailId: string;
+          errorMessage?: string;
+          resendId?: string;
+          status:
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
+        },
+        null
+      >;
+    };
+  };
+  twilio: {
+    messages: {
+      create: FunctionReference<
+        "action",
+        "internal",
+        {
+          account_sid: string;
+          auth_token: string;
+          body: string;
+          callback?: string;
+          from: string;
+          status_callback: string;
+          to: string;
+        },
+        {
+          account_sid: string;
+          api_version: string;
+          body: string;
+          counterparty?: string;
+          date_created: string;
+          date_sent: string | null;
+          date_updated: string | null;
+          direction: string;
+          error_code: number | null;
+          error_message: string | null;
+          from: string;
+          messaging_service_sid: string | null;
+          num_media: string;
+          num_segments: string;
+          price: string | null;
+          price_unit: string | null;
+          rest?: any;
+          sid: string;
+          status: string;
+          subresource_uris: { feedback?: string; media: string } | null;
+          to: string;
+          uri: string;
+        }
+      >;
+      getByCounterparty: FunctionReference<
+        "query",
+        "internal",
+        { account_sid: string; counterparty: string; limit?: number },
+        Array<{
+          account_sid: string;
+          api_version: string;
+          body: string;
+          counterparty?: string;
+          date_created: string;
+          date_sent: string | null;
+          date_updated: string | null;
+          direction: string;
+          error_code: number | null;
+          error_message: string | null;
+          from: string;
+          messaging_service_sid: string | null;
+          num_media: string;
+          num_segments: string;
+          price: string | null;
+          price_unit: string | null;
+          rest?: any;
+          sid: string;
+          status: string;
+          subresource_uris: { feedback?: string; media: string } | null;
+          to: string;
+          uri: string;
+        }>
+      >;
+      getBySid: FunctionReference<
+        "query",
+        "internal",
+        { account_sid: string; sid: string },
+        {
+          account_sid: string;
+          api_version: string;
+          body: string;
+          counterparty?: string;
+          date_created: string;
+          date_sent: string | null;
+          date_updated: string | null;
+          direction: string;
+          error_code: number | null;
+          error_message: string | null;
+          from: string;
+          messaging_service_sid: string | null;
+          num_media: string;
+          num_segments: string;
+          price: string | null;
+          price_unit: string | null;
+          rest?: any;
+          sid: string;
+          status: string;
+          subresource_uris: { feedback?: string; media: string } | null;
+          to: string;
+          uri: string;
+        } | null
+      >;
+      getFrom: FunctionReference<
+        "query",
+        "internal",
+        { account_sid: string; from: string; limit?: number },
+        Array<{
+          account_sid: string;
+          api_version: string;
+          body: string;
+          counterparty?: string;
+          date_created: string;
+          date_sent: string | null;
+          date_updated: string | null;
+          direction: string;
+          error_code: number | null;
+          error_message: string | null;
+          from: string;
+          messaging_service_sid: string | null;
+          num_media: string;
+          num_segments: string;
+          price: string | null;
+          price_unit: string | null;
+          rest?: any;
+          sid: string;
+          status: string;
+          subresource_uris: { feedback?: string; media: string } | null;
+          to: string;
+          uri: string;
+        }>
+      >;
+      getFromTwilioBySidAndInsert: FunctionReference<
+        "action",
+        "internal",
+        {
+          account_sid: string;
+          auth_token: string;
+          incomingMessageCallback?: string;
+          sid: string;
+        },
+        {
+          account_sid: string;
+          api_version: string;
+          body: string;
+          counterparty?: string;
+          date_created: string;
+          date_sent: string | null;
+          date_updated: string | null;
+          direction: string;
+          error_code: number | null;
+          error_message: string | null;
+          from: string;
+          messaging_service_sid: string | null;
+          num_media: string;
+          num_segments: string;
+          price: string | null;
+          price_unit: string | null;
+          rest?: any;
+          sid: string;
+          status: string;
+          subresource_uris: { feedback?: string; media: string } | null;
+          to: string;
+          uri: string;
+        }
+      >;
+      getTo: FunctionReference<
+        "query",
+        "internal",
+        { account_sid: string; limit?: number; to: string },
+        Array<{
+          account_sid: string;
+          api_version: string;
+          body: string;
+          counterparty?: string;
+          date_created: string;
+          date_sent: string | null;
+          date_updated: string | null;
+          direction: string;
+          error_code: number | null;
+          error_message: string | null;
+          from: string;
+          messaging_service_sid: string | null;
+          num_media: string;
+          num_segments: string;
+          price: string | null;
+          price_unit: string | null;
+          rest?: any;
+          sid: string;
+          status: string;
+          subresource_uris: { feedback?: string; media: string } | null;
+          to: string;
+          uri: string;
+        }>
+      >;
+      list: FunctionReference<
+        "query",
+        "internal",
+        { account_sid: string; limit?: number },
+        Array<{
+          account_sid: string;
+          api_version: string;
+          body: string;
+          counterparty?: string;
+          date_created: string;
+          date_sent: string | null;
+          date_updated: string | null;
+          direction: string;
+          error_code: number | null;
+          error_message: string | null;
+          from: string;
+          messaging_service_sid: string | null;
+          num_media: string;
+          num_segments: string;
+          price: string | null;
+          price_unit: string | null;
+          rest?: any;
+          sid: string;
+          status: string;
+          subresource_uris: { feedback?: string; media: string } | null;
+          to: string;
+          uri: string;
+        }>
+      >;
+      listIncoming: FunctionReference<
+        "query",
+        "internal",
+        { account_sid: string; limit?: number },
+        Array<{
+          account_sid: string;
+          api_version: string;
+          body: string;
+          counterparty?: string;
+          date_created: string;
+          date_sent: string | null;
+          date_updated: string | null;
+          direction: string;
+          error_code: number | null;
+          error_message: string | null;
+          from: string;
+          messaging_service_sid: string | null;
+          num_media: string;
+          num_segments: string;
+          price: string | null;
+          price_unit: string | null;
+          rest?: any;
+          sid: string;
+          status: string;
+          subresource_uris: { feedback?: string; media: string } | null;
+          to: string;
+          uri: string;
+        }>
+      >;
+      listOutgoing: FunctionReference<
+        "query",
+        "internal",
+        { account_sid: string; limit?: number },
+        Array<{
+          account_sid: string;
+          api_version: string;
+          body: string;
+          counterparty?: string;
+          date_created: string;
+          date_sent: string | null;
+          date_updated: string | null;
+          direction: string;
+          error_code: number | null;
+          error_message: string | null;
+          from: string;
+          messaging_service_sid: string | null;
+          num_media: string;
+          num_segments: string;
+          price: string | null;
+          price_unit: string | null;
+          rest?: any;
+          sid: string;
+          status: string;
+          subresource_uris: { feedback?: string; media: string } | null;
+          to: string;
+          uri: string;
+        }>
+      >;
+      updateStatus: FunctionReference<
+        "mutation",
+        "internal",
+        { account_sid: string; sid: string; status: string },
+        null
+      >;
+    };
+    phone_numbers: {
+      create: FunctionReference<
+        "action",
+        "internal",
+        { account_sid: string; auth_token: string; number: string },
+        any
+      >;
+      updateSmsUrl: FunctionReference<
+        "action",
+        "internal",
+        {
+          account_sid: string;
+          auth_token: string;
+          sid: string;
+          sms_url: string;
+        },
+        any
+      >;
+    };
+  };
+  pushNotifications: {
+    public: {
+      deleteNotificationsForUser: FunctionReference<
+        "mutation",
+        "internal",
+        { logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR"; userId: string },
+        any
+      >;
+      getNotification: FunctionReference<
+        "query",
+        "internal",
+        { id: string; logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR" },
+        null | {
+          _contentAvailable?: boolean;
+          _creationTime: number;
+          badge?: number;
+          body?: string;
+          categoryId?: string;
+          channelId?: string;
+          data?: any;
+          expiration?: number;
+          interruptionLevel?:
+            | "active"
+            | "critical"
+            | "passive"
+            | "time-sensitive";
+          mutableContent?: boolean;
+          numPreviousFailures: number;
+          priority?: "default" | "normal" | "high";
+          sound?: string | null;
+          state:
+            | "awaiting_delivery"
+            | "in_progress"
+            | "delivered"
+            | "needs_retry"
+            | "failed"
+            | "maybe_delivered"
+            | "unable_to_deliver";
+          subtitle?: string;
+          title?: string;
+          ttl?: number;
+        }
+      >;
+      getNotificationsForUser: FunctionReference<
+        "query",
+        "internal",
+        {
+          limit?: number;
+          logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
+          userId: string;
+        },
+        Array<{
+          _contentAvailable?: boolean;
+          _creationTime: number;
+          badge?: number;
+          body?: string;
+          categoryId?: string;
+          channelId?: string;
+          data?: any;
+          expiration?: number;
+          id: string;
+          interruptionLevel?:
+            | "active"
+            | "critical"
+            | "passive"
+            | "time-sensitive";
+          mutableContent?: boolean;
+          numPreviousFailures: number;
+          priority?: "default" | "normal" | "high";
+          sound?: string | null;
+          state:
+            | "awaiting_delivery"
+            | "in_progress"
+            | "delivered"
+            | "needs_retry"
+            | "failed"
+            | "maybe_delivered"
+            | "unable_to_deliver";
+          subtitle?: string;
+          title?: string;
+          ttl?: number;
+        }>
+      >;
+      getStatusForUser: FunctionReference<
+        "query",
+        "internal",
+        { logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR"; userId: string },
+        { hasToken: boolean; paused: boolean }
+      >;
+      pauseNotificationsForUser: FunctionReference<
+        "mutation",
+        "internal",
+        { logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR"; userId: string },
+        null
+      >;
+      recordPushNotificationToken: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
+          pushToken: string;
+          userId: string;
+        },
+        null
+      >;
+      removePushNotificationToken: FunctionReference<
+        "mutation",
+        "internal",
+        { logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR"; userId: string },
+        null
+      >;
+      restart: FunctionReference<
+        "mutation",
+        "internal",
+        { logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR" },
+        boolean
+      >;
+      sendPushNotification: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          allowUnregisteredTokens?: boolean;
+          logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
+          notification: {
+            _contentAvailable?: boolean;
+            badge?: number;
+            body?: string;
+            categoryId?: string;
+            channelId?: string;
+            data?: any;
+            expiration?: number;
+            interruptionLevel?:
+              | "active"
+              | "critical"
+              | "passive"
+              | "time-sensitive";
+            mutableContent?: boolean;
+            priority?: "default" | "normal" | "high";
+            sound?: string | null;
+            subtitle?: string;
+            title?: string;
+            ttl?: number;
+          };
+          userId: string;
+        },
+        string | null
+      >;
+      shutdown: FunctionReference<
+        "mutation",
+        "internal",
+        { logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR" },
+        { data?: any; message: string }
+      >;
+      unpauseNotificationsForUser: FunctionReference<
+        "mutation",
+        "internal",
+        { logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR"; userId: string },
+        null
+      >;
+    };
+  };
+  rateLimiter: {
+    lib: {
+      checkRateLimit: FunctionReference<
+        "query",
+        "internal",
+        {
+          config:
+            | {
+                capacity?: number;
+                kind: "token bucket";
+                maxReserved?: number;
+                period: number;
+                rate: number;
+                shards?: number;
+                start?: null;
+              }
+            | {
+                capacity?: number;
+                kind: "fixed window";
+                maxReserved?: number;
+                period: number;
+                rate: number;
+                shards?: number;
+                start?: number;
+              };
+          count?: number;
+          key?: string;
+          name: string;
+          reserve?: boolean;
+          throws?: boolean;
+        },
+        { ok: true; retryAfter?: number } | { ok: false; retryAfter: number }
+      >;
+      clearAll: FunctionReference<
+        "mutation",
+        "internal",
+        { before?: number },
+        null
+      >;
+      getServerTime: FunctionReference<"mutation", "internal", {}, number>;
+      getValue: FunctionReference<
+        "query",
+        "internal",
+        {
+          config:
+            | {
+                capacity?: number;
+                kind: "token bucket";
+                maxReserved?: number;
+                period: number;
+                rate: number;
+                shards?: number;
+                start?: null;
+              }
+            | {
+                capacity?: number;
+                kind: "fixed window";
+                maxReserved?: number;
+                period: number;
+                rate: number;
+                shards?: number;
+                start?: number;
+              };
+          key?: string;
+          name: string;
+          sampleShards?: number;
+        },
+        {
+          config:
+            | {
+                capacity?: number;
+                kind: "token bucket";
+                maxReserved?: number;
+                period: number;
+                rate: number;
+                shards?: number;
+                start?: null;
+              }
+            | {
+                capacity?: number;
+                kind: "fixed window";
+                maxReserved?: number;
+                period: number;
+                rate: number;
+                shards?: number;
+                start?: number;
+              };
+          shard: number;
+          ts: number;
+          value: number;
+        }
+      >;
+      rateLimit: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          config:
+            | {
+                capacity?: number;
+                kind: "token bucket";
+                maxReserved?: number;
+                period: number;
+                rate: number;
+                shards?: number;
+                start?: null;
+              }
+            | {
+                capacity?: number;
+                kind: "fixed window";
+                maxReserved?: number;
+                period: number;
+                rate: number;
+                shards?: number;
+                start?: number;
+              };
+          count?: number;
+          key?: string;
+          name: string;
+          reserve?: boolean;
+          throws?: boolean;
+        },
+        { ok: true; retryAfter?: number } | { ok: false; retryAfter: number }
+      >;
+      resetRateLimit: FunctionReference<
+        "mutation",
+        "internal",
+        { key?: string; name: string },
+        null
+      >;
+    };
+    time: {
+      getServerTime: FunctionReference<"mutation", "internal", {}, number>;
+    };
+  };
+  r2: {
+    lib: {
+      deleteMetadata: FunctionReference<
+        "mutation",
+        "internal",
+        { bucket: string; key: string },
+        null
+      >;
+      deleteObject: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          accessKeyId: string;
+          bucket: string;
+          endpoint: string;
+          key: string;
+          secretAccessKey: string;
+        },
+        null
+      >;
+      deleteR2Object: FunctionReference<
+        "action",
+        "internal",
+        {
+          accessKeyId: string;
+          bucket: string;
+          endpoint: string;
+          key: string;
+          secretAccessKey: string;
+        },
+        null
+      >;
+      getMetadata: FunctionReference<
+        "query",
+        "internal",
+        {
+          accessKeyId: string;
+          bucket: string;
+          endpoint: string;
+          key: string;
+          secretAccessKey: string;
+        },
+        {
+          bucket: string;
+          bucketLink: string;
+          contentType?: string;
+          key: string;
+          lastModified: string;
+          link: string;
+          sha256?: string;
+          size?: number;
+          url: string;
+        } | null
+      >;
+      listMetadata: FunctionReference<
+        "query",
+        "internal",
+        {
+          accessKeyId: string;
+          bucket: string;
+          cursor?: string;
+          endpoint: string;
+          limit?: number;
+          secretAccessKey: string;
+        },
+        {
+          continueCursor: string;
+          isDone: boolean;
+          page: Array<{
+            bucket: string;
+            bucketLink: string;
+            contentType?: string;
+            key: string;
+            lastModified: string;
+            link: string;
+            sha256?: string;
+            size?: number;
+            url: string;
+          }>;
+          pageStatus?: null | "SplitRecommended" | "SplitRequired";
+          splitCursor?: null | string;
+        }
+      >;
+      store: FunctionReference<
+        "action",
+        "internal",
+        {
+          accessKeyId: string;
+          bucket: string;
+          endpoint: string;
+          secretAccessKey: string;
+          url: string;
+        },
+        any
+      >;
+      syncMetadata: FunctionReference<
+        "action",
+        "internal",
+        {
+          accessKeyId: string;
+          bucket: string;
+          endpoint: string;
+          key: string;
+          onComplete?: string;
+          secretAccessKey: string;
+        },
+        null
+      >;
+      upsertMetadata: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          bucket: string;
+          contentType?: string;
+          key: string;
+          lastModified: string;
+          link: string;
+          sha256?: string;
+          size?: number;
+        },
+        { isNew: boolean }
       >;
     };
   };

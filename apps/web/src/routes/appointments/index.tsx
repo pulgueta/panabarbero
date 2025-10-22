@@ -1,10 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
-import { CheckCircle, Edit, Plus, Star, Trash2, XCircle } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
-
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,10 +8,28 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { APPOINTMENT_STATUS, formatCurrency } from "@/lib/form-utils";
+import { APPOINTMENT_STATUS } from "@/lib/form-utils";
 import type { AppointmentFormData } from "@/lib/schemas";
+import { convexQuery } from "@convex-dev/react-query";
+import { api } from "@panabarbero/convex/api";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { CheckCircle, Edit, Plus, Star, Trash2, XCircle } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
-export const AppointmentsListPage = () => {
+export const Route = createFileRoute("/appointments/")({
+  component: AppointmentsPage,
+  loader: async (opts) => {
+    await opts.context.queryClient.ensureQueryData(
+      convexQuery(api.appointments.getAppointments, {}),
+    );
+  },
+});
+
+function AppointmentsPage() {
   const [_createDialogOpen, setCreateDialogOpen] = useState(false);
   const [_editDialogOpen, setEditDialogOpen] = useState(false);
   const [_reviewDialogOpen, setReviewDialogOpen] = useState(false);
@@ -36,91 +47,6 @@ export const AppointmentsListPage = () => {
       })
     | null
   >(null);
-
-  // Mock data - in real app this would come from backend
-  const mockAppointments: (AppointmentFormData & {
-    id: string;
-    barbershop: string;
-    barber: string;
-    service: string;
-    phone: string;
-    email: string;
-    price: number;
-    duration: number;
-  })[] = [
-    {
-      id: "1",
-      customerName: "Juan Pérez",
-      phone: "3001112233",
-      email: "juan.perez@example.com",
-      barbershop: "Barbería El Clásico",
-      barbershopId: "1",
-      barber: "Carlos Rodríguez",
-      barberId: "1",
-      service: "Corte de Cabello Clásico",
-      serviceId: "1",
-      price: 30000,
-      duration: 30,
-      date: new Date("2024-03-10T10:00:00"),
-      startTime: "10:00",
-      status: "confirmed",
-      notes: "Cliente habitual, prefiere corte a tijera.",
-    },
-    {
-      id: "2",
-      customerName: "María García",
-      phone: "3102223344",
-      email: "maria.garcia@example.com",
-      barbershop: "The Gentleman's Cut",
-      barbershopId: "2",
-      barber: "Miguel Ángel",
-      barberId: "3",
-      service: "Corte Premium",
-      serviceId: "4",
-      price: 60000,
-      duration: 60,
-      date: new Date("2024-03-11T11:30:00"),
-      startTime: "11:30",
-      status: "pending",
-      notes: "Primera visita, recomendar productos para el cuidado de barba.",
-    },
-    {
-      id: "3",
-      customerName: "Pedro López",
-      phone: "3203334455",
-      email: "pedro.lopez@example.com",
-      barbershop: "Barbería Tradicional",
-      barbershopId: "3",
-      barber: "Pedro Gómez",
-      barberId: "5",
-      service: "Afeitado Clásico",
-      serviceId: "5",
-      price: 35000,
-      duration: 40,
-      date: new Date("2024-03-12T14:00:00"),
-      startTime: "14:00",
-      status: "cancelled",
-      notes: "Canceló por emergencia.",
-    },
-    {
-      id: "4",
-      customerName: "Laura Martínez",
-      phone: "3014445566",
-      email: "laura.martinez@example.com",
-      barbershop: "Barbería El Clásico",
-      barbershopId: "1",
-      barber: "Juan Pérez",
-      barberId: "1",
-      service: "Corte + Barba",
-      serviceId: "2",
-      price: 45000,
-      duration: 45,
-      date: new Date("2024-03-10T16:00:00"),
-      startTime: "16:00",
-      status: "completed",
-      notes: "Quedó muy satisfecho.",
-    },
-  ];
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -210,6 +136,10 @@ export const AppointmentsListPage = () => {
     setSelectedAppointment(null);
   };
 
+  const { data: appointments } = useSuspenseQuery(
+    convexQuery(api.appointments.getAppointments, {}),
+  );
+
   return (
     <>
       <div className="container mx-auto px-4 py-8">
@@ -227,19 +157,19 @@ export const AppointmentsListPage = () => {
         </div>
 
         <div className="grid gap-6">
-          {mockAppointments.map((appointment) => (
+          {appointments.map((appointment) => (
             <Card
-              key={appointment.id}
+              key={appointment._id}
               className="transition-shadow hover:shadow-lg"
             >
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div>
                     <CardTitle className="text-xl">
-                      {appointment.customerName}
+                      {appointment.userId}
                     </CardTitle>
                     <CardDescription className="mt-1">
-                      {appointment.phone}
+                      {appointment.contactPhone}
                     </CardDescription>
                   </div>
                   <Badge variant={getStatusBadgeVariant(appointment.status)}>
@@ -251,21 +181,19 @@ export const AppointmentsListPage = () => {
                 <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                   <div>
                     <p className="text-muted-foreground text-sm">Barbería</p>
-                    <p className="font-medium">{appointment.barbershop}</p>
+                    <p className="font-medium">{appointment.barbershopId}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground text-sm">Barbero</p>
-                    <p className="font-medium">{appointment.barber}</p>
+                    <p className="font-medium">{appointment.barberId}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground text-sm">Servicio</p>
-                    <p className="font-medium">{appointment.service}</p>
+                    <p className="font-medium">{appointment.serviceId}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground text-sm">Precio</p>
-                    <p className="font-medium">
-                      {formatCurrency(appointment.price)}
-                    </p>
+                    <p className="font-medium">{appointment.contactPhone}</p>
                   </div>
                 </div>
 
@@ -281,8 +209,8 @@ export const AppointmentsListPage = () => {
                   <div>
                     <p className="text-muted-foreground text-sm">Hora</p>
                     <p className="font-medium">
-                      {format(appointment.date, "HH:mm")} (
-                      {appointment.duration} min)
+                      {format(appointment.date, "HH:mm")} ({appointment.startAt}{" "}
+                      min)
                     </p>
                   </div>
                 </div>
@@ -292,7 +220,9 @@ export const AppointmentsListPage = () => {
                     <>
                       <Button
                         size="sm"
-                        onClick={() => handleConfirmAppointment(appointment.id)}
+                        onClick={() =>
+                          handleConfirmAppointment(appointment._id)
+                        }
                       >
                         <CheckCircle className="mr-1 h-3 w-3" />
                         Confirmar
@@ -300,7 +230,7 @@ export const AppointmentsListPage = () => {
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => handleCancelAppointment(appointment.id)}
+                        onClick={() => handleCancelAppointment(appointment._id)}
                       >
                         <XCircle className="mr-1 h-3 w-3" />
                         Cancelar
@@ -312,7 +242,7 @@ export const AppointmentsListPage = () => {
                       <Button
                         size="sm"
                         onClick={() =>
-                          handleCompleteAppointment(appointment.id)
+                          handleCompleteAppointment(appointment._id)
                         }
                       >
                         <CheckCircle className="mr-1 h-3 w-3" />
@@ -321,7 +251,7 @@ export const AppointmentsListPage = () => {
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => handleCancelAppointment(appointment.id)}
+                        onClick={() => handleCancelAppointment(appointment._id)}
                       >
                         <XCircle className="mr-1 h-3 w-3" />
                         Cancelar
@@ -332,7 +262,7 @@ export const AppointmentsListPage = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleAddReview(appointment)}
+                      onClick={() => handleAddReview(appointment._id)}
                     >
                       <Star className="mr-1 h-3 w-3" />
                       Reseña
@@ -341,7 +271,7 @@ export const AppointmentsListPage = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleEdit(appointment)}
+                    onClick={() => handleEdit(appointment._id)}
                   >
                     <Edit className="mr-1 h-3 w-3" />
                     Editar
@@ -349,7 +279,7 @@ export const AppointmentsListPage = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleDelete(appointment)}
+                    onClick={() => handleDelete(appointment._id)}
                   >
                     <Trash2 className="mr-1 h-3 w-3" />
                     Eliminar
@@ -412,12 +342,8 @@ export const AppointmentsListPage = () => {
         onConfirm={handleDeleteConfirm}
         title="Eliminar Cita"
         description="¿Está seguro que desea eliminar la cita de"
-        itemName={selectedAppointment?.customerName}
+        itemName={selectedAppointment?.barberId}
       />
     </>
   );
-};
-
-export const Route = createFileRoute("/appointments/")({
-  component: AppointmentsListPage,
-});
+}

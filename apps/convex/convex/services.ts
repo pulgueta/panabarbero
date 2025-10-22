@@ -10,6 +10,7 @@ import {
   mutation,
   query,
 } from "./_generated/server";
+import { authComponent } from "./auth";
 import { tables } from "./tables";
 
 export const genreateEmbedding = internalMutation({
@@ -71,7 +72,7 @@ export const createService = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -105,11 +106,10 @@ export const getServiceByUuid = query({
     uuid: v.string(),
   },
   handler: async (ctx, args) => {
-    // Public read; no auth wall added
     const service = await ctx.db
       .query("services")
-      .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
       .withIndex("by_uuid")
+      .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
       .unique();
 
     return service;
@@ -121,11 +121,10 @@ export const getServicesByBarbershopId = query({
     barbershopId: v.id("barbershops"),
   },
   handler: async (ctx, args) => {
-    // Public read; no auth wall added
     const services = await ctx.db
       .query("services")
-      .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
       .withIndex("by_barbershopId")
+      .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
       .collect();
 
     return services;
@@ -140,7 +139,7 @@ export const updateService = mutation({
     serviceId: v.id("services"),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -166,7 +165,7 @@ export const deleteService = mutation({
     serviceId: v.id("services"),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {

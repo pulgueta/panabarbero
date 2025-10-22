@@ -22,9 +22,6 @@
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
     "@commitlint/cli": "^19.8.1",
-    "@commitlint/config-conventional": "^19.8.1",
-    "@commitlint/format": "^19.8.1",
-    "@commitlint/types": "^19.8.1",
     "@semantic-release/changelog": "^6.0.3",
     "@types/bun": "catalog:",
     "conventional-changelog-atom": "^5.0.0",
@@ -48,7 +45,13 @@
     "zod": "^4.0.17"
   },
   "trustedDependencies": [
+    "@prisma/client",
+    "@prisma/engines",
     "@tailwindcss/oxide",
-    "core-js"
+    "@vercel/speed-insights",
+    "better-sqlite3",
+    "core-js",
+    "esbuild",
+    "prisma"
   ]
 }

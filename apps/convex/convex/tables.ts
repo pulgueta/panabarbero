@@ -1,6 +1,20 @@
+import type { Infer } from "convex/values";
 import { v } from "convex/values";
+import type { Id, TableNames } from "./_generated/dataModel";
 
 export const tables = {
+  userProfileData: {
+    uuid: v.string(),
+    userId: v.string(),
+    email: v.string(),
+    phoneNumber: v.optional(v.string()),
+    notificationsPreferences: v.array(
+      v.object({
+        type: v.union(v.literal("email"), v.literal("push"), v.literal("sms")),
+        enabled: v.boolean(),
+      }),
+    ),
+  },
   barbershops: {
     uuid: v.string(),
     name: v.string(),
@@ -15,6 +29,7 @@ export const tables = {
         y: v.number(),
       }),
     ),
+    services: v.optional(v.array(v.id("services"))),
     contactPhone: v.optional(v.string()),
     isActive: v.boolean(),
     gracePeriodMinutes: v.optional(v.number()),
@@ -95,6 +110,8 @@ export const tables = {
     date: v.number(),
     startAt: v.number(),
     endAt: v.number(),
+    proposedStartAt: v.optional(v.number()),
+    proposedEndAt: v.optional(v.number()),
     contactPhone: v.string(),
     contactEmail: v.string(),
     status: v.union(
@@ -104,6 +121,7 @@ export const tables = {
       v.literal("completed"),
       v.literal("no-show"),
       v.literal("rescheduled"),
+      v.literal("denied"),
     ),
     notes: v.optional(v.string()),
   },
@@ -139,14 +157,66 @@ export const tables = {
       v.literal("appointment_reminder"),
       v.literal("appointment_cancelled"),
       v.literal("appointment_rescheduled"),
+      v.literal("appointment_rescheduled_request"),
       v.literal("appointment_no_show"),
       v.literal("appointment_confirmed"),
+      v.literal("appointment_rescheduled_accepted"),
+      v.literal("appointment_rescheduled_denied"),
     ),
     title: v.string(),
     body: v.string(),
     preview: v.optional(v.string()),
-    senderUserId: v.string(),
+    senderUserId: v.union(v.literal("system"), v.string()),
     receiverUserId: v.string(),
     appointmentId: v.optional(v.id("appointments")),
+    pushNotificationId: v.optional(v.string()),
   },
 };
+
+const userProfileDataSchema = v.object({
+  ...tables.userProfileData,
+});
+const barbershopSchema = v.object({
+  ...tables.barbershops,
+});
+const barberSchema = v.object({
+  ...tables.barbers,
+});
+const serviceSchema = v.object({
+  ...tables.services,
+});
+const reviewSchema = v.object({
+  ...tables.reviews,
+});
+const appointmentSchema = v.object({
+  ...tables.appointments,
+});
+const paymentSchema = v.object({
+  ...tables.payments,
+});
+const mobilePushTokenSchema = v.object({
+  ...tables.mobilePushTokens,
+});
+const notificationSchema = v.object({
+  ...tables.notifications,
+});
+
+type ConvexRows<T extends TableNames> = {
+  _id: Id<T>;
+  _creationTime: number;
+};
+
+export type UserProfileData = ConvexRows<"userProfileData"> &
+  Infer<typeof userProfileDataSchema>;
+export type Barbershop = ConvexRows<"barbershops"> &
+  Infer<typeof barbershopSchema>;
+export type Barber = ConvexRows<"barbers"> & Infer<typeof barberSchema>;
+export type Service = ConvexRows<"services"> & Infer<typeof serviceSchema>;
+export type Review = ConvexRows<"reviews"> & Infer<typeof reviewSchema>;
+export type Appointment = ConvexRows<"appointments"> &
+  Infer<typeof appointmentSchema>;
+export type Payment = ConvexRows<"payments"> & Infer<typeof paymentSchema>;
+export type MobilePushToken = ConvexRows<"mobile_push_tokens"> &
+  Infer<typeof mobilePushTokenSchema>;
+export type Notification = ConvexRows<"notifications"> &
+  Infer<typeof notificationSchema>;

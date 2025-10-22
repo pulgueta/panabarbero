@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
+import { authComponent } from "./auth";
+import { rateLimiter } from "./ratelimit";
 import { tables } from "./tables";
 
 function parseTimeToMinutes(time: string): number {
@@ -43,7 +45,7 @@ export const createAppointment = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -55,6 +57,7 @@ export const createAppointment = mutation({
 
     const appointmentOverlaps = await ctx.db
       .query("appointments")
+      .withIndex("by_barbershopId")
       .filter(({ eq, field, and, lte, gte, or }) =>
         and(
           eq(field("barbershopId"), appointment.barbershopId),
@@ -66,7 +69,6 @@ export const createAppointment = mutation({
           or(eq(field("status"), "pending"), eq(field("status"), "confirmed")),
         ),
       )
-      .withIndex("by_barbershopId")
       .first();
 
     if (appointmentOverlaps) {
@@ -108,7 +110,11 @@ export const createAppointment = mutation({
       throw new Error("Appointment is outside working hours");
     }
 
-    const appointmentId = await ctx.db.insert("appointments", appointment);
+    const appointmentId = await ctx.db.insert("appointments", {
+      ...appointment,
+      uuid: crypto.randomUUID(),
+      status: "confirmed",
+    });
 
     const thirtyMinutesBeforeAppointment = appointment.startAt - 30 * 60 * 1000;
 
@@ -131,13 +137,14 @@ export const getAppointmentsByUserId = query({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
         cause: user,
       });
     }
+
     const appointments = await ctx.db
       .query("appointments")
       .filter(({ eq, field }) => eq(field("userId"), args.userId))
@@ -154,7 +161,7 @@ export const getAppointmentsByBarbershopId = query({
     barbershopId: v.id("barbershops"),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -172,12 +179,20 @@ export const getAppointmentsByBarbershopId = query({
   },
 });
 
+export const getAppointments = query({
+  handler: async (ctx) => {
+    const appointments = await ctx.db.query("appointments").collect();
+
+    return appointments;
+  },
+});
+
 export const getAppointmentByUuid = query({
   args: {
     uuid: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -200,7 +215,7 @@ export const getAppointmentByUserIdAndBarbershopId = query({
     barbershopId: v.id("barbershops"),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -226,7 +241,7 @@ export const getAppointmentsByBarberId = query({
     barberId: v.id("barbers"),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -251,7 +266,7 @@ export const getAppointmentsByBarbershopAndRange = query({
     endAt: v.number(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -281,7 +296,7 @@ export const setAppointmentStatus = mutation({
     status: tables.appointments.status,
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -344,7 +359,7 @@ export const updateAppointment = mutation({
     appointmentId: v.id("appointments"),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -440,7 +455,7 @@ export const deleteAppointment = mutation({
     appointmentId: v.id("appointments"),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -460,7 +475,7 @@ export const cancelAppointment = mutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -498,37 +513,113 @@ export const requestReschedule = mutation({
     note: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
         cause: user,
       });
     }
+
+    const { ok, retryAfter } = await rateLimiter.limit(
+      ctx,
+      "requestReschedule",
+      {
+        key: user._id,
+      },
+    );
+
+    if (!ok) {
+      throw new Error(
+        `You cannot request a reschedule more than once every 30 minutes. Please try again at ${new Date(Date.now() + retryAfter).toLocaleString()}`,
+        {
+          cause: retryAfter,
+        },
+      );
+    }
+
     const appt = await ctx.db.get(args.appointmentId);
 
     if (!appt) throw new Error("Appointment not found");
 
     await ctx.db.patch(args.appointmentId, {
-      status: "rescheduled",
+      status: "pending",
       notes: args.note,
-      startAt: args.proposedStartAt,
-      endAt: args.proposedEndAt,
+      proposedStartAt: args.proposedStartAt,
+      proposedEndAt: args.proposedEndAt,
     });
 
-    await ctx.db.insert("notifications", {
-      uuid: crypto.randomUUID(),
-      type: "sms",
-      reason: "appointment_rescheduled",
-      title: "Solicitud de reagendamiento",
-      body: "Se ha solicitado un reagendamiento para tu cita.",
-      senderUserId: args.requestedByUserId,
-      receiverUserId: appt.userId,
-      appointmentId: args.appointmentId,
-    });
-    return null;
+    const userProfile = await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      {
+        userId: user.userId ?? "",
+      },
+    );
+
+    if (!userProfile) {
+      throw new Error("User profile not found", {
+        cause: appt.userId,
+      });
+    }
+
+    const barber = await ctx.db.get(appt.barberId);
+
+    if (!barber) {
+      throw new Error("Barber not found", {
+        cause: appt.barberId,
+      });
+    }
+
+    const barberProfile = await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      {
+        userId: barber.userId,
+      },
+    );
+
+    if (!barberProfile) {
+      throw new Error("Barber profile not found", {
+        cause: barber.userId,
+      });
+    }
+
+    for (const notification of userProfile.notificationsPreferences) {
+      await ctx.runMutation(internal.notifications.createNotification, {
+        notification: {
+          body: "Un cliente ha solicitado un reagendamiento.",
+          reason: "appointment_rescheduled_request",
+          receiverUserId: barberProfile.userId,
+          title: "Solicitud de reagendamiento",
+          uuid: crypto.randomUUID(),
+          senderUserId: userProfile.userId,
+          type: notification.type,
+          appointmentId: args.appointmentId,
+          preview: "Un cliente ha solicitado un reagendamiento.",
+        },
+      });
+
+      await ctx.runMutation(internal.notifications.createNotification, {
+        notification: {
+          body: "Se ha solicitado un reagendamiento para tu cita.",
+          reason: "appointment_rescheduled_request",
+          receiverUserId: appt.userId,
+          title: "Solicitud de reagendamiento",
+          uuid: crypto.randomUUID(),
+          senderUserId: args.requestedByUserId,
+          type: notification.type,
+          appointmentId: args.appointmentId,
+          preview: "Se ha solicitado un reagendamiento para tu cita.",
+        },
+      });
+    }
   },
 });
+
+const notificationTexts = {
+  appointment_reminder: (barbershopName?: string) =>
+    `Tienes una cita en ~30 minutos en ${barbershopName}`,
+  subject: "Recordatorio de cita",
+};
 
 export const notifyUpcomingAppointment = internalMutation({
   args: {
@@ -538,16 +629,101 @@ export const notifyUpcomingAppointment = internalMutation({
   },
   handler: async (ctx, args) => {
     const barbershop = await ctx.db.get(args.barbershopId);
+    const userProfileByUserId = await ctx.db
+      .query("userProfileData")
+      .withIndex("by_userId")
+      .filter(({ eq, field }) => eq(field("userId"), args.userId))
+      .unique();
 
-    await ctx.db.insert("notifications", {
-      uuid: crypto.randomUUID(),
-      type: "sms",
-      reason: "appointment_reminder",
-      title: "Recordatorio de cita",
-      body: `Tienes una cita en ~30 minutos en ${barbershop?.name}`,
-      senderUserId: "system",
-      receiverUserId: args.userId,
-      appointmentId: args.appointmentId,
+    const enabledNotifications =
+      userProfileByUserId?.notificationsPreferences.filter((n) => n.enabled);
+
+    if (!enabledNotifications) {
+      throw new Error("No enabled notifications found", {
+        cause: enabledNotifications,
+      });
+    }
+
+    for (const notification of enabledNotifications) {
+      await ctx.runMutation(internal.notifications.createNotification, {
+        notification: {
+          body: notificationTexts.appointment_reminder(barbershop?.name),
+          reason: "appointment_reminder",
+          senderUserId: "system",
+          title: notificationTexts.subject,
+          uuid: crypto.randomUUID(),
+          type: notification.type,
+          receiverUserId: args.userId,
+          appointmentId: args.appointmentId,
+          preview: notificationTexts.appointment_reminder(barbershop?.name),
+        },
+      });
+    }
+  },
+});
+
+export const answerRescheduleRequest = mutation({
+  args: {
+    appointmentId: v.id("appointments"),
+    accepted: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
+
+    const appt = await ctx.db.get(args.appointmentId);
+
+    if (!appt)
+      throw new Error("Appointment not found", {
+        cause: args.appointmentId,
+      });
+
+    await ctx.db.patch(args.appointmentId, {
+      status: args.accepted ? "confirmed" : "denied",
     });
+
+    const userProfile = await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      {
+        userId: appt.userId,
+      },
+    );
+
+    if (!userProfile) {
+      throw new Error("User profile not found", {
+        cause: appt.userId,
+      });
+    }
+
+    const title = args.accepted
+      ? "Reagendamiento aceptado"
+      : "Reagendamiento rechazado";
+    const body = args.accepted
+      ? "Tu reagendamiento ha sido aceptado."
+      : "Tu reagendamiento ha sido rechazado.";
+    const reason = args.accepted
+      ? "appointment_rescheduled_accepted"
+      : "appointment_rescheduled_denied";
+
+    for (const notification of userProfile.notificationsPreferences) {
+      await ctx.runMutation(internal.notifications.createNotification, {
+        notification: {
+          body,
+          reason,
+          receiverUserId: userProfile.userId,
+          title,
+          uuid: crypto.randomUUID(),
+          senderUserId: "system",
+          type: notification.type,
+          appointmentId: args.appointmentId,
+          preview: title,
+        },
+      });
+    }
   },
 });

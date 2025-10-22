@@ -1,25 +1,83 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-
+import { geospatial, r2 } from ".";
+import { api, internal } from "./_generated/api";
+import { internalMutation, mutation, query } from "./_generated/server";
+import { authComponent } from "./auth";
 import { tables } from "./tables";
+
+export const saveBarbershopBanner = internalMutation({
+  args: {
+    storageId: v.id("_storage"),
+    barbershopId: v.id("barbershops"),
+  },
+  handler: async (ctx, args) => {
+    const updatedBarbershop = await ctx.db.patch(args.barbershopId, {
+      bannerUrl: args.storageId,
+    });
+
+    return updatedBarbershop;
+  },
+});
 
 export const createBarbershop = mutation({
   args: {
     barbershop: v.object({
       ...tables.barbershops,
     }),
+    storageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
         cause: user,
       });
     }
+
     const { barbershop } = args;
 
-    const barbershopId = await ctx.db.insert("barbershops", barbershop);
+    const barbershopId = await ctx.db.insert("barbershops", {
+      ...barbershop,
+      uuid: crypto.randomUUID(),
+      ownerId: user.userId ?? "",
+      isActive: false,
+      gracePeriodMinutes: 5,
+      metadata: {
+        completedAppointments: 0,
+        rating: 0,
+        reviews: 0,
+      },
+    });
+
+    if (args.storageId) {
+      await ctx.runMutation(internal.barbershops.saveBarbershopBanner, {
+        barbershopId,
+        storageId: args.storageId,
+      });
+    }
+
+    if (barbershop.coordinates) {
+      await geospatial.insert(
+        ctx,
+        "Barbershop coordinates",
+        {
+          latitude: barbershop.coordinates.x,
+          longitude: barbershop.coordinates.y,
+        },
+        {
+          key: barbershopId,
+        },
+      );
+    }
+
+    await ctx.runMutation(internal.barbers.createBarber, {
+      barber: {
+        barbershopId,
+        userId: user.userId ?? "",
+        uuid: crypto.randomUUID(),
+      },
+    });
 
     return barbershopId;
   },
@@ -29,19 +87,78 @@ export const getBarbershops = query({
   handler: async (ctx) => {
     const barbershops = await ctx.db.query("barbershops").collect();
 
+    for (const barbershop of barbershops) {
+      const services = await ctx.runQuery(
+        api.services.getServicesByBarbershopId,
+        {
+          barbershopId: barbershop._id,
+        },
+      );
+
+      barbershop.services = services.map((service) => service._id);
+    }
+
+    return barbershops;
+  },
+});
+
+export const getActiveBarbershops = query({
+  args: {
+    city: v.optional(v.string()),
+    state: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const barbershops = await ctx.db
+      .query("barbershops")
+      .withIndex("by_isActive")
+      .filter(({ field, eq, and }) =>
+        and(
+          eq(field("isActive"), true),
+          eq(field("city"), args.city ?? "Barrancabermeja"),
+          eq(field("state"), args.state ?? "Santander"),
+        ),
+      )
+      .collect();
+
+    await Promise.all(
+      barbershops.map(async (barbershop) => {
+        if (barbershop.bannerUrl) {
+          const isAlreadyUrl = /^https?:\/\//i.test(barbershop.bannerUrl);
+
+          if (!isAlreadyUrl) {
+            try {
+              const url = await r2.getUrl(barbershop.bannerUrl);
+              barbershop.bannerUrl = url === null ? undefined : url;
+            } catch (error) {
+              console.error(error);
+            }
+          }
+        }
+
+        const services = await ctx.runQuery(
+          api.services.getServicesByBarbershopId,
+          {
+            barbershopId: barbershop._id,
+          },
+        );
+
+        barbershop.services = services.map((service) => service._id);
+      }),
+    );
+
     return barbershops;
   },
 });
 
 export const getBarbershopByUuid = query({
   args: {
-    uuid: v.string(),
+    uuid: v.optional(tables.barbershops.uuid),
   },
   handler: async (ctx, args) => {
     const barbershop = await ctx.db
       .query("barbershops")
-      .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
       .withIndex("by_uuid")
+      .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
       .unique();
 
     return barbershop;
@@ -116,7 +233,7 @@ export const updateBarbershopDayAvailability = mutation({
     closeAt: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
+    const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -149,5 +266,68 @@ export const updateBarbershopDayAvailability = mutation({
     });
 
     return updated;
+  },
+});
+
+export const updateBarbershop = mutation({
+  args: {
+    barbershopId: v.id("barbershops"),
+    storageId: v.optional(v.id("_storage")),
+    barbershop: v.object({
+      ...tables.barbershops,
+    }),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
+
+    await ctx.db.patch(args.barbershopId, args.barbershop);
+
+    if (args.storageId) {
+      await ctx.runMutation(internal.barbershops.saveBarbershopBanner, {
+        barbershopId: args.barbershopId,
+        storageId: args.storageId,
+      });
+    }
+
+    if (args.barbershop.coordinates) {
+      await geospatial.insert(
+        ctx,
+        "Barbershop coordinates",
+        {
+          latitude: args.barbershop.coordinates.x,
+          longitude: args.barbershop.coordinates.y,
+        },
+        {
+          key: args.barbershopId,
+        },
+      );
+    }
+  },
+});
+
+export const increaseBarbershopRating = internalMutation({
+  args: {
+    barbershopId: v.id("barbershops"),
+  },
+  handler: async (ctx, args) => {
+    const reviews = await ctx.runQuery(api.reviews.getReviewsByBarbershopId, {
+      barbershopId: args.barbershopId,
+    });
+
+    const averageRating =
+      reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length;
+
+    await ctx.db.patch(args.barbershopId, {
+      metadata: {
+        rating: averageRating,
+        reviews: reviews.length,
+      },
+    });
   },
 });

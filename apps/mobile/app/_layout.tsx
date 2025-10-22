@@ -1,5 +1,4 @@
-import { QueryProvider } from "@panabarbero/client/providers";
-import { DEFAULT_OPTIONS } from "@panabarbero/constants";
+import { router } from "@panabarbero/constants";
 import { ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { preventAutoHideAsync } from "expo-splash-screen";
@@ -37,9 +36,8 @@ const RootLayout = () => {
     <SafeAreaView className="flex-1 bg-foreground">
       <ThemeProvider value={isDarkColorScheme ? DARK_THEME : NAV_THEME}>
         <StatusBar style="light" />
-        <QueryProvider>
-          <Stack screenOptions={DEFAULT_OPTIONS} />
-        </QueryProvider>
+
+        <Stack screenOptions={router.DEFAULT_OPTIONS} />
       </ThemeProvider>
     </SafeAreaView>
   );
