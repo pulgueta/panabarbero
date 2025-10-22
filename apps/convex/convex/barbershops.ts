@@ -331,3 +331,53 @@ export const increaseBarbershopRating = internalMutation({
     });
   },
 });
+
+export const getUserVisitedBarbershops = query({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
+
+    if (args.userId !== user.userId) {
+      throw new Error("User not authorized", {
+        cause: user,
+      });
+    }
+
+    const appointments = await ctx.db
+      .query("appointments")
+      .withIndex("by_userId", ({ eq }) => eq("userId", args.userId))
+      .filter(({ eq, field }) => eq(field("status"), "completed"))
+      .order("desc")
+      .collect();
+
+    const barbershops = await Promise.all(
+      appointments.map(
+        async (appointment) => await ctx.db.get(appointment.barbershopId),
+      ),
+    );
+
+    return barbershops;
+  },
+});
+
+export const getBarbershopsByName = query({
+  args: {
+    name: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const barbershops = await ctx.db
+      .query("barbershops")
+      .filter(({ eq, field }) => eq(field("name"), args.name))
+      .collect();
+
+    return barbershops;
+  },
+});

@@ -12,12 +12,28 @@ export function barbershopByUuidQueryOptions(uuid: string) {
   return convexQuery(api.barbershops.getBarbershopByUuid, { uuid });
 }
 
+export function userVisitedBarbershopsQueryOptions(userId: string) {
+  return convexQuery(api.barbershops.getUserVisitedBarbershops, { userId });
+}
+
+export function searchBarbershopsByNameQueryOptions(name: string) {
+  return convexQuery(api.barbershops.getBarbershopsByName, { name });
+}
+
 export function useBarbershopByUuid(uuid: string) {
   return useSuspenseQuery(barbershopByUuidQueryOptions(uuid));
 }
 
 export function useActiveBarbershops(filters: BarbershopSearch) {
   return useQuery(activeBarbershopsQueryOptions(filters));
+}
+
+export function useUserVisitedBarbershops(userId: string) {
+  return useQuery(userVisitedBarbershopsQueryOptions(userId));
+}
+
+export function useSearchBarbershopsByName(name: string) {
+  return useQuery(searchBarbershopsByNameQueryOptions(name));
 }
 
 export function useBarbershopActions() {
