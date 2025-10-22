@@ -375,7 +375,10 @@ export const getBarbershopsByName = query({
   handler: async (ctx, args) => {
     const barbershops = await ctx.db
       .query("barbershops")
-      .filter(({ eq, field }) => eq(field("name"), args.name))
+      .withSearchIndex("by_name_search", ({ search }) =>
+        search("name", args.name),
+      )
+      .filter(({ eq, field }) => eq(field("isActive"), true))
       .collect();
 
     return barbershops;

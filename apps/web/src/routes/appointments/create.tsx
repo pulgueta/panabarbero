@@ -83,9 +83,11 @@ function RouteComponent() {
             ))}
           </div>
         ) : (
-          <p className="text-pretty text-muted-foreground text-sm">
-            No se encontraron barberías con ese nombre.
-          </p>
+          debouncedSearchQuery.length > 0 && (
+            <p className="text-pretty text-muted-foreground text-sm">
+              No se encontraron barberías con ese nombre.
+            </p>
+          )
         )}
       </div>
     </div>
