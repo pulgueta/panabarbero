@@ -57,10 +57,11 @@ export const createAppointment = mutation({
 
     const appointmentOverlaps = await ctx.db
       .query("appointments")
-      .withIndex("by_barbershopId")
+      .withIndex("by_barbershopId", ({ eq }) =>
+        eq("barbershopId", appointment.barbershopId),
+      )
       .filter(({ eq, field, and, lte, gte, or }) =>
         and(
-          eq(field("barbershopId"), appointment.barbershopId),
           eq(field("barberId"), appointment.barberId),
           and(
             lte(field("startAt"), appointment.endAt),
@@ -72,12 +73,17 @@ export const createAppointment = mutation({
       .first();
 
     if (appointmentOverlaps) {
-      throw new Error("Appointment overlaps with existing appointment");
+      throw new Error("Appointment overlaps with existing appointment", {
+        cause: args.appointment.startAt,
+      });
     }
 
     const barbershop = await ctx.db.get(appointment.barbershopId);
 
-    if (!barbershop) throw new Error("Barbershop not found");
+    if (!barbershop)
+      throw new Error("Barbershop not found", {
+        cause: appointment.barbershopId,
+      });
 
     const date = new Date(appointment.date);
     const dayIdx = date.getDay();
@@ -96,7 +102,9 @@ export const createAppointment = mutation({
     );
 
     if (!dayAvailability || !dayAvailability.weekDay.isActive) {
-      throw new Error("Barbershop is closed on selected day");
+      throw new Error("Barbershop is closed on selected day", {
+        cause: appointment.date,
+      });
     }
 
     if (
@@ -107,7 +115,9 @@ export const createAppointment = mutation({
         appointment.endAt,
       )
     ) {
-      throw new Error("Appointment is outside working hours");
+      throw new Error("Appointment is outside working hours", {
+        cause: appointment.date,
+      });
     }
 
     const appointmentId = await ctx.db.insert("appointments", {
@@ -147,8 +157,7 @@ export const getAppointmentsByUserId = query({
 
     const appointments = await ctx.db
       .query("appointments")
-      .filter(({ eq, field }) => eq(field("userId"), args.userId))
-      .withIndex("by_userId")
+      .withIndex("by_userId", ({ eq }) => eq("userId", args.userId))
       .order("asc")
       .collect();
 
@@ -170,8 +179,9 @@ export const getAppointmentsByBarbershopId = query({
     }
     const appointments = await ctx.db
       .query("appointments")
-      .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
-      .withIndex("by_barbershopId")
+      .withIndex("by_barbershopId", ({ eq }) =>
+        eq("barbershopId", args.barbershopId),
+      )
       .order("asc")
       .collect();
 
@@ -180,16 +190,8 @@ export const getAppointmentsByBarbershopId = query({
 });
 
 export const getAppointments = query({
-  handler: async (ctx) => {
-    const appointments = await ctx.db.query("appointments").collect();
-
-    return appointments;
-  },
-});
-
-export const getAppointmentByUuid = query({
   args: {
-    uuid: v.string(),
+    barbershopId: v.id("barbershops"),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
@@ -199,17 +201,18 @@ export const getAppointmentByUuid = query({
         cause: user,
       });
     }
-    const appointment = await ctx.db
+    const appointments = await ctx.db
       .query("appointments")
-      .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
-      .withIndex("by_uuid")
-      .unique();
+      .withIndex("by_barbershopId", ({ eq }) =>
+        eq("barbershopId", args.barbershopId),
+      )
+      .collect();
 
-    return appointment;
+    return appointments;
   },
 });
 
-export const getAppointmentByUserIdAndBarbershopId = query({
+export const getUserAppointmentsByBarbershopId = query({
   args: {
     userId: v.string(),
     barbershopId: v.id("barbershops"),
@@ -222,14 +225,11 @@ export const getAppointmentByUserIdAndBarbershopId = query({
         cause: user,
       });
     }
+
     const appointment = await ctx.db
       .query("appointments")
-      .filter(({ eq, field, and }) =>
-        and(
-          eq(field("userId"), args.userId),
-          eq(field("barbershopId"), args.barbershopId),
-        ),
-      )
+      .withIndex("by_userId", ({ eq }) => eq("userId", args.userId))
+      .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
       .unique();
 
     return appointment;
@@ -248,10 +248,10 @@ export const getAppointmentsByBarberId = query({
         cause: user,
       });
     }
+
     const appointments = await ctx.db
       .query("appointments")
-      .filter(({ eq, field }) => eq(field("barberId"), args.barberId))
-      .withIndex("by_barberId")
+      .withIndex("by_barberId", ({ eq }) => eq("barberId", args.barberId))
       .order("asc")
       .collect();
 
@@ -275,14 +275,15 @@ export const getAppointmentsByBarbershopAndRange = query({
     }
     const appointments = await ctx.db
       .query("appointments")
-      .filter(({ and, gte, lte, field, eq }) =>
+      .withIndex("by_barbershopId", ({ eq }) =>
+        eq("barbershopId", args.barbershopId),
+      )
+      .filter(({ and, gte, lte, field }) =>
         and(
-          eq(field("barbershopId"), args.barbershopId),
           lte(field("startAt"), args.endAt),
           gte(field("endAt"), args.startAt),
         ),
       )
-      .withIndex("by_barbershopId")
       .order("asc")
       .collect();
 
@@ -303,49 +304,68 @@ export const setAppointmentStatus = mutation({
         cause: user,
       });
     }
+
     const updatedAppointment = await ctx.db.patch(args.appointmentId, {
       status: args.status,
     });
+
     const appt = await ctx.db.get(args.appointmentId);
 
-    if (appt) {
-      const titleMap: Record<string, string> = {
-        confirmed: "Cita confirmada",
-        cancelled: "Cita cancelada",
-        completed: "Cita completada",
-        "no-show": "Cita marcada como no asistió",
-        rescheduled: "Cita reagendada",
-        pending: "Cita pendiente",
-      };
-
-      const reasonMap: Record<
-        string,
-        (typeof tables.notifications)["reason"]["type"]
-      > = {
-        confirmed: "appointment_confirmed",
-        cancelled: "appointment_cancelled",
-        completed: "appointment_confirmed",
-        "no-show": "appointment_no_show",
-        rescheduled: "appointment_rescheduled",
-        pending: "appointment_confirmed",
-      } as const;
-      const reason = reasonMap[args.status as keyof typeof reasonMap];
-      const title =
-        titleMap[args.status as keyof typeof titleMap] ??
-        "Actualización de cita";
-      const barber = await ctx.db.get(appt.barberId);
-
-      await ctx.db.insert("notifications", {
-        uuid: crypto.randomUUID(),
-        type: "sms",
-        reason,
-        title,
-        body: title,
-        senderUserId: barber?.userId ?? "system",
-        receiverUserId: appt.userId,
-        appointmentId: args.appointmentId,
+    if (!appt) {
+      throw new Error("Appointment not found", {
+        cause: args.appointmentId,
       });
     }
+
+    const titleMap: Record<string, string> = {
+      confirmed: "Cita confirmada",
+      cancelled: "Cita cancelada",
+      completed: "Cita completada",
+      "no-show": "Cita marcada como no asistió",
+      rescheduled: "Cita reagendada",
+      pending: "Cita pendiente",
+    };
+
+    const bodyMap: Record<string, string> = {
+      confirmed: "Tu cita ha sido confirmada.",
+      cancelled: "Tu cita ha sido cancelada.",
+      completed: "Tu cita ha sido completada.",
+      "no-show": "Tu cita ha sido marcada como no asistió.",
+      rescheduled: "Tu cita ha sido reagendada.",
+      pending: "Tu cita ha sido pendiente.",
+    };
+
+    const reasonMap: Record<
+      string,
+      (typeof tables.notifications)["reason"]["type"]
+    > = {
+      confirmed: "appointment_confirmed",
+      cancelled: "appointment_cancelled",
+      completed: "appointment_confirmed",
+      "no-show": "appointment_no_show",
+      rescheduled: "appointment_rescheduled",
+      pending: "appointment_confirmed",
+    } as const;
+    const reason = reasonMap[args.status as keyof typeof reasonMap];
+    const title =
+      titleMap[args.status as keyof typeof titleMap] ?? "Actualización de cita";
+    const barber = await ctx.db.get(appt.barberId);
+    const body =
+      bodyMap[args.status as keyof typeof bodyMap] ??
+      "Tu cita ha sido actualizada.";
+
+    await ctx.runMutation(internal.notifications.createNotification, {
+      notification: {
+        title,
+        uuid: crypto.randomUUID(),
+        body,
+        reason,
+        senderUserId: barber?.userId ?? "system",
+        receiverUserId: appt.userId,
+        appointmentId: appt._id,
+        preview: title,
+      },
+    });
 
     return updatedAppointment;
   },
@@ -366,15 +386,18 @@ export const updateAppointment = mutation({
         cause: user,
       });
     }
+
     const { appointment, appointmentId } = args;
 
     const original = await ctx.db.get(appointmentId);
 
     const overlap = await ctx.db
       .query("appointments")
+      .withIndex("by_barbershopId", ({ eq }) =>
+        eq("barbershopId", appointment.barbershopId),
+      )
       .filter(({ eq, field, and, lte, gte, or, neq }) =>
         and(
-          eq(field("barbershopId"), appointment.barbershopId),
           eq(field("barberId"), appointment.barberId),
           neq(field("_id"), appointmentId),
           and(
@@ -387,12 +410,18 @@ export const updateAppointment = mutation({
       .first();
 
     if (overlap) {
-      throw new Error("Appointment overlaps with existing appointment");
+      throw new Error("Appointment overlaps with existing appointment", {
+        cause: appointment.startAt,
+      });
     }
 
     const shop = await ctx.db.get(appointment.barbershopId);
 
-    if (!shop) throw new Error("Barbershop not found");
+    if (!shop) {
+      throw new Error("Barbershop not found", {
+        cause: appointment.barbershopId,
+      });
+    }
 
     const date = new Date(appointment.date);
     const dayIdx = date.getDay();
@@ -411,7 +440,9 @@ export const updateAppointment = mutation({
     );
 
     if (!dayAvailability || !dayAvailability.weekDay.isActive) {
-      throw new Error("Barbershop is closed on selected day");
+      throw new Error("Barbershop is closed on selected day", {
+        cause: appointment.date,
+      });
     }
 
     if (
@@ -422,7 +453,9 @@ export const updateAppointment = mutation({
         appointment.endAt,
       )
     ) {
-      throw new Error("Appointment is outside working hours");
+      throw new Error("Appointment is outside working hours", {
+        cause: appointment.date,
+      });
     }
 
     const updatedAppointment = await ctx.db.patch(appointmentId, appointment);
@@ -435,15 +468,17 @@ export const updateAppointment = mutation({
     const barber = await ctx.db.get(appointment.barberId);
 
     if (isRescheduled) {
-      await ctx.db.insert("notifications", {
-        uuid: crypto.randomUUID(),
-        type: "sms",
-        reason: "appointment_rescheduled",
-        title: "Cita reagendada",
-        body: `Tu cita ha sido reagendada con éxito para el ${new Date(appointment.startAt).toLocaleDateString()}`,
-        senderUserId: barber?.userId ?? "system",
-        receiverUserId: appointment.userId,
-        appointmentId,
+      await ctx.runMutation(internal.notifications.createNotification, {
+        notification: {
+          body: `Tu cita ha sido reagendada con éxito para el ${new Date(appointment.startAt).toLocaleDateString()}`,
+          reason: "appointment_rescheduled",
+          senderUserId: barber?.userId ?? "system",
+          receiverUserId: appointment.userId,
+          appointmentId,
+          title: "Cita reagendada",
+          preview: "Cita reagendada",
+          uuid: crypto.randomUUID(),
+        },
       });
     }
     return updatedAppointment;
@@ -462,8 +497,29 @@ export const deleteAppointment = mutation({
         cause: user,
       });
     }
+
     const { appointmentId } = args;
 
+    const appt = await ctx.db.get(appointmentId);
+
+    if (!appt) {
+      throw new Error("Appointment not found", {
+        cause: appointmentId,
+      });
+    }
+
+    await ctx.runMutation(internal.notifications.createNotification, {
+      notification: {
+        title: "Cita cancelada",
+        uuid: crypto.randomUUID(),
+        body: "Tu cita ha sido cancelada.",
+        reason: "appointment_cancelled",
+        receiverUserId: appt.userId,
+        senderUserId: "system",
+        preview: "Cita cancelada",
+        appointmentId: appt._id,
+      },
+    });
     await ctx.db.delete(appointmentId);
   },
 });
@@ -484,22 +540,23 @@ export const cancelAppointment = mutation({
     }
     const appt = await ctx.db.get(args.appointmentId);
 
-    if (!appt) throw new Error("Appointment not found");
+    if (!appt) {
+      throw new Error("Appointment not found", {
+        cause: args.appointmentId,
+      });
+    }
 
-    await ctx.db.patch(args.appointmentId, {
-      status: "cancelled",
-      notes: args.reason,
-    });
-
-    await ctx.db.insert("notifications", {
-      uuid: crypto.randomUUID(),
-      type: "sms",
-      reason: "appointment_cancelled",
-      title: "Cita cancelada",
-      body: args.reason ?? "Tu cita ha sido cancelada.",
-      senderUserId: args.cancelledByUserId,
-      receiverUserId: appt.userId,
-      appointmentId: args.appointmentId,
+    await ctx.runMutation(internal.notifications.createNotification, {
+      notification: {
+        title: "Cita cancelada",
+        uuid: crypto.randomUUID(),
+        body: args.reason ?? "Tu cita ha sido cancelada.",
+        reason: "appointment_cancelled",
+        receiverUserId: appt.userId,
+        senderUserId: args.cancelledByUserId,
+        preview: "Cita cancelada",
+        appointmentId: appt._id,
+      },
     });
   },
 });
@@ -583,35 +640,36 @@ export const requestReschedule = mutation({
       });
     }
 
-    for (const notification of userProfile.notificationsPreferences) {
-      await ctx.runMutation(internal.notifications.createNotification, {
-        notification: {
-          body: "Un cliente ha solicitado un reagendamiento.",
-          reason: "appointment_rescheduled_request",
-          receiverUserId: barberProfile.userId,
-          title: "Solicitud de reagendamiento",
-          uuid: crypto.randomUUID(),
-          senderUserId: userProfile.userId,
-          type: notification.type,
-          appointmentId: args.appointmentId,
-          preview: "Un cliente ha solicitado un reagendamiento.",
-        },
-      });
-
-      await ctx.runMutation(internal.notifications.createNotification, {
-        notification: {
-          body: "Se ha solicitado un reagendamiento para tu cita.",
-          reason: "appointment_rescheduled_request",
-          receiverUserId: appt.userId,
-          title: "Solicitud de reagendamiento",
-          uuid: crypto.randomUUID(),
-          senderUserId: args.requestedByUserId,
-          type: notification.type,
-          appointmentId: args.appointmentId,
-          preview: "Se ha solicitado un reagendamiento para tu cita.",
-        },
-      });
-    }
+    await Promise.all([
+      userProfile.notificationsPreferences.map(async () => {
+        await ctx.runMutation(internal.notifications.createNotification, {
+          notification: {
+            body: "Se ha solicitado un reagendamiento para tu cita.",
+            reason: "appointment_rescheduled_request",
+            receiverUserId: appt.userId,
+            title: "Solicitud de reagendamiento",
+            uuid: crypto.randomUUID(),
+            senderUserId: args.requestedByUserId,
+            appointmentId: args.appointmentId,
+            preview: "Se ha solicitado un reagendamiento para tu cita.",
+          },
+        });
+      }),
+      barberProfile.notificationsPreferences.map(async () => {
+        await ctx.runMutation(internal.notifications.createNotification, {
+          notification: {
+            body: "Un cliente ha solicitado un reagendamiento.",
+            reason: "appointment_rescheduled_request",
+            receiverUserId: barberProfile.userId,
+            title: "Solicitud de reagendamiento",
+            uuid: crypto.randomUUID(),
+            senderUserId: userProfile.userId,
+            appointmentId: args.appointmentId,
+            preview: "Un cliente ha solicitado un reagendamiento.",
+          },
+        });
+      }),
+    ]);
   },
 });
 
@@ -631,8 +689,7 @@ export const notifyUpcomingAppointment = internalMutation({
     const barbershop = await ctx.db.get(args.barbershopId);
     const userProfileByUserId = await ctx.db
       .query("userProfileData")
-      .withIndex("by_userId")
-      .filter(({ eq, field }) => eq(field("userId"), args.userId))
+      .withIndex("by_userId", ({ eq }) => eq("userId", args.userId))
       .unique();
 
     const enabledNotifications =
@@ -644,21 +701,22 @@ export const notifyUpcomingAppointment = internalMutation({
       });
     }
 
-    for (const notification of enabledNotifications) {
-      await ctx.runMutation(internal.notifications.createNotification, {
-        notification: {
-          body: notificationTexts.appointment_reminder(barbershop?.name),
-          reason: "appointment_reminder",
-          senderUserId: "system",
-          title: notificationTexts.subject,
-          uuid: crypto.randomUUID(),
-          type: notification.type,
-          receiverUserId: args.userId,
-          appointmentId: args.appointmentId,
-          preview: notificationTexts.appointment_reminder(barbershop?.name),
-        },
-      });
-    }
+    await Promise.all(
+      enabledNotifications.map(async () => {
+        await ctx.runMutation(internal.notifications.createNotification, {
+          notification: {
+            body: notificationTexts.appointment_reminder(barbershop?.name),
+            reason: "appointment_reminder",
+            senderUserId: "system",
+            title: notificationTexts.subject,
+            uuid: crypto.randomUUID(),
+            receiverUserId: args.userId,
+            appointmentId: args.appointmentId,
+            preview: notificationTexts.appointment_reminder(barbershop?.name),
+          },
+        });
+      }),
+    );
   },
 });
 
@@ -710,20 +768,21 @@ export const answerRescheduleRequest = mutation({
       ? "appointment_rescheduled_accepted"
       : "appointment_rescheduled_denied";
 
-    for (const notification of userProfile.notificationsPreferences) {
-      await ctx.runMutation(internal.notifications.createNotification, {
-        notification: {
-          body,
-          reason,
-          receiverUserId: userProfile.userId,
-          title,
-          uuid: crypto.randomUUID(),
-          senderUserId: "system",
-          type: notification.type,
-          appointmentId: args.appointmentId,
-          preview: title,
-        },
-      });
-    }
+    await Promise.all(
+      userProfile.notificationsPreferences.map(async () => {
+        await ctx.runMutation(internal.notifications.createNotification, {
+          notification: {
+            body,
+            reason,
+            receiverUserId: userProfile.userId,
+            title,
+            uuid: crypto.randomUUID(),
+            senderUserId: "system",
+            appointmentId: args.appointmentId,
+            preview: title,
+          },
+        });
+      }),
+    );
   },
 });

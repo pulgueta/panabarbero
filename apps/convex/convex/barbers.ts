@@ -36,8 +36,9 @@ export const getBarbersByBarbershopId = query({
   handler: async (ctx, args) => {
     const barbers = await ctx.db
       .query("barbers")
-      .withIndex("by_barbershopId")
-      .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
+      .withIndex("by_barbershopId", ({ eq }) =>
+        eq("barbershopId", args.barbershopId),
+      )
       .collect();
 
     return barbers;
@@ -49,8 +50,7 @@ export const getBarberByUuid = query({
   handler: async (ctx, args) => {
     const barber = await ctx.db
       .query("barbers")
-      .withIndex("by_uuid")
-      .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
+      .withIndex("by_uuid", ({ eq }) => eq("uuid", args.uuid))
       .unique();
 
     return barber;
@@ -62,8 +62,7 @@ export const getBarberByUserId = query({
   handler: async (ctx, args) => {
     const barber = await ctx.db
       .query("barbers")
-      .withIndex("by_userId")
-      .filter(({ eq, field }) => eq(field("userId"), args.userId))
+      .withIndex("by_userId", ({ eq }) => eq("userId", args.userId))
       .unique();
 
     return barber;

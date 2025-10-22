@@ -61,8 +61,7 @@ export const getMobilePushTokensForUser = query({
 
     const tokens = await ctx.db
       .query("mobile_push_tokens")
-      .withIndex("by_userId")
-      .filter(({ eq, field }) => eq(field("userId"), args.userId))
+      .withIndex("by_userId", ({ eq }) => eq("userId", args.userId))
       .collect();
 
     return tokens;

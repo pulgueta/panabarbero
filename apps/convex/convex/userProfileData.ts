@@ -8,8 +8,7 @@ export const getProfileByUserId = internalQuery({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("userProfileData")
-      .withIndex("by_userId")
-      .filter(({ eq, field }) => eq(field("userId"), args.userId))
+      .withIndex("by_userId", ({ eq }) => eq("userId", args.userId))
       .unique();
   },
 });

@@ -64,7 +64,8 @@ export default defineSchema(
     })
       .index("by_appointmentId", ["appointmentId"])
       .index("by_status", ["status"])
-      .index("by_method", ["method"]),
+      .index("by_method", ["method"])
+      .index("by_transactionId", ["transactionId"]),
 
     notifications: defineTable({
       ...tables.notifications,
