@@ -5,7 +5,6 @@ import { KeyRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/login")({
@@ -50,17 +49,15 @@ function LoginPage() {
 
   return (
     <div className="flex min-h-[calc(100dvh-65px)] flex-col items-center justify-center bg-background">
-      <div className="flex min-h-96 w-full max-w-sm flex-col items-center justify-start gap-4 rounded-lg bg-accent/20 p-4 shadow-sm">
-        <header>
-          <h1 className="text-balance text-center font-bold text-3xl tracking-tight">
-            Iniciar sesión
+      <div className="flex min-h-96 w-full max-w-xs flex-col items-center justify-start gap-4 rounded-lg border bg-accent/20 shadow-sm sm:max-w-sm">
+        <header className="w-full space-y-2 border-b p-4">
+          <h1 className="text-balance text-center font-bold text-3xl tracking-tighter">
+            Accede a tu cuenta
           </h1>
-          <p className="text-pretty text-center text-muted-foreground text-sm">
-            Inicia sesión para continuar
+          <p className="text-pretty text-center text-muted-foreground text-sm tracking-tight">
+            Inicia sesión para agendar y gestionar tus citas.
           </p>
         </header>
-
-        <Separator className="mb-4 w-full opacity-50" />
 
         <div className="flex w-full max-w-64 flex-col gap-2.5">
           <Button size="sm" onClick={() => handleSignIn("google")}>

@@ -19,17 +19,27 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useCanReview } from "@/hooks/use-actions";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 
 type BarbershopHeaderProps = {
   barbershop: Barbershop | null;
-  isMobile: boolean;
-  userId?: string;
-  canReview: boolean;
-  formHeadLabel?: string;
+  userId: string | undefined;
 };
 
 export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
-  const { barbershop, isMobile, userId, canReview, formHeadLabel } = props;
+  const { barbershop, userId } = props;
+
+  const { isMobile } = useIsMobile();
+
+  const canReview = useCanReview({
+    barbershopId: barbershop?._id!,
+    userId: userId!,
+  });
+
+  const formHeadLabel = "¡Tu opinión ayuda a mejorar el trabajo de todos!";
+  const requiredReviewMessage =
+    "Necesitas haber asistido a la barbería mediante una cita para poder calificar.";
 
   return (
     <section className="space-y-1">
@@ -59,10 +69,7 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
               <DrawerContent>
                 {userId && (
                   <DrawerHeader>
-                    <DrawerTitle>
-                      {formHeadLabel ??
-                        "¡Tu opinión ayuda a mejorar el trabajo de todos!"}
-                    </DrawerTitle>
+                    <DrawerTitle>{formHeadLabel}</DrawerTitle>
                   </DrawerHeader>
                 )}
                 <DrawerFooter>
@@ -74,8 +81,7 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
                       />
                     ) : (
                       <p className="text-pretty text-center text-muted-foreground text-sm">
-                        Necesitas haber asistido a la barbería mediante una cita
-                        para poder calificar.
+                        {requiredReviewMessage}
                       </p>
                     )
                   ) : (
@@ -110,15 +116,11 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
                     <ReviewForm
                       barbershopId={barbershop?._id!}
                       userId={userId}
-                      formHeadLabel={
-                        formHeadLabel ??
-                        "¡Tu opinión ayuda a mejorar el trabajo de todos!"
-                      }
+                      formHeadLabel={formHeadLabel}
                     />
                   ) : (
                     <p className="text-pretty text-center text-muted-foreground text-sm">
-                      Necesitas haber asistido a la barbería mediante una cita
-                      para poder calificar.
+                      {requiredReviewMessage}
                     </p>
                   )
                 ) : (

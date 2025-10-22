@@ -1,5 +1,4 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: objects are guaranteed to be not null */
-import type { Barbershop } from "@panabarbero/convex/schemas";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { BarbershopAvatar } from "@/components/barbershops/barbershop-avatar";
@@ -7,15 +6,12 @@ import { BarbershopHeader } from "@/components/barbershops/barbershop-header";
 import { BarbershopServicesCarousel } from "@/components/barbershops/barbershop-services-carousel";
 import { useCarouselApi } from "@/components/ui/carousel";
 import { Separator } from "@/components/ui/separator";
-import { useCanReview } from "@/hooks/use-actions";
 import {
   barbershopByUuidQueryOptions,
   useBarbershopByUuid,
 } from "@/hooks/use-barbershop";
-import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useServicesFromBarbershop } from "@/hooks/use-services";
 import { useSession } from "@/hooks/use-session";
-import { barbershopSeo } from "@/lib/utils";
 
 export const Route = createFileRoute("/barbershops/$barbershopUuid")({
   component: RouteComponent,
@@ -23,11 +19,6 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
     return await context.queryClient.ensureQueryData(
       barbershopByUuidQueryOptions(params.barbershopUuid),
     );
-  },
-  head: ({ loaderData }) => {
-    return {
-      meta: barbershopSeo(loaderData as Barbershop),
-    };
   },
   ssr: true,
 });
@@ -44,26 +35,12 @@ function RouteComponent() {
 
   const { data: user } = useSession();
 
-  const { isMobile } = useIsMobile();
-
-  const canReview = useCanReview({
-    userId: user?.userId!,
-    barbershopId: barbershop?._id!,
-  });
-
-  const formHeadLabel = "¡Tu opinión ayuda a mejorar el trabajo de todos!";
-
   return (
     <div className="w-full">
       <main className="container mx-auto min-h-[calc(100dvh-65px)] border-x px-4 py-8 md:px-8 lg:px-16">
         <header className="flex w-full flex-row justify-between gap-4">
-          <BarbershopHeader
-            barbershop={barbershop}
-            isMobile={isMobile}
-            userId={user?.userId ?? undefined}
-            canReview={canReview}
-            formHeadLabel={formHeadLabel}
-          />
+          <BarbershopHeader barbershop={barbershop} userId={user?.userId!} />
+
           <section>
             <BarbershopAvatar barbershop={barbershop} isLoading={isLoading} />
           </section>
@@ -79,7 +56,7 @@ function RouteComponent() {
           {services && services.length > 0 ? (
             <BarbershopServicesCarousel services={services} />
           ) : (
-            <p className="text-center text-muted-foreground">
+            <p className="text-pretty text-center text-muted-foreground">
               No hay servicios disponibles.
             </p>
           )}

@@ -63,6 +63,7 @@ export default defineSchema(
       ...tables.payments,
     })
       .index("by_appointmentId", ["appointmentId"])
+      .index("by_transactionId", ["transactionId"])
       .index("by_status", ["status"])
       .index("by_method", ["method"]),
 

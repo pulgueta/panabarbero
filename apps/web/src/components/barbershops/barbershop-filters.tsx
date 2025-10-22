@@ -37,7 +37,7 @@ export const BarbershopFilters: FC = () => {
 
   return (
     <div className="mx-auto grid w-full max-w-xl grid-cols-1 gap-3 sm:grid-cols-3">
-      <div className="flex flex-row items-center gap-2">
+      <div className="flex flex-col items-center gap-2 sm:flex-row">
         <Select
           value={state}
           onValueChange={(v) =>
