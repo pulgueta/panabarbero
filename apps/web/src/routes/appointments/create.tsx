@@ -23,8 +23,11 @@ function RouteComponent() {
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   const { data: barbershops } = useUserVisitedBarbershops(user?.user.id ?? "");
-  const { data: searchResults, isLoading: isSearching } =
-    useSearchBarbershopsByName(debouncedSearchQuery);
+  const {
+    data: searchResults,
+    isLoading: isSearching,
+    isRefetching: isSearchingAgain,
+  } = useSearchBarbershopsByName(debouncedSearchQuery);
 
   return (
     <div className="container mx-auto flex min-h-[calc(100dvh-65px)] flex-col items-start justify-start gap-8 border-x p-6">
@@ -73,7 +76,7 @@ function RouteComponent() {
           />
         </div>
 
-        {isSearching && (
+        {(isSearching || isSearchingAgain) && (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {Array.from({ length: 6 }).map((_, index) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: key is not needed for skeleton

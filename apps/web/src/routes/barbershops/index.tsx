@@ -5,6 +5,7 @@ import { BarbershopFilters } from "@/components/barbershops/barbershop-filters";
 import { BarbershopGrid } from "@/components/barbershops/barbershop-grid";
 import { LocationGate } from "@/components/barbershops/location-gate";
 import { Input } from "@/components/ui/input";
+import { activeBarbershopsQueryOptions } from "@/hooks/use-barbershop";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 
 export type BarbershopSearch = {
@@ -23,6 +24,14 @@ export const Route = createFileRoute("/barbershops/")({
     city: search?.city ?? undefined,
     state: search?.state ?? undefined,
   }),
+  loader: async (opts) => {
+    await opts.context.queryClient.ensureQueryData(
+      activeBarbershopsQueryOptions({
+        city: opts.deps.city,
+        state: opts.deps.state,
+      }),
+    );
+  },
   component: BarbershopsPage,
 });
 

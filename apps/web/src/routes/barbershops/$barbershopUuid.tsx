@@ -15,11 +15,10 @@ import { useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/barbershops/$barbershopUuid")({
   component: RouteComponent,
-  loader: async ({ context, params }) => {
-    return await context.queryClient.ensureQueryData(
+  loader: async ({ context, params }) =>
+    await context.queryClient.ensureQueryData(
       barbershopByUuidQueryOptions(params.barbershopUuid),
-    );
-  },
+    ),
   ssr: true,
 });
 

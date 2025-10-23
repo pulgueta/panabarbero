@@ -286,6 +286,12 @@ export const updateBarbershop = mutation({
       });
     }
 
+    if (user.userId !== args.barbershop.ownerId) {
+      throw new Error("User not authorized", {
+        cause: user,
+      });
+    }
+
     await ctx.db.patch(args.barbershopId, args.barbershop);
 
     if (args.storageId) {
@@ -373,13 +379,11 @@ export const getBarbershopsByName = query({
     name: v.string(),
   },
   handler: async (ctx, args) => {
-    if (args.name.length === 0) {
-      return [];
-    }
-
     const barbershops = await ctx.db
       .query("barbershops")
-      .withSearchIndex("by_name_search", (q) => q.search("name", args.name))
+      .withSearchIndex("by_name_search", (q) =>
+        q.search("name", args.name ? args.name : "barber"),
+      )
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 

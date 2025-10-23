@@ -15,7 +15,7 @@ export const BarbershopGrid: FC<BarbershopGridProps> = ({ filters }) => {
   return isLoading ? (
     <BarbershopLoadingGrid />
   ) : (
-    <main className="grid grid-cols-1 gap-x-6 gap-y-8 bg-accent/20 px-4 py-8 sm:grid-cols-2 md:px-8 lg:grid-cols-3 dark:bg-accent/20">
+    <main className="grid grid-cols-1 gap-x-6 gap-y-8 bg-accent/20 px-4 py-8 sm:grid-cols-2 md:px-8 xl:grid-cols-3 dark:bg-accent/20">
       {barbershops?.length ? (
         barbershops.map((barbershop) => (
           <BarbershopListCard key={barbershop._id} barbershop={barbershop} />

@@ -25,7 +25,7 @@ export function useBarbershopByUuid(uuid: string) {
 }
 
 export function useActiveBarbershops(filters: BarbershopSearch) {
-  return useQuery(activeBarbershopsQueryOptions(filters));
+  return useSuspenseQuery(activeBarbershopsQueryOptions(filters));
 }
 
 export function useUserVisitedBarbershops(userId: string) {

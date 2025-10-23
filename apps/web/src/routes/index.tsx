@@ -1,4 +1,3 @@
-import { useConvexAuth } from "@convex-dev/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Authenticated, Unauthenticated } from "convex/react";
 
@@ -8,10 +7,6 @@ export const Route = createFileRoute("/")({
 });
 
 function RouteComponent() {
-  const { isAuthenticated } = useConvexAuth();
-
-  console.log(isAuthenticated);
-
   return (
     <div>
       <h1>Hello "/"!</h1>

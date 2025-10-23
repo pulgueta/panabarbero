@@ -61,7 +61,10 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
 
         <div className="mb-4 flex items-center justify-between">
           <p className="text-muted-foreground text-sm">
-            {barbershop.services?.length} servicios disponibles.
+            {barbershop.services?.length ?? 0}{" "}
+            {barbershop.services?.length === 1
+              ? "servicio disponible."
+              : "servicios disponibles."}
           </p>
         </div>
       </CardContent>
