@@ -401,6 +401,19 @@ export const getBarbershopsByName = query({
       )
       .collect();
 
+    await Promise.all(
+      barbershops.map(async (barbershop) => {
+        const services = await ctx.runQuery(
+          api.services.getServicesByBarbershopId,
+          {
+            barbershopId: barbershop._id,
+          },
+        );
+
+        barbershop.services = services.map((service) => service._id);
+      }),
+    );
+
     return barbershops;
   },
 });

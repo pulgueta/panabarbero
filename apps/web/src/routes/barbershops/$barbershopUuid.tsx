@@ -53,7 +53,7 @@ function RouteComponent() {
           <h2
             className="my-6 text-balance text-center font-semibold text-xl tracking-tight"
             style={{
-              viewTransitionName: `barbershop-${barbershop?.uuid}-services`,
+              viewTransitionName: "barbershop-services",
             }}
           >
             Servicios ofrecidos:
@@ -65,7 +65,7 @@ function RouteComponent() {
             <p
               className="text-pretty text-center text-muted-foreground"
               style={{
-                viewTransitionName: `barbershop-${barbershop?.uuid}-services`,
+                viewTransitionName: "barbershop-services",
               }}
             >
               No hay servicios disponibles.

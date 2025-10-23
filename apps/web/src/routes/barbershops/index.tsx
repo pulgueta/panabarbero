@@ -27,7 +27,7 @@ export const Route = createFileRoute("/barbershops/")({
     state: search?.state ?? undefined,
   }),
   loader: async (opts) => {
-    await opts.context.queryClient.ensureQueryData(
+    await opts.context.queryClient.prefetchQuery(
       activeBarbershopsQueryOptions({
         city: opts.deps.city,
         state: opts.deps.state,
