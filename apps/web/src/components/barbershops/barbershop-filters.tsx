@@ -15,7 +15,7 @@ export const BarbershopFilters: FC = () => {
   const search = useSearch({ from: "/barbershops/" });
   const navigate = useNavigate({ from: "/barbershops" });
 
-  const { states, citiesFromState, stateFromCity } = useColombia();
+  const { states, citiesFromState } = useColombia();
 
   const [storedState, setStoredState] = useLocalStorage<string | undefined>(
     tanstack.localStorageKeys.barbershopsState,
@@ -24,23 +24,28 @@ export const BarbershopFilters: FC = () => {
     tanstack.localStorageKeys.barbershopsCity,
   );
 
-  const city = storedCity ?? search.city;
-  const state =
-    storedState ?? search.state ?? (city ? stateFromCity(city) : undefined);
+  const city = storedCity ?? search.city ?? "";
+  const state = storedState ?? search.state ?? "";
 
   const availableCities = state ? citiesFromState?.(state) : [];
-  const cityState = state ?? (city ? stateFromCity(city) : undefined);
-
-  console.log({
-    state,
-    city,
-    cityState,
-  });
 
   const apply = (next: Partial<typeof search>) => {
-    setStoredState(next.state);
-    setStoredCity(next.city);
-    navigate({ to: ".", search: (prev) => ({ ...prev, ...next }) });
+    const effCity = next.city ?? city ?? undefined;
+
+    const finalState = next.state ?? state ?? undefined;
+    const finalCity = next.state ? undefined : effCity;
+
+    setStoredState(finalState);
+    setStoredCity(finalCity);
+
+    navigate({
+      to: ".",
+      search: (prev) => ({
+        ...prev,
+        state: finalState,
+        city: finalCity,
+      }),
+    });
   };
 
   return (
@@ -48,9 +53,7 @@ export const BarbershopFilters: FC = () => {
       <div className="flex flex-col items-center gap-2 sm:flex-row">
         <Select
           value={state}
-          onValueChange={(v) =>
-            apply({ state: v || undefined, city: undefined })
-          }
+          onValueChange={(v) => apply({ state: v ?? undefined })}
         >
           <SelectTrigger className="w-full min-w-48 bg-background dark:bg-card">
             <SelectValue placeholder="Departamento" />
@@ -66,7 +69,7 @@ export const BarbershopFilters: FC = () => {
 
         <Select
           value={city}
-          onValueChange={(v) => apply({ city: v || undefined })}
+          onValueChange={(v) => apply({ city: v ?? undefined })}
           disabled={!state}
         >
           <SelectTrigger className="w-full min-w-48 bg-background dark:bg-card">

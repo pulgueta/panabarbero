@@ -110,17 +110,10 @@ export const getActiveBarbershops = query({
   handler: async (ctx, args) => {
     const barbershops = await ctx.db
       .query("barbershops")
-      .withIndex("by_isActive", (q) => q.eq("isActive", true))
-      .filter((q) =>
-        q.and(
-          args.state
-            ? q.eq(q.field("state"), args.state)
-            : q.eq(q.field("state"), "Santander"),
-          args.city
-            ? q.eq(q.field("city"), args.city)
-            : q.eq(q.field("city"), "Barrancabermeja"),
-        ),
+      .withIndex("by_city_and_state", (q) =>
+        q.eq("city", args.city ?? "").eq("state", args.state ?? "Santander"),
       )
+      .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
     await Promise.all(
@@ -177,7 +170,6 @@ export const getBarbershopByUuid = query({
     return barbershop;
   },
 });
-
 export const getBarbershopServices = query({
   args: {
     barbershopId: v.id("barbershops"),

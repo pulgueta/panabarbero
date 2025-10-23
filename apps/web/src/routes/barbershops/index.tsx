@@ -40,10 +40,10 @@ export const Route = createFileRoute("/barbershops/")({
 
 function BarbershopsPage() {
   const search = Route.useSearch();
-  const [storedState] = useLocalStorage<string | undefined>(
+  const [storedState] = useLocalStorage<string>(
     tanstack.localStorageKeys.barbershopsState,
   );
-  const [storedCity] = useLocalStorage<string | undefined>(
+  const [storedCity] = useLocalStorage<string>(
     tanstack.localStorageKeys.barbershopsCity,
   );
 
