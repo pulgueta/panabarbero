@@ -58,6 +58,7 @@ export default defineSchema(
       .index("by_uuid", ["uuid"])
       .index("by_userId", ["userId"])
       .index("by_barbershopId", ["barbershopId"])
+      .index("by_userIdAndBarbershopId", ["userId", "barbershopId"])
       .index("by_serviceId", ["serviceId"])
       .index("by_barberId", ["barberId"])
       .index("by_status", ["status"])

@@ -201,8 +201,7 @@ export const getAppointmentByUuid = query({
     }
     const appointment = await ctx.db
       .query("appointments")
-      .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
-      .withIndex("by_uuid")
+      .withIndex("by_uuid", (q) => q.eq("uuid", args.uuid))
       .unique();
 
     return appointment;
@@ -224,11 +223,8 @@ export const getAppointmentByUserIdAndBarbershopId = query({
     }
     const appointment = await ctx.db
       .query("appointments")
-      .filter(({ eq, field, and }) =>
-        and(
-          eq(field("userId"), args.userId),
-          eq(field("barbershopId"), args.barbershopId),
-        ),
+      .withIndex("by_userIdAndBarbershopId", (q) =>
+        q.eq("userId", args.userId).eq("barbershopId", args.barbershopId),
       )
       .unique();
 
@@ -250,8 +246,7 @@ export const getAppointmentsByBarberId = query({
     }
     const appointments = await ctx.db
       .query("appointments")
-      .filter(({ eq, field }) => eq(field("barberId"), args.barberId))
-      .withIndex("by_barberId")
+      .withIndex("by_barberId", (q) => q.eq("barberId", args.barberId))
       .order("asc")
       .collect();
 
@@ -275,14 +270,15 @@ export const getAppointmentsByBarbershopAndRange = query({
     }
     const appointments = await ctx.db
       .query("appointments")
-      .filter(({ and, gte, lte, field, eq }) =>
-        and(
-          eq(field("barbershopId"), args.barbershopId),
-          lte(field("startAt"), args.endAt),
-          gte(field("endAt"), args.startAt),
+      .filter((q) =>
+        q.and(
+          q.lte(q.field("startAt"), args.endAt),
+          q.gte(q.field("endAt"), args.startAt),
         ),
       )
-      .withIndex("by_barbershopId")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
       .order("asc")
       .collect();
 
@@ -303,6 +299,7 @@ export const setAppointmentStatus = mutation({
         cause: user,
       });
     }
+
     const updatedAppointment = await ctx.db.patch(args.appointmentId, {
       status: args.status,
     });
@@ -372,16 +369,21 @@ export const updateAppointment = mutation({
 
     const overlap = await ctx.db
       .query("appointments")
-      .filter(({ eq, field, and, lte, gte, or, neq }) =>
-        and(
-          eq(field("barbershopId"), appointment.barbershopId),
-          eq(field("barberId"), appointment.barberId),
-          neq(field("_id"), appointmentId),
-          and(
-            lte(field("startAt"), appointment.endAt),
-            gte(field("endAt"), appointment.startAt),
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", appointment.barbershopId),
+      )
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("barberId"), appointment.barberId),
+          q.neq(q.field("_id"), appointmentId),
+          q.and(
+            q.lte(q.field("startAt"), appointment.endAt),
+            q.gte(q.field("endAt"), appointment.startAt),
           ),
-          or(eq(field("status"), "pending"), eq(field("status"), "confirmed")),
+          q.or(
+            q.eq(q.field("status"), "pending"),
+            q.eq(q.field("status"), "confirmed"),
+          ),
         ),
       )
       .first();

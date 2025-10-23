@@ -35,8 +35,9 @@ export const getBarbersByBarbershopId = query({
   handler: async (ctx, args) => {
     const barbers = await ctx.db
       .query("barbers")
-      .withIndex("by_barbershopId")
-      .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
       .collect();
 
     return barbers;
@@ -48,8 +49,7 @@ export const getBarberByUuid = query({
   handler: async (ctx, args) => {
     const barber = await ctx.db
       .query("barbers")
-      .withIndex("by_uuid")
-      .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
+      .withIndex("by_uuid", (q) => q.eq("uuid", args.uuid))
       .unique();
 
     return barber;
@@ -71,6 +71,7 @@ export const updateBarber = mutation({
         cause: user,
       });
     }
+
     const updatedBarber = await ctx.db.patch(args.barberId, args.barber);
 
     return updatedBarber;

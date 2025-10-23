@@ -18,7 +18,11 @@ export const createReview = mutation({
         cause: user,
       });
     }
-    const reviewId = await ctx.db.insert("reviews", args.review);
+
+    const reviewId = await ctx.db.insert("reviews", {
+      ...args.review,
+      userId: user.userId ?? "",
+    });
 
     await ctx.runMutation(internal.barbershops.increaseBarbershopRating, {
       barbershopId: args.review.barbershopId,
@@ -33,8 +37,9 @@ export const getReviewsByBarbershopId = query({
   handler: async (ctx, args) => {
     const reviews = await ctx.db
       .query("reviews")
-      .withIndex("by_barbershopId")
-      .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
       .collect();
 
     return reviews;
@@ -53,8 +58,7 @@ export const getReviewsByUserId = query({
     }
     const reviews = await ctx.db
       .query("reviews")
-      .filter(({ eq, field }) => eq(field("userId"), args.userId))
-      .withIndex("by_userId")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .collect();
 
     return reviews;
@@ -110,15 +114,16 @@ export const canReview = query({
 
     const userHasAttended = await ctx.db
       .query("appointments")
-      .withIndex("by_barbershopId")
-      .filter(({ eq, field, and }) =>
-        and(
-          eq(field("barbershopId"), args.barbershopId),
-          eq(field("userId"), args.userId),
-          eq(field("status"), "completed"),
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("userId"), args.userId),
+          q.eq(q.field("status"), "completed"),
         ),
       )
-      .first();
+      .unique();
 
     return !!userHasAttended;
   },

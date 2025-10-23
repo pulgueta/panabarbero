@@ -110,12 +110,11 @@ export const getActiveBarbershops = query({
   handler: async (ctx, args) => {
     const barbershops = await ctx.db
       .query("barbershops")
-      .withIndex("by_isActive")
-      .filter(({ field, eq, and }) =>
-        and(
-          eq(field("isActive"), true),
-          eq(field("city"), args.city ?? "Barrancabermeja"),
-          eq(field("state"), args.state ?? "Santander"),
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("city"), args.city ?? "Barrancabermeja"),
+          q.eq(q.field("state"), args.state ?? "Santander"),
         ),
       )
       .collect();
@@ -157,8 +156,7 @@ export const getBarbershopByUuid = query({
   handler: async (ctx, args) => {
     const barbershop = await ctx.db
       .query("barbershops")
-      .withIndex("by_uuid")
-      .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
+      .withIndex("by_uuid", (q) => q.eq("uuid", args.uuid ?? ""))
       .unique();
 
     return barbershop;
@@ -172,7 +170,9 @@ export const getBarbershopServices = query({
   handler: async (ctx, args) => {
     const services = await ctx.db
       .query("services")
-      .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
       .collect();
 
     return services;
@@ -353,10 +353,8 @@ export const getUserVisitedBarbershops = query({
 
     const appointments = await ctx.db
       .query("appointments")
-      .withIndex("by_userId")
-      .filter(({ eq, field, and }) =>
-        and(eq(field("userId"), args.userId), eq(field("status"), "completed")),
-      )
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .filter((q) => q.eq(q.field("status"), "completed"))
       .order("desc")
       .collect();
 
@@ -382,7 +380,7 @@ export const getBarbershopsByName = query({
     const barbershops = await ctx.db
       .query("barbershops")
       .withSearchIndex("by_name_search", (q) => q.search("name", args.name))
-      .filter(({ eq, field }) => eq(field("isActive"), true))
+      .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
     return barbershops;

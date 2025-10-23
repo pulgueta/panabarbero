@@ -108,8 +108,7 @@ export const getServiceByUuid = query({
   handler: async (ctx, args) => {
     const service = await ctx.db
       .query("services")
-      .withIndex("by_uuid")
-      .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
+      .withIndex("by_uuid", (q) => q.eq("uuid", args.uuid))
       .unique();
 
     return service;
@@ -123,8 +122,9 @@ export const getServicesByBarbershopId = query({
   handler: async (ctx, args) => {
     const services = await ctx.db
       .query("services")
-      .withIndex("by_barbershopId")
-      .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
       .collect();
 
     return services;
