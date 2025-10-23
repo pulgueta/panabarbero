@@ -113,8 +113,12 @@ export const getActiveBarbershops = query({
       .withIndex("by_isActive", (q) => q.eq("isActive", true))
       .filter((q) =>
         q.and(
-          q.eq(q.field("city"), args.city ?? "Barrancabermeja"),
-          q.eq(q.field("state"), args.state ?? "Santander"),
+          args.state
+            ? q.eq(q.field("state"), args.state)
+            : q.eq(q.field("state"), "Santander"),
+          args.city
+            ? q.eq(q.field("city"), args.city)
+            : q.eq(q.field("city"), "Barrancabermeja"),
         ),
       )
       .collect();
