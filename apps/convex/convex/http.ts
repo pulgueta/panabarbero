@@ -7,10 +7,7 @@ const http = httpRouter();
 
 twilio.registerRoutes(http);
 authComponent.registerRoutes(http, createAuth, {
-  cors: {
-    allowedOrigins: ["*"],
-    allowedHeaders: ["*"],
-  },
+  cors: true,
 });
 
 export default http;

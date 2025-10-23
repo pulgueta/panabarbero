@@ -7,7 +7,6 @@ import { twoFactor } from "better-auth/plugins";
 import { passkey } from "better-auth/plugins/passkey";
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
-import { query } from "./_generated/server";
 
 const authFunctions: AuthFunctions = internal.auth;
 
@@ -105,9 +104,9 @@ export const createAuth = (
   });
 };
 
-export const getAuthUser = query({
-  args: {},
-  handler: async (ctx) => {
-    return await authComponent.getAuthUser(ctx);
-  },
-});
+// export const getAuthUser = query({
+//   args: {},
+//   handler: async (ctx) => {
+//     return await authComponent.getAuthUser(ctx);
+//   },
+// });
