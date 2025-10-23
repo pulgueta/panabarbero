@@ -68,7 +68,12 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
           </CardDescription>
 
           <div className="mb-4 flex items-center justify-between">
-            <p className="text-muted-foreground text-sm">
+            <p
+              className="text-muted-foreground text-sm"
+              style={{
+                viewTransitionName: `barbershop-${barbershop.uuid}-services`,
+              }}
+            >
               {barbershop.services?.length ?? 0}{" "}
               {barbershop.services?.length === 1
                 ? "servicio disponible."

@@ -50,14 +50,24 @@ function RouteComponent() {
         <Separator className="mt-8 mb-6" />
 
         <section className="space-y-4">
-          <h2 className="my-6 text-balance text-center font-semibold text-xl tracking-tight">
+          <h2
+            className="my-6 text-balance text-center font-semibold text-xl tracking-tight"
+            style={{
+              viewTransitionName: `barbershop-${barbershop?.uuid}-services`,
+            }}
+          >
             Servicios ofrecidos:
           </h2>
 
           {services && services.length > 0 ? (
             <BarbershopServicesCarousel services={services} />
           ) : (
-            <p className="text-pretty text-center text-muted-foreground">
+            <p
+              className="text-pretty text-center text-muted-foreground"
+              style={{
+                viewTransitionName: `barbershop-${barbershop?.uuid}-services`,
+              }}
+            >
               No hay servicios disponibles.
             </p>
           )}
