@@ -4,6 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { BarbershopAvatar } from "@/components/barbershops/barbershop-avatar";
 import { BarbershopHeader } from "@/components/barbershops/barbershop-header";
 import { BarbershopServicesCarousel } from "@/components/barbershops/barbershop-services-carousel";
+import { LoadingComponent } from "@/components/layout/loading-component";
 import { useCarouselApi } from "@/components/ui/carousel";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
     await context.queryClient.ensureQueryData(
       barbershopByUuidQueryOptions(params.barbershopUuid),
     ),
+  pendingComponent: LoadingComponent,
   ssr: true,
 });
 

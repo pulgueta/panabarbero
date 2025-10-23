@@ -36,6 +36,11 @@ export const routes = {
   },
 };
 
+export const localStorageKeys = {
+  barbershopsState: "barbershops_state",
+  barbershopsCity: "barbershops_city",
+};
+
 export const getNavigationRoutes = (userId?: string) =>
   userId
     ? routes.navigation

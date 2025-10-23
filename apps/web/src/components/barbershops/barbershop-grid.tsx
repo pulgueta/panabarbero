@@ -1,3 +1,4 @@
+import { Info } from "lucide-react";
 import type { FC } from "react";
 
 import { useActiveBarbershops } from "@/hooks/use-barbershop";
@@ -10,9 +11,13 @@ interface BarbershopGridProps {
 }
 
 export const BarbershopGrid: FC<BarbershopGridProps> = ({ filters }) => {
-  const { data: barbershops, isLoading } = useActiveBarbershops(filters);
+  const {
+    data: barbershops,
+    isLoading,
+    isRefetching,
+  } = useActiveBarbershops(filters);
 
-  return isLoading ? (
+  return isLoading || isRefetching ? (
     <BarbershopLoadingGrid />
   ) : (
     <main className="grid grid-cols-1 gap-x-6 gap-y-8 bg-accent/20 px-4 py-8 sm:grid-cols-2 md:px-8 xl:grid-cols-3 dark:bg-accent/20">
@@ -22,6 +27,7 @@ export const BarbershopGrid: FC<BarbershopGridProps> = ({ filters }) => {
         ))
       ) : (
         <div className="col-span-3 flex flex-col items-center justify-center gap-2">
+          <Info className="size-6 text-muted-foreground" />
           <p className="text-pretty text-center text-muted-foreground text-sm">
             No se encontraron barberías disponibles.
           </p>

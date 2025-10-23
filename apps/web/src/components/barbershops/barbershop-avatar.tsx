@@ -17,13 +17,15 @@ export const BarbershopAvatar = (props: BarbershopAvatarProps) => {
   }
 
   return (
-    <img
-      loading="lazy"
-      decoding="async"
-      alt={`Banner de ${barbershop?.name}`}
-      src={barbershop?.bannerUrl ?? "/default-logo.png"}
-      style={{ viewTransitionName: `barbershop-${barbershop?.uuid}-banner` }}
-      className="size-16 rounded-full object-cover md:size-24 lg:size-28"
-    />
+    <div className="relative">
+      <img
+        loading="lazy"
+        decoding="async"
+        alt={`Banner de ${barbershop?.name}`}
+        src={barbershop?.bannerUrl ?? "/default-logo.png"}
+        style={{ viewTransitionName: `barbershop-${barbershop?.uuid}-banner` }}
+        className="size-16 rounded-full object-cover md:size-24 lg:size-28"
+      />
+    </div>
   );
 };

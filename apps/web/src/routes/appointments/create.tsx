@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import { useState } from "react";
 
 import { BarbershopListCard } from "@/components/barbershops/barbershop-list-card";
+import { LoadingComponent } from "@/components/layout/loading-component";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -14,6 +15,7 @@ import { useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/appointments/create")({
   component: RouteComponent,
+  pendingComponent: LoadingComponent,
 });
 
 function RouteComponent() {

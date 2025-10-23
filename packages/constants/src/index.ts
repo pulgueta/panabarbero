@@ -1,5 +1,3 @@
-import { useCallback } from "react";
-
 import * as api from "./api";
 import jsonStates from "./colombia.json";
 import * as router from "./router";
@@ -13,22 +11,23 @@ export function useColombia() {
     cities: state.ciudades,
   }));
 
-  const citiesFromState = useCallback(
-    (state: string) => {
-      const found = states.find((s) => s.state === state);
+  const citiesFromState = (state: string) => {
+    const found = states.find((s) => s.state === state);
 
-      if (!found) {
-        return [];
-      }
+    if (!found) {
+      return [];
+    }
 
-      return found.cities;
-    },
-    [states],
-  );
+    return found.cities;
+  };
+
+  const stateFromCity = (city: string) =>
+    states.find((s) => (s.cities.includes(city) ? s.state : undefined))?.state;
 
   return {
     states,
     citiesFromState,
+    stateFromCity,
   };
 }
 

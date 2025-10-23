@@ -1,4 +1,4 @@
-import { useColombia } from "@panabarbero/constants";
+import { tanstack, useColombia } from "@panabarbero/constants";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import type { FC } from "react";
 
@@ -15,19 +15,27 @@ export const BarbershopFilters: FC = () => {
   const search = useSearch({ from: "/barbershops/" });
   const navigate = useNavigate({ from: "/barbershops" });
 
-  const { states, citiesFromState } = useColombia();
+  const { states, citiesFromState, stateFromCity } = useColombia();
 
   const [storedState, setStoredState] = useLocalStorage<string | undefined>(
-    "barbershops_state",
+    tanstack.localStorageKeys.barbershopsState,
   );
   const [storedCity, setStoredCity] = useLocalStorage<string | undefined>(
-    "barbershops_city",
+    tanstack.localStorageKeys.barbershopsCity,
   );
 
-  const state = storedState ?? search.state;
   const city = storedCity ?? search.city;
+  const state =
+    storedState ?? search.state ?? (city ? stateFromCity(city) : undefined);
 
   const availableCities = state ? citiesFromState?.(state) : [];
+  const cityState = state ?? (city ? stateFromCity(city) : undefined);
+
+  console.log({
+    state,
+    city,
+    cityState,
+  });
 
   const apply = (next: Partial<typeof search>) => {
     setStoredState(next.state);

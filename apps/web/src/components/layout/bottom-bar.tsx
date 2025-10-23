@@ -12,7 +12,7 @@ export const BottomBar = () => {
 
   const { data: user } = useSession();
 
-  const navigationRoutes = tanstack.getNavigationRoutes(user?._id);
+  const navigationRoutes = tanstack.getNavigationRoutes(user?.user.id);
 
   return (
     <div className="fixed right-0 bottom-0 left-0 z-50 border-border border-t bg-background/90 backdrop-blur-sm">

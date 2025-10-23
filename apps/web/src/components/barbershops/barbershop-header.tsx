@@ -62,6 +62,40 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
       >
         {barbershop?.name}
       </h1>
+      <p className="mb-1 text-muted-foreground text-sm">
+        {barbershop?.city}, {barbershop?.state}.
+      </p>
+      <p className="mb-1 text-muted-foreground text-sm">
+        {barbershop?.address.fullAddress}
+        {barbershop?.address.details && (
+          <>
+            <br />
+            {`(${barbershop?.address.details})`}
+          </>
+        )}
+      </p>
+      {barbershop?.contactPhone && (
+        <p className="mb-1 text-muted-foreground text-sm">
+          Teléfono:{" "}
+          <a
+            href={`tel:+57${barbershop?.contactPhone}`}
+            className="underline-offset-4 hover:underline"
+          >
+            {barbershop?.contactPhone}
+          </a>
+        </p>
+      )}
+      {barbershop?.metadata?.contactEmail && (
+        <p className="mb-2.5 text-muted-foreground text-sm">
+          Correo de contacto:{" "}
+          <a
+            href={`mailto:${barbershop?.metadata?.contactEmail}`}
+            className="underline-offset-4 hover:underline"
+          >
+            {barbershop?.metadata?.contactEmail}
+          </a>
+        </p>
+      )}
 
       <div className="flex flex-col">
         <BarbershopRating value={barbershop?.metadata?.rating ?? 0} readOnly />
@@ -155,11 +189,11 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
         </p>
       </div>
 
-      <p className="mb-4 text-pretty">
+      <p className="mb-2.5 text-pretty font-medium text-sm">
         {barbershop?.description ?? "No hay descripción disponible."}
       </p>
 
-      <p className="mb-2 text-pretty">Links o redes sociales:</p>
+      <p className="mb-2 text-pretty text-sm">Links o redes sociales:</p>
       {barbershop?.metadata?.socialMedia?.length! > 0 ? (
         <ul className="list-disc text-pretty pl-4 text-sm">
           {barbershop?.metadata?.socialMedia?.map((socialMedia) => (
@@ -168,7 +202,7 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
                 href={socialMedia.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-muted-foreground underline-offset-4 hover:underline"
+                className="text-muted-foreground text-xs underline-offset-4 hover:underline"
               >
                 {socialMediaLabelMap[socialMedia.platform]}
               </a>
