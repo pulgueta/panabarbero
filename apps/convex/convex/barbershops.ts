@@ -159,6 +159,17 @@ export const getBarbershopByUuid = query({
       .withIndex("by_uuid", (q) => q.eq("uuid", args.uuid ?? ""))
       .unique();
 
+    if (!barbershop) return null;
+
+    const services = await ctx.runQuery(
+      api.services.getServicesByBarbershopId,
+      {
+        barbershopId: barbershop?._id,
+      },
+    );
+
+    barbershop.services = services.map((service) => service._id);
+
     return barbershop;
   },
 });
@@ -382,9 +393,8 @@ export const getBarbershopsByName = query({
     const barbershops = await ctx.db
       .query("barbershops")
       .withSearchIndex("by_name_search", (q) =>
-        q.search("name", args.name ? args.name : "barber"),
+        q.search("name", args.name ? args.name : "barber").eq("isActive", true),
       )
-      .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
     return barbershops;
