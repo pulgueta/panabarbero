@@ -98,15 +98,15 @@ export const deleteReview = mutation({
 export const canReview = query({
   args: { userId: v.optional(v.string()), barbershopId: v.id("barbershops") },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    // const user = await authComponent.getAuthUser(ctx);
 
-    if (!user) {
-      return false;
-    }
+    // if (!user) {
+    //   return false;
+    // }
 
-    if (args.userId !== user.userId) {
-      return false;
-    }
+    // if (args.userId !== user.userId) {
+    //   return false;
+    // }
 
     const userHasAttended = await ctx.db
       .query("appointments")

@@ -23,6 +23,7 @@ export default defineSchema(
       .index("by_isActive", ["isActive"])
       .searchIndex("by_name_search", {
         searchField: "name",
+        filterFields: ["isActive"],
       })
       .index("by_uuid", ["uuid"]),
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { BarbershopListCard } from "@/components/barbershops/barbershop-list-card";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   useSearchBarbershopsByName,
   useUserVisitedBarbershops,
@@ -21,8 +22,8 @@ function RouteComponent() {
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const { data: barbershops } = useUserVisitedBarbershops(user?.userId ?? "");
-  const { data: searchResults } =
+  const { data: barbershops } = useUserVisitedBarbershops(user?.user.id ?? "");
+  const { data: searchResults, isLoading: isSearching } =
     useSearchBarbershopsByName(debouncedSearchQuery);
 
   return (
@@ -61,7 +62,6 @@ function RouteComponent() {
 
       <div className="flex w-full flex-col gap-2">
         <h1 className="font-bold text-xl">Buscar barbería:</h1>
-
         <div className="relative mb-4 w-full">
           <Search className="absolute top-2.5 left-2 size-4 text-muted-foreground" />
           <Input
@@ -72,6 +72,15 @@ function RouteComponent() {
             className="w-full bg-background pl-8 focus-visible:ring-0 md:max-w-xl"
           />
         </div>
+
+        {isSearching && (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {Array.from({ length: 6 }).map((_, index) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: key is not needed for skeleton
+              <Skeleton key={index} className="h-48 w-full rounded-lg" />
+            ))}
+          </div>
+        )}
 
         {searchResults && searchResults.length > 0 ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

@@ -39,7 +39,7 @@ function RouteComponent() {
     <div className="w-full">
       <main className="container mx-auto min-h-[calc(100dvh-65px)] border-x px-4 py-8 md:px-8 lg:px-16">
         <header className="flex w-full flex-row justify-between gap-4">
-          <BarbershopHeader barbershop={barbershop} userId={user?.userId!} />
+          <BarbershopHeader barbershop={barbershop} userId={user?.user.id!} />
 
           <section>
             <BarbershopAvatar barbershop={barbershop} isLoading={isLoading} />

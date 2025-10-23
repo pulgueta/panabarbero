@@ -1,7 +1,5 @@
-import { convexQuery } from "@convex-dev/react-query";
-import { api } from "@panabarbero/convex/api";
-import { useQuery } from "@tanstack/react-query";
+import { useSession as useSessionHook } from "@panabarbero/convex/auth";
 
 export function useSession() {
-  return useQuery(convexQuery(api.auth.getAuthUser, {}));
+  return useSessionHook();
 }

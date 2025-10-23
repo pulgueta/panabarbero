@@ -337,24 +337,26 @@ export const getUserVisitedBarbershops = query({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    // const user = await authComponent.getAuthUser(ctx);
 
-    if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
-    }
+    // if (!user) {
+    //   throw new Error("User not authenticated", {
+    //     cause: user,
+    //   });
+    // }
 
-    if (args.userId !== user.userId) {
-      throw new Error("User not authorized", {
-        cause: user,
-      });
-    }
+    // if (args.userId !== user.userId) {
+    //   throw new Error("User not authorized", {
+    //     cause: user,
+    //   });
+    // }
 
     const appointments = await ctx.db
       .query("appointments")
-      .withIndex("by_userId", ({ eq }) => eq("userId", args.userId))
-      .filter(({ eq, field }) => eq(field("status"), "completed"))
+      .withIndex("by_userId")
+      .filter(({ eq, field, and }) =>
+        and(eq(field("userId"), args.userId), eq(field("status"), "completed")),
+      )
       .order("desc")
       .collect();
 
@@ -373,11 +375,13 @@ export const getBarbershopsByName = query({
     name: v.string(),
   },
   handler: async (ctx, args) => {
+    if (args.name.length === 0) {
+      return [];
+    }
+
     const barbershops = await ctx.db
       .query("barbershops")
-      .withSearchIndex("by_name_search", ({ search }) =>
-        search("name", args.name),
-      )
+      .withSearchIndex("by_name_search", (q) => q.search("name", args.name))
       .filter(({ eq, field }) => eq(field("isActive"), true))
       .collect();
 

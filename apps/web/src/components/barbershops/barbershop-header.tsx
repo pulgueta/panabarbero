@@ -40,6 +40,19 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
   const formHeadLabel = "¡Tu opinión ayuda a mejorar el trabajo de todos!";
   const requiredReviewMessage =
     "Necesitas haber asistido a la barbería mediante una cita para poder calificar.";
+  const reviews = barbershop?.metadata?.reviews;
+
+  const socialMediaLabelMap = {
+    instagram: "Instagram",
+    facebook: "Facebook",
+    tiktok: "TikTok",
+    twitter: "X",
+    youtube: "YouTube",
+    website: "Sitio web",
+    email: "Correo electrónico",
+    whatsapp: "WhatsApp",
+    phone: "Teléfono",
+  };
 
   return (
     <section className="space-y-1">
@@ -54,7 +67,8 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
         <BarbershopRating value={barbershop?.metadata?.rating ?? 0} readOnly />
 
         <p className="mt-px inline-flex items-center gap-1 text-muted-foreground text-xs md:text-sm">
-          {barbershop?.metadata?.reviews} calificaciones.
+          {reviews ?? "Sin"}{" "}
+          {reviews && reviews > 1 ? `calificaciones` : `calificación`}.
           {isMobile ? (
             <Drawer>
               <DrawerTrigger asChild>
@@ -141,9 +155,29 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
         </p>
       </div>
 
-      {barbershop?.description && (
-        <p className="text-pretty text-muted-foreground text-sm md:text-base">
-          {barbershop.description ?? "No hay descripción disponible."}
+      <p className="mb-4 text-pretty">
+        {barbershop?.description ?? "No hay descripción disponible."}
+      </p>
+
+      <p className="mb-2 text-pretty">Links o redes sociales:</p>
+      {barbershop?.metadata?.socialMedia?.length! > 0 ? (
+        <ul className="list-disc text-pretty pl-4 text-sm">
+          {barbershop?.metadata?.socialMedia?.map((socialMedia) => (
+            <li key={socialMedia.platform}>
+              <a
+                href={socialMedia.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground underline-offset-4 hover:underline"
+              >
+                {socialMediaLabelMap[socialMedia.platform]}
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-pretty text-muted-foreground text-sm">
+          No hay links o redes sociales disponibles.
         </p>
       )}
     </section>

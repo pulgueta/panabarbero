@@ -18,9 +18,7 @@ import { routeTree } from "./routeTree.gen";
 import "./styles.css";
 
 export function getRouter() {
-  const convex = new ConvexReactClient(env.PUBLIC_CONVEX_URL, {
-    expectAuth: true,
-  });
+  const convex = new ConvexReactClient(env.PUBLIC_CONVEX_URL);
   const convexQueryClient = new ConvexQueryClient(convex);
 
   const queryClient = new QueryClient({
