@@ -1,8 +1,14 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@panabarbero/convex/api";
+import type { Barbershop } from "@panabarbero/convex/schemas";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 
 import type { BarbershopSearch } from "@/routes/barbershops";
+
+export type BarbershopAvailabilityPayload = {
+  barbershopId: Barbershop["_id"];
+  date: number;
+};
 
 export function activeBarbershopsQueryOptions(filters: BarbershopSearch) {
   return convexQuery(api.barbershops.getActiveBarbershops, filters);
@@ -14,6 +20,12 @@ export function barbershopByUuidQueryOptions(uuid: string) {
 
 export function userVisitedBarbershopsQueryOptions(userId: string) {
   return convexQuery(api.barbershops.getUserVisitedBarbershops, { userId });
+}
+
+export function barbershopAvailabilityQueryOptions(
+  payload: BarbershopAvailabilityPayload,
+) {
+  return convexQuery(api.appointments.getBarbershopAvailability, payload);
 }
 
 export function searchBarbershopsByNameQueryOptions(name: string) {
@@ -34,6 +46,12 @@ export function useUserVisitedBarbershops(userId: string) {
 
 export function useSearchBarbershopsByName(name: string) {
   return useQuery(searchBarbershopsByNameQueryOptions(name));
+}
+
+export function useBarbershopAvailability(
+  payload: BarbershopAvailabilityPayload,
+) {
+  return useQuery(barbershopAvailabilityQueryOptions(payload));
 }
 
 export function useBarbershopActions() {
