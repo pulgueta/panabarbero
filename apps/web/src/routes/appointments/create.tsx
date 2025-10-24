@@ -80,7 +80,7 @@ function RouteComponent() {
 
         {(isSearching || isSearchingAgain) && (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {Array.from({ length: 6 }).map((_, index) => (
+            {Array.from({ length: 4 }).map((_, index) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: key is not needed for skeleton
               <Skeleton key={index} className="h-48 w-full rounded-lg" />
             ))}

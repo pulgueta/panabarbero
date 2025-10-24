@@ -2,7 +2,6 @@ import type { Service } from "@panabarbero/convex/schemas";
 import { Clock } from "lucide-react";
 import type { FC } from "react";
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Carousel,
@@ -11,6 +10,7 @@ import {
   useCarouselApi,
 } from "@/components/ui/carousel";
 import { formatCurrency } from "@/lib/form-utils";
+import { BookingButton } from "./services/booking-button";
 
 interface BarbershopServicesCarouselProps {
   services: Service[];
@@ -24,7 +24,12 @@ export const BarbershopServicesCarousel: FC<BarbershopServicesCarouselProps> = (
 
   if (!services || services.length === 0) {
     return (
-      <p className="text-center text-muted-foreground">
+      <p
+        className="text-center text-muted-foreground"
+        style={{
+          viewTransitionName: "barbershop-services",
+        }}
+      >
         No hay servicios disponibles.
       </p>
     );
@@ -35,6 +40,9 @@ export const BarbershopServicesCarousel: FC<BarbershopServicesCarouselProps> = (
       setApi={setCarouselApi}
       className="mx-auto w-full max-w-6xl"
       opts={{ loop: true }}
+      style={{
+        viewTransitionName: "barbershop-services",
+      }}
     >
       <CarouselContent>
         {services.map((service) => (
@@ -49,14 +57,14 @@ export const BarbershopServicesCarousel: FC<BarbershopServicesCarouselProps> = (
                     {formatCurrency(service.price)}
                   </p>
                 </section>
+
                 {service.duration && (
                   <p className="inline-flex items-center gap-1 text-muted-foreground text-sm tracking-tight">
                     <Clock className="size-3" /> {service.duration} minutos
                   </p>
                 )}
-                <Button variant="outline" size="sm">
-                  Reservar
-                </Button>
+
+                <BookingButton service={service} />
               </CardContent>
             </Card>
           </CarouselItem>

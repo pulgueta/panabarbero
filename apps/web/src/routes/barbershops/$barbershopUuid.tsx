@@ -40,7 +40,7 @@ function RouteComponent() {
     <div className="w-full">
       <main className="container mx-auto min-h-[calc(100dvh-65px)] border-x px-4 py-8 md:px-8 lg:px-16">
         <header className="flex w-full flex-row justify-between gap-4">
-          <BarbershopHeader barbershop={barbershop} userId={user?.user.id!} />
+          <BarbershopHeader barbershop={barbershop} userId={user?.userId!} />
 
           <section>
             <BarbershopAvatar barbershop={barbershop} isLoading={isLoading} />
@@ -50,12 +50,7 @@ function RouteComponent() {
         <Separator className="mt-8 mb-6" />
 
         <section className="space-y-4">
-          <h2
-            className="my-6 text-balance text-center font-semibold text-xl tracking-tight"
-            style={{
-              viewTransitionName: "barbershop-services",
-            }}
-          >
+          <h2 className="my-6 text-balance text-center font-semibold text-xl tracking-tight">
             Servicios ofrecidos:
           </h2>
 
