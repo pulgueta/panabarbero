@@ -1,71 +1,48 @@
-import { openai } from "@ai-sdk/openai";
-import { embed } from "ai";
+import type { SearchEntry, SearchResult } from "@convex-dev/rag";
+import type { EmbeddingModelUsage } from "ai";
+import type { Value } from "convex/values";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
-import {
-  action,
-  internalMutation,
-  internalQuery,
-  mutation,
-  query,
-} from "./_generated/server";
+import { action, internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
 import { tables } from "./tables";
 
-export const genreateEmbedding = internalMutation({
-  args: {
-    text: v.string(),
-  },
-  handler: async (_, args) => {
-    const ai = openai.textEmbedding("text-embedding-3-small");
-
-    const { embedding } = await embed({
-      model: ai,
-      value: args.text,
-    });
-
-    return embedding;
-  },
-});
-
 type ServiceResult = {
-  _id: Id<"services">;
-  score: number;
-  name: string;
+  results: SearchResult[];
+  text: string;
+  entries: SearchEntry<Record<string, Value>, Record<string, Value>>[];
+  usage: EmbeddingModelUsage;
 };
 
 export const searchServices = action({
   args: {
     service: v.string(),
   },
-  handler: async (ctx, args): Promise<ServiceResult[]> => {
-    const embedding = await ctx.runMutation(
-      internal.services.genreateEmbedding,
-      { text: args.service },
-    );
+  handler: async (ctx, args): Promise<ServiceResult> => {
+    const user = await authComponent.getAuthUser(ctx);
 
-    const vectorSearchResults = await ctx.vectorSearch(
-      "services",
-      "name_vector_idx",
-      {
-        vector: embedding,
-        limit: 10,
-      },
-    );
+    const serviceResults = await ctx.runAction(internal.rag.searchRAG, {
+      namespace: "services",
+      query: args.service,
+      userId: user.userId ?? undefined,
+    });
 
-    const vectorResults = await ctx.runQuery(
-      internal.services.getServicesFromVectorSearchResults,
-      {
-        results: vectorSearchResults,
-      },
-    );
-
-    return vectorResults;
+    return serviceResults;
   },
 });
 
-export const createService = mutation({
+export const createServiceMutation = internalMutation({
+  args: {
+    service: v.object({
+      ...tables.services,
+    }),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("services", args.service);
+  },
+});
+
+export const createService = action({
   args: {
     service: v.object({
       ...tables.services,
@@ -79,16 +56,17 @@ export const createService = mutation({
         cause: user,
       });
     }
+
     const { service } = args;
 
-    const embeddedName = await ctx.runMutation(
-      internal.services.genreateEmbedding,
-      { text: service.name },
-    );
+    await ctx.runAction(internal.rag.addToRAG, {
+      namespace: "services",
+      text: service.name,
+      userId: user.userId ?? undefined,
+    });
 
-    await ctx.db.insert("services", {
-      ...service,
-      nameVector: embeddedName,
+    await ctx.runMutation(internal.services.createServiceMutation, {
+      service,
     });
   },
 });
@@ -117,13 +95,14 @@ export const getServiceByUuid = query({
 
 export const getServicesByBarbershopId = query({
   args: {
-    barbershopId: v.id("barbershops"),
+    barbershopId: v.optional(v.id("barbershops")),
   },
   handler: async (ctx, args) => {
     const services = await ctx.db
       .query("services")
       .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
+        // biome-ignore lint/style/noNonNullAssertion: barbershopId is always provided
+        q.eq("barbershopId", args.barbershopId!),
       )
       .collect();
 
@@ -148,15 +127,7 @@ export const updateService = mutation({
     }
     const { service, serviceId } = args;
 
-    const embeddedName = await ctx.runMutation(
-      internal.services.genreateEmbedding,
-      { text: service.name },
-    );
-
-    await ctx.db.patch(serviceId, {
-      ...service,
-      nameVector: embeddedName,
-    });
+    await ctx.db.patch(serviceId, service);
   },
 });
 
@@ -175,33 +146,5 @@ export const deleteService = mutation({
     const { serviceId } = args;
 
     await ctx.db.delete(serviceId);
-  },
-});
-
-export const getServicesFromVectorSearchResults = internalQuery({
-  args: {
-    results: v.array(
-      v.object({
-        _id: v.id("services"),
-        _score: v.number(),
-      }),
-    ),
-  },
-  handler: async (ctx, { results }) => {
-    const services = await Promise.all(
-      results.map(async ({ _id, _score }) => {
-        const service = await ctx.db.get(_id);
-
-        if (!service) return null;
-
-        return {
-          _id,
-          score: _score,
-          name: service.name,
-        };
-      }),
-    );
-
-    return services.filter((s) => s != null);
   },
 });

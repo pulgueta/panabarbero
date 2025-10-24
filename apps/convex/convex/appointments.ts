@@ -1,6 +1,11 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { internalMutation, mutation, query } from "./_generated/server";
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "./_generated/server";
 import { authComponent } from "./auth";
 import { rateLimiter } from "./ratelimit";
 import { tables } from "./tables";
@@ -23,7 +28,7 @@ function withinOpenHours(
   openAt: string | undefined,
   closeAt: string | undefined,
   startAt: number,
-  endAt: number,
+  endAt: number | undefined,
 ): boolean {
   if (!openAt || !closeAt) return true;
 
@@ -33,15 +38,25 @@ function withinOpenHours(
   if (Number.isNaN(openMin) || Number.isNaN(closeMin)) return true;
 
   const startMin = minutesOfDay(startAt);
-  const endMin = minutesOfDay(endAt);
+  const endMin = endAt ? minutesOfDay(endAt) : undefined;
 
-  return startMin >= openMin && endMin <= closeMin;
+  return startMin >= openMin && (endMin ? endMin <= closeMin : true);
 }
 
 export const createAppointment = mutation({
   args: {
     appointment: v.object({
-      ...tables.appointments,
+      userId: v.string(),
+      barbershopId: v.id("barbershops"),
+      serviceId: v.id("services"),
+      barberId: v.id("barbers"),
+      date: v.number(),
+      startAt: v.number(),
+      endAt: v.number(),
+      contactPhone: v.string(),
+      customerName: v.string(),
+      contactEmail: v.string(),
+      notes: v.optional(v.string()),
     }),
   },
   handler: async (ctx, args) => {
@@ -55,12 +70,32 @@ export const createAppointment = mutation({
 
     const { appointment } = args;
 
+    const service = await ctx.db.get(appointment.serviceId);
+
+    if (!service) {
+      throw new Error("Service not found", {
+        cause: appointment.serviceId,
+      });
+    }
+
+    const appointmentDuration = appointment.startAt + (service.duration ?? 0);
+
+    if (appointmentDuration !== appointment.endAt) {
+      throw new Error(
+        "Appointment duration does not match the service duration",
+        {
+          cause: appointment.endAt,
+        },
+      );
+    }
+
     const appointmentOverlaps = await ctx.db
       .query("appointments")
-      .withIndex("by_barbershopId")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", appointment.barbershopId),
+      )
       .filter(({ eq, field, and, lte, gte, or }) =>
         and(
-          eq(field("barbershopId"), appointment.barbershopId),
           eq(field("barberId"), appointment.barberId),
           and(
             lte(field("startAt"), appointment.endAt),
@@ -77,7 +112,10 @@ export const createAppointment = mutation({
 
     const barbershop = await ctx.db.get(appointment.barbershopId);
 
-    if (!barbershop) throw new Error("Barbershop not found");
+    if (!barbershop)
+      throw new Error("Barbershop not found", {
+        cause: appointment.barbershopId,
+      });
 
     const date = new Date(appointment.date);
     const dayIdx = date.getDay();
@@ -367,34 +405,46 @@ export const updateAppointment = mutation({
 
     const original = await ctx.db.get(appointmentId);
 
-    const overlap = await ctx.db
-      .query("appointments")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", appointment.barbershopId),
-      )
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("barberId"), appointment.barberId),
-          q.neq(q.field("_id"), appointmentId),
-          q.and(
-            q.lte(q.field("startAt"), appointment.endAt),
-            q.gte(q.field("endAt"), appointment.startAt),
-          ),
-          q.or(
-            q.eq(q.field("status"), "pending"),
-            q.eq(q.field("status"), "confirmed"),
-          ),
-        ),
-      )
-      .first();
+    if (!original) {
+      throw new Error("Appointment not found", {
+        cause: appointmentId,
+      });
+    }
+
+    const service = await ctx.db.get(appointment.serviceId);
+
+    if (!service) {
+      throw new Error("Service not found", {
+        cause: appointment.serviceId,
+      });
+    }
+
+    const duration =
+      service.duration && original.startAt && original.endAt
+        ? original.startAt + service.duration
+        : 0;
+
+    const overlap = await ctx.runQuery(
+      internal.appointments.appointmentOverlaps,
+      {
+        appointmentId,
+        startAt: appointment.startAt,
+        endAt: duration,
+      },
+    );
 
     if (overlap) {
-      throw new Error("Appointment overlaps with existing appointment");
+      throw new Error("Appointment overlaps with existing appointment", {
+        cause: overlap,
+      });
     }
 
     const shop = await ctx.db.get(appointment.barbershopId);
 
-    if (!shop) throw new Error("Barbershop not found");
+    if (!shop)
+      throw new Error("Barbershop not found", {
+        cause: appointment.barbershopId,
+      });
 
     const date = new Date(appointment.date);
     const dayIdx = date.getDay();
@@ -631,10 +681,16 @@ export const notifyUpcomingAppointment = internalMutation({
   },
   handler: async (ctx, args) => {
     const barbershop = await ctx.db.get(args.barbershopId);
+
+    if (!barbershop) {
+      throw new Error("Barbershop not found", {
+        cause: args.barbershopId,
+      });
+    }
+
     const userProfileByUserId = await ctx.db
       .query("userProfileData")
-      .withIndex("by_userId")
-      .filter(({ eq, field }) => eq(field("userId"), args.userId))
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .unique();
 
     const enabledNotifications =
@@ -727,5 +783,104 @@ export const answerRescheduleRequest = mutation({
         },
       });
     }
+  },
+});
+
+export const getBarbershopAvailability = query({
+  returns: v.object({
+    availableTimeSlots: v.array(v.string()),
+    availableDays: v.array(
+      v.object({
+        day: v.string(),
+        isActive: v.boolean(),
+      }),
+    ),
+  }),
+  args: {
+    barbershopId: v.id("barbershops"),
+    date: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const barbershop = await ctx.db.get(args.barbershopId);
+
+    if (!barbershop)
+      throw new Error("Barbershop not found", {
+        cause: args.barbershopId,
+      });
+
+    console.log(barbershop);
+
+    const dayIdx = new Date(args.date).getDay();
+    console.log(dayIdx);
+    const dayMap = [
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+    ] as const;
+    const day = dayMap[dayIdx];
+    const dayAvailability = barbershop.availability.filter(
+      (a) => a.weekDay.day === day && a.weekDay.isActive,
+    );
+
+    const availableTimeSlots = dayAvailability.map((a) => a.openAt);
+
+    return {
+      availableDays: dayAvailability.map((a) => ({
+        day: a.weekDay.day,
+        isActive: a.weekDay.isActive,
+      })),
+      availableTimeSlots: availableTimeSlots.filter((t) => t !== undefined),
+    };
+  },
+});
+
+export const appointmentOverlaps = internalQuery({
+  args: {
+    appointmentId: v.id("appointments"),
+    startAt: v.number(),
+    endAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const appointment = await ctx.db.get(args.appointmentId);
+
+    if (!appointment)
+      throw new Error("Appointment not found", {
+        cause: args.appointmentId,
+      });
+
+    const service = await ctx.db.get(appointment.serviceId);
+
+    if (!service)
+      throw new Error("Service not found", {
+        cause: appointment.serviceId,
+      });
+
+    const overlap = await ctx.db
+      .query("appointments")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", appointment.barbershopId),
+      )
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("barberId"), appointment.barberId),
+          q.and(
+            q.lte(q.field("startAt"), args.startAt),
+            q.gte(q.field("endAt"), args.endAt),
+            q.eq(q.field("status"), "confirmed"),
+            q.or(
+              q.eq(q.field("status"), "pending"),
+              q.eq(q.field("status"), "confirmed"),
+            ),
+            q.neq(q.field("_id"), args.appointmentId),
+          ),
+        ),
+      )
+      .first();
+
+    return overlap;
   },
 });

@@ -7,6 +7,7 @@ import { twoFactor } from "better-auth/plugins";
 import { passkey } from "better-auth/plugins/passkey";
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
+import { query } from "./_generated/server";
 
 const authFunctions: AuthFunctions = internal.auth;
 
@@ -26,6 +27,7 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
         });
         await ctx.runMutation(internal.userProfileData.createProfile, {
           data: {
+            name: doc.name,
             userId: doc.userId as string,
             uuid: crypto.randomUUID(),
             email: doc.email,
@@ -104,9 +106,9 @@ export const createAuth = (
   });
 };
 
-// export const getAuthUser = query({
-//   args: {},
-//   handler: async (ctx) => {
-//     return await authComponent.getAuthUser(ctx);
-//   },
-// });
+export const getCurrentUser = query({
+  args: {},
+  handler: async (ctx) => {
+    return await authComponent.safeGetAuthUser(ctx);
+  },
+});

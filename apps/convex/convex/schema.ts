@@ -39,11 +39,6 @@ export default defineSchema(
     })
       .index("by_barbershopId", ["barbershopId"])
       .searchIndex("by_name_search_idx", { searchField: "name" })
-      .vectorIndex("name_vector_idx", {
-        dimensions: 1536,
-        vectorField: "nameVector",
-        filterFields: ["name"],
-      })
       .index("by_uuid", ["uuid"]),
 
     reviews: defineTable({

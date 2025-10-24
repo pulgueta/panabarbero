@@ -7,6 +7,7 @@ export const tables = {
     uuid: v.string(),
     userId: v.string(),
     email: v.string(),
+    name: v.optional(v.string()),
     phoneNumber: v.optional(v.string()),
     notificationsPreferences: v.array(
       v.object({
@@ -91,7 +92,6 @@ export const tables = {
     description: v.optional(v.string()),
     price: v.number(),
     duration: v.optional(v.number()),
-    nameVector: v.optional(v.array(v.float64())),
     barbershopId: v.id("barbershops"),
   },
   reviews: {
@@ -109,9 +109,10 @@ export const tables = {
     barberId: v.id("barbers"),
     date: v.number(),
     startAt: v.number(),
-    endAt: v.number(),
+    endAt: v.optional(v.number()),
     proposedStartAt: v.optional(v.number()),
     proposedEndAt: v.optional(v.number()),
+    customerName: v.string(),
     contactPhone: v.string(),
     contactEmail: v.string(),
     status: v.union(
