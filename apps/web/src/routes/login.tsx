@@ -68,7 +68,7 @@ function LoginPage() {
             <ArrowLeft className="size-4" /> Volver
           </Button>
         )}
-        <div className="flex min-h-96 w-full max-w-xs flex-col items-center justify-start gap-4 rounded-lg border bg-accent/20 shadow-sm sm:max-w-sm">
+        <div className="flex min-h-96 w-full max-w-sm flex-col items-center justify-start gap-4 rounded-lg border bg-accent/20 shadow-sm sm:max-w-sm">
           <header
             className="w-full space-y-2 border-b p-4"
             style={{ viewTransitionName: "login" }}

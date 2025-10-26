@@ -41,7 +41,7 @@ export const localStorageKeys = {
   barbershopsCity: "barbershops_city",
 };
 
-export const getNavigationRoutes = (userId?: string) =>
+export const getNavigationRoutes = (userId: string | undefined) =>
   userId
     ? routes.navigation
     : routes.navigation.filter((route) => route.to !== "/profile");

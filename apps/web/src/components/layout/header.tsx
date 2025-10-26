@@ -1,6 +1,6 @@
 import { tanstack } from "@panabarbero/constants";
 import { signOut } from "@panabarbero/convex/auth";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BarChart3,
   Briefcase,
@@ -23,6 +23,10 @@ import { ThemeToggler } from "./theme-toggler";
 
 export const Header = () => {
   const { data: user } = useSession();
+
+  const router = useRouterState();
+
+  const currentPath = router.location.pathname;
   // const barberStatus = useQuery(api.auth.checkIsBarber, {});
 
   const isBarber = true; // barberStatus?.isBarber ?? false;
@@ -58,7 +62,7 @@ export const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-4">
-      <div className="container mx-auto flex h-16 items-center">
+      <div className="container mx-auto flex h-16 items-center border-x md:px-8 lg:px-16">
         <div className="mr-6 flex">
           <Link
             to="/profile"
@@ -71,15 +75,22 @@ export const Header = () => {
         <nav className="flex flex-1 items-center justify-center">
           <div className="flex items-center space-x-16 font-medium text-sm">
             {navigationRoutesWithoutSettings.map((route) => (
-              <Link
+              <Button
                 key={route.to}
-                to={route.to}
-                style={{
-                  viewTransitionName: route.to,
-                }}
+                size="sm"
+                variant={currentPath === route.to ? "default" : "ghost"}
+                asChild
               >
-                {route.label}
-              </Link>
+                <Link
+                  key={route.to}
+                  to={route.to}
+                  style={{
+                    viewTransitionName: route.to,
+                  }}
+                >
+                  {route.label}
+                </Link>
+              </Button>
             ))}
           </div>
         </nav>

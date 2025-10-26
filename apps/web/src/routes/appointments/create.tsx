@@ -24,7 +24,7 @@ function RouteComponent() {
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const { data: barbershops } = useUserVisitedBarbershops(user?.user.id ?? "");
+  const { data: barbershops } = useUserVisitedBarbershops(user?.userId ?? "");
   const {
     data: searchResults,
     isLoading: isSearching,
