@@ -3,7 +3,7 @@ import type { Service } from "@panabarbero/convex/schemas";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import type { FC } from "react";
-import { useId, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { date, email, object, string, any as zodAny } from "zod";
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { useAppointmentActions } from "@/hooks/use-appointments";
 import { useBarbersByBarbershopId } from "@/hooks/use-barbers";
@@ -74,32 +75,78 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
     form: useId(),
     barberId: useId(),
   };
-  const [date, setDate] = useState<Date | undefined>(new Date());
+
+  const [selectedTime, setSelectedTime] = useState<string | null>("10:00");
 
   //   const convex = useConvexAction(api.);
   const { data: user } = useSession();
+
   const form = useForm({
     resolver: zodResolver(bookingFormSchema),
+    defaultValues: {
+      date: new Date(),
+      startTime: new Date(),
+      endTime: new Date(),
+      contactPhone: "",
+      contactEmail: "",
+      notes: "",
+    },
   });
 
-  const { data: barbers } = useBarbersByBarbershopId(service.barbershopId);
+  const date = form.watch("date");
+
+  const { data: barbers, isLoading: isLoadingBarbers } =
+    useBarbersByBarbershopId(service.barbershopId);
   const { data: availability } = useBarbershopAvailability({
     barbershopId: service.barbershopId,
     date: date?.getTime() ?? Date.now(),
   });
 
-  const disabledDays = availability?.availableDays
-    .filter((day) => !day.isActive)
-    .map((_, index) => index);
+  //   const disabledDays = availability?.availableDays
+  //     .filter((day) => !day.weekDay)
+  //     .map((_, index) => index);
 
-  console.log(availability);
-
-  console.log(barbers);
+  console.log({ availability });
 
   const selectedBarber =
     barbers?.length === 1 ? barbers[0] : form.watch("barberId");
 
-  const [selectedTime, setSelectedTime] = useState<string | null>("10:00");
+  const dayIndexes: Record<string, number> = {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6,
+  };
+
+  const activeDays = new Set(
+    availability
+      ?.filter((d) => d.weekDay?.isActive)
+      .map((d) => dayIndexes[d.weekDay.day.toLowerCase()]) ?? [],
+  );
+
+  const disableDay = useCallback(
+    (day: Date): boolean => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const currentDay = new Date(day);
+      currentDay.setHours(0, 0, 0, 0);
+
+      const weekday = currentDay.getDay();
+
+      // Disable all past days
+      if (currentDay < today) return true;
+
+      // Disable weekdays not active in API
+      if (!activeDays.has(weekday)) return true;
+
+      return false; // otherwise enable
+    },
+    [activeDays],
+  );
 
   const appointmentDuration = form.watch("startTime")
     ? form.watch("startTime").getTime() + (service.duration ?? 0)
@@ -153,7 +200,12 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
           )}
         />
 
-        {barbers?.length && barbers?.length > 1 ? (
+        {isLoadingBarbers ? (
+          <div className="space-y-4">
+            <Skeleton className="h-4 w-24 rounded" />
+            <Skeleton className="h-9 w-full" />
+          </div>
+        ) : barbers?.length && barbers?.length > 1 ? (
           <Controller
             name="barberId"
             control={form.control}
@@ -226,10 +278,10 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
                   <PopoverContent className="w-auto p-0" align="center">
                     <Calendar
                       mode="single"
-                      selected={date}
-                      onSelect={setDate}
-                      defaultMonth={date}
-                      disabled={{ before: new Date(), after: new Date() }}
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      defaultMonth={field.value}
+                      disabled={disableDay}
                       className="bg-transparent [--cell-size:--spacing(12)]"
                       captionLayout="label"
                     />
@@ -248,38 +300,53 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={formIds.date}>Horas disponibles</FieldLabel>
-              <ScrollArea className="w-96 whitespace-nowrap">
-                <div
-                  className={cn("flex w-max space-x-4", {
-                    "px-4 py-2": availability?.availableTimeSlots,
-                  })}
-                >
-                  {availability?.availableTimeSlots ? (
-                    availability.availableTimeSlots.map((time) => (
-                      <Button
-                        key={time}
-                        variant={selectedTime === time ? "default" : "outline"}
-                        onClick={() => {
-                          field.onChange(time);
-                          setSelectedTime(time);
-                        }}
-                        className="shadow-none"
-                      >
-                        {time}
-                      </Button>
-                    ))
-                  ) : (
-                    <span className="inline-block text-center text-muted-foreground">
-                      {form.watch("date")
-                        ? "No hay horas disponibles"
-                        : "Seleccione una fecha"}
-                    </span>
+              <FieldLabel htmlFor={formIds.startTime}>
+                Horas disponibles
+              </FieldLabel>
+              {date ? (
+                <>
+                  <ScrollArea className="w-96 whitespace-nowrap">
+                    <div
+                      className={cn("flex w-max space-x-4", {
+                        "px-4 py-2": availability?.availableTimeSlots,
+                      })}
+                    >
+                      {availability?.availableTimeSlots ? (
+                        availability.availableTimeSlots.map((time) => (
+                          <Button
+                            key={time}
+                            variant={
+                              selectedTime === time ? "default" : "outline"
+                            }
+                            onClick={() => {
+                              field.onChange(time);
+                              setSelectedTime(time);
+                            }}
+                            className="shadow-none"
+                          >
+                            {time}
+                          </Button>
+                        ))
+                      ) : (
+                        <span className="inline-block text-pretty text-center text-muted-foreground text-sm">
+                          {date
+                            ? "No hay horas disponibles"
+                            : "Seleccione una fecha"}
+                        </span>
+                      )}
+                    </div>
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
                   )}
-                </div>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </>
+              ) : (
+                <span className="text-pretty text-muted-foreground text-sm">
+                  Debes seleccionar una fecha primero para ver las horas
+                  disponibles
+                </span>
+              )}
             </Field>
           )}
         />

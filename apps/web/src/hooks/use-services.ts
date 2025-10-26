@@ -1,10 +1,10 @@
-import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
+import { convexQuery, useConvexAction } from "@convex-dev/react-query";
 import { api } from "@panabarbero/convex/api";
 import type { Id } from "@panabarbero/convex/dataModel";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 
 export function createServiceMutationOptions() {
-  return useConvexMutation(api.services.createService);
+  return useConvexAction(api.services.createService);
 }
 
 export function servicesQueryOptions(barbershopId: Id<"barbershops">) {
@@ -17,7 +17,7 @@ export function useServicesFromBarbershop(barbershopId: Id<"barbershops">) {
 
 export function useServiceActions() {
   const createService = useMutation({
-    mutationFn: useConvexMutation(api.services.createService),
+    mutationFn: createServiceMutationOptions(),
   });
 
   return { createService };

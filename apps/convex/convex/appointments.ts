@@ -787,15 +787,6 @@ export const answerRescheduleRequest = mutation({
 });
 
 export const getBarbershopAvailability = query({
-  returns: v.object({
-    availableTimeSlots: v.array(v.string()),
-    availableDays: v.array(
-      v.object({
-        day: v.string(),
-        isActive: v.boolean(),
-      }),
-    ),
-  }),
   args: {
     barbershopId: v.id("barbershops"),
     date: v.number(),
@@ -808,33 +799,7 @@ export const getBarbershopAvailability = query({
         cause: args.barbershopId,
       });
 
-    console.log(barbershop);
-
-    const dayIdx = new Date(args.date).getDay();
-    console.log(dayIdx);
-    const dayMap = [
-      "sunday",
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-    ] as const;
-    const day = dayMap[dayIdx];
-    const dayAvailability = barbershop.availability.filter(
-      (a) => a.weekDay.day === day && a.weekDay.isActive,
-    );
-
-    const availableTimeSlots = dayAvailability.map((a) => a.openAt);
-
-    return {
-      availableDays: dayAvailability.map((a) => ({
-        day: a.weekDay.day,
-        isActive: a.weekDay.isActive,
-      })),
-      availableTimeSlots: availableTimeSlots.filter((t) => t !== undefined),
-    };
+    return barbershop.availability;
   },
 });
 

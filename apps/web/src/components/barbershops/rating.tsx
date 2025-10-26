@@ -55,7 +55,7 @@ type RatingButtonProps = LucideProps & {
 
 export const RatingButton = ({
   index: providedIndex,
-  size = 20,
+  size = 16,
   className,
   icon = <StarIcon />,
 }: RatingButtonProps) => {
