@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { BarbershopAvatar } from "./barbershop-avatar";
 
 interface BarbershopListCardProps {
   barbershop: Barbershop;
@@ -27,7 +28,12 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
         <div className="flex items-start justify-between">
           <div className="flex w-full items-start justify-between">
             <div className="flex items-start gap-2.5">
-              <Scissors className="mt-1.5 size-5 text-muted-foreground" />
+              <Scissors
+                className="mt-1.5 size-5 text-muted-foreground"
+                style={{
+                  viewTransitionName: `barbershop-${barbershop.uuid}-scissors`,
+                }}
+              />
               <div>
                 <CardTitle
                   className="text-balance font-bold text-xl tracking-tight"
@@ -37,22 +43,28 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
                 >
                   {barbershop.name}
                 </CardTitle>
-                <p className="text-muted-foreground text-xs">
+                <p
+                  className="text-muted-foreground text-xs"
+                  style={{
+                    viewTransitionName: `barbershop-${barbershop.uuid}-city-state`,
+                  }}
+                >
                   {barbershop.city}, {barbershop.state}
                 </p>
               </div>
             </div>
-            <img
-              loading="lazy"
-              alt={`Banner de ${barbershop?.name}`}
-              src={barbershop?.bannerUrl ?? "/default-logo.png"}
-              className="size-8 rounded-full object-cover md:size-12"
-            />
+
+            <BarbershopAvatar barbershop={barbershop} />
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <CardDescription className="mb-2">
+        <CardDescription
+          className="mb-2"
+          style={{
+            viewTransitionName: `barbershop-${barbershop.uuid}-address`,
+          }}
+        >
           Ubicación: {barbershop.address.fullAddress}
         </CardDescription>
 
@@ -78,13 +90,21 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
               barbershopUuid: barbershop.uuid,
             }}
             preload="intent"
-            viewTransition
+            style={{
+              viewTransitionName: `barbershop-${barbershop.uuid}-link`,
+            }}
           >
             Ver servicios
           </Link>
         </Button>
 
-        <BarbershopRating value={barbershop.metadata?.rating ?? 0} readOnly />
+        <BarbershopRating
+          value={barbershop.metadata?.rating ?? 0}
+          readOnly
+          style={{
+            viewTransitionName: `barbershop-${barbershop.uuid}-rating`,
+          }}
+        />
       </CardFooter>
     </Card>
   );

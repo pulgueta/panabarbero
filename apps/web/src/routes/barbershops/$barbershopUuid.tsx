@@ -29,9 +29,7 @@ function RouteComponent() {
 
   const params = Route.useParams();
 
-  const { data: barbershop, isLoading } = useBarbershopByUuid(
-    params.barbershopUuid,
-  );
+  const { data: barbershop } = useBarbershopByUuid(params.barbershopUuid);
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
 
   const { data: user } = useSession();
@@ -43,7 +41,7 @@ function RouteComponent() {
           <BarbershopHeader barbershop={barbershop} userId={user?.userId!} />
 
           <section>
-            <BarbershopAvatar barbershop={barbershop} isLoading={isLoading} />
+            <BarbershopAvatar barbershop={barbershop} size="lg" />
           </section>
         </header>
 

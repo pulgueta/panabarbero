@@ -1,31 +1,39 @@
 import type { Barbershop } from "@panabarbero/convex/schemas";
+import type { FC } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 interface BarbershopAvatarProps {
   barbershop: Barbershop | null;
-  isLoading?: boolean;
+  size?: "xs" | "sm" | "md" | "lg";
 }
 
-export const BarbershopAvatar = (props: BarbershopAvatarProps) => {
-  const { barbershop, isLoading } = props;
-
-  if (isLoading) {
-    return (
-      <Skeleton className="size-16 rounded-full object-cover md:size-24 lg:size-28" />
-    );
-  }
-
+export const BarbershopAvatar: FC<BarbershopAvatarProps> = ({
+  barbershop,
+  size = "sm",
+}) => {
   return (
     <div className="relative">
-      <img
-        loading="lazy"
-        decoding="async"
-        alt={`Banner de ${barbershop?.name}`}
-        src={barbershop?.bannerUrl ?? "/default-logo.png"}
-        style={{ viewTransitionName: `barbershop-${barbershop?.uuid}-banner` }}
-        className="size-16 rounded-full object-cover md:size-24 lg:size-28"
-      />
+      {barbershop ? (
+        <img
+          loading="lazy"
+          decoding="async"
+          alt={`Banner de ${barbershop?.name}`}
+          src={barbershop?.bannerUrl ?? "/default-logo.png"}
+          style={{
+            viewTransitionName: `barbershop-${barbershop?.uuid}-avatar`,
+          }}
+          className={cn("rounded-full object-cover", {
+            "size-8": size === "xs",
+            "size-12": size === "sm",
+            "size-16": size === "md",
+            "size-24": size === "lg",
+          })}
+        />
+      ) : (
+        <Skeleton className="size-16 rounded-full object-cover md:size-24 lg:size-28" />
+      )}
     </div>
   );
 };

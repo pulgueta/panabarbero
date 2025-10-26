@@ -62,10 +62,20 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
       >
         {barbershop?.name}
       </h1>
-      <p className="mb-1 text-muted-foreground text-sm">
+      <p
+        className="mb-1 text-muted-foreground text-sm"
+        style={{
+          viewTransitionName: `barbershop-${barbershop?.uuid}-city-state`,
+        }}
+      >
         {barbershop?.city}, {barbershop?.state}.
       </p>
-      <p className="mb-1 text-muted-foreground text-sm">
+      <p
+        className="mb-1 text-muted-foreground text-sm"
+        style={{
+          viewTransitionName: `barbershop-${barbershop?.uuid}-address`,
+        }}
+      >
         {barbershop?.address.fullAddress}
         {barbershop?.address.details && (
           <>
@@ -98,7 +108,13 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
       )}
 
       <div className="flex flex-col">
-        <BarbershopRating value={barbershop?.metadata?.rating ?? 0} readOnly />
+        <BarbershopRating
+          value={barbershop?.metadata?.rating ?? 0}
+          readOnly
+          style={{
+            viewTransitionName: `barbershop-${barbershop?.uuid}-rating`,
+          }}
+        />
 
         <p className="mt-px inline-flex items-center gap-1 text-muted-foreground text-xs md:text-sm">
           {reviews ?? "Sin"}{" "}
