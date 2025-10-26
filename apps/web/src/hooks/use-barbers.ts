@@ -9,6 +9,14 @@ export function barbersByBarbershopIdQueryOptions(
   return convexQuery(api.barbers.getBarbersByBarbershopId, { barbershopId });
 }
 
+export function isBarberQueryOptions(userId: string) {
+  return convexQuery(api.barbers.isBarber, { userId });
+}
+
 export function useBarbersByBarbershopId(barbershopId: Barbershop["_id"]) {
   return useQuery(barbersByBarbershopIdQueryOptions(barbershopId));
+}
+
+export function useIsBarber(userId: string) {
+  return useQuery(isBarberQueryOptions(userId));
 }

@@ -49,41 +49,39 @@ export const BarbershopFilters: FC = () => {
   };
 
   return (
-    <div className="mx-auto grid w-full max-w-xl grid-cols-1 gap-3 sm:grid-cols-3">
-      <div className="flex flex-col items-center gap-2 sm:flex-row">
-        <Select
-          value={state}
-          onValueChange={(v) => apply({ state: v ?? undefined })}
-        >
-          <SelectTrigger className="w-full min-w-48 bg-background dark:bg-card">
-            <SelectValue placeholder="Departamento" />
-          </SelectTrigger>
-          <SelectContent>
-            {states.map((state) => (
-              <SelectItem key={state.state} value={state.state}>
-                {state.state}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+    <div className="mx-auto grid w-full max-w-xl grid-cols-1 gap-3 sm:grid-cols-2">
+      <Select
+        value={state}
+        onValueChange={(v) => apply({ state: v ?? undefined })}
+      >
+        <SelectTrigger className="w-full min-w-48 bg-background dark:bg-card">
+          <SelectValue placeholder="Departamento" />
+        </SelectTrigger>
+        <SelectContent>
+          {states.map((state) => (
+            <SelectItem key={state.state} value={state.state}>
+              {state.state}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-        <Select
-          value={city}
-          onValueChange={(v) => apply({ city: v ?? undefined })}
-          disabled={!state}
-        >
-          <SelectTrigger className="w-full min-w-48 bg-background dark:bg-card">
-            <SelectValue placeholder="Ciudad" />
-          </SelectTrigger>
-          <SelectContent>
-            {availableCities.map((city) => (
-              <SelectItem key={city} value={city}>
-                {city}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <Select
+        value={city}
+        onValueChange={(v) => apply({ city: v ?? undefined })}
+        disabled={!state}
+      >
+        <SelectTrigger className="w-full min-w-48 bg-background dark:bg-card">
+          <SelectValue placeholder="Ciudad" />
+        </SelectTrigger>
+        <SelectContent>
+          {availableCities.map((city) => (
+            <SelectItem key={city} value={city}>
+              {city}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 };
