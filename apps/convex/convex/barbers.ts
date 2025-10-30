@@ -144,7 +144,7 @@ export const isBarber = query({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not found", { cause: user });

@@ -802,66 +802,6 @@ export const getBarbershopAvailability = query({
   },
 });
 
-export const getAvailableTimeSlots = query({
-  args: {
-    barbershopId: v.id("barbershops"),
-    date: v.number(),
-    serviceId: v.id("services"),
-    barberId: v.optional(v.id("barbers")),
-  },
-  handler: async (ctx, args) => {
-    const barbershop = await ctx.db.get(args.barbershopId);
-
-    if (!barbershop)
-      throw new Error("Barbershop not found", {
-        cause: args.barbershopId,
-      });
-
-    const dateAppointments = await ctx.db
-      .query("appointments")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
-      )
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("date"), args.date),
-          q.or(
-            q.eq(q.field("status"), "pending"),
-            q.eq(q.field("status"), "confirmed"),
-          ),
-        ),
-      )
-      .collect();
-
-    const availability = barbershop.availability;
-
-    const slots: string[] = [];
-
-    for (const availability of barbershop.availability) {
-      // biome-ignore lint/style/noNonNullAssertion: availability.openAt is not nullable
-      const startAt = new Date(availability.openAt!);
-      // biome-ignore lint/style/noNonNullAssertion: availability.closeAt is not nullable
-      const endAt = new Date(availability.closeAt!);
-      slots.push(
-        `${startAt.getHours()}:${startAt.getMinutes()}-${endAt.getHours()}:${endAt.getMinutes()}`,
-      );
-    }
-
-    for (const appointment of dateAppointments) {
-      const startAt = new Date(appointment.startAt);
-      // biome-ignore lint/style/noNonNullAssertion: appointment.endAt is not nullable
-      const endAt = new Date(appointment.endAt!);
-      slots.push(
-        `${startAt.getHours()}:${startAt.getMinutes()}-${endAt.getHours()}:${endAt.getMinutes()}`,
-      );
-    }
-
-    console.log("slots", slots);
-
-    console.log("dateAppointments", dateAppointments);
-  },
-});
-
 export const appointmentOverlaps = internalQuery({
   args: {
     appointmentId: v.id("appointments"),

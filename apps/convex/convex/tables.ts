@@ -89,7 +89,6 @@ export const tables = {
   services: {
     uuid: v.string(),
     name: v.string(),
-    description: v.optional(v.string()),
     price: v.number(),
     duration: v.optional(v.number()),
     barbershopId: v.id("barbershops"),
