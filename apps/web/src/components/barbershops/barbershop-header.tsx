@@ -125,7 +125,6 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
               <DrawerTrigger asChild>
                 <Button
                   variant="link"
-                  size="sm"
                   className="px-0 text-muted-foreground text-xs md:text-sm"
                 >
                   Calificar
@@ -152,7 +151,6 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
                     <Button
                       asChild
                       variant="link"
-                      size="sm"
                       className="pb-4 text-muted-foreground"
                     >
                       <Link to="/login">
@@ -168,7 +166,6 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
               <PopoverTrigger asChild>
                 <Button
                   variant="link"
-                  size="sm"
                   className="px-0 text-muted-foreground text-xs md:text-sm"
                 >
                   Calificar
@@ -191,7 +188,6 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
                   <Button
                     asChild
                     variant="link"
-                    size="sm"
                     className="text-muted-foreground"
                   >
                     <Link to="/login">

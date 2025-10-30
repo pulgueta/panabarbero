@@ -59,7 +59,6 @@ export const UserPopover: FC<ReturnType<typeof useSession>["data"]> = (
               <Button
                 variant="link"
                 className="w-full justify-start p-0 text-foreground"
-                size="sm"
                 asChild
               >
                 <Link to="/barbershop-settings">
@@ -69,7 +68,6 @@ export const UserPopover: FC<ReturnType<typeof useSession>["data"]> = (
               <Button
                 variant="link"
                 className="w-full justify-start p-0 text-foreground"
-                size="sm"
                 asChild
               >
                 <Link to="/analytics">Analíticas</Link>
@@ -80,7 +78,6 @@ export const UserPopover: FC<ReturnType<typeof useSession>["data"]> = (
               <Button
                 variant="link"
                 className="w-full justify-start p-0 text-foreground"
-                size="sm"
                 asChild
               >
                 <Link to="/appointments">Mis Citas</Link>
@@ -88,7 +85,6 @@ export const UserPopover: FC<ReturnType<typeof useSession>["data"]> = (
               <Button
                 variant="link"
                 className="w-full justify-start p-0 text-foreground"
-                size="sm"
                 asChild
               >
                 <Link to="/reviews">Mis Reseñas</Link>
@@ -100,7 +96,6 @@ export const UserPopover: FC<ReturnType<typeof useSession>["data"]> = (
 
           <Button
             variant="destructive"
-            size="sm"
             onClick={handleSignOut}
             className="w-full"
           >

@@ -254,23 +254,14 @@ export const ReviewsListPage = () => {
                 )}
 
                 <div className="mt-4 flex gap-2">
-                  <Button variant="outline" size="sm">
-                    Útil
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    Reportar
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(review)}
-                  >
+                  <Button variant="outline">Útil</Button>
+                  <Button variant="outline">Reportar</Button>
+                  <Button variant="outline" onClick={() => handleEdit(review)}>
                     <Edit className="mr-1 h-3 w-3" />
                     Editar
                   </Button>
                   <Button
                     variant="outline"
-                    size="sm"
                     onClick={() => handleDelete(review)}
                   >
                     <Trash2 className="mr-1 h-3 w-3" />

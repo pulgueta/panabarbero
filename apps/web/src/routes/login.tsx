@@ -61,7 +61,6 @@ function LoginPage() {
         {canGoBack && (
           <Button
             variant="ghost"
-            size="sm"
             onClick={() => router.history.back()}
             className="mb-4"
           >
@@ -82,19 +81,15 @@ function LoginPage() {
           </header>
 
           <div className="flex w-full max-w-64 flex-col gap-2.5">
-            <Button size="sm" onClick={() => handleSignIn("google")}>
+            <Button onClick={() => handleSignIn("google")}>
               <SiGoogle className="size-4" />
               Google
             </Button>
-            <Button size="sm" disabled onClick={() => handleSignIn("apple")}>
+            <Button disabled onClick={() => handleSignIn("apple")}>
               <SiApple className="size-4" />
               Apple (muy pronto)
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleSignIn("passkey")}
-            >
+            <Button variant="outline" onClick={() => handleSignIn("passkey")}>
               <KeyRound className="size-4" />
               Biometría
             </Button>

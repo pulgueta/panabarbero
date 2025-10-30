@@ -35,7 +35,6 @@ export const Header = () => {
             {navigationRoutesWithoutSettings.map((route) => (
               <Button
                 key={route.to}
-                size="sm"
                 variant={currentPath === route.to ? "default" : "ghost"}
                 asChild
               >
@@ -60,7 +59,7 @@ export const Header = () => {
             ) : user ? (
               <UserPopover {...user} />
             ) : (
-              <Button size="sm" asChild>
+              <Button asChild>
                 <Link to="/login">Iniciar sesión</Link>
               </Button>
             )}

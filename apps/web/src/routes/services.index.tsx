@@ -127,17 +127,12 @@ export const ServicesListPage = () => {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(service)}
-                  >
+                  <Button variant="outline" onClick={() => handleEdit(service)}>
                     <Edit className="mr-1 h-3 w-3" />
                     Editar
                   </Button>
                   <Button
                     variant="outline"
-                    size="sm"
                     onClick={() => handleDelete(service)}
                   >
                     <Trash2 className="mr-1 h-3 w-3" />

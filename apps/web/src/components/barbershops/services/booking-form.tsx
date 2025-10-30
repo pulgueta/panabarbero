@@ -429,7 +429,7 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
       </FieldGroup>
 
       {!user && (
-        <Item variant="warning" size="sm" asChild>
+        <Item variant="warning" asChild>
           <Link to="/login" className="mt-4">
             <ItemMedia>
               <Info className="size-5" />
