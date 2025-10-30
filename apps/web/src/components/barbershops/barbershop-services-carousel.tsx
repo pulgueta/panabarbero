@@ -51,9 +51,9 @@ export const BarbershopServicesCarousel: FC<BarbershopServicesCarouselProps> = (
             className="mx-auto md:basis-1/2 lg:basis-1/3"
           >
             <Card className="max-h-36 bg-secondary/20 transition-transform duration-500 dark:bg-secondary/20">
-              <CardContent className="flex items-start justify-between gap-1 px-4">
+              <CardContent className="flex items-start justify-between gap-4 px-4">
                 <section className="flex flex-col items-start gap-2">
-                  <p className="line-clamp-1 text-pretty font-semibold leading-none tracking-tight">
+                  <p className="line-clamp-1 text-pretty font-semibold leading-4.5 tracking-tight">
                     {service.name}
                   </p>
                   <p className="text-muted-foreground text-sm tabular-nums tracking-tight">

@@ -94,6 +94,8 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
     service.barbershopId,
   );
 
+  console.log(barbers);
+
   const dayIndexes: Record<string, number> = Object.freeze({
     sunday: 0,
     monday: 1,
@@ -280,7 +282,7 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
               <Skeleton className="h-4 w-24 rounded" />
               <Skeleton className="h-9 w-full" />
             </div>
-          ) : barbers?.length && barbers?.length > 2 ? (
+          ) : barbers?.length && barbers?.length > 1 ? (
             <Controller
               name="barberId"
               control={form.control}
