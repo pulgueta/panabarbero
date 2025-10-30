@@ -3,8 +3,17 @@ import type { FC } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   Drawer,
   DrawerContent,
+  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
@@ -25,6 +34,9 @@ interface BookingButtonProps {
 export const BookingButton: FC<BookingButtonProps> = ({ service }) => {
   const { isMobile } = useIsMobile();
 
+  const headLabel = `Reservar servicio: ${service.name}`;
+  const description = "Proporciona tus datos para reservar el servicio.";
+
   if (isMobile) {
     return (
       <Drawer>
@@ -35,7 +47,8 @@ export const BookingButton: FC<BookingButtonProps> = ({ service }) => {
         </DrawerTrigger>
         <DrawerContent>
           <DrawerHeader>
-            <DrawerTitle>Reservar servicio: {service.name}</DrawerTitle>
+            <DrawerTitle>{headLabel}</DrawerTitle>
+            <DrawerDescription>{description}</DrawerDescription>
           </DrawerHeader>
           <div className="p-4">
             <BookingForm service={service} />
@@ -46,8 +59,20 @@ export const BookingButton: FC<BookingButtonProps> = ({ service }) => {
   }
 
   return (
-    <Button variant="outline" size="sm">
-      Reservar
-    </Button>
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          Reservar
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{headLabel}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+
+        <BookingForm service={service} />
+      </DialogContent>
+    </Dialog>
   );
 };

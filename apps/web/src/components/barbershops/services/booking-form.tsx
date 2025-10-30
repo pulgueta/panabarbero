@@ -1,13 +1,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { Id } from "@panabarbero/convex/dataModel";
 import type { Service } from "@panabarbero/convex/schemas";
-import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { format, startOfDay } from "date-fns";
+import { CalendarIcon, Clock8Icon } from "lucide-react";
 import type { FC } from "react";
 import { useCallback, useId, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { date, email, object, string, any as zodAny } from "zod";
 
+import { bookingFormSchema } from "@/components/appointments/schema";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -22,10 +23,16 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
 import { useAppointmentActions } from "@/hooks/use-appointments";
 import { useBarbersByBarbershopId } from "@/hooks/use-barbers";
 import { useBarbershopAvailability } from "@/hooks/use-barbershop";
@@ -35,33 +42,6 @@ import { cn } from "@/lib/utils";
 interface BookingFormProps {
   service: Service;
 }
-
-const bookingFormSchema = object({
-  customerName: string({
-    error: "El nombre del cliente es requerido",
-  }),
-  date: date({
-    error: "La fecha es requerida",
-  }),
-  startTime: date({
-    error: "La hora de inicio es requerida",
-  }),
-  endTime: date({
-    error: "La hora de fin es requerida",
-  }),
-  contactPhone: string({
-    error: "El teléfono de contacto es requerido",
-  })
-    .min(10, "El teléfono debe tener al menos 10 caracteres")
-    .max(10, "El teléfono debe tener máximo 10 caracteres"),
-  contactEmail: email({
-    error: "El email de contacto es requerido",
-  })
-    .min(6, "El email debe tener al menos 6 caracteres")
-    .max(255, "El email debe tener menos de 255 caracteres"),
-  notes: string().optional(),
-  barberId: zodAny(),
-});
 
 export const BookingForm: FC<BookingFormProps> = ({ service }) => {
   const formIds = {
@@ -76,42 +56,37 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
     barberId: useId(),
   };
 
-  const [selectedTime, setSelectedTime] = useState<string | null>("10:00");
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
-  //   const convex = useConvexAction(api.);
   const { data: user } = useSession();
+
+  const defaultStartTime = new Date();
+  defaultStartTime.setHours(8, 30, 0, 0);
 
   const form = useForm({
     resolver: zodResolver(bookingFormSchema),
     defaultValues: {
-      date: new Date(),
-      startTime: new Date(),
-      endTime: new Date(),
-      contactPhone: "",
-      contactEmail: "",
+      date: Date.now(),
+      startTime: defaultStartTime.getTime(),
+      endTime: Date.now(),
+      customerName: user?.name ?? "",
+      contactPhone: user?.phoneNumber ?? "",
+      contactEmail: user?.email ?? "",
       notes: "",
+      barberId: undefined,
     },
   });
 
-  const date = form.watch("date");
+  const selectedDate = form.watch("date");
+  const selectedBarberId = form.watch("barberId");
 
   const { data: barbers, isLoading: isLoadingBarbers } =
     useBarbersByBarbershopId(service.barbershopId);
-  const { data: availability } = useBarbershopAvailability({
-    barbershopId: service.barbershopId,
-    date: date?.getTime() ?? Date.now(),
-  });
+  const { data: availability } = useBarbershopAvailability(
+    service.barbershopId,
+  );
 
-  //   const disabledDays = availability?.availableDays
-  //     .filter((day) => !day.weekDay)
-  //     .map((_, index) => index);
-
-  console.log({ availability });
-
-  const selectedBarber =
-    barbers?.length === 1 ? barbers[0] : form.watch("barberId");
-
-  const dayIndexes: Record<string, number> = {
+  const dayIndexes: Record<string, number> = Object.freeze({
     sunday: 0,
     monday: 1,
     tuesday: 2,
@@ -119,7 +94,7 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
     thursday: 4,
     friday: 5,
     saturday: 6,
-  };
+  });
 
   const activeDays = new Set(
     availability
@@ -137,111 +112,105 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
 
       const weekday = currentDay.getDay();
 
-      // Disable all past days
       if (currentDay < today) return true;
 
-      // Disable weekdays not active in API
       if (!activeDays.has(weekday)) return true;
 
-      return false; // otherwise enable
+      return false;
     },
     [activeDays],
   );
-
-  const appointmentDuration = form.watch("startTime")
-    ? form.watch("startTime").getTime() + (service.duration ?? 0)
-    : null;
 
   const {
     createAppointment: { mutateAsync: createAppointment, isPending },
   } = useAppointmentActions();
 
-  const onSubmit = form.handleSubmit(async (serviceData) => {
+  const onSubmit = form.handleSubmit(async (formData) => {
     if (!user?.userId) {
       toast.error("Debes iniciar sesión para reservar un servicio");
       return;
     }
 
-    // await createAppointment({
-    //   appointment: {
-    //     ...serviceData,
-    //     userId: session?.user.id,
-    //     barbershopId: service.barbershopId,
-    //     serviceId: service._id,
-    //     date: serviceData.date.getTime(),
-    //     startAt: serviceData.startTime.getTime(),
-    //     endAt: appointmentDuration,
-    //     contactPhone: serviceData.contactPhone,
-    //     contactEmail: serviceData.contactEmail,
-    //   },
-    // });
+    if (!selectedDate) {
+      toast.error("Debes seleccionar una fecha");
+      return;
+    }
+
+    // Determine which barber to use (require selection only if > 2 barbers)
+    let barberIdToUse: string | null = null;
+    if (barbers?.length === 1) {
+      barberIdToUse = barbers[0]._id;
+    } else if (barbers && barbers.length > 2) {
+      barberIdToUse = selectedBarberId ?? null;
+    } else if (barbers && barbers.length <= 2) {
+      barberIdToUse = selectedBarberId ?? barbers[0]._id;
+    }
+
+    if (!barberIdToUse) {
+      toast.error("Debes seleccionar un barbero");
+      return;
+    }
+
+    if (!formData.startTime || !selectedTime) {
+      toast.error("Debes seleccionar una hora");
+      return;
+    }
+
+    // Parse the selected time and create Date objects
+    const [hour, minute] = selectedTime.split(":").map(Number);
+    const startDateTime = new Date(selectedDate);
+    startDateTime.setHours(hour, minute, 0, 0);
+    const startAt = startDateTime.getTime();
+    const endAt = startAt + (service.duration ?? 0);
+
+    // Set the date to start of day for the date field
+    const dateStartOfDay = startOfDay(selectedDate);
+
+    try {
+      await createAppointment({
+        appointment: {
+          userId: user.userId,
+          barbershopId: service.barbershopId,
+          serviceId: service._id,
+          barberId: barberIdToUse as unknown as Id<"barbers">,
+          date: dateStartOfDay.getTime(),
+          startAt,
+          endAt,
+          contactPhone: formData.contactPhone,
+          customerName: formData.customerName,
+          contactEmail: formData.contactEmail,
+          notes: formData.notes,
+        },
+      });
+
+      toast.success("Cita reservada exitosamente");
+      form.reset();
+      setSelectedTime(null);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Error al reservar la cita",
+      );
+    }
   });
 
   return (
     <form id={formIds.form} onSubmit={onSubmit}>
       <FieldGroup>
-        <Controller
-          name="customerName"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={formIds.customerName}>
-                Nombre del cliente
-              </FieldLabel>
-              <Input
-                {...field}
-                id={formIds.customerName}
-                aria-invalid={fieldState.invalid}
-                placeholder="Marcos Aguilar"
-                autoComplete="given-name"
-              />
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
-
-        {isLoadingBarbers ? (
-          <div className="space-y-4">
-            <Skeleton className="h-4 w-24 rounded" />
-            <Skeleton className="h-9 w-full" />
-          </div>
-        ) : barbers?.length && barbers?.length > 1 ? (
+        <div className="grid grid-cols-2 gap-4">
           <Controller
-            name="barberId"
+            name="customerName"
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={formIds.barberId}>
-                  Seleccione un barbero
+                <FieldLabel htmlFor={formIds.customerName}>
+                  Nombre del cliente
                 </FieldLabel>
-                <Select
-                  {...field}
-                  aria-invalid={fieldState.invalid}
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccione un barbero" />
-                  </SelectTrigger>
-                </Select>
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
-          />
-        ) : (
-          <Controller
-            name="barberId"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={formIds.barberId}>Barbero</FieldLabel>
                 <Input
                   {...field}
-                  id={formIds.barberId}
-                  disabled
-                  value={selectedBarber?.name}
+                  id={formIds.customerName}
+                  aria-invalid={fieldState.invalid}
+                  placeholder="Marcos Aguilar"
+                  autoComplete="given-name"
                 />
                 {fieldState.invalid && (
                   <FieldError errors={[fieldState.error]} />
@@ -249,9 +218,120 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
               </Field>
             )}
           />
-        )}
 
-        <div>
+          <Controller
+            name="contactPhone"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={formIds.contactPhone}>
+                  Teléfono de contacto
+                </FieldLabel>
+                <Input
+                  {...field}
+                  id={formIds.contactPhone}
+                  aria-invalid={fieldState.invalid}
+                  placeholder="3119871234"
+                  autoComplete="tel"
+                  type="tel"
+                />
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Controller
+            name="contactEmail"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={formIds.contactEmail}>
+                  Email de contacto
+                </FieldLabel>
+                <Input
+                  {...field}
+                  id={formIds.contactEmail}
+                  aria-invalid={fieldState.invalid}
+                  placeholder="cliente@ejemplo.com"
+                  autoComplete="email"
+                  type="email"
+                />
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
+
+          {isLoadingBarbers ? (
+            <div className="space-y-4">
+              <Skeleton className="h-4 w-24 rounded" />
+              <Skeleton className="h-9 w-full" />
+            </div>
+          ) : barbers?.length && barbers?.length > 2 ? (
+            <Controller
+              name="barberId"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={formIds.barberId}>
+                    Seleccione un barbero
+                  </FieldLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    aria-invalid={fieldState.invalid}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccione un barbero" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {barbers.map((barber) => (
+                        <SelectItem key={barber._id} value={barber._id}>
+                          {barber.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+          ) : barbers?.length === 1 ? (
+            <Controller
+              name="barberId"
+              control={form.control}
+              render={({ field, fieldState }) => {
+                // Set the value when component mounts/updates
+                if (field.value !== barbers[0]._id) {
+                  field.onChange(barbers[0]._id);
+                }
+                return (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor={formIds.barberId}>Barbero</FieldLabel>
+                    <Input
+                      id={`${formIds.barberId}-display`}
+                      disabled
+                      value={barbers[0].name}
+                    />
+                    <Input id={formIds.barberId} type="hidden" {...field} />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                );
+              }}
+            />
+          ) : null}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
           <Controller
             name="date"
             control={form.control}
@@ -278,9 +358,9 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
                   <PopoverContent className="w-auto p-0" align="center">
                     <Calendar
                       mode="single"
-                      selected={field.value}
+                      selected={new Date(field.value)}
                       onSelect={field.onChange}
-                      defaultMonth={field.value}
+                      defaultMonth={new Date(field.value)}
                       disabled={disableDay}
                       className="bg-transparent [--cell-size:--spacing(12)]"
                       captionLayout="label"
@@ -293,60 +373,46 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
               </Field>
             )}
           />
+
+          <Controller
+            name="startTime"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={formIds.startTime}>Hora</FieldLabel>
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center justify-center pl-3 text-muted-foreground peer-disabled:opacity-50">
+                    <Clock8Icon className="size-4" />
+                    <span className="sr-only">Hora</span>
+                  </div>
+                  <Input
+                    {...field}
+                    type="time"
+                    id={formIds.startTime}
+                    value={format(new Date(field.value), "HH:mm")}
+                    onChange={field.onChange}
+                    className="peer appearance-none bg-background pl-9 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                  />
+                </div>
+              </Field>
+            )}
+          />
         </div>
 
         <Controller
-          name="startTime"
+          name="notes"
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={formIds.startTime}>
-                Horas disponibles
-              </FieldLabel>
-              {date ? (
-                <>
-                  <ScrollArea className="w-96 whitespace-nowrap">
-                    <div
-                      className={cn("flex w-max space-x-4", {
-                        "px-4 py-2": availability?.availableTimeSlots,
-                      })}
-                    >
-                      {availability?.availableTimeSlots ? (
-                        availability.availableTimeSlots.map((time) => (
-                          <Button
-                            key={time}
-                            variant={
-                              selectedTime === time ? "default" : "outline"
-                            }
-                            onClick={() => {
-                              field.onChange(time);
-                              setSelectedTime(time);
-                            }}
-                            className="shadow-none"
-                          >
-                            {time}
-                          </Button>
-                        ))
-                      ) : (
-                        <span className="inline-block text-pretty text-center text-muted-foreground text-sm">
-                          {date
-                            ? "No hay horas disponibles"
-                            : "Seleccione una fecha"}
-                        </span>
-                      )}
-                    </div>
-                    <ScrollBar orientation="horizontal" />
-                  </ScrollArea>
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </>
-              ) : (
-                <span className="text-pretty text-muted-foreground text-sm">
-                  Debes seleccionar una fecha primero para ver las horas
-                  disponibles
-                </span>
-              )}
+              <FieldLabel htmlFor={formIds.notes}>Notas (opcional)</FieldLabel>
+              <Textarea
+                {...field}
+                id={formIds.notes}
+                aria-invalid={fieldState.invalid}
+                placeholder="Corte con cero, degradado medio-alto, etc."
+                rows={4}
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
         />

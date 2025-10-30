@@ -23,6 +23,15 @@ export function appointmentsByBarbershopQueryOptions(
   });
 }
 
+export function availableTimeSlotsQueryOptions(payload: {
+  barbershopId: Id<"barbershops">;
+  date: number;
+  serviceId: Id<"services">;
+  barberId?: Id<"barbers">;
+}) {
+  return convexQuery(api.appointments.getAvailableTimeSlots, payload);
+}
+
 export function useAppointments() {
   return useSuspenseQuery(appointmentsQueryOptions());
 }

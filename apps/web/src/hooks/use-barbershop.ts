@@ -23,9 +23,11 @@ export function userVisitedBarbershopsQueryOptions(userId: string) {
 }
 
 export function barbershopAvailabilityQueryOptions(
-  payload: BarbershopAvailabilityPayload,
+  barbershopId: Barbershop["_id"],
 ) {
-  return convexQuery(api.appointments.getBarbershopAvailability, payload);
+  return convexQuery(api.appointments.getBarbershopAvailability, {
+    barbershopId,
+  });
 }
 
 export function searchBarbershopsByNameQueryOptions(name: string) {
@@ -48,10 +50,8 @@ export function useSearchBarbershopsByName(name: string) {
   return useQuery(searchBarbershopsByNameQueryOptions(name));
 }
 
-export function useBarbershopAvailability(
-  payload: BarbershopAvailabilityPayload,
-) {
-  return useQuery(barbershopAvailabilityQueryOptions(payload));
+export function useBarbershopAvailability(barbershopId: Barbershop["_id"]) {
+  return useQuery(barbershopAvailabilityQueryOptions(barbershopId));
 }
 
 export function useBarbershopActions() {

@@ -7,19 +7,35 @@ import { BarbershopServicesCarousel } from "@/components/barbershops/barbershop-
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { useCarouselApi } from "@/components/ui/carousel";
 import { Separator } from "@/components/ui/separator";
+import { barbersByBarbershopIdQueryOptions } from "@/hooks/use-barbers";
 import {
+  barbershopAvailabilityQueryOptions,
   barbershopByUuidQueryOptions,
   useBarbershopByUuid,
 } from "@/hooks/use-barbershop";
-import { useServicesFromBarbershop } from "@/hooks/use-services";
+import {
+  servicesQueryOptions,
+  useServicesFromBarbershop,
+} from "@/hooks/use-services";
 import { useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/barbershops/$barbershopUuid")({
   component: RouteComponent,
-  loader: async ({ context, params }) =>
-    await context.queryClient.ensureQueryData(
+  loader: async ({ context, params }) => {
+    const barbershop = await context.queryClient.ensureQueryData(
       barbershopByUuidQueryOptions(params.barbershopUuid),
-    ),
+    );
+
+    await context.queryClient.ensureQueryData(
+      barbersByBarbershopIdQueryOptions(barbershop?._id!),
+    );
+    await context.queryClient.ensureQueryData(
+      servicesQueryOptions(barbershop?._id!),
+    );
+    await context.queryClient.ensureQueryData(
+      barbershopAvailabilityQueryOptions(barbershop?._id!),
+    );
+  },
   pendingComponent: LoadingComponent,
   ssr: true,
 });
