@@ -1,6 +1,6 @@
 import { signOut } from "@panabarbero/convex/auth";
 import { Link } from "@tanstack/react-router";
-import { BarChart3, Briefcase, Calendar, LogOut, Star } from "lucide-react";
+import { LogOut } from "lucide-react";
 import type { FC } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -56,41 +56,43 @@ export const UserPopover: FC<ReturnType<typeof useSession>["data"]> = (
         <div className="flex flex-col items-start space-y-1 text-pretty">
           {isBarber ? (
             <>
-              <Link to="/barbershop-settings">
-                <Button variant="ghost" className="w-full" size="sm">
-                  <Briefcase className="size-4" />
+              <Button
+                variant="link"
+                className="w-full justify-start p-0"
+                size="sm"
+                asChild
+              >
+                <Link to="/barbershop-settings">
                   Configuración de la barbería
-                </Button>
-              </Link>
-              <Link to="/analytics">
-                <Button variant="ghost" className="w-full" size="sm">
-                  <BarChart3 className="size-4" />
-                  Analíticas
-                </Button>
-              </Link>
+                </Link>
+              </Button>
+              <Button
+                variant="link"
+                className="w-full justify-start p-0"
+                size="sm"
+                asChild
+              >
+                <Link to="/analytics">Analíticas</Link>
+              </Button>
             </>
           ) : (
             <>
-              <Link to="/appointments">
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start"
-                  size="sm"
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Mis Citas
-                </Button>
-              </Link>
-              <Link to="/reviews">
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start"
-                  size="sm"
-                >
-                  <Star className="mr-2 h-4 w-4" />
-                  Mis Reseñas
-                </Button>
-              </Link>
+              <Button
+                variant="link"
+                className="w-full justify-start p-0"
+                size="sm"
+                asChild
+              >
+                <Link to="/appointments">Mis Citas</Link>
+              </Button>
+              <Button
+                variant="link"
+                className="w-full justify-start p-0"
+                size="sm"
+                asChild
+              >
+                <Link to="/reviews">Mis Reseñas</Link>
+              </Button>
             </>
           )}
 
