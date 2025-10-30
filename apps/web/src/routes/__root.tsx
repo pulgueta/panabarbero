@@ -1,6 +1,7 @@
 import type { ConvexQueryClient } from "@convex-dev/react-query";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { QueryClient } from "@tanstack/react-query";
+import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
 import {
   createRootRouteWithContext,
   HeadContent,
@@ -46,7 +47,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         },
         {
           name: "og:url",
-          content: "https://pana-barbero.com",
+          content: "https://panabarbero.com",
         },
         {
           name: "og:type",
@@ -80,6 +81,10 @@ export const Route = createRootRouteWithContext<RouterContext>()({
               {
                 name: "Tanstack Router",
                 render: <TanStackRouterDevtoolsPanel />,
+              },
+              {
+                name: "TanStack Query",
+                render: <ReactQueryDevtoolsPanel />,
               },
               StoreDevtools,
             ]}
