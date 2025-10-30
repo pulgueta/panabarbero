@@ -1,14 +1,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Id } from "@panabarbero/convex/dataModel";
 import type { Service } from "@panabarbero/convex/schemas";
+import { Link } from "@tanstack/react-router";
 import { format, startOfDay } from "date-fns";
-import { CalendarIcon, Clock8Icon } from "lucide-react";
+import { CalendarIcon, ChevronRightIcon, Clock8Icon, Info } from "lucide-react";
 import type { FC } from "react";
 import { useCallback, useId, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-import { bookingFormSchema } from "@/components/appointments/schema";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -18,6 +18,13 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
 import {
   Popover,
   PopoverContent,
@@ -37,6 +44,7 @@ import { useAppointmentActions } from "@/hooks/use-appointments";
 import { useBarbersByBarbershopId } from "@/hooks/use-barbers";
 import { useBarbershopAvailability } from "@/hooks/use-barbershop";
 import { useSession } from "@/hooks/use-session";
+import { appointmentFormSchema } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 
 interface BookingFormProps {
@@ -64,7 +72,7 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
   defaultStartTime.setHours(8, 30, 0, 0);
 
   const form = useForm({
-    resolver: zodResolver(bookingFormSchema),
+    resolver: zodResolver(appointmentFormSchema),
     defaultValues: {
       date: Date.now(),
       startTime: defaultStartTime.getTime(),
@@ -418,7 +426,29 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
         />
       </FieldGroup>
 
-      <Button type="submit" disabled={isPending} className="mt-4 w-full">
+      {!user && (
+        <Item variant="warning" size="sm" asChild>
+          <Link to="/login" className="mt-4">
+            <ItemMedia>
+              <Info className="size-5" />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>
+                Debes iniciar sesión para poder reservar un servicio
+              </ItemTitle>
+            </ItemContent>
+            <ItemActions>
+              <ChevronRightIcon className="size-4" />
+            </ItemActions>
+          </Link>
+        </Item>
+      )}
+
+      <Button
+        type="submit"
+        disabled={isPending || !user}
+        className="mt-4 w-full"
+      >
         {isPending ? <Spinner /> : "Reservar"}
       </Button>
     </form>

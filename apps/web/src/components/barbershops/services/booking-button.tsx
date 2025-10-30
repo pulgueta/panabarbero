@@ -41,9 +41,7 @@ export const BookingButton: FC<BookingButtonProps> = ({ service }) => {
     return (
       <Drawer>
         <DrawerTrigger asChild>
-          <Button variant="outline" size="sm">
-            Reservar
-          </Button>
+          <Button size="sm">Reservar</Button>
         </DrawerTrigger>
         <DrawerContent>
           <DrawerHeader>
@@ -61,9 +59,7 @@ export const BookingButton: FC<BookingButtonProps> = ({ service }) => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          Reservar
-        </Button>
+        <Button size="sm">Reservar</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
