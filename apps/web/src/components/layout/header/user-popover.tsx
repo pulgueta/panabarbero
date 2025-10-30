@@ -43,7 +43,7 @@ export const UserPopover: FC<ReturnType<typeof useSession>["data"]> = (
           <AvatarFallback>{getUserInitials()}</AvatarFallback>
         </Avatar>
       </PopoverTrigger>
-      <PopoverContent className="w-full max-w-sm" align="end">
+      <PopoverContent className="w-full max-w-sm tracking-tight" align="end">
         <div className="flex flex-col space-y-1">
           <p className="font-medium text-sm leading-none">{user?.name}</p>
           <p className="text-muted-foreground text-xs leading-none">
@@ -58,7 +58,7 @@ export const UserPopover: FC<ReturnType<typeof useSession>["data"]> = (
             <>
               <Button
                 variant="link"
-                className="w-full justify-start p-0"
+                className="w-full justify-start p-0 text-foreground"
                 size="sm"
                 asChild
               >
@@ -68,7 +68,7 @@ export const UserPopover: FC<ReturnType<typeof useSession>["data"]> = (
               </Button>
               <Button
                 variant="link"
-                className="w-full justify-start p-0"
+                className="w-full justify-start p-0 text-foreground"
                 size="sm"
                 asChild
               >
@@ -79,7 +79,7 @@ export const UserPopover: FC<ReturnType<typeof useSession>["data"]> = (
             <>
               <Button
                 variant="link"
-                className="w-full justify-start p-0"
+                className="w-full justify-start p-0 text-foreground"
                 size="sm"
                 asChild
               >
@@ -87,7 +87,7 @@ export const UserPopover: FC<ReturnType<typeof useSession>["data"]> = (
               </Button>
               <Button
                 variant="link"
-                className="w-full justify-start p-0"
+                className="w-full justify-start p-0 text-foreground"
                 size="sm"
                 asChild
               >

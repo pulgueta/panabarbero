@@ -46,23 +46,26 @@ export const BarbershopServicesCarousel: FC<BarbershopServicesCarouselProps> = (
     >
       <CarouselContent>
         {services.map((service) => (
-          <CarouselItem key={service._id} className="md:basis-1/2 lg:basis-1/3">
-            <Card className="transition-transform duration-500">
-              <CardContent className="flex min-h-48 flex-col gap-1 px-4">
-                <section className="flex-1 space-y-1">
-                  <p className="text-pretty font-semibold tracking-tight">
+          <CarouselItem
+            key={service._id}
+            className="mx-auto md:basis-1/2 lg:basis-1/3"
+          >
+            <Card className="max-h-36 bg-secondary/20 transition-transform duration-500 dark:bg-secondary/20">
+              <CardContent className="flex items-start justify-between gap-1 px-4">
+                <section className="flex flex-col items-start gap-2">
+                  <p className="line-clamp-1 text-pretty font-semibold leading-none tracking-tight">
                     {service.name}
                   </p>
-                  <p className="text-muted-foreground text-sm">
+                  <p className="text-muted-foreground text-sm tabular-nums tracking-tight">
                     {formatCurrency(service.price)}
                   </p>
-                </section>
-
-                {service.duration && (
-                  <p className="inline-flex items-center gap-1 text-muted-foreground text-sm tracking-tight">
-                    <Clock className="size-3" /> {service.duration} minutos
+                  <p className="mb-1 inline-flex items-center gap-1.5 text-muted-foreground text-xs tracking-tight">
+                    <Clock className="size-3" />{" "}
+                    {service.duration
+                      ? `${service.duration} minutos`
+                      : "No hay duración disponible"}
                   </p>
-                )}
+                </section>
 
                 <BookingButton service={service} />
               </CardContent>

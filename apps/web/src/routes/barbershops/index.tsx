@@ -63,7 +63,7 @@ function BarbershopsPage() {
 
   return (
     <div className="container mx-auto min-h-dvh border-x md:min-h-[calc(100dvh-65px)]">
-      <header className="flex flex-col items-center justify-between gap-2.5 border-b py-12 md:py-16 dark:border-b-popover/20">
+      <header className="flex flex-col items-center justify-between gap-2.5 py-12 md:py-16">
         <section className="mx-auto w-full max-w-xl space-y-4">
           <h1 className="text-balance text-center font-bold text-3xl tracking-tight">
             ¿Qué estilo buscas hoy?
@@ -71,7 +71,7 @@ function BarbershopsPage() {
 
           <div className="mx-auto w-full px-4">
             <InputGroup>
-              <InputGroupInput placeholder="Corte y barba..." />
+              <InputGroupInput placeholder="Corte y barba..." role="search" />
               <InputGroupAddon>
                 <SearchIcon />
               </InputGroupAddon>

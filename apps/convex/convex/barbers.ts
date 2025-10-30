@@ -147,7 +147,7 @@ export const isBarber = query({
     const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not found", { cause: user });
+      return false;
     }
 
     if (user.userId !== args.userId) {

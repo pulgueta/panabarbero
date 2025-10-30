@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import {
   Drawer,
   DrawerContent,
+  DrawerDescription,
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
@@ -134,19 +135,18 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
                 {userId && (
                   <DrawerHeader>
                     <DrawerTitle>{formHeadLabel}</DrawerTitle>
+                    <DrawerDescription>
+                      {requiredReviewMessage}
+                    </DrawerDescription>
                   </DrawerHeader>
                 )}
                 <DrawerFooter>
                   {userId ? (
-                    canReview ? (
+                    canReview && (
                       <ReviewForm
                         barbershopId={barbershop?._id!}
                         userId={userId}
                       />
-                    ) : (
-                      <p className="text-pretty text-center text-muted-foreground text-sm">
-                        {requiredReviewMessage}
-                      </p>
                     )
                   ) : (
                     <Button
