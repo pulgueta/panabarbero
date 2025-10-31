@@ -73,7 +73,7 @@ function BarbershopsPage() {
   }, [search.city, search.state]);
 
   return (
-    <div className="container mx-auto min-h-dvh border-x pb-24 md:min-h-[calc(100dvh-65px)] md:pb-0">
+    <div className="container mx-auto min-h-dvh border-x pb-32 md:min-h-[calc(100dvh-65px)] md:pb-0">
       <header className="flex flex-col items-center justify-between gap-2.5 py-12 md:py-16">
         <section className="mx-auto w-full max-w-xl space-y-4">
           <h1 className="text-balance text-center font-bold text-3xl tracking-tight">
