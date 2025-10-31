@@ -1,3 +1,4 @@
+import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -6,13 +7,19 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from "@/components/ui/input-group";
+import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
 import { Spinner } from "@/components/ui/spinner";
 import { useServiceActions } from "@/hooks/use-services";
 import { serviceFormSchema } from "@/lib/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Service } from "@panabarbero/convex/schemas";
-import { SaveIcon, TrashIcon } from "lucide-react";
+import { Info } from "lucide-react";
 import { type FC, useEffect, useId } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -56,6 +63,13 @@ export const ServiceForm: FC<ServiceFormProps> = ({ service }) => {
       isSuccess: isDeleteSuccess,
     },
   } = useServiceActions();
+
+  const handleDelete = async () => {
+    await deleteService({
+      serviceId: service._id,
+      barbershopId: service.barbershopId,
+    });
+  };
 
   const onSubmit = form.handleSubmit(async (data) => {
     await updateService({
@@ -114,85 +128,107 @@ export const ServiceForm: FC<ServiceFormProps> = ({ service }) => {
           )}
         />
 
-        <Controller
-          name="duration"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={formIds.duration}>
-                Duración del servicio (minutos)
-              </FieldLabel>
-              {/* @ts-expect-error */}
-              <Input
-                {...field}
-                id={formIds.duration}
-                aria-invalid={fieldState.invalid}
-                placeholder="30"
-                type="number"
-              />
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
+        <div className="grid grid-cols-2 gap-2">
+          <Controller
+            name="duration"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={formIds.duration}>
+                  Duración (minutos)
+                </FieldLabel>
+                {/* @ts-expect-error */}
+                <Input
+                  {...field}
+                  id={formIds.duration}
+                  aria-invalid={fieldState.invalid}
+                  placeholder="30"
+                  type="number"
+                  className="w-full tabular-nums"
+                />
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
 
-        <Controller
-          name="price"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={formIds.price}>
-                Precio del servicio (COP)
-              </FieldLabel>
-              {/* @ts-expect-error */}
-              <Input
-                {...field}
-                id={formIds.price}
-                aria-invalid={fieldState.invalid}
-                placeholder="30000"
-                type="number"
-              />
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
+          <Controller
+            name="price"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={formIds.price}>Precio</FieldLabel>
+                <InputGroup>
+                  <InputGroupAddon>
+                    <InputGroupText>$</InputGroupText>
+                  </InputGroupAddon>
+                  {/* @ts-expect-error */}
+                  <InputGroupInput
+                    {...field}
+                    id={formIds.price}
+                    aria-invalid={fieldState.invalid}
+                    placeholder="30000"
+                    type="number"
+                    className="tabular-nums"
+                  />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupText>COP</InputGroupText>
+                  </InputGroupAddon>
+                </InputGroup>
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
+        </div>
       </FieldGroup>
 
-      <Button
-        type="submit"
-        disabled={isPending || isSuccess}
-        className="mt-4 w-full"
-      >
-        {isPending ? (
-          <Spinner />
-        ) : (
-          <>
-            <SaveIcon className="size-3" /> Guardar
-          </>
-        )}
-      </Button>
+      {isSuccess && (
+        <Item variant="outline" asChild>
+          <div className="mt-4">
+            <ItemMedia>
+              <Info className="size-4" />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>
+                Cierra este formulario para volver a editar el servicio
+              </ItemTitle>
+            </ItemContent>
+          </div>
+        </Item>
+      )}
 
-      <Separator className="my-4" />
+      <div className="mt-4 flex flex-row gap-2">
+        <ConfirmationDialog
+          trigger={
+            <Button type="button" variant="destructive" className="w-1/2">
+              Eliminar
+            </Button>
+          }
+          title="Eliminar servicio"
+          description="¿Estás seguro que desea eliminar el servicio? Esta acción no se puede deshacer."
+          confirmLabel={
+            <Button type="button" variant="destructive" onClick={handleDelete}>
+              {isDeleting ? <Spinner /> : "Sí, eliminar"}
+            </Button>
+          }
+          cancelLabel={
+            <Button type="button" variant="outline">
+              No, cancelar
+            </Button>
+          }
+        />
 
-      <Button
-        disabled={isDeleting || isPending}
-        type="button"
-        variant="destructive"
-        className="w-full"
-        onClick={() => {
-          deleteService({
-            serviceId: service._id,
-            barbershopId: service.barbershopId,
-          });
-        }}
-      >
-        {isDeleting ? (
-          <Spinner />
-        ) : (
-          <>
-            <TrashIcon className="size-3" /> Eliminar
-          </>
-        )}
-      </Button>
+        <Button
+          type="submit"
+          disabled={isPending || isSuccess}
+          className="w-1/2"
+        >
+          {isPending ? <Spinner /> : "Guardar"}
+        </Button>
+      </div>
     </form>
   );
 };

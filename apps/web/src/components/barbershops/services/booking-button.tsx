@@ -44,18 +44,19 @@ export const BookingButton: FC<BookingButtonProps> = ({ service }) => {
   );
 
   const headLabel = barbershop
-    ? `Editar servicio: ${service.name}`
-    : `Reservar servicio: ${service.name}`;
+    ? `Editar: ${service.name}`
+    : `Reservar: ${service.name}`;
   const description = barbershop
     ? "Ingresa los nuevos datos del servicio."
     : "Proporciona tus datos para reservar el servicio.";
   const buttonLabel = barbershop ? "Editar" : "Reservar";
+  const buttonVariant = barbershop ? "outline" : "default";
 
   if (isMobile) {
     return (
       <Drawer>
         <DrawerTrigger asChild>
-          <Button>{buttonLabel}</Button>
+          <Button variant={buttonVariant}>{buttonLabel}</Button>
         </DrawerTrigger>
         <DrawerContent>
           <DrawerHeader>
@@ -77,7 +78,7 @@ export const BookingButton: FC<BookingButtonProps> = ({ service }) => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button>{buttonLabel}</Button>
+        <Button variant={buttonVariant}>{buttonLabel}</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
