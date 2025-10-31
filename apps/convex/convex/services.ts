@@ -1,3 +1,5 @@
+/** biome-ignore-all lint/style/noNonNullAssertion: is always provided */
+
 import type { SearchEntry, SearchResult } from "@convex-dev/rag";
 import type { EmbeddingModelUsage } from "ai";
 import type { Value } from "convex/values";
@@ -101,7 +103,6 @@ export const getServicesByBarbershopId = query({
     const services = await ctx.db
       .query("services")
       .withIndex("by_barbershopId", (q) =>
-        // biome-ignore lint/style/noNonNullAssertion: barbershopId is always provided
         q.eq("barbershopId", args.barbershopId!),
       )
       .collect();
@@ -113,37 +114,57 @@ export const getServicesByBarbershopId = query({
 export const updateService = mutation({
   args: {
     service: v.object({
-      ...tables.services,
+      name: v.string(),
+      price: v.number(),
+      duration: v.optional(v.number()),
+      barbershopId: v.id("barbershops"),
     }),
     serviceId: v.id("services"),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
         cause: user,
       });
     }
+
     const { service, serviceId } = args;
 
-    await ctx.db.patch(serviceId, service);
+    await ctx.db.patch(serviceId, {
+      ...service,
+      uuid: crypto.randomUUID(),
+    });
   },
 });
 
 export const deleteService = mutation({
   args: {
+    barbershopId: v.id("barbershops"),
     serviceId: v.id("services"),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
         cause: user,
       });
     }
-    const { serviceId } = args;
+
+    const { serviceId, barbershopId } = args;
+
+    const fromBarbershop = await ctx.db
+      .query("barbershops")
+      .withIndex("by_id", (q) => q.eq("_id", barbershopId))
+      .unique();
+
+    if (fromBarbershop?.ownerId !== user.userId) {
+      throw new Error("User not authorized", {
+        cause: user.userId,
+      });
+    }
 
     await ctx.db.delete(serviceId);
   },

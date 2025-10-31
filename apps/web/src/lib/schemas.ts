@@ -2,6 +2,7 @@ import type { output } from "zod";
 import {
   array,
   boolean,
+  coerce,
   email,
   literal,
   number,
@@ -92,10 +93,13 @@ export const serviceFormSchema = object({
     .max(50, {
       message: "El nombre del servicio debe tener menos de 50 caracteres",
     }),
-  price: number({ error: "El precio del servicio es requerido" }).min(1000, {
-    message: "El precio del servicio debe ser mayor a $1.000",
-  }),
-  duration: number()
+  price: coerce
+    .number({ error: "El precio del servicio es requerido" })
+    .min(1000, {
+      message: "El precio del servicio debe ser mayor a $1.000",
+    }),
+  duration: coerce
+    .number()
     .min(5, {
       message: "La duración del servicio debe ser mayor a 5 minutos",
     })
@@ -103,9 +107,7 @@ export const serviceFormSchema = object({
       message: "La duración del servicio debe ser menor a 8 horas",
     })
     .optional(),
-  barbershopId: string({ error: "La barbería es requerida" }).min(1, {
-    message: "La barbería es requerida",
-  }),
+  barbershopId: zodAny(),
 });
 
 export const appointmentFormSchema = object({
