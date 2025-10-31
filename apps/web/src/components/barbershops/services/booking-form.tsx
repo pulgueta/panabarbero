@@ -338,7 +338,11 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
                 );
               }}
             />
-          ) : null}
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              No hay barberos disponibles
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
