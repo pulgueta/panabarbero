@@ -18,8 +18,11 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+import { useIsBarbershopOwner } from "@/hooks/use-barbershop";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useSession } from "@/hooks/use-session";
 import { BookingForm } from "./booking-form";
+import { ServiceForm } from "./service-form";
 
 // import {
 //   Popover,
@@ -33,15 +36,26 @@ interface BookingButtonProps {
 
 export const BookingButton: FC<BookingButtonProps> = ({ service }) => {
   const { isMobile } = useIsMobile();
+  const { data: user } = useSession();
 
-  const headLabel = `Reservar servicio: ${service.name}`;
-  const description = "Proporciona tus datos para reservar el servicio.";
+  const { data: barbershop } = useIsBarbershopOwner(
+    service.barbershopId,
+    user?.userId ?? "",
+  );
+
+  const headLabel = barbershop
+    ? `Editar servicio: ${service.name}`
+    : `Reservar servicio: ${service.name}`;
+  const description = barbershop
+    ? "Ingresa los nuevos datos del servicio."
+    : "Proporciona tus datos para reservar el servicio.";
+  const buttonLabel = barbershop ? "Editar" : "Reservar";
 
   if (isMobile) {
     return (
       <Drawer>
         <DrawerTrigger asChild>
-          <Button>Reservar</Button>
+          <Button>{buttonLabel}</Button>
         </DrawerTrigger>
         <DrawerContent>
           <DrawerHeader>
@@ -49,7 +63,11 @@ export const BookingButton: FC<BookingButtonProps> = ({ service }) => {
             <DrawerDescription>{description}</DrawerDescription>
           </DrawerHeader>
           <div className="p-4">
-            <BookingForm service={service} />
+            {barbershop ? (
+              <ServiceForm service={service} />
+            ) : (
+              <BookingForm service={service} />
+            )}
           </div>
         </DrawerContent>
       </Drawer>
@@ -59,7 +77,7 @@ export const BookingButton: FC<BookingButtonProps> = ({ service }) => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button>Reservar</Button>
+        <Button>{buttonLabel}</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -67,7 +85,11 @@ export const BookingButton: FC<BookingButtonProps> = ({ service }) => {
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <BookingForm service={service} />
+        {barbershop ? (
+          <ServiceForm service={service} />
+        ) : (
+          <BookingForm service={service} />
+        )}
       </DialogContent>
     </Dialog>
   );

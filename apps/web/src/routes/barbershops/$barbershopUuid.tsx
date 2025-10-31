@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { BarbershopAvatar } from "@/components/barbershops/barbershop-avatar";
 import { BarbershopHeader } from "@/components/barbershops/barbershop-header";
-import { BarbershopServicesCarousel } from "@/components/barbershops/barbershop-services-carousel";
+import { ServicesCarousel } from "@/components/barbershops/services/services-carousel";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { useCarouselApi } from "@/components/ui/carousel";
 import { Separator } from "@/components/ui/separator";
@@ -69,7 +69,7 @@ function RouteComponent() {
           </h2>
 
           {services && services.length > 0 ? (
-            <BarbershopServicesCarousel services={services} />
+            <ServicesCarousel services={services} />
           ) : (
             <p
               className="text-pretty text-center text-muted-foreground"

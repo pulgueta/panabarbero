@@ -1,10 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Search } from "lucide-react";
+import { SearchIcon } from "lucide-react";
 import { useState } from "react";
 
 import { BarbershopListCard } from "@/components/barbershops/barbershop-list-card";
 import { LoadingComponent } from "@/components/layout/loading-component";
-import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   useSearchBarbershopsByName,
@@ -67,15 +71,18 @@ function RouteComponent() {
 
       <div className="flex w-full flex-col gap-2">
         <h1 className="font-bold text-xl">Buscar barbería:</h1>
-        <div className="relative mb-4 w-full">
-          <Search className="absolute top-2.5 left-2 size-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar barbería por nombre..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            role="search"
-            className="w-full bg-background pl-8 focus-visible:ring-0 md:max-w-xl"
-          />
+        <div className="mb-4 w-full">
+          <InputGroup>
+            <InputGroupInput
+              placeholder="Buscar barbería por nombre..."
+              role="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <InputGroupAddon>
+              <SearchIcon />
+            </InputGroupAddon>
+          </InputGroup>
         </div>
 
         {(isSearching || isSearchingAgain) && (

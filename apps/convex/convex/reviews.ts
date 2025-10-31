@@ -11,7 +11,7 @@ export const createReview = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -49,13 +49,6 @@ export const getReviewsByBarbershopId = query({
 export const getReviewsByUserId = query({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
-
-    if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
-    }
     const reviews = await ctx.db
       .query("reviews")
       .withIndex("by_userId", (q) => q.eq("userId", args.userId))
@@ -87,7 +80,7 @@ export const updateReview = mutation({
 export const deleteReview = mutation({
   args: { reviewId: v.id("reviews") },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -100,17 +93,20 @@ export const deleteReview = mutation({
 });
 
 export const canReview = query({
-  args: { userId: v.optional(v.string()), barbershopId: v.id("barbershops") },
+  args: {
+    userId: v.optional(v.string()),
+    barbershopId: v.id("barbershops"),
+  },
   handler: async (ctx, args) => {
-    // const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
-    // if (!user) {
-    //   return false;
-    // }
+    if (!user) {
+      return false;
+    }
 
-    // if (args.userId !== user.userId) {
-    //   return false;
-    // }
+    if (args.userId !== user.userId) {
+      return false;
+    }
 
     const userHasAttended = await ctx.db
       .query("appointments")
@@ -123,7 +119,7 @@ export const canReview = query({
           q.eq(q.field("status"), "completed"),
         ),
       )
-      .unique();
+      .first();
 
     return !!userHasAttended;
   },

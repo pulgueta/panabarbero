@@ -1,6 +1,7 @@
 import { tanstack } from "@panabarbero/constants";
 import { createFileRoute } from "@tanstack/react-router";
 import { SearchIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { BarbershopFilters } from "@/components/barbershops/barbershop-filters";
 import { BarbershopGrid } from "@/components/barbershops/barbershop-grid";
@@ -44,6 +45,7 @@ export const Route = createFileRoute("/barbershops/")({
 
 function BarbershopsPage() {
   const search = Route.useSearch();
+
   const [storedState] = useLocalStorage<string>(
     tanstack.localStorageKeys.barbershopsState,
   );
@@ -54,12 +56,21 @@ function BarbershopsPage() {
   const city = storedCity ?? search.city;
   const state = storedState ?? search.state;
 
-  const showModal = !city && !state;
-
-  const filters = {
+  const [filters, setFilters] = useState<BarbershopSearch>({
     city,
     state,
-  } satisfies BarbershopSearch;
+  });
+
+  const showModal = !city && !state;
+
+  useEffect(() => {
+    if (search.city || search.state) {
+      setFilters({
+        city: search.city,
+        state: search.state,
+      });
+    }
+  }, [search.city, search.state]);
 
   return (
     <div className="container mx-auto min-h-dvh border-x md:min-h-[calc(100dvh-65px)]">

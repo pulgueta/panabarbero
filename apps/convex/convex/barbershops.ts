@@ -110,10 +110,18 @@ export const getActiveBarbershops = query({
   handler: async (ctx, args) => {
     const barbershops = await ctx.db
       .query("barbershops")
-      .withIndex("by_city_and_state", (q) =>
-        q.eq("city", args.city ?? "").eq("state", args.state ?? "Santander"),
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .filter((q) =>
+        args.city && args.state
+          ? q.and(
+              q.eq(q.field("city"), args.city),
+              q.eq(q.field("state"), args.state),
+            )
+          : q.or(
+              q.eq(q.field("city"), args.city),
+              q.eq(q.field("state"), args.state),
+            ),
       )
-      .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
     await Promise.all(
@@ -407,5 +415,31 @@ export const getBarbershopsByName = query({
     );
 
     return barbershops;
+  },
+});
+
+export const isBarbershopOwner = query({
+  args: {
+    barbershopId: v.id("barbershops"),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user) {
+      return false;
+    }
+
+    const barbershop = await ctx.db.get(args.barbershopId);
+
+    if (!barbershop) {
+      return false;
+    }
+
+    if (barbershop.ownerId !== user.userId) {
+      return false;
+    } else {
+      return barbershop;
+    }
   },
 });

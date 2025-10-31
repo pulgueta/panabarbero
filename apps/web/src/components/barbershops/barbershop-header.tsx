@@ -81,7 +81,7 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
         {barbershop?.address.details && (
           <>
             <br />
-            {`(${barbershop?.address.details})`}
+            {barbershop?.address.details}
           </>
         )}
       </p>
