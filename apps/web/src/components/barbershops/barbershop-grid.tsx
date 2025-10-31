@@ -17,12 +17,10 @@ export const BarbershopGrid: FC<BarbershopGridProps> = ({ filters }) => {
     isRefetching,
   } = useActiveBarbershops(filters);
 
-  console.log(barbershops);
-
   return isLoading || isRefetching ? (
     <BarbershopLoadingGrid />
   ) : (
-    <main className="grid grid-cols-1 gap-x-6 gap-y-8 bg-accent/20 px-4 py-8 sm:grid-cols-2 md:px-8 xl:grid-cols-3 dark:bg-accent/20">
+    <main className="grid grid-cols-1 gap-x-6 gap-y-8 bg-accent/20 px-4 py-8 md:grid-cols-2 md:px-8 xl:grid-cols-3 dark:bg-accent/20">
       {barbershops?.length && barbershops.length > 0 ? (
         barbershops.map((barbershop) => (
           <BarbershopListCard key={barbershop._id} barbershop={barbershop} />
