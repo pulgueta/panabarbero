@@ -1,3 +1,10 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { Service } from "@panabarbero/convex/schemas";
+import type { FC } from "react";
+import { useId } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
+
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,16 +20,9 @@ import {
   InputGroupInput,
   InputGroupText,
 } from "@/components/ui/input-group";
-import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
 import { Spinner } from "@/components/ui/spinner";
 import { useServiceActions } from "@/hooks/use-services";
 import { serviceFormSchema } from "@/lib/schemas";
-import { zodResolver } from "@hookform/resolvers/zod";
-import type { Service } from "@panabarbero/convex/schemas";
-import { Info } from "lucide-react";
-import { type FC, useEffect, useId } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
 
 interface ServiceFormProps {
   service: Service;
@@ -48,19 +48,10 @@ export const ServiceForm: FC<ServiceFormProps> = ({ service }) => {
   });
 
   const {
-    updateServiceMutation: {
-      mutateAsync: updateService,
-      isPending,
-      error,
-      isError,
-      isSuccess,
-    },
+    updateServiceMutation: { mutateAsync: updateService, isPending, isSuccess },
     deleteServiceMutation: {
       mutateAsync: deleteService,
       isPending: isDeleting,
-      error: deleteError,
-      isError: isDeleteError,
-      isSuccess: isDeleteSuccess,
     },
   } = useServiceActions();
 
@@ -72,39 +63,31 @@ export const ServiceForm: FC<ServiceFormProps> = ({ service }) => {
   };
 
   const onSubmit = form.handleSubmit(async (data) => {
-    await updateService({
-      serviceId: service._id,
-      service: data,
-    });
+    toast.promise(
+      updateService({
+        serviceId: service._id,
+        service: data,
+      }),
+      {
+        loading: "Guardando cambios...",
+        success: () => {
+          form.reset();
+
+          return {
+            message: "Servicio actualizado exitosamente.",
+            description:
+              "Cierra este formulario para volver a editar el servicio.",
+          };
+        },
+        error: (error) => {
+          return {
+            message: "Error al actualizar el servicio.",
+            description: error.message,
+          };
+        },
+      },
+    );
   });
-
-  useEffect(() => {
-    if (isSuccess) {
-      toast.success("Servicio actualizado exitosamente");
-      form.reset();
-    }
-
-    if (isDeleteSuccess) {
-      toast.success("Servicio eliminado exitosamente");
-      form.reset();
-    }
-
-    if (isDeleteError) {
-      toast.error(deleteError?.message);
-    }
-
-    if (isError) {
-      toast.error(error?.message);
-    }
-  }, [
-    isSuccess,
-    isError,
-    error?.message,
-    form.reset,
-    isDeleteSuccess,
-    isDeleteError,
-    deleteError?.message,
-  ]);
 
   return (
     <form id={formIds.form} onSubmit={onSubmit}>
@@ -184,21 +167,6 @@ export const ServiceForm: FC<ServiceFormProps> = ({ service }) => {
           />
         </div>
       </FieldGroup>
-
-      {isSuccess && (
-        <Item variant="outline" asChild>
-          <div className="mt-4">
-            <ItemMedia>
-              <Info className="size-4" />
-            </ItemMedia>
-            <ItemContent>
-              <ItemTitle>
-                Cierra este formulario para volver a editar el servicio
-              </ItemTitle>
-            </ItemContent>
-          </div>
-        </Item>
-      )}
 
       <div className="mt-4 flex flex-row gap-2">
         <ConfirmationDialog

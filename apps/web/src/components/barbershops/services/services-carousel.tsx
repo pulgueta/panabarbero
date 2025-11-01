@@ -25,7 +25,7 @@ export const ServicesCarousel: FC<ServicesCarouselProps> = (props) => {
       <p
         className="text-center text-muted-foreground"
         style={{
-          viewTransitionName: "barbershop-services",
+          viewTransitionName: `barbershop-${services[0].barbershopId}-services`,
         }}
       >
         No hay servicios disponibles.
@@ -39,7 +39,7 @@ export const ServicesCarousel: FC<ServicesCarouselProps> = (props) => {
       className="mx-auto w-full max-w-6xl"
       opts={{ loop: true }}
       style={{
-        viewTransitionName: "barbershop-services",
+        viewTransitionName: `barbershop-${services[0].barbershopId}-services`,
       }}
     >
       <CarouselContent>
