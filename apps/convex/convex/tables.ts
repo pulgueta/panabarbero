@@ -90,7 +90,7 @@ export const tables = {
     uuid: v.string(),
     name: v.string(),
     price: v.number(),
-    duration: v.optional(v.number()),
+    duration: v.number(),
     barbershopId: v.id("barbershops"),
   },
   reviews: {

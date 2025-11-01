@@ -358,23 +358,19 @@ export const getUserVisitedBarbershops = query({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    // const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
-    // if (!user) {
-    //   throw new Error("User not authenticated", {
-    //     cause: user,
-    //   });
-    // }
+    if (!user) {
+      return [];
+    }
 
-    // if (args.userId !== user.userId) {
-    //   throw new Error("User not authorized", {
-    //     cause: user,
-    //   });
-    // }
+    if (args.userId !== user.userId) {
+      return [];
+    }
 
     const appointments = await ctx.db
       .query("appointments")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q) => q.eq("userId", user.userId ?? ""))
       .filter((q) => q.eq(q.field("status"), "completed"))
       .order("desc")
       .collect();

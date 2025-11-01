@@ -16,7 +16,7 @@ export const sendSms = internalAction({
   },
   handler: async (ctx, args) => {
     return await twilio.sendMessage(ctx, {
-      to: args.to,
+      to: `+57${args.to}`,
       from: defaultFrom,
       body: args.body,
     });

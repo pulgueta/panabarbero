@@ -116,7 +116,7 @@ export const updateService = mutation({
     service: v.object({
       name: v.string(),
       price: v.number(),
-      duration: v.optional(v.number()),
+      duration: v.number(),
       barbershopId: v.id("barbershops"),
     }),
     serviceId: v.id("services"),

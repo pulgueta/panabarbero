@@ -69,7 +69,7 @@ export const createNotification = internalMutation({
     const notificationId = await ctx.db.insert("notifications", {
       ...args.notification,
       uuid: crypto.randomUUID(),
-      senderUserId: user.userId ?? "",
+      senderUserId: user.userId,
     });
 
     if (isNotificationEnabled("email", userProfile.notificationsPreferences)) {

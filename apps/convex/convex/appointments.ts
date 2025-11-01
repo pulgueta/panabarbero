@@ -83,7 +83,15 @@ export const createAppointment = mutation({
       });
     }
 
-    const appointmentOverlaps = await ctx.db
+    const endsAt = appointment.date + service.duration;
+
+    const startOfDay = new Date(appointment.date);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const candidates = await ctx.db
       .query("appointments")
       .withIndex("by_barbershopId", (q) =>
         q.eq("barbershopId", appointment.barbershopId),
@@ -92,8 +100,8 @@ export const createAppointment = mutation({
         q.and(
           q.eq(q.field("barberId"), appointment.barberId),
           q.and(
-            q.lte(q.field("date"), appointment.date),
-            q.gte(q.field("date"), appointment.date),
+            q.gte(q.field("date"), startOfDay.getTime()),
+            q.lte(q.field("date"), endOfDay.getTime()),
           ),
           q.or(
             q.eq(q.field("status"), "pending"),
@@ -101,12 +109,18 @@ export const createAppointment = mutation({
           ),
         ),
       )
-      .first();
+      .collect();
 
-    if (appointmentOverlaps) {
-      throw new Error("Appointment overlaps with existing appointment", {
-        cause: appointmentOverlaps,
-      });
+    for (const appt of candidates) {
+      const apptService = await ctx.db.get(appt.serviceId);
+      const apptEnd = appt.date + (apptService?.duration ?? 0);
+      const overlaps = appt.date < endsAt && apptEnd > appointment.date;
+
+      if (overlaps) {
+        throw new Error("Appointment overlaps with existing appointment", {
+          cause: appt,
+        });
+      }
     }
 
     const barbershop = await ctx.db.get(appointment.barbershopId);
@@ -193,14 +207,16 @@ export const createAppointment = mutation({
       barber: barberProfile.notificationsPreferences.filter((n) => n.enabled),
     };
 
-    for (const _ of enabledChannels.user) {
+    const userChannels = enabledChannels.user.map((n) => n.type);
+
+    if (userChannels.length > 0) {
       await ctx.scheduler.runAfter(
         0,
         internal.notifications.createNotification,
         {
           notification: {
             uuid: crypto.randomUUID(),
-            channels: enabledChannels.user.map((n) => n.type),
+            channels: userChannels,
             reason: "appointment_confirmed",
             body: "Tu cita ha sido confirmada con éxito",
             title: "Cita confirmada",
@@ -212,14 +228,15 @@ export const createAppointment = mutation({
       );
     }
 
-    for (const _ of enabledChannels.barber) {
+    const barberChannels = enabledChannels.barber.map((n) => n.type);
+    if (barberChannels.length > 0) {
       await ctx.scheduler.runAfter(
         0,
         internal.notifications.createNotification,
         {
           notification: {
             uuid: crypto.randomUUID(),
-            channels: enabledChannels.barber.map((n) => n.type),
+            channels: barberChannels,
             reason: "appointment_created",
             body: "Un nuevo cliente ha reservado una cita",
             title: "Nueva cita",
@@ -919,7 +936,12 @@ export const appointmentOverlaps = internalQuery({
         cause: appointment.serviceId,
       });
 
-    const overlap = await ctx.db
+    const startOfDay = new Date(args.date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const candidates = await ctx.db
       .query("appointments")
       .withIndex("by_barbershopId", (q) =>
         q.eq("barbershopId", appointment.barbershopId),
@@ -928,19 +950,25 @@ export const appointmentOverlaps = internalQuery({
         q.and(
           q.eq(q.field("barberId"), appointment.barberId),
           q.and(
-            q.lte(q.field("date"), args.date),
-            q.gte(q.field("date"), args.date),
-            q.eq(q.field("status"), "confirmed"),
-            q.or(
-              q.eq(q.field("status"), "pending"),
-              q.eq(q.field("status"), "confirmed"),
-            ),
-            q.neq(q.field("_id"), args.appointmentId),
+            q.gte(q.field("date"), startOfDay.getTime()),
+            q.lte(q.field("date"), endOfDay.getTime()),
           ),
+          q.or(
+            q.eq(q.field("status"), "pending"),
+            q.eq(q.field("status"), "confirmed"),
+          ),
+          q.neq(q.field("_id"), args.appointmentId),
         ),
       )
-      .first();
+      .collect();
 
-    return overlap;
+    for (const appt of candidates) {
+      const svc = await ctx.db.get(appt.serviceId);
+      const apptEnd = appt.date + (svc?.duration ?? 0);
+      const overlaps = appt.date < args.endAt && apptEnd > args.date;
+      if (overlaps) return appt;
+    }
+
+    return null;
   },
 });
