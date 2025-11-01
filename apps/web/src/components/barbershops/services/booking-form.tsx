@@ -1,11 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { Id } from "@panabarbero/convex/dataModel";
 import type { Service } from "@panabarbero/convex/schemas";
 import { Link } from "@tanstack/react-router";
-import { format, startOfDay } from "date-fns";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { CalendarIcon, ChevronRightIcon, Clock8Icon, Info } from "lucide-react";
 import type { FC } from "react";
-import { useCallback, useId, useState } from "react";
+import { useCallback, useId } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -56,7 +56,6 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
     customerName: useId(),
     date: useId(),
     startTime: useId(),
-    endTime: useId(),
     contactPhone: useId(),
     contactEmail: useId(),
     notes: useId(),
@@ -64,29 +63,7 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
     barberId: useId(),
   };
 
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
-
   const { data: user } = useSession();
-
-  const defaultStartTime = new Date();
-  defaultStartTime.setHours(8, 30, 0, 0);
-
-  const form = useForm({
-    resolver: zodResolver(appointmentFormSchema),
-    defaultValues: {
-      date: Date.now(),
-      startTime: defaultStartTime.getTime(),
-      endTime: Date.now(),
-      customerName: user?.name ?? "",
-      contactPhone: user?.phoneNumber ?? "",
-      contactEmail: user?.email ?? "",
-      notes: "",
-      barberId: undefined,
-    },
-  });
-
-  const selectedDate = form.watch("date");
-  const selectedBarberId = form.watch("barberId");
 
   const { data: barbers, isLoading: isLoadingBarbers } =
     useBarbersByBarbershopId(service.barbershopId);
@@ -94,7 +71,18 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
     service.barbershopId,
   );
 
-  console.log(barbers);
+  const form = useForm({
+    resolver: zodResolver(appointmentFormSchema),
+    defaultValues: {
+      date: undefined,
+      customerName: user?.name ?? "",
+      contactPhone: user?.phoneNumber ?? "",
+      contactEmail: user?.email ?? "",
+      notes: "",
+      barberId:
+        barbers?.length && barbers?.length > 1 ? undefined : barbers?.[0]._id,
+    },
+  });
 
   const dayIndexes: Record<string, number> = Object.freeze({
     sunday: 0,
@@ -137,65 +125,27 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
 
   const onSubmit = form.handleSubmit(async (formData) => {
     if (!user?.userId) {
-      toast.error("Debes iniciar sesión para reservar un servicio");
+      toast.error("Debes iniciar sesión para poder reservar un servicio");
       return;
     }
 
-    if (!selectedDate) {
-      toast.error("Debes seleccionar una fecha");
-      return;
-    }
-
-    // Determine which barber to use (require selection only if > 2 barbers)
-    let barberIdToUse: string | null = null;
-    if (barbers?.length === 1) {
-      barberIdToUse = barbers[0]._id;
-    } else if (barbers && barbers.length > 2) {
-      barberIdToUse = selectedBarberId ?? null;
-    } else if (barbers && barbers.length <= 2) {
-      barberIdToUse = selectedBarberId ?? barbers[0]._id;
-    }
-
-    if (!barberIdToUse) {
+    if (!formData.barberId) {
       toast.error("Debes seleccionar un barbero");
       return;
     }
 
-    if (!formData.startTime || !selectedTime) {
-      toast.error("Debes seleccionar una hora");
-      return;
-    }
-
-    // Parse the selected time and create Date objects
-    const [hour, minute] = selectedTime.split(":").map(Number);
-    const startDateTime = new Date(selectedDate);
-    startDateTime.setHours(hour, minute, 0, 0);
-    const startAt = startDateTime.getTime();
-    const endAt = startAt + (service.duration ?? 0);
-
-    // Set the date to start of day for the date field
-    const dateStartOfDay = startOfDay(selectedDate);
-
     try {
       await createAppointment({
         appointment: {
+          ...formData,
           userId: user.userId,
           barbershopId: service.barbershopId,
           serviceId: service._id,
-          barberId: barberIdToUse as unknown as Id<"barbers">,
-          date: dateStartOfDay.getTime(),
-          startAt,
-          endAt,
-          contactPhone: formData.contactPhone,
-          customerName: formData.customerName,
-          contactEmail: formData.contactEmail,
-          notes: formData.notes,
         },
       });
 
       toast.success("Cita reservada exitosamente");
       form.reset();
-      setSelectedTime(null);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Error al reservar la cita",
@@ -245,6 +195,7 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
                   autoComplete="tel"
                   type="tel"
                 />
+
                 {fieldState.invalid && (
                   <FieldError errors={[fieldState.error]} />
                 )}
@@ -282,61 +233,47 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
               <Skeleton className="h-4 w-24 rounded" />
               <Skeleton className="h-9 w-full" />
             </div>
-          ) : barbers?.length && barbers?.length > 1 ? (
+          ) : barbers?.length && barbers?.length > 0 ? (
             <Controller
               name="barberId"
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={formIds.barberId}>
-                    Seleccione un barbero
+                    {barbers?.length > 1 ? "Seleccione un barbero" : "Barbero"}
                   </FieldLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    aria-invalid={fieldState.invalid}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccione un barbero" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {barbers.map((barber) => (
-                        <SelectItem key={barber._id} value={barber._id}>
-                          {barber.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {barbers?.length > 1 ? (
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      aria-invalid={fieldState.invalid}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccione un barbero" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {barbers.map((barber) => (
+                          <SelectItem key={barber._id} value={barber._id}>
+                            {barber.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <>
+                      <Input
+                        id={`${formIds.barberId}-display`}
+                        disabled
+                        value={barbers[0].name}
+                      />
+                      <Input {...field} id={formIds.barberId} type="hidden" />
+                    </>
+                  )}
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
                   )}
                 </Field>
               )}
-            />
-          ) : barbers?.length === 1 ? (
-            <Controller
-              name="barberId"
-              control={form.control}
-              render={({ field, fieldState }) => {
-                // Set the value when component mounts/updates
-                if (field.value !== barbers[0]._id) {
-                  field.onChange(barbers[0]._id);
-                }
-                return (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor={formIds.barberId}>Barbero</FieldLabel>
-                    <Input
-                      id={`${formIds.barberId}-display`}
-                      disabled
-                      value={barbers[0].name}
-                    />
-                    <Input id={formIds.barberId} type="hidden" {...field} />
-                    {fieldState.invalid && (
-                      <FieldError errors={[fieldState.error]} />
-                    )}
-                  </Field>
-                );
-              }}
             />
           ) : (
             <p className="text-muted-foreground text-sm">
@@ -362,7 +299,7 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
                       )}
                     >
                       {field.value ? (
-                        format(field.value, "PPP")
+                        format(new Date(field.value as number), "PPP")
                       ) : (
                         <span>Seleccione una fecha</span>
                       )}
@@ -372,12 +309,36 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
                   <PopoverContent className="w-auto p-0" align="center">
                     <Calendar
                       mode="single"
-                      selected={new Date(field.value)}
-                      onSelect={field.onChange}
-                      defaultMonth={new Date(field.value)}
+                      selected={
+                        field.value
+                          ? new Date(field.value as number)
+                          : undefined
+                      }
+                      onSelect={(date) => {
+                        if (!date) {
+                          field.onChange(undefined);
+                          return;
+                        }
+                        const current = field.value
+                          ? new Date(field.value as number)
+                          : (() => {
+                              const d = new Date();
+                              d.setHours(8, 30, 0, 0);
+                              return d;
+                            })();
+                        const combined = new Date(date);
+                        combined.setHours(
+                          current.getHours(),
+                          current.getMinutes(),
+                          0,
+                          0,
+                        );
+                        field.onChange(combined.getTime());
+                      }}
                       disabled={disableDay}
                       className="bg-transparent [--cell-size:--spacing(12)]"
                       captionLayout="label"
+                      locale={es}
                     />
                   </PopoverContent>
                 </Popover>
@@ -389,7 +350,7 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
           />
 
           <Controller
-            name="startTime"
+            name="date"
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
@@ -400,11 +361,26 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
                     <span className="sr-only">Hora</span>
                   </div>
                   <Input
-                    {...field}
                     type="time"
                     id={formIds.startTime}
-                    value={format(new Date(field.value), "HH:mm")}
-                    onChange={field.onChange}
+                    value={
+                      field.value
+                        ? format(new Date(field.value as number), "HH:mm")
+                        : ""
+                    }
+                    onChange={(e) => {
+                      const time = e.target.value;
+                      const date = field.value
+                        ? new Date(field.value as number)
+                        : undefined;
+                      if (time) {
+                        const [hours, minutes] = time.split(":").map(Number);
+                        const base = date ?? new Date();
+                        const updatedDate = new Date(base);
+                        updatedDate.setHours(hours, minutes, 0, 0);
+                        field.onChange(updatedDate.getTime());
+                      }
+                    }}
                     className="peer appearance-none bg-background pl-9 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                   />
                 </div>

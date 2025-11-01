@@ -57,7 +57,7 @@ export default defineSchema(
       .index("by_serviceId", ["serviceId"])
       .index("by_barberId", ["barberId"])
       .index("by_status", ["status"])
-      .index("by_startAt", ["startAt"]),
+      .index("by_date", ["date"]),
 
     payments: defineTable({
       ...tables.payments,

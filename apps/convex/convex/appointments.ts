@@ -28,7 +28,7 @@ function withinOpenHours(
   openAt: string | undefined,
   closeAt: string | undefined,
   startAt: number,
-  endAt: number | undefined,
+  endAt: number,
 ): boolean {
   if (!openAt || !closeAt) return true;
 
@@ -51,8 +51,6 @@ export const createAppointment = mutation({
       serviceId: v.id("services"),
       barberId: v.id("barbers"),
       date: v.number(),
-      startAt: v.number(),
-      endAt: v.number(),
       contactPhone: v.string(),
       customerName: v.string(),
       contactEmail: v.string(),
@@ -78,36 +76,30 @@ export const createAppointment = mutation({
       });
     }
 
-    const appointmentDuration = appointment.startAt + (service.duration ?? 0);
-
-    if (appointmentDuration !== appointment.endAt) {
-      throw new Error(
-        "Appointment duration does not match the service duration",
-        {
-          cause: appointment.endAt,
-        },
-      );
-    }
-
     const appointmentOverlaps = await ctx.db
       .query("appointments")
       .withIndex("by_barbershopId", (q) =>
         q.eq("barbershopId", appointment.barbershopId),
       )
-      .filter(({ eq, field, and, lte, gte, or }) =>
-        and(
-          eq(field("barberId"), appointment.barberId),
-          and(
-            lte(field("startAt"), appointment.endAt),
-            gte(field("endAt"), appointment.startAt),
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("barberId"), appointment.barberId),
+          q.and(
+            q.lte(q.field("date"), appointment.date),
+            q.gte(q.field("date"), appointment.date),
           ),
-          or(eq(field("status"), "pending"), eq(field("status"), "confirmed")),
+          q.or(
+            q.eq(q.field("status"), "pending"),
+            q.eq(q.field("status"), "confirmed"),
+          ),
         ),
       )
       .first();
 
     if (appointmentOverlaps) {
-      throw new Error("Appointment overlaps with existing appointment");
+      throw new Error("Appointment overlaps with existing appointment", {
+        cause: appointmentOverlaps,
+      });
     }
 
     const barbershop = await ctx.db.get(appointment.barbershopId);
@@ -137,15 +129,24 @@ export const createAppointment = mutation({
       throw new Error("Barbershop is closed on selected day");
     }
 
+    const endAt = appointment.date + (service.duration ?? 0);
+
     if (
       !withinOpenHours(
         dayAvailability.openAt,
         dayAvailability.closeAt,
-        appointment.startAt,
-        appointment.endAt,
+        appointment.date,
+        endAt,
       )
     ) {
-      throw new Error("Appointment is outside working hours");
+      throw new Error("Appointment is outside working hours", {
+        cause: {
+          openAt: dayAvailability.openAt,
+          closeAt: dayAvailability.closeAt,
+          date: appointment.date,
+          endAt,
+        },
+      });
     }
 
     const appointmentId = await ctx.db.insert("appointments", {
@@ -154,7 +155,7 @@ export const createAppointment = mutation({
       status: "confirmed",
     });
 
-    const thirtyMinutesBeforeAppointment = appointment.startAt - 30 * 60 * 1000;
+    const thirtyMinutesBeforeAppointment = appointment.date - 30 * 60 * 1000;
 
     await ctx.scheduler.runAt(
       thirtyMinutesBeforeAppointment,
@@ -310,8 +311,8 @@ export const getAppointmentsByBarbershopAndRange = query({
       .query("appointments")
       .filter((q) =>
         q.and(
-          q.lte(q.field("startAt"), args.endAt),
-          q.gte(q.field("endAt"), args.startAt),
+          q.lte(q.field("date"), args.endAt),
+          q.gte(q.field("date"), args.startAt),
         ),
       )
       .withIndex("by_barbershopId", (q) =>
@@ -420,15 +421,15 @@ export const updateAppointment = mutation({
     }
 
     const duration =
-      service.duration && original.startAt && original.endAt
-        ? original.startAt + service.duration
+      service.duration && original.date && original.proposedDate
+        ? original.date + service.duration
         : 0;
 
     const overlap = await ctx.runQuery(
       internal.appointments.appointmentOverlaps,
       {
         appointmentId,
-        startAt: appointment.startAt,
+        date: appointment.date,
         endAt: duration,
       },
     );
@@ -466,12 +467,15 @@ export const updateAppointment = mutation({
       throw new Error("Barbershop is closed on selected day");
     }
 
+    const endAt =
+      appointment.proposedDate ?? appointment.date + (service.duration ?? 0);
+
     if (
       !withinOpenHours(
         dayAvailability.openAt,
         dayAvailability.closeAt,
-        appointment.startAt,
-        appointment.endAt,
+        appointment.date,
+        endAt,
       )
     ) {
       throw new Error("Appointment is outside working hours");
@@ -481,8 +485,8 @@ export const updateAppointment = mutation({
     const isRescheduled =
       appointment.status === "rescheduled" ||
       (original &&
-        (original.startAt !== appointment.startAt ||
-          original.endAt !== appointment.endAt));
+        (original.date !== appointment.date ||
+          original.proposedDate !== appointment.proposedDate));
 
     const barber = await ctx.db.get(appointment.barberId);
 
@@ -492,7 +496,7 @@ export const updateAppointment = mutation({
         type: "sms",
         reason: "appointment_rescheduled",
         title: "Cita reagendada",
-        body: `Tu cita ha sido reagendada con éxito para el ${new Date(appointment.startAt).toLocaleDateString()}`,
+        body: `Tu cita ha sido reagendada con éxito para el ${new Date(appointment.date).toLocaleDateString()}`,
         senderUserId: barber?.userId ?? "system",
         receiverUserId: appointment.userId,
         appointmentId,
@@ -559,8 +563,7 @@ export const cancelAppointment = mutation({
 export const requestReschedule = mutation({
   args: {
     appointmentId: v.id("appointments"),
-    proposedStartAt: v.number(),
-    proposedEndAt: v.number(),
+    proposedDate: v.number(),
     requestedByUserId: v.string(),
     note: v.optional(v.string()),
   },
@@ -597,8 +600,7 @@ export const requestReschedule = mutation({
     await ctx.db.patch(args.appointmentId, {
       status: "pending",
       notes: args.note,
-      proposedStartAt: args.proposedStartAt,
-      proposedEndAt: args.proposedEndAt,
+      proposedDate: args.proposedDate,
     });
 
     const userProfile = await ctx.runQuery(
@@ -805,7 +807,7 @@ export const getBarbershopAvailability = query({
 export const appointmentOverlaps = internalQuery({
   args: {
     appointmentId: v.id("appointments"),
-    startAt: v.number(),
+    date: v.number(),
     endAt: v.number(),
   },
   handler: async (ctx, args) => {
@@ -832,8 +834,8 @@ export const appointmentOverlaps = internalQuery({
         q.and(
           q.eq(q.field("barberId"), appointment.barberId),
           q.and(
-            q.lte(q.field("startAt"), args.startAt),
-            q.gte(q.field("endAt"), args.endAt),
+            q.lte(q.field("date"), args.date),
+            q.gte(q.field("date"), args.date),
             q.eq(q.field("status"), "confirmed"),
             q.or(
               q.eq(q.field("status"), "pending"),

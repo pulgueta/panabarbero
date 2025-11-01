@@ -72,7 +72,7 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
           <p
             className="text-muted-foreground text-sm"
             style={{
-              viewTransitionName: "barbershop-services",
+              viewTransitionName: `barbershop-${barbershop._id}-services`,
             }}
           >
             {barbershop.services?.length ? barbershop.services?.length : 0}{" "}

@@ -116,20 +116,19 @@ export const appointmentFormSchema = object({
   })
     .min(3, "El nombre del cliente debe tener al menos 3 caracteres")
     .max(255, "El nombre del cliente debe tener menos de 255 caracteres"),
-  date: number({
-    error: "La fecha es requerida",
-  }),
-  startTime: number({
-    error: "La hora de inicio es requerida",
-  }).min(0, "La hora de inicio debe ser mayor a 0"),
-  endTime: number({
-    error: "La hora de fin es requerida",
-  }),
+  date: coerce
+    .number({
+      error: "La fecha y hora son requeridas",
+    })
+    .min(
+      Date.now(),
+      "La fecha y hora deben ser mayor a la fecha y hora actual",
+    ),
   contactPhone: string({
     error: "El teléfono de contacto es requerido",
   })
-    .min(10, "El teléfono debe tener 10 caracteres")
-    .max(10, "El teléfono debe tener máximo 10 caracteres"),
+    .min(10, "El teléfono debe tener al menos 10 caracteres")
+    .max(10, "El teléfono debe tener menos de 10 caracteres"),
   contactEmail: email({
     error: "El email de contacto es requerido",
   })
