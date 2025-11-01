@@ -52,6 +52,7 @@
     "better-sqlite3",
     "core-js",
     "esbuild",
-    "prisma"
+    "prisma",
+    "sharp"
   ]
 }

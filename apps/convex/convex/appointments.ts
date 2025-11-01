@@ -155,6 +155,68 @@ export const createAppointment = mutation({
       status: "confirmed",
     });
 
+    const userProfile = await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      {
+        userId: appointment.userId,
+      },
+    );
+
+    if (!userProfile) {
+      throw new Error("User profile not found", {
+        cause: appointment.userId,
+      });
+    }
+
+    const barberProfile = await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      {
+        userId: appointment.barberId,
+      },
+    );
+
+    if (!barberProfile) {
+      throw new Error("Barber profile not found", {
+        cause: appointment.barberId,
+      });
+    }
+
+    for (const notification of userProfile.notificationsPreferences) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.notifications.createNotification,
+        {
+          notification: {
+            uuid: crypto.randomUUID(),
+            type: notification.type,
+            reason: "appointment_confirmed",
+            body: "Tu cita ha sido confirmada con éxito",
+            title: "Cita confirmada",
+            senderUserId: userProfile.userId,
+            receiverUserId: userProfile.userId,
+          },
+        },
+      );
+    }
+
+    for (const notification of barberProfile.notificationsPreferences) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.notifications.createNotification,
+        {
+          notification: {
+            uuid: crypto.randomUUID(),
+            type: notification.type,
+            reason: "appointment_confirmed",
+            body: "Un nuevo cliente ha reservado una cita",
+            title: "Nueva cita",
+            senderUserId: "system",
+            receiverUserId: barberProfile.userId,
+          },
+        },
+      );
+    }
+
     const thirtyMinutesBeforeAppointment = appointment.date - 30 * 60 * 1000;
 
     await ctx.scheduler.runAt(

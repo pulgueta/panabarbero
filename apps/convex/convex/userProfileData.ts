@@ -59,3 +59,16 @@ export const deleteProfile = internalMutation({
     await ctx.db.delete(args.profileId);
   },
 });
+export const deleteUserProfiles = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db
+      .query("userProfileData")
+      .withIndex("by_userId")
+      .collect();
+
+    for (const user of users) {
+      await ctx.db.delete(user._id);
+    }
+  },
+});
