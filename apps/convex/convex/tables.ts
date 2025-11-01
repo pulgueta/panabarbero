@@ -149,8 +149,11 @@ export const tables = {
   },
   notifications: {
     uuid: v.string(),
-    type: v.union(v.literal("email"), v.literal("push"), v.literal("sms")),
+    channels: v.array(
+      v.union(v.literal("email"), v.literal("push"), v.literal("sms")),
+    ),
     reason: v.union(
+      v.literal("appointment_created"),
       v.literal("appointment_reminder"),
       v.literal("appointment_cancelled"),
       v.literal("appointment_rescheduled"),
@@ -166,7 +169,6 @@ export const tables = {
     senderUserId: v.union(v.literal("system"), v.string()),
     receiverUserId: v.string(),
     appointmentId: v.optional(v.id("appointments")),
-    pushNotificationId: v.optional(v.string()),
   },
 };
 

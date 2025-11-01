@@ -69,6 +69,13 @@ export const createAppointment = mutation({
     const { appointment } = args;
 
     const service = await ctx.db.get(appointment.serviceId);
+    const barber = await ctx.db.get(appointment.barberId);
+
+    if (!barber) {
+      throw new Error("Barber not found", {
+        cause: appointment.barberId,
+      });
+    }
 
     if (!service) {
       throw new Error("Service not found", {
@@ -171,47 +178,54 @@ export const createAppointment = mutation({
     const barberProfile = await ctx.runQuery(
       internal.userProfileData.getProfileByUserId,
       {
-        userId: appointment.barberId,
+        userId: barber.userId,
       },
     );
 
     if (!barberProfile) {
       throw new Error("Barber profile not found", {
-        cause: appointment.barberId,
+        cause: barber.userId,
       });
     }
 
-    for (const notification of userProfile.notificationsPreferences) {
+    const enabledChannels = {
+      user: userProfile.notificationsPreferences.filter((n) => n.enabled),
+      barber: barberProfile.notificationsPreferences.filter((n) => n.enabled),
+    };
+
+    for (const _ of enabledChannels.user) {
       await ctx.scheduler.runAfter(
         0,
         internal.notifications.createNotification,
         {
           notification: {
             uuid: crypto.randomUUID(),
-            type: notification.type,
+            channels: enabledChannels.user.map((n) => n.type),
             reason: "appointment_confirmed",
             body: "Tu cita ha sido confirmada con éxito",
             title: "Cita confirmada",
-            senderUserId: userProfile.userId,
+            senderUserId: "system",
             receiverUserId: userProfile.userId,
+            appointmentId,
           },
         },
       );
     }
 
-    for (const notification of barberProfile.notificationsPreferences) {
+    for (const _ of enabledChannels.barber) {
       await ctx.scheduler.runAfter(
         0,
         internal.notifications.createNotification,
         {
           notification: {
             uuid: crypto.randomUUID(),
-            type: notification.type,
-            reason: "appointment_confirmed",
+            channels: enabledChannels.barber.map((n) => n.type),
+            reason: "appointment_created",
             body: "Un nuevo cliente ha reservado una cita",
             title: "Nueva cita",
             senderUserId: "system",
-            receiverUserId: barberProfile.userId,
+            receiverUserId: barber.userId,
+            appointmentId,
           },
         },
       );
@@ -435,7 +449,7 @@ export const setAppointmentStatus = mutation({
 
       await ctx.db.insert("notifications", {
         uuid: crypto.randomUUID(),
-        type: "sms",
+        channels: ["sms"],
         reason,
         title,
         body: title,
@@ -555,7 +569,7 @@ export const updateAppointment = mutation({
     if (isRescheduled) {
       await ctx.db.insert("notifications", {
         uuid: crypto.randomUUID(),
-        type: "sms",
+        channels: ["sms"],
         reason: "appointment_rescheduled",
         title: "Cita reagendada",
         body: `Tu cita ha sido reagendada con éxito para el ${new Date(appointment.date).toLocaleDateString()}`,
@@ -611,7 +625,7 @@ export const cancelAppointment = mutation({
 
     await ctx.db.insert("notifications", {
       uuid: crypto.randomUUID(),
-      type: "sms",
+      channels: ["sms"],
       reason: "appointment_cancelled",
       title: "Cita cancelada",
       body: args.reason ?? "Tu cita ha sido cancelada.",
@@ -699,7 +713,12 @@ export const requestReschedule = mutation({
       });
     }
 
-    for (const notification of userProfile.notificationsPreferences) {
+    const enabledChannels = {
+      user: userProfile.notificationsPreferences.filter((n) => n.enabled),
+      barber: barberProfile.notificationsPreferences.filter((n) => n.enabled),
+    };
+
+    for (const _ of enabledChannels.user) {
       await ctx.runMutation(internal.notifications.createNotification, {
         notification: {
           body: "Un cliente ha solicitado un reagendamiento.",
@@ -708,26 +727,30 @@ export const requestReschedule = mutation({
           title: "Solicitud de reagendamiento",
           uuid: crypto.randomUUID(),
           senderUserId: userProfile.userId,
-          type: notification.type,
+          channels: enabledChannels.barber.map((n) => n.type),
           appointmentId: args.appointmentId,
           preview: "Un cliente ha solicitado un reagendamiento.",
         },
       });
+    }
 
+    for (const _ of enabledChannels.barber) {
       await ctx.runMutation(internal.notifications.createNotification, {
         notification: {
-          body: "Se ha solicitado un reagendamiento para tu cita.",
+          body: "Un cliente ha solicitado un reagendamiento.",
           reason: "appointment_rescheduled_request",
-          receiverUserId: appt.userId,
+          receiverUserId: barberProfile.userId,
           title: "Solicitud de reagendamiento",
           uuid: crypto.randomUUID(),
-          senderUserId: args.requestedByUserId,
-          type: notification.type,
+          senderUserId: userProfile.userId,
+          channels: enabledChannels.barber.map((n) => n.type),
           appointmentId: args.appointmentId,
-          preview: "Se ha solicitado un reagendamiento para tu cita.",
+          preview: "Un cliente ha solicitado un reagendamiento.",
         },
       });
     }
+
+    return true;
   },
 });
 
@@ -752,21 +775,24 @@ export const notifyUpcomingAppointment = internalMutation({
       });
     }
 
-    const userProfileByUserId = await ctx.db
-      .query("userProfileData")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .unique();
+    const userProfile = await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      {
+        userId: args.userId,
+      },
+    );
 
-    const enabledNotifications =
-      userProfileByUserId?.notificationsPreferences.filter((n) => n.enabled);
-
-    if (!enabledNotifications) {
-      throw new Error("No enabled notifications found", {
-        cause: enabledNotifications,
+    if (!userProfile) {
+      throw new Error("User profile not found", {
+        cause: args.userId,
       });
     }
 
-    for (const notification of enabledNotifications) {
+    const enabledChannels = {
+      user: userProfile.notificationsPreferences.filter((n) => n.enabled),
+    };
+
+    for (const _ of enabledChannels.user) {
       await ctx.runMutation(internal.notifications.createNotification, {
         notification: {
           body: notificationTexts.appointment_reminder(barbershop?.name),
@@ -774,13 +800,15 @@ export const notifyUpcomingAppointment = internalMutation({
           senderUserId: "system",
           title: notificationTexts.subject,
           uuid: crypto.randomUUID(),
-          type: notification.type,
+          channels: enabledChannels.user.map((n) => n.type),
           receiverUserId: args.userId,
           appointmentId: args.appointmentId,
           preview: notificationTexts.appointment_reminder(barbershop?.name),
         },
       });
     }
+
+    return true;
   },
 });
 
@@ -832,7 +860,11 @@ export const answerRescheduleRequest = mutation({
       ? "appointment_rescheduled_accepted"
       : "appointment_rescheduled_denied";
 
-    for (const notification of userProfile.notificationsPreferences) {
+    const enabledChannels = {
+      user: userProfile.notificationsPreferences.filter((n) => n.enabled),
+    };
+
+    for (const _ of enabledChannels.user) {
       await ctx.runMutation(internal.notifications.createNotification, {
         notification: {
           body,
@@ -841,7 +873,7 @@ export const answerRescheduleRequest = mutation({
           title,
           uuid: crypto.randomUUID(),
           senderUserId: "system",
-          type: notification.type,
+          channels: enabledChannels.user.map((n) => n.type),
           appointmentId: args.appointmentId,
           preview: title,
         },
