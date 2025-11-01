@@ -10,6 +10,7 @@ import {
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import type { ConvexReactClient } from "convex/react";
 
+import { DefaultCatchBoundary } from "@/components/error-component";
 import { BottomBar } from "@/components/layout/bottom-bar";
 import { Header } from "@/components/layout/header";
 import { Toaster } from "@/components/ui/sonner";
@@ -93,4 +94,5 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       </>
     );
   },
+  errorComponent: (props) => <DefaultCatchBoundary {...props} />,
 });
