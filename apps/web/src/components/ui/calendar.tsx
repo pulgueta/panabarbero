@@ -74,7 +74,7 @@ export const Calendar = ({
           defaultClassNames.dropdowns,
         ),
         dropdown_root: cn(
-          "relative has-focus:border-ring border border-input shadow-xs has-focus:ring-ring/50 has-focus:ring-[3px] rounded-md",
+          "relative has-focus:border-primary border border-input shadow-xs has-focus:ring-2 has-focus:ring-primary/20 rounded-md",
           defaultClassNames.dropdown_root,
         ),
         dropdown: cn(

@@ -5,11 +5,23 @@ import { authComponent } from "./auth";
 import type { Notification, UserProfileData } from "./tables";
 import { tables } from "./tables";
 
+export const emailSubjects = {
+  appointment_reminder: "Recordatorio de cita",
+  appointment_cancelled: "Cita cancelada",
+  appointment_rescheduled: "Cita reagendada",
+  appointment_rescheduled_request: "Solicitud de reagendamiento",
+  appointment_no_show: "Cita no mostrada",
+  appointment_confirmed: "Cita confirmada",
+  appointment_rescheduled_accepted: "Reagendamiento aceptado",
+  appointment_rescheduled_denied: "Reagendamiento rechazado",
+  appointment_created: "Un usuario ha reservado una cita",
+} satisfies Record<Notification["reason"], string>;
+
 export function isNotificationEnabled(
-  type: Notification["type"],
+  channel: Notification["channels"][number],
   notificationsPreferences: UserProfileData["notificationsPreferences"],
 ) {
-  return notificationsPreferences.some((n) => n.type === type && n.enabled);
+  return notificationsPreferences.some((n) => n.type === channel && n.enabled);
 }
 
 export const createNotification = internalMutation({
@@ -19,7 +31,12 @@ export const createNotification = internalMutation({
     }),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = (await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      {
+        userId: args.notification.receiverUserId,
+      },
+    )) as UserProfileData;
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -52,13 +69,13 @@ export const createNotification = internalMutation({
     const notificationId = await ctx.db.insert("notifications", {
       ...args.notification,
       uuid: crypto.randomUUID(),
-      senderUserId: user.userId ?? "",
+      senderUserId: user.userId,
     });
 
     if (isNotificationEnabled("email", userProfile.notificationsPreferences)) {
       await ctx.scheduler.runAfter(0, internal.emails.sendEmail, {
         emailType: args.notification.reason,
-        subject: notificationId,
+        subject: emailSubjects[args.notification.reason],
         to: userProfile.email,
       });
     }
@@ -90,7 +107,7 @@ export const createNotification = internalMutation({
 export const getNotificationsForUser = query({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -111,7 +128,7 @@ export const getNotificationsForUser = query({
 export const getNotificationsByReason = query({
   args: { reason: tables.notifications.reason },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -132,7 +149,7 @@ export const getNotificationsByReason = query({
 export const getNotificationsByAppointment = query({
   args: { appointmentId: v.id("appointments") },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {

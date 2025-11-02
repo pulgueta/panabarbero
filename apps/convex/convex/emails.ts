@@ -8,7 +8,9 @@ import { components } from "./_generated/api";
 import { internalAction } from "./_generated/server";
 import { tables } from "./tables";
 
-export const resend = new Resend(components.resend);
+export const resend = new Resend(components.resend, {
+  testMode: false,
+});
 
 const emailType = tables.notifications.reason;
 
@@ -29,8 +31,9 @@ export const sendEmail = internalAction({
 
     await resend.sendEmail(ctx, {
       from: "noreply@panabarbero.com",
-      ...args,
       html,
+      to: args.to,
+      subject: args.subject,
     });
   },
 });
@@ -44,4 +47,5 @@ export const emailTemplates = {
   appointment_rescheduled_request: "<p>Hello, world!</p>",
   appointment_rescheduled_accepted: "<p>Hello, world!</p>",
   appointment_rescheduled_denied: "<p>Hello, world!</p>",
+  appointment_created: "El usuario ha creado una cita",
 } satisfies EmailTemplate;

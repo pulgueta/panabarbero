@@ -1,6 +1,17 @@
-import { z } from "zod";
+import type { output } from "zod";
+import {
+  array,
+  boolean,
+  coerce,
+  email,
+  literal,
+  number,
+  object,
+  string,
+  any as zodAny,
+  enum as zodEnum,
+} from "zod";
 
-// Day mapping for available days
 export const dayMapping = {
   lunes: "monday",
   martes: "tuesday",
@@ -11,7 +22,6 @@ export const dayMapping = {
   domingo: "sunday",
 } as const;
 
-// Social media platforms
 export const socialPlatforms = [
   "instagram",
   "facebook",
@@ -20,7 +30,6 @@ export const socialPlatforms = [
   "youtube",
 ] as const;
 
-// Appointment status options
 export const appointmentStatusOptions = [
   "pending",
   "confirmed",
@@ -30,7 +39,6 @@ export const appointmentStatusOptions = [
   "rescheduled",
 ] as const;
 
-// Payment method options
 export const paymentMethodOptions = [
   "cash",
   "card",
@@ -39,14 +47,13 @@ export const paymentMethodOptions = [
   "safetypay",
 ] as const;
 
-// Available days schema
-const availableDaySchema = z.object({
-  open: z.string().min(1, "Hora de apertura requerida"),
-  close: z.string().min(1, "Hora de cierre requerida"),
-  active: z.boolean(),
+const availableDaySchema = object({
+  open: string().min(1, "Hora de apertura requerida"),
+  close: string().min(1, "Hora de cierre requerida"),
+  active: boolean(),
 });
 
-const availableDaysSchema = z.object({
+const availableDaysSchema = object({
   lunes: availableDaySchema,
   martes: availableDaySchema,
   miércoles: availableDaySchema,
@@ -56,75 +63,91 @@ const availableDaysSchema = z.object({
   domingo: availableDaySchema,
 });
 
-// Social media schema
-const socialMediaSchema = z.object({
-  platform: z.enum(socialPlatforms),
-  url: z.string().url("URL inválida"),
+const socialMediaSchema = object({
+  platform: zodEnum(socialPlatforms),
+  url: string().url("URL inválida"),
 });
 
-// Barbershop form schema
-export const barbershopFormSchema = z.object({
-  name: z.string().min(1, "Nombre es requerido"),
-  description: z.string().optional(),
-  address: z.string().min(1, "Dirección es requerida"),
-  city: z.string().min(1, "Ciudad es requerida"),
-  state: z.string().min(1, "Departamento es requerido"),
-  zipCode: z.string().optional(),
-  contactPhone: z.string().optional(),
-  contactEmail: z.string().email("Email inválido").optional().or(z.literal("")),
-  websiteUrl: z.string().url("URL inválida").optional().or(z.literal("")),
-  bannerUrl: z.string().url("URL inválida").optional().or(z.literal("")),
-  isActive: z.boolean().default(false),
-  gracePeriodMinutes: z.number().min(0).max(60).default(5),
+export const barbershopFormSchema = object({
+  name: string().min(1, "Nombre es requerido"),
+  description: string().optional(),
+  address: string().min(1, "Dirección es requerida"),
+  city: string().min(1, "Ciudad es requerida"),
+  state: string().min(1, "Departamento es requerido"),
+  zipCode: string().optional(),
+  contactPhone: string().optional(),
+  contactEmail: string().email("Email inválido").optional().or(literal("")),
+  websiteUrl: string().url("URL inválida").optional().or(literal("")),
+  bannerUrl: string().url("URL inválida").optional().or(literal("")),
+  isActive: boolean().default(false),
+  gracePeriodMinutes: number().min(0).max(60).default(5),
   availableDays: availableDaysSchema,
-  socialMedia: z.array(socialMediaSchema).default([]),
+  socialMedia: array(socialMediaSchema).default([]),
 });
 
-// Service form schema
-export const serviceFormSchema = z.object({
-  name: z.string().min(1, "Nombre del servicio es requerido"),
-  description: z.string().optional(),
-  price: z.number().min(1, "Precio debe ser mayor a 0"),
-  duration: z
+export const serviceFormSchema = object({
+  name: string({ error: "El nombre del servicio es requerido" })
+    .min(3, {
+      message: "El nombre del servicio debe tener al menos 3 caracteres",
+    })
+    .max(50, {
+      message: "El nombre del servicio debe tener menos de 50 caracteres",
+    }),
+  price: coerce
+    .number({ error: "El precio del servicio es requerido" })
+    .min(1000, {
+      message: "El precio del servicio debe ser mayor a $1.000",
+    }),
+  duration: coerce
     .number()
-    .min(5, "Duración mínima es 5 minutos")
-    .max(480, "Duración máxima es 8 horas")
+    .min(5, {
+      message: "La duración del servicio debe ser mayor a 5 minutos",
+    })
+    .max(480, {
+      message: "La duración del servicio debe ser menor a 8 horas",
+    })
     .optional(),
-  barbershopId: z.string().min(1, "Barbería es requerida"),
+  barbershopId: zodAny(),
 });
 
-// Appointment form schema
-export const appointmentFormSchema = z.object({
-  customerName: z.string().min(1, "Nombre del cliente es requerido"),
-  customerPhone: z.string().min(1, "Teléfono del cliente es requerido"),
-  customerEmail: z
-    .string()
-    .email("Email inválido")
-    .optional()
-    .or(z.literal("")),
-  barbershopId: z.string().min(1, "Barbería es requerida"),
-  barberId: z.string().min(1, "Barbero es requerido"),
-  serviceId: z.string().min(1, "Servicio es requerido"),
-  date: z.date({
-    required_error: "Fecha es requerida",
-  }),
-  startTime: z.string().min(1, "Hora de inicio es requerida"),
-  notes: z.string().optional(),
+export const appointmentFormSchema = object({
+  customerName: string({
+    error: "El nombre del cliente es requerido",
+  })
+    .min(3, "El nombre del cliente debe tener al menos 3 caracteres")
+    .max(255, "El nombre del cliente debe tener menos de 255 caracteres"),
+  date: coerce
+    .number({
+      error: "La fecha y hora son requeridas",
+    })
+    .min(
+      Date.now(),
+      "La fecha y hora deben ser mayor a la fecha y hora actual",
+    ),
+  contactPhone: string({
+    error: "El teléfono de contacto es requerido",
+  })
+    .min(10, "El teléfono debe tener al menos 10 caracteres")
+    .max(10, "El teléfono debe tener menos de 10 caracteres"),
+  contactEmail: email({
+    error: "El email de contacto es requerido",
+  })
+    .min(6, "El email debe tener al menos 6 caracteres")
+    .max(255, "El email debe tener menos de 255 caracteres"),
+  notes: string().optional(),
+  barberId: zodAny(),
 });
 
-// Review form schema
-export const reviewFormSchema = z.object({
-  barbershopId: z.string().min(1, "Barbería es requerida"),
-  rating: z
-    .number()
+export const reviewFormSchema = object({
+  barbershopId: string().min(1, "Barbería es requerida"),
+  rating: number()
     .min(1, "Calificación mínima es 1")
     .max(5, "Calificación máxima es 5"),
-  comment: z.string().optional(),
-  customerName: z.string().optional(),
+  comment: string().optional(),
+  customerName: string().optional(),
 });
 
-// Type exports
-export type BarbershopFormData = z.infer<typeof barbershopFormSchema>;
-export type ServiceFormData = z.infer<typeof serviceFormSchema>;
-export type AppointmentFormData = z.infer<typeof appointmentFormSchema>;
-export type ReviewFormData = z.infer<typeof reviewFormSchema>;
+export type BarbershopFormData = output<typeof barbershopFormSchema>;
+export type ServiceFormData = output<typeof serviceFormSchema>;
+export type AppointmentFormData = output<typeof appointmentFormSchema>;
+export type ReviewFormData = output<typeof reviewFormSchema>;

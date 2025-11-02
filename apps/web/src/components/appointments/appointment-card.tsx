@@ -83,12 +83,11 @@ export const AppointmentCard: FC<AppointmentCardProps> = (props) => {
         <div className="flex flex-wrap gap-2">
           {appointment.status === "pending" && (
             <>
-              <Button size="sm" onClick={() => onConfirm?.(appointment._id)}>
+              <Button onClick={() => onConfirm?.(appointment._id)}>
                 <CheckCircle className="mr-1 h-3 w-3" /> Confirmar
               </Button>
               <Button
                 variant="destructive"
-                size="sm"
                 onClick={() => onCancel?.(appointment._id)}
               >
                 <XCircle className="mr-1 h-3 w-3" /> Cancelar
@@ -97,12 +96,11 @@ export const AppointmentCard: FC<AppointmentCardProps> = (props) => {
           )}
           {appointment.status === "confirmed" && (
             <>
-              <Button size="sm" onClick={() => onComplete?.(appointment._id)}>
+              <Button onClick={() => onComplete?.(appointment._id)}>
                 <CheckCircle className="mr-1 h-3 w-3" /> Completar
               </Button>
               <Button
                 variant="destructive"
-                size="sm"
                 onClick={() => onCancel?.(appointment._id)}
               >
                 <XCircle className="mr-1 h-3 w-3" /> Cancelar
@@ -112,24 +110,15 @@ export const AppointmentCard: FC<AppointmentCardProps> = (props) => {
           {appointment.status === "completed" && (
             <Button
               variant="outline"
-              size="sm"
               onClick={() => onAddReview?.(appointment._id)}
             >
               <Star className="mr-1 h-3 w-3" /> Reseña
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onEdit?.(appointment._id)}
-          >
+          <Button variant="outline" onClick={() => onEdit?.(appointment._id)}>
             <Edit className="mr-1 h-3 w-3" /> Editar
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onDelete?.(appointment._id)}
-          >
+          <Button variant="outline" onClick={() => onDelete?.(appointment._id)}>
             <Trash2 className="mr-1 h-3 w-3" /> Eliminar
           </Button>
         </div>

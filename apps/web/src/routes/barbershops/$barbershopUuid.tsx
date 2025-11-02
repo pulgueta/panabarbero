@@ -3,23 +3,40 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { BarbershopAvatar } from "@/components/barbershops/barbershop-avatar";
 import { BarbershopHeader } from "@/components/barbershops/barbershop-header";
-import { BarbershopServicesCarousel } from "@/components/barbershops/barbershop-services-carousel";
+import { ServicesCarousel } from "@/components/barbershops/services/services-carousel";
+import { LoadingComponent } from "@/components/layout/loading-component";
 import { useCarouselApi } from "@/components/ui/carousel";
 import { Separator } from "@/components/ui/separator";
+import { barbersByBarbershopIdQueryOptions } from "@/hooks/use-barbers";
 import {
+  barbershopAvailabilityQueryOptions,
   barbershopByUuidQueryOptions,
   useBarbershopByUuid,
 } from "@/hooks/use-barbershop";
-import { useServicesFromBarbershop } from "@/hooks/use-services";
+import {
+  servicesQueryOptions,
+  useServicesFromBarbershop,
+} from "@/hooks/use-services";
 import { useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/barbershops/$barbershopUuid")({
   component: RouteComponent,
   loader: async ({ context, params }) => {
-    return await context.queryClient.ensureQueryData(
+    const barbershop = await context.queryClient.ensureQueryData(
       barbershopByUuidQueryOptions(params.barbershopUuid),
     );
+
+    await context.queryClient.ensureQueryData(
+      barbersByBarbershopIdQueryOptions(barbershop?._id!),
+    );
+    await context.queryClient.ensureQueryData(
+      servicesQueryOptions(barbershop?._id!),
+    );
+    await context.queryClient.ensureQueryData(
+      barbershopAvailabilityQueryOptions(barbershop?._id!),
+    );
   },
+  pendingComponent: LoadingComponent,
   ssr: true,
 });
 
@@ -28,35 +45,38 @@ function RouteComponent() {
 
   const params = Route.useParams();
 
-  const { data: barbershop, isLoading } = useBarbershopByUuid(
-    params.barbershopUuid,
-  );
+  const { data: barbershop } = useBarbershopByUuid(params.barbershopUuid);
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
 
   const { data: user } = useSession();
 
   return (
     <div className="w-full">
-      <main className="container mx-auto min-h-[calc(100dvh-65px)] border-x px-4 py-8 md:px-8 lg:px-16">
-        <header className="flex w-full flex-row justify-between gap-4">
+      <main className="container mx-auto min-h-[calc(100dvh-65px)] border-x">
+        <header className="flex w-full flex-row justify-between gap-4 px-4 pt-8 md:px-8 lg:px-16">
           <BarbershopHeader barbershop={barbershop} userId={user?.userId!} />
 
           <section>
-            <BarbershopAvatar barbershop={barbershop} isLoading={isLoading} />
+            <BarbershopAvatar barbershop={barbershop} size="lg" />
           </section>
         </header>
 
         <Separator className="mt-8 mb-6" />
 
-        <section className="space-y-4">
+        <section className="space-y-4 px-4 md:px-8 lg:px-16">
           <h2 className="my-6 text-balance text-center font-semibold text-xl tracking-tight">
             Servicios ofrecidos:
           </h2>
 
           {services && services.length > 0 ? (
-            <BarbershopServicesCarousel services={services} />
+            <ServicesCarousel services={services} />
           ) : (
-            <p className="text-pretty text-center text-muted-foreground">
+            <p
+              className="text-pretty text-center text-muted-foreground"
+              style={{
+                viewTransitionName: "barbershop-services",
+              }}
+            >
               No hay servicios disponibles.
             </p>
           )}

@@ -9,7 +9,13 @@ export function useLocalStorage<T>(
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {
       const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
+      if (!item) return initialValue;
+      // Guard against legacy "undefined" string values
+      if (item === "undefined") {
+        window.localStorage.removeItem(key);
+        return initialValue;
+      }
+      return JSON.parse(item);
     } catch (_) {
       return initialValue;
     }
@@ -19,8 +25,12 @@ export function useLocalStorage<T>(
     try {
       const valueToStore =
         value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+      setStoredValue(valueToStore as T);
+      if (valueToStore === undefined) {
+        window.localStorage.removeItem(key);
+      } else {
+        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+      }
     } catch (_) {
       return;
     }

@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { BarbershopAvatar } from "./barbershop-avatar";
 
 interface BarbershopListCardProps {
   barbershop: Barbershop;
@@ -22,15 +23,17 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
   barbershop,
 }) => {
   return (
-    <Card
-      className="gap-4 shadow-sm transition-shadow hover:shadow-md"
-      key={barbershop._id}
-    >
+    <Card className="gap-4 shadow-sm transition-shadow hover:shadow-md">
       <CardHeader className="border-b [.border-b]:pb-4">
         <div className="flex items-start justify-between">
           <div className="flex w-full items-start justify-between">
             <div className="flex items-start gap-2.5">
-              <Scissors className="mt-1.5 size-5 text-muted-foreground" />
+              <Scissors
+                className="mt-1.5 size-5 text-muted-foreground"
+                style={{
+                  viewTransitionName: `barbershop-${barbershop.uuid}-scissors`,
+                }}
+              />
               <div>
                 <CardTitle
                   className="text-balance font-bold text-xl tracking-tight"
@@ -40,28 +43,42 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
                 >
                   {barbershop.name}
                 </CardTitle>
-                <p className="text-muted-foreground text-xs">
+                <p
+                  className="text-muted-foreground text-xs"
+                  style={{
+                    viewTransitionName: `barbershop-${barbershop.uuid}-city-state`,
+                  }}
+                >
                   {barbershop.city}, {barbershop.state}
                 </p>
               </div>
             </div>
-            <img
-              loading="lazy"
-              alt={`Banner de ${barbershop?.name}`}
-              src={barbershop?.bannerUrl ?? "/default-logo.png"}
-              className="size-8 rounded-full object-cover md:size-12"
-            />
+
+            <BarbershopAvatar barbershop={barbershop} />
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <CardDescription className="mb-2">
+        <CardDescription
+          className="mb-2"
+          style={{
+            viewTransitionName: `barbershop-${barbershop.uuid}-address`,
+          }}
+        >
           Ubicación: {barbershop.address.fullAddress}
         </CardDescription>
 
         <div className="mb-4 flex items-center justify-between">
-          <p className="text-muted-foreground text-sm">
-            {barbershop.services?.length} servicios disponibles.
+          <p
+            className="text-muted-foreground text-sm"
+            style={{
+              viewTransitionName: `barbershop-${barbershop._id}-services`,
+            }}
+          >
+            {barbershop.services?.length ? barbershop.services?.length : 0}{" "}
+            {barbershop.services?.length === 1
+              ? "servicio disponible."
+              : "servicios disponibles."}
           </p>
         </div>
       </CardContent>
@@ -73,13 +90,21 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
               barbershopUuid: barbershop.uuid,
             }}
             preload="intent"
-            viewTransition
+            style={{
+              viewTransitionName: `barbershop-${barbershop.uuid}-link`,
+            }}
           >
             Ver servicios
           </Link>
         </Button>
 
-        <BarbershopRating value={barbershop.metadata?.rating ?? 0} readOnly />
+        <BarbershopRating
+          value={barbershop.metadata?.rating ?? 0}
+          readOnly
+          style={{
+            viewTransitionName: `barbershop-${barbershop.uuid}-rating`,
+          }}
+        />
       </CardFooter>
     </Card>
   );

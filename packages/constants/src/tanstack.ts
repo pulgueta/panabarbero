@@ -1,5 +1,41 @@
 import { CalendarPlus, Home, Scissors, Settings2, User } from "lucide-react";
 
+export const publicRoutes = {
+  navigation: [
+    {
+      label: "Inicio",
+      to: "/",
+      icon: Home,
+    },
+    {
+      label: "Barberías",
+      to: "/barbershops",
+      icon: Scissors,
+    },
+    {
+      label: "Agendar",
+      to: "/appointments/create",
+      icon: CalendarPlus,
+    },
+    {
+      label: "Ajustes",
+      to: "/settings",
+      icon: Settings2,
+    },
+  ],
+};
+
+export const authenticatedRoutes = {
+  navigation: [
+    ...publicRoutes.navigation,
+    {
+      label: "Perfil",
+      to: "/profile",
+      icon: User,
+    },
+  ],
+};
+
 export const routes = {
   navigation: [
     {
@@ -36,7 +72,12 @@ export const routes = {
   },
 };
 
-export const getNavigationRoutes = (userId?: string) =>
+export const localStorageKeys = {
+  barbershopsState: "barbershops_state",
+  barbershopsCity: "barbershops_city",
+};
+
+export const getNavigationRoutes = (userId: string | undefined) =>
   userId
     ? routes.navigation
     : routes.navigation.filter((route) => route.to !== "/profile");

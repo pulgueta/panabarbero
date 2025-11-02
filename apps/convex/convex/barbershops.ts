@@ -110,13 +110,17 @@ export const getActiveBarbershops = query({
   handler: async (ctx, args) => {
     const barbershops = await ctx.db
       .query("barbershops")
-      .withIndex("by_isActive")
-      .filter(({ field, eq, and }) =>
-        and(
-          eq(field("isActive"), true),
-          eq(field("city"), args.city ?? "Barrancabermeja"),
-          eq(field("state"), args.state ?? "Santander"),
-        ),
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .filter((q) =>
+        args.city && args.state
+          ? q.and(
+              q.eq(q.field("city"), args.city),
+              q.eq(q.field("state"), args.state),
+            )
+          : q.or(
+              q.eq(q.field("city"), args.city),
+              q.eq(q.field("state"), args.state),
+            ),
       )
       .collect();
 
@@ -157,14 +161,23 @@ export const getBarbershopByUuid = query({
   handler: async (ctx, args) => {
     const barbershop = await ctx.db
       .query("barbershops")
-      .withIndex("by_uuid")
-      .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
+      .withIndex("by_uuid", (q) => q.eq("uuid", args.uuid ?? ""))
       .unique();
+
+    if (!barbershop) return null;
+
+    const services = await ctx.runQuery(
+      api.services.getServicesByBarbershopId,
+      {
+        barbershopId: barbershop?._id,
+      },
+    );
+
+    barbershop.services = services.map((service) => service._id);
 
     return barbershop;
   },
 });
-
 export const getBarbershopServices = query({
   args: {
     barbershopId: v.id("barbershops"),
@@ -172,7 +185,9 @@ export const getBarbershopServices = query({
   handler: async (ctx, args) => {
     const services = await ctx.db
       .query("services")
-      .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
       .collect();
 
     return services;
@@ -286,6 +301,12 @@ export const updateBarbershop = mutation({
       });
     }
 
+    if (user.userId !== args.barbershop.ownerId) {
+      throw new Error("User not authorized", {
+        cause: user,
+      });
+    }
+
     await ctx.db.patch(args.barbershopId, args.barbershop);
 
     if (args.storageId) {
@@ -329,5 +350,92 @@ export const increaseBarbershopRating = internalMutation({
         reviews: reviews.length,
       },
     });
+  },
+});
+
+export const getUserVisitedBarbershops = query({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user) {
+      return [];
+    }
+
+    if (args.userId !== user.userId) {
+      return [];
+    }
+
+    const appointments = await ctx.db
+      .query("appointments")
+      .withIndex("by_userId", (q) => q.eq("userId", user.userId ?? ""))
+      .filter((q) => q.eq(q.field("status"), "completed"))
+      .order("desc")
+      .collect();
+
+    const barbershops = await Promise.all(
+      appointments.map(
+        async (appointment) => await ctx.db.get(appointment.barbershopId),
+      ),
+    );
+
+    return barbershops;
+  },
+});
+
+export const getBarbershopsByName = query({
+  args: {
+    name: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const barbershops = await ctx.db
+      .query("barbershops")
+      .withSearchIndex("by_name_search", (q) =>
+        q.search("name", args.name ? args.name : "barber").eq("isActive", true),
+      )
+      .collect();
+
+    await Promise.all(
+      barbershops.map(async (barbershop) => {
+        const services = await ctx.runQuery(
+          api.services.getServicesByBarbershopId,
+          {
+            barbershopId: barbershop._id,
+          },
+        );
+
+        barbershop.services = services.map((service) => service._id);
+      }),
+    );
+
+    return barbershops;
+  },
+});
+
+export const isBarbershopOwner = query({
+  args: {
+    barbershopId: v.id("barbershops"),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user) {
+      return false;
+    }
+
+    const barbershop = await ctx.db.get(args.barbershopId);
+
+    if (!barbershop) {
+      return false;
+    }
+
+    if (barbershop.ownerId !== user.userId) {
+      return false;
+    } else {
+      return barbershop;
+    }
   },
 });

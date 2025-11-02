@@ -11,14 +11,18 @@ export const createReview = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
         cause: user,
       });
     }
-    const reviewId = await ctx.db.insert("reviews", args.review);
+
+    const reviewId = await ctx.db.insert("reviews", {
+      ...args.review,
+      userId: user.userId ?? "",
+    });
 
     await ctx.runMutation(internal.barbershops.increaseBarbershopRating, {
       barbershopId: args.review.barbershopId,
@@ -33,8 +37,9 @@ export const getReviewsByBarbershopId = query({
   handler: async (ctx, args) => {
     const reviews = await ctx.db
       .query("reviews")
-      .withIndex("by_barbershopId")
-      .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
       .collect();
 
     return reviews;
@@ -44,17 +49,9 @@ export const getReviewsByBarbershopId = query({
 export const getReviewsByUserId = query({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
-
-    if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
-    }
     const reviews = await ctx.db
       .query("reviews")
-      .filter(({ eq, field }) => eq(field("userId"), args.userId))
-      .withIndex("by_userId")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .collect();
 
     return reviews;
@@ -83,7 +80,7 @@ export const updateReview = mutation({
 export const deleteReview = mutation({
   args: { reviewId: v.id("reviews") },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
       throw new Error("User not authenticated", {
@@ -96,9 +93,12 @@ export const deleteReview = mutation({
 });
 
 export const canReview = query({
-  args: { userId: v.optional(v.string()), barbershopId: v.id("barbershops") },
+  args: {
+    userId: v.optional(v.string()),
+    barbershopId: v.id("barbershops"),
+  },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
       return false;
@@ -110,12 +110,13 @@ export const canReview = query({
 
     const userHasAttended = await ctx.db
       .query("appointments")
-      .withIndex("by_barbershopId")
-      .filter(({ eq, field, and }) =>
-        and(
-          eq(field("barbershopId"), args.barbershopId),
-          eq(field("userId"), args.userId),
-          eq(field("status"), "completed"),
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("userId"), args.userId),
+          q.eq(q.field("status"), "completed"),
         ),
       )
       .first();

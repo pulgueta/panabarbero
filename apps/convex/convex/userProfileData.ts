@@ -4,12 +4,11 @@ import { authComponent } from "./auth";
 import { tables } from "./tables";
 
 export const getProfileByUserId = internalQuery({
-  args: { userId: v.string() },
+  args: { userId: tables.userProfileData.userId },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("userProfileData")
-      .withIndex("by_userId")
-      .filter(({ eq, field }) => eq(field("userId"), args.userId))
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .unique();
   },
 });
@@ -58,5 +57,18 @@ export const deleteProfile = internalMutation({
   },
   handler: async (ctx, args) => {
     await ctx.db.delete(args.profileId);
+  },
+});
+export const deleteUserProfiles = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db
+      .query("userProfileData")
+      .withIndex("by_userId")
+      .collect();
+
+    for (const user of users) {
+      await ctx.db.delete(user._id);
+    }
   },
 });

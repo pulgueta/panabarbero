@@ -21,6 +21,10 @@ export default defineSchema(
       .index("by_ownerId", ["ownerId"])
       .index("by_city_and_state", ["city", "state"])
       .index("by_isActive", ["isActive"])
+      .searchIndex("by_name_search", {
+        searchField: "name",
+        filterFields: ["isActive"],
+      })
       .index("by_uuid", ["uuid"]),
 
     barbers: defineTable({
@@ -35,11 +39,6 @@ export default defineSchema(
     })
       .index("by_barbershopId", ["barbershopId"])
       .searchIndex("by_name_search_idx", { searchField: "name" })
-      .vectorIndex("name_vector_idx", {
-        dimensions: 1536,
-        vectorField: "nameVector",
-        filterFields: ["name"],
-      })
       .index("by_uuid", ["uuid"]),
 
     reviews: defineTable({
@@ -54,10 +53,11 @@ export default defineSchema(
       .index("by_uuid", ["uuid"])
       .index("by_userId", ["userId"])
       .index("by_barbershopId", ["barbershopId"])
+      .index("by_userIdAndBarbershopId", ["userId", "barbershopId"])
       .index("by_serviceId", ["serviceId"])
       .index("by_barberId", ["barberId"])
       .index("by_status", ["status"])
-      .index("by_startAt", ["startAt"]),
+      .index("by_date", ["date"]),
 
     payments: defineTable({
       ...tables.payments,
@@ -73,7 +73,7 @@ export default defineSchema(
       .index("by_uuid", ["uuid"])
       .index("by_senderUserId", ["senderUserId"])
       .index("by_receiverUserId", ["receiverUserId"])
-      .index("by_type", ["type"])
+      .index("by_channels", ["channels"])
       .index("by_reason", ["reason"])
       .index("by_appointmentId", ["appointmentId"]),
 

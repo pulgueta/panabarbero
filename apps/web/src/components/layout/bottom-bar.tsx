@@ -12,12 +12,13 @@ export const BottomBar = () => {
 
   const { data: user } = useSession();
 
-  const navigationRoutes = tanstack.getNavigationRoutes(user?._id);
+  // biome-ignore lint/style/noNonNullAssertion: user always exists
+  const navigationRoutes = tanstack.getNavigationRoutes(user?.userId!);
 
   return (
     <div className="fixed right-0 bottom-0 left-0 z-50 border-border border-t bg-background/90 backdrop-blur-sm">
       <div className="container mx-auto max-w-md">
-        <nav className="flex items-center justify-around gap-x-1 px-1 py-4">
+        <nav className="flex items-center justify-around gap-x-1 px-4 py-2">
           {navigationRoutes.map((item) => {
             const Icon = item.icon;
 
@@ -30,7 +31,7 @@ export const BottomBar = () => {
                   className: "bg-primary/10 text-primary",
                 }}
                 className={cn(
-                  "flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+                  "flex max-w-24 flex-1 flex-col items-center justify-center gap-1.5 rounded-lg px-2 py-4 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
                 )}
                 style={{
                   viewTransitionName: item.to,

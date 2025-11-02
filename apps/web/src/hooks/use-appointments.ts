@@ -7,6 +7,10 @@ export function appointmentsQueryOptions() {
   return convexQuery(api.appointments.getAppointments, {});
 }
 
+export function createAppointmentMutationOptions() {
+  return useConvexMutation(api.appointments.createAppointment);
+}
+
 export function appointmentsByUserQueryOptions(userId: string) {
   return convexQuery(api.appointments.getAppointmentsByUserId, { userId });
 }
@@ -17,6 +21,15 @@ export function appointmentsByBarbershopQueryOptions(
   return convexQuery(api.appointments.getAppointmentsByBarbershopId, {
     barbershopId,
   });
+}
+
+export function availableTimeSlotsQueryOptions(payload: {
+  barbershopId: Id<"barbershops">;
+  date: number;
+  serviceId: Id<"services">;
+  barberId?: Id<"barbers">;
+}) {
+  return convexQuery(api.appointments.getAvailableTimeSlots, payload);
 }
 
 export function useAppointments() {
@@ -32,6 +45,9 @@ export function useAppointmentsByBarbershop(barbershopId: Id<"barbershops">) {
 }
 
 export function useAppointmentActions() {
+  const createAppointment = useMutation({
+    mutationFn: createAppointmentMutationOptions(),
+  });
   const setStatus = useMutation({
     mutationFn: useConvexMutation(api.appointments.setAppointmentStatus),
   });
@@ -48,5 +64,12 @@ export function useAppointmentActions() {
     mutationFn: useConvexMutation(api.appointments.requestReschedule),
   });
 
-  return { setStatus, update, del, cancel, requestReschedule };
+  return {
+    createAppointment,
+    setStatus,
+    update,
+    del,
+    cancel,
+    requestReschedule,
+  };
 }

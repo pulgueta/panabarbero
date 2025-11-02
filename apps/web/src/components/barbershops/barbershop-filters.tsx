@@ -1,4 +1,4 @@
-import { useColombia } from "@panabarbero/constants";
+import { tanstack, useColombia } from "@panabarbero/constants";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import type { FC } from "react";
 
@@ -18,61 +18,70 @@ export const BarbershopFilters: FC = () => {
   const { states, citiesFromState } = useColombia();
 
   const [storedState, setStoredState] = useLocalStorage<string | undefined>(
-    "barbershops_state",
+    tanstack.localStorageKeys.barbershopsState,
   );
   const [storedCity, setStoredCity] = useLocalStorage<string | undefined>(
-    "barbershops_city",
+    tanstack.localStorageKeys.barbershopsCity,
   );
 
-  const state = storedState ?? search.state;
-  const city = storedCity ?? search.city;
+  const city = storedCity ?? search.city ?? "";
+  const state = storedState ?? search.state ?? "";
 
   const availableCities = state ? citiesFromState?.(state) : [];
 
   const apply = (next: Partial<typeof search>) => {
-    setStoredState(next.state);
-    setStoredCity(next.city);
-    navigate({ to: ".", search: (prev) => ({ ...prev, ...next }) });
+    const effCity = next.city ?? city ?? undefined;
+
+    const finalState = next.state ?? state ?? undefined;
+    const finalCity = next.state ? undefined : effCity;
+
+    setStoredState(finalState);
+    setStoredCity(finalCity);
+
+    navigate({
+      to: ".",
+      search: (prev) => ({
+        ...prev,
+        state: finalState,
+        city: finalCity,
+      }),
+    });
   };
 
   return (
-    <div className="mx-auto grid w-full max-w-xl grid-cols-1 gap-3 sm:grid-cols-3">
-      <div className="flex flex-col items-center gap-2 sm:flex-row">
-        <Select
-          value={state}
-          onValueChange={(v) =>
-            apply({ state: v || undefined, city: undefined })
-          }
-        >
-          <SelectTrigger className="w-full min-w-48 bg-background dark:bg-card">
-            <SelectValue placeholder="Departamento" />
-          </SelectTrigger>
-          <SelectContent>
-            {states.map((state) => (
-              <SelectItem key={state.state} value={state.state}>
-                {state.state}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+    <div className="mx-auto grid w-full max-w-xl grid-cols-1 gap-3 sm:grid-cols-2">
+      <Select
+        value={state}
+        onValueChange={(v) => apply({ state: v ?? undefined })}
+      >
+        <SelectTrigger className="w-full min-w-48 bg-background dark:bg-card">
+          <SelectValue placeholder="Departamento" />
+        </SelectTrigger>
+        <SelectContent>
+          {states.map((state) => (
+            <SelectItem key={state.state} value={state.state}>
+              {state.state}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-        <Select
-          value={city}
-          onValueChange={(v) => apply({ city: v || undefined })}
-          disabled={!state}
-        >
-          <SelectTrigger className="w-full min-w-48 bg-background dark:bg-card">
-            <SelectValue placeholder="Ciudad" />
-          </SelectTrigger>
-          <SelectContent>
-            {availableCities.map((city) => (
-              <SelectItem key={city} value={city}>
-                {city}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <Select
+        value={city}
+        onValueChange={(v) => apply({ city: v ?? undefined })}
+        disabled={!state}
+      >
+        <SelectTrigger className="w-full min-w-48 bg-background dark:bg-card">
+          <SelectValue placeholder="Ciudad" />
+        </SelectTrigger>
+        <SelectContent>
+          {availableCities.map((city) => (
+            <SelectItem key={city} value={city}>
+              {city}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 };

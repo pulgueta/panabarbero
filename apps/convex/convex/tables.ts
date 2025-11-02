@@ -7,6 +7,7 @@ export const tables = {
     uuid: v.string(),
     userId: v.string(),
     email: v.string(),
+    name: v.optional(v.string()),
     phoneNumber: v.optional(v.string()),
     notificationsPreferences: v.array(
       v.object({
@@ -48,8 +49,8 @@ export const tables = {
           ),
           isActive: v.boolean(),
         }),
-        openAt: v.optional(v.string()),
-        closeAt: v.optional(v.string()),
+        openAt: v.string(),
+        closeAt: v.string(),
       }),
     ),
     city: v.string(),
@@ -88,10 +89,8 @@ export const tables = {
   services: {
     uuid: v.string(),
     name: v.string(),
-    description: v.optional(v.string()),
     price: v.number(),
-    duration: v.optional(v.number()),
-    nameVector: v.optional(v.array(v.float64())),
+    duration: v.number(),
     barbershopId: v.id("barbershops"),
   },
   reviews: {
@@ -108,10 +107,8 @@ export const tables = {
     serviceId: v.id("services"),
     barberId: v.id("barbers"),
     date: v.number(),
-    startAt: v.number(),
-    endAt: v.number(),
-    proposedStartAt: v.optional(v.number()),
-    proposedEndAt: v.optional(v.number()),
+    proposedDate: v.optional(v.number()),
+    customerName: v.string(),
     contactPhone: v.string(),
     contactEmail: v.string(),
     status: v.union(
@@ -152,8 +149,11 @@ export const tables = {
   },
   notifications: {
     uuid: v.string(),
-    type: v.union(v.literal("email"), v.literal("push"), v.literal("sms")),
+    channels: v.array(
+      v.union(v.literal("email"), v.literal("push"), v.literal("sms")),
+    ),
     reason: v.union(
+      v.literal("appointment_created"),
       v.literal("appointment_reminder"),
       v.literal("appointment_cancelled"),
       v.literal("appointment_rescheduled"),
@@ -169,7 +169,6 @@ export const tables = {
     senderUserId: v.union(v.literal("system"), v.string()),
     receiverUserId: v.string(),
     appointmentId: v.optional(v.id("appointments")),
-    pushNotificationId: v.optional(v.string()),
   },
 };
 

@@ -1,7 +1,13 @@
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
+import type { Barber } from "./tables";
 import { tables } from "./tables";
+
+type BarberWithName = Barber & {
+  name: string;
+};
 
 export const createBarber = internalMutation({
   args: {
@@ -32,27 +38,63 @@ export const getBarbersByBarbershopId = query({
   args: {
     barbershopId: v.id("barbershops"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<BarberWithName[]> => {
     const barbers = await ctx.db
       .query("barbers")
-      .withIndex("by_barbershopId")
-      .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
       .collect();
 
-    return barbers;
+    const barbersWithName = await Promise.all(
+      barbers.map(async (barber) => {
+        const name = await ctx.runQuery(
+          internal.userProfileData.getProfileByUserId,
+          { userId: barber.userId },
+        );
+
+        return {
+          ...barber,
+          name: name?.name ?? "",
+        };
+      }),
+    );
+
+    return barbersWithName;
   },
 });
 
 export const getBarberByUuid = query({
   args: { uuid: v.string() },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<BarberWithName> => {
     const barber = await ctx.db
       .query("barbers")
-      .withIndex("by_uuid")
-      .filter(({ eq, field }) => eq(field("uuid"), args.uuid))
+      .withIndex("by_uuid", (q) => q.eq("uuid", args.uuid))
       .unique();
 
-    return barber;
+    if (!barber) {
+      throw new Error("Barber not found", {
+        cause: args.uuid,
+      });
+    }
+
+    const name = await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      {
+        userId: barber.userId,
+      },
+    );
+
+    if (!name) {
+      throw new Error("Name not found", {
+        cause: barber.userId,
+      });
+    }
+
+    return {
+      ...barber,
+      name: name.name ?? "",
+    };
   },
 });
 
@@ -71,6 +113,7 @@ export const updateBarber = mutation({
         cause: user,
       });
     }
+
     const updatedBarber = await ctx.db.patch(args.barberId, args.barber);
 
     return updatedBarber;
@@ -101,10 +144,10 @@ export const isBarber = query({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not found", { cause: user });
+      return false;
     }
 
     if (user.userId !== args.userId) {

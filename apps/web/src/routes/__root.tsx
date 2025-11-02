@@ -1,6 +1,7 @@
 import type { ConvexQueryClient } from "@convex-dev/react-query";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { QueryClient } from "@tanstack/react-query";
+import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
 import {
   createRootRouteWithContext,
   HeadContent,
@@ -9,6 +10,7 @@ import {
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import type { ConvexReactClient } from "convex/react";
 
+import { DefaultCatchBoundary } from "@/components/error-component";
 import { BottomBar } from "@/components/layout/bottom-bar";
 import { Header } from "@/components/layout/header";
 import { Toaster } from "@/components/ui/sonner";
@@ -46,7 +48,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         },
         {
           name: "og:url",
-          content: "https://pana-barbero.com",
+          content: "https://panabarbero.com",
         },
         {
           name: "og:type",
@@ -81,6 +83,10 @@ export const Route = createRootRouteWithContext<RouterContext>()({
                 name: "Tanstack Router",
                 render: <TanStackRouterDevtoolsPanel />,
               },
+              {
+                name: "TanStack Query",
+                render: <ReactQueryDevtoolsPanel />,
+              },
               StoreDevtools,
             ]}
           />
@@ -88,4 +94,5 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       </>
     );
   },
+  errorComponent: (props) => <DefaultCatchBoundary {...props} />,
 });
