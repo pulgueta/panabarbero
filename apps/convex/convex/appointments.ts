@@ -30,12 +30,12 @@ function withinOpenHours(
   startAt: number,
   endAt: number,
 ): boolean {
-  if (!openAt || !closeAt) return true;
+  if (!openAt || !closeAt) return false;
 
   const openMin = parseTimeToMinutes(openAt);
   const closeMin = parseTimeToMinutes(closeAt);
 
-  if (Number.isNaN(openMin) || Number.isNaN(closeMin)) return true;
+  if (Number.isNaN(openMin) || Number.isNaN(closeMin)) return false;
 
   const startMin = minutesOfDay(startAt);
   const endMin = endAt ? minutesOfDay(endAt) : undefined;
