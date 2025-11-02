@@ -30,17 +30,28 @@ function withinOpenHours(
   startAt: number,
   endAt: number,
 ): boolean {
-  if (!openAt || !closeAt) return false;
+  if (!openAt || !closeAt) return true;
 
   const openMin = parseTimeToMinutes(openAt);
   const closeMin = parseTimeToMinutes(closeAt);
 
-  if (Number.isNaN(openMin) || Number.isNaN(closeMin)) return false;
+  if (Number.isNaN(openMin) || Number.isNaN(closeMin)) return true;
 
   const startMin = minutesOfDay(startAt);
-  const endMin = endAt ? minutesOfDay(endAt) : undefined;
+  const endMin = minutesOfDay(endAt);
 
-  return startMin >= openMin && (endMin ? endMin <= closeMin : true);
+  const overnight = closeMin <= openMin;
+
+  if (!overnight) {
+    return startMin >= openMin && endMin <= closeMin;
+  }
+
+  const adjust = (m: number) => (m < openMin ? m + 1440 : m);
+
+  const adjStart = adjust(startMin);
+  const adjEnd = adjust(endMin);
+
+  return adjStart >= openMin && adjEnd <= closeMin + 1440;
 }
 
 export const createAppointment = mutation({
