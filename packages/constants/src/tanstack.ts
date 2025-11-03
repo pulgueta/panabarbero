@@ -17,11 +17,6 @@ export const publicRoutes = {
       to: "/appointments/create",
       icon: CalendarPlus,
     },
-    {
-      label: "Ajustes",
-      to: "/settings",
-      icon: Settings2,
-    },
   ],
 };
 

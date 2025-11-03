@@ -6,7 +6,10 @@ import {
   useMatch,
   useRouter,
 } from "@tanstack/react-router";
+import { RefreshCcwIcon } from "lucide-react";
 import type { FC } from "react";
+
+import { Button } from "@/components/ui/button";
 
 export const DefaultCatchBoundary: FC<ErrorComponentProps> = ({ error }) => {
   const router = useRouter();
@@ -22,33 +25,30 @@ export const DefaultCatchBoundary: FC<ErrorComponentProps> = ({ error }) => {
       <ErrorComponent error={error} />
 
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
+        <Button
           onClick={() => {
             router.invalidate();
           }}
-          className="rounded-sm bg-gray-600 px-2 py-1 font-extrabold text-white uppercase dark:bg-gray-700"
         >
+          <RefreshCcwIcon className="size-3" />
           Intentar nuevamente
-        </button>
+        </Button>
         {isRoot ? (
-          <Link
-            to="/"
-            className="rounded-sm bg-gray-600 px-2 py-1 font-extrabold text-white uppercase dark:bg-gray-700"
-          >
-            Inicio
-          </Link>
+          <Button variant="secondary" asChild>
+            <Link to="/">Inicio</Link>
+          </Button>
         ) : (
-          <Link
-            to="/"
-            className="rounded-sm bg-gray-600 px-2 py-1 font-extrabold text-white uppercase dark:bg-gray-700"
-            onClick={(e) => {
-              e.preventDefault();
-              window.history.back();
-            }}
-          >
-            Volver
-          </Link>
+          <Button variant="secondary" asChild>
+            <Link
+              to="/"
+              onClick={(e) => {
+                e.preventDefault();
+                window.history.back();
+              }}
+            >
+              Volver
+            </Link>
+          </Button>
         )}
       </div>
     </div>

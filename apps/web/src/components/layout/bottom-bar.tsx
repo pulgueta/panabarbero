@@ -4,6 +4,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/hooks/use-session";
 import { cn } from "@/lib/utils";
+import { ThemeToggler } from "./theme-toggler";
 
 export const BottomBar = () => {
   const router = useRouterState();
@@ -12,8 +13,9 @@ export const BottomBar = () => {
 
   const { data: user } = useSession();
 
-  // biome-ignore lint/style/noNonNullAssertion: user always exists
-  const navigationRoutes = tanstack.getNavigationRoutes(user?.userId!);
+  const navigationRoutes = user
+    ? tanstack.authenticatedRoutes.navigation
+    : tanstack.publicRoutes.navigation;
 
   return (
     <div className="fixed right-0 bottom-0 left-0 z-50 border-border border-t bg-background/90 backdrop-blur-sm">
@@ -44,6 +46,10 @@ export const BottomBar = () => {
               </Link>
             );
           })}
+
+          <div className="flex items-center space-x-2">
+            <ThemeToggler />
+          </div>
         </nav>
 
         {!user && (
