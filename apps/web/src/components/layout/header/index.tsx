@@ -14,9 +14,13 @@ export const Header = () => {
 
   const currentPath = router.location.pathname;
 
-  const navigationRoutesWithoutSettings = tanstack
-    .getNavigationRoutes(user?._id)
-    .filter((route) => route.to !== "/settings");
+  const navigationRoutesWithoutSettings = user
+    ? tanstack.authenticatedRoutes.navigation.filter(
+        (route) => route.to !== "/settings",
+      )
+    : tanstack.publicRoutes.navigation.filter(
+        (route) => route.to !== "/settings",
+      );
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-4">
