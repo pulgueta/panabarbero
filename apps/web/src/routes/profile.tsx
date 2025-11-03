@@ -1,11 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
+import { LoadingComponent } from "@/components/layout/loading-component";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { useIsBarber } from "@/hooks/use-barbers";
 import { useProfile, useProfileActions } from "@/hooks/use-profile";
 import { useSession } from "@/hooks/use-session";
 
@@ -14,39 +29,92 @@ export const Route = createFileRoute("/profile")({
 });
 
 function ProfilePage() {
-  const { data: user } = useSession();
-
-  // if (!user) {
-  //   throw redirect({
-  //     to: "/login",
-  //   });
-  // }
+  const { data: user, isLoading: isUserLoading } = useSession();
 
   const { data: profile, isLoading: isProfileLoading } = useProfile(
     user?.userId ?? "",
   );
+
+  const { data: isBarber, isLoading: isBarberLoading } = useIsBarber(
+    user?.userId ?? "",
+  );
+
   const {
     updateNameMutation: {
       mutateAsync: updateName,
-      isPending: updateNameLoading,
+      isPending: isUpdatingName,
+      isSuccess: isUpdatedName,
     },
     updateEmailMutation: {
       mutateAsync: updateEmail,
-      isPending: updateEmailLoading,
+      isPending: isUpdatingEmail,
+      isSuccess: isUpdatedEmail,
     },
     updatePhoneNumberMutation: {
       mutateAsync: updatePhoneNumber,
-      isPending: updatePhoneNumberLoading,
+      isPending: isUpdatingPhoneNumber,
+      isSuccess: isUpdatedPhoneNumber,
     },
     updateNotificationPreferenceMutation: {
       mutateAsync: updateNotificationPreference,
-      isPending: updateNotificationPreferenceLoading,
+      isPending: isUpdatingNotificationPreference,
+      isSuccess: isUpdatedNotificationPreference,
     },
   } = useProfileActions();
 
-  const [name, setName] = useState<string | undefined>(profile?.name);
-  const [email, setEmail] = useState<string | undefined>(profile?.email);
-  const [phone, setPhone] = useState<string | undefined>(profile?.phoneNumber);
+  const [name, setName] = useState<string | undefined>(
+    profile?.name ?? undefined,
+  );
+  const [email, setEmail] = useState<string | undefined>(
+    profile?.email ?? undefined,
+  );
+  const [phone, setPhone] = useState<string | undefined>(
+    profile?.phoneNumber ?? undefined,
+  );
+
+  useEffect(() => {
+    if (profile) {
+      setName(profile.name);
+      setEmail(profile.email);
+      setPhone(profile.phoneNumber);
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    if (isUpdatedName) {
+      toast.success("Guardado exitosamente", {
+        description: "El nombre se ha actualizado correctamente.",
+      });
+    }
+
+    if (isUpdatedEmail) {
+      toast.success("Guardado exitosamente", {
+        description: "El correo electrónico se ha actualizado correctamente.",
+      });
+    }
+
+    if (isUpdatedPhoneNumber) {
+      toast.success("Guardado exitosamente", {
+        description: "El número de contacto se ha actualizado correctamente.",
+      });
+    }
+
+    if (isUpdatedNotificationPreference) {
+      toast.success("Guardado exitosamente", {
+        description:
+          "Las preferencias de notificación se han actualizado correctamente.",
+      });
+    }
+  }, [
+    isUpdatedEmail,
+    isUpdatedName,
+    isUpdatedPhoneNumber,
+    isUpdatedNotificationPreference,
+  ]);
+
+  if (isUserLoading) {
+    return <LoadingComponent />;
+  }
 
   return (
     <div className="container mx-auto flex min-h-[calc(100dvh-65px)] flex-col items-start justify-start border-x px-4 py-8 md:px-8 lg:px-16">
@@ -57,6 +125,15 @@ function ProfilePage() {
           <CardContent>
             <Field>
               <FieldLabel>Nombre completo</FieldLabel>
+              <FieldDescription className="text-pretty">
+                {isBarberLoading ? (
+                  <Skeleton className="h-4 w-full" />
+                ) : isBarber ? (
+                  "Este es el nombre que se mostrará en tu perfil de barbería"
+                ) : (
+                  "Este es el nombre que se mostrará en tu perfil de usuario"
+                )}
+              </FieldDescription>
               <FieldContent>
                 <div className="flex gap-3">
                   <Input
@@ -67,7 +144,7 @@ function ProfilePage() {
                   />
                   <Button
                     onClick={() => updateName({ name: name ?? "" })}
-                    disabled={isProfileLoading || updateNameLoading}
+                    disabled={isProfileLoading || isUpdatingName}
                   >
                     Guardar
                   </Button>
@@ -81,18 +158,22 @@ function ProfilePage() {
           <CardContent>
             <Field>
               <FieldLabel>Correo</FieldLabel>
+              <FieldDescription className="text-pretty">
+                A este correo se enviarán todas las notificaciones de la
+                aplicación.
+              </FieldDescription>
               <FieldContent>
                 <div className="flex gap-3">
                   <Input
                     type="email"
-                    value={profile?.email}
+                    value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="tucorreo@ejemplo.com"
                     autoComplete="email"
                   />
                   <Button
                     onClick={() => updateEmail({ email: email ?? "" })}
-                    disabled={isProfileLoading || updateEmailLoading}
+                    disabled={isProfileLoading || isUpdatingEmail}
                   >
                     Guardar
                   </Button>
@@ -106,10 +187,13 @@ function ProfilePage() {
           <CardContent>
             <Field>
               <FieldLabel>Número de contacto</FieldLabel>
+              <FieldDescription className="text-pretty">
+                Este es el número donde te enviaremos avisos de la aplicación.
+              </FieldDescription>
               <FieldContent>
                 <div className="flex gap-3">
                   <Input
-                    value={profile?.phoneNumber ?? ""}
+                    value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="3000000000"
                     autoComplete="tel"
@@ -119,7 +203,7 @@ function ProfilePage() {
                     onClick={() =>
                       updatePhoneNumber({ phoneNumber: phone ?? "" })
                     }
-                    disabled={isProfileLoading || updatePhoneNumberLoading}
+                    disabled={isProfileLoading || isUpdatingPhoneNumber}
                   >
                     Guardar
                   </Button>
@@ -132,6 +216,10 @@ function ProfilePage() {
         <Card>
           <CardHeader>
             <CardTitle>Preferencias de notificación</CardTitle>
+            <CardDescription>
+              Selecciona los canales por los cuales deseas recibir
+              notificaciones.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Field orientation="horizontal">
@@ -150,7 +238,7 @@ function ProfilePage() {
                     })
                   }
                   disabled={
-                    isProfileLoading || updateNotificationPreferenceLoading
+                    isProfileLoading || isUpdatingNotificationPreference
                   }
                 />
               </FieldContent>
@@ -184,7 +272,7 @@ function ProfilePage() {
                     updateNotificationPreference({ type: "sms", enabled: val })
                   }
                   disabled={
-                    isProfileLoading || updateNotificationPreferenceLoading
+                    isProfileLoading || isUpdatingNotificationPreference
                   }
                 />
               </FieldContent>

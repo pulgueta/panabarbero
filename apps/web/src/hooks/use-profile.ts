@@ -25,7 +25,12 @@ export function useProfileActions() {
   const updateNotificationPreferenceMutation = useMutation({
     mutationFn: useConvexMutation(
       api.userProfileData.updateNotificationPreference,
-    ),
+    ).withOptimisticUpdate((prev, newData) => {
+      return {
+        ...prev,
+        notificationsPreferences: newData,
+      };
+    }),
   });
 
   return {

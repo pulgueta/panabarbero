@@ -39,7 +39,7 @@ export const Header = () => {
             {navigationRoutesWithoutSettings.map((route) => (
               <Button
                 key={route.to}
-                variant={currentPath === route.to ? "default" : "ghost"}
+                variant={currentPath === route.to ? "outline" : "ghost"}
                 asChild
               >
                 <Link

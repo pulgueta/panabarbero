@@ -36,9 +36,11 @@ function RouteComponent() {
   } = useSearchBarbershopsByName(debouncedSearchQuery);
 
   return (
-    <div className="container mx-auto flex min-h-[calc(100dvh-65px)] flex-col items-start justify-start gap-8 border-x p-6">
+    <div className="container mx-auto flex min-h-[calc(100dvh-65px)] flex-col items-start justify-start gap-8 border-x px-4 py-8 md:px-8 lg:px-16">
       <div className="flex flex-col gap-2">
-        <h1 className="font-bold text-xl">Agendamiento rápido:</h1>
+        <h1 className="text-balance font-bold text-3xl tracking-tight">
+          Agendamiento rápido:
+        </h1>
         {user ? (
           barbershops && barbershops.length > 0 ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -72,7 +74,7 @@ function RouteComponent() {
       <div className="flex w-full flex-col gap-2">
         <h1 className="font-bold text-xl">Buscar barbería:</h1>
         <div className="mb-4 w-full">
-          <InputGroup>
+          <InputGroup className="w-full max-w-xl">
             <InputGroupInput
               placeholder="Buscar barbería por nombre..."
               role="search"
