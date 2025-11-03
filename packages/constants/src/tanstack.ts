@@ -1,4 +1,12 @@
-import { CalendarPlus, Home, Scissors, Settings2, User } from "lucide-react";
+import {
+  Building2,
+  Calendar,
+  CalendarPlus,
+  Home,
+  Scissors,
+  Settings2,
+  User,
+} from "lucide-react";
 
 export const publicRoutes = {
   navigation: [
@@ -27,6 +35,23 @@ export const authenticatedRoutes = {
       label: "Perfil",
       to: "/profile",
       icon: User,
+    },
+  ],
+  barber: [
+    {
+      label: "Perfil",
+      to: "/profile",
+      icon: User,
+    },
+    {
+      label: "Mis barberías",
+      to: "/profile/barbershops",
+      icon: Building2,
+    },
+    {
+      label: "Citas",
+      to: "/profile/appointments",
+      icon: Calendar,
     },
   ],
 };

@@ -439,3 +439,17 @@ export const isBarbershopOwner = query({
     }
   },
 });
+
+export const getBarbershopsByOwnerId = query({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const barbershops = await ctx.db
+      .query("barbershops")
+      .withIndex("by_ownerId", (q) => q.eq("ownerId", args.userId))
+      .collect();
+
+    return barbershops;
+  },
+});

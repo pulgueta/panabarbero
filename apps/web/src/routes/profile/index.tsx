@@ -24,7 +24,7 @@ import { useIsBarber } from "@/hooks/use-barbers";
 import { useProfile, useProfileActions } from "@/hooks/use-profile";
 import { useSession } from "@/hooks/use-session";
 
-export const Route = createFileRoute("/profile")({
+export const Route = createFileRoute("/profile/")({
   component: ProfilePage,
 });
 
