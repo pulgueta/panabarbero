@@ -6,7 +6,7 @@ import {
   mutation,
   query,
 } from "./_generated/server";
-import { authComponent } from "./auth";
+import { authComponent, createAuth } from "./auth";
 import { tables } from "./tables";
 
 export const getProfileByUserId = internalQuery({
@@ -63,6 +63,15 @@ export const updateName = mutation({
 
     if (!profile) throw new Error("Profile not found");
 
+    const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
+
+    await auth.api.updateUser({
+      body: {
+        name: args.name.trim(),
+      },
+      headers,
+    });
+
     await ctx.db.patch(profile._id, { name: args.name.trim() || undefined });
   },
 });
@@ -84,6 +93,15 @@ export const updateEmail = mutation({
       .unique();
 
     if (!profile) throw new Error("Profile not found");
+
+    const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
+
+    await auth.api.changeEmail({
+      body: {
+        newEmail: args.email.trim(),
+      },
+      headers,
+    });
 
     await ctx.db.patch(profile._id, { email: args.email.trim() });
   },
@@ -107,8 +125,9 @@ export const updatePhoneNumber = mutation({
 
     if (!profile) throw new Error("Profile not found");
 
-    const value = args.phoneNumber.trim();
-    await ctx.db.patch(profile._id, { phoneNumber: value || undefined });
+    await ctx.db.patch(profile._id, {
+      phoneNumber: args.phoneNumber.trim() ?? undefined,
+    });
   },
 });
 

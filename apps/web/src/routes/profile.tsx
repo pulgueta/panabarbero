@@ -125,15 +125,16 @@ function ProfilePage() {
           <CardContent>
             <Field>
               <FieldLabel>Nombre completo</FieldLabel>
-              <FieldDescription className="text-pretty">
-                {isBarberLoading ? (
-                  <Skeleton className="h-4 w-full" />
-                ) : isBarber ? (
-                  "Este es el nombre que se mostrará en tu perfil de barbería"
-                ) : (
-                  "Este es el nombre que se mostrará en tu perfil de usuario"
-                )}
-              </FieldDescription>
+              {isBarberLoading ? (
+                <Skeleton className="h-4 w-full" />
+              ) : (
+                <FieldDescription className="text-pretty">
+                  {isBarber
+                    ? "Este es el nombre que se mostrará en tu perfil de barbería"
+                    : "Este es el nombre que se mostrará en tu perfil de usuario"}
+                </FieldDescription>
+              )}
+
               <FieldContent>
                 <div className="flex gap-3">
                   <Input
@@ -260,7 +261,7 @@ function ProfilePage() {
               </FieldContent>
             </Field> */}
             <Field orientation="horizontal">
-              <FieldLabel>SMS</FieldLabel>
+              <FieldLabel>Mensaje de texto (SMS)</FieldLabel>
               <FieldContent className="items-end">
                 <Switch
                   checked={

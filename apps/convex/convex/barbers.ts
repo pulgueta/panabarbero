@@ -141,7 +141,7 @@ export const deleteBarber = internalMutation({
 
 export const isBarber = query({
   args: {
-    userId: v.string(),
+    userId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
@@ -151,12 +151,12 @@ export const isBarber = query({
     }
 
     if (user.userId !== args.userId) {
-      throw new Error("User not authorized", { cause: user });
+      return false;
     }
 
     const barberRecord = await ctx.db
       .query("barbers")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId ?? ""))
       .unique();
 
     return !!barberRecord;
