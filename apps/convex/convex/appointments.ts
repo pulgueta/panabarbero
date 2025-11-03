@@ -219,6 +219,7 @@ export const createAppointment = mutation({
     }
 
     const barberChannels = enabledChannels.barber.map((n) => n.type);
+
     if (barberChannels.length > 0) {
       await ctx.scheduler.runAfter(
         0,
@@ -692,36 +693,48 @@ export const requestReschedule = mutation({
       barber: barberProfile.notificationsPreferences.filter((n) => n.enabled),
     };
 
-    for (const _ of enabledChannels.user) {
-      await ctx.runMutation(internal.notifications.createNotification, {
-        notification: {
-          body: "Un cliente ha solicitado un reagendamiento.",
-          reason: "appointment_rescheduled_request",
-          receiverUserId: barberProfile.userId,
-          title: "Solicitud de reagendamiento",
-          uuid: crypto.randomUUID(),
-          senderUserId: userProfile.userId,
-          channels: enabledChannels.barber.map((n) => n.type),
-          appointmentId: args.appointmentId,
-          preview: "Un cliente ha solicitado un reagendamiento.",
+    const userChannels = enabledChannels.user.map((n) => n.type);
+
+    if (userChannels.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.notifications.createNotification,
+        {
+          notification: {
+            body: "Un cliente ha solicitado un reagendamiento.",
+            reason: "appointment_rescheduled_request",
+            receiverUserId: barberProfile.userId,
+            title: "Solicitud de reagendamiento",
+            uuid: crypto.randomUUID(),
+            senderUserId: userProfile.userId,
+            channels: enabledChannels.barber.map((n) => n.type),
+            appointmentId: args.appointmentId,
+            preview: "Un cliente ha solicitado un reagendamiento.",
+          },
         },
-      });
+      );
     }
 
-    for (const _ of enabledChannels.barber) {
-      await ctx.runMutation(internal.notifications.createNotification, {
-        notification: {
-          body: "Un cliente ha solicitado un reagendamiento.",
-          reason: "appointment_rescheduled_request",
-          receiverUserId: barberProfile.userId,
-          title: "Solicitud de reagendamiento",
-          uuid: crypto.randomUUID(),
-          senderUserId: userProfile.userId,
-          channels: enabledChannels.barber.map((n) => n.type),
-          appointmentId: args.appointmentId,
-          preview: "Un cliente ha solicitado un reagendamiento.",
+    const barberChannels = enabledChannels.barber.map((n) => n.type);
+
+    if (barberChannels.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.notifications.createNotification,
+        {
+          notification: {
+            body: "Un cliente ha solicitado un reagendamiento.",
+            reason: "appointment_rescheduled_request",
+            receiverUserId: barberProfile.userId,
+            title: "Solicitud de reagendamiento",
+            uuid: crypto.randomUUID(),
+            senderUserId: userProfile.userId,
+            channels: enabledChannels.barber.map((n) => n.type),
+            appointmentId: args.appointmentId,
+            preview: "Un cliente ha solicitado un reagendamiento.",
+          },
         },
-      });
+      );
     }
 
     return true;
@@ -758,24 +771,28 @@ export const notifyUpcomingAppointment = internalMutation({
       throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
 
-    const enabledChannels = {
-      user: userProfile.notificationsPreferences.filter((n) => n.enabled),
-    };
+    const userChannels = userProfile.notificationsPreferences.map(
+      (n) => n.type,
+    );
 
-    for (const _ of enabledChannels.user) {
-      await ctx.runMutation(internal.notifications.createNotification, {
-        notification: {
-          body: notificationTexts.appointment_reminder(barbershop?.name),
-          reason: "appointment_reminder",
-          senderUserId: "system",
-          title: notificationTexts.subject,
-          uuid: crypto.randomUUID(),
-          channels: enabledChannels.user.map((n) => n.type),
-          receiverUserId: args.userId,
-          appointmentId: args.appointmentId,
-          preview: notificationTexts.appointment_reminder(barbershop?.name),
+    if (userChannels.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.notifications.createNotification,
+        {
+          notification: {
+            body: notificationTexts.appointment_reminder(barbershop?.name),
+            reason: "appointment_reminder",
+            senderUserId: "system",
+            title: notificationTexts.subject,
+            uuid: crypto.randomUUID(),
+            channels: userChannels,
+            receiverUserId: args.userId,
+            appointmentId: args.appointmentId,
+            preview: notificationTexts.appointment_reminder(barbershop?.name),
+          },
         },
-      });
+      );
     }
 
     return true;
@@ -823,24 +840,28 @@ export const answerRescheduleRequest = mutation({
       ? "appointment_rescheduled_accepted"
       : "appointment_rescheduled_denied";
 
-    const enabledChannels = {
-      user: userProfile.notificationsPreferences.filter((n) => n.enabled),
-    };
+    const userChannels = userProfile.notificationsPreferences.map(
+      (n) => n.type,
+    );
 
-    for (const _ of enabledChannels.user) {
-      await ctx.runMutation(internal.notifications.createNotification, {
-        notification: {
-          body,
-          reason,
-          receiverUserId: userProfile.userId,
-          title,
-          uuid: crypto.randomUUID(),
-          senderUserId: "system",
-          channels: enabledChannels.user.map((n) => n.type),
-          appointmentId: args.appointmentId,
-          preview: title,
+    if (userChannels.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.notifications.createNotification,
+        {
+          notification: {
+            body,
+            reason,
+            receiverUserId: userProfile.userId,
+            title,
+            uuid: crypto.randomUUID(),
+            senderUserId: "system",
+            channels: userChannels,
+            appointmentId: args.appointmentId,
+            preview: title,
+          },
         },
-      });
+      );
     }
   },
 });
