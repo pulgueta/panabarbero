@@ -76,7 +76,6 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
 export const { onCreate, onUpdate, onDelete } = authComponent.triggersApi();
 
 const siteUrl = process.env.SITE_URL ?? "";
-const previewSiteUrl = process.env.PREVIEW_SITE_URL ?? "";
 
 export const createAuth = (
   ctx: GenericCtx<DataModel>,
@@ -86,7 +85,7 @@ export const createAuth = (
     logger: {
       disabled: optionsOnly,
     },
-    trustedOrigins: ["panabarbero://", siteUrl, previewSiteUrl],
+    trustedOrigins: ["panabarbero://", siteUrl],
     database: authComponent.adapter(ctx),
     emailAndPassword: {
       enabled: false,

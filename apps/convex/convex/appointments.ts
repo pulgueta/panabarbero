@@ -1,4 +1,5 @@
-import { v } from "convex/values";
+import { errorMessages } from "@panabarbero/constants";
+import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import {
   internalMutation,
@@ -72,9 +73,7 @@ export const createAppointment = mutation({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const { appointment } = args;
@@ -83,15 +82,11 @@ export const createAppointment = mutation({
     const barber = await ctx.db.get(appointment.barberId);
 
     if (!barber) {
-      throw new Error("Barber not found", {
-        cause: appointment.barberId,
-      });
+      throw new ConvexError(errorMessages.notFound("barbero"));
     }
 
     if (!service) {
-      throw new Error("Service not found", {
-        cause: appointment.serviceId,
-      });
+      throw new ConvexError(errorMessages.notFound("servicio"));
     }
 
     const endsAt = appointment.date + service.duration;
@@ -128,18 +123,13 @@ export const createAppointment = mutation({
       const overlaps = appt.date < endsAt && apptEnd > appointment.date;
 
       if (overlaps) {
-        throw new Error("Appointment overlaps with existing appointment", {
-          cause: appt,
-        });
+        throw new ConvexError(errorMessages.appointmentOverlaps);
       }
     }
 
     const barbershop = await ctx.db.get(appointment.barbershopId);
 
-    if (!barbershop)
-      throw new Error("Barbershop not found", {
-        cause: appointment.barbershopId,
-      });
+    if (!barbershop) throw new ConvexError(errorMessages.notFound("barbería"));
 
     const date = new Date(appointment.date);
     const dayIdx = date.getDay();
@@ -158,7 +148,7 @@ export const createAppointment = mutation({
     );
 
     if (!dayAvailability || !dayAvailability.weekDay.isActive) {
-      throw new Error("Barbershop is closed on selected day");
+      throw new ConvexError(errorMessages.barbershopClosedOnSelectedDay);
     }
 
     const endAt = appointment.date + (service.duration ?? 0);
@@ -171,14 +161,7 @@ export const createAppointment = mutation({
         endAt,
       )
     ) {
-      throw new Error("Appointment is outside working hours", {
-        cause: {
-          openAt: dayAvailability.openAt,
-          closeAt: dayAvailability.closeAt,
-          date: appointment.date,
-          endAt,
-        },
-      });
+      throw new ConvexError(errorMessages.appointmentOutsideWorkingHours);
     }
 
     const appointmentId = await ctx.db.insert("appointments", {
@@ -195,9 +178,7 @@ export const createAppointment = mutation({
     );
 
     if (!userProfile) {
-      throw new Error("User profile not found", {
-        cause: appointment.userId,
-      });
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
 
     const barberProfile = await ctx.runQuery(
@@ -208,9 +189,7 @@ export const createAppointment = mutation({
     );
 
     if (!barberProfile) {
-      throw new Error("Barber profile not found", {
-        cause: barber.userId,
-      });
+      throw new ConvexError(errorMessages.notFound("perfil de barbero"));
     }
 
     const enabledChannels = {
@@ -283,9 +262,7 @@ export const getAppointmentsByUserId = query({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const appointments = await ctx.db
@@ -307,9 +284,7 @@ export const getAppointmentsByBarbershopId = query({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
     const appointments = await ctx.db
       .query("appointments")
@@ -338,9 +313,7 @@ export const getAppointmentByUuid = query({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
     const appointment = await ctx.db
       .query("appointments")
@@ -360,9 +333,7 @@ export const getAppointmentByUserIdAndBarbershopId = query({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
     const appointment = await ctx.db
       .query("appointments")
@@ -383,9 +354,7 @@ export const getAppointmentsByBarberId = query({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
     const appointments = await ctx.db
       .query("appointments")
@@ -438,9 +407,7 @@ export const setAppointmentStatus = mutation({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const updatedAppointment = await ctx.db.patch(args.appointmentId, {
@@ -511,17 +478,13 @@ export const updateAppointment = mutation({
     const original = await ctx.db.get(appointmentId);
 
     if (!original) {
-      throw new Error("Appointment not found", {
-        cause: appointmentId,
-      });
+      throw new ConvexError(errorMessages.notFound("cita"));
     }
 
     const service = await ctx.db.get(appointment.serviceId);
 
     if (!service) {
-      throw new Error("Service not found", {
-        cause: appointment.serviceId,
-      });
+      throw new ConvexError(errorMessages.notFound("servicio"));
     }
 
     const duration =
@@ -539,17 +502,12 @@ export const updateAppointment = mutation({
     );
 
     if (overlap) {
-      throw new Error("Appointment overlaps with existing appointment", {
-        cause: overlap,
-      });
+      throw new ConvexError(errorMessages.appointmentOverlaps);
     }
 
     const shop = await ctx.db.get(appointment.barbershopId);
 
-    if (!shop)
-      throw new Error("Barbershop not found", {
-        cause: appointment.barbershopId,
-      });
+    if (!shop) throw new ConvexError(errorMessages.notFound("barbería"));
 
     const date = new Date(appointment.date);
     const dayIdx = date.getDay();
@@ -618,9 +576,7 @@ export const deleteAppointment = mutation({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
     const { appointmentId } = args;
 
@@ -638,13 +594,11 @@ export const cancelAppointment = mutation({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
     const appt = await ctx.db.get(args.appointmentId);
 
-    if (!appt) throw new Error("Appointment not found");
+    if (!appt) throw new ConvexError(errorMessages.notFound("cita"));
 
     await ctx.db.patch(args.appointmentId, {
       status: "cancelled",
@@ -675,9 +629,7 @@ export const requestReschedule = mutation({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const { ok, retryAfter } = await rateLimiter.limit(
@@ -699,7 +651,7 @@ export const requestReschedule = mutation({
 
     const appt = await ctx.db.get(args.appointmentId);
 
-    if (!appt) throw new Error("Appointment not found");
+    if (!appt) throw new ConvexError(errorMessages.notFound("cita"));
 
     await ctx.db.patch(args.appointmentId, {
       status: "pending",
@@ -715,17 +667,13 @@ export const requestReschedule = mutation({
     );
 
     if (!userProfile) {
-      throw new Error("User profile not found", {
-        cause: appt.userId,
-      });
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
 
     const barber = await ctx.db.get(appt.barberId);
 
     if (!barber) {
-      throw new Error("Barber not found", {
-        cause: appt.barberId,
-      });
+      throw new ConvexError(errorMessages.notFound("barbero"));
     }
 
     const barberProfile = await ctx.runQuery(
@@ -736,9 +684,7 @@ export const requestReschedule = mutation({
     );
 
     if (!barberProfile) {
-      throw new Error("Barber profile not found", {
-        cause: barber.userId,
-      });
+      throw new ConvexError(errorMessages.notFound("perfil de barbero"));
     }
 
     const enabledChannels = {
@@ -798,9 +744,7 @@ export const notifyUpcomingAppointment = internalMutation({
     const barbershop = await ctx.db.get(args.barbershopId);
 
     if (!barbershop) {
-      throw new Error("Barbershop not found", {
-        cause: args.barbershopId,
-      });
+      throw new ConvexError(errorMessages.notFound("barbería"));
     }
 
     const userProfile = await ctx.runQuery(
@@ -811,9 +755,7 @@ export const notifyUpcomingAppointment = internalMutation({
     );
 
     if (!userProfile) {
-      throw new Error("User profile not found", {
-        cause: args.userId,
-      });
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
 
     const enabledChannels = {
@@ -849,17 +791,12 @@ export const answerRescheduleRequest = mutation({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const appt = await ctx.db.get(args.appointmentId);
 
-    if (!appt)
-      throw new Error("Appointment not found", {
-        cause: args.appointmentId,
-      });
+    if (!appt) throw new ConvexError(errorMessages.notFound("cita"));
 
     await ctx.db.patch(args.appointmentId, {
       status: args.accepted ? "confirmed" : "denied",
@@ -873,9 +810,7 @@ export const answerRescheduleRequest = mutation({
     );
 
     if (!userProfile) {
-      throw new Error("User profile not found", {
-        cause: appt.userId,
-      });
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
 
     const title = args.accepted

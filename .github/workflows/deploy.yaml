@@ -1,34 +1,16 @@
-name: Deploy to Railway
+name: Deploy Convex
 
 on:
-  push:
-    branches: ["demo", "main"]
+  pull_request:
+    branches: ["*"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  version:
-    permissions:
-      contents: write
-      packages: write
-      pull-requests: write
-      actions: write
-    uses: ./.github/workflows/version.yaml
-  migrations:
-    uses: ./.github/workflows/migrations.yaml
-    secrets: inherit
-
-        
-  prod:
+  deploy:
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/main' }}
-    container: ghcr.io/railwayapp/cli:latest
-    needs: [version, migrations]
-    env:
-      SVC_ID: ${{ vars.SERVICE_ID }}
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,25 +20,5 @@ jobs:
       - name: Setup
         uses: ./.github/setup
 
-      - name: Deploy to production
-        run: railway up --service=${{ env.SVC_ID }}
-
-  demo:
-    runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/demo' }}
-    container: ghcr.io/railwayapp/cli:latest
-    needs: [version, migrations]
-    env:
-      SVC_ID: ${{ vars.PREVIEW_SERVICE_ID }}
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup
-        uses: ./.github/setup
-
-      - name: Deploy to production
-        run: railway up --service=${{ env.SVC_ID }}
+      - name: Deploy functions to Convex
+        run: bunx convex deploy --cmd 'bun run build'
