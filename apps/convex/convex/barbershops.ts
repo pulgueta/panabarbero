@@ -76,6 +76,8 @@ export const createBarbershop = mutation({
         barbershopId,
         userId: user.userId ?? "",
         uuid: crypto.randomUUID(),
+        isActive: true,
+        joinedAt: Date.now(),
       },
     });
 
@@ -178,6 +180,7 @@ export const getBarbershopByUuid = query({
     return barbershop;
   },
 });
+
 export const getBarbershopServices = query({
   args: {
     barbershopId: v.id("barbershops"),

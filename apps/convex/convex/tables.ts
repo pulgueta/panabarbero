@@ -85,6 +85,8 @@ export const tables = {
     uuid: v.string(),
     userId: v.string(),
     barbershopId: v.id("barbershops"),
+    joinedAt: v.number(),
+    isActive: v.boolean(),
   },
   services: {
     uuid: v.string(),
@@ -162,6 +164,7 @@ export const tables = {
       v.literal("appointment_confirmed"),
       v.literal("appointment_rescheduled_accepted"),
       v.literal("appointment_rescheduled_denied"),
+      v.literal("barber_invited"),
     ),
     title: v.string(),
     body: v.string(),

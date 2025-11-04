@@ -1,4 +1,5 @@
-import { v } from "convex/values";
+import { errorMessages } from "@panabarbero/constants";
+import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
@@ -66,16 +67,14 @@ export const getBarbersByBarbershopId = query({
 
 export const getBarberByUuid = query({
   args: { uuid: v.string() },
-  handler: async (ctx, args): Promise<BarberWithName> => {
+  handler: async (ctx, args): Promise<BarberWithName | null> => {
     const barber = await ctx.db
       .query("barbers")
       .withIndex("by_uuid", (q) => q.eq("uuid", args.uuid))
       .unique();
 
     if (!barber) {
-      throw new Error("Barber not found", {
-        cause: args.uuid,
-      });
+      return null;
     }
 
     const name = await ctx.runQuery(
@@ -86,9 +85,7 @@ export const getBarberByUuid = query({
     );
 
     if (!name) {
-      throw new Error("Name not found", {
-        cause: barber.userId,
-      });
+      return null;
     }
 
     return {
@@ -160,5 +157,64 @@ export const isBarber = query({
       .unique();
 
     return !!barberRecord;
+  },
+});
+
+export const inviteBarber = mutation({
+  args: {
+    name: v.string(),
+    phone: v.string(),
+    email: v.optional(v.string()),
+    barbershopId: v.id("barbershops"),
+  },
+  handler: async (ctx, args) => {
+    const userInviting = await authComponent.safeGetAuthUser(ctx);
+
+    if (!userInviting || !userInviting.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    const barbershop = await ctx.db.get(args.barbershopId);
+
+    if (!barbershop) {
+      throw new ConvexError(errorMessages.notFound("barbería"));
+    }
+
+    let userProfile = null;
+
+    if (args.email) {
+      userProfile = await ctx.runQuery(
+        internal.userProfileData.getProfileByEmail,
+        {
+          email: args.email,
+        },
+      );
+    }
+
+    if (!userProfile) {
+      throw new ConvexError(errorMessages.requiredAccount);
+    }
+
+    const userChannels = userProfile.notificationsPreferences.map(
+      (n) => n.type,
+    );
+
+    if (userChannels.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.notifications.createNotification,
+        {
+          notification: {
+            body: `Hola ${args.name}. Has sido invitado a unirte a ${barbershop.name} como barbero.`,
+            title: "Invitación a unirte como barbero",
+            receiverUserId: userProfile.userId,
+            senderUserId: userInviting.userId,
+            uuid: crypto.randomUUID(),
+            reason: "barber_invited",
+            channels: userChannels,
+          },
+        },
+      );
+    }
   },
 });

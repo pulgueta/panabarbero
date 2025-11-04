@@ -19,6 +19,16 @@ export const getProfileByUserId = internalQuery({
   },
 });
 
+export const getProfileByEmail = internalQuery({
+  args: { email: tables.userProfileData.email },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("userProfileData")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .unique();
+  },
+});
+
 export const getMyProfile = query({
   args: {
     userId: v.optional(v.string()),
