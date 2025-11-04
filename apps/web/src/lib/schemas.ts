@@ -147,6 +147,24 @@ export const reviewFormSchema = object({
   customerName: string().optional(),
 });
 
+export const inviteBarberFormSchema = object({
+  name: string({ error: "El nombre del barbero es requerido" })
+    .min(3, {
+      message: "El nombre del barbero debe tener al menos 3 caracteres",
+    })
+    .max(255, {
+      message: "El nombre del barbero debe tener menos de 255 caracteres",
+    }),
+  email: email({ error: "El email del barbero es requerido" }).optional(),
+  phone: string({ error: "El teléfono del barbero es requerido" })
+    .min(10, {
+      message: "El teléfono del barbero debe tener 10 caracteres",
+    })
+    .regex(/^\+?[0-9]+$/, {
+      message: "El teléfono del barbero debe ser válido",
+    }),
+});
+
 export type BarbershopFormData = output<typeof barbershopFormSchema>;
 export type ServiceFormData = output<typeof serviceFormSchema>;
 export type AppointmentFormData = output<typeof appointmentFormSchema>;

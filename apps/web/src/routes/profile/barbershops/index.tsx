@@ -2,6 +2,7 @@ import type { Barbershop } from "@panabarbero/convex/schemas";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { appointmentsTableColumns } from "@/components/appointments/table/columns";
+import { InviteBarberDialog } from "@/components/barbers/invite-barber-dialog";
 import { barbersTableColumns } from "@/components/barbers/table/columns";
 import { BarbershopsDropdown } from "@/components/barbershops/barbershops-dropdown";
 import { BorderContainer } from "@/components/layout/border-container";
@@ -12,7 +13,10 @@ import {
   appointmentsByBarbershopQueryOptions,
   useAppointmentsByBarbershop,
 } from "@/hooks/use-appointments";
-import { useBarbersByBarbershopId } from "@/hooks/use-barbers";
+import {
+  barbersByBarbershopIdQueryOptions,
+  useBarbersByBarbershopId,
+} from "@/hooks/use-barbers";
 import { useBarbershopsByOwnerId } from "@/hooks/use-barbershop";
 import { useSession } from "@/hooks/use-session";
 
@@ -31,6 +35,9 @@ export const Route = createFileRoute("/profile/barbershops/")({
     if (opts.deps.barbershopId) {
       await opts.context.queryClient.prefetchQuery(
         appointmentsByBarbershopQueryOptions(opts.deps.barbershopId),
+      );
+      await opts.context.queryClient.prefetchQuery(
+        barbersByBarbershopIdQueryOptions(opts.deps.barbershopId),
       );
     }
   },
@@ -75,8 +82,10 @@ function RouteComponent() {
       </section>
 
       <section className="flex w-full flex-col justify-between gap-4">
-        <div>
+        <div className="flex w-full items-center justify-between gap-4">
           <h1 className="font-bold text-3xl tracking-tight">Barberos</h1>
+
+          <InviteBarberDialog />
         </div>
 
         {isLoadingBarbers ? (

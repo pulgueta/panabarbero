@@ -1,9 +1,20 @@
 import type { Barber } from "@panabarbero/convex/schemas";
 import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
-import { PencilIcon } from "lucide-react";
+import {
+  EllipsisVerticalIcon,
+  Info,
+  PencilIcon,
+  TrashIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useProfile } from "@/hooks/use-profile";
 import { useSession } from "@/hooks/use-session";
 
@@ -64,22 +75,58 @@ export const barbersTableColumns: ColumnDef<Barber>[] = [
     accessorKey: "actions",
     header: () => <div className="text-center">Acciones</div>,
     cell: ({ row }) => {
-      const barbershopId = row.original._id;
+      const barbershopId = row.original.barbershopId;
+      const userId = row.original.userId;
+
+      const { data: userProfile } = useProfile(row.original.userId);
+
+      const isCurrentUser = userProfile?.userId === userId;
 
       return (
         <div className="text-center">
-          <Button variant="outline" asChild>
-            <Link
-              to="/profile/barbershops/edit/$barbershopId"
-              params={{ barbershopId }}
-              style={{
-                viewTransitionName: `barbershop-${barbershopId}-edit`,
-              }}
-            >
-              <PencilIcon className="size-3" />
-              Editar
-            </Link>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <span className="sr-only">Abrir menú</span>
+                <EllipsisVerticalIcon />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem>
+                <Link
+                  to={
+                    isCurrentUser
+                      ? "/profile"
+                      : "/profile/barbershops/edit/$barbershopId"
+                  }
+                  params={{ barbershopId }}
+                  style={{
+                    viewTransitionName: `barbershop-${barbershopId}-edit`,
+                  }}
+                  className="inline-flex items-center gap-x-2"
+                >
+                  {isCurrentUser ? (
+                    <>
+                      <Info className="size-3" /> Mi perfil
+                    </>
+                  ) : (
+                    <>
+                      <PencilIcon className="size-3" />
+                      Editar
+                    </>
+                  )}
+                </Link>
+              </DropdownMenuItem>
+              {!isCurrentUser && (
+                <DropdownMenuItem className="mt-1 p-0">
+                  <Button variant="destructive">
+                    <TrashIcon className="size-3 text-destructive-foreground" />
+                    Eliminar barbero
+                  </Button>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       );
     },

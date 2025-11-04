@@ -15,6 +15,7 @@ export const emailSubjects = {
   appointment_rescheduled_accepted: "Reagendamiento aceptado",
   appointment_rescheduled_denied: "Reagendamiento rechazado",
   appointment_created: "Un usuario ha reservado una cita",
+  barber_invited: "Invitación a unirte como barbero",
 } satisfies Record<Notification["reason"], string>;
 
 export function isNotificationEnabled(
