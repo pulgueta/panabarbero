@@ -1,6 +1,6 @@
 import type { Id } from "@panabarbero/convex/dataModel";
 import type { Barbershop } from "@panabarbero/convex/schemas";
-import { Store } from "@tanstack/react-store";
+import { Store, useStore } from "@tanstack/react-store";
 
 export const barbershopStore = new Store<Barbershop>({
   _creationTime: 0,
@@ -32,3 +32,7 @@ export const barbershopStore = new Store<Barbershop>({
   availability: [],
   uuid: "",
 });
+
+export function useBarbershop() {
+  return useStore(barbershopStore);
+}

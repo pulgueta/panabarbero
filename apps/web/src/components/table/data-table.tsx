@@ -4,6 +4,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import type { ComponentProps } from "react";
 
 import {
   Table,
@@ -13,15 +14,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
-interface DataTableProps<TData, TValue> {
+interface DataTableProps<TData, TValue> extends ComponentProps<"div"> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  className?: string;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  className,
+  ...props
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
@@ -30,7 +35,10 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div className="w-full overflow-hidden rounded-md border">
+    <div
+      className={cn("w-full overflow-hidden rounded-md border", className)}
+      {...props}
+    >
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (

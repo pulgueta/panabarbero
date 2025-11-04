@@ -19,9 +19,11 @@ import { Route as BarbershopsIndexRouteImport } from "./routes/barbershops/index
 import { Route as BarbershopSettingsIndexRouteImport } from "./routes/barbershop-settings.index"
 import { Route as AppointmentsIndexRouteImport } from "./routes/appointments/index"
 import { Route as AnalyticsIndexRouteImport } from "./routes/analytics.index"
-import { Route as ProfileBarbershopsRouteImport } from "./routes/profile/barbershops"
 import { Route as BarbershopsBarbershopUuidRouteImport } from "./routes/barbershops/$barbershopUuid"
 import { Route as AppointmentsCreateRouteImport } from "./routes/appointments/create"
+import { Route as ProfileBarbershopsIndexRouteImport } from "./routes/profile/barbershops/index"
+import { Route as ProfileAppointmentsIndexRouteImport } from "./routes/profile/appointments/index"
+import { Route as ProfileBarbershopsEditBarbershopIdRouteImport } from "./routes/profile/barbershops/edit/$barbershopId"
 
 const LoginRoute = LoginRouteImport.update({
   id: "/login",
@@ -73,11 +75,6 @@ const AnalyticsIndexRoute = AnalyticsIndexRouteImport.update({
   path: "/analytics/",
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProfileBarbershopsRoute = ProfileBarbershopsRouteImport.update({
-  id: "/profile/barbershops",
-  path: "/profile/barbershops",
-  getParentRoute: () => rootRouteImport,
-} as any)
 const BarbershopsBarbershopUuidRoute =
   BarbershopsBarbershopUuidRouteImport.update({
     id: "/barbershops/$barbershopUuid",
@@ -89,13 +86,29 @@ const AppointmentsCreateRoute = AppointmentsCreateRouteImport.update({
   path: "/appointments/create",
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfileBarbershopsIndexRoute = ProfileBarbershopsIndexRouteImport.update({
+  id: "/profile/barbershops/",
+  path: "/profile/barbershops/",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileAppointmentsIndexRoute =
+  ProfileAppointmentsIndexRouteImport.update({
+    id: "/profile/appointments/",
+    path: "/profile/appointments/",
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ProfileBarbershopsEditBarbershopIdRoute =
+  ProfileBarbershopsEditBarbershopIdRouteImport.update({
+    id: "/profile/barbershops/edit/$barbershopId",
+    path: "/profile/barbershops/edit/$barbershopId",
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
   "/login": typeof LoginRoute
   "/appointments/create": typeof AppointmentsCreateRoute
   "/barbershops/$barbershopUuid": typeof BarbershopsBarbershopUuidRoute
-  "/profile/barbershops": typeof ProfileBarbershopsRoute
   "/analytics": typeof AnalyticsIndexRoute
   "/appointments": typeof AppointmentsIndexRoute
   "/barbershop-settings": typeof BarbershopSettingsIndexRoute
@@ -104,13 +117,15 @@ export interface FileRoutesByFullPath {
   "/profile": typeof ProfileIndexRoute
   "/reviews": typeof ReviewsIndexRoute
   "/services": typeof ServicesIndexRoute
+  "/profile/appointments": typeof ProfileAppointmentsIndexRoute
+  "/profile/barbershops": typeof ProfileBarbershopsIndexRoute
+  "/profile/barbershops/edit/$barbershopId": typeof ProfileBarbershopsEditBarbershopIdRoute
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
   "/login": typeof LoginRoute
   "/appointments/create": typeof AppointmentsCreateRoute
   "/barbershops/$barbershopUuid": typeof BarbershopsBarbershopUuidRoute
-  "/profile/barbershops": typeof ProfileBarbershopsRoute
   "/analytics": typeof AnalyticsIndexRoute
   "/appointments": typeof AppointmentsIndexRoute
   "/barbershop-settings": typeof BarbershopSettingsIndexRoute
@@ -119,6 +134,9 @@ export interface FileRoutesByTo {
   "/profile": typeof ProfileIndexRoute
   "/reviews": typeof ReviewsIndexRoute
   "/services": typeof ServicesIndexRoute
+  "/profile/appointments": typeof ProfileAppointmentsIndexRoute
+  "/profile/barbershops": typeof ProfileBarbershopsIndexRoute
+  "/profile/barbershops/edit/$barbershopId": typeof ProfileBarbershopsEditBarbershopIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -126,7 +144,6 @@ export interface FileRoutesById {
   "/login": typeof LoginRoute
   "/appointments/create": typeof AppointmentsCreateRoute
   "/barbershops/$barbershopUuid": typeof BarbershopsBarbershopUuidRoute
-  "/profile/barbershops": typeof ProfileBarbershopsRoute
   "/analytics/": typeof AnalyticsIndexRoute
   "/appointments/": typeof AppointmentsIndexRoute
   "/barbershop-settings/": typeof BarbershopSettingsIndexRoute
@@ -135,6 +152,9 @@ export interface FileRoutesById {
   "/profile/": typeof ProfileIndexRoute
   "/reviews/": typeof ReviewsIndexRoute
   "/services/": typeof ServicesIndexRoute
+  "/profile/appointments/": typeof ProfileAppointmentsIndexRoute
+  "/profile/barbershops/": typeof ProfileBarbershopsIndexRoute
+  "/profile/barbershops/edit/$barbershopId": typeof ProfileBarbershopsEditBarbershopIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -143,7 +163,6 @@ export interface FileRouteTypes {
     | "/login"
     | "/appointments/create"
     | "/barbershops/$barbershopUuid"
-    | "/profile/barbershops"
     | "/analytics"
     | "/appointments"
     | "/barbershop-settings"
@@ -152,13 +171,15 @@ export interface FileRouteTypes {
     | "/profile"
     | "/reviews"
     | "/services"
+    | "/profile/appointments"
+    | "/profile/barbershops"
+    | "/profile/barbershops/edit/$barbershopId"
   fileRoutesByTo: FileRoutesByTo
   to:
     | "/"
     | "/login"
     | "/appointments/create"
     | "/barbershops/$barbershopUuid"
-    | "/profile/barbershops"
     | "/analytics"
     | "/appointments"
     | "/barbershop-settings"
@@ -167,13 +188,15 @@ export interface FileRouteTypes {
     | "/profile"
     | "/reviews"
     | "/services"
+    | "/profile/appointments"
+    | "/profile/barbershops"
+    | "/profile/barbershops/edit/$barbershopId"
   id:
     | "__root__"
     | "/"
     | "/login"
     | "/appointments/create"
     | "/barbershops/$barbershopUuid"
-    | "/profile/barbershops"
     | "/analytics/"
     | "/appointments/"
     | "/barbershop-settings/"
@@ -182,6 +205,9 @@ export interface FileRouteTypes {
     | "/profile/"
     | "/reviews/"
     | "/services/"
+    | "/profile/appointments/"
+    | "/profile/barbershops/"
+    | "/profile/barbershops/edit/$barbershopId"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -189,7 +215,6 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   AppointmentsCreateRoute: typeof AppointmentsCreateRoute
   BarbershopsBarbershopUuidRoute: typeof BarbershopsBarbershopUuidRoute
-  ProfileBarbershopsRoute: typeof ProfileBarbershopsRoute
   AnalyticsIndexRoute: typeof AnalyticsIndexRoute
   AppointmentsIndexRoute: typeof AppointmentsIndexRoute
   BarbershopSettingsIndexRoute: typeof BarbershopSettingsIndexRoute
@@ -198,6 +223,9 @@ export interface RootRouteChildren {
   ProfileIndexRoute: typeof ProfileIndexRoute
   ReviewsIndexRoute: typeof ReviewsIndexRoute
   ServicesIndexRoute: typeof ServicesIndexRoute
+  ProfileAppointmentsIndexRoute: typeof ProfileAppointmentsIndexRoute
+  ProfileBarbershopsIndexRoute: typeof ProfileBarbershopsIndexRoute
+  ProfileBarbershopsEditBarbershopIdRoute: typeof ProfileBarbershopsEditBarbershopIdRoute
 }
 
 declare module "@tanstack/react-router" {
@@ -272,13 +300,6 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AnalyticsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/profile/barbershops": {
-      id: "/profile/barbershops"
-      path: "/profile/barbershops"
-      fullPath: "/profile/barbershops"
-      preLoaderRoute: typeof ProfileBarbershopsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     "/barbershops/$barbershopUuid": {
       id: "/barbershops/$barbershopUuid"
       path: "/barbershops/$barbershopUuid"
@@ -293,6 +314,27 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AppointmentsCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    "/profile/barbershops/": {
+      id: "/profile/barbershops/"
+      path: "/profile/barbershops"
+      fullPath: "/profile/barbershops"
+      preLoaderRoute: typeof ProfileBarbershopsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/profile/appointments/": {
+      id: "/profile/appointments/"
+      path: "/profile/appointments"
+      fullPath: "/profile/appointments"
+      preLoaderRoute: typeof ProfileAppointmentsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/profile/barbershops/edit/$barbershopId": {
+      id: "/profile/barbershops/edit/$barbershopId"
+      path: "/profile/barbershops/edit/$barbershopId"
+      fullPath: "/profile/barbershops/edit/$barbershopId"
+      preLoaderRoute: typeof ProfileBarbershopsEditBarbershopIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -301,7 +343,6 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   AppointmentsCreateRoute: AppointmentsCreateRoute,
   BarbershopsBarbershopUuidRoute: BarbershopsBarbershopUuidRoute,
-  ProfileBarbershopsRoute: ProfileBarbershopsRoute,
   AnalyticsIndexRoute: AnalyticsIndexRoute,
   AppointmentsIndexRoute: AppointmentsIndexRoute,
   BarbershopSettingsIndexRoute: BarbershopSettingsIndexRoute,
@@ -310,6 +351,10 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileIndexRoute: ProfileIndexRoute,
   ReviewsIndexRoute: ReviewsIndexRoute,
   ServicesIndexRoute: ServicesIndexRoute,
+  ProfileAppointmentsIndexRoute: ProfileAppointmentsIndexRoute,
+  ProfileBarbershopsIndexRoute: ProfileBarbershopsIndexRoute,
+  ProfileBarbershopsEditBarbershopIdRoute:
+    ProfileBarbershopsEditBarbershopIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

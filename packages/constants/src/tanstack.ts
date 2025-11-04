@@ -44,7 +44,7 @@ export const authenticatedRoutes = {
       icon: User,
     },
     {
-      label: "Mis barberías",
+      label: "Gestión",
       to: "/profile/barbershops",
       icon: Building2,
     },
@@ -93,6 +93,7 @@ export const routes = {
 };
 
 export const localStorageKeys = {
+  barbershopsLatest: "barbershops_latest",
   barbershopsState: "barbershops_state",
   barbershopsCity: "barbershops_city",
 };

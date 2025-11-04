@@ -282,16 +282,17 @@ export const getAppointmentsByBarbershopId = query({
     barbershopId: v.id("barbershops"),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
-      throw new ConvexError(errorMessages.unauthorized);
+      return [];
     }
+
     const appointments = await ctx.db
       .query("appointments")
-      .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
-      .withIndex("by_barbershopId")
-      .order("asc")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
       .collect();
 
     return appointments;

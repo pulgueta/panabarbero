@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,12 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldLabel,
-} from "@/components/ui/field";
+import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
@@ -45,11 +41,6 @@ function ProfilePage() {
       isPending: isUpdatingName,
       isSuccess: isUpdatedName,
     },
-    updateEmailMutation: {
-      mutateAsync: updateEmail,
-      isPending: isUpdatingEmail,
-      isSuccess: isUpdatedEmail,
-    },
     updatePhoneNumberMutation: {
       mutateAsync: updatePhoneNumber,
       isPending: isUpdatingPhoneNumber,
@@ -65,31 +56,14 @@ function ProfilePage() {
   const [name, setName] = useState<string | undefined>(
     profile?.name ?? undefined,
   );
-  const [email, setEmail] = useState<string | undefined>(
-    profile?.email ?? undefined,
-  );
   const [phone, setPhone] = useState<string | undefined>(
     profile?.phoneNumber ?? undefined,
   );
 
   useEffect(() => {
-    if (profile) {
-      setName(profile.name);
-      setEmail(profile.email);
-      setPhone(profile.phoneNumber);
-    }
-  }, [profile]);
-
-  useEffect(() => {
     if (isUpdatedName) {
       toast.success("Guardado exitosamente", {
         description: "El nombre se ha actualizado correctamente.",
-      });
-    }
-
-    if (isUpdatedEmail) {
-      toast.success("Guardado exitosamente", {
-        description: "El correo electrónico se ha actualizado correctamente.",
       });
     }
 
@@ -105,36 +79,32 @@ function ProfilePage() {
           "Las preferencias de notificación se han actualizado correctamente.",
       });
     }
-  }, [
-    isUpdatedEmail,
-    isUpdatedName,
-    isUpdatedPhoneNumber,
-    isUpdatedNotificationPreference,
-  ]);
+  }, [isUpdatedName, isUpdatedPhoneNumber, isUpdatedNotificationPreference]);
 
   if (isUserLoading) {
     return <LoadingComponent />;
   }
 
   return (
-    <div className="container mx-auto flex min-h-[calc(100dvh-65px)] flex-col items-start justify-start border-x px-4 py-8 md:px-8 lg:px-16">
+    <BorderContainer>
       <h1 className="mb-6 font-bold text-3xl tracking-tight">Mi Perfil</h1>
 
       <div className="grid w-full gap-6 md:grid-cols-2">
         <Card>
+          <CardHeader>
+            <CardTitle>Nombre completo</CardTitle>
+            <CardDescription>
+              {isBarberLoading || isProfileLoading ? (
+                <Skeleton className="h-4 w-full" />
+              ) : isBarber ? (
+                "Este es el nombre que se mostrará en tu perfil de barbería"
+              ) : (
+                "Este es el nombre que se mostrará en tu perfil de usuario"
+              )}
+            </CardDescription>
+          </CardHeader>
           <CardContent>
             <Field>
-              <FieldLabel>Nombre completo</FieldLabel>
-              {isBarberLoading ? (
-                <Skeleton className="h-4 w-full" />
-              ) : (
-                <FieldDescription className="text-pretty">
-                  {isBarber
-                    ? "Este es el nombre que se mostrará en tu perfil de barbería"
-                    : "Este es el nombre que se mostrará en tu perfil de usuario"}
-                </FieldDescription>
-              )}
-
               <FieldContent>
                 <div className="flex gap-3">
                   <Input
@@ -142,6 +112,7 @@ function ProfilePage() {
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Tu nombre"
                     autoComplete="name"
+                    disabled={isProfileLoading || isUpdatingName}
                   />
                   <Button
                     onClick={() => updateName({ name: name ?? "" })}
@@ -156,28 +127,22 @@ function ProfilePage() {
         </Card>
 
         <Card>
+          <CardHeader>
+            <CardTitle>Correo electrónico</CardTitle>
+            <CardDescription>
+              Para usar otro correo, inicia sesión con el nuevo correo.
+            </CardDescription>
+          </CardHeader>
           <CardContent>
             <Field>
-              <FieldLabel>Correo</FieldLabel>
-              <FieldDescription className="text-pretty">
-                A este correo se enviarán todas las notificaciones de la
-                aplicación.
-              </FieldDescription>
               <FieldContent>
                 <div className="flex gap-3">
                   <Input
                     type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="tucorreo@ejemplo.com"
+                    value={profile?.email}
                     autoComplete="email"
+                    disabled
                   />
-                  <Button
-                    onClick={() => updateEmail({ email: email ?? "" })}
-                    disabled={isProfileLoading || isUpdatingEmail}
-                  >
-                    Guardar
-                  </Button>
                 </div>
               </FieldContent>
             </Field>
@@ -185,12 +150,14 @@ function ProfilePage() {
         </Card>
 
         <Card>
+          <CardHeader>
+            <CardTitle>Número de contacto</CardTitle>
+            <CardDescription>
+              Este es el número donde te enviaremos avisos de la aplicación.
+            </CardDescription>
+          </CardHeader>
           <CardContent>
             <Field>
-              <FieldLabel>Número de contacto</FieldLabel>
-              <FieldDescription className="text-pretty">
-                Este es el número donde te enviaremos avisos de la aplicación.
-              </FieldDescription>
               <FieldContent>
                 <div className="flex gap-3">
                   <Input
@@ -199,6 +166,7 @@ function ProfilePage() {
                     placeholder="3000000000"
                     autoComplete="tel"
                     type="tel"
+                    disabled={isProfileLoading || isUpdatingPhoneNumber}
                   />
                   <Button
                     onClick={() =>
@@ -281,6 +249,6 @@ function ProfilePage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </BorderContainer>
   );
 }
