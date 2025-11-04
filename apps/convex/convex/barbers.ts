@@ -195,9 +195,9 @@ export const inviteBarber = mutation({
       throw new ConvexError(errorMessages.requiredAccount);
     }
 
-    const userChannels = userProfile.notificationsPreferences.map(
-      (n) => n.type,
-    );
+    const userChannels = userProfile.notificationsPreferences
+      .filter((n) => n.enabled)
+      .map((n) => n.type);
 
     if (userChannels.length > 0) {
       await ctx.scheduler.runAfter(

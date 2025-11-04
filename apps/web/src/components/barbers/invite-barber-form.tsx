@@ -1,4 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { Barbershop } from "@panabarbero/convex/schemas";
+import type { FC } from "react";
 import { useId } from "react";
 import { Controller, useForm } from "react-hook-form";
 
@@ -15,7 +17,13 @@ import { Spinner } from "@/components/ui/spinner";
 import { useBarberActions } from "@/hooks/use-barbers";
 import { inviteBarberFormSchema } from "@/lib/schemas";
 
-export const InviteBarberForm = () => {
+interface InviteBarberFormProps {
+  barbershopId: Barbershop["_id"];
+}
+
+export const InviteBarberForm: FC<InviteBarberFormProps> = ({
+  barbershopId,
+}) => {
   const formIds = {
     name: useId(),
     phone: useId(),
@@ -29,8 +37,11 @@ export const InviteBarberForm = () => {
       name: "",
       email: undefined,
       phone: "",
+      barbershopId,
     },
   });
+
+  console.log(form.formState.defaultValues);
 
   const {
     inviteBarberMutation: { isPending },

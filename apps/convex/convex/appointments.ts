@@ -744,8 +744,11 @@ export const requestReschedule = mutation({
 });
 
 const notificationTexts = {
-  appointment_reminder: (barbershopName?: string) =>
-    `Tienes una cita en ~30 minutos en ${barbershopName}`,
+  reminder: {
+    user_appointment_reminder: (barbershopName?: string) =>
+      `Tienes una cita en ~30 minutos en ${barbershopName}`,
+    barber_appointment_reminder: "Tienes una cita en ~30 minutos agendada",
+  },
   subject: "Recordatorio de cita",
 };
 
@@ -773,31 +776,77 @@ export const notifyUpcomingAppointment = internalMutation({
       throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
 
-    const userChannels = userProfile.notificationsPreferences.map(
-      (n) => n.type,
+    const appointment = await ctx.db.get(args.appointmentId);
+
+    if (!appointment) {
+      throw new ConvexError(errorMessages.notFound("cita"));
+    }
+
+    const barber = await ctx.db.get(appointment.barberId);
+
+    if (!barber) {
+      throw new ConvexError(errorMessages.notFound("barbero"));
+    }
+
+    const barberProfile = await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      {
+        userId: barber.userId,
+      },
     );
 
-    if (userChannels.length > 0) {
+    if (!barberProfile) {
+      throw new ConvexError(errorMessages.notFound("perfil de barbero"));
+    }
+
+    const channels = {
+      user: userProfile.notificationsPreferences
+        .filter((n) => n.enabled)
+        .map((n) => n.type),
+      barber: barberProfile.notificationsPreferences
+        .filter((n) => n.enabled)
+        .map((n) => n.type),
+    };
+
+    if (channels.user.length > 0) {
       await ctx.scheduler.runAfter(
         0,
         internal.notifications.createNotification,
         {
           notification: {
-            body: notificationTexts.appointment_reminder(barbershop?.name),
+            body: notificationTexts.reminder.user_appointment_reminder(
+              barbershop?.name,
+            ),
             reason: "appointment_reminder",
             senderUserId: "system",
             title: notificationTexts.subject,
             uuid: crypto.randomUUID(),
-            channels: userChannels,
+            channels: channels.user,
             receiverUserId: args.userId,
             appointmentId: args.appointmentId,
-            preview: notificationTexts.appointment_reminder(barbershop?.name),
           },
         },
       );
     }
 
-    return true;
+    if (channels.barber.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.notifications.createNotification,
+        {
+          notification: {
+            body: notificationTexts.reminder.barber_appointment_reminder,
+            reason: "appointment_reminder",
+            senderUserId: "system",
+            title: notificationTexts.subject,
+            uuid: crypto.randomUUID(),
+            channels: channels.barber,
+            receiverUserId: barber.userId,
+            appointmentId: args.appointmentId,
+          },
+        },
+      );
+    }
   },
 });
 

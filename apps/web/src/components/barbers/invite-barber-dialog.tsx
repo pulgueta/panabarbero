@@ -1,3 +1,4 @@
+import type { Barbershop } from "@panabarbero/convex/schemas";
 import type { FC } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,13 @@ import {
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { InviteBarberForm } from "./invite-barber-form";
 
-export const InviteBarberDialog: FC = () => {
+interface InviteBarberDialogProps {
+  barbershopId: Barbershop["_id"];
+}
+
+export const InviteBarberDialog: FC<InviteBarberDialogProps> = ({
+  barbershopId,
+}) => {
   const { isMobile } = useIsMobile();
 
   const headLabel = "Invitar barbero";
@@ -41,7 +48,7 @@ export const InviteBarberDialog: FC = () => {
           </DrawerHeader>
 
           <div className="p-4">
-            <InviteBarberForm />
+            <InviteBarberForm barbershopId={barbershopId} />
           </div>
         </DrawerContent>
       </Drawer>
@@ -59,7 +66,7 @@ export const InviteBarberDialog: FC = () => {
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <InviteBarberForm />
+        <InviteBarberForm barbershopId={barbershopId} />
       </DialogContent>
     </Dialog>
   );

@@ -51,12 +51,13 @@ function RouteComponent() {
   const { data: barbershops, isLoading: isLoadingBarbershops } =
     useBarbershopsByOwnerId(user?.userId ?? "");
 
+  // biome-ignore lint/style/noNonNullAssertion: required
+  const barbershop = barbershopId ?? barbershops?.[0]?._id!;
+
   const { data: appointments, isLoading: isLoadingAppointments } =
-    // biome-ignore lint/style/noNonNullAssertion: needed
-    useAppointmentsByBarbershop(barbershopId ?? barbershops?.[0]?._id!);
+    useAppointmentsByBarbershop(barbershop);
   const { data: barbers, isLoading: isLoadingBarbers } =
-    // biome-ignore lint/style/noNonNullAssertion: needed
-    useBarbersByBarbershopId(barbershopId ?? barbershops?.[0]?._id!);
+    useBarbersByBarbershopId(barbershop);
 
   return (
     <BorderContainer className="space-y-6">
@@ -85,7 +86,7 @@ function RouteComponent() {
         <div className="flex w-full items-center justify-between gap-4">
           <h1 className="font-bold text-3xl tracking-tight">Barberos</h1>
 
-          <InviteBarberDialog />
+          <InviteBarberDialog barbershopId={barbershop} />
         </div>
 
         {isLoadingBarbers ? (

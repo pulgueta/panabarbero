@@ -148,6 +148,7 @@ export const reviewFormSchema = object({
 });
 
 export const inviteBarberFormSchema = object({
+  barbershopId: zodAny(),
   name: string({ error: "El nombre del barbero es requerido" })
     .min(3, {
       message: "El nombre del barbero debe tener al menos 3 caracteres",

@@ -1,5 +1,3 @@
-import { APP_NAME } from ".";
-
 export const errorMessages = {
   unauthorized: "No estás autorizado para acceder a esta página",
   appointmentOverlaps:
@@ -9,7 +7,8 @@ export const errorMessages = {
   notFound: (resource: string) => `El recurso "${resource}" no fue encontrado`,
   barbershopClosedOnSelectedDay:
     "La barbería no está abierta en el día seleccionado",
-  requiredAccount: `El usuario debe tener una cuenta en ${APP_NAME} para ser invitado.`,
+  requiredAccount:
+    "El usuario debe tener una cuenta en el sistema para ser invitado.",
 } as const;
 
 export type ErrorMessage = keyof typeof errorMessages;
