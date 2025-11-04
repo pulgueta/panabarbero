@@ -1,6 +1,5 @@
 import {
   Building2,
-  Calendar,
   CalendarPlus,
   Home,
   Scissors,
@@ -47,11 +46,6 @@ export const authenticatedRoutes = {
       label: "Gestión",
       to: "/profile/barbershops",
       icon: Building2,
-    },
-    {
-      label: "Citas",
-      to: "/profile/appointments",
-      icon: Calendar,
     },
   ],
 };

@@ -1,6 +1,7 @@
 import { errorMessages } from "@panabarbero/constants";
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import {
   internalMutation,
   internalQuery,
@@ -279,7 +280,7 @@ export const getAppointmentsByUserId = query({
 
 export const getAppointmentsByBarbershopId = query({
   args: {
-    barbershopId: v.id("barbershops"),
+    barbershopId: v.optional(v.id("barbershops")),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
@@ -291,7 +292,7 @@ export const getAppointmentsByBarbershopId = query({
     const appointments = await ctx.db
       .query("appointments")
       .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
+        q.eq("barbershopId", args.barbershopId as Id<"barbershops">),
       )
       .collect();
 
