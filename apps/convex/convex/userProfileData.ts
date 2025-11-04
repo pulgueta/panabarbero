@@ -72,7 +72,7 @@ export const updateName = mutation({
       headers,
     });
 
-    await ctx.db.patch(profile._id, { name: args.name.trim() || undefined });
+    await ctx.db.patch(profile._id, { name: args.name.trim() });
   },
 });
 
@@ -82,9 +82,7 @@ export const updateEmail = mutation({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const profile = await ctx.db
@@ -92,7 +90,8 @@ export const updateEmail = mutation({
       .withIndex("by_userId", (q) => q.eq("userId", user.userId ?? ""))
       .unique();
 
-    if (!profile) throw new Error("Profile not found");
+    if (!profile)
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
 
     const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
 
@@ -113,9 +112,7 @@ export const updatePhoneNumber = mutation({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const profile = await ctx.db
@@ -123,10 +120,11 @@ export const updatePhoneNumber = mutation({
       .withIndex("by_userId", (q) => q.eq("userId", user.userId ?? ""))
       .unique();
 
-    if (!profile) throw new Error("Profile not found");
+    if (!profile)
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
 
     await ctx.db.patch(profile._id, {
-      phoneNumber: args.phoneNumber.trim() ?? undefined,
+      phoneNumber: args.phoneNumber.trim(),
     });
   },
 });
@@ -140,9 +138,7 @@ export const updateNotificationPreference = mutation({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const profile = await ctx.db
@@ -150,7 +146,8 @@ export const updateNotificationPreference = mutation({
       .withIndex("by_userId", (q) => q.eq("userId", user.userId ?? ""))
       .unique();
 
-    if (!profile) throw new Error("Profile not found");
+    if (!profile)
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
 
     const next = profile.notificationsPreferences.map((p) =>
       p.type === args.type ? { ...p, enabled: args.enabled } : p,
@@ -187,9 +184,7 @@ export const updateProfile = internalMutation({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     await ctx.db.patch(args.profileId, {

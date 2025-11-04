@@ -1,7 +1,10 @@
 import type { Barbershop } from "@panabarbero/convex/schemas";
+import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
+import { PencilIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export const barbershopsTableColumns: ColumnDef<Barbershop>[] = [
   {
@@ -18,11 +21,7 @@ export const barbershopsTableColumns: ColumnDef<Barbershop>[] = [
     cell: ({ row }) => {
       const description = row.original.description;
 
-      return (
-        <div className="text-center">
-          {description ?? "No se ha proporcionado."}
-        </div>
-      );
+      return <div className="text-center">{description ?? "N/A"}</div>;
     },
   },
   {
@@ -44,39 +43,18 @@ export const barbershopsTableColumns: ColumnDef<Barbershop>[] = [
     },
   },
   {
-    accessorKey: "zipCode",
-    header: () => <div className="text-center">Código postal</div>,
-    cell: ({ row }) => {
-      const zipCode = row.original.zipCode;
-      return (
-        <div className="text-center">
-          {zipCode ?? "No se ha proporcionado."}
-        </div>
-      );
-    },
-  },
-  {
     accessorKey: "isActive",
-    header: () => <div className="text-center">Activo</div>,
+    header: () => <div className="text-center">Estado</div>,
     cell: ({ row }) => {
       const isActive = row.getValue("isActive");
 
       return (
         <div className="flex justify-center">
-          <Badge variant={isActive ? "default" : "secondary"}>
-            {isActive ? "Sí" : "No"}
+          <Badge variant={isActive ? "success" : "destructive"}>
+            {isActive ? "Activo" : "Inactivo"}
           </Badge>
         </div>
       );
-    },
-  },
-  {
-    accessorKey: "gracePeriodMinutes",
-    header: () => <div className="text-center">Periodo de gracia</div>,
-    cell: ({ row }) => {
-      const gracePeriodMinutes = row.original.gracePeriodMinutes;
-
-      return <div className="text-center">{gracePeriodMinutes} minutos</div>;
     },
   },
   {
@@ -85,9 +63,29 @@ export const barbershopsTableColumns: ColumnDef<Barbershop>[] = [
     cell: ({ row }) => {
       const contactPhone = row.original.contactPhone;
 
+      return <div className="text-center">{contactPhone ?? "N/A"}</div>;
+    },
+  },
+  {
+    accessorKey: "actions",
+    header: () => <div className="text-center">Acciones</div>,
+    cell: ({ row }) => {
+      const barbershopId = row.original._id;
+
       return (
         <div className="text-center">
-          {contactPhone ?? "No se ha proporcionado."}
+          <Button variant="outline" asChild>
+            <Link
+              to="/profile/barbershops/edit/$barbershopId"
+              params={{ barbershopId }}
+              style={{
+                viewTransitionName: `barbershop-${barbershopId}-edit`,
+              }}
+            >
+              <PencilIcon className="size-3" />
+              Editar
+            </Link>
+          </Button>
         </div>
       );
     },

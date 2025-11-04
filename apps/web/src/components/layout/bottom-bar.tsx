@@ -10,7 +10,7 @@ import { ThemeToggler } from "./theme-toggler";
 export const BottomBar = () => {
   const router = useRouterState();
 
-  const currentPath = router.location.pathname.split("/")[1];
+  const currentPath = router.location.pathname;
 
   const { data: user } = useSession();
   const { data: isBarber } = useIsBarber(user?.userId ?? "");
@@ -31,7 +31,7 @@ export const BottomBar = () => {
                   <Link
                     key={item.to}
                     to={item.to}
-                    disabled={currentPath === item.to.split("/")[1]}
+                    disabled={currentPath === item.to}
                     className={cn(
                       "flex max-w-24 flex-1 flex-col items-center justify-center gap-1.5 rounded-lg px-2 py-4 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
                     )}
