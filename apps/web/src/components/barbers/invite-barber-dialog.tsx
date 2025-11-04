@@ -39,6 +39,7 @@ export const InviteBarberDialog: FC = () => {
             <DrawerTitle>{headLabel}</DrawerTitle>
             <DrawerDescription>{description}</DrawerDescription>
           </DrawerHeader>
+
           <div className="p-4">
             <InviteBarberForm />
           </div>
