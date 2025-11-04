@@ -1,5 +1,6 @@
 import type { Barbershop } from "@panabarbero/convex/schemas";
 import { createFileRoute } from "@tanstack/react-router";
+import { Activity } from "react";
 
 import { appointmentsTableColumns } from "@/components/appointments/table/columns";
 import { InviteBarberDialog } from "@/components/barbers/invite-barber-dialog";
@@ -65,20 +66,24 @@ function RouteComponent() {
         <div className="flex w-full items-center justify-between gap-4">
           <h1 className="font-bold text-3xl tracking-tight">Citas</h1>
 
-          <BarbershopsDropdown
-            barbershops={barbershops ?? []}
-            isLoading={isLoadingBarbershops}
-          />
+          <Activity mode={barbershops?.length ? "visible" : "hidden"}>
+            <BarbershopsDropdown
+              barbershops={barbershops?.length ? barbershops : []}
+              isLoading={isLoadingBarbershops}
+            />
+          </Activity>
         </div>
 
         {isLoadingAppointments ? (
           <Skeleton className="h-48 w-full" />
         ) : (
-          <DataTable
-            className="max-h-64"
-            columns={appointmentsTableColumns}
-            data={appointments ?? []}
-          />
+          <Activity mode={appointments?.length ? "visible" : "hidden"}>
+            <DataTable
+              className="max-h-64"
+              columns={appointmentsTableColumns}
+              data={appointments?.length ? appointments : []}
+            />
+          </Activity>
         )}
       </section>
 
@@ -92,11 +97,13 @@ function RouteComponent() {
         {isLoadingBarbers ? (
           <Skeleton className="h-48 w-full" />
         ) : (
-          <DataTable
-            className="max-h-64"
-            columns={barbersTableColumns}
-            data={barbers ?? []}
-          />
+          <Activity mode={barbers?.length ? "visible" : "hidden"}>
+            <DataTable
+              className="max-h-64"
+              columns={barbersTableColumns}
+              data={barbers?.length ? barbers : []}
+            />
+          </Activity>
         )}
       </section>
     </BorderContainer>

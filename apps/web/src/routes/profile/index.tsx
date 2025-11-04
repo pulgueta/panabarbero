@@ -1,4 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { signOut } from "@panabarbero/convex/auth";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -17,11 +19,13 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { useIsBarber } from "@/hooks/use-barbers";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useProfile, useProfileActions } from "@/hooks/use-profile";
 import { useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/profile/")({
   component: ProfilePage,
+  pendingComponent: LoadingComponent,
 });
 
 function ProfilePage() {
@@ -34,6 +38,8 @@ function ProfilePage() {
   const { data: isBarber, isLoading: isBarberLoading } = useIsBarber(
     user?.userId ?? "",
   );
+
+  const { isMobile } = useIsMobile();
 
   const {
     updateNameMutation: {
@@ -53,12 +59,8 @@ function ProfilePage() {
     },
   } = useProfileActions();
 
-  const [name, setName] = useState<string | undefined>(
-    profile?.name ?? undefined,
-  );
-  const [phone, setPhone] = useState<string | undefined>(
-    profile?.phoneNumber ?? undefined,
-  );
+  const [name, setName] = useState<string>(profile?.name ?? "");
+  const [phone, setPhone] = useState<string>(profile?.phoneNumber ?? "");
 
   useEffect(() => {
     if (isUpdatedName) {
@@ -81,13 +83,44 @@ function ProfilePage() {
     }
   }, [isUpdatedName, isUpdatedPhoneNumber, isUpdatedNotificationPreference]);
 
+  useEffect(() => {
+    if (name) {
+      setName(profile?.name ?? "");
+    }
+
+    if (phone) {
+      setPhone(profile?.phoneNumber ?? "");
+    }
+  }, [name, phone, profile?.name, profile?.phoneNumber]);
+
   if (isUserLoading) {
     return <LoadingComponent />;
   }
 
+  const handleSignOut = async () => {
+    await signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          throw redirect({
+            to: "/login",
+          });
+        },
+      },
+    });
+  };
+
   return (
     <BorderContainer>
-      <h1 className="mb-6 font-bold text-3xl tracking-tight">Mi Perfil</h1>
+      <div className="mb-6 flex items-center justify-between gap-2">
+        <h1 className="font-bold text-3xl tracking-tight">Mi Perfil</h1>
+
+        {isMobile && (
+          <Button variant="destructive" onClick={handleSignOut}>
+            <LogOut className="size-4" />
+            Cerrar sesión
+          </Button>
+        )}
+      </div>
 
       <div className="grid w-full gap-6 md:grid-cols-2">
         <Card>
@@ -108,7 +141,7 @@ function ProfilePage() {
               <FieldContent>
                 <div className="flex gap-3">
                   <Input
-                    value={name}
+                    value={profile?.name ?? name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Tu nombre"
                     autoComplete="name"
@@ -161,7 +194,7 @@ function ProfilePage() {
               <FieldContent>
                 <div className="flex gap-3">
                   <Input
-                    value={phone}
+                    value={profile?.phoneNumber ?? phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="3000000000"
                     autoComplete="tel"
