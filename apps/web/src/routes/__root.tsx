@@ -6,6 +6,7 @@ import type { ConvexReactClient } from "convex/react";
 import { App } from "@/components/layout/app";
 import { DefaultCatchBoundary } from "@/components/layout/error-component";
 import { NotFoundComponent } from "@/components/layout/not-found-component";
+import { getSessionQueryOptions } from "@/hooks/use-session";
 
 type RouterContext = {
   queryClient: QueryClient;
@@ -54,4 +55,14 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   component: () => <App />,
   errorComponent: (props) => <DefaultCatchBoundary {...props} />,
   notFoundComponent: () => <NotFoundComponent />,
+  beforeLoad: async ({ context }) => {
+    await context.queryClient.prefetchQuery(getSessionQueryOptions());
+  },
+  loader: async ({ context }) => {
+    return {
+      session: await context.queryClient.ensureQueryData(
+        getSessionQueryOptions(),
+      ),
+    };
+  },
 });
