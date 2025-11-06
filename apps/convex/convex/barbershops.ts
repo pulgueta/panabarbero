@@ -1,4 +1,5 @@
-import { v } from "convex/values";
+import { errorMessages } from "@panabarbero/constants";
+import { ConvexError, v } from "convex/values";
 import { geospatial, r2 } from ".";
 import { api, internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
@@ -27,19 +28,16 @@ export const createBarbershop = mutation({
     storageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const { barbershop } = args;
 
     const barbershopId = await ctx.db.insert("barbershops", {
       ...barbershop,
-      uuid: crypto.randomUUID(),
       ownerId: user.userId ?? "",
       isActive: false,
       gracePeriodMinutes: 5,

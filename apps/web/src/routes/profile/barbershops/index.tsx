@@ -6,6 +6,8 @@ import { appointmentsTableColumns } from "@/components/appointments/table/column
 import { InviteBarberDialog } from "@/components/barbers/invite-barber-dialog";
 import { barbersTableColumns } from "@/components/barbers/table/columns";
 import { BarbershopsDropdown } from "@/components/barbershops/barbershops-dropdown";
+import { CreateServiceDialog } from "@/components/barbershops/services/create-service-dialog";
+import { servicesTableColumns } from "@/components/barbershops/services/table/columns";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { DataTable } from "@/components/table/data-table";
@@ -19,6 +21,7 @@ import {
   useBarbersByBarbershopId,
 } from "@/hooks/use-barbers";
 import { useBarbershopsByOwnerId } from "@/hooks/use-barbershop";
+import { useServicesFromBarbershop } from "@/hooks/use-services";
 import { useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/profile/barbershops/")({
@@ -59,6 +62,8 @@ function RouteComponent() {
     useAppointmentsByBarbershop(barbershop);
   const { data: barbers, isLoading: isLoadingBarbers } =
     useBarbersByBarbershopId(barbershop);
+  const { data: services, isLoading: isLoadingServices } =
+    useServicesFromBarbershop(barbershop);
 
   return (
     <BorderContainer className="space-y-6">
@@ -82,6 +87,26 @@ function RouteComponent() {
               className="max-h-64"
               columns={appointmentsTableColumns}
               data={appointments?.length ? appointments : []}
+            />
+          </Activity>
+        )}
+      </section>
+
+      <section className="flex w-full flex-col justify-between gap-4">
+        <div className="flex w-full items-center justify-between gap-4">
+          <h1 className="font-bold text-3xl tracking-tight">Servicios</h1>
+
+          <CreateServiceDialog barbershopId={barbershop} />
+        </div>
+
+        {isLoadingServices ? (
+          <Skeleton className="h-48 w-full" />
+        ) : (
+          <Activity mode={services?.length ? "visible" : "hidden"}>
+            <DataTable
+              className="max-h-64"
+              columns={servicesTableColumns}
+              data={services?.length ? services : []}
             />
           </Activity>
         )}

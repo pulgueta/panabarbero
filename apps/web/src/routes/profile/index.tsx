@@ -1,11 +1,13 @@
 import { signOut } from "@panabarbero/convex/auth";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { LogOut } from "lucide-react";
+import { InfoIcon, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { CreateBarbershopDialog } from "@/components/barbershops/create-barbershop-dialog";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,16 +22,35 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { useIsBarber } from "@/hooks/use-barbers";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { useProfile, useProfileActions } from "@/hooks/use-profile";
-import { useSession } from "@/hooks/use-session";
+import {
+  getProfileQueryOptions,
+  useProfile,
+  useProfileActions,
+} from "@/hooks/use-profile";
+import { getSessionQueryOptions } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/profile/")({
   component: ProfilePage,
   pendingComponent: LoadingComponent,
+  loader: async ({ context }) => {
+    const user = await context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
+
+    if (user?.userId) {
+      await context.queryClient.ensureQueryData(
+        getProfileQueryOptions(user.userId),
+      );
+    }
+
+    return {
+      user,
+    };
+  },
 });
 
 function ProfilePage() {
-  const { data: user, isLoading: isUserLoading } = useSession();
+  const { user } = Route.useLoaderData();
 
   const { data: profile, isLoading: isProfileLoading } = useProfile(
     user?.userId ?? "",
@@ -93,10 +114,6 @@ function ProfilePage() {
     }
   }, [name, phone, profile?.name, profile?.phoneNumber]);
 
-  if (isUserLoading) {
-    return <LoadingComponent />;
-  }
-
   const handleSignOut = async () => {
     await signOut({
       fetchOptions: {
@@ -121,6 +138,21 @@ function ProfilePage() {
           </Button>
         )}
       </div>
+
+      {!isBarber && (
+        <Alert className="mb-4" variant="info">
+          <InfoIcon />
+          <AlertTitle>¿Tienes una barbería?</AlertTitle>
+          <AlertDescription>
+            Gestiona reservas, barberos, servicios y obtén acceso a analíticas
+            detalladas de tu negocio sin costo adicional.{" "}
+            <CreateBarbershopDialog
+              triggerLabel="Crear mi barbería"
+              variant="outline"
+            />
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid w-full gap-6 md:grid-cols-2">
         <Card>

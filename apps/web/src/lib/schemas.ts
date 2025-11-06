@@ -8,6 +8,7 @@ import {
   number,
   object,
   string,
+  url,
   any as zodAny,
   enum as zodEnum,
 } from "zod";
@@ -69,18 +70,27 @@ const socialMediaSchema = object({
 });
 
 export const barbershopFormSchema = object({
-  name: string().min(1, "Nombre es requerido"),
+  name: string({ error: "El nombre de la barbería es requerido" })
+    .min(3, {
+      message: "El nombre de la barbería debe tener al menos 3 caracteres",
+    })
+    .max(255, {
+      message: "El nombre de la barbería debe tener menos de 255 caracteres",
+    }),
   description: string().optional(),
-  address: string().min(1, "Dirección es requerida"),
+  address: object({
+    fullAddress: string().min(1, "Dirección es requerida"),
+    details: string().optional(),
+  }),
   city: string().min(1, "Ciudad es requerida"),
   state: string().min(1, "Departamento es requerido"),
   zipCode: string().optional(),
   contactPhone: string().optional(),
-  contactEmail: string().email("Email inválido").optional().or(literal("")),
-  websiteUrl: string().url("URL inválida").optional().or(literal("")),
-  bannerUrl: string().url("URL inválida").optional().or(literal("")),
+  contactEmail: email("Email inválido").optional().or(literal("")),
+  websiteUrl: url("URL inválida").optional().or(literal("")),
+  bannerUrl: url("URL inválida").optional().or(literal("")),
   isActive: boolean().default(false),
-  gracePeriodMinutes: number().min(0).max(60).default(5),
+  gracePeriodMinutes: coerce.number().min(5).max(60).default(5),
   availableDays: availableDaysSchema,
   socialMedia: array(socialMediaSchema).default([]),
 });
