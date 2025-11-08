@@ -1,7 +1,3 @@
-import type { Barbershop } from "@panabarbero/convex/schemas";
-import { createFileRoute } from "@tanstack/react-router";
-import { Activity } from "react";
-
 import { appointmentsTableColumns } from "@/components/appointments/table/columns";
 import { InviteBarberDialog } from "@/components/barbers/invite-barber-dialog";
 import { barbersTableColumns } from "@/components/barbers/table/columns";
@@ -23,6 +19,10 @@ import {
 import { useBarbershopsByOwnerId } from "@/hooks/use-barbershop";
 import { useServicesFromBarbershop } from "@/hooks/use-services";
 import { useSession } from "@/hooks/use-session";
+import type { Barbershop } from "@panabarbero/convex/schemas";
+import { createFileRoute } from "@tanstack/react-router";
+import { CalendarIcon, ScissorsIcon } from "lucide-react";
+import { Activity } from "react";
 
 export const Route = createFileRoute("/profile/barbershops/")({
   component: RouteComponent,
@@ -81,14 +81,19 @@ function RouteComponent() {
 
         {isLoadingAppointments ? (
           <Skeleton className="h-48 w-full" />
+        ) : appointments?.length ? (
+          <DataTable
+            className="max-h-64"
+            columns={appointmentsTableColumns}
+            data={appointments}
+          />
         ) : (
-          <Activity mode={appointments?.length ? "visible" : "hidden"}>
-            <DataTable
-              className="max-h-64"
-              columns={appointmentsTableColumns}
-              data={appointments?.length ? appointments : []}
-            />
-          </Activity>
+          <div className="flex h-48 w-full flex-col items-center justify-center gap-2 rounded-lg border p-4 text-center">
+            <CalendarIcon className="size-6" />
+            <p className="text-center text-muted-foreground text-xs md:text-sm">
+              Aún no hay citas agendadas para esta barbería.
+            </p>
+          </div>
         )}
       </section>
 
@@ -101,14 +106,19 @@ function RouteComponent() {
 
         {isLoadingServices ? (
           <Skeleton className="h-48 w-full" />
+        ) : services?.length ? (
+          <DataTable
+            className="max-h-64"
+            columns={servicesTableColumns}
+            data={services}
+          />
         ) : (
-          <Activity mode={services?.length ? "visible" : "hidden"}>
-            <DataTable
-              className="max-h-64"
-              columns={servicesTableColumns}
-              data={services?.length ? services : []}
-            />
-          </Activity>
+          <div className="flex h-48 w-full flex-col items-center justify-center gap-2 rounded-lg border p-4 text-center">
+            <ScissorsIcon className="size-6" />
+            <p className="text-center text-muted-foreground text-xs md:text-sm">
+              Aún no hay servicios disponibles para esta barbería.
+            </p>
+          </div>
         )}
       </section>
 

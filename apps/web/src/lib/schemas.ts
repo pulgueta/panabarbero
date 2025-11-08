@@ -48,20 +48,32 @@ export const paymentMethodOptions = [
   "safetypay",
 ] as const;
 
-const availableDaySchema = object({
-  open: string().min(1, "Hora de apertura requerida"),
-  close: string().min(1, "Hora de cierre requerida"),
-  active: boolean(),
-});
+// availability: {
+// weekDay: {
+// day: "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday";
+// isActive: boolean;
+// };
+// openAt: string;
+// closeAt: string;
+// }[]
 
-const availableDaysSchema = object({
-  lunes: availableDaySchema,
-  martes: availableDaySchema,
-  miércoles: availableDaySchema,
-  jueves: availableDaySchema,
-  viernes: availableDaySchema,
-  sábado: availableDaySchema,
-  domingo: availableDaySchema,
+const day = zodEnum([
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+]);
+
+const availabilitySchema = object({
+  weekDay: object({
+    day,
+    isActive: boolean(),
+  }),
+  openAt: string().min(1, "Hora de apertura requerida"),
+  closeAt: string().min(1, "Hora de cierre requerida"),
 });
 
 const socialMediaSchema = object({
@@ -86,13 +98,18 @@ export const barbershopFormSchema = object({
   state: string().min(1, "Departamento es requerido"),
   zipCode: string().optional(),
   contactPhone: string().optional(),
-  contactEmail: email("Email inválido").optional().or(literal("")),
-  websiteUrl: url("URL inválida").optional().or(literal("")),
   bannerUrl: url("URL inválida").optional().or(literal("")),
   isActive: boolean().default(false),
   gracePeriodMinutes: coerce.number().min(5).max(60).default(5),
-  availableDays: availableDaysSchema,
-  socialMedia: array(socialMediaSchema).default([]),
+  availability: array(availabilitySchema).default([]),
+  metadata: object({
+    websiteUrl: url().optional(),
+    contactEmail: email().optional(),
+    completedAppointments: coerce.number().optional(),
+    reviews: coerce.number().optional(),
+    rating: coerce.number().optional(),
+    socialMedia: array(socialMediaSchema).optional(),
+  }),
 });
 
 export const serviceFormSchema = object({

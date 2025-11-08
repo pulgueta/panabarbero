@@ -16,18 +16,20 @@ import { CreateBarbershopForm } from "./create-barbershop-form";
 interface CreateBarbershopDialogProps {
   triggerLabel?: string;
   variant?: "default" | "outline" | "ghost" | "secondary" | "destructive";
+  userId: string | undefined;
 }
 
 export const CreateBarbershopDialog: FC<CreateBarbershopDialogProps> = ({
   triggerLabel = "Crear barbería",
   variant = "default",
+  userId,
 }) => {
   const navigate = useNavigate();
 
   const onSuccess = (barbershopId: Barbershop["_id"]) => {
     navigate({
-      to: "/profile/barbershops",
-      search: { barbershopId },
+      to: "/profile/barbershops/settings",
+      search: (prev) => ({ ...prev, barbershopId }),
     });
   };
 
@@ -38,7 +40,7 @@ export const CreateBarbershopDialog: FC<CreateBarbershopDialogProps> = ({
           {triggerLabel}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto">
+      <DialogContent className="max-h-[80dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Crear tu barbería</DialogTitle>
           <DialogDescription>
@@ -47,7 +49,7 @@ export const CreateBarbershopDialog: FC<CreateBarbershopDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <CreateBarbershopForm onSuccess={onSuccess} />
+        <CreateBarbershopForm onSuccess={onSuccess} userId={userId} />
       </DialogContent>
     </Dialog>
   );

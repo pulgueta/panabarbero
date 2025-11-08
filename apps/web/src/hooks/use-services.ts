@@ -4,7 +4,7 @@ import {
   useConvexMutation,
 } from "@convex-dev/react-query";
 import { api } from "@panabarbero/convex/api";
-import type { Id } from "@panabarbero/convex/dataModel";
+import type { Barbershop } from "@panabarbero/convex/schemas";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 export function createServiceMutationOptions() {
@@ -19,11 +19,11 @@ export function deleteServiceMutationOptions() {
   return useConvexMutation(api.services.deleteService);
 }
 
-export function servicesQueryOptions(barbershopId: Id<"barbershops">) {
+export function servicesQueryOptions(barbershopId: Barbershop["_id"]) {
   return convexQuery(api.services.getServicesByBarbershopId, { barbershopId });
 }
 
-export function useServicesFromBarbershop(barbershopId: Id<"barbershops">) {
+export function useServicesFromBarbershop(barbershopId: Barbershop["_id"]) {
   return useQuery(servicesQueryOptions(barbershopId));
 }
 

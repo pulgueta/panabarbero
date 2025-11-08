@@ -20,7 +20,7 @@ import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import { useIsBarber } from "@/hooks/use-barbers";
+import { isBarberQueryOptions, useIsBarber } from "@/hooks/use-barbers";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
   getProfileQueryOptions,
@@ -32,6 +32,17 @@ import { getSessionQueryOptions } from "@/hooks/use-session";
 export const Route = createFileRoute("/profile/")({
   component: ProfilePage,
   pendingComponent: LoadingComponent,
+  beforeLoad: async ({ context }) => {
+    const user = await context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
+
+    if (!user?.userId) {
+      throw redirect({
+        to: "/login",
+      });
+    }
+  },
   loader: async ({ context }) => {
     const user = await context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
@@ -40,6 +51,9 @@ export const Route = createFileRoute("/profile/")({
     if (user?.userId) {
       await context.queryClient.ensureQueryData(
         getProfileQueryOptions(user.userId),
+      );
+      await context.queryClient.ensureQueryData(
+        isBarberQueryOptions(user.userId),
       );
     }
 
@@ -139,7 +153,7 @@ function ProfilePage() {
         )}
       </div>
 
-      {!isBarber && (
+      {!isBarber && user?.userId && (
         <Alert className="mb-4" variant="info">
           <InfoIcon />
           <AlertTitle>¿Tienes una barbería?</AlertTitle>
@@ -149,6 +163,7 @@ function ProfilePage() {
             <CreateBarbershopDialog
               triggerLabel="Crear mi barbería"
               variant="outline"
+              userId={user?.userId}
             />
           </AlertDescription>
         </Alert>

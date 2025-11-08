@@ -89,10 +89,7 @@ export const BarbershopsDropdown: FC<BarbershopsDropdownProps> = ({
           </CommandList>
           <CommandSeparator />
           <CommandItem disabled>
-            <Link
-              to="/profile/barbershops/create"
-              className="inline-flex items-center gap-2"
-            >
+            <Link to="/profile" className="inline-flex items-center gap-2">
               <PlusIcon className="size-4" />
               Crear nueva barbería (pronto)
             </Link>

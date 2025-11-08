@@ -1,3 +1,10 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useColombia } from "@panabarbero/constants";
+import type { Barbershop } from "@panabarbero/convex/schemas";
+import { InfoIcon } from "lucide-react";
+import { type FC, useId } from "react";
+import { Controller, useForm } from "react-hook-form";
+
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -21,14 +28,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useBarbershopActions } from "@/hooks/use-barbershop";
-import { useSession } from "@/hooks/use-session";
 import { barbershopFormSchema } from "@/lib/schemas";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useColombia } from "@panabarbero/constants";
-import type { Barbershop } from "@panabarbero/convex/schemas";
-import { InfoIcon } from "lucide-react";
-import { type FC, useId } from "react";
-import { Controller, useForm } from "react-hook-form";
 
 export type CreateBarbershopFormData = {
   name: string;
@@ -43,10 +43,12 @@ export type CreateBarbershopFormData = {
 
 interface CreateBarbershopFormProps {
   onSuccess?: (barbershopId: Barbershop["_id"]) => void;
+  userId: string | undefined;
 }
 
 export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
   onSuccess,
+  userId,
 }) => {
   const formIds = {
     form: useId(),
@@ -63,8 +65,6 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
 
   const { states, citiesFromState } = useColombia();
 
-  const { data: user } = useSession();
-
   const form = useForm({
     resolver: zodResolver(barbershopFormSchema),
     defaultValues: {
@@ -76,11 +76,26 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
       state: "",
       zipCode: "",
       contactPhone: "",
-      contactEmail: "",
-      websiteUrl: "",
-      bannerUrl: "",
+      metadata: {
+        completedAppointments: undefined,
+        reviews: undefined,
+        rating: undefined,
+        socialMedia: undefined,
+        contactEmail: undefined,
+        websiteUrl: undefined,
+      },
       isActive: false,
       gracePeriodMinutes: 5,
+      availability: [
+        {
+          weekDay: {
+            day: "monday",
+            isActive: true,
+          },
+          openAt: "09:00",
+          closeAt: "18:00",
+        },
+      ],
     },
   });
 
@@ -89,27 +104,30 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
   } = useBarbershopActions();
 
   const onSubmit = form.handleSubmit(async (data) => {
-    if (!user?.userId) return;
+    if (!userId) return;
 
-    const id = await createBarbershop({
+    const uuid = crypto.randomUUID();
+
+    const barbershopId = await createBarbershop({
       barbershop: {
         ...data,
-        ownerId: user.userId,
-        uuid: crypto.randomUUID(),
-        availability: [],
+        ownerId: userId,
+        uuid,
       },
     });
 
-    if (onSuccess) onSuccess(id);
+    if (onSuccess) onSuccess(barbershopId);
   });
+
+  console.log(form.formState.errors);
 
   const selectedState = form.watch("state");
   const availableCities = selectedState ? citiesFromState(selectedState) : [];
 
   return (
-    <form id={formIds.form} onSubmit={onSubmit} className="space-y-4">
+    <form id={formIds.form} onSubmit={onSubmit} className="space-y-2">
       <FieldGroup>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Controller
             name="name"
             control={form.control}
@@ -124,6 +142,9 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
                   aria-invalid={fieldState.invalid}
                   placeholder="Ej. Barbería Central"
                 />
+                <FieldDescription>
+                  Este será el nombre por el que los clientes te encontrarán.
+                </FieldDescription>
                 {fieldState.invalid && (
                   <FieldError errors={[fieldState.error]} />
                 )}
@@ -192,7 +213,7 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
           )}
         />
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Controller
             name="address.fullAddress"
             control={form.control}
@@ -234,7 +255,7 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Controller
             name="state"
             control={form.control}
@@ -290,7 +311,7 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Controller
             name="zipCode"
             control={form.control}
@@ -335,7 +356,7 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
         </div>
       </FieldGroup>
 
-      <div className="flex flex-row gap-2">
+      <div className="mt-8">
         <Button type="submit" className="w-full" disabled={isPending}>
           {isPending ? <Spinner /> : "Crear barbería"}
         </Button>

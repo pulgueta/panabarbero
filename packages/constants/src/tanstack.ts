@@ -47,6 +47,11 @@ export const authenticatedRoutes = {
       to: "/profile/barbershops",
       icon: Building2,
     },
+    {
+      label: "Ajustes",
+      to: "/profile/barbershops/settings",
+      icon: Settings2,
+    },
   ],
 };
 
