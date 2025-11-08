@@ -79,7 +79,7 @@ export const BarbershopsDropdown: FC<BarbershopsDropdownProps> = ({
                   {barbershop.name}
                   <Check
                     className={cn(
-                      "ml-auto",
+                      "ml-auto size-4",
                       value === barbershop._id ? "opacity-100" : "opacity-0",
                     )}
                   />

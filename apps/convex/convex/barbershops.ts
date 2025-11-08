@@ -386,6 +386,53 @@ export const getUserVisitedBarbershops = query({
   },
 });
 
+export const getBarbershopByOwnerId = query({
+  args: {
+    ownerId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const barbershop = await ctx.db
+      .query("barbershops")
+      .withIndex("by_ownerId", (q) => q.eq("ownerId", args.ownerId))
+      .unique();
+
+    if (barbershop) {
+      const services = await ctx.runQuery(
+        api.services.getServicesByBarbershopId,
+        {
+          barbershopId: barbershop._id,
+        },
+      );
+
+      barbershop.services = services.map((service) => service._id);
+    }
+
+    return barbershop;
+  },
+});
+
+export const getBarbershopById = query({
+  args: {
+    barbershopId: v.id("barbershops"),
+  },
+  handler: async (ctx, args) => {
+    const barbershop = await ctx.db.get(args.barbershopId);
+
+    const services = await ctx.runQuery(
+      api.services.getServicesByBarbershopId,
+      {
+        barbershopId: barbershop?._id,
+      },
+    );
+
+    if (barbershop) {
+      barbershop.services = services.map((service) => service._id);
+    }
+
+    return barbershop;
+  },
+});
+
 export const getBarbershopsByName = query({
   args: {
     name: v.string(),

@@ -159,15 +159,9 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
               key={d.key}
               className="grid grid-cols-1 items-end gap-4 md:grid-cols-4"
             >
-              <div className="flex gap-2 md:flex-col md:pr-8">
+              <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
-                  <Switch
-                    checked={selected[d.key]}
-                    onCheckedChange={(v) =>
-                      setSelected((prev) => ({ ...prev, [d.key]: v }))
-                    }
-                  />
-                  <div className="text-sm">{d.label}</div>
+                  <p className="font-medium text-sm">{d.label}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Switch
@@ -183,6 +177,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
                   <span className="text-muted-foreground text-sm">Activo</span>
                 </div>
               </div>
+
               <Field>
                 <FieldLabel>Apertura</FieldLabel>
                 <Input

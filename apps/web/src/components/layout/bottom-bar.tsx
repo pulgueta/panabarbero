@@ -33,7 +33,7 @@ export const BottomBar = () => {
   };
 
   return (
-    <div className="fixed right-0 bottom-4 left-0 z-50 mx-auto h-16 max-w-sm rounded-full border border-border bg-background/80 backdrop-blur-sm">
+    <div className="fixed right-0 bottom-4 left-0 z-50 mx-auto h-16 max-w-[calc(100dvw-2rem)] rounded-full border border-border bg-background/80 backdrop-blur-sm">
       <div className="container mx-auto">
         <nav className="flex h-full items-center justify-around gap-x-2.5 px-4 py-2">
           {isBarber ? (

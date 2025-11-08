@@ -132,8 +132,7 @@ export const serviceFormSchema = object({
     })
     .max(480, {
       message: "La duración del servicio debe ser menor a 8 horas",
-    })
-    .optional(),
+    }),
   barbershopId: zodAny(),
 });
 

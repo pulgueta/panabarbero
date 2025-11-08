@@ -1,19 +1,20 @@
+/** biome-ignore-all lint/style/noNonNullAssertion: barbershop is guaranteed to be not null */
+import type { Barbershop } from "@panabarbero/convex/schemas";
+import { createFileRoute } from "@tanstack/react-router";
+
 import { AvailabilityForm } from "@/components/barbershops/availability/availability-form";
 import { BarbershopsDropdown } from "@/components/barbershops/barbershops-dropdown";
 import { CreateServiceDialog } from "@/components/barbershops/services/create-service-dialog";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   barbershopsByOwnerIdQueryOptions,
-  useBarbershopsByOwnerId,
+  useBarbershopByOwnerId,
 } from "@/hooks/use-barbershop";
 import { useServicesFromBarbershop } from "@/hooks/use-services";
 import { getSessionQueryOptions } from "@/hooks/use-session";
-import type { Barbershop } from "@panabarbero/convex/schemas";
-import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/profile/barbershops/settings")({
   component: SettingsPage,
@@ -42,45 +43,35 @@ export const Route = createFileRoute("/profile/barbershops/settings")({
 });
 
 function SettingsPage() {
-  const { barbershopId } = Route.useSearch();
   const { user } = Route.useLoaderData();
-  const navigate = Route.useNavigate();
 
-  const { data: barbershops, isLoading: isLoadingBarbershops } =
-    useBarbershopsByOwnerId(user?.userId ?? "");
+  const { data: barbershop, isLoading: isLoadingBarbershop } =
+    useBarbershopByOwnerId(user?.userId ?? "");
 
   const { data: services, isLoading: isLoadingServices } =
-    useServicesFromBarbershop(barbershopId);
+    useServicesFromBarbershop(barbershop?._id!);
 
-  const currentBarbershop = barbershops?.find((b) => b._id === barbershopId);
-
-  if (currentBarbershop) {
-    navigate({
-      to: ".",
-      search: (prev) => ({ ...prev, barbershopId: currentBarbershop._id }),
-    });
-  }
-
-  const hasService = (services?.length ?? 0) > 0;
-  const hasAnyActiveDay =
-    currentBarbershop?.availability?.some((a) => a.weekDay.isActive) ?? false;
+  const hasService = services?.length && services.length > 0;
+  const hasAnyActiveDay = barbershop?.availability?.some(
+    (a) => a.weekDay.isActive,
+  );
 
   return (
     <BorderContainer className="space-y-6">
       <section className="flex w-full flex-col justify-between gap-4">
-        <div className="flex w-full items-center justify-between gap-4">
-          <h1 className="font-bold text-3xl tracking-tight">
+        <div className="flex w-full flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+          <h1 className="text-balance font-bold text-xl tracking-tight">
             Configuración de barbería
           </h1>
 
           <BarbershopsDropdown
-            barbershops={barbershops ?? []}
-            isLoading={isLoadingBarbershops}
+            barbershops={[barbershop!]}
+            isLoading={isLoadingBarbershop}
           />
         </div>
       </section>
 
-      {isLoadingBarbershops ? (
+      {isLoadingBarbershop ? (
         <Skeleton className="h-48 w-full" />
       ) : (
         <>
@@ -95,37 +86,32 @@ function SettingsPage() {
             </Alert>
           )}
 
-          {!hasService && !isLoadingServices && currentBarbershop ? (
+          {!hasService && !isLoadingServices && barbershop && (
             <Alert variant="warning">
               <AlertTitle>Debes crear al menos un servicio</AlertTitle>
               <AlertDescription>
                 Agrega tu primer servicio para que tus clientes puedan reservar.
                 <div className="mt-2">
-                  <CreateServiceDialog barbershopId={currentBarbershop._id} />
+                  <CreateServiceDialog barbershopId={barbershop._id} />
                 </div>
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <Alert variant="warning">
-              <AlertTitle>Debes crear al menos un servicio</AlertTitle>
-              <AlertDescription>
-                Agrega tu primer servicio para que tus clientes puedan reservar.
               </AlertDescription>
             </Alert>
           )}
 
-          <Separator />
-
           <section className="space-y-4">
-            <h2 className="font-semibold text-xl">Disponibilidad</h2>
-            <p className="text-muted-foreground text-sm">
-              Define los días y horas en los que tu barbería atiende.
-            </p>
+            <div>
+              <h2 className="font-bold text-xl tracking-tight">
+                Disponibilidad
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                Define los días y horas en los que tu barbería atiende.
+              </p>
+            </div>
 
-            {currentBarbershop && (
+            {barbershop && (
               <AvailabilityForm
-                barbershopId={currentBarbershop._id}
-                availability={currentBarbershop.availability}
+                barbershopId={barbershop._id}
+                availability={barbershop.availability}
               />
             )}
           </section>

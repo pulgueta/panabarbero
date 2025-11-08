@@ -1,3 +1,9 @@
+/** biome-ignore-all lint/style/noNonNullAssertion: <explanation> */
+import type { Barbershop } from "@panabarbero/convex/schemas";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { CalendarIcon, ScissorsIcon } from "lucide-react";
+import { Activity } from "react";
+
 import { appointmentsTableColumns } from "@/components/appointments/table/columns";
 import { InviteBarberDialog } from "@/components/barbers/invite-barber-dialog";
 import { barbersTableColumns } from "@/components/barbers/table/columns";
@@ -16,13 +22,12 @@ import {
   barbersByBarbershopIdQueryOptions,
   useBarbersByBarbershopId,
 } from "@/hooks/use-barbers";
-import { useBarbershopsByOwnerId } from "@/hooks/use-barbershop";
-import { useServicesFromBarbershop } from "@/hooks/use-services";
-import { useSession } from "@/hooks/use-session";
-import type { Barbershop } from "@panabarbero/convex/schemas";
-import { createFileRoute } from "@tanstack/react-router";
-import { CalendarIcon, ScissorsIcon } from "lucide-react";
-import { Activity } from "react";
+import { useBarbershopByOwnerId } from "@/hooks/use-barbershop";
+import {
+  servicesQueryOptions,
+  useServicesFromBarbershop,
+} from "@/hooks/use-services";
+import { getSessionQueryOptions } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/profile/barbershops/")({
   component: RouteComponent,
@@ -32,49 +37,66 @@ export const Route = createFileRoute("/profile/barbershops/")({
       barbershopId: search?.barbershopId,
     };
   },
+  beforeLoad: async ({ context }) => {
+    const user = await context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
+
+    if (!user?.userId) {
+      throw redirect({
+        to: "/login",
+      });
+    }
+  },
   loaderDeps: ({ search }) => ({
     barbershopId: search?.barbershopId,
   }),
   loader: async (opts) => {
-    if (opts.deps.barbershopId) {
+    const user = await opts.context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
+
+    if (user?.userId && opts.deps.barbershopId) {
       await opts.context.queryClient.prefetchQuery(
         appointmentsByBarbershopQueryOptions(opts.deps.barbershopId),
       );
       await opts.context.queryClient.prefetchQuery(
         barbersByBarbershopIdQueryOptions(opts.deps.barbershopId),
       );
+      await opts.context.queryClient.prefetchQuery(
+        servicesQueryOptions(opts.deps.barbershopId),
+      );
     }
+
+    return {
+      user,
+    };
   },
 });
 
 function RouteComponent() {
-  const { barbershopId } = Route.useSearch();
+  const { user } = Route.useLoaderData();
 
-  const { data: user } = useSession();
-
-  const { data: barbershops, isLoading: isLoadingBarbershops } =
-    useBarbershopsByOwnerId(user?.userId ?? "");
-
-  // biome-ignore lint/style/noNonNullAssertion: required
-  const barbershop = barbershopId ?? barbershops?.[0]?._id!;
+  const { data: barbershop, isLoading: isLoadingBarbershop } =
+    useBarbershopByOwnerId(user?.userId!);
 
   const { data: appointments, isLoading: isLoadingAppointments } =
-    useAppointmentsByBarbershop(barbershop);
+    useAppointmentsByBarbershop(barbershop?._id!);
   const { data: barbers, isLoading: isLoadingBarbers } =
-    useBarbersByBarbershopId(barbershop);
+    useBarbersByBarbershopId(barbershop?._id!);
   const { data: services, isLoading: isLoadingServices } =
-    useServicesFromBarbershop(barbershop);
+    useServicesFromBarbershop(barbershop?._id!);
 
   return (
     <BorderContainer className="space-y-6">
       <section className="flex w-full flex-col justify-between gap-4">
         <div className="flex w-full items-center justify-between gap-4">
-          <h1 className="font-bold text-3xl tracking-tight">Citas</h1>
+          <h1 className="font-bold text-xl tracking-tight">Citas</h1>
 
-          <Activity mode={barbershops?.length ? "visible" : "hidden"}>
+          <Activity mode={barbershop ? "visible" : "hidden"}>
             <BarbershopsDropdown
-              barbershops={barbershops?.length ? barbershops : []}
-              isLoading={isLoadingBarbershops}
+              barbershops={[barbershop!]}
+              isLoading={isLoadingBarbershop}
             />
           </Activity>
         </div>
@@ -99,9 +121,9 @@ function RouteComponent() {
 
       <section className="flex w-full flex-col justify-between gap-4">
         <div className="flex w-full items-center justify-between gap-4">
-          <h1 className="font-bold text-3xl tracking-tight">Servicios</h1>
+          <h1 className="font-bold text-xl tracking-tight">Servicios</h1>
 
-          <CreateServiceDialog barbershopId={barbershop} />
+          <CreateServiceDialog barbershopId={barbershop?._id!} />
         </div>
 
         {isLoadingServices ? (
@@ -124,9 +146,9 @@ function RouteComponent() {
 
       <section className="flex w-full flex-col justify-between gap-4">
         <div className="flex w-full items-center justify-between gap-4">
-          <h1 className="font-bold text-3xl tracking-tight">Barberos</h1>
+          <h1 className="font-bold text-xl tracking-tight">Barberos</h1>
 
-          <InviteBarberDialog barbershopId={barbershop} />
+          <InviteBarberDialog barbershopId={barbershop?._id!} />
         </div>
 
         {isLoadingBarbers ? (

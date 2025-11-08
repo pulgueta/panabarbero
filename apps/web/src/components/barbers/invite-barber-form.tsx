@@ -41,8 +41,6 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
     },
   });
 
-  console.log(form.formState.defaultValues);
-
   const {
     inviteBarberMutation: { isPending },
   } = useBarberActions();

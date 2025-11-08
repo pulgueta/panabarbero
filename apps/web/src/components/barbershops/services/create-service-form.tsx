@@ -1,23 +1,34 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { Barbershop, Service } from "@panabarbero/convex/schemas";
+import type { Barbershop } from "@panabarbero/convex/schemas";
 import type { FC } from "react";
 import { useId } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from "@/components/ui/input-group";
 import { Spinner } from "@/components/ui/spinner";
 import { useServiceActions } from "@/hooks/use-services";
 import { serviceFormSchema } from "@/lib/schemas";
 
 interface CreateServiceFormProps {
   barbershopId: Barbershop["_id"];
-  onSuccess?: (service: Service) => void;
 }
 
-export const CreateServiceForm: FC<CreateServiceFormProps> = ({ barbershopId, onSuccess }) => {
+export const CreateServiceForm: FC<CreateServiceFormProps> = ({
+  barbershopId,
+}) => {
   const formIds = {
     form: useId(),
     name: useId(),
@@ -30,7 +41,7 @@ export const CreateServiceForm: FC<CreateServiceFormProps> = ({ barbershopId, on
     defaultValues: {
       name: "",
       price: undefined,
-      duration: undefined,
+      duration: 5,
       barbershopId,
     },
   });
@@ -40,26 +51,14 @@ export const CreateServiceForm: FC<CreateServiceFormProps> = ({ barbershopId, on
   } = useServiceActions();
 
   const onSubmit = form.handleSubmit(async (data) => {
-    const payload = {
-      uuid: crypto.randomUUID(),
-      name: data.name,
-      price: data.price!,
-      duration: data.duration ?? 30,
-      barbershopId,
-    } satisfies Omit<Service, "_id" | "_creationTime">;
-
-    await toast.promise(
-      createService({ service: payload }),
-      {
-        loading: "Creando servicio...",
-        success: "Servicio creado exitosamente.",
-        error: "Error al crear el servicio.",
+    await createService({
+      service: {
+        ...data,
+        uuid: crypto.randomUUID(),
+        barbershopId,
       },
-    );
+    });
 
-    if (onSuccess) {
-      onSuccess(payload as unknown as Service);
-    }
     form.reset();
   });
 
@@ -71,23 +70,41 @@ export const CreateServiceForm: FC<CreateServiceFormProps> = ({ barbershopId, on
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={formIds.name}>Nombre del servicio</FieldLabel>
-              <Input {...field} id={formIds.name} aria-invalid={fieldState.invalid} placeholder="Corte de pelo" />
+              <FieldLabel htmlFor={formIds.name}>
+                Nombre del servicio
+              </FieldLabel>
+              <Input
+                {...field}
+                id={formIds.name}
+                aria-invalid={fieldState.invalid}
+                placeholder="Corte de pelo"
+              />
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
         />
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-4">
           <Controller
             name="duration"
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={formIds.duration}>Duración (minutos)</FieldLabel>
+                <FieldLabel htmlFor={formIds.duration}>
+                  Duración (minutos)
+                </FieldLabel>
                 {/* @ts-expect-error */}
-                <Input {...field} id={formIds.duration} aria-invalid={fieldState.invalid} type="number" placeholder="30" className="w-full tabular-nums" />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                <Input
+                  {...field}
+                  id={formIds.duration}
+                  aria-invalid={fieldState.invalid}
+                  type="number"
+                  placeholder="30"
+                  className="w-full tabular-nums"
+                />
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
               </Field>
             )}
           />
@@ -98,20 +115,35 @@ export const CreateServiceForm: FC<CreateServiceFormProps> = ({ barbershopId, on
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor={formIds.price}>Precio</FieldLabel>
-                {/* @ts-expect-error */}
-                <Input {...field} id={formIds.price} aria-invalid={fieldState.invalid} type="number" placeholder="30000" className="w-full tabular-nums" />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                <InputGroup>
+                  <InputGroupAddon>
+                    <InputGroupText>$</InputGroupText>
+                  </InputGroupAddon>
+                  {/* @ts-expect-error */}
+                  <InputGroupInput
+                    {...field}
+                    id={formIds.price}
+                    aria-invalid={fieldState.invalid}
+                    type="number"
+                    placeholder="30000"
+                    className="w-full tabular-nums"
+                  />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupText>COP</InputGroupText>
+                  </InputGroupAddon>
+                </InputGroup>
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
               </Field>
             )}
           />
         </div>
       </FieldGroup>
 
-      <Button type="submit" disabled={isPending} className="w-full">
-        {isPending ? <Spinner /> : "Crear servicio"}
+      <Button type="submit" disabled={isPending} className="mt-4 w-full">
+        {isPending ? <Spinner /> : "Agregar servicio"}
       </Button>
     </form>
   );
 };
-
-
