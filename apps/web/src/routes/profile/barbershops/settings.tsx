@@ -3,11 +3,18 @@ import type { Barbershop } from "@panabarbero/convex/schemas";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { AvailabilityForm } from "@/components/barbershops/availability/availability-form";
-import { BarbershopsDropdown } from "@/components/barbershops/barbershops-dropdown";
 import { CreateServiceDialog } from "@/components/barbershops/services/create-service-dialog";
+import { AddressForm } from "@/components/barbershops/settings/address-form";
+import { ContactForm } from "@/components/barbershops/settings/contact-form";
+import { CoordinatesForm } from "@/components/barbershops/settings/coordinates-form";
+import { GeneralInfoForm } from "@/components/barbershops/settings/general-info-form";
+import { MediaForm } from "@/components/barbershops/settings/media-form";
+import { PreferencesForm } from "@/components/barbershops/settings/preferences-form";
+import { SocialMediaForm } from "@/components/barbershops/settings/social-media-form";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   barbershopsByOwnerIdQueryOptions,
@@ -60,14 +67,9 @@ function SettingsPage() {
     <BorderContainer className="space-y-6">
       <section className="flex w-full flex-col justify-between gap-4">
         <div className="flex w-full flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-          <h1 className="text-balance font-bold text-xl tracking-tight">
+          <h1 className="text-balance font-bold text-3xl tracking-tight">
             Configuración de barbería
           </h1>
-
-          <BarbershopsDropdown
-            barbershops={[barbershop!]}
-            isLoading={isLoadingBarbershop}
-          />
         </div>
       </section>
 
@@ -75,6 +77,109 @@ function SettingsPage() {
         <Skeleton className="h-48 w-full" />
       ) : (
         <>
+          {barbershop && (
+            <>
+              <section className="space-y-4">
+                <div>
+                  <h2 className="font-bold text-xl tracking-tight">
+                    Información general
+                  </h2>
+                  <p className="text-muted-foreground text-sm">
+                    Nombre y descripción pública de tu barbería.
+                  </p>
+                </div>
+                <GeneralInfoForm barbershop={barbershop} />
+              </section>
+
+              <Separator />
+
+              <section className="space-y-4">
+                <div>
+                  <h2 className="font-bold text-xl tracking-tight">
+                    Dirección
+                  </h2>
+                  <p className="text-muted-foreground text-sm">
+                    Dirección, ciudad y departamento.
+                  </p>
+                </div>
+
+                <AddressForm barbershop={barbershop} />
+              </section>
+
+              <Separator />
+
+              <section className="space-y-4">
+                <div>
+                  <h2 className="font-bold text-xl tracking-tight">Contacto</h2>
+                  <p className="text-muted-foreground text-sm">
+                    Formas de contacto para tus clientes.
+                  </p>
+                </div>
+
+                <ContactForm barbershop={barbershop} />
+              </section>
+
+              <Separator />
+
+              <section className="space-y-4">
+                <div>
+                  <h2 className="font-bold text-xl tracking-tight">Medios</h2>
+                  <p className="text-muted-foreground text-sm">
+                    Imagen de banner y sitio web.
+                  </p>
+                </div>
+
+                <MediaForm barbershop={barbershop} />
+              </section>
+
+              <Separator />
+
+              <section className="space-y-4">
+                <div>
+                  <h2 className="font-bold text-xl tracking-tight">
+                    Ubicación geográfica
+                  </h2>
+                  <p className="text-muted-foreground text-sm">
+                    Coordenadas para mejorar la ubicación en el mapa (opcional).
+                  </p>
+                </div>
+
+                <CoordinatesForm barbershop={barbershop} />
+              </section>
+
+              <Separator />
+
+              <section className="flex w-full flex-col gap-4 sm:items-start sm:justify-start md:flex-row">
+                <section className="min-h-44 w-full space-y-4">
+                  <div>
+                    <h2 className="font-bold text-xl tracking-tight">
+                      Preferencias
+                    </h2>
+                    <p className="text-muted-foreground text-sm">
+                      Ajustes operativos como el periodo de gracia.
+                    </p>
+                  </div>
+
+                  <PreferencesForm barbershop={barbershop} />
+                </section>
+
+                <section className="flex min-h-44 w-full flex-col justify-between gap-4">
+                  <div>
+                    <h2 className="font-bold text-xl tracking-tight">
+                      Redes sociales
+                    </h2>
+                    <p className="text-muted-foreground text-sm">
+                      Enlaces a redes sociales de tu barbería.
+                    </p>
+                  </div>
+                  <SocialMediaForm barbershop={barbershop} />
+                </section>
+              </section>
+
+              <Separator />
+            </>
+          )}
+
           {!hasAnyActiveDay && (
             <Alert variant="warning">
               <AlertTitle>Horario de atención requerido</AlertTitle>

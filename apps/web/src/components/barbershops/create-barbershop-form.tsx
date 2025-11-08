@@ -106,13 +106,11 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
   const onSubmit = form.handleSubmit(async (data) => {
     if (!userId) return;
 
-    const uuid = crypto.randomUUID();
-
     const barbershopId = await createBarbershop({
       barbershop: {
         ...data,
         ownerId: userId,
-        uuid,
+        uuid: crypto.randomUUID(),
       },
     });
 

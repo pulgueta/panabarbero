@@ -7,7 +7,6 @@ import { Activity } from "react";
 import { appointmentsTableColumns } from "@/components/appointments/table/columns";
 import { InviteBarberDialog } from "@/components/barbers/invite-barber-dialog";
 import { barbersTableColumns } from "@/components/barbers/table/columns";
-import { BarbershopsDropdown } from "@/components/barbershops/barbershops-dropdown";
 import { CreateServiceDialog } from "@/components/barbershops/services/create-service-dialog";
 import { servicesTableColumns } from "@/components/barbershops/services/table/columns";
 import { BorderContainer } from "@/components/layout/border-container";
@@ -92,13 +91,6 @@ function RouteComponent() {
       <section className="flex w-full flex-col justify-between gap-4">
         <div className="flex w-full items-center justify-between gap-4">
           <h1 className="font-bold text-xl tracking-tight">Citas</h1>
-
-          <Activity mode={barbershop ? "visible" : "hidden"}>
-            <BarbershopsDropdown
-              barbershops={[barbershop!]}
-              isLoading={isLoadingBarbershop}
-            />
-          </Activity>
         </div>
 
         {isLoadingAppointments ? (
