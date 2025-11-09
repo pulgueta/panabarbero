@@ -1,10 +1,12 @@
 import type { Barbershop } from "@panabarbero/convex/schemas";
 import type { FC } from "react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { useBarbershopActions } from "@/hooks/use-barbershop";
 
@@ -38,18 +40,37 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
 }) => {
   const {
     updateBarbershopDayAvailabilityMutation: {
-      isPending: isUpdatingAvailability,
       mutateAsync: updateBarbershopDayAvailability,
+      isPending: isUpdatingAvailability,
+      isSuccess: isUpdatedAvailability,
     },
   } = useBarbershopActions();
 
-  const [rows, setRows] = useState<Barbershop["availability"]>(
-    availability ?? [],
+  const buildInitialRows = useCallback(
+    (avail?: Barbershop["availability"]) =>
+      days.map((d) => {
+        const found = avail?.find((r) => r.weekDay.day === d.key);
+
+        return (
+          found ?? {
+            weekDay: { day: d.key, isActive: false },
+            openAt: "",
+            closeAt: "",
+          }
+        );
+      }),
+    [],
+  );
+
+  const [rows, setRows] = useState<Barbershop["availability"]>(() =>
+    buildInitialRows(availability),
   );
 
   const saveRow = async (day: DayKey) => {
     const entry = rows?.find((r) => r.weekDay.day === day);
+
     if (!entry) return;
+
     await updateBarbershopDayAvailability({
       barbershopId,
       day,
@@ -59,14 +80,19 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
     });
   };
 
+  useEffect(() => {
+    if (isUpdatedAvailability) {
+      toast.success("Guardado exitosamente", {
+        description: "La disponibilidad se ha actualizado correctamente.",
+      });
+    }
+  }, [isUpdatedAvailability]);
+
   return (
     <div className="w-full space-y-4">
       <div className="grid w-full grid-cols-1 gap-8 md:grid-cols-3">
-        {days.map((d) => {
-          const row = rows?.find((r) => r.weekDay.day === d.key);
-
-          if (!row) return null;
-
+        {days.map((d, idx) => {
+          const row = rows[idx];
           return (
             <div key={d.key} className="grid grid-cols-1 items-end gap-4">
               <div className="flex flex-col gap-2">
@@ -79,12 +105,10 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
                     onCheckedChange={(v) =>
                       setRows((prev) => {
                         const next = [...prev];
-
-                        next[next.findIndex((r) => r.weekDay.day === d.key)] = {
+                        next[idx] = {
                           ...row,
                           weekDay: { ...row.weekDay, isActive: v },
                         };
-
                         return next;
                       })
                     }
@@ -101,12 +125,10 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
                     onChange={(e) =>
                       setRows((prev) => {
                         const next = [...prev];
-
-                        next[next.findIndex((r) => r.weekDay.day === d.key)] = {
+                        next[idx] = {
                           ...row,
                           openAt: e.target.value,
                         };
-
                         return next;
                       })
                     }
@@ -121,12 +143,10 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
                     onChange={(e) =>
                       setRows((prev) => {
                         const next = [...prev];
-
-                        next[next.findIndex((r) => r.weekDay.day === d.key)] = {
+                        next[idx] = {
                           ...row,
                           closeAt: e.target.value,
                         };
-
                         return next;
                       })
                     }
@@ -137,8 +157,9 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
                   variant="outline"
                   onClick={() => saveRow(d.key)}
                   className="w-full"
+                  disabled={isUpdatingAvailability}
                 >
-                  Guardar
+                  {isUpdatingAvailability ? <Spinner /> : "Guardar"}
                 </Button>
               </div>
             </div>

@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/style/noNonNullAssertion: We need to assert non-null values because the hooks return undefined if the data is not loaded */
 import { signOut } from "@panabarbero/convex/auth";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { InfoIcon, LogOut } from "lucide-react";
@@ -94,8 +95,8 @@ function ProfilePage() {
     },
   } = useProfileActions();
 
-  const [name, setName] = useState<string>(profile?.name ?? "");
-  const [phone, setPhone] = useState<string>(profile?.phoneNumber ?? "");
+  const [name, setName] = useState<string | undefined>(profile?.name);
+  const [phone, setPhone] = useState<string | undefined>(profile?.phoneNumber);
 
   useEffect(() => {
     if (isUpdatedName) {
@@ -188,14 +189,14 @@ function ProfilePage() {
               <FieldContent>
                 <div className="flex gap-3">
                   <Input
-                    value={profile?.name ?? name}
+                    defaultValue={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Tu nombre"
                     autoComplete="name"
                     disabled={isProfileLoading || isUpdatingName}
                   />
                   <Button
-                    onClick={() => updateName({ name: name ?? "" })}
+                    onClick={() => updateName({ name: name! })}
                     disabled={isProfileLoading || isUpdatingName}
                   >
                     Guardar
@@ -241,7 +242,7 @@ function ProfilePage() {
               <FieldContent>
                 <div className="flex gap-3">
                   <Input
-                    value={profile?.phoneNumber ?? phone}
+                    defaultValue={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="3000000000"
                     autoComplete="tel"
@@ -249,9 +250,7 @@ function ProfilePage() {
                     disabled={isProfileLoading || isUpdatingPhoneNumber}
                   />
                   <Button
-                    onClick={() =>
-                      updatePhoneNumber({ phoneNumber: phone ?? "" })
-                    }
+                    onClick={() => updatePhoneNumber({ phoneNumber: phone! })}
                     disabled={isProfileLoading || isUpdatingPhoneNumber}
                   >
                     Guardar

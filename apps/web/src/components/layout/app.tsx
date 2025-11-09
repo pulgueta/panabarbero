@@ -2,8 +2,8 @@ import { TanStackDevtools } from "@tanstack/react-devtools";
 import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
 import { HeadContent, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { Toaster } from "sonner";
 
+import { Toaster } from "@/components/ui/sonner";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import StoreDevtools from "@/lib/demo-store-devtools";
 import { BottomBar } from "./bottom-bar";

@@ -3,7 +3,7 @@ import type { Barbershop } from "@panabarbero/convex/schemas";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { AvailabilityForm } from "@/components/barbershops/availability/availability-form";
-import { CreateServiceDialog } from "@/components/barbershops/services/create-service-dialog";
+import { ServiceDialog } from "@/components/barbershops/services/service-dialog";
 import { AddressForm } from "@/components/barbershops/settings/address-form";
 import { ContactForm } from "@/components/barbershops/settings/contact-form";
 import { CoordinatesForm } from "@/components/barbershops/settings/coordinates-form";
@@ -65,13 +65,11 @@ function SettingsPage() {
 
   return (
     <BorderContainer className="space-y-6">
-      <section className="flex w-full flex-col justify-between gap-4">
-        <div className="flex w-full flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-          <h1 className="text-balance font-bold text-3xl tracking-tight">
-            Configuración de barbería
-          </h1>
-        </div>
-      </section>
+      <header>
+        <h1 className="text-balance font-bold text-3xl tracking-tight">
+          Configuración de barbería
+        </h1>
+      </header>
 
       {isLoadingBarbershop ? (
         <Skeleton className="h-48 w-full" />
@@ -88,6 +86,7 @@ function SettingsPage() {
                     Nombre y descripción pública de tu barbería.
                   </p>
                 </div>
+
                 <GeneralInfoForm barbershop={barbershop} />
               </section>
 
@@ -197,7 +196,7 @@ function SettingsPage() {
               <AlertDescription>
                 Agrega tu primer servicio para que tus clientes puedan reservar.
                 <div className="mt-2">
-                  <CreateServiceDialog barbershopId={barbershop._id} />
+                  <ServiceDialog barbershopId={barbershop._id} />
                 </div>
               </AlertDescription>
             </Alert>

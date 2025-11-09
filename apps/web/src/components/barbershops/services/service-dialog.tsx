@@ -1,5 +1,5 @@
 import type { Barbershop } from "@panabarbero/convex/schemas";
-import type { FC } from "react";
+import type { FC, PropsWithChildren } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,25 +19,31 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { CreateServiceForm } from "./create-service-form";
+import type { ServiceFormData } from "@/lib/schemas";
+import { ServiceForm } from "./service-form";
 
-interface CreateServiceDialogProps {
+interface ServiceDialogProps extends PropsWithChildren {
   barbershopId: Barbershop["_id"];
+  initialValues?: ServiceFormData;
+  asChild?: boolean;
 }
 
-export const CreateServiceDialog: FC<CreateServiceDialogProps> = ({
+export const ServiceDialog: FC<ServiceDialogProps> = ({
   barbershopId,
+  initialValues,
+  asChild = false,
+  children,
 }) => {
   const { isMobile } = useIsMobile();
 
-  const headLabel = "Agregar servicio";
-  const description = "Define los datos básicos del servicio.";
+  const headLabel = `${initialValues ? "Editar" : "Agregar"} servicio`;
+  const description = `${initialValues ? "Actualiza los datos del servicio." : "Define los datos básicos del servicio."}`;
 
   if (isMobile) {
     return (
       <Drawer>
-        <DrawerTrigger asChild>
-          <Button variant="outline">{headLabel}</Button>
+        <DrawerTrigger asChild={asChild}>
+          {asChild ? children : <Button variant="outline">{headLabel}</Button>}
         </DrawerTrigger>
         <DrawerContent>
           <DrawerHeader>
@@ -46,7 +52,10 @@ export const CreateServiceDialog: FC<CreateServiceDialogProps> = ({
           </DrawerHeader>
 
           <div className="p-4">
-            <CreateServiceForm barbershopId={barbershopId} />
+            <ServiceForm
+              barbershopId={barbershopId}
+              initialValues={initialValues}
+            />
           </div>
         </DrawerContent>
       </Drawer>
@@ -55,8 +64,8 @@ export const CreateServiceDialog: FC<CreateServiceDialogProps> = ({
 
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="outline">{headLabel}</Button>
+      <DialogTrigger asChild={asChild}>
+        {asChild ? children : <Button variant="outline">{headLabel}</Button>}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -64,7 +73,10 @@ export const CreateServiceDialog: FC<CreateServiceDialogProps> = ({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <CreateServiceForm barbershopId={barbershopId} />
+        <ServiceForm
+          barbershopId={barbershopId}
+          initialValues={initialValues}
+        />
       </DialogContent>
     </Dialog>
   );

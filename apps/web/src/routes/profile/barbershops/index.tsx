@@ -7,7 +7,7 @@ import { Activity } from "react";
 import { appointmentsTableColumns } from "@/components/appointments/table/columns";
 import { InviteBarberDialog } from "@/components/barbers/invite-barber-dialog";
 import { barbersTableColumns } from "@/components/barbers/table/columns";
-import { CreateServiceDialog } from "@/components/barbershops/services/create-service-dialog";
+import { ServiceDialog } from "@/components/barbershops/services/service-dialog";
 import { servicesTableColumns } from "@/components/barbershops/services/table/columns";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
@@ -115,7 +115,7 @@ function RouteComponent() {
         <div className="flex w-full items-center justify-between gap-4">
           <h1 className="font-bold text-xl tracking-tight">Servicios</h1>
 
-          <CreateServiceDialog barbershopId={barbershop?._id!} />
+          <ServiceDialog barbershopId={barbershop?._id!} />
         </div>
 
         {isLoadingServices ? (

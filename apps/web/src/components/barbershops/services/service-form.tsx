@@ -1,11 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { Service } from "@panabarbero/convex/schemas";
+import type { Barbershop } from "@panabarbero/convex/schemas";
 import type { FC } from "react";
-import { useId } from "react";
+import { useEffect, useId } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -22,75 +21,63 @@ import {
 } from "@/components/ui/input-group";
 import { Spinner } from "@/components/ui/spinner";
 import { useServiceActions } from "@/hooks/use-services";
+import type { ServiceFormData } from "@/lib/schemas";
 import { serviceFormSchema } from "@/lib/schemas";
 
 interface ServiceFormProps {
-  service: Service;
+  barbershopId: Barbershop["_id"];
+  initialValues?: ServiceFormData;
 }
 
-export const ServiceForm: FC<ServiceFormProps> = ({ service }) => {
+export const ServiceForm: FC<ServiceFormProps> = ({
+  barbershopId,
+  initialValues,
+}) => {
   const formIds = {
     form: useId(),
     name: useId(),
     price: useId(),
     duration: useId(),
-    barbershopId: useId(),
   };
 
   const form = useForm({
     resolver: zodResolver(serviceFormSchema),
-    defaultValues: {
-      name: service.name ?? "",
-      price: service.price ?? undefined,
-      duration: service.duration ?? undefined,
-      barbershopId: service.barbershopId,
+    defaultValues: initialValues ?? {
+      name: "",
+      price: undefined,
+      duration: 5,
+      barbershopId,
     },
   });
 
   const {
-    updateServiceMutation: { mutateAsync: updateService, isPending, isSuccess },
-    deleteServiceMutation: {
-      mutateAsync: deleteService,
-      isPending: isDeleting,
+    createServiceMutation: {
+      mutateAsync: createService,
+      isPending: isCreatingService,
+      isSuccess: isCreatedService,
     },
   } = useServiceActions();
 
-  const handleDelete = async () => {
-    await deleteService({
-      serviceId: service._id,
-      barbershopId: service.barbershopId,
-    });
-  };
-
   const onSubmit = form.handleSubmit(async (data) => {
-    toast.promise(
-      updateService({
-        serviceId: service._id,
-        service: data,
-      }),
-      {
-        loading: "Guardando cambios...",
-        success: () => {
-          form.reset();
-
-          return {
-            message: "Servicio actualizado exitosamente.",
-            description:
-              "Cierra este formulario para volver a editar el servicio.",
-          };
-        },
-        error: (error) => {
-          return {
-            message: "Error al actualizar el servicio.",
-            description: error.message,
-          };
-        },
+    await createService({
+      service: {
+        ...data,
+        uuid: crypto.randomUUID(),
+        barbershopId,
       },
-    );
+    });
+
+    form.reset();
   });
 
+  useEffect(() => {
+    if (isCreatedService) {
+      toast.success("Servicio creado exitosamente");
+    }
+  }, [isCreatedService]);
+
   return (
-    <form id={formIds.form} onSubmit={onSubmit}>
+    <form id={formIds.form} onSubmit={onSubmit} className="space-y-4">
       <FieldGroup>
         <Controller
           name="name"
@@ -111,7 +98,7 @@ export const ServiceForm: FC<ServiceFormProps> = ({ service }) => {
           )}
         />
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-4">
           <Controller
             name="duration"
             control={form.control}
@@ -125,8 +112,8 @@ export const ServiceForm: FC<ServiceFormProps> = ({ service }) => {
                   {...field}
                   id={formIds.duration}
                   aria-invalid={fieldState.invalid}
-                  placeholder="30"
                   type="number"
+                  placeholder="30"
                   className="w-full tabular-nums"
                 />
                 {fieldState.invalid && (
@@ -151,9 +138,9 @@ export const ServiceForm: FC<ServiceFormProps> = ({ service }) => {
                     {...field}
                     id={formIds.price}
                     aria-invalid={fieldState.invalid}
-                    placeholder="30000"
                     type="number"
-                    className="tabular-nums"
+                    placeholder="30000"
+                    className="w-full tabular-nums"
                   />
                   <InputGroupAddon align="inline-end">
                     <InputGroupText>COP</InputGroupText>
@@ -168,35 +155,13 @@ export const ServiceForm: FC<ServiceFormProps> = ({ service }) => {
         </div>
       </FieldGroup>
 
-      <div className="mt-4 flex flex-row gap-2">
-        <ConfirmationDialog
-          trigger={
-            <Button type="button" variant="destructive" className="w-1/2">
-              Eliminar
-            </Button>
-          }
-          title="Eliminar servicio"
-          description="¿Estás seguro que desea eliminar el servicio? Esta acción no se puede deshacer."
-          confirmLabel={
-            <Button type="button" variant="destructive" onClick={handleDelete}>
-              {isDeleting ? <Spinner /> : "Sí, eliminar"}
-            </Button>
-          }
-          cancelLabel={
-            <Button type="button" variant="outline">
-              No, cancelar
-            </Button>
-          }
-        />
-
-        <Button
-          type="submit"
-          disabled={isPending || isSuccess}
-          className="w-1/2"
-        >
-          {isPending ? <Spinner /> : "Guardar"}
-        </Button>
-      </div>
+      <Button
+        type="submit"
+        disabled={isCreatingService}
+        className="mt-4 w-full"
+      >
+        {isCreatingService ? <Spinner /> : "Guardar"}
+      </Button>
     </form>
   );
 };
