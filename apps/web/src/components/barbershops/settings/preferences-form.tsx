@@ -24,11 +24,15 @@ export const PreferencesForm: FC<PreferencesFormProps> = ({ barbershop }) => {
   );
 
   const {
-    updateBarbershop: { mutateAsync: updateBarbershop, isPending },
+    updateBarbershopMutation: {
+      mutateAsync: updateBarbershop,
+      isPending: isUpdatingBarbershop,
+    },
   } = useBarbershopActions();
 
   const onSubmit = async () => {
     const gracePeriodMinutes = Number(grace);
+
     await updateBarbershop({
       barbershopId: barbershop._id,
       barbershop: {
@@ -81,8 +85,11 @@ export const PreferencesForm: FC<PreferencesFormProps> = ({ barbershop }) => {
           )}
         </Field>
       </FieldGroup>
-      <Button onClick={onSubmit} disabled={isPending || invalidGrace}>
-        {isPending ? <Spinner /> : "Guardar"}
+      <Button
+        onClick={onSubmit}
+        disabled={isUpdatingBarbershop || invalidGrace}
+      >
+        {isUpdatingBarbershop ? <Spinner /> : "Guardar"}
       </Button>
     </div>
   );

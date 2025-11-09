@@ -28,7 +28,10 @@ export const MediaForm: FC<MediaFormProps> = ({ barbershop }) => {
   );
 
   const {
-    updateBarbershop: { mutateAsync: updateBarbershop, isPending },
+    updateBarbershopMutation: {
+      mutateAsync: updateBarbershop,
+      isPending: isUpdatingBarbershop,
+    },
   } = useBarbershopActions();
 
   const onSubmit = async () => {
@@ -98,9 +101,9 @@ export const MediaForm: FC<MediaFormProps> = ({ barbershop }) => {
 
       <Button
         onClick={onSubmit}
-        disabled={isPending || invalidWebsite || invalidBanner}
+        disabled={isUpdatingBarbershop || invalidWebsite || invalidBanner}
       >
-        {isPending ? <Spinner /> : "Guardar"}
+        {isUpdatingBarbershop ? <Spinner /> : "Guardar"}
       </Button>
     </div>
   );

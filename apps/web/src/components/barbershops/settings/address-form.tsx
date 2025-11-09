@@ -49,7 +49,10 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
   );
 
   const {
-    updateBarbershop: { mutateAsync: updateBarbershop, isPending },
+    updateBarbershopMutation: {
+      mutateAsync: updateBarbershop,
+      isPending: isUpdatingBarbershop,
+    },
   } = useBarbershopActions();
 
   const onSubmit = async () => {
@@ -170,8 +173,8 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
         </div>
       </FieldGroup>
 
-      <Button onClick={onSubmit} disabled={isPending || invalid}>
-        {isPending ? <Spinner /> : "Guardar"}
+      <Button onClick={onSubmit} disabled={isUpdatingBarbershop || invalid}>
+        {isUpdatingBarbershop ? <Spinner /> : "Guardar"}
       </Button>
     </div>
   );

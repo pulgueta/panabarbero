@@ -26,7 +26,10 @@ export const GeneralInfoForm: FC<GeneralInfoFormProps> = ({ barbershop }) => {
   const [description, setDescription] = useState(barbershop.description ?? "");
 
   const {
-    updateBarbershop: { mutateAsync: updateBarbershop, isPending },
+    updateBarbershopMutation: {
+      mutateAsync: updateBarbershop,
+      isPending: isUpdatingBarbershop,
+    },
   } = useBarbershopActions();
 
   const onSubmit = async () => {
@@ -89,8 +92,8 @@ export const GeneralInfoForm: FC<GeneralInfoFormProps> = ({ barbershop }) => {
         </Field>
       </FieldGroup>
 
-      <Button onClick={onSubmit} disabled={isPending || nameInvalid}>
-        {isPending ? <Spinner /> : "Guardar"}
+      <Button onClick={onSubmit} disabled={isUpdatingBarbershop || nameInvalid}>
+        {isUpdatingBarbershop ? <Spinner /> : "Guardar"}
       </Button>
     </div>
   );

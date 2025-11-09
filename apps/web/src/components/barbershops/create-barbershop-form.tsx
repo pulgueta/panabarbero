@@ -100,7 +100,10 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
   });
 
   const {
-    createBarbershop: { mutateAsync: createBarbershop, isPending },
+    createBarbershopMutation: {
+      mutateAsync: createBarbershop,
+      isPending: isCreatingBarbershop,
+    },
   } = useBarbershopActions();
 
   const onSubmit = form.handleSubmit(async (data) => {
@@ -355,8 +358,12 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
       </FieldGroup>
 
       <div className="mt-8">
-        <Button type="submit" className="w-full" disabled={isPending}>
-          {isPending ? <Spinner /> : "Crear barbería"}
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isCreatingBarbershop}
+        >
+          {isCreatingBarbershop ? <Spinner /> : "Crear barbería"}
         </Button>
       </div>
     </form>

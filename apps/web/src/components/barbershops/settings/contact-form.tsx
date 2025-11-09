@@ -26,7 +26,10 @@ export const ContactForm: FC<ContactFormProps> = ({ barbershop }) => {
   const [email, setEmail] = useState(barbershop.metadata?.contactEmail ?? "");
 
   const {
-    updateBarbershop: { mutateAsync: updateBarbershop, isPending },
+    updateBarbershopMutation: {
+      mutateAsync: updateBarbershop,
+      isPending: isUpdatingBarbershop,
+    },
   } = useBarbershopActions();
 
   const onSubmit = async () => {
@@ -90,8 +93,11 @@ export const ContactForm: FC<ContactFormProps> = ({ barbershop }) => {
         </Field>
       </FieldGroup>
 
-      <Button onClick={onSubmit} disabled={isPending || invalidEmail}>
-        {isPending ? <Spinner /> : "Guardar"}
+      <Button
+        onClick={onSubmit}
+        disabled={isUpdatingBarbershop || invalidEmail}
+      >
+        {isUpdatingBarbershop ? <Spinner /> : "Guardar"}
       </Button>
     </div>
   );

@@ -96,21 +96,21 @@ export function useBarbershopsByOwnerId(userId: string) {
 }
 
 export function useBarbershopActions() {
-  const createBarbershop = useMutation({
+  const createBarbershopMutation = useMutation({
     mutationFn: useConvexMutation(api.barbershops.createBarbershop),
   });
-  const updateBarbershop = useMutation({
+  const updateBarbershopMutation = useMutation({
     mutationFn: useConvexMutation(api.barbershops.updateBarbershop),
   });
-  const updateBarbershopDayAvailability = useMutation({
+  const updateBarbershopDayAvailabilityMutation = useMutation({
     mutationFn: useConvexMutation(
       api.barbershops.updateBarbershopDayAvailability,
     ),
   });
 
   return {
-    createBarbershop,
-    updateBarbershop,
-    updateBarbershopDayAvailability,
+    createBarbershopMutation,
+    updateBarbershopMutation,
+    updateBarbershopDayAvailabilityMutation,
   };
 }

@@ -30,7 +30,7 @@ export const CoordinatesForm: FC<CoordinatesFormProps> = ({ barbershop }) => {
   );
 
   const {
-    updateBarbershop: { mutateAsync: updateBarbershop, isPending },
+    updateBarbershopMutation: { mutateAsync: updateBarbershop, isPending },
   } = useBarbershopActions();
 
   const onSubmit = async () => {

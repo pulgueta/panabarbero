@@ -1,4 +1,3 @@
-import { socialPlatforms } from "@/lib/schemas";
 import type { Barbershop } from "@panabarbero/convex/schemas";
 import type { FC } from "react";
 import { useState } from "react";
@@ -6,9 +5,16 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { useBarbershopActions } from "@/hooks/use-barbershop";
+import { socialPlatforms } from "@/lib/schemas";
 
 type SocialRow = { platform: (typeof socialPlatforms)[number]; url: string };
 
@@ -22,7 +28,10 @@ export const SocialMediaForm: FC<SocialMediaFormProps> = ({ barbershop }) => {
   );
 
   const {
-    updateBarbershop: { mutateAsync: updateBarbershop, isPending },
+    updateBarbershopMutation: {
+      mutateAsync: updateBarbershop,
+      isPending: isUpdatingBarbershop,
+    },
   } = useBarbershopActions();
 
   const onSubmit = async () => {
@@ -58,8 +67,10 @@ export const SocialMediaForm: FC<SocialMediaFormProps> = ({ barbershop }) => {
     });
   };
 
-  const addRow = () => setSocial((prev) => [...prev, { platform: "instagram", url: "" }]);
-  const removeRow = (idx: number) => setSocial((prev) => prev.filter((_, i) => i !== idx));
+  const addRow = () =>
+    setSocial((prev) => [...prev, { platform: "instagram", url: "" }]);
+  const removeRow = (idx: number) =>
+    setSocial((prev) => prev.filter((_, i) => i !== idx));
   const updateRow = (idx: number, next: SocialRow) =>
     setSocial((prev) => prev.map((v, i) => (i === idx ? next : v)));
 
@@ -67,12 +78,20 @@ export const SocialMediaForm: FC<SocialMediaFormProps> = ({ barbershop }) => {
     <div className="space-y-4">
       <FieldGroup>
         {social.map((row, idx) => (
-          <div key={`${row.platform}-${idx}`} className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div
+            key={`${row.platform}-${idx}`}
+            className="grid grid-cols-1 gap-2 sm:grid-cols-3"
+          >
             <Field>
               <FieldLabel>Plataforma</FieldLabel>
               <Select
                 value={row.platform}
-                onValueChange={(v) => updateRow(idx, { ...row, platform: v as SocialRow["platform"] })}
+                onValueChange={(v) =>
+                  updateRow(idx, {
+                    ...row,
+                    platform: v as SocialRow["platform"],
+                  })
+                }
               >
                 <SelectTrigger className="w-full bg-background dark:bg-card">
                   <SelectValue placeholder="Plataforma" />
@@ -86,10 +105,12 @@ export const SocialMediaForm: FC<SocialMediaFormProps> = ({ barbershop }) => {
                 </SelectContent>
               </Select>
             </Field>
-            <div className="sm:col-span-2 flex gap-2">
+            <div className="flex gap-2 sm:col-span-2">
               <Input
                 value={row.url}
-                onChange={(e) => updateRow(idx, { ...row, url: e.target.value })}
+                onChange={(e) =>
+                  updateRow(idx, { ...row, url: e.target.value })
+                }
                 placeholder="https://..."
               />
               <Button variant="destructive" onClick={() => removeRow(idx)}>
@@ -103,11 +124,9 @@ export const SocialMediaForm: FC<SocialMediaFormProps> = ({ barbershop }) => {
         </Button>
       </FieldGroup>
 
-      <Button onClick={onSubmit} disabled={isPending}>
-        {isPending ? <Spinner /> : "Guardar"}
+      <Button onClick={onSubmit} disabled={isUpdatingBarbershop}>
+        {isUpdatingBarbershop ? <Spinner /> : "Guardar"}
       </Button>
     </div>
   );
 };
-
-

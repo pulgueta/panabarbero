@@ -64,7 +64,6 @@ export const BarbershopDetailsForm: FC<BarbershopDetailsFormProps> = ({
 
   const form = useForm({
     resolver: zodResolver(barbershopFormSchema),
-    mode: "onChange",
     defaultValues: {
       name: barbershop.name,
       description: barbershop.description ?? "",
@@ -102,7 +101,10 @@ export const BarbershopDetailsForm: FC<BarbershopDetailsFormProps> = ({
   );
 
   const {
-    updateBarbershop: { mutateAsync: updateBarbershop, isPending },
+    updateBarbershopMutation: {
+      mutateAsync: updateBarbershop,
+      isPending: isUpdatingBarbershop,
+    },
   } = useBarbershopActions();
 
   const [lat, setLat] = useState<string>(
@@ -461,7 +463,7 @@ export const BarbershopDetailsForm: FC<BarbershopDetailsFormProps> = ({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="sm:col-span-2 flex gap-2">
+              <div className="flex gap-2 sm:col-span-2">
                 <Input
                   value={row.url}
                   onChange={(e) =>
@@ -486,8 +488,12 @@ export const BarbershopDetailsForm: FC<BarbershopDetailsFormProps> = ({
       </FieldGroup>
 
       <div className="mt-2">
-        <Button type="submit" className="w-full sm:w-auto" disabled={isPending}>
-          {isPending ? <Spinner /> : "Guardar cambios"}
+        <Button
+          type="submit"
+          className="w-full sm:w-auto"
+          disabled={isUpdatingBarbershop}
+        >
+          {isUpdatingBarbershop ? <Spinner /> : "Guardar cambios"}
         </Button>
       </div>
     </form>
