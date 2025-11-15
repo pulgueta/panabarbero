@@ -12,6 +12,7 @@ import { createRoot } from "react-dom/client";
 
 import { ThemeProvider } from "@/components/theme";
 import { env } from "@/env";
+import { PostHogProvider } from "@/providers/posthog";
 import reportWebVitals from "./reportWebVitals";
 import { routeTree } from "./routeTree.gen";
 // @ts-expect-error
@@ -21,6 +22,7 @@ export function getRouter() {
   const convex = new ConvexReactClient(env.PUBLIC_CONVEX_URL, {
     verbose: true,
   });
+  // @ts-expect-error
   const convexQueryClient = new ConvexQueryClient(convex);
 
   const queryClient = new QueryClient({
@@ -47,7 +49,7 @@ export function getRouter() {
         <ThemeProvider>
           <ConvexBetterAuthProvider client={convex} authClient={authClient}>
             <QueryClientProvider client={queryClient}>
-              {children}
+              <PostHogProvider>{children}</PostHogProvider>
             </QueryClientProvider>
           </ConvexBetterAuthProvider>
         </ThemeProvider>
