@@ -4,13 +4,11 @@ import {
   createFileRoute,
   redirect,
   useCanGoBack,
-  useRouter,
 } from "@tanstack/react-router";
 import { ArrowLeft, KeyRound } from "lucide-react";
 import { toast } from "sonner";
-
-import { Button } from "@/components/ui/button";
-import { useSession } from "@/hooks/use-session";
+import { Button } from "src/components/ui/button";
+import { useSession } from "src/hooks/use-session";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -22,7 +20,7 @@ function LoginPage() {
   const { data: user } = useSession();
 
   const canGoBack = useCanGoBack();
-  const router = useRouter();
+  // const router = useRouter();
 
   if (user) {
     throw redirect({
@@ -61,7 +59,7 @@ function LoginPage() {
         {canGoBack && (
           <Button
             variant="ghost"
-            onClick={() => router.history.back()}
+            // onClick={() => router.history.back()}
             className="mb-4"
           >
             <ArrowLeft className="size-4" /> Volver

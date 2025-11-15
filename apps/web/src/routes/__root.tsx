@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import type { ConvexQueryClient } from "@convex-dev/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext } from "@tanstack/react-router";
@@ -6,12 +7,15 @@ import type { ConvexReactClient } from "convex/react";
 import { App } from "@/components/layout/app";
 import { DefaultCatchBoundary } from "@/components/layout/error-component";
 import { NotFoundComponent } from "@/components/layout/not-found-component";
+import type { User } from "@/hooks/use-session";
 import { getSessionQueryOptions } from "@/hooks/use-session";
+import css from "../styles.css?url";
 
 type RouterContext = {
   queryClient: QueryClient;
   convexClient: ConvexReactClient;
   convexQueryClient: ConvexQueryClient;
+  user: User | null;
 };
 
 export const Route = createRootRouteWithContext<RouterContext>()({
@@ -50,19 +54,18 @@ export const Route = createRootRouteWithContext<RouterContext>()({
           content: "es_CO",
         },
       ],
+      links: [
+        {
+          rel: "stylesheet",
+          href: css,
+        },
+      ],
     };
   },
-  component: () => <App />,
+  component: App,
   errorComponent: (props) => <DefaultCatchBoundary {...props} />,
   notFoundComponent: () => <NotFoundComponent />,
   beforeLoad: async ({ context }) => {
     await context.queryClient.prefetchQuery(getSessionQueryOptions());
-  },
-  loader: async ({ context }) => {
-    return {
-      session: await context.queryClient.ensureQueryData(
-        getSessionQueryOptions(),
-      ),
-    };
   },
 });

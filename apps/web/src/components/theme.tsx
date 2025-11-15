@@ -1,10 +1,10 @@
-import type { ReactNode } from "react";
+import { createClientOnlyFn } from "@tanstack/react-start";
 import { createContext, useContext, useEffect, useState } from "react";
 
 type Theme = "dark" | "light" | "system";
 
 type ThemeProviderProps = {
-  children: ReactNode;
+  children: React.ReactNode;
   defaultTheme?: Theme;
   storageKey?: string;
 };
@@ -21,15 +21,24 @@ const initialState: ThemeProviderState = {
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
+const getTheme = createClientOnlyFn(
+  (storageKey: string, defaultTheme: Theme) =>
+    (localStorage.getItem(storageKey) as Theme) ?? defaultTheme,
+);
+
+const setClientTheme = createClientOnlyFn(
+  (storageKey: string, theme: Theme) => {
+    localStorage.setItem(storageKey, theme);
+  },
+);
+
 export function ThemeProvider({
   children,
   defaultTheme = "system",
   storageKey = "vite-ui-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme,
-  );
+  const [theme, setTheme] = useState<Theme>(getTheme(storageKey, defaultTheme));
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -52,7 +61,7 @@ export function ThemeProvider({
   const value = {
     theme,
     setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme);
+      setClientTheme(storageKey, theme);
       setTheme(theme);
     },
   };

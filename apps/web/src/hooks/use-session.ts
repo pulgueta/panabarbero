@@ -9,3 +9,5 @@ export function getSessionQueryOptions() {
 export function useSession() {
   return useQuery(getSessionQueryOptions());
 }
+
+export type User = NonNullable<ReturnType<typeof useSession>["data"]>;
