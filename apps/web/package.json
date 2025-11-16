@@ -2,6 +2,9 @@
   "name": "@panabarbero/web",
   "private": true,
   "type": "module",
+  "engines": {
+    "bun": ">=1.3.2"
+  },
   "scripts": {
     "dev": "rsbuild dev",
     "build": "rsbuild build",
