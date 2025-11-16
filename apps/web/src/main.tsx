@@ -22,7 +22,6 @@ export function getRouter() {
   const convex = new ConvexReactClient(env.PUBLIC_CONVEX_URL, {
     verbose: true,
   });
-  // @ts-expect-error
   const convexQueryClient = new ConvexQueryClient(convex);
 
   const queryClient = new QueryClient({
