@@ -105,7 +105,7 @@ export const ServiceForm: FC<ServiceFormProps> = ({
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor={formIds.duration}>
-                  Duración (minutos)
+                  Duración (en minutos)
                 </FieldLabel>
                 {/* @ts-expect-error */}
                 <Input
