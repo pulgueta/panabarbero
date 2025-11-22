@@ -40,6 +40,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
+import { useAnalytics } from "@/hooks/use-analytics";
 import { useAppointmentActions } from "@/hooks/use-appointments";
 import { useBarbersByBarbershopId } from "@/hooks/use-barbers";
 import { useBarbershopAvailability } from "@/hooks/use-barbershop";
@@ -70,6 +71,8 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
   const { data: availability } = useBarbershopAvailability(
     service.barbershopId,
   );
+
+  const { captureEvent } = useAnalytics();
 
   const form = useForm({
     resolver: zodResolver(appointmentFormSchema),
@@ -135,6 +138,12 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
     }
 
     try {
+      captureEvent("service_booked", {
+        serviceName: service.name,
+        serviceId: service._id,
+        barbershopId: service.barbershopId,
+      });
+
       await createAppointment({
         appointment: {
           ...formData,

@@ -27,6 +27,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useAnalytics } from "@/hooks/use-analytics";
 import { useBarbershopActions } from "@/hooks/use-barbershop";
 import { barbershopFormSchema } from "@/lib/schemas";
 
@@ -64,6 +65,8 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
   };
 
   const { states, citiesFromState } = useColombia();
+
+  const { captureEvent } = useAnalytics();
 
   const form = useForm({
     resolver: zodResolver(barbershopFormSchema),
@@ -108,6 +111,11 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
 
   const onSubmit = form.handleSubmit(async (data) => {
     if (!userId) return;
+
+    captureEvent("barbershop_created", {
+      barbershopName: data.name,
+      barbershopId: crypto.randomUUID(),
+    });
 
     const barbershopId = await createBarbershop({
       barbershop: {
