@@ -39,7 +39,9 @@ export const InviteBarberDialog: FC<InviteBarberDialogProps> = ({
     return (
       <Drawer>
         <DrawerTrigger asChild>
-          <Button variant={buttonVariant}>{buttonLabel}</Button>
+          <Button disabled variant={buttonVariant}>
+            {buttonLabel}
+          </Button>
         </DrawerTrigger>
         <DrawerContent>
           <DrawerHeader>
@@ -58,7 +60,9 @@ export const InviteBarberDialog: FC<InviteBarberDialogProps> = ({
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant={buttonVariant}>{buttonLabel}</Button>
+        <Button disabled variant={buttonVariant}>
+          {buttonLabel}
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

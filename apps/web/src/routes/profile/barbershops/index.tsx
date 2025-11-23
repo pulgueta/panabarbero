@@ -13,6 +13,7 @@ import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { DataTable } from "@/components/table/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useBarbershopByOwnerId } from "@/hooks/barbershop/use-barbershop";
 import {
   appointmentsByBarbershopQueryOptions,
   useAppointmentsByBarbershop,
@@ -21,7 +22,6 @@ import {
   barbersByBarbershopIdQueryOptions,
   useBarbersByBarbershopId,
 } from "@/hooks/use-barbers";
-import { useBarbershopByOwnerId } from "@/hooks/use-barbershop";
 import {
   servicesQueryOptions,
   useServicesFromBarbershop,

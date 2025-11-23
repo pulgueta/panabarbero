@@ -27,8 +27,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useBarbershopActions } from "@/hooks/barbershop/use-barbershop";
 import { useAnalytics } from "@/hooks/use-analytics";
-import { useBarbershopActions } from "@/hooks/use-barbershop";
 import { barbershopFormSchema } from "@/lib/schemas";
 
 export type CreateBarbershopFormData = {
@@ -112,23 +112,23 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
   const onSubmit = form.handleSubmit(async (data) => {
     if (!userId) return;
 
+    const uuid = crypto.randomUUID();
+
     captureEvent("barbershop_created", {
       barbershopName: data.name,
-      barbershopId: crypto.randomUUID(),
+      barbershopUuid: uuid,
     });
 
     const barbershopId = await createBarbershop({
       barbershop: {
         ...data,
         ownerId: userId,
-        uuid: crypto.randomUUID(),
+        uuid,
       },
     });
 
     if (onSuccess) onSuccess(barbershopId);
   });
-
-  console.log(form.formState.errors);
 
   const selectedState = form.watch("state");
   const availableCities = selectedState ? citiesFromState(selectedState) : [];

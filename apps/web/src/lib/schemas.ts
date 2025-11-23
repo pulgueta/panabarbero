@@ -74,6 +74,8 @@ const availabilitySchema = object({
   }),
   openAt: string().min(1, "Hora de apertura requerida"),
   closeAt: string().min(1, "Hora de cierre requerida"),
+  lunchStart: string().optional(),
+  lunchEnd: string().optional(),
 });
 
 const socialMediaSchema = object({
@@ -111,6 +113,43 @@ export const barbershopFormSchema = object({
     socialMedia: array(socialMediaSchema).optional(),
   }),
 });
+
+export const barbershopFormSchemaV2 = object({
+  name: string({ error: "El nombre de la barbería es requerido" })
+    .min(3, {
+      message: "El nombre de la barbería debe tener al menos 3 caracteres",
+    })
+    .max(255, {
+      message: "El nombre de la barbería debe tener menos de 255 caracteres",
+    }),
+  description: string().optional(),
+  address: object({
+    fullAddress: string().min(1, "Dirección es requerida"),
+    details: string().optional(),
+  }),
+  city: string().min(1, "Ciudad es requerida"),
+  state: string().min(1, "Departamento es requerido"),
+  openAt: string().min(1, "Hora de apertura requerida"),
+  closeAt: string().min(1, "Hora de cierre requerida"),
+  lunchStart: string().optional(),
+  lunchEnd: string().optional(),
+  zipCode: string().optional(),
+  contactPhone: string().optional(),
+  bannerUrl: url("URL inválida").optional().or(literal("")),
+  isActive: boolean().default(false),
+  gracePeriodMinutes: coerce.number().min(5).max(60).default(5),
+  // availability: array(availabilitySchema).default([]),
+  metadata: object({
+    websiteUrl: url().optional(),
+    contactEmail: email().optional(),
+    completedAppointments: coerce.number().optional(),
+    reviews: coerce.number().optional(),
+    rating: coerce.number().optional(),
+    socialMedia: array(socialMediaSchema).optional(),
+  }),
+});
+
+export type BarbershopFormDataV2 = output<typeof barbershopFormSchemaV2>;
 
 export const serviceFormSchema = object({
   name: string({ error: "El nombre del servicio es requerido" })

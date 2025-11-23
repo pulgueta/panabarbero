@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   useSearchBarbershopsByName,
   useUserVisitedBarbershops,
-} from "@/hooks/use-barbershop";
+} from "@/hooks/barbershop/use-barbershop";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useSession } from "@/hooks/use-session";
 

@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { useBarbershopActions } from "@/hooks/use-barbershop";
+import { useBarbershopActions } from "@/hooks/barbershop/use-barbershop";
 import { socialPlatforms } from "@/lib/schemas";
 
 type SocialRow = { platform: (typeof socialPlatforms)[number]; url: string };

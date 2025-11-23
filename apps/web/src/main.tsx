@@ -22,7 +22,7 @@ export function getRouter() {
   const convex = new ConvexReactClient(env.PUBLIC_CONVEX_URL, {
     verbose: true,
   });
-  // @ts-expect-error
+
   const convexQueryClient = new ConvexQueryClient(convex);
 
   const queryClient = new QueryClient({
@@ -47,7 +47,10 @@ export function getRouter() {
       defaultViewTransition: true,
       Wrap: ({ children }) => (
         <ThemeProvider>
-          <ConvexBetterAuthProvider client={convex} authClient={authClient}>
+          <ConvexBetterAuthProvider
+            client={convexQueryClient.convexClient}
+            authClient={authClient}
+          >
             <QueryClientProvider client={queryClient}>
               <PostHogProvider>{children}</PostHogProvider>
             </QueryClientProvider>

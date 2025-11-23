@@ -35,6 +35,8 @@ const buttonVariants = cva(
   },
 );
 
+export type ButtonVariants = VariantProps<typeof buttonVariants>;
+
 function Button({
   className,
   variant,
@@ -42,7 +44,7 @@ function Button({
   asChild = false,
   ...props
 }: ComponentProps<"button"> &
-  VariantProps<typeof buttonVariants> & {
+  ButtonVariants & {
     asChild?: boolean;
   }) {
   const Comp = asChild ? SlotPrimitive.Slot : "button";

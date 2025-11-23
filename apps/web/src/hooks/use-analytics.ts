@@ -1,7 +1,7 @@
 import { usePostHog } from "posthog-js/react";
 import { useCallback, useEffect } from "react";
 
-import { useBarbershopsByOwnerId } from "./use-barbershop";
+import { useBarbershopsByOwnerId } from "./barbershop/use-barbershop";
 import { useSession } from "./use-session";
 
 export function useAnalytics() {

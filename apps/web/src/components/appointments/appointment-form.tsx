@@ -40,19 +40,28 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
+import { useBarbershopAvailability } from "@/hooks/barbershop/use-barbershop";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { useAppointmentActions } from "@/hooks/use-appointments";
 import { useBarbersByBarbershopId } from "@/hooks/use-barbers";
-import { useBarbershopAvailability } from "@/hooks/use-barbershop";
 import { useSession } from "@/hooks/use-session";
 import { appointmentFormSchema } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 
-interface BookingFormProps {
+type WeekdayKey =
+  | "sunday"
+  | "monday"
+  | "tuesday"
+  | "wednesday"
+  | "thursday"
+  | "friday"
+  | "saturday";
+
+interface AppointmentFormProps {
   service: Service;
 }
 
-export const BookingForm: FC<BookingFormProps> = ({ service }) => {
+export const AppointmentForm: FC<AppointmentFormProps> = ({ service }) => {
   const formIds = {
     customerName: useId(),
     date: useId(),
@@ -87,7 +96,7 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
     },
   });
 
-  const dayIndexes: Record<string, number> = Object.freeze({
+  const dayIndexes: Record<WeekdayKey, number> = Object.freeze({
     sunday: 0,
     monday: 1,
     tuesday: 2,
@@ -100,7 +109,7 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
   const activeDays = new Set(
     availability
       ?.filter((d) => d.weekDay?.isActive)
-      .map((d) => dayIndexes[d.weekDay.day.toLowerCase()]) ?? [],
+      .map((d) => dayIndexes[d.weekDay.day as WeekdayKey]) ?? [],
   );
 
   const disableDay = useCallback(
@@ -126,6 +135,34 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
     createAppointment: { mutateAsync: createAppointment, isPending },
   } = useAppointmentActions();
 
+  const timeStringToMinutes = (value?: string | null) => {
+    if (!value) return null;
+    const [hours, minutes] = value.split(":").map(Number);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+
+    return hours * 60 + minutes;
+  };
+
+  const minutesOfTimestamp = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return date.getHours() * 60 + date.getMinutes();
+  };
+
+  const scheduleForDate = (timestamp?: number) => {
+    if (!timestamp || !availability) return undefined;
+    const weekday: WeekdayKey = [
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+    ][new Date(timestamp).getDay()] as WeekdayKey;
+
+    return availability.find((entry) => entry.weekDay.day === weekday);
+  };
+
   const onSubmit = form.handleSubmit(async (formData) => {
     if (!user?.userId) {
       toast.error("Debes iniciar sesión para poder reservar un servicio");
@@ -134,6 +171,38 @@ export const BookingForm: FC<BookingFormProps> = ({ service }) => {
 
     if (!formData.barberId) {
       toast.error("Debes seleccionar un barbero");
+      return;
+    }
+
+    const schedule = scheduleForDate(formData.date);
+
+    if (!schedule || !schedule.weekDay.isActive) {
+      toast.error("La barbería no atiende en el día seleccionado.");
+      return;
+    }
+
+    const selectedMinutes = minutesOfTimestamp(formData.date);
+    const openMinutes = timeStringToMinutes(schedule.openAt);
+    const closeMinutes = timeStringToMinutes(schedule.closeAt);
+
+    if (
+      (openMinutes !== null && selectedMinutes < openMinutes) ||
+      (closeMinutes !== null && selectedMinutes >= closeMinutes)
+    ) {
+      toast.error("Selecciona una hora dentro del horario de atención.");
+      return;
+    }
+
+    const lunchStartMinutes = timeStringToMinutes(schedule.lunchStart);
+    const lunchEndMinutes = timeStringToMinutes(schedule.lunchEnd);
+
+    if (
+      lunchStartMinutes !== null &&
+      lunchEndMinutes !== null &&
+      selectedMinutes >= lunchStartMinutes &&
+      selectedMinutes < lunchEndMinutes
+    ) {
+      toast.error("La barbería se encuentra en horario de almuerzo.");
       return;
     }
 

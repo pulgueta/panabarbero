@@ -49,7 +49,7 @@ export const servicesTableColumns: ColumnDef<Service>[] = [
           isSuccess: isDeleted,
         },
       } = useServiceActions();
-      const [open, setOpen] = useState<boolean>(false);
+      const [_, setOpen] = useState<boolean>(false);
 
       const handleDelete = async () => {
         await deleteService({
@@ -79,6 +79,7 @@ export const servicesTableColumns: ColumnDef<Service>[] = [
                 asChild
                 barbershopId={service.barbershopId}
                 initialValues={service}
+                serviceId={service._id}
               >
                 <DropdownMenuItem
                   className="cursor-pointer"

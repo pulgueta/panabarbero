@@ -56,6 +56,25 @@ function withinOpenHours(
   return adjStart >= openMin && adjEnd <= closeMin + 1440;
 }
 
+function overlapsLunchBreak(
+  lunchStart: string | undefined,
+  lunchEnd: string | undefined,
+  startAt: number,
+  endAt: number,
+): boolean {
+  if (!lunchStart || !lunchEnd) return false;
+
+  const lunchStartMin = parseTimeToMinutes(lunchStart);
+  const lunchEndMin = parseTimeToMinutes(lunchEnd);
+
+  if (Number.isNaN(lunchStartMin) || Number.isNaN(lunchEndMin)) return false;
+
+  const startMin = minutesOfDay(startAt);
+  const endMin = minutesOfDay(endAt);
+
+  return startMin < lunchEndMin && endMin > lunchStartMin;
+}
+
 export const createAppointment = mutation({
   args: {
     appointment: v.object({
@@ -163,6 +182,17 @@ export const createAppointment = mutation({
       )
     ) {
       throw new ConvexError(errorMessages.appointmentOutsideWorkingHours);
+    }
+
+    if (
+      overlapsLunchBreak(
+        dayAvailability.lunchStart,
+        dayAvailability.lunchEnd,
+        appointment.date,
+        endAt,
+      )
+    ) {
+      throw new ConvexError(errorMessages.appointmentDuringLunchBreak);
     }
 
     const appointmentId = await ctx.db.insert("appointments", {
@@ -544,6 +574,17 @@ export const updateAppointment = mutation({
       )
     ) {
       throw new Error("Appointment is outside working hours");
+    }
+
+    if (
+      overlapsLunchBreak(
+        dayAvailability.lunchStart,
+        dayAvailability.lunchEnd,
+        appointment.date,
+        endAt,
+      )
+    ) {
+      throw new ConvexError(errorMessages.appointmentDuringLunchBreak);
     }
 
     const updatedAppointment = await ctx.db.patch(appointmentId, appointment);

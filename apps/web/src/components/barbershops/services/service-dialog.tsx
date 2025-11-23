@@ -1,4 +1,4 @@
-import type { Barbershop } from "@panabarbero/convex/schemas";
+import type { Barbershop, Service } from "@panabarbero/convex/schemas";
 import type { FC, PropsWithChildren } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -25,12 +25,14 @@ import { ServiceForm } from "./service-form";
 interface ServiceDialogProps extends PropsWithChildren {
   barbershopId: Barbershop["_id"];
   initialValues?: ServiceFormData;
+  serviceId?: Service["_id"];
   asChild?: boolean;
 }
 
 export const ServiceDialog: FC<ServiceDialogProps> = ({
   barbershopId,
   initialValues,
+  serviceId,
   asChild = false,
   children,
 }) => {
@@ -55,6 +57,7 @@ export const ServiceDialog: FC<ServiceDialogProps> = ({
             <ServiceForm
               barbershopId={barbershopId}
               initialValues={initialValues}
+              serviceId={serviceId}
             />
           </div>
         </DrawerContent>
@@ -76,6 +79,7 @@ export const ServiceDialog: FC<ServiceDialogProps> = ({
         <ServiceForm
           barbershopId={barbershopId}
           initialValues={initialValues}
+          serviceId={serviceId}
         />
       </DialogContent>
     </Dialog>

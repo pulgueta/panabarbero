@@ -7,9 +7,9 @@ import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useBarbershopsByOwnerId } from "@/hooks/use-barbershop";
-import { useSession } from "@/hooks/use-session";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useBarbershopsByOwnerId } from "@/hooks/barbershop/use-barbershop";
+import { useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/profile/barbershops/analytics")({
   component: AnalyticsPage,
@@ -66,23 +66,36 @@ function AnalyticsPage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div>
-                  <div className="font-bold text-2xl tabular-nums">{completed}</div>
-                  <div className="text-xs text-muted-foreground">Citas completadas</div>
+                  <div className="font-bold text-2xl tabular-nums">
+                    {completed}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Citas completadas
+                  </div>
                 </div>
                 <div>
-                  <div className="font-bold text-2xl tabular-nums">{reviews}</div>
+                  <div className="font-bold text-2xl tabular-nums">
+                    {reviews}
+                  </div>
                   <div className="text-xs text-muted-foreground">Reseñas</div>
                 </div>
                 <div>
-                  <div className="font-bold text-2xl tabular-nums">{rating.toFixed(1)}</div>
-                  <div className="text-xs text-muted-foreground">Calificación</div>
+                  <div className="font-bold text-2xl tabular-nums">
+                    {rating.toFixed(1)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Calificación
+                  </div>
                 </div>
               </div>
 
               <div>
                 <div className="mb-1 text-sm">Rating</div>
                 <div className="h-2 w-full rounded bg-muted">
-                  <div className="h-2 rounded bg-primary" style={{ width: `${ratingPct}%` }} />
+                  <div
+                    className="h-2 rounded bg-primary"
+                    style={{ width: `${ratingPct}%` }}
+                  />
                 </div>
               </div>
             </CardContent>
@@ -92,5 +105,3 @@ function AnalyticsPage() {
     </BorderContainer>
   );
 }
-
-

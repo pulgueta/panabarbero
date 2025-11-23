@@ -51,6 +51,8 @@ export const tables = {
         }),
         openAt: v.string(),
         closeAt: v.string(),
+        lunchStart: v.optional(v.string()),
+        lunchEnd: v.optional(v.string()),
       }),
     ),
     city: v.string(),

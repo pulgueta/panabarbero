@@ -8,7 +8,7 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
-import { useBarbershopActions } from "@/hooks/use-barbershop";
+import { useBarbershopActions } from "@/hooks/barbershop/use-barbershop";
 
 type DayKey =
   | "monday"
@@ -56,6 +56,8 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
             weekDay: { day: d.key, isActive: false },
             openAt: "",
             closeAt: "",
+            lunchStart: undefined,
+            lunchEnd: undefined,
           }
         );
       }),
@@ -71,12 +73,32 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
 
     if (!entry) return;
 
+    const formatTime = (value?: string) =>
+      value && value.trim().length > 0 ? value : undefined;
+
+    const lunchStart = formatTime(entry.lunchStart);
+    const lunchEnd = formatTime(entry.lunchEnd);
+
+    if ((lunchStart && !lunchEnd) || (!lunchStart && lunchEnd)) {
+      toast.error(
+        "Debes seleccionar tanto la hora de inicio como fin para el almuerzo.",
+      );
+      return;
+    }
+
+    if (lunchStart && lunchEnd && lunchEnd <= lunchStart) {
+      toast.error("La hora de fin de almuerzo debe ser mayor a la de inicio.");
+      return;
+    }
+
     await updateBarbershopDayAvailability({
       barbershopId,
       day,
       isActive: entry.weekDay.isActive,
       openAt: entry.openAt,
       closeAt: entry.closeAt,
+      lunchStart,
+      lunchEnd,
     });
   };
 
@@ -116,7 +138,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
                   <span className="text-muted-foreground text-sm">Activo</span>
                 </div>
               </div>
-              <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <Field>
                   <FieldLabel>Apertura</FieldLabel>
                   <Input
@@ -153,10 +175,46 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
                   />
                 </Field>
 
+                <Field>
+                  <FieldLabel>Inicio de almuerzo (opcional)</FieldLabel>
+                  <Input
+                    type="time"
+                    value={row.lunchStart ?? ""}
+                    onChange={(e) =>
+                      setRows((prev) => {
+                        const next = [...prev];
+                        next[idx] = {
+                          ...row,
+                          lunchStart: e.target.value || undefined,
+                        };
+                        return next;
+                      })
+                    }
+                  />
+                </Field>
+
+                <Field>
+                  <FieldLabel>Fin de almuerzo (opcional)</FieldLabel>
+                  <Input
+                    type="time"
+                    value={row.lunchEnd ?? ""}
+                    onChange={(e) =>
+                      setRows((prev) => {
+                        const next = [...prev];
+                        next[idx] = {
+                          ...row,
+                          lunchEnd: e.target.value || undefined,
+                        };
+                        return next;
+                      })
+                    }
+                  />
+                </Field>
+
                 <Button
                   variant="outline"
                   onClick={() => saveRow(d.key)}
-                  className="w-full"
+                  className="col-span-2 w-full"
                   disabled={isUpdatingAvailability}
                 >
                   {isUpdatingAvailability ? <Spinner /> : "Guardar"}

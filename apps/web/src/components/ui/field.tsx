@@ -78,11 +78,13 @@ const fieldVariants = cva(
   },
 );
 
+export type FieldVariants = VariantProps<typeof fieldVariants>;
+
 function Field({
   className,
   orientation = "vertical",
   ...props
-}: ComponentProps<"div"> & VariantProps<typeof fieldVariants>) {
+}: ComponentProps<"div"> & FieldVariants) {
   return (
     // biome-ignore lint/a11y/useSemanticElements: as shadcn created
     <div

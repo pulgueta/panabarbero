@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { Barbershop } from "@panabarbero/convex/schemas";
+import type { Barbershop, Service } from "@panabarbero/convex/schemas";
 import type { FC } from "react";
 import { useEffect, useId } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -27,11 +27,13 @@ import { serviceFormSchema } from "@/lib/schemas";
 interface ServiceFormProps {
   barbershopId: Barbershop["_id"];
   initialValues?: ServiceFormData;
+  serviceId?: Service["_id"];
 }
 
 export const ServiceForm: FC<ServiceFormProps> = ({
   barbershopId,
   initialValues,
+  serviceId,
 }) => {
   const formIds = {
     form: useId(),
@@ -56,9 +58,26 @@ export const ServiceForm: FC<ServiceFormProps> = ({
       isPending: isCreatingService,
       isSuccess: isCreatedService,
     },
+    updateServiceMutation: {
+      mutateAsync: updateService,
+      isPending: isUpdatingService,
+      isSuccess: isUpdatedService,
+    },
   } = useServiceActions();
 
+  const loading = isCreatingService || isUpdatingService;
+
   const onSubmit = form.handleSubmit(async (data) => {
+    if (initialValues && serviceId) {
+      await updateService({
+        service: {
+          ...data,
+        },
+        serviceId,
+      });
+      return;
+    }
+
     await createService({
       service: {
         ...data,
@@ -74,7 +93,11 @@ export const ServiceForm: FC<ServiceFormProps> = ({
     if (isCreatedService) {
       toast.success("Servicio creado exitosamente");
     }
-  }, [isCreatedService]);
+
+    if (isUpdatedService) {
+      toast.success("Servicio actualizado exitosamente");
+    }
+  }, [isCreatedService, isUpdatedService]);
 
   return (
     <form id={formIds.form} onSubmit={onSubmit} className="space-y-4">
@@ -92,6 +115,7 @@ export const ServiceForm: FC<ServiceFormProps> = ({
                 id={formIds.name}
                 aria-invalid={fieldState.invalid}
                 placeholder="Corte de pelo"
+                disabled={loading}
               />
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
@@ -115,6 +139,7 @@ export const ServiceForm: FC<ServiceFormProps> = ({
                   type="number"
                   placeholder="30"
                   className="w-full tabular-nums"
+                  disabled={loading}
                 />
                 {fieldState.invalid && (
                   <FieldError errors={[fieldState.error]} />
@@ -141,6 +166,7 @@ export const ServiceForm: FC<ServiceFormProps> = ({
                     type="number"
                     placeholder="30000"
                     className="w-full tabular-nums"
+                    disabled={loading}
                   />
                   <InputGroupAddon align="inline-end">
                     <InputGroupText>COP</InputGroupText>
@@ -155,12 +181,8 @@ export const ServiceForm: FC<ServiceFormProps> = ({
         </div>
       </FieldGroup>
 
-      <Button
-        type="submit"
-        disabled={isCreatingService}
-        className="mt-4 w-full"
-      >
-        {isCreatingService ? <Spinner /> : "Guardar"}
+      <Button type="submit" disabled={loading} className="mt-4 w-full">
+        {loading ? <Spinner /> : "Guardar"}
       </Button>
     </form>
   );

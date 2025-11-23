@@ -33,27 +33,16 @@ import { getSessionQueryOptions } from "@/hooks/use-session";
 export const Route = createFileRoute("/profile/")({
   component: ProfilePage,
   pendingComponent: LoadingComponent,
-  beforeLoad: async ({ context }) => {
-    const user = await context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
-
-    if (!user?.userId) {
-      throw redirect({
-        to: "/login",
-      });
-    }
-  },
   loader: async ({ context }) => {
     const user = await context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
     );
 
     if (user?.userId) {
-      await context.queryClient.ensureQueryData(
+      await context.queryClient.prefetchQuery(
         getProfileQueryOptions(user.userId),
       );
-      await context.queryClient.ensureQueryData(
+      await context.queryClient.prefetchQuery(
         isBarberQueryOptions(user.userId),
       );
     }

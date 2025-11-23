@@ -12,7 +12,7 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import { activeBarbershopsQueryOptions } from "@/hooks/use-barbershop";
+import { activeBarbershopsQueryOptions } from "@/hooks/barbershop/use-barbershop";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 
 export type BarbershopSearch = {

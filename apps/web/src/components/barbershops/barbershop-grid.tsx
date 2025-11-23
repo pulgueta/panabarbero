@@ -1,7 +1,7 @@
 import { Info } from "lucide-react";
 import type { FC } from "react";
 
-import { useActiveBarbershops } from "@/hooks/use-barbershop";
+import { useActiveBarbershops } from "@/hooks/barbershop/use-barbershop";
 import type { BarbershopSearch } from "@/routes/barbershops";
 import { BarbershopListCard } from "./barbershop-list-card";
 import { BarbershopLoadingGrid } from "./barbershop-loading-grid";

@@ -17,7 +17,7 @@ import type { useSession } from "@/hooks/use-session";
 export const UserPopover: FC<ReturnType<typeof useSession>["data"]> = (
   user,
 ) => {
-  const isBarber = useIsBarber(user?.userId ?? "");
+  const { data: isBarber } = useIsBarber(user?.userId ?? "");
 
   const handleSignOut = async () => {
     await signOut({

@@ -247,6 +247,8 @@ export const updateBarbershopDayAvailability = mutation({
     isActive: v.boolean(),
     openAt: v.optional(v.string()),
     closeAt: v.optional(v.string()),
+    lunchStart: v.optional(v.string()),
+    lunchEnd: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
@@ -265,6 +267,8 @@ export const updateBarbershopDayAvailability = mutation({
       weekDay: { day: args.day, isActive: args.isActive },
       openAt: args.openAt,
       closeAt: args.closeAt,
+    lunchStart: args.lunchStart,
+    lunchEnd: args.lunchEnd,
     };
 
     const newAvailability = shop.availability.slice();

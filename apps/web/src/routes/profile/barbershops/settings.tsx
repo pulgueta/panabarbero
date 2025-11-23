@@ -19,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   barbershopsByOwnerIdQueryOptions,
   useBarbershopByOwnerId,
-} from "@/hooks/use-barbershop";
+} from "@/hooks/barbershop/use-barbershop";
 import { useServicesFromBarbershop } from "@/hooks/use-services";
 import { getSessionQueryOptions } from "@/hooks/use-session";
 

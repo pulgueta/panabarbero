@@ -2,6 +2,7 @@ import type { Service } from "@panabarbero/convex/schemas";
 import { Clock } from "lucide-react";
 import type { FC } from "react";
 
+import { AppointmentButton } from "@/components/appointments/appointment-button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Carousel,
@@ -10,7 +11,6 @@ import {
   useCarouselApi,
 } from "@/components/ui/carousel";
 import { formatCurrency } from "@/lib/form-utils";
-import { BookingButton } from "./booking-button";
 
 interface ServicesCarouselProps {
   services: Service[];
@@ -65,7 +65,7 @@ export const ServicesCarousel: FC<ServicesCarouselProps> = (props) => {
                   </p>
                 </section>
 
-                <BookingButton service={service} />
+                <AppointmentButton service={service} />
               </CardContent>
             </Card>
           </CarouselItem>

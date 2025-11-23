@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { useBarbershopActions } from "@/hooks/use-barbershop";
+import { useBarbershopActions } from "@/hooks/barbershop/use-barbershop";
 
 interface PreferencesFormProps {
   barbershop: Barbershop;

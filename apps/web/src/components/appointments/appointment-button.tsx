@@ -18,23 +18,17 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { useIsBarbershopOwner } from "@/hooks/use-barbershop";
+import { useIsBarbershopOwner } from "@/hooks/barbershop/use-barbershop";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useSession } from "@/hooks/use-session";
-import { BookingForm } from "./booking-form";
-import { ServiceForm } from "./service-form";
+import { ServiceForm } from "../barbershops/services/service-form";
+import { AppointmentForm } from "./appointment-form";
 
-// import {
-//   Popover,
-//   PopoverContent,
-//   PopoverTrigger,
-// } from "@/components/ui/popover";
-
-interface BookingButtonProps {
+interface AppointmentButtonProps {
   service: Service;
 }
 
-export const BookingButton: FC<BookingButtonProps> = ({ service }) => {
+export const AppointmentButton: FC<AppointmentButtonProps> = ({ service }) => {
   const { isMobile } = useIsMobile();
   const { data: user } = useSession();
 
@@ -65,9 +59,13 @@ export const BookingButton: FC<BookingButtonProps> = ({ service }) => {
           </DrawerHeader>
           <div className="p-4">
             {barbershop ? (
-              <ServiceForm service={service} />
+              <ServiceForm
+                barbershopId={barbershop._id}
+                initialValues={service}
+                serviceId={service._id}
+              />
             ) : (
-              <BookingForm service={service} />
+              <AppointmentForm service={service} />
             )}
           </div>
         </DrawerContent>
@@ -87,9 +85,13 @@ export const BookingButton: FC<BookingButtonProps> = ({ service }) => {
         </DialogHeader>
 
         {barbershop ? (
-          <ServiceForm service={service} />
+          <ServiceForm
+            barbershopId={barbershop._id}
+            initialValues={service}
+            serviceId={service._id}
+          />
         ) : (
-          <BookingForm service={service} />
+          <AppointmentForm service={service} />
         )}
       </DialogContent>
     </Dialog>
