@@ -1,5 +1,5 @@
 import { signOut } from "@panabarbero/convex/auth";
-import { Link } from "@tanstack/react-router";
+import { redirect } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
 import type { FC } from "react";
 
@@ -17,10 +17,18 @@ import type { useSession } from "@/hooks/use-session";
 export const UserPopover: FC<ReturnType<typeof useSession>["data"]> = (
   user,
 ) => {
-  const isBarber = useIsBarber(user?.userId ?? "");
+  const { data: isBarber } = useIsBarber(user?.userId ?? "");
 
   const handleSignOut = async () => {
-    await signOut();
+    await signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          throw redirect({
+            to: "/login",
+          });
+        },
+      },
+    });
   };
 
   const getUserInitials = () => {
@@ -44,65 +52,23 @@ export const UserPopover: FC<ReturnType<typeof useSession>["data"]> = (
         </Avatar>
       </PopoverTrigger>
       <PopoverContent className="w-full max-w-sm tracking-tight" align="end">
-        <div className="flex flex-col space-y-1">
+        <div className="flex flex-col space-y-2">
           <p className="font-medium text-sm leading-none">{user?.name}</p>
           <p className="text-muted-foreground text-xs leading-none">
-            {user?.email}
+            {isBarber ? "Barbero" : "Cliente"}
           </p>
         </div>
 
-        <Separator className="mt-4 mb-2" />
+        <Separator className="my-2" />
 
-        <div className="flex flex-col items-start space-y-1 text-pretty">
-          {isBarber ? (
-            <>
-              <Button
-                variant="link"
-                className="w-full justify-start p-0 text-foreground"
-                asChild
-              >
-                <Link to="/barbershop-settings">
-                  Configuración de la barbería
-                </Link>
-              </Button>
-              <Button
-                variant="link"
-                className="w-full justify-start p-0 text-foreground"
-                asChild
-              >
-                <Link to="/analytics">Analíticas</Link>
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                variant="link"
-                className="w-full justify-start p-0 text-foreground"
-                asChild
-              >
-                <Link to="/appointments">Mis Citas</Link>
-              </Button>
-              <Button
-                variant="link"
-                className="w-full justify-start p-0 text-foreground"
-                asChild
-              >
-                <Link to="/reviews">Mis Reseñas</Link>
-              </Button>
-            </>
-          )}
-
-          <Separator className="my-2" />
-
-          <Button
-            variant="destructive"
-            onClick={handleSignOut}
-            className="w-full"
-          >
-            <LogOut className="size-4" />
-            Cerrar Sesión
-          </Button>
-        </div>
+        <Button
+          variant="destructive"
+          onClick={handleSignOut}
+          className="w-full"
+        >
+          <LogOut className="size-4" />
+          Cerrar Sesión
+        </Button>
       </PopoverContent>
     </Popover>
   );

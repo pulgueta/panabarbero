@@ -2,6 +2,7 @@ import { expo } from "@better-auth/expo";
 import type { AuthFunctions, GenericCtx } from "@convex-dev/better-auth";
 import { createClient } from "@convex-dev/better-auth";
 import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
+import { APP_NAME } from "@panabarbero/constants";
 import { betterAuth } from "better-auth";
 import { twoFactor } from "better-auth/plugins";
 import { passkey } from "better-auth/plugins/passkey";
@@ -76,7 +77,6 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
 export const { onCreate, onUpdate, onDelete } = authComponent.triggersApi();
 
 const siteUrl = process.env.SITE_URL ?? "";
-const previewSiteUrl = process.env.PREVIEW_SITE_URL ?? "";
 
 export const createAuth = (
   ctx: GenericCtx<DataModel>,
@@ -86,7 +86,12 @@ export const createAuth = (
     logger: {
       disabled: optionsOnly,
     },
-    trustedOrigins: ["panabarbero://", siteUrl, previewSiteUrl],
+    appName: APP_NAME,
+    trustedOrigins: [
+      "panabarbero://",
+      siteUrl,
+      process.env.PREVIEW_SITE_URL ?? "",
+    ],
     database: authComponent.adapter(ctx),
     emailAndPassword: {
       enabled: false,

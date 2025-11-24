@@ -3,20 +3,26 @@ import { Link, useRouterState } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useIsBarber } from "@/hooks/use-barbers";
 import { useSession } from "@/hooks/use-session";
 import { ThemeToggler } from "../theme-toggler";
 import { UserPopover } from "./user-popover";
 
 export const Header = () => {
   const { data: user, isLoading } = useSession();
+  const { data: isBarber } = useIsBarber(user?.userId ?? "");
 
   const router = useRouterState();
 
   const currentPath = router.location.pathname;
 
-  const navigationRoutesWithoutSettings = tanstack
-    .getNavigationRoutes(user?._id)
-    .filter((route) => route.to !== "/settings");
+  const navigationRoutesWithoutSettings = user
+    ? tanstack.authenticatedRoutes.navigation.filter(
+        (route) => route.to !== "/settings",
+      )
+    : tanstack.publicRoutes.navigation.filter(
+        (route) => route.to !== "/settings",
+      );
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-4">
@@ -32,23 +38,41 @@ export const Header = () => {
 
         <nav className="flex flex-1 items-center justify-center">
           <div className="flex items-center font-medium text-sm md:space-x-8 lg:space-x-16">
-            {navigationRoutesWithoutSettings.map((route) => (
-              <Button
-                key={route.to}
-                variant={currentPath === route.to ? "default" : "ghost"}
-                asChild
-              >
-                <Link
-                  key={route.to}
-                  to={route.to}
-                  style={{
-                    viewTransitionName: route.to,
-                  }}
-                >
-                  {route.label}
-                </Link>
-              </Button>
-            ))}
+            {isBarber
+              ? tanstack.authenticatedRoutes.barber.map((route) => (
+                  <Button
+                    key={route.to}
+                    variant={currentPath === route.to ? "outline" : "ghost"}
+                    asChild
+                  >
+                    <Link
+                      key={route.to}
+                      to={route.to}
+                      style={{
+                        viewTransitionName: route.to,
+                      }}
+                    >
+                      {route.label}
+                    </Link>
+                  </Button>
+                ))
+              : navigationRoutesWithoutSettings.map((route) => (
+                  <Button
+                    key={route.to}
+                    variant={currentPath === route.to ? "outline" : "ghost"}
+                    asChild
+                  >
+                    <Link
+                      key={route.to}
+                      to={route.to}
+                      style={{
+                        viewTransitionName: route.to,
+                      }}
+                    >
+                      {route.label}
+                    </Link>
+                  </Button>
+                ))}
           </div>
         </nav>
 

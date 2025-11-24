@@ -8,9 +8,6 @@
   "scripts": {
     "clean": "git clean -xdf .cache .turbo dist node_modules"
   },
-  "dependencies": {
-    "@panabarbero/db": "workspace:*"
-  },
   "devDependencies": {
     "typescript": "^5.9.2"
   },

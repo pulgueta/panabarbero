@@ -1,5 +1,7 @@
-import { v } from "convex/values";
+import { errorMessages } from "@panabarbero/constants";
+import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import {
   internalMutation,
   internalQuery,
@@ -54,6 +56,25 @@ function withinOpenHours(
   return adjStart >= openMin && adjEnd <= closeMin + 1440;
 }
 
+function overlapsLunchBreak(
+  lunchStart: string | undefined,
+  lunchEnd: string | undefined,
+  startAt: number,
+  endAt: number,
+): boolean {
+  if (!lunchStart || !lunchEnd) return false;
+
+  const lunchStartMin = parseTimeToMinutes(lunchStart);
+  const lunchEndMin = parseTimeToMinutes(lunchEnd);
+
+  if (Number.isNaN(lunchStartMin) || Number.isNaN(lunchEndMin)) return false;
+
+  const startMin = minutesOfDay(startAt);
+  const endMin = minutesOfDay(endAt);
+
+  return startMin < lunchEndMin && endMin > lunchStartMin;
+}
+
 export const createAppointment = mutation({
   args: {
     appointment: v.object({
@@ -72,9 +93,7 @@ export const createAppointment = mutation({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const { appointment } = args;
@@ -83,15 +102,11 @@ export const createAppointment = mutation({
     const barber = await ctx.db.get(appointment.barberId);
 
     if (!barber) {
-      throw new Error("Barber not found", {
-        cause: appointment.barberId,
-      });
+      throw new ConvexError(errorMessages.notFound("barbero"));
     }
 
     if (!service) {
-      throw new Error("Service not found", {
-        cause: appointment.serviceId,
-      });
+      throw new ConvexError(errorMessages.notFound("servicio"));
     }
 
     const endsAt = appointment.date + service.duration;
@@ -128,18 +143,13 @@ export const createAppointment = mutation({
       const overlaps = appt.date < endsAt && apptEnd > appointment.date;
 
       if (overlaps) {
-        throw new Error("Appointment overlaps with existing appointment", {
-          cause: appt,
-        });
+        throw new ConvexError(errorMessages.appointmentOverlaps);
       }
     }
 
     const barbershop = await ctx.db.get(appointment.barbershopId);
 
-    if (!barbershop)
-      throw new Error("Barbershop not found", {
-        cause: appointment.barbershopId,
-      });
+    if (!barbershop) throw new ConvexError(errorMessages.notFound("barbería"));
 
     const date = new Date(appointment.date);
     const dayIdx = date.getDay();
@@ -158,7 +168,7 @@ export const createAppointment = mutation({
     );
 
     if (!dayAvailability || !dayAvailability.weekDay.isActive) {
-      throw new Error("Barbershop is closed on selected day");
+      throw new ConvexError(errorMessages.barbershopClosedOnSelectedDay);
     }
 
     const endAt = appointment.date + (service.duration ?? 0);
@@ -171,14 +181,18 @@ export const createAppointment = mutation({
         endAt,
       )
     ) {
-      throw new Error("Appointment is outside working hours", {
-        cause: {
-          openAt: dayAvailability.openAt,
-          closeAt: dayAvailability.closeAt,
-          date: appointment.date,
-          endAt,
-        },
-      });
+      throw new ConvexError(errorMessages.appointmentOutsideWorkingHours);
+    }
+
+    if (
+      overlapsLunchBreak(
+        dayAvailability.lunchStart,
+        dayAvailability.lunchEnd,
+        appointment.date,
+        endAt,
+      )
+    ) {
+      throw new ConvexError(errorMessages.appointmentDuringLunchBreak);
     }
 
     const appointmentId = await ctx.db.insert("appointments", {
@@ -195,9 +209,7 @@ export const createAppointment = mutation({
     );
 
     if (!userProfile) {
-      throw new Error("User profile not found", {
-        cause: appointment.userId,
-      });
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
 
     const barberProfile = await ctx.runQuery(
@@ -208,9 +220,7 @@ export const createAppointment = mutation({
     );
 
     if (!barberProfile) {
-      throw new Error("Barber profile not found", {
-        cause: barber.userId,
-      });
+      throw new ConvexError(errorMessages.notFound("perfil de barbero"));
     }
 
     const enabledChannels = {
@@ -240,6 +250,7 @@ export const createAppointment = mutation({
     }
 
     const barberChannels = enabledChannels.barber.map((n) => n.type);
+
     if (barberChannels.length > 0) {
       await ctx.scheduler.runAfter(
         0,
@@ -283,9 +294,7 @@ export const getAppointmentsByUserId = query({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const appointments = await ctx.db
@@ -301,21 +310,20 @@ export const getAppointmentsByUserId = query({
 
 export const getAppointmentsByBarbershopId = query({
   args: {
-    barbershopId: v.id("barbershops"),
+    barbershopId: v.optional(v.id("barbershops")),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      return [];
     }
+
     const appointments = await ctx.db
       .query("appointments")
-      .filter(({ eq, field }) => eq(field("barbershopId"), args.barbershopId))
-      .withIndex("by_barbershopId")
-      .order("asc")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId as Id<"barbershops">),
+      )
       .collect();
 
     return appointments;
@@ -338,9 +346,7 @@ export const getAppointmentByUuid = query({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
     const appointment = await ctx.db
       .query("appointments")
@@ -360,9 +366,7 @@ export const getAppointmentByUserIdAndBarbershopId = query({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
     const appointment = await ctx.db
       .query("appointments")
@@ -383,9 +387,7 @@ export const getAppointmentsByBarberId = query({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
     const appointments = await ctx.db
       .query("appointments")
@@ -438,9 +440,7 @@ export const setAppointmentStatus = mutation({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const updatedAppointment = await ctx.db.patch(args.appointmentId, {
@@ -511,17 +511,13 @@ export const updateAppointment = mutation({
     const original = await ctx.db.get(appointmentId);
 
     if (!original) {
-      throw new Error("Appointment not found", {
-        cause: appointmentId,
-      });
+      throw new ConvexError(errorMessages.notFound("cita"));
     }
 
     const service = await ctx.db.get(appointment.serviceId);
 
     if (!service) {
-      throw new Error("Service not found", {
-        cause: appointment.serviceId,
-      });
+      throw new ConvexError(errorMessages.notFound("servicio"));
     }
 
     const duration =
@@ -539,17 +535,12 @@ export const updateAppointment = mutation({
     );
 
     if (overlap) {
-      throw new Error("Appointment overlaps with existing appointment", {
-        cause: overlap,
-      });
+      throw new ConvexError(errorMessages.appointmentOverlaps);
     }
 
     const shop = await ctx.db.get(appointment.barbershopId);
 
-    if (!shop)
-      throw new Error("Barbershop not found", {
-        cause: appointment.barbershopId,
-      });
+    if (!shop) throw new ConvexError(errorMessages.notFound("barbería"));
 
     const date = new Date(appointment.date);
     const dayIdx = date.getDay();
@@ -585,6 +576,17 @@ export const updateAppointment = mutation({
       throw new Error("Appointment is outside working hours");
     }
 
+    if (
+      overlapsLunchBreak(
+        dayAvailability.lunchStart,
+        dayAvailability.lunchEnd,
+        appointment.date,
+        endAt,
+      )
+    ) {
+      throw new ConvexError(errorMessages.appointmentDuringLunchBreak);
+    }
+
     const updatedAppointment = await ctx.db.patch(appointmentId, appointment);
     const isRescheduled =
       appointment.status === "rescheduled" ||
@@ -618,9 +620,7 @@ export const deleteAppointment = mutation({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
     const { appointmentId } = args;
 
@@ -638,13 +638,11 @@ export const cancelAppointment = mutation({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
     const appt = await ctx.db.get(args.appointmentId);
 
-    if (!appt) throw new Error("Appointment not found");
+    if (!appt) throw new ConvexError(errorMessages.notFound("cita"));
 
     await ctx.db.patch(args.appointmentId, {
       status: "cancelled",
@@ -675,9 +673,7 @@ export const requestReschedule = mutation({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const { ok, retryAfter } = await rateLimiter.limit(
@@ -699,7 +695,7 @@ export const requestReschedule = mutation({
 
     const appt = await ctx.db.get(args.appointmentId);
 
-    if (!appt) throw new Error("Appointment not found");
+    if (!appt) throw new ConvexError(errorMessages.notFound("cita"));
 
     await ctx.db.patch(args.appointmentId, {
       status: "pending",
@@ -715,17 +711,13 @@ export const requestReschedule = mutation({
     );
 
     if (!userProfile) {
-      throw new Error("User profile not found", {
-        cause: appt.userId,
-      });
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
 
     const barber = await ctx.db.get(appt.barberId);
 
     if (!barber) {
-      throw new Error("Barber not found", {
-        cause: appt.barberId,
-      });
+      throw new ConvexError(errorMessages.notFound("barbero"));
     }
 
     const barberProfile = await ctx.runQuery(
@@ -736,9 +728,7 @@ export const requestReschedule = mutation({
     );
 
     if (!barberProfile) {
-      throw new Error("Barber profile not found", {
-        cause: barber.userId,
-      });
+      throw new ConvexError(errorMessages.notFound("perfil de barbero"));
     }
 
     const enabledChannels = {
@@ -746,36 +736,48 @@ export const requestReschedule = mutation({
       barber: barberProfile.notificationsPreferences.filter((n) => n.enabled),
     };
 
-    for (const _ of enabledChannels.user) {
-      await ctx.runMutation(internal.notifications.createNotification, {
-        notification: {
-          body: "Un cliente ha solicitado un reagendamiento.",
-          reason: "appointment_rescheduled_request",
-          receiverUserId: barberProfile.userId,
-          title: "Solicitud de reagendamiento",
-          uuid: crypto.randomUUID(),
-          senderUserId: userProfile.userId,
-          channels: enabledChannels.barber.map((n) => n.type),
-          appointmentId: args.appointmentId,
-          preview: "Un cliente ha solicitado un reagendamiento.",
+    const userChannels = enabledChannels.user.map((n) => n.type);
+
+    if (userChannels.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.notifications.createNotification,
+        {
+          notification: {
+            body: "Un cliente ha solicitado un reagendamiento.",
+            reason: "appointment_rescheduled_request",
+            receiverUserId: barberProfile.userId,
+            title: "Solicitud de reagendamiento",
+            uuid: crypto.randomUUID(),
+            senderUserId: userProfile.userId,
+            channels: enabledChannels.barber.map((n) => n.type),
+            appointmentId: args.appointmentId,
+            preview: "Un cliente ha solicitado un reagendamiento.",
+          },
         },
-      });
+      );
     }
 
-    for (const _ of enabledChannels.barber) {
-      await ctx.runMutation(internal.notifications.createNotification, {
-        notification: {
-          body: "Un cliente ha solicitado un reagendamiento.",
-          reason: "appointment_rescheduled_request",
-          receiverUserId: barberProfile.userId,
-          title: "Solicitud de reagendamiento",
-          uuid: crypto.randomUUID(),
-          senderUserId: userProfile.userId,
-          channels: enabledChannels.barber.map((n) => n.type),
-          appointmentId: args.appointmentId,
-          preview: "Un cliente ha solicitado un reagendamiento.",
+    const barberChannels = enabledChannels.barber.map((n) => n.type);
+
+    if (barberChannels.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.notifications.createNotification,
+        {
+          notification: {
+            body: "Un cliente ha solicitado un reagendamiento.",
+            reason: "appointment_rescheduled_request",
+            receiverUserId: barberProfile.userId,
+            title: "Solicitud de reagendamiento",
+            uuid: crypto.randomUUID(),
+            senderUserId: userProfile.userId,
+            channels: enabledChannels.barber.map((n) => n.type),
+            appointmentId: args.appointmentId,
+            preview: "Un cliente ha solicitado un reagendamiento.",
+          },
         },
-      });
+      );
     }
 
     return true;
@@ -783,8 +785,11 @@ export const requestReschedule = mutation({
 });
 
 const notificationTexts = {
-  appointment_reminder: (barbershopName?: string) =>
-    `Tienes una cita en ~30 minutos en ${barbershopName}`,
+  reminder: {
+    user_appointment_reminder: (barbershopName?: string) =>
+      `Tienes una cita en ~30 minutos en ${barbershopName}`,
+    barber_appointment_reminder: "Tienes una cita en ~30 minutos agendada",
+  },
   subject: "Recordatorio de cita",
 };
 
@@ -798,9 +803,7 @@ export const notifyUpcomingAppointment = internalMutation({
     const barbershop = await ctx.db.get(args.barbershopId);
 
     if (!barbershop) {
-      throw new Error("Barbershop not found", {
-        cause: args.barbershopId,
-      });
+      throw new ConvexError(errorMessages.notFound("barbería"));
     }
 
     const userProfile = await ctx.runQuery(
@@ -811,32 +814,80 @@ export const notifyUpcomingAppointment = internalMutation({
     );
 
     if (!userProfile) {
-      throw new Error("User profile not found", {
-        cause: args.userId,
-      });
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
 
-    const enabledChannels = {
-      user: userProfile.notificationsPreferences.filter((n) => n.enabled),
+    const appointment = await ctx.db.get(args.appointmentId);
+
+    if (!appointment) {
+      throw new ConvexError(errorMessages.notFound("cita"));
+    }
+
+    const barber = await ctx.db.get(appointment.barberId);
+
+    if (!barber) {
+      throw new ConvexError(errorMessages.notFound("barbero"));
+    }
+
+    const barberProfile = await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      {
+        userId: barber.userId,
+      },
+    );
+
+    if (!barberProfile) {
+      throw new ConvexError(errorMessages.notFound("perfil de barbero"));
+    }
+
+    const channels = {
+      user: userProfile.notificationsPreferences
+        .filter((n) => n.enabled)
+        .map((n) => n.type),
+      barber: barberProfile.notificationsPreferences
+        .filter((n) => n.enabled)
+        .map((n) => n.type),
     };
 
-    for (const _ of enabledChannels.user) {
-      await ctx.runMutation(internal.notifications.createNotification, {
-        notification: {
-          body: notificationTexts.appointment_reminder(barbershop?.name),
-          reason: "appointment_reminder",
-          senderUserId: "system",
-          title: notificationTexts.subject,
-          uuid: crypto.randomUUID(),
-          channels: enabledChannels.user.map((n) => n.type),
-          receiverUserId: args.userId,
-          appointmentId: args.appointmentId,
-          preview: notificationTexts.appointment_reminder(barbershop?.name),
+    if (channels.user.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.notifications.createNotification,
+        {
+          notification: {
+            body: notificationTexts.reminder.user_appointment_reminder(
+              barbershop?.name,
+            ),
+            reason: "appointment_reminder",
+            senderUserId: "system",
+            title: notificationTexts.subject,
+            uuid: crypto.randomUUID(),
+            channels: channels.user,
+            receiverUserId: args.userId,
+            appointmentId: args.appointmentId,
+          },
         },
-      });
+      );
     }
 
-    return true;
+    if (channels.barber.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.notifications.createNotification,
+        {
+          notification: {
+            body: notificationTexts.reminder.barber_appointment_reminder,
+            reason: "appointment_reminder",
+            senderUserId: "system",
+            title: notificationTexts.subject,
+            uuid: crypto.randomUUID(),
+            channels: channels.barber,
+            receiverUserId: barber.userId,
+            appointmentId: args.appointmentId,
+          },
+        },
+      );
+    }
   },
 });
 
@@ -849,17 +900,12 @@ export const answerRescheduleRequest = mutation({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const appt = await ctx.db.get(args.appointmentId);
 
-    if (!appt)
-      throw new Error("Appointment not found", {
-        cause: args.appointmentId,
-      });
+    if (!appt) throw new ConvexError(errorMessages.notFound("cita"));
 
     await ctx.db.patch(args.appointmentId, {
       status: args.accepted ? "confirmed" : "denied",
@@ -873,9 +919,7 @@ export const answerRescheduleRequest = mutation({
     );
 
     if (!userProfile) {
-      throw new Error("User profile not found", {
-        cause: appt.userId,
-      });
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
 
     const title = args.accepted
@@ -888,24 +932,28 @@ export const answerRescheduleRequest = mutation({
       ? "appointment_rescheduled_accepted"
       : "appointment_rescheduled_denied";
 
-    const enabledChannels = {
-      user: userProfile.notificationsPreferences.filter((n) => n.enabled),
-    };
+    const userChannels = userProfile.notificationsPreferences.map(
+      (n) => n.type,
+    );
 
-    for (const _ of enabledChannels.user) {
-      await ctx.runMutation(internal.notifications.createNotification, {
-        notification: {
-          body,
-          reason,
-          receiverUserId: userProfile.userId,
-          title,
-          uuid: crypto.randomUUID(),
-          senderUserId: "system",
-          channels: enabledChannels.user.map((n) => n.type),
-          appointmentId: args.appointmentId,
-          preview: title,
+    if (userChannels.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.notifications.createNotification,
+        {
+          notification: {
+            body,
+            reason,
+            receiverUserId: userProfile.userId,
+            title,
+            uuid: crypto.randomUUID(),
+            senderUserId: "system",
+            channels: userChannels,
+            appointmentId: args.appointmentId,
+            preview: title,
+          },
         },
-      });
+      );
     }
   },
 });

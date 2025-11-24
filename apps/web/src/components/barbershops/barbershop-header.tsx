@@ -20,6 +20,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useSchedule } from "@/hooks/barbershop/use-schedule";
 import { useCanReview } from "@/hooks/use-actions";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 
@@ -32,6 +33,7 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
   const { barbershop, userId } = props;
 
   const { isMobile } = useIsMobile();
+  const { availabilityLabel } = useSchedule(barbershop);
 
   const canReview = useCanReview({
     barbershopId: barbershop?._id!,
@@ -107,6 +109,10 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
           </a>
         </p>
       )}
+
+      <p className="mb-1 text-muted-foreground text-sm">
+        {availabilityLabel()}
+      </p>
 
       <div className="flex flex-col">
         <BarbershopRating

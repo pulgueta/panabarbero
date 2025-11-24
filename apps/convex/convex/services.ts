@@ -1,9 +1,10 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: is always provided */
 
 import type { SearchEntry, SearchResult } from "@convex-dev/rag";
+import { errorMessages } from "@panabarbero/constants";
 import type { EmbeddingModelUsage } from "ai";
 import type { Value } from "convex/values";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { action, internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
@@ -40,7 +41,17 @@ export const createServiceMutation = internalMutation({
     }),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("services", args.service);
+    const barbershop = await ctx.db.get(args.service.barbershopId);
+
+    if (barbershop?.services?.length === 0) {
+      await ctx.db.patch(args.service.barbershopId, {
+        isActive: true,
+      });
+    }
+
+    const serviceId = await ctx.db.insert("services", args.service);
+
+    return serviceId;
   },
 });
 
@@ -51,12 +62,10 @@ export const createService = action({
     }),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
-    if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+    if (!user?.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const { service } = args;
@@ -64,7 +73,7 @@ export const createService = action({
     await ctx.runAction(internal.rag.addToRAG, {
       namespace: "services",
       text: service.name,
-      userId: user.userId ?? undefined,
+      userId: user.userId,
     });
 
     await ctx.runMutation(internal.services.createServiceMutation, {

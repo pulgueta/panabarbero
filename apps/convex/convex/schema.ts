@@ -32,7 +32,8 @@ export default defineSchema(
     })
       .index("by_userId", ["userId"])
       .index("by_barbershopId", ["barbershopId"])
-      .index("by_uuid", ["uuid"]),
+      .index("by_uuid", ["uuid"])
+      .index("by_isActive", ["isActive"]),
 
     services: defineTable({
       ...tables.services,

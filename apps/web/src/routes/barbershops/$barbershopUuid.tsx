@@ -7,37 +7,43 @@ import { ServicesCarousel } from "@/components/barbershops/services/services-car
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { useCarouselApi } from "@/components/ui/carousel";
 import { Separator } from "@/components/ui/separator";
-import { barbersByBarbershopIdQueryOptions } from "@/hooks/use-barbers";
 import {
   barbershopAvailabilityQueryOptions,
   barbershopByUuidQueryOptions,
+  isBarbershopOwnerQueryOptions,
   useBarbershopByUuid,
-} from "@/hooks/use-barbershop";
+} from "@/hooks/barbershop/use-barbershop";
+import { barbersByBarbershopIdQueryOptions } from "@/hooks/use-barbers";
 import {
   servicesQueryOptions,
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
-import { useSession } from "@/hooks/use-session";
+import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/barbershops/$barbershopUuid")({
   component: RouteComponent,
   loader: async ({ context, params }) => {
+    const user = await context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
     const barbershop = await context.queryClient.ensureQueryData(
       barbershopByUuidQueryOptions(params.barbershopUuid),
     );
 
-    await context.queryClient.ensureQueryData(
+    await context.queryClient.prefetchQuery(
       barbersByBarbershopIdQueryOptions(barbershop?._id!),
     );
-    await context.queryClient.ensureQueryData(
+    await context.queryClient.prefetchQuery(
       servicesQueryOptions(barbershop?._id!),
     );
-    await context.queryClient.ensureQueryData(
+    await context.queryClient.prefetchQuery(
       barbershopAvailabilityQueryOptions(barbershop?._id!),
+    );
+    await context.queryClient.prefetchQuery(
+      isBarbershopOwnerQueryOptions(barbershop?._id!, user?.userId!),
     );
   },
   pendingComponent: LoadingComponent,
-  ssr: true,
 });
 
 function RouteComponent() {

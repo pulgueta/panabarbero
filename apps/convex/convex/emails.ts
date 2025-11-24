@@ -48,4 +48,5 @@ export const emailTemplates = {
   appointment_rescheduled_accepted: "<p>Hello, world!</p>",
   appointment_rescheduled_denied: "<p>Hello, world!</p>",
   appointment_created: "El usuario ha creado una cita",
+  barber_invited: "Has sido invitado a unirte como barbero",
 } satisfies EmailTemplate;

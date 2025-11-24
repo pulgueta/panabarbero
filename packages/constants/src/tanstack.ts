@@ -1,4 +1,11 @@
-import { CalendarPlus, Home, Scissors, Settings2, User } from "lucide-react";
+import {
+  Building2,
+  CalendarPlus,
+  Home,
+  Scissors,
+  Settings2,
+  User,
+} from "lucide-react";
 
 export const publicRoutes = {
   navigation: [
@@ -17,11 +24,6 @@ export const publicRoutes = {
       to: "/appointments/create",
       icon: CalendarPlus,
     },
-    {
-      label: "Ajustes",
-      to: "/settings",
-      icon: Settings2,
-    },
   ],
 };
 
@@ -32,6 +34,23 @@ export const authenticatedRoutes = {
       label: "Perfil",
       to: "/profile",
       icon: User,
+    },
+  ],
+  barber: [
+    {
+      label: "Perfil",
+      to: "/profile",
+      icon: User,
+    },
+    {
+      label: "Gestión",
+      to: "/profile/barbershops",
+      icon: Building2,
+    },
+    {
+      label: "Ajustes",
+      to: "/profile/barbershops/settings",
+      icon: Settings2,
     },
   ],
 };
@@ -73,6 +92,7 @@ export const routes = {
 };
 
 export const localStorageKeys = {
+  barbershopsLatest: "barbershops_latest",
   barbershopsState: "barbershops_state",
   barbershopsCity: "barbershops_city",
 };

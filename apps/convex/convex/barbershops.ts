@@ -1,4 +1,5 @@
-import { v } from "convex/values";
+import { errorMessages } from "@panabarbero/constants";
+import { ConvexError, v } from "convex/values";
 import { geospatial, r2 } from ".";
 import { api, internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
@@ -27,19 +28,16 @@ export const createBarbershop = mutation({
     storageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const { barbershop } = args;
 
     const barbershopId = await ctx.db.insert("barbershops", {
       ...barbershop,
-      uuid: crypto.randomUUID(),
       ownerId: user.userId ?? "",
       isActive: false,
       gracePeriodMinutes: 5,
@@ -76,6 +74,8 @@ export const createBarbershop = mutation({
         barbershopId,
         userId: user.userId ?? "",
         uuid: crypto.randomUUID(),
+        isActive: true,
+        joinedAt: Date.now(),
       },
     });
 
@@ -178,6 +178,7 @@ export const getBarbershopByUuid = query({
     return barbershop;
   },
 });
+
 export const getBarbershopServices = query({
   args: {
     barbershopId: v.id("barbershops"),
@@ -246,6 +247,8 @@ export const updateBarbershopDayAvailability = mutation({
     isActive: v.boolean(),
     openAt: v.optional(v.string()),
     closeAt: v.optional(v.string()),
+    lunchStart: v.optional(v.string()),
+    lunchEnd: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
@@ -264,6 +267,8 @@ export const updateBarbershopDayAvailability = mutation({
       weekDay: { day: args.day, isActive: args.isActive },
       openAt: args.openAt,
       closeAt: args.closeAt,
+    lunchStart: args.lunchStart,
+    lunchEnd: args.lunchEnd,
     };
 
     const newAvailability = shop.availability.slice();
@@ -385,6 +390,53 @@ export const getUserVisitedBarbershops = query({
   },
 });
 
+export const getBarbershopByOwnerId = query({
+  args: {
+    ownerId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const barbershop = await ctx.db
+      .query("barbershops")
+      .withIndex("by_ownerId", (q) => q.eq("ownerId", args.ownerId))
+      .unique();
+
+    if (barbershop) {
+      const services = await ctx.runQuery(
+        api.services.getServicesByBarbershopId,
+        {
+          barbershopId: barbershop._id,
+        },
+      );
+
+      barbershop.services = services.map((service) => service._id);
+    }
+
+    return barbershop;
+  },
+});
+
+export const getBarbershopById = query({
+  args: {
+    barbershopId: v.id("barbershops"),
+  },
+  handler: async (ctx, args) => {
+    const barbershop = await ctx.db.get(args.barbershopId);
+
+    const services = await ctx.runQuery(
+      api.services.getServicesByBarbershopId,
+      {
+        barbershopId: barbershop?._id,
+      },
+    );
+
+    if (barbershop) {
+      barbershop.services = services.map((service) => service._id);
+    }
+
+    return barbershop;
+  },
+});
+
 export const getBarbershopsByName = query({
   args: {
     name: v.string(),
@@ -437,5 +489,19 @@ export const isBarbershopOwner = query({
     } else {
       return barbershop;
     }
+  },
+});
+
+export const getBarbershopsByOwnerId = query({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const barbershops = await ctx.db
+      .query("barbershops")
+      .withIndex("by_ownerId", (q) => q.eq("ownerId", args.userId))
+      .collect();
+
+    return barbershops;
   },
 });
