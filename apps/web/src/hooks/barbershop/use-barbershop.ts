@@ -44,7 +44,7 @@ export function barbershopAvailabilityQueryOptions(
   });
 }
 
-export function searchBarbershopsByNameQueryOptions(name: string) {
+export function searchBarbershopsByNameQueryOptions(name?: string) {
   return convexQuery(api.barbershops.getBarbershopsByName, { name });
 }
 

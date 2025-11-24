@@ -20,15 +20,13 @@ export const UserPopover: FC<ReturnType<typeof useSession>["data"]> = (
   const { data: isBarber } = useIsBarber(user?.userId ?? "");
 
   const handleSignOut = async () => {
-    await signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          throw redirect({
-            to: "/login",
-          });
-        },
-      },
-    });
+    const { data } = await signOut();
+
+    if (data?.success) {
+      throw redirect({
+        to: "/login",
+      });
+    }
   };
 
   const getUserInitials = () => {

@@ -267,8 +267,8 @@ export const updateBarbershopDayAvailability = mutation({
       weekDay: { day: args.day, isActive: args.isActive },
       openAt: args.openAt,
       closeAt: args.closeAt,
-    lunchStart: args.lunchStart,
-    lunchEnd: args.lunchEnd,
+      lunchStart: args.lunchStart,
+      lunchEnd: args.lunchEnd,
     };
 
     const newAvailability = shop.availability.slice();
@@ -439,14 +439,15 @@ export const getBarbershopById = query({
 
 export const getBarbershopsByName = query({
   args: {
-    name: v.string(),
+    name: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const barbershops = await ctx.db
       .query("barbershops")
       .withSearchIndex("by_name_search", (q) =>
-        q.search("name", args.name ? args.name : "barber").eq("isActive", true),
+        q.search("name", args.name ?? "barber"),
       )
+      .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
     await Promise.all(

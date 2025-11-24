@@ -2,14 +2,14 @@ import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@panabarbero/convex/api";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
-export function getProfileQueryOptions(userId: string) {
+export function profileQueryOptions(userId: string) {
   return convexQuery(api.userProfileData.getMyProfile, {
     userId,
   });
 }
 
 export function useProfile(userId: string) {
-  return useQuery(getProfileQueryOptions(userId));
+  return useQuery(profileQueryOptions(userId));
 }
 
 export function useProfileActions() {

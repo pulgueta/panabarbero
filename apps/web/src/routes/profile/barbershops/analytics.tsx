@@ -69,7 +69,7 @@ function AnalyticsPage() {
                   <div className="font-bold text-2xl tabular-nums">
                     {completed}
                   </div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-muted-foreground text-xs">
                     Citas completadas
                   </div>
                 </div>
@@ -77,13 +77,13 @@ function AnalyticsPage() {
                   <div className="font-bold text-2xl tabular-nums">
                     {reviews}
                   </div>
-                  <div className="text-xs text-muted-foreground">Reseñas</div>
+                  <div className="text-muted-foreground text-xs">Reseñas</div>
                 </div>
                 <div>
                   <div className="font-bold text-2xl tabular-nums">
                     {rating.toFixed(1)}
                   </div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-muted-foreground text-xs">
                     Calificación
                   </div>
                 </div>

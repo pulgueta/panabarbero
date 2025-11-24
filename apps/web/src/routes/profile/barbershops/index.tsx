@@ -22,6 +22,7 @@ import {
   barbersByBarbershopIdQueryOptions,
   useBarbersByBarbershopId,
 } from "@/hooks/use-barbers";
+import { profileQueryOptions } from "@/hooks/use-profile";
 import {
   servicesQueryOptions,
   useServicesFromBarbershop,
@@ -64,6 +65,9 @@ export const Route = createFileRoute("/profile/barbershops/")({
       );
       await opts.context.queryClient.prefetchQuery(
         servicesQueryOptions(opts.deps.barbershopId),
+      );
+      await opts.context.queryClient.prefetchQuery(
+        profileQueryOptions(opts.deps.barbershopId),
       );
     }
 

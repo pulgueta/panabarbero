@@ -75,7 +75,6 @@ export const createNotification = internalMutation({
 
     if (isNotificationEnabled("email", userProfile.notificationsPreferences)) {
       await ctx.scheduler.runAfter(0, internal.emails.sendEmail, {
-        emailType: args.notification.reason,
         subject: emailSubjects[args.notification.reason],
         to: userProfile.email,
       });
@@ -165,5 +164,44 @@ export const getNotificationsByAppointment = query({
       .collect();
 
     return notifications;
+  },
+});
+
+export const saveNotification = internalMutation({
+  args: {
+    notification: v.object({
+      ...tables.notifications,
+    }),
+  },
+  handler: async (ctx, args) => {
+    const sender = (await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      {
+        userId: args.notification.senderUserId,
+      },
+    )) as UserProfileData;
+
+    if (!sender) {
+      throw new Error("Sender not found", {
+        cause: sender,
+      });
+    }
+
+    const canSaveNotification =
+      args.notification.senderUserId === sender.userId;
+
+    if (!canSaveNotification) {
+      throw new Error("You cannot save notifications for yourself", {
+        cause: args.notification.senderUserId,
+      });
+    }
+
+    const notificationId = await ctx.db.insert("notifications", {
+      ...args.notification,
+      uuid: crypto.randomUUID(),
+      senderUserId: sender.userId,
+    });
+
+    return notificationId;
   },
 });

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SearchIcon } from "lucide-react";
-import { useState } from "react";
+import { Activity, useState } from "react";
 
 import { BarbershopListCard } from "@/components/barbershops/barbershop-list-card";
 import { LoadingComponent } from "@/components/layout/loading-component";
@@ -11,22 +11,40 @@ import {
 } from "@/components/ui/input-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  searchBarbershopsByNameQueryOptions,
+  userVisitedBarbershopsQueryOptions,
   useSearchBarbershopsByName,
   useUserVisitedBarbershops,
 } from "@/hooks/barbershop/use-barbershop";
 import { useDebounce } from "@/hooks/use-debounce";
-import { useSession } from "@/hooks/use-session";
+import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/appointments/create")({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
+  errorComponent: (props) => <div>{JSON.stringify(props.error.message)}</div>,
+  loader: async (ctx) => {
+    const user = await ctx.context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
+
+    if (user?.userId) {
+      await ctx.context.queryClient.prefetchQuery(
+        userVisitedBarbershopsQueryOptions(user.userId),
+      );
+    }
+
+    await ctx.context.queryClient.prefetchQuery(
+      searchBarbershopsByNameQueryOptions(),
+    );
+  },
 });
 
 function RouteComponent() {
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const { data: user } = useSession();
+  const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
-  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  const { data: user } = useSession();
 
   const { data: barbershops } = useUserVisitedBarbershops(user?.userId ?? "");
   const {
@@ -34,6 +52,8 @@ function RouteComponent() {
     isLoading: isSearching,
     isRefetching: isSearchingAgain,
   } = useSearchBarbershopsByName(debouncedSearchQuery);
+
+  const searching = isSearching || isSearchingAgain;
 
   return (
     <div className="container mx-auto flex min-h-[calc(100dvh-65px)] flex-col items-start justify-start gap-8 border-x px-4 py-8 md:px-8 lg:px-16">
@@ -87,16 +107,18 @@ function RouteComponent() {
           </InputGroup>
         </div>
 
-        {(isSearching || isSearchingAgain) && (
+        <Activity
+          mode={searching && searchQuery.length > 0 ? "visible" : "hidden"}
+        >
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {Array.from({ length: 4 }).map((_, index) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: key is not needed for skeleton
               <Skeleton key={index} className="h-48 w-full rounded-lg" />
             ))}
           </div>
-        )}
+        </Activity>
 
-        {searchResults && searchResults.length > 0 ? (
+        {searchResults?.length && searchResults.length > 0 ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {searchResults.map((barbershop) => (
               <BarbershopListCard
@@ -105,13 +127,13 @@ function RouteComponent() {
               />
             ))}
           </div>
-        ) : (
-          debouncedSearchQuery.length > 0 && (
-            <p className="text-pretty text-muted-foreground text-sm">
-              No se encontraron barberías con ese nombre.
-            </p>
-          )
-        )}
+        ) : null}
+
+        <Activity mode={searchResults === undefined ? "hidden" : "visible"}>
+          <p className="text-pretty text-muted-foreground text-sm">
+            No hay barberías disponibles.
+          </p>
+        </Activity>
       </div>
     </div>
   );

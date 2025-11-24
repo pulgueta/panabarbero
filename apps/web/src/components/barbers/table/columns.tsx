@@ -56,7 +56,10 @@ export const barbersTableColumns: ColumnDef<Barber>[] = [
       const { data: userProfile } = useProfile(userId);
 
       return (
-        <div className="text-center">{userProfile?.phoneNumber ?? "N/A"}</div>
+        <div className="text-center">
+          {userProfile?.phoneNumber ||
+            "No has proporcionado un número de contacto"}
+        </div>
       );
     },
   },
@@ -68,7 +71,7 @@ export const barbersTableColumns: ColumnDef<Barber>[] = [
 
       const { data: userProfile } = useProfile(userId);
 
-      return <div className="text-center">{userProfile?.email ?? "N/A"}</div>;
+      return <div className="text-center">{userProfile?.email}</div>;
     },
   },
   {

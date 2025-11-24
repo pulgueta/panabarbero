@@ -24,7 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { isBarberQueryOptions, useIsBarber } from "@/hooks/use-barbers";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
-  getProfileQueryOptions,
+  profileQueryOptions,
   useProfile,
   useProfileActions,
 } from "@/hooks/use-profile";
@@ -33,15 +33,16 @@ import { getSessionQueryOptions } from "@/hooks/use-session";
 export const Route = createFileRoute("/profile/")({
   component: ProfilePage,
   pendingComponent: LoadingComponent,
+  beforeLoad: async ({ context }) => {
+    await context.queryClient.prefetchQuery(getSessionQueryOptions());
+  },
   loader: async ({ context }) => {
     const user = await context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
     );
 
     if (user?.userId) {
-      await context.queryClient.prefetchQuery(
-        getProfileQueryOptions(user.userId),
-      );
+      await context.queryClient.prefetchQuery(profileQueryOptions(user.userId));
       await context.queryClient.prefetchQuery(
         isBarberQueryOptions(user.userId),
       );
@@ -84,8 +85,8 @@ function ProfilePage() {
     },
   } = useProfileActions();
 
-  const [name, setName] = useState<string | undefined>(profile?.name);
-  const [phone, setPhone] = useState<string | undefined>(profile?.phoneNumber);
+  const [name, setName] = useState<string>(profile?.name ?? "");
+  const [phone, setPhone] = useState<string>(profile?.phoneNumber ?? "");
 
   useEffect(() => {
     if (isUpdatedName) {
@@ -109,14 +110,12 @@ function ProfilePage() {
   }, [isUpdatedName, isUpdatedPhoneNumber, isUpdatedNotificationPreference]);
 
   useEffect(() => {
-    if (name) {
-      setName(profile?.name ?? "");
-    }
+    setName(profile?.name ?? "");
+  }, [profile?.name]);
 
-    if (phone) {
-      setPhone(profile?.phoneNumber ?? "");
-    }
-  }, [name, phone, profile?.name, profile?.phoneNumber]);
+  useEffect(() => {
+    setPhone(profile?.phoneNumber ?? "");
+  }, [profile?.phoneNumber]);
 
   const handleSignOut = async () => {
     await signOut({
@@ -233,13 +232,15 @@ function ProfilePage() {
                   <Input
                     defaultValue={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="3000000000"
+                    placeholder="3014441122"
                     autoComplete="tel"
                     type="tel"
                     disabled={isProfileLoading || isUpdatingPhoneNumber}
                   />
                   <Button
-                    onClick={() => updatePhoneNumber({ phoneNumber: phone! })}
+                    onClick={() =>
+                      updatePhoneNumber({ phoneNumber: phone ?? "" })
+                    }
                     disabled={isProfileLoading || isUpdatingPhoneNumber}
                   >
                     Guardar
