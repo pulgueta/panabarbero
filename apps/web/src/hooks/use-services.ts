@@ -5,7 +5,7 @@ import {
 } from "@convex-dev/react-query";
 import { api } from "@panabarbero/convex/api";
 import type { Barbershop } from "@panabarbero/convex/schemas";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 
 export function createServiceMutationOptions() {
   return useConvexAction(api.services.createService);
@@ -24,7 +24,7 @@ export function servicesQueryOptions(barbershopId: Barbershop["_id"]) {
 }
 
 export function useServicesFromBarbershop(barbershopId: Barbershop["_id"]) {
-  return useQuery(servicesQueryOptions(barbershopId));
+  return useSuspenseQuery(servicesQueryOptions(barbershopId));
 }
 
 export function useServiceActions() {

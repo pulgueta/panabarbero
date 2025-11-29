@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 import { Scissors } from "lucide-react";
 import type { FC } from "react";
 
-import { BarbershopRating } from "@/components/barbershops/rating";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -98,13 +97,13 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
           </Link>
         </Button>
 
-        <BarbershopRating
+        {/* <BarbershopRating
           value={barbershop.metadata?.rating ?? 0}
           readOnly
           style={{
             viewTransitionName: `barbershop-${barbershop.uuid}-rating`,
           }}
-        />
+        /> */}
       </CardFooter>
     </Card>
   );

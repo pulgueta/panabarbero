@@ -1,10 +1,14 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@panabarbero/convex/api";
-import type { Barbershop } from "@panabarbero/convex/schemas";
+import type { Appointment, Barbershop } from "@panabarbero/convex/schemas";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 
 export function appointmentsQueryOptions() {
   return convexQuery(api.appointments.getAppointments, {});
+}
+
+export function appointmentByIdQueryOptions(appointmentId: Appointment["_id"]) {
+  return convexQuery(api.appointments.getAppointmentById, { appointmentId });
 }
 
 export function createAppointmentMutationOptions() {
@@ -27,6 +31,10 @@ export function useAppointments() {
   return useSuspenseQuery(appointmentsQueryOptions());
 }
 
+export function useAppointmentById(id: Appointment["_id"]) {
+  return useSuspenseQuery(appointmentByIdQueryOptions(id));
+}
+
 export function useAppointmentsByUser(userId: string) {
   return useSuspenseQuery(appointmentsByUserQueryOptions(userId));
 }
@@ -45,7 +53,7 @@ export function useAppointmentActions() {
   const update = useMutation({
     mutationFn: useConvexMutation(api.appointments.updateAppointment),
   });
-  const del = useMutation({
+  const deleteAppointmentMutation = useMutation({
     mutationFn: useConvexMutation(api.appointments.deleteAppointment),
   });
   const cancel = useMutation({
@@ -59,7 +67,7 @@ export function useAppointmentActions() {
     createAppointment,
     setStatus,
     update,
-    del,
+    deleteAppointmentMutation,
     cancel,
     requestReschedule,
   };

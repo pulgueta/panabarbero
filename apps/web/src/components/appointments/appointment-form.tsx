@@ -44,9 +44,13 @@ import { useBarbershopAvailability } from "@/hooks/barbershop/use-barbershop";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { useAppointmentActions } from "@/hooks/use-appointments";
 import { useBarbersByBarbershopId } from "@/hooks/use-barbers";
+import { useServicesFromBarbershop } from "@/hooks/use-services";
 import { useSession } from "@/hooks/use-session";
+import type { AppointmentFormData } from "@/lib/schemas";
 import { appointmentFormSchema } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
+import { useServicesStore } from "@/store/services";
+import { ServicesDropdown } from "../barbershops/services/services-dropdown";
 
 type WeekdayKey =
   | "sunday"
@@ -59,9 +63,13 @@ type WeekdayKey =
 
 interface AppointmentFormProps {
   service: Service;
+  initialValues?: Partial<AppointmentFormData>;
 }
 
-export const AppointmentForm: FC<AppointmentFormProps> = ({ service }) => {
+export const AppointmentForm: FC<AppointmentFormProps> = ({
+  service,
+  initialValues,
+}) => {
   const formIds = {
     customerName: useId(),
     date: useId(),
@@ -71,6 +79,7 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({ service }) => {
     notes: useId(),
     form: useId(),
     barberId: useId(),
+    serviceId: useId(),
   };
 
   const { data: user } = useSession();
@@ -80,6 +89,8 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({ service }) => {
   const { data: availability } = useBarbershopAvailability(
     service.barbershopId,
   );
+  const { data: services } = useServicesFromBarbershop(service.barbershopId);
+  const { service: selectedService } = useServicesStore();
 
   const { captureEvent } = useAnalytics();
 
@@ -87,9 +98,9 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({ service }) => {
     resolver: zodResolver(appointmentFormSchema),
     defaultValues: {
       date: undefined,
-      customerName: user?.name ?? "",
-      contactPhone: user?.phoneNumber ?? "",
-      contactEmail: user?.email ?? "",
+      customerName: initialValues?.customerName ?? user?.name,
+      contactPhone: initialValues?.contactPhone ?? user?.phoneNumber ?? "",
+      contactEmail: initialValues?.contactEmail ?? user?.email,
       notes: "",
       barberId:
         barbers?.length && barbers?.length > 1 ? undefined : barbers?.[0]._id,
@@ -202,14 +213,16 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({ service }) => {
       selectedMinutes >= lunchStartMinutes &&
       selectedMinutes < lunchEndMinutes
     ) {
-      toast.error("La barbería se encuentra en horario de almuerzo.");
+      toast.error(
+        "No se puede reservar una cita durante el horario seleccionado.",
+      );
       return;
     }
 
     try {
       captureEvent("service_booked", {
         serviceName: service.name,
-        serviceId: service._id,
+        serviceId: selectedService._id || service._id,
         barbershopId: service.barbershopId,
       });
 
@@ -218,7 +231,7 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({ service }) => {
           ...formData,
           userId: user.userId,
           barbershopId: service.barbershopId,
-          serviceId: service._id,
+          serviceId: selectedService._id || service._id,
         },
       });
 
@@ -235,6 +248,14 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({ service }) => {
     <form id={formIds.form} onSubmit={onSubmit}>
       <FieldGroup>
         <div className="grid grid-cols-2 gap-4">
+          {!initialValues && (
+            <Field className="col-span-2">
+              <FieldLabel htmlFor={formIds.serviceId}>Servicio</FieldLabel>
+
+              <ServicesDropdown services={services} />
+            </Field>
+          )}
+
           <Controller
             name="customerName"
             control={form.control}

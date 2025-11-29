@@ -96,18 +96,14 @@ export const servicesTableColumns: ColumnDef<Service>[] = [
                     className="cursor-pointer"
                     onSelect={(e) => e.preventDefault()}
                   >
-                    <TrashIcon className="size-3 text-destructive-foreground" />
+                    <TrashIcon className="size-3 text-destructive dark:text-destructive-foreground" />
                     Eliminar
                   </DropdownMenuItem>
                 }
                 title="Eliminar servicio"
                 description="¿Estás seguro que desea eliminar el servicio? Esta acción no se puede deshacer."
                 confirmLabel={
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={handleDelete}
-                  >
+                  <Button variant="destructive" onClick={handleDelete}>
                     {isDeleting ? <Spinner /> : "Sí, eliminar"}
                   </Button>
                 }

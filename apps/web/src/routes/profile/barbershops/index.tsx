@@ -1,9 +1,10 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: <explanation> */
-import type { Barbershop } from "@panabarbero/convex/schemas";
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { CalendarIcon, ScissorsIcon } from "lucide-react";
+/** biome-ignore-all lint/style/noNonNullAssertion: Needed */
+
+import { createFileRoute } from "@tanstack/react-router";
+import { CalendarIcon, ScissorsIcon, UsersIcon } from "lucide-react";
 import { Activity } from "react";
 
+import { AppointmentDialog } from "@/components/appointments/appointment-dialog";
 import { appointmentsTableColumns } from "@/components/appointments/table/columns";
 import { InviteBarberDialog } from "@/components/barbers/invite-barber-dialog";
 import { barbersTableColumns } from "@/components/barbers/table/columns";
@@ -13,7 +14,10 @@ import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { DataTable } from "@/components/table/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useBarbershopByOwnerId } from "@/hooks/barbershop/use-barbershop";
+import {
+  barbershopByOwnerIdQueryOptions,
+  useBarbershopByOwnerId,
+} from "@/hooks/barbershop/use-barbershop";
 import {
   appointmentsByBarbershopQueryOptions,
   useAppointmentsByBarbershop,
@@ -22,7 +26,6 @@ import {
   barbersByBarbershopIdQueryOptions,
   useBarbersByBarbershopId,
 } from "@/hooks/use-barbers";
-import { profileQueryOptions } from "@/hooks/use-profile";
 import {
   servicesQueryOptions,
   useServicesFromBarbershop,
@@ -32,43 +35,33 @@ import { getSessionQueryOptions } from "@/hooks/use-session";
 export const Route = createFileRoute("/profile/barbershops/")({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
-  validateSearch: (search?: { barbershopId?: Barbershop["_id"] }) => {
-    return {
-      barbershopId: search?.barbershopId,
-    };
-  },
   beforeLoad: async ({ context }) => {
-    const user = await context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
-
-    if (!user?.userId) {
-      throw redirect({
-        to: "/login",
-      });
-    }
+    await context.queryClient.prefetchQuery(getSessionQueryOptions());
   },
-  loaderDeps: ({ search }) => ({
-    barbershopId: search?.barbershopId,
-  }),
   loader: async (opts) => {
     const user = await opts.context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
     );
 
-    if (user?.userId && opts.deps.barbershopId) {
-      await opts.context.queryClient.prefetchQuery(
-        appointmentsByBarbershopQueryOptions(opts.deps.barbershopId),
+    if (user?.userId) {
+      const barbershop = await opts.context.queryClient.ensureQueryData(
+        barbershopByOwnerIdQueryOptions(user.userId),
       );
-      await opts.context.queryClient.prefetchQuery(
-        barbersByBarbershopIdQueryOptions(opts.deps.barbershopId),
-      );
-      await opts.context.queryClient.prefetchQuery(
-        servicesQueryOptions(opts.deps.barbershopId),
-      );
-      await opts.context.queryClient.prefetchQuery(
-        profileQueryOptions(opts.deps.barbershopId),
-      );
+
+      if (barbershop?._id) {
+        await opts.context.queryClient.ensureQueryData(
+          appointmentsByBarbershopQueryOptions(barbershop._id),
+        );
+        await opts.context.queryClient.ensureQueryData(
+          barbersByBarbershopIdQueryOptions(barbershop._id),
+        );
+        await opts.context.queryClient.ensureQueryData(
+          servicesQueryOptions(barbershop._id),
+        );
+        await opts.context.queryClient.ensureQueryData(
+          servicesQueryOptions(barbershop._id),
+        );
+      }
     }
 
     return {
@@ -80,9 +73,7 @@ export const Route = createFileRoute("/profile/barbershops/")({
 function RouteComponent() {
   const { user } = Route.useLoaderData();
 
-  const { data: barbershop, isLoading: isLoadingBarbershop } =
-    useBarbershopByOwnerId(user?.userId!);
-
+  const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
   const { data: appointments, isLoading: isLoadingAppointments } =
     useAppointmentsByBarbershop(barbershop?._id!);
   const { data: barbers, isLoading: isLoadingBarbers } =
@@ -95,6 +86,8 @@ function RouteComponent() {
       <section className="flex w-full flex-col justify-between gap-4">
         <div className="flex w-full items-center justify-between gap-4">
           <h1 className="font-bold text-xl tracking-tight">Citas</h1>
+
+          <AppointmentDialog service={services?.[0]!} />
         </div>
 
         {isLoadingAppointments ? (
@@ -149,7 +142,7 @@ function RouteComponent() {
 
         {isLoadingBarbers ? (
           <Skeleton className="h-48 w-full" />
-        ) : (
+        ) : barbers?.length ? (
           <Activity mode={barbers?.length ? "visible" : "hidden"}>
             <DataTable
               className="max-h-64"
@@ -157,6 +150,13 @@ function RouteComponent() {
               data={barbers?.length ? barbers : []}
             />
           </Activity>
+        ) : (
+          <div className="flex h-48 w-full flex-col items-center justify-center gap-2 rounded-lg border p-4 text-center">
+            <UsersIcon className="size-6" />
+            <p className="text-center text-muted-foreground text-xs md:text-sm">
+              Aún no hay barberos asociados a esta barbería.
+            </p>
+          </div>
         )}
       </section>
     </BorderContainer>

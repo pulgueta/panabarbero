@@ -31,7 +31,7 @@ const days: Array<{ key: DayKey; label: string }> = [
 
 interface AvailabilityFormProps {
   barbershopId: Barbershop["_id"];
-  availability?: Barbershop["availability"];
+  availability: Barbershop["availability"];
 }
 
 export const AvailabilityForm: FC<AvailabilityFormProps> = ({

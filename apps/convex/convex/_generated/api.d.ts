@@ -34,14 +34,6 @@ import type {
   FunctionReference,
 } from "convex/server";
 
-/**
- * A utility for referencing Convex functions in your app's API.
- *
- * Usage:
- * ```js
- * const myFunctionReference = api.myModule.myFunction;
- * ```
- */
 declare const fullApi: ApiFromModules<{
   appointments: typeof appointments;
   auth: typeof auth;
@@ -63,14 +55,30 @@ declare const fullApi: ApiFromModules<{
   twilio: typeof twilio;
   userProfileData: typeof userProfileData;
 }>;
-declare const fullApiWithMounts: typeof fullApi;
 
+/**
+ * A utility for referencing Convex functions in your app's public API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = api.myModule.myFunction;
+ * ```
+ */
 export declare const api: FilterApi<
-  typeof fullApiWithMounts,
+  typeof fullApi,
   FunctionReference<any, "public">
 >;
+
+/**
+ * A utility for referencing Convex functions in your app's internal API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = internal.myModule.myFunction;
+ * ```
+ */
 export declare const internal: FilterApi<
-  typeof fullApiWithMounts,
+  typeof fullApi,
   FunctionReference<any, "internal">
 >;
 
@@ -2749,7 +2757,7 @@ export declare const components: {
         "mutation",
         "internal",
         { logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR"; userId: string },
-        any
+        null
       >;
       getNotification: FunctionReference<
         "query",
@@ -2889,6 +2897,38 @@ export declare const components: {
           userId: string;
         },
         string | null
+      >;
+      sendPushNotificationBatch: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          allowUnregisteredTokens?: boolean;
+          logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
+          notifications: Array<{
+            notification: {
+              _contentAvailable?: boolean;
+              badge?: number;
+              body?: string;
+              categoryId?: string;
+              channelId?: string;
+              data?: any;
+              expiration?: number;
+              interruptionLevel?:
+                | "active"
+                | "critical"
+                | "passive"
+                | "time-sensitive";
+              mutableContent?: boolean;
+              priority?: "default" | "normal" | "high";
+              sound?: string | null;
+              subtitle?: string;
+              title?: string;
+              ttl?: number;
+            };
+            userId: string;
+          }>;
+        },
+        Array<string | null>
       >;
       shutdown: FunctionReference<
         "mutation",

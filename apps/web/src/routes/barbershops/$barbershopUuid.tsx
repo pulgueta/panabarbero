@@ -11,14 +11,9 @@ import {
   barbershopAvailabilityQueryOptions,
   barbershopByUuidQueryOptions,
   isBarbershopOwnerQueryOptions,
-  useBarbershopByUuid,
 } from "@/hooks/barbershop/use-barbershop";
-import { barbersByBarbershopIdQueryOptions } from "@/hooks/use-barbers";
-import {
-  servicesQueryOptions,
-  useServicesFromBarbershop,
-} from "@/hooks/use-services";
-import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { servicesQueryOptions } from "@/hooks/use-services";
+import { getSessionQueryOptions } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/barbershops/$barbershopUuid")({
   component: RouteComponent,
@@ -30,18 +25,31 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
       barbershopByUuidQueryOptions(params.barbershopUuid),
     );
 
-    await context.queryClient.prefetchQuery(
-      barbersByBarbershopIdQueryOptions(barbershop?._id!),
-    );
-    await context.queryClient.prefetchQuery(
-      servicesQueryOptions(barbershop?._id!),
-    );
-    await context.queryClient.prefetchQuery(
-      barbershopAvailabilityQueryOptions(barbershop?._id!),
-    );
-    await context.queryClient.prefetchQuery(
-      isBarbershopOwnerQueryOptions(barbershop?._id!, user?.userId!),
-    );
+    let services = null;
+    let availability = null;
+    let isOwner = null;
+
+    if (barbershop) {
+      services = await context.queryClient.ensureQueryData(
+        servicesQueryOptions(barbershop?._id!),
+      );
+      availability = await context.queryClient.ensureQueryData(
+        barbershopAvailabilityQueryOptions(barbershop?._id!),
+      );
+      if (user?.userId) {
+        isOwner = await context.queryClient.ensureQueryData(
+          isBarbershopOwnerQueryOptions(barbershop?._id!, user?.userId!),
+        );
+      }
+    }
+
+    return {
+      barbershop,
+      services,
+      availability,
+      isOwner,
+      user,
+    };
   },
   pendingComponent: LoadingComponent,
 });
@@ -49,18 +57,17 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
 function RouteComponent() {
   const [_, _setCarouselApi] = useCarouselApi();
 
-  const params = Route.useParams();
-
-  const { data: barbershop } = useBarbershopByUuid(params.barbershopUuid);
-  const { data: services } = useServicesFromBarbershop(barbershop?._id!);
-
-  const { data: user } = useSession();
+  const { barbershop, services, user, availability } = Route.useLoaderData();
 
   return (
     <div className="w-full">
       <main className="container mx-auto min-h-[calc(100dvh-65px)] border-x">
         <header className="flex w-full flex-row justify-between gap-4 px-4 pt-8 md:px-8 lg:px-16">
-          <BarbershopHeader barbershop={barbershop} userId={user?.userId!} />
+          <BarbershopHeader
+            barbershop={barbershop}
+            userId={user?.userId!}
+            availability={availability}
+          />
 
           <section>
             <BarbershopAvatar barbershop={barbershop} size="lg" />

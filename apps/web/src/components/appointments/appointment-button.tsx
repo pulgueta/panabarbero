@@ -18,10 +18,8 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { useIsBarbershopOwner } from "@/hooks/barbershop/use-barbershop";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useSession } from "@/hooks/use-session";
-import { ServiceForm } from "../barbershops/services/service-form";
 import { AppointmentForm } from "./appointment-form";
 
 interface AppointmentButtonProps {
@@ -32,19 +30,11 @@ export const AppointmentButton: FC<AppointmentButtonProps> = ({ service }) => {
   const { isMobile } = useIsMobile();
   const { data: user } = useSession();
 
-  const { data: barbershop } = useIsBarbershopOwner(
-    service.barbershopId,
-    user?.userId ?? "",
-  );
-
-  const headLabel = barbershop
-    ? `Editar: ${service.name}`
-    : `Reservar: ${service.name}`;
-  const description = barbershop
-    ? "Ingresa los nuevos datos del servicio."
-    : "Proporciona tus datos para reservar el servicio.";
-  const buttonLabel = barbershop ? "Editar" : "Reservar";
-  const buttonVariant = barbershop ? "outline" : "default";
+  const headLabel = `Reservar: ${service.name}`;
+  const description =
+    "Proporciona los datos del cliente para reservar el servicio.";
+  const buttonLabel = "Reservar";
+  const buttonVariant = "default";
 
   if (isMobile) {
     return (
@@ -58,15 +48,7 @@ export const AppointmentButton: FC<AppointmentButtonProps> = ({ service }) => {
             <DrawerDescription>{description}</DrawerDescription>
           </DrawerHeader>
           <div className="p-4">
-            {barbershop ? (
-              <ServiceForm
-                barbershopId={barbershop._id}
-                initialValues={service}
-                serviceId={service._id}
-              />
-            ) : (
-              <AppointmentForm service={service} />
-            )}
+            <AppointmentForm service={service} />
           </div>
         </DrawerContent>
       </Drawer>
@@ -84,15 +66,13 @@ export const AppointmentButton: FC<AppointmentButtonProps> = ({ service }) => {
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        {barbershop ? (
-          <ServiceForm
-            barbershopId={barbershop._id}
-            initialValues={service}
-            serviceId={service._id}
-          />
-        ) : (
-          <AppointmentForm service={service} />
-        )}
+        <AppointmentForm
+          service={service}
+          initialValues={{
+            customerName: user?.name,
+            contactEmail: user?.email,
+          }}
+        />
       </DialogContent>
     </Dialog>
   );

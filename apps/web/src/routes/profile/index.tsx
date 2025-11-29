@@ -1,5 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: We need to assert non-null values because the hooks return undefined if the data is not loaded */
 import { signOut } from "@panabarbero/convex/auth";
+import type { UserProfileData } from "@panabarbero/convex/schemas";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { InfoIcon, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -19,15 +20,10 @@ import {
 } from "@/components/ui/card";
 import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import { isBarberQueryOptions, useIsBarber } from "@/hooks/use-barbers";
+import { isBarberQueryOptions } from "@/hooks/use-barbers";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import {
-  profileQueryOptions,
-  useProfile,
-  useProfileActions,
-} from "@/hooks/use-profile";
+import { profileQueryOptions, useProfileActions } from "@/hooks/use-profile";
 import { getSessionQueryOptions } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/profile/")({
@@ -41,29 +37,28 @@ export const Route = createFileRoute("/profile/")({
       getSessionQueryOptions(),
     );
 
+    let profile: UserProfileData | null = null;
+    let isBarber: boolean = false;
+
     if (user?.userId) {
-      await context.queryClient.prefetchQuery(profileQueryOptions(user.userId));
-      await context.queryClient.prefetchQuery(
+      profile = await context.queryClient.ensureQueryData(
+        profileQueryOptions(user.userId),
+      );
+      isBarber = await context.queryClient.ensureQueryData(
         isBarberQueryOptions(user.userId),
       );
     }
 
     return {
       user,
+      profile,
+      isBarber,
     };
   },
 });
 
 function ProfilePage() {
-  const { user } = Route.useLoaderData();
-
-  const { data: profile, isLoading: isProfileLoading } = useProfile(
-    user?.userId ?? "",
-  );
-
-  const { data: isBarber, isLoading: isBarberLoading } = useIsBarber(
-    user?.userId ?? "",
-  );
+  const { user, profile, isBarber } = Route.useLoaderData();
 
   const { isMobile } = useIsMobile();
 
@@ -118,15 +113,13 @@ function ProfilePage() {
   }, [profile?.phoneNumber]);
 
   const handleSignOut = async () => {
-    await signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          throw redirect({
-            to: "/login",
-          });
-        },
-      },
-    });
+    const { data } = await signOut();
+
+    if (data?.success) {
+      throw redirect({
+        to: "/login",
+      });
+    }
   };
 
   return (
@@ -163,13 +156,9 @@ function ProfilePage() {
           <CardHeader>
             <CardTitle>Nombre completo</CardTitle>
             <CardDescription>
-              {isBarberLoading || isProfileLoading ? (
-                <Skeleton className="h-4 w-full" />
-              ) : isBarber ? (
-                "Este es el nombre que se mostrará en tu perfil de barbería"
-              ) : (
-                "Este es el nombre que se mostrará en tu perfil de usuario"
-              )}
+              {isBarber
+                ? "Este es el nombre que se mostrará en tu perfil de barbería"
+                : "Este es el nombre que se mostrará en tu perfil de usuario"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -181,11 +170,11 @@ function ProfilePage() {
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Tu nombre"
                     autoComplete="name"
-                    disabled={isProfileLoading || isUpdatingName}
+                    disabled={isUpdatingName}
                   />
                   <Button
                     onClick={() => updateName({ name: name! })}
-                    disabled={isProfileLoading || isUpdatingName}
+                    disabled={isUpdatingName}
                   >
                     Guardar
                   </Button>
@@ -235,13 +224,13 @@ function ProfilePage() {
                     placeholder="3014441122"
                     autoComplete="tel"
                     type="tel"
-                    disabled={isProfileLoading || isUpdatingPhoneNumber}
+                    disabled={isUpdatingPhoneNumber}
                   />
                   <Button
                     onClick={() =>
                       updatePhoneNumber({ phoneNumber: phone ?? "" })
                     }
-                    disabled={isProfileLoading || isUpdatingPhoneNumber}
+                    disabled={isUpdatingPhoneNumber}
                   >
                     Guardar
                   </Button>
@@ -275,9 +264,7 @@ function ProfilePage() {
                       enabled: val,
                     })
                   }
-                  disabled={
-                    isProfileLoading || isUpdatingNotificationPreference
-                  }
+                  disabled={isUpdatingNotificationPreference}
                 />
               </FieldContent>
             </Field>
@@ -309,9 +296,7 @@ function ProfilePage() {
                   onCheckedChange={(val) =>
                     updateNotificationPreference({ type: "sms", enabled: val })
                   }
-                  disabled={
-                    isProfileLoading || isUpdatingNotificationPreference
-                  }
+                  disabled={isUpdatingNotificationPreference}
                 />
               </FieldContent>
             </Field>

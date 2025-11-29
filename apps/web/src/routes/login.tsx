@@ -39,13 +39,6 @@ function LoginPage() {
     } else {
       const { error } = await signIn.social({
         provider,
-        fetchOptions: {
-          onSuccess: () => {
-            redirect({
-              to: "/profile",
-            });
-          },
-        },
       });
 
       if (error) {

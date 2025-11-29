@@ -129,11 +129,11 @@ function RouteComponent() {
           </div>
         ) : null}
 
-        <Activity mode={searchResults === undefined ? "hidden" : "visible"}>
+        {searchResults?.length === 0 && (
           <p className="text-pretty text-muted-foreground text-sm">
             No hay barberías disponibles.
           </p>
-        </Activity>
+        )}
       </div>
     </div>
   );

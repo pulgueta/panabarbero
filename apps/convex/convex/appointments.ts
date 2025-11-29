@@ -338,6 +338,15 @@ export const getAppointments = query({
   },
 });
 
+export const getAppointmentById = query({
+  args: {
+    appointmentId: v.id("appointments"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.appointmentId);
+  },
+});
+
 export const getAppointmentByUuid = query({
   args: {
     uuid: v.string(),
@@ -617,7 +626,7 @@ export const deleteAppointment = mutation({
     appointmentId: v.id("appointments"),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
       throw new ConvexError(errorMessages.unauthorized);
@@ -635,7 +644,7 @@ export const cancelAppointment = mutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
       throw new ConvexError(errorMessages.unauthorized);

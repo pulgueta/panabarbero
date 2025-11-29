@@ -1,4 +1,4 @@
-import type { Barbershop } from "@panabarbero/convex/schemas";
+import type { Service } from "@panabarbero/convex/schemas";
 import type { FC } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -19,29 +19,23 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { InviteBarberForm } from "./invite-barber-form";
+import { AppointmentForm } from "./appointment-form";
 
-interface InviteBarberDialogProps {
-  barbershopId: Barbershop["_id"];
+interface AppointmentDialogProps {
+  service: Service;
 }
 
-export const InviteBarberDialog: FC<InviteBarberDialogProps> = ({
-  barbershopId,
-}) => {
+export const AppointmentDialog: FC<AppointmentDialogProps> = ({ service }) => {
   const { isMobile } = useIsMobile();
 
-  const headLabel = "Invitar barbero";
-  const description = "Proporciona los datos del barbero a invitar.";
-  const buttonLabel = "Invitar (pronto)";
-  const buttonVariant = "outline";
+  const headLabel = "Crear cita";
+  const description = "Proporciona tus datos para reservar el servicio.";
 
   if (isMobile) {
     return (
       <Drawer>
         <DrawerTrigger asChild>
-          <Button disabled variant={buttonVariant}>
-            {buttonLabel}
-          </Button>
+          <Button variant="outline">{headLabel}</Button>
         </DrawerTrigger>
         <DrawerContent>
           <DrawerHeader>
@@ -50,7 +44,7 @@ export const InviteBarberDialog: FC<InviteBarberDialogProps> = ({
           </DrawerHeader>
 
           <div className="p-4">
-            <InviteBarberForm barbershopId={barbershopId} />
+            <AppointmentForm service={service} />
           </div>
         </DrawerContent>
       </Drawer>
@@ -60,9 +54,7 @@ export const InviteBarberDialog: FC<InviteBarberDialogProps> = ({
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button disabled variant={buttonVariant}>
-          {buttonLabel}
-        </Button>
+        <Button variant="outline">{headLabel}</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -70,7 +62,7 @@ export const InviteBarberDialog: FC<InviteBarberDialogProps> = ({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <InviteBarberForm barbershopId={barbershopId} />
+        <AppointmentForm service={service} />
       </DialogContent>
     </Dialog>
   );

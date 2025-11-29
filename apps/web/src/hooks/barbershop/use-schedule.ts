@@ -1,6 +1,6 @@
 import type { Barbershop } from "@panabarbero/convex/schemas";
 
-export function useSchedule(barbershop: Barbershop | null) {
+export function useSchedule(availability: Barbershop["availability"] | null) {
   const formatTimeLabel = (time?: string | null) => {
     if (!time) return null;
 
@@ -19,7 +19,7 @@ export function useSchedule(barbershop: Barbershop | null) {
   };
 
   const todaySchedule = (() => {
-    if (!barbershop?.availability?.length) return undefined;
+    if (!availability?.length) return undefined;
 
     const weekday = [
       "sunday",
@@ -31,12 +31,11 @@ export function useSchedule(barbershop: Barbershop | null) {
       "saturday",
     ][new Date().getDay()];
 
-    return barbershop.availability.find(
-      (entry) => entry.weekDay.day === weekday,
-    );
+    return availability.find((entry) => entry.weekDay.day === weekday);
   })();
 
   const availabilityLabel = () => {
+    console.log(todaySchedule);
     if (!todaySchedule || !todaySchedule.weekDay.isActive) {
       return "Hoy no hay atención al público.";
     }

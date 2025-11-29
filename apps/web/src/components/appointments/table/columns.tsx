@@ -1,11 +1,20 @@
-import type { Appointment } from "@panabarbero/convex/schemas";
-import { Link } from "@tanstack/react-router";
-import type { ColumnDef } from "@tanstack/react-table";
-import { PencilIcon } from "lucide-react";
-
+import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import type { BadgeProps } from "@/components/ui/badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAppointmentActions } from "@/hooks/use-appointments";
+import type { Appointment } from "@panabarbero/convex/schemas";
+import { Link } from "@tanstack/react-router";
+import type { ColumnDef } from "@tanstack/react-table";
+import { EllipsisVerticalIcon, PencilIcon, TrashIcon } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 function getStatusBadgeVariant(
   status: Appointment["status"],
@@ -100,23 +109,72 @@ export const appointmentsTableColumns: ColumnDef<Appointment>[] = [
     accessorKey: "actions",
     header: () => <div className="text-center">Acciones</div>,
     cell: ({ row }) => {
-      const barbershopId = row.original._id;
+      const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+      const {
+        deleteAppointmentMutation: { mutateAsync: deleteAppointment },
+      } = useAppointmentActions();
+
+      const appointmentId = row.original._id;
+      const appointment = row.original;
+
+      const handleDelete = async () => {
+        try {
+          await deleteAppointment({ appointmentId });
+          toast.success("Cita eliminada exitosamente");
+          setShowDeleteDialog(false);
+        } catch (error) {
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : "Error al eliminar la cita",
+          );
+        }
+      };
 
       return (
-        <div className="text-center">
-          <Button variant="outline" asChild>
-            <Link
-              to="/profile/barbershops/edit/$barbershopId"
-              params={{ barbershopId }}
-              style={{
-                viewTransitionName: `barbershop-${barbershopId}-edit`,
-              }}
-            >
-              <PencilIcon className="size-3" />
-              Editar
-            </Link>
-          </Button>
-        </div>
+        <>
+          <div className="text-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <EllipsisVerticalIcon />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link
+                    to="/appointments/edit/$appointmentId"
+                    params={{ appointmentId }}
+                    style={{
+                      viewTransitionName: `appointment-${appointmentId}-edit`,
+                    }}
+                    className="inline-flex w-full items-center gap-x-2"
+                  >
+                    <PencilIcon className="size-3" />
+                    Editar
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowDeleteDialog(true)}>
+                  <TrashIcon className="size-3 text-destructive-foreground" />
+                  Eliminar
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <ConfirmationDialog
+            trigger={
+              <DropdownMenuItem onClick={() => setShowDeleteDialog(true)}>
+                <TrashIcon className="size-3 text-destructive-foreground" />
+                Eliminar
+              </DropdownMenuItem>
+            }
+            title="Eliminar cita"
+            description="¿Estás seguro de que deseas eliminar esta cita?"
+            confirmLabel={<Button variant="destructive">Eliminar</Button>}
+            cancelLabel={<Button variant="outline">Cancelar</Button>}
+          />
+        </>
       );
     },
   },

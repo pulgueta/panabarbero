@@ -1,17 +1,11 @@
 import { tanstack } from "@panabarbero/constants";
 import { createFileRoute } from "@tanstack/react-router";
-import { SearchIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { BarbershopFilters } from "@/components/barbershops/barbershop-filters";
 import { BarbershopGrid } from "@/components/barbershops/barbershop-grid";
 import { LocationGate } from "@/components/barbershops/location-gate";
 import { LoadingComponent } from "@/components/layout/loading-component";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group";
 import { activeBarbershopsQueryOptions } from "@/hooks/barbershop/use-barbershop";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 
@@ -80,14 +74,14 @@ function BarbershopsPage() {
             ¿Qué estilo buscas hoy?
           </h1>
 
-          <div className="mx-auto w-full px-4">
+          {/* <div className="mx-auto w-full px-4">
             <InputGroup>
               <InputGroupInput placeholder="Corte y barba..." role="search" />
               <InputGroupAddon>
                 <SearchIcon />
               </InputGroupAddon>
             </InputGroup>
-          </div>
+          </div> */}
         </section>
       </header>
 

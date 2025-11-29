@@ -1,12 +1,7 @@
 import type { Barber } from "@panabarbero/convex/schemas";
 import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
-import {
-  EllipsisVerticalIcon,
-  Info,
-  PencilIcon,
-  TrashIcon,
-} from "lucide-react";
+import { EllipsisVerticalIcon, Info, TrashIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -58,7 +53,7 @@ export const barbersTableColumns: ColumnDef<Barber>[] = [
       return (
         <div className="text-center">
           {userProfile?.phoneNumber ||
-            "No has proporcionado un número de contacto"}
+            "No se ha proporcionado un número de contacto"}
         </div>
       );
     },
@@ -78,7 +73,6 @@ export const barbersTableColumns: ColumnDef<Barber>[] = [
     accessorKey: "actions",
     header: () => <div className="text-center">Acciones</div>,
     cell: ({ row }) => {
-      const barbershopId = row.original.barbershopId;
       const userId = row.original.userId;
 
       const { data: userProfile } = useProfile(row.original.userId);
@@ -95,32 +89,19 @@ export const barbersTableColumns: ColumnDef<Barber>[] = [
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>
-                <Link
-                  to={
-                    isCurrentUser
-                      ? "/profile"
-                      : "/profile/barbershops/edit/$barbershopId"
-                  }
-                  params={{ barbershopId }}
-                  style={{
-                    viewTransitionName: `barbershop-${barbershopId}-edit`,
-                  }}
-                  className="inline-flex items-center gap-x-2"
-                >
-                  {isCurrentUser ? (
-                    <>
-                      <Info className="size-3" /> Mi perfil
-                    </>
-                  ) : (
-                    <>
-                      <PencilIcon className="size-3" />
-                      Editar
-                    </>
-                  )}
-                </Link>
-              </DropdownMenuItem>
-              {!isCurrentUser && (
+              {isCurrentUser ? (
+                <DropdownMenuItem>
+                  <Link
+                    to="/profile"
+                    style={{
+                      viewTransitionName: "profile-view",
+                    }}
+                    className="inline-flex w-full items-center gap-x-2"
+                  >
+                    <Info className="size-3" /> Mi perfil
+                  </Link>
+                </DropdownMenuItem>
+              ) : (
                 <DropdownMenuItem className="mt-1 p-0">
                   <Button variant="destructive">
                     <TrashIcon className="size-3 text-destructive-foreground" />

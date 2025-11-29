@@ -119,12 +119,12 @@ export const SocialMediaForm: FC<SocialMediaFormProps> = ({ barbershop }) => {
             </div>
           </div>
         ))}
-        <Button variant="outline" onClick={addRow}>
-          Agregar red social
+        <Button variant="outline" onClick={addRow} disabled>
+          Agregar red social (pronto)
         </Button>
       </FieldGroup>
 
-      <Button onClick={onSubmit} disabled={isUpdatingBarbershop}>
+      <Button onClick={onSubmit} disabled>
         {isUpdatingBarbershop ? <Spinner /> : "Guardar"}
       </Button>
     </div>

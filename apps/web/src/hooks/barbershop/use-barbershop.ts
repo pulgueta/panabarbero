@@ -68,7 +68,7 @@ export function useIsBarbershopOwner(
   barbershopId: Barbershop["_id"],
   userId: string,
 ) {
-  return useQuery(isBarbershopOwnerQueryOptions(barbershopId, userId));
+  return useSuspenseQuery(isBarbershopOwnerQueryOptions(barbershopId, userId));
 }
 
 export function useUserVisitedBarbershops(userId: string) {
@@ -84,7 +84,7 @@ export function useBarbershopByOwnerId(ownerId: string) {
 }
 
 export function useBarbershopAvailability(barbershopId: Barbershop["_id"]) {
-  return useQuery(barbershopAvailabilityQueryOptions(barbershopId));
+  return useSuspenseQuery(barbershopAvailabilityQueryOptions(barbershopId));
 }
 
 export function useBarbershopById(barbershopId: Barbershop["_id"]) {
@@ -92,7 +92,7 @@ export function useBarbershopById(barbershopId: Barbershop["_id"]) {
 }
 
 export function useBarbershopsByOwnerId(userId: string) {
-  return useQuery(barbershopsByOwnerIdQueryOptions(userId));
+  return useSuspenseQuery(barbershopsByOwnerIdQueryOptions(userId));
 }
 
 export function useBarbershopActions() {
