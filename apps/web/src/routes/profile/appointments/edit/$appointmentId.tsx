@@ -1,3 +1,17 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { Appointment } from "@panabarbero/convex/schemas";
+import {
+  createFileRoute,
+  useNavigate,
+  useRouter,
+} from "@tanstack/react-router";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+
 import { BorderContainer } from "@/components/layout/border-container";
 import {
   AlertDialog,
@@ -31,19 +45,6 @@ import {
   useAppointmentById,
 } from "@/hooks/use-appointments";
 import { appointmentStatusOptions } from "@/lib/schemas";
-import { zodResolver } from "@hookform/resolvers/zod";
-import type { Appointment } from "@panabarbero/convex/schemas";
-import {
-  createFileRoute,
-  useNavigate,
-  useRouter,
-} from "@tanstack/react-router";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
-import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const editAppointmentSchema = z.object({
   customerName: z.string().min(1, "El nombre del cliente es requerido"),
@@ -83,7 +84,9 @@ function getStatusLabel(status: Appointment["status"]) {
   }
 }
 
-export const Route = createFileRoute("/appointments/edit/$appointmentId")({
+export const Route = createFileRoute(
+  "/profile/appointments/edit/$appointmentId",
+)({
   component: RouteComponent,
   loader: async ({ context, params }) => {
     const appointment = await context.queryClient.ensureQueryData(
@@ -193,7 +196,7 @@ function RouteComponent() {
       )}
 
       <form onSubmit={onSubmit} className="space-y-6">
-        <FieldGroup>
+        <FieldGroup className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Controller
             name="customerName"
             control={form.control}
@@ -294,6 +297,13 @@ function RouteComponent() {
             onClick={() => router.history.back()}
           >
             Cancelar y volver
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={() => router.history.back()}
+          >
+            Eliminar cita
           </Button>
           <Button
             type="submit"

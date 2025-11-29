@@ -23,8 +23,8 @@ import { Route as ProfileBarbershopsIndexRouteImport } from "./routes/profile/ba
 import { Route as ProfileAppointmentsIndexRouteImport } from "./routes/profile/appointments/index"
 import { Route as ProfileBarbershopsSettingsRouteImport } from "./routes/profile/barbershops/settings"
 import { Route as ProfileBarbershopsAnalyticsRouteImport } from "./routes/profile/barbershops/analytics"
-import { Route as AppointmentsEditAppointmentIdRouteImport } from "./routes/appointments/edit/$appointmentId"
 import { Route as ProfileBarbershopsEditBarbershopIdRouteImport } from "./routes/profile/barbershops/edit/$barbershopId"
+import { Route as ProfileAppointmentsEditAppointmentIdRouteImport } from "./routes/profile/appointments/edit/$appointmentId"
 
 const LoginRoute = LoginRouteImport.update({
   id: "/login",
@@ -100,16 +100,16 @@ const ProfileBarbershopsAnalyticsRoute =
     path: "/profile/barbershops/analytics",
     getParentRoute: () => rootRouteImport,
   } as any)
-const AppointmentsEditAppointmentIdRoute =
-  AppointmentsEditAppointmentIdRouteImport.update({
-    id: "/appointments/edit/$appointmentId",
-    path: "/appointments/edit/$appointmentId",
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ProfileBarbershopsEditBarbershopIdRoute =
   ProfileBarbershopsEditBarbershopIdRouteImport.update({
     id: "/profile/barbershops/edit/$barbershopId",
     path: "/profile/barbershops/edit/$barbershopId",
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ProfileAppointmentsEditAppointmentIdRoute =
+  ProfileAppointmentsEditAppointmentIdRouteImport.update({
+    id: "/profile/appointments/edit/$appointmentId",
+    path: "/profile/appointments/edit/$appointmentId",
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -124,11 +124,11 @@ export interface FileRoutesByFullPath {
   "/profile": typeof ProfileIndexRoute
   "/reviews": typeof ReviewsIndexRoute
   "/services": typeof ServicesIndexRoute
-  "/appointments/edit/$appointmentId": typeof AppointmentsEditAppointmentIdRoute
   "/profile/barbershops/analytics": typeof ProfileBarbershopsAnalyticsRoute
   "/profile/barbershops/settings": typeof ProfileBarbershopsSettingsRoute
   "/profile/appointments": typeof ProfileAppointmentsIndexRoute
   "/profile/barbershops": typeof ProfileBarbershopsIndexRoute
+  "/profile/appointments/edit/$appointmentId": typeof ProfileAppointmentsEditAppointmentIdRoute
   "/profile/barbershops/edit/$barbershopId": typeof ProfileBarbershopsEditBarbershopIdRoute
 }
 export interface FileRoutesByTo {
@@ -142,11 +142,11 @@ export interface FileRoutesByTo {
   "/profile": typeof ProfileIndexRoute
   "/reviews": typeof ReviewsIndexRoute
   "/services": typeof ServicesIndexRoute
-  "/appointments/edit/$appointmentId": typeof AppointmentsEditAppointmentIdRoute
   "/profile/barbershops/analytics": typeof ProfileBarbershopsAnalyticsRoute
   "/profile/barbershops/settings": typeof ProfileBarbershopsSettingsRoute
   "/profile/appointments": typeof ProfileAppointmentsIndexRoute
   "/profile/barbershops": typeof ProfileBarbershopsIndexRoute
+  "/profile/appointments/edit/$appointmentId": typeof ProfileAppointmentsEditAppointmentIdRoute
   "/profile/barbershops/edit/$barbershopId": typeof ProfileBarbershopsEditBarbershopIdRoute
 }
 export interface FileRoutesById {
@@ -161,11 +161,11 @@ export interface FileRoutesById {
   "/profile/": typeof ProfileIndexRoute
   "/reviews/": typeof ReviewsIndexRoute
   "/services/": typeof ServicesIndexRoute
-  "/appointments/edit/$appointmentId": typeof AppointmentsEditAppointmentIdRoute
   "/profile/barbershops/analytics": typeof ProfileBarbershopsAnalyticsRoute
   "/profile/barbershops/settings": typeof ProfileBarbershopsSettingsRoute
   "/profile/appointments/": typeof ProfileAppointmentsIndexRoute
   "/profile/barbershops/": typeof ProfileBarbershopsIndexRoute
+  "/profile/appointments/edit/$appointmentId": typeof ProfileAppointmentsEditAppointmentIdRoute
   "/profile/barbershops/edit/$barbershopId": typeof ProfileBarbershopsEditBarbershopIdRoute
 }
 export interface FileRouteTypes {
@@ -181,11 +181,11 @@ export interface FileRouteTypes {
     | "/profile"
     | "/reviews"
     | "/services"
-    | "/appointments/edit/$appointmentId"
     | "/profile/barbershops/analytics"
     | "/profile/barbershops/settings"
     | "/profile/appointments"
     | "/profile/barbershops"
+    | "/profile/appointments/edit/$appointmentId"
     | "/profile/barbershops/edit/$barbershopId"
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -199,11 +199,11 @@ export interface FileRouteTypes {
     | "/profile"
     | "/reviews"
     | "/services"
-    | "/appointments/edit/$appointmentId"
     | "/profile/barbershops/analytics"
     | "/profile/barbershops/settings"
     | "/profile/appointments"
     | "/profile/barbershops"
+    | "/profile/appointments/edit/$appointmentId"
     | "/profile/barbershops/edit/$barbershopId"
   id:
     | "__root__"
@@ -217,11 +217,11 @@ export interface FileRouteTypes {
     | "/profile/"
     | "/reviews/"
     | "/services/"
-    | "/appointments/edit/$appointmentId"
     | "/profile/barbershops/analytics"
     | "/profile/barbershops/settings"
     | "/profile/appointments/"
     | "/profile/barbershops/"
+    | "/profile/appointments/edit/$appointmentId"
     | "/profile/barbershops/edit/$barbershopId"
   fileRoutesById: FileRoutesById
 }
@@ -236,11 +236,11 @@ export interface RootRouteChildren {
   ProfileIndexRoute: typeof ProfileIndexRoute
   ReviewsIndexRoute: typeof ReviewsIndexRoute
   ServicesIndexRoute: typeof ServicesIndexRoute
-  AppointmentsEditAppointmentIdRoute: typeof AppointmentsEditAppointmentIdRoute
   ProfileBarbershopsAnalyticsRoute: typeof ProfileBarbershopsAnalyticsRoute
   ProfileBarbershopsSettingsRoute: typeof ProfileBarbershopsSettingsRoute
   ProfileAppointmentsIndexRoute: typeof ProfileAppointmentsIndexRoute
   ProfileBarbershopsIndexRoute: typeof ProfileBarbershopsIndexRoute
+  ProfileAppointmentsEditAppointmentIdRoute: typeof ProfileAppointmentsEditAppointmentIdRoute
   ProfileBarbershopsEditBarbershopIdRoute: typeof ProfileBarbershopsEditBarbershopIdRoute
 }
 
@@ -344,18 +344,18 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof ProfileBarbershopsAnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/appointments/edit/$appointmentId": {
-      id: "/appointments/edit/$appointmentId"
-      path: "/appointments/edit/$appointmentId"
-      fullPath: "/appointments/edit/$appointmentId"
-      preLoaderRoute: typeof AppointmentsEditAppointmentIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     "/profile/barbershops/edit/$barbershopId": {
       id: "/profile/barbershops/edit/$barbershopId"
       path: "/profile/barbershops/edit/$barbershopId"
       fullPath: "/profile/barbershops/edit/$barbershopId"
       preLoaderRoute: typeof ProfileBarbershopsEditBarbershopIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/profile/appointments/edit/$appointmentId": {
+      id: "/profile/appointments/edit/$appointmentId"
+      path: "/profile/appointments/edit/$appointmentId"
+      fullPath: "/profile/appointments/edit/$appointmentId"
+      preLoaderRoute: typeof ProfileAppointmentsEditAppointmentIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -372,11 +372,12 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileIndexRoute: ProfileIndexRoute,
   ReviewsIndexRoute: ReviewsIndexRoute,
   ServicesIndexRoute: ServicesIndexRoute,
-  AppointmentsEditAppointmentIdRoute: AppointmentsEditAppointmentIdRoute,
   ProfileBarbershopsAnalyticsRoute: ProfileBarbershopsAnalyticsRoute,
   ProfileBarbershopsSettingsRoute: ProfileBarbershopsSettingsRoute,
   ProfileAppointmentsIndexRoute: ProfileAppointmentsIndexRoute,
   ProfileBarbershopsIndexRoute: ProfileBarbershopsIndexRoute,
+  ProfileAppointmentsEditAppointmentIdRoute:
+    ProfileAppointmentsEditAppointmentIdRoute,
   ProfileBarbershopsEditBarbershopIdRoute:
     ProfileBarbershopsEditBarbershopIdRoute,
 }
