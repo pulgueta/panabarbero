@@ -1,6 +1,13 @@
 import type { Barbershop } from "@panabarbero/convex/schemas";
 import type { FC } from "react";
-import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import {
+  Activity,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+} from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -291,9 +298,6 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
       <FieldGroup>
         <FieldSet className="gap-2">
           <Field>
-            <FieldLabel className="mt-0" htmlFor={formIds.availability}>
-              Selecciona múltiples días *
-            </FieldLabel>
             <ToggleGroup
               type="multiple"
               variant="outline"
@@ -332,9 +336,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
         <div className="flex w-full flex-col gap-4 md:flex-row">
           <FieldSet className="w-full">
             <Field>
-              <FieldLabel htmlFor={formIds.openAt}>
-                Hora de entrada *
-              </FieldLabel>
+              <FieldLabel htmlFor={formIds.openAt}>Hora de entrada</FieldLabel>
               <Input
                 id={formIds.openAt}
                 type="time"
@@ -351,9 +353,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
 
           <FieldSet className="w-full">
             <Field>
-              <FieldLabel htmlFor={formIds.closeAt}>
-                Hora de salida *
-              </FieldLabel>
+              <FieldLabel htmlFor={formIds.closeAt}>Hora de salida</FieldLabel>
               <Input
                 id={formIds.closeAt}
                 type="time"
@@ -388,9 +388,9 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
           </Field>
         </FieldSet>
 
-        {hasLunch && (
+        <Activity mode={hasLunch ? "visible" : "hidden"}>
           <div className="flex w-full flex-col gap-4 md:flex-row">
-            <FieldSet className="w-full space-y-1">
+            <FieldSet className="w-full">
               <Field>
                 <FieldLabel htmlFor={formIds.lunchStart}>
                   Hora de salida
@@ -410,7 +410,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
               <FieldDescription>A esta hora sales a almorzar.</FieldDescription>
             </FieldSet>
 
-            <FieldSet className="w-full space-y-1">
+            <FieldSet className="w-full">
               <Field>
                 <FieldLabel htmlFor={formIds.lunchEnd}>
                   Hora de regreso
@@ -432,7 +432,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
               </FieldDescription>
             </FieldSet>
           </div>
-        )}
+        </Activity>
 
         <div className="flex flex-wrap gap-3">
           <Button
@@ -465,6 +465,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
 
         <div className="rounded-lg border p-4">
           <h3 className="font-semibold text-base">Resumen de disponibilidad</h3>
+
           <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7">
             {rows.map((entry) => {
               const day = entry.weekDay.day as DayKey;
@@ -472,6 +473,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
               return (
                 <div key={day} className="rounded border p-4 text-sm">
                   <p className="font-semibold">{dayLabelMap[day]}</p>
+
                   {entry.weekDay.isActive ? (
                     <div className="text-muted-foreground">
                       <p>
