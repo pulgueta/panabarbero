@@ -112,6 +112,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
 
   useEffect(() => {
     const nextRows = buildInitialRows(availability);
+
     setRows(nextRows);
     setSelectedDays(
       nextRows
@@ -121,9 +122,10 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
   }, [availability, buildInitialRows]);
 
   useEffect(() => {
-    if (!selectedDays.length) return;
     const base = rows.find((entry) => entry.weekDay.day === selectedDays[0]);
+
     if (!base) return;
+
     setSchedule({
       openAt: base.openAt ?? "",
       closeAt: base.closeAt ?? "",
@@ -147,12 +149,15 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
 
   const parseTimeToMinutes = (value: string) => {
     const [hours, minutes] = value.split(":").map(Number);
+
     if (Number.isNaN(hours) || Number.isNaN(minutes)) return 0;
+
     return hours * 60 + minutes;
   };
 
   const isTimeRangeValid = (start?: string, end?: string) => {
     if (!start || !end) return false;
+
     return parseTimeToMinutes(end) > parseTimeToMinutes(start);
   };
 
@@ -160,6 +165,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
     const typed = values.filter(
       (value): value is DayKey => !!dayLabelMap[value as DayKey],
     );
+
     setSelectedDays(typed);
     setFormError(null);
   };
@@ -167,27 +173,32 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
   const applyScheduleToSelectedDays = () => {
     if (!selectedDays.length) {
       setFormError("Selecciona al menos un día");
+
       return;
     }
 
     if (!schedule.openAt || !schedule.closeAt) {
       setFormError("Debes definir la hora de entrada y salida");
+
       return;
     }
 
     if (!isTimeRangeValid(schedule.openAt, schedule.closeAt)) {
       setFormError("La hora de salida debe ser mayor a la de entrada");
+
       return;
     }
 
     if (hasLunch) {
       if (!schedule.lunchStart || !schedule.lunchEnd) {
         setFormError("Completa ambas horas de almuerzo");
+
         return;
       }
 
       if (!isTimeRangeValid(schedule.lunchStart, schedule.lunchEnd)) {
         setFormError("La hora de regreso debe ser mayor a la de salida");
+
         return;
       }
     }
@@ -206,13 +217,16 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
           : entry,
       ),
     );
+
     setFormError(null);
+
     toast.success("Horario aplicado a los días seleccionados");
   };
 
   const disableSelectedDays = () => {
     if (!selectedDays.length) {
       setFormError("Selecciona al menos un día");
+
       return;
     }
 
@@ -226,7 +240,8 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
           : entry,
       ),
     );
-    toast("Los días seleccionados ahora están inactivos");
+
+    toast.info("Los días seleccionados ahora están inactivos");
   };
 
   const validateEntry = (
@@ -275,12 +290,15 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
 
   const handleSave = async () => {
     setIsSaving(true);
+
     try {
       const validatedRows = rows.map((entry) => validateEntry(entry));
+
       await updateBarbershopAvailability({
         barbershopId,
         availability: validatedRows,
       });
+
       toast.success("Disponibilidad actualizada correctamente");
     } catch (error) {
       toast.error(
@@ -346,9 +364,6 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
                 }
               />
             </Field>
-            <FieldDescription>
-              A partir de esta hora podrás recibir reservaciones.
-            </FieldDescription>
           </FieldSet>
 
           <FieldSet className="w-full">
@@ -363,10 +378,6 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
                 }
               />
             </Field>
-            <FieldDescription>
-              A esta hora se calculará hasta cuándo podrás recibir
-              reservaciones.
-            </FieldDescription>
           </FieldSet>
         </div>
 
