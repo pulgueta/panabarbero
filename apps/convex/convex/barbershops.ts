@@ -289,6 +289,33 @@ export const updateBarbershopDayAvailability = mutation({
   },
 });
 
+export const updateBarbershopAvailability = mutation({
+  args: {
+    barbershopId: v.id("barbershops"),
+    availability: tables.barbershops.availability,
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+
+    if (!user) {
+      throw new Error("User not authenticated", {
+        cause: user,
+      });
+    }
+
+    const shop = await ctx.db.get(args.barbershopId);
+    if (!shop) {
+      throw new Error("Barbershop not found");
+    }
+
+    await ctx.db.patch(args.barbershopId, {
+      availability: args.availability as (typeof shop.availability),
+    });
+
+    return null;
+  },
+});
+
 export const updateBarbershop = mutation({
   args: {
     barbershopId: v.id("barbershops"),

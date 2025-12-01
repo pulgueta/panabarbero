@@ -35,7 +35,6 @@ export function useSchedule(availability: Barbershop["availability"] | null) {
   })();
 
   const availabilityLabel = () => {
-    console.log(todaySchedule);
     if (!todaySchedule || !todaySchedule.weekDay.isActive) {
       return "Hoy no hay atención al público.";
     }

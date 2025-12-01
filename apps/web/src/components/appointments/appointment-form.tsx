@@ -91,6 +91,9 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
   );
   const { data: services } = useServicesFromBarbershop(service.barbershopId);
   const { service: selectedService } = useServicesStore();
+  const {
+    createAppointment: { mutateAsync: createAppointment, isPending },
+  } = useAppointmentActions();
 
   const { captureEvent } = useAnalytics();
 
@@ -141,10 +144,6 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
     },
     [activeDays],
   );
-
-  const {
-    createAppointment: { mutateAsync: createAppointment, isPending },
-  } = useAppointmentActions();
 
   const timeStringToMinutes = (value?: string | null) => {
     if (!value) return null;

@@ -44,7 +44,7 @@ function getStatusLabel(status: Appointment["status"]) {
 export const appointmentsTableColumns: ColumnDef<Appointment>[] = [
   {
     accessorKey: "customerName",
-    header: () => <div className="text-center">Nombre del cliente</div>,
+    header: () => <div className="text-center">Cliente</div>,
     cell: ({ row }) => {
       const customerName = row.original.customerName;
 
@@ -53,7 +53,7 @@ export const appointmentsTableColumns: ColumnDef<Appointment>[] = [
   },
   {
     accessorKey: "contactEmail",
-    header: () => <div className="text-center">Email de contacto</div>,
+    header: () => <div className="text-center">Correo electrónico</div>,
     cell: ({ row }) => {
       const contactEmail = row.original.contactEmail;
 
@@ -62,7 +62,7 @@ export const appointmentsTableColumns: ColumnDef<Appointment>[] = [
   },
   {
     accessorKey: "contactPhone",
-    header: () => <div className="text-center">Teléfono de contacto</div>,
+    header: () => <div className="text-center">Teléfono</div>,
     cell: ({ row }) => {
       const contactPhone = row.original.contactPhone;
 
@@ -71,9 +71,15 @@ export const appointmentsTableColumns: ColumnDef<Appointment>[] = [
   },
   {
     accessorKey: "date",
-    header: () => <div className="text-center">Fecha</div>,
+    header: () => <div className="text-center">Fecha y hora</div>,
     cell: ({ row }) => {
-      const date = new Date(row.original.date).toLocaleDateString("es-CO");
+      const date = new Date(row.original.date).toLocaleDateString("es-CO", {
+        hour: "2-digit",
+        minute: "2-digit",
+        day: "2-digit",
+        month: "2-digit",
+        year: "2-digit",
+      });
 
       return <div className="text-center">{date}</div>;
     },
@@ -99,7 +105,7 @@ export const appointmentsTableColumns: ColumnDef<Appointment>[] = [
     cell: ({ row }) => {
       const notes = row.original.notes;
 
-      return <div className="text-center">{notes ?? "N/A"}</div>;
+      return <div className="line-clamp-1 text-center">{notes ?? "N/A"}</div>;
     },
   },
   {

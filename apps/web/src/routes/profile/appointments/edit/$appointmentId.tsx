@@ -7,11 +7,12 @@ import {
 } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { BorderContainer } from "@/components/layout/border-container";
 import {
   AlertDialog,
@@ -42,7 +43,6 @@ import { Spinner } from "@/components/ui/spinner";
 import {
   appointmentByIdQueryOptions,
   useAppointmentActions,
-  useAppointmentById,
 } from "@/hooks/use-appointments";
 import { appointmentStatusOptions } from "@/lib/schemas";
 
@@ -107,19 +107,40 @@ function RouteComponent() {
     Appointment["status"] | null
   >(null);
 
-  const { data: appointment } = useAppointmentById(
-    params.appointmentId as Appointment["_id"],
-  );
+  const { appointment } = Route.useLoaderData();
 
-  const { update, setStatus } = useAppointmentActions();
+  const {
+    updateAppointmentMutation: {
+      mutateAsync: updateAppointment,
+      isPending: isUpdatingAppointment,
+      isSuccess: isUpdatedAppointment,
+    },
+    setStatus,
+    deleteAppointmentMutation: {
+      mutateAsync: deleteAppointment,
+      isPending: isDeletingAppointment,
+      isSuccess: isDeletedAppointment,
+    },
+  } = useAppointmentActions();
+
+  useEffect(() => {
+    if (isDeletedAppointment) {
+      toast.success("Cita eliminada exitosamente");
+      navigate({ to: "/profile/barbershops" });
+    }
+
+    if (isUpdatedAppointment) {
+      toast.success("Cita actualizada exitosamente");
+    }
+  }, [isDeletedAppointment, isUpdatedAppointment, navigate]);
 
   const form = useForm<EditAppointmentFormData>({
     resolver: zodResolver(editAppointmentSchema),
     defaultValues: {
-      customerName: appointment?.customerName ?? "",
-      contactEmail: appointment?.contactEmail ?? "",
-      contactPhone: appointment?.contactPhone ?? "",
-      status: appointment?.status ?? "pending",
+      customerName: appointment?.customerName,
+      contactEmail: appointment?.contactEmail,
+      contactPhone: appointment?.contactPhone,
+      status: appointment?.status,
     },
   });
 
@@ -142,12 +163,15 @@ function RouteComponent() {
     }
   };
 
+  const disabled =
+    isUpdatingAppointment || setStatus.isPending || isDeletingAppointment;
+
   const onSubmit = form.handleSubmit(async (formData) => {
     if (!appointment) return;
 
     try {
       // Update customer information
-      await update.mutateAsync({
+      await updateAppointment({
         appointmentId: appointment._id,
         appointment: {
           ...appointment,
@@ -166,7 +190,7 @@ function RouteComponent() {
       }
 
       toast.success("Cita actualizada exitosamente");
-      navigate({ to: "/appointments" });
+      navigate({ to: "/profile/barbershops" });
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Error al actualizar la cita",
@@ -291,6 +315,26 @@ function RouteComponent() {
         </FieldGroup>
 
         <div className="flex justify-end gap-4">
+          <ConfirmationDialog
+            trigger={
+              <Button type="button" variant="destructive">
+                Eliminar cita
+              </Button>
+            }
+            title="Eliminar cita"
+            description="¿Estás seguro de que deseas eliminar esta cita? Esta acción no se puede deshacer."
+            confirmLabel={
+              <Button
+                variant="destructive"
+                onClick={() =>
+                  deleteAppointment({ appointmentId: appointment._id })
+                }
+              >
+                Eliminar
+              </Button>
+            }
+            cancelLabel={<Button variant="outline">Cancelar</Button>}
+          />
           <Button
             type="button"
             variant="outline"
@@ -298,18 +342,8 @@ function RouteComponent() {
           >
             Cancelar y volver
           </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={() => router.history.back()}
-          >
-            Eliminar cita
-          </Button>
-          <Button
-            type="submit"
-            disabled={update.isPending || setStatus.isPending || isCompleted}
-          >
-            {(update.isPending || setStatus.isPending) && <Spinner />}
+          <Button type="submit" disabled={disabled || isCompleted}>
+            {disabled && <Spinner />}
             Guardar cambios
           </Button>
         </div>

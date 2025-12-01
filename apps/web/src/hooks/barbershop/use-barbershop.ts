@@ -107,10 +107,14 @@ export function useBarbershopActions() {
       api.barbershops.updateBarbershopDayAvailability,
     ),
   });
+  const updateBarbershopAvailabilityMutation = useMutation({
+    mutationFn: useConvexMutation(api.barbershops.updateBarbershopAvailability),
+  });
 
   return {
     createBarbershopMutation,
     updateBarbershopMutation,
     updateBarbershopDayAvailabilityMutation,
+    updateBarbershopAvailabilityMutation,
   };
 }

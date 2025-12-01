@@ -27,33 +27,17 @@ function minutesOfDay(ts: number): number {
 }
 
 function withinOpenHours(
-  openAt: string | undefined,
-  closeAt: string | undefined,
-  startAt: number,
-  endAt: number,
+  openAt: number,
+  closeAt: number,
+  appointmentDate: number,
+  appointmentEndAt: number,
 ): boolean {
-  if (!openAt || !closeAt) return true;
+  if (appointmentDate < openAt) return false;
+  if (appointmentDate > closeAt) return false;
+  if (appointmentEndAt < openAt) return false;
+  if (appointmentEndAt > closeAt) return false;
 
-  const openMin = parseTimeToMinutes(openAt);
-  const closeMin = parseTimeToMinutes(closeAt);
-
-  if (Number.isNaN(openMin) || Number.isNaN(closeMin)) return true;
-
-  const startMin = minutesOfDay(startAt);
-  const endMin = minutesOfDay(endAt);
-
-  const overnight = closeMin <= openMin;
-
-  if (!overnight) {
-    return startMin >= openMin && endMin <= closeMin;
-  }
-
-  const adjust = (m: number) => (m < openMin ? m + 1440 : m);
-
-  const adjStart = adjust(startMin);
-  const adjEnd = adjust(endMin);
-
-  return adjStart >= openMin && adjEnd <= closeMin + 1440;
+  return true;
 }
 
 function overlapsLunchBreak(
@@ -98,8 +82,10 @@ export const createAppointment = mutation({
 
     const { appointment } = args;
 
-    const service = await ctx.db.get(appointment.serviceId);
-    const barber = await ctx.db.get(appointment.barberId);
+    const [service, barber] = await Promise.all([
+      ctx.db.get(appointment.serviceId),
+      ctx.db.get(appointment.barberId),
+    ]);
 
     if (!barber) {
       throw new ConvexError(errorMessages.notFound("barbero"));
@@ -175,12 +161,15 @@ export const createAppointment = mutation({
 
     if (
       !withinOpenHours(
-        dayAvailability.openAt,
-        dayAvailability.closeAt,
+        new Date(dayAvailability.openAt).getTime(),
+        new Date(dayAvailability.closeAt).getTime(),
         appointment.date,
         endAt,
       )
     ) {
+      console.log("barbershopAvailability", dayAvailability);
+      console.log("appointment.date", appointment.date);
+      console.log("endAt", endAt);
       throw new ConvexError(errorMessages.appointmentOutsideWorkingHours);
     }
 
@@ -576,8 +565,8 @@ export const updateAppointment = mutation({
 
     if (
       !withinOpenHours(
-        dayAvailability.openAt,
-        dayAvailability.closeAt,
+        new Date(dayAvailability.openAt).getTime(),
+        new Date(dayAvailability.closeAt).getTime(),
         appointment.date,
         endAt,
       )

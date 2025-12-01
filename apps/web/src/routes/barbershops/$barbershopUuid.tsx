@@ -29,16 +29,17 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
     let availability = null;
     let isOwner = null;
 
-    if (barbershop) {
+    if (barbershop?._id) {
       services = await context.queryClient.ensureQueryData(
-        servicesQueryOptions(barbershop?._id!),
+        servicesQueryOptions(barbershop._id),
       );
       availability = await context.queryClient.ensureQueryData(
-        barbershopAvailabilityQueryOptions(barbershop?._id!),
+        barbershopAvailabilityQueryOptions(barbershop._id),
       );
+
       if (user?.userId) {
         isOwner = await context.queryClient.ensureQueryData(
-          isBarbershopOwnerQueryOptions(barbershop?._id!, user?.userId!),
+          isBarbershopOwnerQueryOptions(barbershop._id, user.userId),
         );
       }
     }
@@ -81,7 +82,7 @@ function RouteComponent() {
             Servicios ofrecidos:
           </h2>
 
-          {services && services.length > 0 ? (
+          {services && services.length > 0 && availability ? (
             <ServicesCarousel services={services} />
           ) : (
             <p
