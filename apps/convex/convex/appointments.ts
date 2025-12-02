@@ -647,16 +647,43 @@ export const cancelAppointment = mutation({
       notes: args.reason,
     });
 
-    await ctx.db.insert("notifications", {
-      uuid: crypto.randomUUID(),
-      channels: ["sms"],
-      reason: "appointment_cancelled",
-      title: "Cita cancelada",
-      body: args.reason ?? "Tu cita ha sido cancelada.",
-      senderUserId: args.cancelledByUserId,
-      receiverUserId: appt.userId,
-      appointmentId: args.appointmentId,
-    });
+    const userProfile = await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      {
+        userId: appt.userId,
+      },
+    );
+
+    if (!userProfile) {
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
+    }
+
+    const enabledChannels =
+      userProfile?.notificationsPreferences
+        .filter((n) => n.enabled)
+        .map((n) => n.type) ?? [];
+
+    if (enabledChannels.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.notifications.createNotification,
+        {
+          notification: {
+            uuid: crypto.randomUUID(),
+            channels: enabledChannels,
+            reason: "appointment_cancelled",
+            title: "Cita cancelada",
+            body:
+              args.reason ??
+              "Tu cita ha sido cancelada. Comunícate con tu barbero para más detalles.",
+            senderUserId: args.cancelledByUserId,
+            receiverUserId: appt.userId,
+            appointmentId: args.appointmentId,
+            preview: args.reason ?? "Tu cita ha sido cancelada.",
+          },
+        },
+      );
+    }
   },
 });
 
@@ -671,6 +698,10 @@ export const requestReschedule = mutation({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    if (user.userId !== args.requestedByUserId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 
@@ -701,78 +732,53 @@ export const requestReschedule = mutation({
       proposedDate: args.proposedDate,
     });
 
-    const userProfile = await ctx.runQuery(
+    const requesterProfile = await ctx.runQuery(
       internal.userProfileData.getProfileByUserId,
       {
         userId: user.userId ?? "",
       },
     );
 
-    if (!userProfile) {
+    if (!requesterProfile) {
       throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
 
-    const barber = await ctx.db.get(appt.barberId);
-
-    if (!barber) {
-      throw new ConvexError(errorMessages.notFound("barbero"));
-    }
-
-    const barberProfile = await ctx.runQuery(
+    const customerProfile = await ctx.runQuery(
       internal.userProfileData.getProfileByUserId,
       {
-        userId: barber.userId,
+        userId: appt.userId,
       },
     );
 
-    if (!barberProfile) {
-      throw new ConvexError(errorMessages.notFound("perfil de barbero"));
+    if (!customerProfile) {
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
 
-    const enabledChannels = {
-      user: userProfile.notificationsPreferences.filter((n) => n.enabled),
-      barber: barberProfile.notificationsPreferences.filter((n) => n.enabled),
-    };
+    const customerChannels = customerProfile.notificationsPreferences
+      .filter((n) => n.enabled)
+      .map((n) => n.type);
 
-    const userChannels = enabledChannels.user.map((n) => n.type);
+    if (customerChannels.length > 0) {
+      const formattedDate = new Intl.DateTimeFormat("es-CO", {
+        dateStyle: "full",
+        timeStyle: "short",
+      }).format(new Date(args.proposedDate));
+      const noteSuffix = args.note ? ` Nota: ${args.note}` : "";
 
-    if (userChannels.length > 0) {
       await ctx.scheduler.runAfter(
         0,
         internal.notifications.createNotification,
         {
           notification: {
-            body: "Un cliente ha solicitado un reagendamiento.",
+            body: `Tu barbero propuso reagendar la cita para el ${formattedDate}.${noteSuffix}`,
             reason: "appointment_rescheduled_request",
-            receiverUserId: barberProfile.userId,
+            receiverUserId: customerProfile.userId,
             title: "Solicitud de reagendamiento",
             uuid: crypto.randomUUID(),
-            senderUserId: userProfile.userId,
-            channels: enabledChannels.barber.map((n) => n.type),
+            senderUserId: requesterProfile.userId,
+            channels: customerChannels,
             appointmentId: args.appointmentId,
-            preview: "Un cliente ha solicitado un reagendamiento.",
-          },
-        },
-      );
-    }
-
-    const barberChannels = enabledChannels.barber.map((n) => n.type);
-
-    if (barberChannels.length > 0) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.notifications.createNotification,
-        {
-          notification: {
-            body: "Un cliente ha solicitado un reagendamiento.",
-            reason: "appointment_rescheduled_request",
-            receiverUserId: barberProfile.userId,
-            title: "Solicitud de reagendamiento",
-            uuid: crypto.randomUUID(),
-            senderUserId: userProfile.userId,
-            channels: enabledChannels.barber.map((n) => n.type),
-            appointmentId: args.appointmentId,
-            preview: "Un cliente ha solicitado un reagendamiento.",
+            preview: "Tu cita tiene una nueva fecha propuesta.",
           },
         },
       );

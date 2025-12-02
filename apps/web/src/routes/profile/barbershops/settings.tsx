@@ -71,30 +71,30 @@ function SettingsPage() {
 
       {barbershop && (
         <>
-          <section className="space-y-4">
-            <div>
-              <h2 className="font-bold text-xl tracking-tight">
-                Información general
-              </h2>
-              <p className="text-muted-foreground text-sm">
-                Nombre y descripción pública de tu barbería.
-              </p>
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <header>
+                <h2 className="font-bold text-xl tracking-tight">
+                  Información general
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  Nombre y descripción pública de tu barbería.
+                </p>
+              </header>
+
+              <GeneralInfoForm barbershop={barbershop} />
             </div>
 
-            <GeneralInfoForm barbershop={barbershop} />
-          </section>
+            <div className="space-y-2">
+              <header>
+                <h2 className="font-bold text-xl tracking-tight">Dirección</h2>
+                <p className="text-muted-foreground text-sm">
+                  Dirección, ciudad y departamento.
+                </p>
+              </header>
 
-          <Separator />
-
-          <section className="space-y-4">
-            <div>
-              <h2 className="font-bold text-xl tracking-tight">Dirección</h2>
-              <p className="text-muted-foreground text-sm">
-                Dirección, ciudad y departamento.
-              </p>
+              <AddressForm barbershop={barbershop} />
             </div>
-
-            <AddressForm barbershop={barbershop} />
           </section>
 
           <Separator />

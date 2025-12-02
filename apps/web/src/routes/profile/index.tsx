@@ -21,6 +21,7 @@ import {
 import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { isBarberQueryOptions } from "@/hooks/use-barbers";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { profileQueryOptions, useProfileActions } from "@/hooks/use-profile";
@@ -122,18 +123,41 @@ function ProfilePage() {
     }
   };
 
+  const tabs = [
+    {
+      label: "Cuenta",
+      value: "account",
+    },
+  ];
+
+  if (!isBarber) {
+    tabs.push({
+      label: "Citas",
+      value: "appointments",
+    });
+  }
+
   return (
     <BorderContainer>
       <div className="mb-6 flex items-center justify-between gap-2">
-        <h1 className="font-bold text-3xl tracking-tight">Mi Perfil</h1>
-
-        {isMobile && (
-          <Button variant="destructive" onClick={handleSignOut}>
-            <LogOut className="size-4" />
-            Cerrar sesión
-          </Button>
-        )}
+        <Tabs defaultValue="account" className="w-[400px]">
+          <TabsList className="min-w-32 max-w-52">
+            {tabs.map((tab) => (
+              <TabsTrigger key={tab.value} value={tab.value} asChild>
+                <Button variant="ghost" className="min-w-24 max-w-48">
+                  {tab.label}
+                </Button>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
       </div>
+      {isMobile && (
+        <Button variant="destructive" onClick={handleSignOut} className="mb-6">
+          <LogOut className="size-4" />
+          Cerrar sesión
+        </Button>
+      )}
 
       {!isBarber && user?.userId && (
         <Alert className="mb-4" variant="info">

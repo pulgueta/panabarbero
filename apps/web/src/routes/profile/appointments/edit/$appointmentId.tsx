@@ -12,7 +12,6 @@ import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { BorderContainer } from "@/components/layout/border-container";
 import {
   AlertDialog,
@@ -98,7 +97,6 @@ export const Route = createFileRoute(
 });
 
 function RouteComponent() {
-  const params = Route.useParams();
   const router = useRouter();
   const navigate = useNavigate();
   const [showCompleteConfirmation, setShowCompleteConfirmation] =
@@ -116,23 +114,13 @@ function RouteComponent() {
       isSuccess: isUpdatedAppointment,
     },
     setStatus,
-    deleteAppointmentMutation: {
-      mutateAsync: deleteAppointment,
-      isPending: isDeletingAppointment,
-      isSuccess: isDeletedAppointment,
-    },
   } = useAppointmentActions();
 
   useEffect(() => {
-    if (isDeletedAppointment) {
-      toast.success("Cita eliminada exitosamente");
-      navigate({ to: "/profile/barbershops" });
-    }
-
     if (isUpdatedAppointment) {
       toast.success("Cita actualizada exitosamente");
     }
-  }, [isDeletedAppointment, isUpdatedAppointment, navigate]);
+  }, [isUpdatedAppointment]);
 
   const form = useForm<EditAppointmentFormData>({
     resolver: zodResolver(editAppointmentSchema),
@@ -163,8 +151,7 @@ function RouteComponent() {
     }
   };
 
-  const disabled =
-    isUpdatingAppointment || setStatus.isPending || isDeletingAppointment;
+  const disabled = isUpdatingAppointment || setStatus.isPending;
 
   const onSubmit = form.handleSubmit(async (formData) => {
     if (!appointment) return;
@@ -315,26 +302,6 @@ function RouteComponent() {
         </FieldGroup>
 
         <div className="flex justify-end gap-4">
-          <ConfirmationDialog
-            trigger={
-              <Button type="button" variant="destructive">
-                Eliminar cita
-              </Button>
-            }
-            title="Eliminar cita"
-            description="¿Estás seguro de que deseas eliminar esta cita? Esta acción no se puede deshacer."
-            confirmLabel={
-              <Button
-                variant="destructive"
-                onClick={() =>
-                  deleteAppointment({ appointmentId: appointment._id })
-                }
-              >
-                Eliminar
-              </Button>
-            }
-            cancelLabel={<Button variant="outline">Cancelar</Button>}
-          />
           <Button
             type="button"
             variant="outline"

@@ -1,17 +1,51 @@
 import type { Appointment } from "@panabarbero/convex/schemas";
 import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
-import { EllipsisVerticalIcon, PencilIcon } from "lucide-react";
+import {
+  CalendarClockIcon,
+  EllipsisVerticalIcon,
+  PencilIcon,
+  TrashIcon,
+} from "lucide-react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import type { BadgeProps } from "@/components/ui/badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
+import { useAppointmentActions } from "@/hooks/use-appointments";
+import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useSession } from "@/hooks/use-session";
+import { RescheduleRequestDialog } from "../reschedule-request-dialog";
 
 function getStatusBadgeVariant(
   status: Appointment["status"],
@@ -111,35 +145,247 @@ export const appointmentsTableColumns: ColumnDef<Appointment>[] = [
   {
     accessorKey: "actions",
     header: () => <div className="text-center">Acciones</div>,
-    cell: ({ row }) => {
-      const appointmentId = row.original._id;
-
-      return (
-        <div className="text-center">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
-                <EllipsisVerticalIcon />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link
-                  to="/profile/appointments/edit/$appointmentId"
-                  params={{ appointmentId }}
-                  style={{
-                    viewTransitionName: `appointment-${appointmentId}-edit`,
-                  }}
-                  className="inline-flex w-full items-center gap-x-2"
-                >
-                  <PencilIcon className="size-3" />
-                  Editar
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      );
-    },
+    cell: ({ row }) => <ActionsCell appointment={row.original} />,
   },
 ];
+
+function ActionsCell({ appointment }: { appointment: Appointment }) {
+  const appointmentId = appointment._id;
+  const isCompleted = appointment.status === "completed";
+  const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const { data: session } = useSession();
+  const { isMobile } = useIsMobile();
+  const {
+    deleteAppointmentMutation: {
+      mutateAsync: deleteAppointment,
+      isPending: isDeletingAppointment,
+    },
+    cancel: {
+      mutateAsync: cancelAppointment,
+      isPending: isCancellingAppointment,
+    },
+  } = useAppointmentActions();
+
+  const handleDelete = async () => {
+    if (!deleteReason.trim()) {
+      setDeleteError("Debes ingresar una razón para cancelar la cita.");
+      return;
+    }
+
+    if (!session?.userId) {
+      toast.error("Debes iniciar sesión para eliminar esta cita.");
+      return;
+    }
+
+    try {
+      const reason = deleteReason.trim();
+      await cancelAppointment({
+        appointmentId,
+        cancelledByUserId: session.userId,
+        reason,
+      });
+      await deleteAppointment({ appointmentId });
+      toast.success("La cita fue cancelada y eliminada exitosamente.");
+      setDeleteReason("");
+      setDeleteError(null);
+      setIsDeleteDialogOpen(false);
+      resetDeleteState();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "No se pudo eliminar la cita. Inténtalo de nuevo.",
+      );
+    }
+  };
+
+  const resetDeleteState = () => {
+    setDeleteReason("");
+    setDeleteError(null);
+  };
+
+  const deleteDialogDescription =
+    "Esta acción cancelará la cita, enviará un correo al cliente con el motivo indicado y luego la eliminará definitivamente.";
+
+  const deleteDialogChildren = useMemo(
+    () => (
+      <div className="space-y-3 text-left">
+        <Textarea
+          value={deleteReason}
+          onChange={(event) => {
+            setDeleteReason(event.target.value);
+            if (deleteError) {
+              setDeleteError(null);
+            }
+          }}
+          placeholder="Ej. El barbero tuvo una emergencia y no podrá atender."
+        />
+        {deleteError ? (
+          <p className="text-destructive text-sm">{deleteError}</p>
+        ) : null}
+      </div>
+    ),
+    [deleteError, deleteReason],
+  );
+
+  return (
+    <div className="text-center">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="icon">
+            <EllipsisVerticalIcon />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="max-w-52">
+          <DropdownMenuItem asChild>
+            <Link
+              to="/profile/appointments/edit/$appointmentId"
+              params={{ appointmentId }}
+              style={{
+                viewTransitionName: `appointment-${appointmentId}-edit`,
+              }}
+              className="inline-flex w-full items-center gap-x-2"
+            >
+              <PencilIcon className="size-3" />
+              Editar
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={isCompleted}
+            className="inline-flex w-full items-center gap-x-2"
+            onSelect={(event) => {
+              event.preventDefault();
+              if (isCompleted) return;
+              setIsRescheduleOpen(true);
+            }}
+          >
+            <CalendarClockIcon className="size-3" />
+            Solicitar reagendamiento
+          </DropdownMenuItem>
+          {isMobile ? (
+            <Drawer
+              open={isDeleteDialogOpen}
+              onOpenChange={(value) => {
+                setIsDeleteDialogOpen(value);
+                if (!value) {
+                  resetDeleteState();
+                }
+              }}
+            >
+              <DrawerTrigger asChild>
+                <DropdownMenuItem
+                  className="inline-flex w-full items-center gap-x-2"
+                  onSelect={(event) => event.preventDefault()}
+                  disabled={isDeletingAppointment || isCancellingAppointment}
+                >
+                  <TrashIcon className="size-3 text-destructive dark:text-destructive-foreground" />
+                  Eliminar cita
+                </DropdownMenuItem>
+              </DrawerTrigger>
+              <DrawerContent>
+                <DrawerHeader>
+                  <DrawerTitle>Eliminar cita</DrawerTitle>
+                  <DrawerDescription>
+                    {deleteDialogDescription}
+                  </DrawerDescription>
+                </DrawerHeader>
+                <div className="px-4 pb-4 text-left text-muted-foreground text-sm">
+                  {deleteDialogChildren}
+                </div>
+                <DrawerFooter>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={isDeletingAppointment || isCancellingAppointment}
+                  >
+                    {isDeletingAppointment || isCancellingAppointment ? (
+                      <Spinner />
+                    ) : (
+                      "Sí, eliminar"
+                    )}
+                  </Button>
+                  <DrawerClose asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={resetDeleteState}
+                    >
+                      No, cancelar
+                    </Button>
+                  </DrawerClose>
+                </DrawerFooter>
+              </DrawerContent>
+            </Drawer>
+          ) : (
+            <AlertDialog
+              open={isDeleteDialogOpen}
+              onOpenChange={(value) => {
+                setIsDeleteDialogOpen(value);
+                if (!value) {
+                  resetDeleteState();
+                }
+              }}
+            >
+              <AlertDialogTrigger asChild>
+                <DropdownMenuItem
+                  className="inline-flex w-full items-center gap-x-2"
+                  onSelect={(event) => event.preventDefault()}
+                  disabled={isDeletingAppointment || isCancellingAppointment}
+                >
+                  <TrashIcon className="size-3 text-destructive dark:text-destructive-foreground" />
+                  Eliminar cita
+                </DropdownMenuItem>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Eliminar cita</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {deleteDialogDescription}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                {deleteDialogChildren}
+                <AlertDialogFooter>
+                  <AlertDialogCancel asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={resetDeleteState}
+                    >
+                      No, cancelar
+                    </Button>
+                  </AlertDialogCancel>
+                  <AlertDialogAction asChild>
+                    <Button
+                      variant="destructive"
+                      onClick={handleDelete}
+                      disabled={
+                        isDeletingAppointment || isCancellingAppointment
+                      }
+                    >
+                      {isDeletingAppointment || isCancellingAppointment ? (
+                        <Spinner />
+                      ) : (
+                        "Sí, eliminar"
+                      )}
+                    </Button>
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <RescheduleRequestDialog
+        appointment={appointment}
+        disabled={isCompleted}
+        open={isRescheduleOpen}
+        onOpenChange={setIsRescheduleOpen}
+        trigger={null}
+      />
+    </div>
+  );
+}

@@ -309,7 +309,7 @@ export const updateBarbershopAvailability = mutation({
     }
 
     await ctx.db.patch(args.barbershopId, {
-      availability: args.availability as (typeof shop.availability),
+      availability: args.availability as typeof shop.availability,
     });
 
     return null;

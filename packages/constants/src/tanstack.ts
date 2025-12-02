@@ -31,14 +31,14 @@ export const authenticatedRoutes = {
   navigation: [
     ...publicRoutes.navigation,
     {
-      label: "Perfil",
+      label: "Portal",
       to: "/profile",
       icon: User,
     },
   ],
   barber: [
     {
-      label: "Perfil",
+      label: "Portal",
       to: "/profile",
       icon: User,
     },
@@ -78,7 +78,7 @@ export const routes = {
       icon: Settings2,
     },
     {
-      label: "Perfil",
+      label: "Portal",
       to: "/profile",
       icon: User,
     },
