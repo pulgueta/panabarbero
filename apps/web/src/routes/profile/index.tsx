@@ -140,7 +140,7 @@ function ProfilePage() {
           Cerrar sesión
         </Button>
         <Tabs
-          defaultValue="account"
+          defaultValue={isBarber ? "account" : "appointments"}
           className="min-w-full"
           onValueChange={onTabChange}
         >
