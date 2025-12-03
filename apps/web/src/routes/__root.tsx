@@ -56,13 +56,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   errorComponent: (props) => <DefaultCatchBoundary {...props} />,
   notFoundComponent: () => <NotFoundComponent />,
   beforeLoad: async ({ context }) => {
-    await context.queryClient.prefetchQuery(getSessionQueryOptions());
-  },
-  loader: async ({ context }) => {
-    return {
-      session: await context.queryClient.ensureQueryData(
-        getSessionQueryOptions(),
-      ),
-    };
+    await context.queryClient.ensureQueryData(getSessionQueryOptions());
   },
 });
