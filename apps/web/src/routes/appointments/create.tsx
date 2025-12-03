@@ -29,12 +29,12 @@ export const Route = createFileRoute("/appointments/create")({
     );
 
     if (user?.userId) {
-      await ctx.context.queryClient.prefetchQuery(
+      await ctx.context.queryClient.ensureQueryData(
         userVisitedBarbershopsQueryOptions(user.userId),
       );
     }
 
-    await ctx.context.queryClient.prefetchQuery(
+    await ctx.context.queryClient.ensureQueryData(
       searchBarbershopsByNameQueryOptions(),
     );
   },
