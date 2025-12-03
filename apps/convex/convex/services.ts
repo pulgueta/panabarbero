@@ -104,6 +104,26 @@ export const getServiceByUuid = query({
   },
 });
 
+export const getServiceById = query({
+  args: {
+    serviceId: v.id("services"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.serviceId);
+  },
+});
+
+export const getServicesByIds = query({
+  args: {
+    serviceIds: v.array(v.id("services")),
+  },
+  handler: async (ctx, args) => {
+    return await Promise.all(
+      args.serviceIds.map(async (serviceId) => await ctx.db.get(serviceId)),
+    );
+  },
+});
+
 export const getServicesByBarbershopId = query({
   args: {
     barbershopId: v.optional(v.id("barbershops")),

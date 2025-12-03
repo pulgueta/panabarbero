@@ -1,4 +1,5 @@
 import type { Appointment } from "@panabarbero/convex/schemas";
+
 import type { BadgeProps } from "@/components/ui/badge";
 
 /**
@@ -10,8 +11,12 @@ export function getAppointmentStatusBadgeVariant(
   switch (status) {
     case "completed":
       return "success";
-    case "cancelled":
+    case "pending":
+      return "warning";
+    case "rescheduled":
+      return "info";
     case "denied":
+    case "cancelled":
     case "no-show":
       return "destructive";
     case "confirmed":

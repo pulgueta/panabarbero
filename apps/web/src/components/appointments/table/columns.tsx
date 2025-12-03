@@ -169,30 +169,22 @@ const ActionsCell: FC<ActionsCellProps> = ({ appointment }) => {
 
     const reason = deleteReason.trim();
 
-    try {
-      if (!isAlreadyCancelledOrDenied) {
-        await cancelAppointment({
-          appointmentId,
-          cancelledByUserId: session.userId,
-          reason,
-        });
-      }
-
-      await deleteAppointment({ appointmentId });
-
-      toast.success("La cita fue cancelada y eliminada exitosamente.");
-
-      setDeleteReason("");
-      setDeleteError(null);
-      setIsDeleteDialogOpen(false);
-      resetDeleteState();
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "No se pudo cancelar y eliminar la cita.",
-      );
+    if (!isAlreadyCancelledOrDenied) {
+      await cancelAppointment({
+        appointmentId,
+        cancelledByUserId: session.userId,
+        reason,
+      });
     }
+
+    await deleteAppointment({ appointmentId });
+
+    toast.success("La cita fue cancelada y eliminada exitosamente.");
+
+    setDeleteReason("");
+    setDeleteError(null);
+    setIsDeleteDialogOpen(false);
+    resetDeleteState();
   };
 
   const resetDeleteState = () => {
@@ -224,8 +216,7 @@ const ActionsCell: FC<ActionsCellProps> = ({ appointment }) => {
     [deleteError, deleteReason],
   );
 
-  const showManageRescheduleLink =
-    Boolean(appointment.proposedDate) && !isConfirmed;
+  const showManageRescheduleLink = !!appointment.proposedDate && !isConfirmed;
 
   return (
     <div className="text-center">

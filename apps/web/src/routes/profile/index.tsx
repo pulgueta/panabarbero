@@ -90,43 +90,30 @@ function ProfilePage() {
   };
 
   const handleSignOut = async () => {
-    const { data } = await signOut();
+    await signOut();
 
-    if (data?.success) {
-      throw navigate({ to: "/login", replace: true });
-    }
+    throw navigate({ to: "/login", replace: true });
   };
 
-  const tabsToRender = isBarber
-    ? [
-        {
-          value: "account",
-          label: "Cuenta",
-        },
-        {
-          value: "security",
-          label: "Seguridad",
-        },
-      ]
-    : [
-        {
-          value: "appointments",
-          label: "Citas",
-        },
-        {
-          value: "reviews",
-          label: "Reseñas",
-        },
-        {
-          value: "account",
-          label: "Cuenta",
-        },
+  const tabsToRender = [
+    {
+      value: "appointments",
+      label: "Citas",
+    },
+    {
+      value: "reviews",
+      label: "Reseñas",
+    },
+    {
+      value: "account",
+      label: "Cuenta",
+    },
 
-        {
-          value: "security",
-          label: "Seguridad",
-        },
-      ];
+    {
+      value: "security",
+      label: "Seguridad",
+    },
+  ];
 
   return (
     <BorderContainer className="space-y-6">
@@ -140,7 +127,7 @@ function ProfilePage() {
           Cerrar sesión
         </Button>
         <Tabs
-          defaultValue={isBarber ? "account" : "appointments"}
+          defaultValue="account"
           className="min-w-full"
           onValueChange={onTabChange}
         >

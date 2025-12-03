@@ -95,7 +95,9 @@ function RouteComponent() {
   const isRequester = requesterUserId === session?.userId;
   const canView = isCustomer || isBarberForAppointment;
 
-  const redirectTo = isBarber ? "/profile/barbershops" : "/profile";
+  const redirectTo = isBarber
+    ? "/profile/barbershops/appointments"
+    : "/profile";
 
   useEffect(() => {
     if (!appointment || !session?.userId) return;

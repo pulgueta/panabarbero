@@ -1,11 +1,9 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: Needed */
 
 import { createFileRoute } from "@tanstack/react-router";
-import { CalendarIcon, ScissorsIcon, UsersIcon } from "lucide-react";
+import { ScissorsIcon, UsersIcon } from "lucide-react";
 import { Activity } from "react";
 
-import { AppointmentDialog } from "@/components/appointments/appointment-dialog";
-import { appointmentsTableColumns } from "@/components/appointments/table/columns";
 import { InviteBarberDialog } from "@/components/barbers/invite-barber-dialog";
 import { barbersTableColumns } from "@/components/barbers/table/columns";
 import { ServiceDialog } from "@/components/barbershops/services/service-dialog";
@@ -18,10 +16,6 @@ import {
   barbershopByOwnerIdQueryOptions,
   useBarbershopByOwnerId,
 } from "@/hooks/barbershop/use-barbershop";
-import {
-  appointmentsByBarbershopQueryOptions,
-  useAppointmentsByBarbershop,
-} from "@/hooks/use-appointments";
 import {
   barbersByBarbershopIdQueryOptions,
   useBarbersByBarbershopId,
@@ -52,9 +46,6 @@ export const Route = createFileRoute("/profile/barbershops/")({
 
       if (barbershop?._id) {
         await opts.context.queryClient.ensureQueryData(
-          appointmentsByBarbershopQueryOptions(barbershop._id),
-        );
-        await opts.context.queryClient.ensureQueryData(
           barbersByBarbershopIdQueryOptions(barbershop._id),
         );
         await opts.context.queryClient.ensureQueryData(
@@ -70,10 +61,7 @@ export const Route = createFileRoute("/profile/barbershops/")({
 
 function RouteComponent() {
   const { data: user } = useSession();
-
   const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
-  const { data: appointments, isLoading: isLoadingAppointments } =
-    useAppointmentsByBarbershop(barbershop?._id!);
   const { data: barbers, isLoading: isLoadingBarbers } =
     useBarbersByBarbershopId(barbershop?._id!);
   const { data: services, isLoading: isLoadingServices } =
@@ -81,31 +69,6 @@ function RouteComponent() {
 
   return (
     <BorderContainer className="space-y-6">
-      <section className="flex w-full flex-col justify-between gap-4">
-        <div className="flex w-full items-center justify-between gap-4">
-          <h1 className="font-bold text-xl tracking-tight">Citas</h1>
-
-          <AppointmentDialog service={services?.[0]!} />
-        </div>
-
-        {isLoadingAppointments ? (
-          <Skeleton className="h-48 w-full" />
-        ) : appointments?.length ? (
-          <DataTable
-            className="max-h-64"
-            columns={appointmentsTableColumns}
-            data={appointments}
-          />
-        ) : (
-          <div className="flex h-48 w-full flex-col items-center justify-center gap-2 rounded-lg border p-4 text-center">
-            <CalendarIcon className="size-6" />
-            <p className="text-center text-muted-foreground text-xs md:text-sm">
-              Aún no hay citas agendadas para esta barbería.
-            </p>
-          </div>
-        )}
-      </section>
-
       <section className="flex w-full flex-col justify-between gap-4">
         <div className="flex w-full items-center justify-between gap-4">
           <h1 className="font-bold text-xl tracking-tight">Servicios</h1>

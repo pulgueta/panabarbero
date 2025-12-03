@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/style/noNonNullAssertion: needed */
 import type { Service } from "@panabarbero/convex/schemas";
 import type { FC } from "react";
 import { useState } from "react";
@@ -20,6 +21,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useSession } from "@/hooks/use-session";
 import { AppointmentForm } from "./appointment-form";
 
 interface AppointmentDialogProps {
@@ -30,6 +32,7 @@ export const AppointmentDialog: FC<AppointmentDialogProps> = ({ service }) => {
   const [open, setOpen] = useState<boolean>(false);
 
   const { isMobile } = useIsMobile();
+  const { data: user } = useSession();
 
   const headLabel = "Crear cita";
   const description = "Proporciona tus datos para reservar el servicio.";
@@ -50,6 +53,12 @@ export const AppointmentDialog: FC<AppointmentDialogProps> = ({ service }) => {
             <AppointmentForm
               service={service}
               onSuccess={() => setOpen(false)}
+              initialValues={{
+                contactEmail: user?.email,
+                contactPhone: user?.phoneNumber!,
+                customerName: user?.name,
+              }}
+              userId={user?.userId!}
             />
           </div>
         </DrawerContent>
@@ -68,7 +77,16 @@ export const AppointmentDialog: FC<AppointmentDialogProps> = ({ service }) => {
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <AppointmentForm service={service} onSuccess={() => setOpen(false)} />
+        <AppointmentForm
+          service={service}
+          onSuccess={() => setOpen(false)}
+          initialValues={{
+            contactEmail: user?.email,
+            contactPhone: user?.phoneNumber!,
+            customerName: user?.name,
+          }}
+          userId={user?.userId!}
+        />
       </DialogContent>
     </Dialog>
   );
