@@ -16,9 +16,11 @@ import { Separator } from "@/components/ui/separator";
 import {
   barbershopAvailabilityQueryOptions,
   barbershopByOwnerIdQueryOptions,
+  useBarbershopAvailability,
+  useBarbershopByOwnerId,
 } from "@/hooks/barbershop/use-barbershop";
-import { servicesQueryOptions } from "@/hooks/use-services";
-import { getSessionQueryOptions } from "@/hooks/use-session";
+import { servicesQueryOptions, useServicesFromBarbershop } from "@/hooks/use-services";
+import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/profile/barbershops/settings")({
   component: SettingsPage,
@@ -46,17 +48,15 @@ export const Route = createFileRoute("/profile/barbershops/settings")({
         );
       }
     }
-
-    return {
-      barbershop,
-      services,
-      availability,
-    };
   },
 });
 
 function SettingsPage() {
-  const { barbershop, services, availability } = Route.useLoaderData();
+  const { data: user } = useSession();
+  
+  const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
+  const { data: services } = useServicesFromBarbershop(barbershop?._id!);
+  const { data: availability } = useBarbershopAvailability(barbershop?._id!);
 
   const hasService = services?.length && services.length > 0;
   const hasAnyActiveDay = availability?.some((a) => a.weekDay.isActive);

@@ -30,7 +30,7 @@ import {
   servicesQueryOptions,
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
-import { getSessionQueryOptions } from "@/hooks/use-session";
+import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/profile/barbershops/")({
   component: RouteComponent,
@@ -63,15 +63,11 @@ export const Route = createFileRoute("/profile/barbershops/")({
         );
       }
     }
-
-    return {
-      user,
-    };
   },
 });
 
 function RouteComponent() {
-  const { user } = Route.useLoaderData();
+  const { data: user } = useSession();
 
   const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
   const { data: appointments, isLoading: isLoadingAppointments } =

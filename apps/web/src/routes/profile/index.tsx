@@ -2,6 +2,7 @@
 import { signOut } from "@panabarbero/convex/auth";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
+import { Activity, useState } from "react";
 
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
@@ -26,15 +27,11 @@ import {
   reviewsByUserQueryOptions,
   useReviewsByUser,
 } from "@/hooks/use-reviews";
-import { getSessionQueryOptions } from "@/hooks/use-session";
-import { useState } from "react";
+import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/profile/")({
   component: ProfilePage,
   pendingComponent: LoadingComponent,
-  beforeLoad: async ({ context }) => {
-    await context.queryClient.prefetchQuery(getSessionQueryOptions());
-  },
   loader: async ({ context }) => {
     const user = await context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
@@ -69,19 +66,16 @@ export const Route = createFileRoute("/profile/")({
         isBarberQueryOptions(user.userId),
       );
     }
-
-    return {
-      user,
-    };
   },
 });
 
 type ProfileTabValue = "account" | "appointments" | "reviews";
 
 function ProfilePage() {
-  const { user } = Route.useLoaderData();
-
+  
   const [activeTab, setActiveTab] = useState<ProfileTabValue>("account");
+  
+  const { data: user } = useSession();
 
   const { data: isBarber } = useIsBarber(user?.userId);
   const { data: appointments } = useAppointmentsByUser(user?.userId);
@@ -110,16 +104,16 @@ function ProfilePage() {
 
   const tabsToRender = [
     {
-      value: isBarber ? "account" : "appointments",
-      label: isBarber ? "Cuenta" : "Citas",
+      value: "account",
+      label: "Cuenta",
     },
   ];
 
   if (!isBarber) {
     tabsToRender.push(
       {
-        value: "account",
-        label: "Cuenta",
+        value: "appointments",
+        label: "Citas",
       },
       {
         value: "reviews",
@@ -140,7 +134,7 @@ function ProfilePage() {
           Cerrar sesión
         </Button>
         <Tabs
-          defaultValue={isBarber ? "account" : "appointments"}
+          defaultValue="account"
           className="min-w-full"
           onValueChange={onTabChange}
         >
@@ -157,7 +151,7 @@ function ProfilePage() {
             ))}
           </TabsList>
 
-          {activeTab === "account" && (
+          <Activity mode={activeTab === "account" ? "visible" : "hidden"}>
             <TabsContent value="account" className="pt-2">
               <AccountTab
                 profile={profile}
@@ -165,23 +159,26 @@ function ProfilePage() {
                 userId={user?.userId}
               />
             </TabsContent>
-          )}
-          {activeTab === "appointments" && (
+          </Activity>
+          
+          <Activity mode={activeTab === "appointments" ? "visible" : "hidden"}>
+
             <TabsContent value="appointments" className="pt-2">
               <AppointmentsTab
                 appointments={appointments}
                 barbershops={barbershops}
-              />
+                />
             </TabsContent>
-          )}
-          {activeTab === "reviews" && (
+                </Activity>
+          
+          <Activity mode={activeTab === "reviews" ? "visible" : "hidden"}>
             <TabsContent value="reviews" className="pt-2">
               <ReviewsTab
                 reviews={reviews}
                 barbershops={recentlyVisitedBarbershops}
               />
             </TabsContent>
-          )}
+          </Activity>
         </Tabs>
       </div>
     </BorderContainer>
