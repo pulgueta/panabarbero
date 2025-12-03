@@ -45,17 +45,17 @@ export function useAppointmentsByBarbershop(barbershopId: Barbershop["_id"]) {
 
 export function recentlyVisitedBarbershopsQueryOptions(
   userId: string,
-  limit = 5,
+  search?: string,
 ) {
   return convexQuery(api.appointments.getRecentlyVisitedBarbershops, {
     userId,
-    limit,
+    search,
   });
 }
 
-export function useRecentlyVisitedBarbershops(userId: string, limit = 5) {
+export function useRecentlyVisitedBarbershops(userId: string, search?: string) {
   return useSuspenseQuery(
-    recentlyVisitedBarbershopsQueryOptions(userId, limit),
+    recentlyVisitedBarbershopsQueryOptions(userId, search),
   );
 }
 

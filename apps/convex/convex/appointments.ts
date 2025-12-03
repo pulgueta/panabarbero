@@ -285,7 +285,7 @@ export const getAppointmentsByUserId = query({
 
     const appointments = await ctx.db
       .query("appointments")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId ?? ""))
       .order("asc")
       .collect();
 

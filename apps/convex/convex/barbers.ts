@@ -141,13 +141,7 @@ export const isBarber = query({
     userId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
-
-    if (!user) {
-      return false;
-    }
-
-    if (user.userId !== args.userId) {
+    if (!args.userId) {
       return false;
     }
 
