@@ -54,6 +54,10 @@ export const AppointmentButton: FC<AppointmentButtonProps> = ({ service }) => {
             <AppointmentForm
               service={service}
               onSuccess={() => setOpen(false)}
+              initialValues={{
+                customerName: user?.name,
+                contactEmail: user?.email,
+              }}
             />
           </div>
         </DrawerContent>
