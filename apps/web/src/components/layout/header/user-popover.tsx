@@ -25,7 +25,7 @@ export const UserPopover: FC<ReturnType<typeof useSession>["data"]> = (
     const { data } = await signOut();
 
     if (data?.success) {
-      navigate({ to: "/login", replace: true });
+      throw navigate({ to: "/login", replace: true });
     }
   };
 
