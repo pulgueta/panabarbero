@@ -14,7 +14,7 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
   const { barbershop, availability } = props;
 
   // const { isMobile } = useIsMobile();
-  const { availabilityLabel } = useSchedule(availability);
+  const { AvailabilityLabel } = useSchedule(availability);
 
   // const canReview = useCanReview({
   //   barbershopId: barbershop?._id!,
@@ -95,7 +95,7 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
       )}
 
       <p className="mb-1 text-muted-foreground text-sm">
-        {availabilityLabel()}
+        <AvailabilityLabel />
       </p>
 
       {/* <div className="flex flex-col">

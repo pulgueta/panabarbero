@@ -34,7 +34,7 @@ export function useSchedule(availability: Barbershop["availability"] | null) {
     return availability.find((entry) => entry.weekDay.day === weekday);
   })();
 
-  const availabilityLabel = () => {
+  const AvailabilityLabel = () => {
     if (!todaySchedule || !todaySchedule.weekDay.isActive) {
       return "Hoy no hay atención al público.";
     }
@@ -51,11 +51,23 @@ export function useSchedule(availability: Barbershop["availability"] | null) {
         ? ` • No disponible durante: ${lunchStart} - ${lunchEnd}`
         : "";
 
-    return `Horario de hoy: ${openAt} - ${closeAt}${lunchLabel}`;
+    return (
+      <>
+        <span>
+          Horario de hoy: {openAt} - {closeAt}
+        </span>
+        {lunchLabel && (
+          <span>
+            <br />
+            No disponible durante: {lunchStart} - {lunchEnd}
+          </span>
+        )}
+      </>
+    );
   };
 
   return {
     todaySchedule,
-    availabilityLabel,
+    AvailabilityLabel,
   };
 }
