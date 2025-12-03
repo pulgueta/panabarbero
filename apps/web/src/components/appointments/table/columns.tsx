@@ -2,6 +2,7 @@ import type { Appointment } from "@panabarbero/convex/schemas";
 import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
+  CalendarCheckIcon,
   CalendarClockIcon,
   EllipsisVerticalIcon,
   PencilIcon,
@@ -21,7 +22,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import type { BadgeProps } from "@/components/ui/badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,35 +45,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAppointmentActions } from "@/hooks/use-appointments";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useSession } from "@/hooks/use-session";
+import {
+  getAppointmentStatusBadgeVariant,
+  getAppointmentStatusLabel,
+} from "@/lib/appointment-utils";
 import { RescheduleRequestDialog } from "../reschedule-request-dialog";
-
-function getStatusBadgeVariant(
-  status: Appointment["status"],
-): BadgeProps["variant"] {
-  switch (status) {
-    case "confirmed":
-      return "success";
-    case "cancelled":
-    case "denied":
-    case "no-show":
-      return "destructive";
-  }
-}
-
-function getStatusLabel(status: Appointment["status"]) {
-  switch (status) {
-    case "pending":
-      return "Pendiente";
-    case "confirmed":
-      return "Confirmada";
-    case "cancelled":
-      return "Cancelada";
-    case "completed":
-      return "Completada";
-    case "no-show":
-      return "No asistió";
-  }
-}
 
 export const appointmentsTableColumns: ColumnDef<Appointment>[] = [
   {
@@ -126,8 +102,8 @@ export const appointmentsTableColumns: ColumnDef<Appointment>[] = [
 
       return (
         <div className="flex justify-center">
-          <Badge variant={getStatusBadgeVariant(status)}>
-            {getStatusLabel(status)}
+          <Badge variant={getAppointmentStatusBadgeVariant(status)}>
+            {getAppointmentStatusLabel(status)}
           </Badge>
         </div>
       );
@@ -265,6 +241,21 @@ function ActionsCell({ appointment }: { appointment: Appointment }) {
             <CalendarClockIcon className="size-3" />
             Solicitar reagendamiento
           </DropdownMenuItem>
+          {appointment.proposedDate ? (
+            <DropdownMenuItem asChild>
+              <Link
+                to={"/profile/appointments/reschedule/$appointmentId" as any}
+                params={{ appointmentId } as any}
+                style={{
+                  viewTransitionName: `appointment-${appointmentId}-reschedule`,
+                }}
+                className="inline-flex w-full items-center gap-x-2"
+              >
+                <CalendarCheckIcon className="size-3" />
+                Gestionar reagendamiento
+              </Link>
+            </DropdownMenuItem>
+          ) : null}
           {isMobile ? (
             <Drawer
               open={isDeleteDialogOpen}
@@ -381,6 +372,7 @@ function ActionsCell({ appointment }: { appointment: Appointment }) {
 
       <RescheduleRequestDialog
         appointment={appointment}
+        to="customer"
         disabled={isCompleted}
         open={isRescheduleOpen}
         onOpenChange={setIsRescheduleOpen}

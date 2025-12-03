@@ -45,16 +45,18 @@ export function useAppointmentsByBarbershop(barbershopId: Barbershop["_id"]) {
 
 export function recentlyVisitedBarbershopsQueryOptions(
   userId: string,
-  search?: string,
+  limit = 5,
 ) {
   return convexQuery(api.appointments.getRecentlyVisitedBarbershops, {
     userId,
-    search,
+    limit,
   });
 }
 
-export function useRecentlyVisitedBarbershops(userId: string) {
-  return useSuspenseQuery(recentlyVisitedBarbershopsQueryOptions(userId));
+export function useRecentlyVisitedBarbershops(userId: string, limit = 5) {
+  return useSuspenseQuery(
+    recentlyVisitedBarbershopsQueryOptions(userId, limit),
+  );
 }
 
 export function useAppointmentActions() {
@@ -76,6 +78,9 @@ export function useAppointmentActions() {
   const requestReschedule = useMutation({
     mutationFn: useConvexMutation(api.appointments.requestReschedule),
   });
+  const answerRescheduleRequest = useMutation({
+    mutationFn: useConvexMutation(api.appointments.answerRescheduleRequest),
+  });
 
   return {
     createAppointment,
@@ -84,5 +89,6 @@ export function useAppointmentActions() {
     deleteAppointmentMutation,
     cancel,
     requestReschedule,
+    answerRescheduleRequest,
   };
 }

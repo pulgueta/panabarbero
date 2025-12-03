@@ -11,6 +11,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  getAppointmentStatusBadgeVariant,
+  getAppointmentStatusLabel,
+} from "@/lib/appointment-utils";
 
 type AppointmentCardProps = {
   appointment: Appointment & { _id: string };
@@ -20,10 +24,6 @@ type AppointmentCardProps = {
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
   onAddReview?: (id: string) => void;
-  getStatusBadgeVariant: (
-    status: string,
-  ) => "default" | "secondary" | "destructive" | "outline";
-  getStatusLabel: (status: string) => string;
   details?: {
     barbershop?: string;
     barber?: string;
@@ -41,8 +41,6 @@ export const AppointmentCard: FC<AppointmentCardProps> = (props) => {
     onEdit,
     onDelete,
     onAddReview,
-    getStatusBadgeVariant,
-    getStatusLabel,
   } = props;
 
   return (
@@ -55,8 +53,8 @@ export const AppointmentCard: FC<AppointmentCardProps> = (props) => {
               {appointment.contactPhone}
             </CardDescription>
           </div>
-          <Badge variant={getStatusBadgeVariant(appointment.status)}>
-            {getStatusLabel(appointment.status)}
+          <Badge variant={getAppointmentStatusBadgeVariant(appointment.status)}>
+            {getAppointmentStatusLabel(appointment.status)}
           </Badge>
         </div>
       </CardHeader>

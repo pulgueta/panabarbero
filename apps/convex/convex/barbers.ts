@@ -160,6 +160,30 @@ export const isBarber = query({
   },
 });
 
+export const getBarberByUserId = query({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    if (user.userId !== args.userId) {
+      return null;
+    }
+
+    const barberRecord = await ctx.db
+      .query("barbers")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .unique();
+
+    return barberRecord;
+  },
+});
+
 export const inviteBarber = mutation({
   args: {
     name: v.string(),

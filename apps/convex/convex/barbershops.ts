@@ -464,6 +464,21 @@ export const getBarbershopById = query({
   },
 });
 
+export const getBarbershopsByIds = query({
+  args: {
+    barbershopIds: v.array(v.id("barbershops")),
+  },
+  handler: async (ctx, args) => {
+    const barbershops = await Promise.all(
+      args.barbershopIds.map(
+        async (barbershopId) => await ctx.db.get(barbershopId),
+      ),
+    );
+
+    return barbershops;
+  },
+});
+
 export const getBarbershopsByName = query({
   args: {
     name: v.optional(v.string()),

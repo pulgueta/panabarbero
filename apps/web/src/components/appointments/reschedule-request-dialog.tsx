@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Appointment } from "@panabarbero/convex/schemas";
-import type { ReactNode } from "react";
+import type { FC, ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -46,6 +46,7 @@ interface RescheduleRequestDialogProps {
   trigger?: ReactNode | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  to?: "barber" | "customer";
 }
 
 function buildTimestamp(date: string, time: string): number {
@@ -54,13 +55,14 @@ function buildTimestamp(date: string, time: string): number {
   return composed.getTime();
 }
 
-export function RescheduleRequestDialog({
+export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
   appointment,
   disabled = false,
   trigger,
+  to = "barber",
   open,
   onOpenChange,
-}: RescheduleRequestDialogProps) {
+}) => {
   const { isMobile } = useIsMobile();
   const { data: session } = useSession();
   const {
@@ -79,6 +81,7 @@ export function RescheduleRequestDialog({
 
   const isControlled = open !== undefined;
   const dialogOpen = isControlled ? open : internalOpen;
+  const toLabel = to === "barber" ? "barbero" : "cliente";
 
   const setDialogOpen = (value: boolean) => {
     if (!isControlled) {
@@ -128,7 +131,7 @@ export function RescheduleRequestDialog({
         note: values.note?.trim() ? values.note.trim() : undefined,
       });
 
-      toast.success("Solicitud enviada al cliente.");
+      toast.success(`Solicitud enviada al ${toLabel}.`);
       closeDialog();
     } catch (error) {
       toast.error(
@@ -140,8 +143,7 @@ export function RescheduleRequestDialog({
   });
 
   const headLabel = "Solicitar reagendamiento";
-  const description =
-    "Propón una nueva fecha y hora para que el cliente la acepte o rechace.";
+  const description = `Propón una nueva fecha y hora para que el ${toLabel} la acepte o rechace.`;
 
   const triggerNode = useMemo(() => {
     if (trigger === null) return null;
@@ -201,12 +203,12 @@ export function RescheduleRequestDialog({
         control={form.control}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid}>
-            <FieldLabel>Nota para el cliente (opcional)</FieldLabel>
+            <FieldLabel>Nota para el {toLabel} (opcional)</FieldLabel>
             <Textarea
               {...field}
               disabled={isPending}
               aria-invalid={fieldState.invalid}
-              placeholder="Comparte detalles adicionales con tu cliente."
+              placeholder={`Comparte detalles adicionales con el ${toLabel}.`}
             />
             {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
           </Field>
@@ -262,4 +264,4 @@ export function RescheduleRequestDialog({
       </DialogContent>
     </Dialog>
   );
-}
+};

@@ -11,6 +11,10 @@ import { ReviewsTab } from "@/components/profile/reviews-tab";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  barbershopByIdQueryOptions,
+  useBarbershopsByIds,
+} from "@/hooks/barbershop/use-barbershop";
+import {
   appointmentsByUserQueryOptions,
   recentlyVisitedBarbershopsQueryOptions,
   useAppointmentsByUser,
@@ -18,11 +22,12 @@ import {
 } from "@/hooks/use-appointments";
 import { isBarberQueryOptions, useIsBarber } from "@/hooks/use-barbers";
 import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
-import { reviewsByUserQueryOptions, useReviewsByUser } from "@/hooks/use-reviews";
+import {
+  reviewsByUserQueryOptions,
+  useReviewsByUser,
+} from "@/hooks/use-reviews";
 import { getSessionQueryOptions } from "@/hooks/use-session";
 import { useState } from "react";
-
-
 
 export const Route = createFileRoute("/profile/")({
   component: ProfilePage,
@@ -42,9 +47,21 @@ export const Route = createFileRoute("/profile/")({
       await context.queryClient.ensureQueryData(
         reviewsByUserQueryOptions(user.userId),
       );
-      await context.queryClient.ensureQueryData(
-        recentlyVisitedBarbershopsQueryOptions(user.userId),
-      );
+      const recentlyVisitedBarbershops =
+        await context.queryClient.ensureQueryData(
+          recentlyVisitedBarbershopsQueryOptions(user.userId),
+        );
+
+      if (recentlyVisitedBarbershops) {
+        await Promise.all(
+          recentlyVisitedBarbershops.map(async (barbershop) => {
+            await context.queryClient.ensureQueryData(
+              barbershopByIdQueryOptions(barbershop._id),
+            );
+          }),
+        );
+      }
+
       await context.queryClient.ensureQueryData(
         profileQueryOptions(user.userId),
       );
@@ -69,7 +86,12 @@ function ProfilePage() {
   const { data: isBarber } = useIsBarber(user?.userId);
   const { data: appointments } = useAppointmentsByUser(user?.userId);
   const { data: reviews } = useReviewsByUser(user?.userId);
-  const { data: barbershops } = useRecentlyVisitedBarbershops(user?.userId);
+  const { data: recentlyVisitedBarbershops } = useRecentlyVisitedBarbershops(
+    user?.userId,
+  );
+  const { data: barbershops } = useBarbershopsByIds(
+    appointments?.map((appointment) => appointment.barbershopId),
+  );
   const { data: profile } = useProfile(user?.userId);
 
   const onTabChange = (value: string) => {
@@ -112,18 +134,22 @@ function ProfilePage() {
         <Button
           variant="destructive"
           onClick={handleSignOut}
-          className="min-w-36"
+          className="min-w-24"
         >
           <LogOut className="size-4" />
           Cerrar sesión
         </Button>
-        <Tabs defaultValue="account" className="min-w-full" onValueChange={onTabChange}>
+        <Tabs
+          defaultValue="account"
+          className="min-w-full"
+          onValueChange={onTabChange}
+        >
           <TabsList>
             {tabsToRender.map((tabOption) => (
               <TabsTrigger
                 key={tabOption.value}
                 value={tabOption.value}
-                className="min-w-36 max-w-64"
+                className="min-w-24 max-w-64"
                 onClick={() => setActiveTab(tabOption.value as ProfileTabValue)}
               >
                 {tabOption.label}
@@ -133,26 +159,29 @@ function ProfilePage() {
 
           {activeTab === "account" && (
             <TabsContent value="account" className="pt-2">
-
-                <AccountTab
-                  profile={profile}
-                  isBarber={isBarber}
-                  userId={user?.userId}
-                  />
-                  </TabsContent>
-              )}
-              {activeTab === "appointments" && (
-                <TabsContent value="appointments" className="pt-2">
-
-                <AppointmentsTab appointments={appointments} />
-                </TabsContent>
-              )}
-              {activeTab === "reviews" && (
-                <TabsContent value="reviews" className="pt-2">
-
-                <ReviewsTab reviews={reviews} barbershops={barbershops} />
-                </TabsContent>
-              )}
+              <AccountTab
+                profile={profile}
+                isBarber={isBarber}
+                userId={user?.userId}
+              />
+            </TabsContent>
+          )}
+          {activeTab === "appointments" && (
+            <TabsContent value="appointments" className="pt-2">
+              <AppointmentsTab
+                appointments={appointments}
+                barbershops={barbershops}
+              />
+            </TabsContent>
+          )}
+          {activeTab === "reviews" && (
+            <TabsContent value="reviews" className="pt-2">
+              <ReviewsTab
+                reviews={reviews}
+                barbershops={recentlyVisitedBarbershops}
+              />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </BorderContainer>
