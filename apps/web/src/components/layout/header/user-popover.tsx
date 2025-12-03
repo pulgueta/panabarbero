@@ -1,5 +1,5 @@
 import { signOut } from "@panabarbero/convex/auth";
-import { redirect } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
 import type { FC } from "react";
 
@@ -17,15 +17,15 @@ import type { useSession } from "@/hooks/use-session";
 export const UserPopover: FC<ReturnType<typeof useSession>["data"]> = (
   user,
 ) => {
+  const navigate = useNavigate();
+
   const { data: isBarber } = useIsBarber(user?.userId ?? "");
 
   const handleSignOut = async () => {
     const { data } = await signOut();
 
     if (data?.success) {
-      throw redirect({
-        to: "/login",
-      });
+      navigate({ to: "/login", replace: true });
     }
   };
 

@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: We need to assert non-null values because the hooks return undefined if the data is not loaded */
 import { signOut } from "@panabarbero/convex/auth";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
 import { Activity, useState } from "react";
 
@@ -74,6 +74,8 @@ type ProfileTabValue = "account" | "appointments" | "reviews";
 function ProfilePage() {
   const [activeTab, setActiveTab] = useState<ProfileTabValue>("account");
 
+  const navigate = useNavigate();
+
   const { data: user } = useSession();
 
   const { data: isBarber } = useIsBarber(user?.userId);
@@ -95,9 +97,7 @@ function ProfilePage() {
     const { data } = await signOut();
 
     if (data?.success) {
-      throw redirect({
-        to: "/login",
-      });
+      navigate({ to: "/login", replace: true });
     }
   };
 
