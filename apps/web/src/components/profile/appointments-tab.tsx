@@ -1,11 +1,10 @@
 import type { Appointment, Barbershop } from "@panabarbero/convex/schemas";
 import type { FC } from "react";
 
-import { Badge } from "@/components/ui/badge";
 import {
   Card,
-  CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -14,6 +13,7 @@ import {
   getAppointmentStatusLabel,
 } from "@/lib/appointment-utils";
 import { RescheduleRequestDialog } from "../appointments/reschedule-request-dialog";
+import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 
 interface AppointmentsTabProps {
@@ -42,42 +42,35 @@ export const AppointmentsTab: FC<AppointmentsTabProps> = ({
 
         return (
           <Card key={appointment._id}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-              <div>
-                <CardTitle className="text-base">{barbershopName}</CardTitle>
-                <CardDescription>
-                  {new Date(appointment.date).toLocaleDateString("es-CO", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </CardDescription>
-              </div>
-              <Badge
-                variant={getAppointmentStatusBadgeVariant(appointment.status)}
-              >
-                {getAppointmentStatusLabel(appointment.status)}
-              </Badge>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Contacto: {appointment.contactEmail} •{" "}
-                {appointment.contactPhone}
-              </p>
-              {appointment.notes && (
-                <p className="mt-2 text-sm italic text-muted-foreground">
-                  “{appointment.notes}”
-                </p>
-              )}
+            <CardHeader>
+              <div className="flex flex-row items-center justify-between">
+                <div className="flex flex-col items-start justify-center">
+                  <CardTitle className="text-base">{barbershopName}</CardTitle>
+                  <CardDescription>
+                    {new Date(appointment.date).toLocaleDateString("es-CO", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </CardDescription>
+                </div>
 
+                <Badge
+                  variant={getAppointmentStatusBadgeVariant(appointment.status)}
+                >
+                  {getAppointmentStatusLabel(appointment.status)}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardFooter>
               <RescheduleRequestDialog
                 to="barber"
                 appointment={appointment}
                 trigger={<Button className="mt-4">Reagendar</Button>}
               />
-            </CardContent>
+            </CardFooter>
           </Card>
         );
       })}

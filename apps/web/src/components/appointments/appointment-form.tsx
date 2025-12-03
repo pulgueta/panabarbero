@@ -220,30 +220,24 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
       return;
     }
 
-    try {
-      captureEvent("service_booked", {
-        serviceName: service.name,
-        serviceId: selectedService._id || service._id,
+    captureEvent("service_booked", {
+      serviceName: service.name,
+      serviceId: selectedService._id || service._id,
+      barbershopId: service.barbershopId,
+    });
+
+    await createAppointment({
+      appointment: {
+        ...formData,
+        userId: user.userId,
         barbershopId: service.barbershopId,
-      });
+        serviceId: selectedService._id || service._id,
+      },
+    });
 
-      await createAppointment({
-        appointment: {
-          ...formData,
-          userId: user.userId,
-          barbershopId: service.barbershopId,
-          serviceId: selectedService._id || service._id,
-        },
-      });
-
-      toast.success("Cita reservada exitosamente");
-      form.reset();
-      throw navigate({ to: "/profile" });
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Error al reservar la cita",
-      );
-    }
+    toast.success("Cita reservada exitosamente");
+    form.reset();
+    throw navigate({ to: "/profile" });
   });
 
   return (

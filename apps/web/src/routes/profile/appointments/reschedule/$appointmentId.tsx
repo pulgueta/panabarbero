@@ -57,11 +57,15 @@ export const Route = createFileRoute(
 
 function RouteComponent() {
   const router = useRouter();
-  const { appointmentId } = Route.useLoaderData();
-  const appointment = useAppointmentById(appointmentId);
-  const { data: session } = useSession();
-  const { data: barberRecord } = useBarberByUserId(session?.userId);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+
+  const { appointmentId } = Route.useLoaderData();
+
+  const appointment = useAppointmentById(appointmentId);
+
+  const { data: session } = useSession();
+
+  const { data: barberRecord } = useBarberByUserId(session?.userId);
 
   const {
     answerRescheduleRequest: {

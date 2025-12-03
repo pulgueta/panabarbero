@@ -118,9 +118,9 @@ function ProfilePage() {
   if (!isBarber) {
     tabsToRender.push(
       {
-      value: "account",
-      label: "Cuenta",
-    },
+        value: "account",
+        label: "Cuenta",
+      },
       {
         value: "reviews",
         label: "Reseñas",
