@@ -157,7 +157,9 @@ const ActionsCell: FC<ActionsCellProps> = ({ appointment }) => {
   const canReschedule = !isCompleted && !isCancelled;
 
   const handleDelete = async () => {
-    if (!deleteReason.trim()) {
+    const requiresReason = !isAlreadyCancelledOrDenied;
+
+    if (requiresReason && !deleteReason.trim()) {
       setDeleteError("Debes ingresar una razón para cancelar la cita.");
       return;
     }
@@ -169,7 +171,7 @@ const ActionsCell: FC<ActionsCellProps> = ({ appointment }) => {
 
     const reason = deleteReason.trim();
 
-    if (!isAlreadyCancelledOrDenied) {
+    if (requiresReason) {
       await cancelAppointment({
         appointmentId,
         cancelledByUserId: session.userId,

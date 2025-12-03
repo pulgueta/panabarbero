@@ -34,7 +34,6 @@ interface DeleteAppointmentDialogProps {
   isAlreadyCancelledOrDenied: boolean;
   isDeletingAppointment: boolean;
   isCancellingAppointment: boolean;
-  deleteDialogChildren: React.ReactNode;
   handleDelete: (obj: {
     appointmentId: Appointment["_id"];
     isAlreadyCancelledOrDenied: boolean;
@@ -47,7 +46,6 @@ export const DeleteAppointmentDialog: FC<DeleteAppointmentDialogProps> = ({
   isAlreadyCancelledOrDenied,
   isDeletingAppointment,
   isCancellingAppointment,
-  deleteDialogChildren,
   handleDelete,
   resetDeleteState,
 }) => {
@@ -84,9 +82,6 @@ export const DeleteAppointmentDialog: FC<DeleteAppointmentDialogProps> = ({
             <DrawerTitle>Eliminar cita</DrawerTitle>
             <DrawerDescription>{deleteDialogDescription}</DrawerDescription>
           </DrawerHeader>
-          <div className="px-4 pb-4 text-left text-muted-foreground text-sm">
-            {deleteDialogChildren}
-          </div>
           <DrawerFooter>
             <Button
               variant="destructive"
@@ -150,7 +145,6 @@ export const DeleteAppointmentDialog: FC<DeleteAppointmentDialogProps> = ({
             {deleteDialogDescription}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        {deleteDialogChildren}
         <AlertDialogFooter>
           <AlertDialogCancel asChild>
             <Button

@@ -8,13 +8,23 @@ import {
   CalendarClockIcon,
   EllipsisVerticalIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { DeleteAppointmentDialog } from "@/components/appointments/delete-appointment-dialog";
 import { RescheduleRequestDialog } from "@/components/appointments/reschedule-request-dialog";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -24,6 +34,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -32,14 +44,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import {
   barbershopByOwnerIdQueryOptions,
   useBarbershopByOwnerId,
 } from "@/hooks/barbershop/use-barbershop";
 import {
   appointmentsByBarbershopQueryOptions,
+  requestRescheduleQueryOptions,
   useAppointmentActions,
   useAppointmentsByBarbershop,
+  useRescheduledAppointmentRequests,
 } from "@/hooks/use-appointments";
 import {
   servicesByIdsQueryOptions,
@@ -69,6 +84,9 @@ export const Route = createFileRoute("/profile/barbershops/appointments/")({
           appointmentsByBarbershopQueryOptions(barbershop._id),
         );
         await context.queryClient.ensureQueryData(
+          requestRescheduleQueryOptions(barbershop._id),
+        );
+        await context.queryClient.ensureQueryData(
           servicesByIdsQueryOptions(
             appointments.map((appointment) => appointment.serviceId),
           ),
@@ -95,9 +113,15 @@ function RouteComponent() {
       mutateAsync: cancelAppointment,
       isPending: isCancellingAppointment,
     },
+    answerRescheduleRequest: {
+      mutateAsync: answerRescheduleRequest,
+      isPending: isAnsweringRescheduleRequest,
+    },
   } = useAppointmentActions();
   const { data: session } = useSession();
   const { data: barbershop } = useBarbershopByOwnerId(session?.userId!);
+  const { data: rescheduledAppointmentRequests } =
+    useRescheduledAppointmentRequests(barbershop?._id!);
   const { data: appointments } = useAppointmentsByBarbershop(barbershop?._id!);
   const { data: services } = useServicesByIds(
     appointments.map((appointment) => appointment.serviceId),
@@ -107,7 +131,9 @@ function RouteComponent() {
     appointmentId: Appointment["_id"];
     isAlreadyCancelledOrDenied: boolean;
   }) => {
-    if (!deleteReason.trim()) {
+    const requiresReason = !obj.isAlreadyCancelledOrDenied;
+
+    if (requiresReason && !deleteReason.trim()) {
       setDeleteError("Debes ingresar una razón para cancelar la cita.");
       return;
     }
@@ -119,7 +145,7 @@ function RouteComponent() {
 
     const reason = deleteReason.trim();
 
-    if (!obj.isAlreadyCancelledOrDenied) {
+    if (requiresReason) {
       await cancelAppointment({
         appointmentId: obj.appointmentId,
         cancelledByUserId: session.userId,
@@ -152,8 +178,90 @@ function RouteComponent() {
     setDeleteError(null);
   };
 
-  const deleteDialogDescription =
-    "Esta acción cancelará la cita, enviará un correo al cliente con el motivo indicado y luego la eliminará definitivamente.";
+  const [requestToReject, setRequestToReject] = useState<Appointment | null>(
+    null,
+  );
+  const [requestRejectReason, setRequestRejectReason] = useState<string>("");
+  const [requestRejectError, setRequestRejectError] = useState<string | null>(
+    null,
+  );
+  const [requestInProgressId, setRequestInProgressId] = useState<
+    Appointment["_id"] | null
+  >(null);
+  const [requestInProgressAction, setRequestInProgressAction] = useState<
+    "accept" | "reject" | null
+  >(null);
+
+  const isHandlingRequest = useMemo(
+    () => (id: Appointment["_id"], action?: "accept" | "reject") =>
+      requestInProgressId === id &&
+      (action ? requestInProgressAction === action : true),
+    [requestInProgressAction, requestInProgressId],
+  );
+
+  const resetRequestProgress = () => {
+    setRequestInProgressId(null);
+    setRequestInProgressAction(null);
+  };
+
+  const handleRequestAnswer = async (
+    requestId: Appointment["_id"],
+    accepted: boolean,
+    options?: { reason?: string },
+  ) => {
+    if (!session?.userId) {
+      toast.error("Debes iniciar sesión para gestionar la solicitud.");
+      return;
+    }
+
+    setRequestInProgressId(requestId);
+    setRequestInProgressAction(accepted ? "accept" : "reject");
+    try {
+      await answerRescheduleRequest({
+        appointmentId: requestId,
+        accepted,
+      });
+      if (!accepted) {
+        const reason = options?.reason?.trim();
+        if (!reason) {
+          throw new Error("Debes ingresar una razón válida.");
+        }
+        await cancelAppointment({
+          appointmentId: requestId,
+          cancelledByUserId: session.userId,
+          reason,
+        });
+      }
+      toast.success(
+        accepted
+          ? "Has aceptado la solicitud de reagendamiento."
+          : "Has rechazado la solicitud y la cita fue cancelada.",
+      );
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        "No pudimos actualizar la solicitud. Intenta de nuevo en unos segundos.",
+      );
+    } finally {
+      if (!accepted) {
+        setRequestToReject(null);
+        setRequestRejectReason("");
+        setRequestRejectError(null);
+      }
+      resetRequestProgress();
+    }
+  };
+
+  const handleRejectConfirmation = async () => {
+    if (!requestToReject) return;
+    const reason = requestRejectReason.trim();
+    if (!reason) {
+      setRequestRejectError("Debes ingresar una razón para cancelar la cita.");
+      return;
+    }
+
+    await handleRequestAnswer(requestToReject._id, false, { reason });
+  };
 
   return (
     <BorderContainer className="space-y-6">
@@ -181,7 +289,7 @@ function RouteComponent() {
         <div className="md:col-span-2">
           <header className="mb-4 flex flex-col gap-1">
             <h2 className="font-semibold text-lg">
-              Citas para{" "}
+              Citas para:{" "}
               {selectedDate
                 ? selectedDate.toLocaleDateString("es-CO", {
                     year: "numeric",
@@ -295,11 +403,6 @@ function RouteComponent() {
                               isAlreadyCancelledOrDenied={
                                 isAlreadyCancelledOrDenied
                               }
-                              deleteDialogChildren={
-                                <div className="px-4 pb-4 text-left text-muted-foreground text-sm">
-                                  {deleteDialogDescription}
-                                </div>
-                              }
                             />
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -319,12 +422,184 @@ function RouteComponent() {
               </TableBody>
             </Table>
           ) : (
-            <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground text-sm">
-              No hay citas para el día seleccionado.
-            </div>
+            <Empty>
+              <EmptyTitle>No hay citas para el día seleccionado.</EmptyTitle>
+              <EmptyDescription>
+                Selecciona un día para ver las citas agendadas para ese día.
+              </EmptyDescription>
+            </Empty>
           )}
         </div>
       </div>
+
+      <div>
+        <header className="mb-2 space-y-1">
+          <h2 className="font-semibold text-lg">
+            Solicitudes de reagendamiento
+          </h2>
+
+          <p className="text-pretty text-muted-foreground text-sm">
+            Administra las solicitudes de reagendamiento pendientes. Recuerda
+            que solo se puede reagendar el servicio una vez por usuario cada 30
+            minutos.
+          </p>
+        </header>
+
+        {rescheduledAppointmentRequests.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-center">Cliente</TableHead>
+                <TableHead className="text-center">Servicio</TableHead>
+                <TableHead className="text-center">Fecha original</TableHead>
+                <TableHead className="text-center">Fecha propuesta</TableHead>
+                <TableHead className="text-center">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rescheduledAppointmentRequests.map((request) => {
+                const service = services?.find(
+                  (service) => service?._id === request.serviceId,
+                );
+
+                return (
+                  <TableRow key={request._id}>
+                    <TableCell className="text-center">
+                      {request.customerName}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {service?.name}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {new Date(request.date).toLocaleDateString("es-CO", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {new Date(request.proposedDate!).toLocaleDateString(
+                        "es-CO",
+                        {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        },
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="mx-auto flex items-center justify-center gap-2">
+                        <Button
+                          variant="destructive"
+                          onClick={() => {
+                            setRequestRejectReason("");
+                            setRequestRejectError(null);
+                            setRequestToReject(request);
+                          }}
+                          disabled={
+                            isHandlingRequest(request._id) ||
+                            isAnsweringRescheduleRequest
+                          }
+                        >
+                          {isHandlingRequest(request._id, "reject") && (
+                            <Spinner className="mr-2 size-4" />
+                          )}
+                          Rechazar y cancelar
+                        </Button>
+                        <Button
+                          onClick={() => handleRequestAnswer(request._id, true)}
+                          disabled={
+                            isHandlingRequest(request._id) ||
+                            isAnsweringRescheduleRequest
+                          }
+                        >
+                          {isHandlingRequest(request._id, "accept") && (
+                            <Spinner className="mr-2 size-4" />
+                          )}
+                          Aceptar
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        ) : (
+          <Empty>
+            <EmptyTitle>
+              No hay solicitudes de reagendamiento pendientes.
+            </EmptyTitle>
+            <EmptyDescription>
+              Cuando un cliente solicita un reagendamiento, podrás gestionarlo
+              aquí.
+            </EmptyDescription>
+          </Empty>
+        )}
+      </div>
+      <AlertDialog
+        open={!!requestToReject}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRequestToReject(null);
+            setRequestRejectReason("");
+            setRequestRejectError(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar cita</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción rechazará la solicitud y cancelará la cita de{" "}
+              {requestToReject?.customerName}. ¿Deseas continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-3 text-left">
+            <Textarea
+              value={requestRejectReason}
+              onChange={(event) => {
+                setRequestRejectReason(event.target.value);
+                if (requestRejectError) {
+                  setRequestRejectError(null);
+                }
+              }}
+              placeholder="Explica por qué no puedes aceptar el reagendamiento."
+            />
+            {requestRejectError ? (
+              <p className="text-destructive text-sm">{requestRejectError}</p>
+            ) : null}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel asChild>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setRequestToReject(null)}
+              >
+                No, conservar cita
+              </Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button
+                variant="destructive"
+                onClick={handleRejectConfirmation}
+                disabled={
+                  !requestToReject ||
+                  isHandlingRequest(requestToReject._id, "reject") ||
+                  !requestRejectReason.trim()
+                }
+              >
+                {requestToReject &&
+                isHandlingRequest(requestToReject._id, "reject") ? (
+                  <Spinner className="mr-2 size-4" />
+                ) : null}
+                Sí, cancelar cita
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </BorderContainer>
   );
 }

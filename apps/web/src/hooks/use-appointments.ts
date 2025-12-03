@@ -20,12 +20,24 @@ export function appointmentsByUserQueryOptions(userId: string) {
   return convexQuery(api.appointments.getAppointmentsByUserId, { userId });
 }
 
+export function requestRescheduleQueryOptions(barbershopId: Barbershop["_id"]) {
+  return convexQuery(api.appointments.getRescheduledAppointmentRequests, {
+    barbershopId,
+  });
+}
+
 export function appointmentsByBarbershopQueryOptions(
   barbershopId: Barbershop["_id"],
 ) {
   return convexQuery(api.appointments.getAppointmentsByBarbershopId, {
     barbershopId,
   });
+}
+
+export function useRescheduledAppointmentRequests(
+  barbershopId: Barbershop["_id"],
+) {
+  return useSuspenseQuery(requestRescheduleQueryOptions(barbershopId));
 }
 
 export function useAppointments() {

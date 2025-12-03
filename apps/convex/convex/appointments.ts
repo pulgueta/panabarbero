@@ -272,6 +272,38 @@ export const createAppointment = mutation({
   },
 });
 
+export const getRescheduledAppointmentRequests = query({
+  args: {
+    barbershopId: v.id("barbershops"),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    const appointments = await ctx.db
+      .query("appointments")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("status"), "pending"),
+          q.not(q.eq(q.field("rescheduleRequestedByUserId"), null)),
+          q.and(
+            q.not(q.eq(q.field("status"), "confirmed")),
+            q.not(q.eq(q.field("status"), "no-show")),
+          ),
+        ),
+      )
+      .collect();
+
+    return appointments;
+  },
+});
+
 export const getAppointmentsByUserId = query({
   args: {
     userId: v.string(),
