@@ -1,5 +1,6 @@
 import type { UserProfileData } from "@panabarbero/convex/schemas";
-import { InfoIcon, XIcon } from "lucide-react";
+import { InfoIcon } from "lucide-react";
+import type { FC } from "react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -30,7 +31,11 @@ interface AccountTabProps {
   userId?: string;
 }
 
-export function AccountTab({ profile, isBarber, userId }: AccountTabProps) {
+export const AccountTab: FC<AccountTabProps> = ({
+  profile,
+  isBarber,
+  userId,
+}) => {
   const {
     updateNameMutation: {
       mutateAsync: updateName,
@@ -51,7 +56,8 @@ export function AccountTab({ profile, isBarber, userId }: AccountTabProps) {
 
   const [name, setName] = useState<string>(profile?.name ?? "");
   const [phone, setPhone] = useState<string>(profile?.phoneNumber ?? "");
-  const [showBarbershopBanner, setShowBarbershopBanner] = useState(false);
+  const [showBarbershopBanner, setShowBarbershopBanner] =
+    useState<boolean>(false);
 
   useEffect(() => {
     const checkBannerVisibility = () => {
@@ -72,7 +78,7 @@ export function AccountTab({ profile, isBarber, userId }: AccountTabProps) {
 
   const handleHideBanner = () => {
     const hideUntil = new Date();
-    hideUntil.setDate(hideUntil.getDate() + 30);
+    hideUntil.setDate(hideUntil.getDate() + 7);
     localStorage.setItem(
       BARBERSHOP_BANNER_HIDE_KEY,
       hideUntil.getTime().toString(),
@@ -126,10 +132,10 @@ export function AccountTab({ profile, isBarber, userId }: AccountTabProps) {
           </AlertDescription>
           <Button
             variant="link"
-            className="absolute right-2 top-2 text-muted-foreground"
+            className="absolute top-2 right-2 text-muted-foreground"
             onClick={handleHideBanner}
           >
-            Ocultar por 30 días
+            Ocultar por 7 días
           </Button>
         </Alert>
       )}
@@ -274,4 +280,4 @@ export function AccountTab({ profile, isBarber, userId }: AccountTabProps) {
       </div>
     </div>
   );
-}
+};
