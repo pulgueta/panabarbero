@@ -1,6 +1,6 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@panabarbero/convex/api";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 
 export function profileQueryOptions(userId: string) {
   return convexQuery(api.userProfileData.getMyProfile, {
@@ -9,7 +9,7 @@ export function profileQueryOptions(userId: string) {
 }
 
 export function useProfile(userId: string) {
-  return useQuery(profileQueryOptions(userId));
+  return useSuspenseQuery(profileQueryOptions(userId));
 }
 
 export function useProfileActions() {

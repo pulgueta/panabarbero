@@ -98,7 +98,7 @@ export function useBarbershopAvailability(barbershopId: Barbershop["_id"]) {
 }
 
 export function useBarbershopById(barbershopId: Barbershop["_id"]) {
-  return useQuery(barbershopByIdQueryOptions(barbershopId));
+  return useSuspenseQuery(barbershopByIdQueryOptions(barbershopId));
 }
 
 export function useBarbershopsByOwnerId(userId: string) {

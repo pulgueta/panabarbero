@@ -25,7 +25,7 @@ export const AppointmentsTab: FC<AppointmentsTabProps> = ({
   appointments,
   barbershops,
 }) => {
-  if (!appointments || appointments.length === 0) {
+  if (appointments.length === 0 || barbershops.length === 0) {
     return (
       <div className="rounded-lg border border-dashed bg-muted/40 p-6 text-center text-sm text-muted-foreground">
         Aún no tienes citas registradas.
