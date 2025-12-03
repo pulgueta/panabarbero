@@ -760,10 +760,10 @@ export const requestReschedule = mutation({
     if (!ok) {
       throw new ConvexError(
         errorMessages.rateLimitExceeded(
-          new Date(Date.now() + retryAfter).toLocaleDateString("es-CO", {
+          new Intl.DateTimeFormat("es-CO", {
             dateStyle: "full",
             timeStyle: "short",
-          }),
+          }).format(new Date(Date.now() + retryAfter)),
         ),
       );
     }
