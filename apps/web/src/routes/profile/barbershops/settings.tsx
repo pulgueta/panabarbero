@@ -19,7 +19,10 @@ import {
   useBarbershopAvailability,
   useBarbershopByOwnerId,
 } from "@/hooks/barbershop/use-barbershop";
-import { servicesQueryOptions, useServicesFromBarbershop } from "@/hooks/use-services";
+import {
+  servicesQueryOptions,
+  useServicesFromBarbershop,
+} from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/profile/barbershops/settings")({
@@ -53,7 +56,7 @@ export const Route = createFileRoute("/profile/barbershops/settings")({
 
 function SettingsPage() {
   const { data: user } = useSession();
-  
+
   const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
   const { data: availability } = useBarbershopAvailability(barbershop?._id!);

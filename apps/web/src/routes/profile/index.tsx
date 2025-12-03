@@ -72,9 +72,8 @@ export const Route = createFileRoute("/profile/")({
 type ProfileTabValue = "account" | "appointments" | "reviews";
 
 function ProfilePage() {
-  
   const [activeTab, setActiveTab] = useState<ProfileTabValue>("account");
-  
+
   const { data: user } = useSession();
 
   const { data: isBarber } = useIsBarber(user?.userId);
@@ -160,17 +159,16 @@ function ProfilePage() {
               />
             </TabsContent>
           </Activity>
-          
-          <Activity mode={activeTab === "appointments" ? "visible" : "hidden"}>
 
+          <Activity mode={activeTab === "appointments" ? "visible" : "hidden"}>
             <TabsContent value="appointments" className="pt-2">
               <AppointmentsTab
                 appointments={appointments}
                 barbershops={barbershops}
-                />
+              />
             </TabsContent>
-                </Activity>
-          
+          </Activity>
+
           <Activity mode={activeTab === "reviews" ? "visible" : "hidden"}>
             <TabsContent value="reviews" className="pt-2">
               <ReviewsTab
