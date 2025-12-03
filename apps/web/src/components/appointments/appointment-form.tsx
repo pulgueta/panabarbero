@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarIcon, ChevronRightIcon, Clock8Icon, Info } from "lucide-react";
 import type { FC } from "react";
-import { useCallback, useId } from "react";
+import { useId } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -40,9 +40,11 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
-import { useBarbershopAvailability } from "@/hooks/barbershop/use-barbershop";
 import { useAnalytics } from "@/hooks/use-analytics";
-import { useAppointmentActions } from "@/hooks/use-appointments";
+import {
+  useAppointmentActions,
+  useAppointmentFormMetadata,
+} from "@/hooks/use-appointments";
 import { useBarbersByBarbershopId } from "@/hooks/use-barbers";
 import { useProfile } from "@/hooks/use-profile";
 import { useServicesFromBarbershop } from "@/hooks/use-services";
@@ -51,15 +53,6 @@ import { appointmentFormSchema } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { useServicesStore } from "@/store/services";
 import { ServicesDropdown } from "../barbershops/services/services-dropdown";
-
-type WeekdayKey =
-  | "sunday"
-  | "monday"
-  | "tuesday"
-  | "wednesday"
-  | "thursday"
-  | "friday"
-  | "saturday";
 
 interface AppointmentFormProps {
   service: Service;
@@ -92,9 +85,12 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
 
   const { data: barbers, isLoading: isLoadingBarbers } =
     useBarbersByBarbershopId(service.barbershopId);
-  const { data: availability } = useBarbershopAvailability(
-    service.barbershopId,
-  );
+  const {
+    disableDay,
+    scheduleForDate,
+    timeStringToMinutes,
+    minutesOfTimestamp,
+  } = useAppointmentFormMetadata(service.barbershopId);
   const { data: services } = useServicesFromBarbershop(service.barbershopId);
   const { service: selectedService } = useServicesStore();
   const {
@@ -115,69 +111,6 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
         barbers?.length && barbers?.length > 1 ? undefined : barbers?.[0]._id,
     },
   });
-
-  const dayIndexes: Record<WeekdayKey, number> = Object.freeze({
-    sunday: 0,
-    monday: 1,
-    tuesday: 2,
-    wednesday: 3,
-    thursday: 4,
-    friday: 5,
-    saturday: 6,
-  });
-
-  const activeDays = new Set(
-    availability
-      ?.filter((d) => d.weekDay?.isActive)
-      .map((d) => dayIndexes[d.weekDay.day as WeekdayKey]) ?? [],
-  );
-
-  const disableDay = useCallback(
-    (day: Date): boolean => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const currentDay = new Date(day);
-      currentDay.setHours(0, 0, 0, 0);
-
-      const weekday = currentDay.getDay();
-
-      if (currentDay < today) return true;
-
-      if (!activeDays.has(weekday)) return true;
-
-      return false;
-    },
-    [activeDays],
-  );
-
-  const timeStringToMinutes = (value?: string | null) => {
-    if (!value) return null;
-    const [hours, minutes] = value.split(":").map(Number);
-    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
-
-    return hours * 60 + minutes;
-  };
-
-  const minutesOfTimestamp = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.getHours() * 60 + date.getMinutes();
-  };
-
-  const scheduleForDate = (timestamp?: number) => {
-    if (!timestamp || !availability) return undefined;
-    const weekday: WeekdayKey = [
-      "sunday",
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-    ][new Date(timestamp).getDay()] as WeekdayKey;
-
-    return availability.find((entry) => entry.weekDay.day === weekday);
-  };
 
   const onSubmit = form.handleSubmit(async (formData) => {
     if (!userId) {
@@ -247,6 +180,24 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
 
   return (
     <form id={formIds.form} onSubmit={onSubmit}>
+      {!userId && (
+        <Item variant="warning" asChild>
+          <Link to="/login" className="mb-4">
+            <ItemMedia>
+              <Info className="size-5" />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>
+                Debes iniciar sesión para poder reservar un servicio
+              </ItemTitle>
+            </ItemContent>
+            <ItemActions>
+              <ChevronRightIcon className="size-4" />
+            </ItemActions>
+          </Link>
+        </Item>
+      )}
+
       <FieldGroup>
         <div className="grid grid-cols-2 gap-4">
           {!initialValues && (
@@ -507,24 +458,6 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
           )}
         />
       </FieldGroup>
-
-      {!userId && (
-        <Item variant="warning" asChild>
-          <Link to="/login" className="mt-4">
-            <ItemMedia>
-              <Info className="size-5" />
-            </ItemMedia>
-            <ItemContent>
-              <ItemTitle>
-                Debes iniciar sesión para poder reservar un servicio
-              </ItemTitle>
-            </ItemContent>
-            <ItemActions>
-              <ChevronRightIcon className="size-4" />
-            </ItemActions>
-          </Link>
-        </Item>
-      )}
 
       <Button
         type="submit"

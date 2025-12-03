@@ -1,6 +1,9 @@
 import type { Appointment, Barbershop } from "@panabarbero/convex/schemas";
 import type { FC } from "react";
 
+import { RescheduleRequestDialog } from "@/components/appointments/reschedule-request-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardDescription,
@@ -12,9 +15,6 @@ import {
   getAppointmentStatusBadgeVariant,
   getAppointmentStatusLabel,
 } from "@/lib/appointment-utils";
-import { RescheduleRequestDialog } from "../appointments/reschedule-request-dialog";
-import { Badge } from "../ui/badge";
-import { Button } from "../ui/button";
 
 interface AppointmentsTabProps {
   appointments: Appointment[];
@@ -39,6 +39,9 @@ export const AppointmentsTab: FC<AppointmentsTabProps> = ({
         const barbershopName = barbershops.find(
           (barbershop) => barbershop._id === appointment.barbershopId,
         )?.name;
+
+        const disabled =
+          appointment.status === "cancelled" || appointment.status === "denied";
 
         return (
           <Card key={appointment._id}>
@@ -68,7 +71,11 @@ export const AppointmentsTab: FC<AppointmentsTabProps> = ({
               <RescheduleRequestDialog
                 to="barber"
                 appointment={appointment}
-                trigger={<Button className="mt-4">Reagendar</Button>}
+                trigger={
+                  <Button className="mt-4" disabled={disabled}>
+                    Reagendar
+                  </Button>
+                }
               />
             </CardFooter>
           </Card>

@@ -3,6 +3,7 @@ import { SearchIcon } from "lucide-react";
 import { Activity, useState } from "react";
 
 import { BarbershopListCard } from "@/components/barbershops/barbershop-list-card";
+import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import {
   InputGroup,
@@ -42,10 +43,10 @@ export const Route = createFileRoute("/appointments/create")({
 
 function RouteComponent() {
   const [searchQuery, setSearchQuery] = useState<string>("");
+
   const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
   const { data: user } = useSession();
-
   const { data: barbershops } = useUserVisitedBarbershops(user?.userId ?? "");
   const {
     data: searchResults,
@@ -56,11 +57,12 @@ function RouteComponent() {
   const searching = isSearching || isSearchingAgain;
 
   return (
-    <div className="container mx-auto flex min-h-[calc(100dvh-65px)] flex-col items-start justify-start gap-8 border-x px-4 py-8 md:px-8 lg:px-16">
+    <BorderContainer className="space-y-4">
       <div className="flex flex-col gap-2">
         <h1 className="text-balance font-bold text-3xl tracking-tight">
           Agendamiento rápido:
         </h1>
+
         {user ? (
           barbershops && barbershops.length > 0 ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -118,7 +120,7 @@ function RouteComponent() {
           </div>
         </Activity>
 
-        {searchResults?.length && searchResults.length > 0 ? (
+        {searchResults && searchResults.length > 0 && (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {searchResults.map((barbershop) => (
               <BarbershopListCard
@@ -127,7 +129,7 @@ function RouteComponent() {
               />
             ))}
           </div>
-        ) : null}
+        )}
 
         {searchResults?.length === 0 && (
           <p className="text-pretty text-muted-foreground text-sm">
@@ -135,6 +137,6 @@ function RouteComponent() {
           </p>
         )}
       </div>
-    </div>
+    </BorderContainer>
   );
 }

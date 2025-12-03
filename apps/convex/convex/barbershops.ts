@@ -404,8 +404,7 @@ export const getUserVisitedBarbershops = query({
       .query("appointments")
       .withIndex("by_userId", (q) => q.eq("userId", user.userId ?? ""))
       .filter((q) => q.eq(q.field("status"), "completed"))
-      .order("desc")
-      .collect();
+      .take(5);
 
     const barbershops = await Promise.all(
       appointments.map(

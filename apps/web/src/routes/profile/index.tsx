@@ -9,6 +9,7 @@ import { LoadingComponent } from "@/components/layout/loading-component";
 import { AccountTab } from "@/components/profile/account-tab";
 import { AppointmentsTab } from "@/components/profile/appointments-tab";
 import { ReviewsTab } from "@/components/profile/reviews-tab";
+import { SecurityTab } from "@/components/profile/security-tab";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -17,9 +18,7 @@ import {
 } from "@/hooks/barbershop/use-barbershop";
 import {
   appointmentsByUserQueryOptions,
-  recentlyVisitedBarbershopsQueryOptions,
   useAppointmentsByUser,
-  useRecentlyVisitedBarbershops,
 } from "@/hooks/use-appointments";
 import { isBarberQueryOptions, useIsBarber } from "@/hooks/use-barbers";
 import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
@@ -44,16 +43,15 @@ export const Route = createFileRoute("/profile/")({
       await context.queryClient.ensureQueryData(
         reviewsByUserQueryOptions(user.userId),
       );
-      const recentlyVisitedBarbershops =
-        await context.queryClient.ensureQueryData(
-          recentlyVisitedBarbershopsQueryOptions(user.userId),
-        );
+      const appointments = await context.queryClient.ensureQueryData(
+        appointmentsByUserQueryOptions(user.userId),
+      );
 
-      if (recentlyVisitedBarbershops) {
+      if (appointments) {
         await Promise.all(
-          recentlyVisitedBarbershops.map(async (barbershop) => {
+          appointments.map(async (appointment) => {
             await context.queryClient.ensureQueryData(
-              barbershopByIdQueryOptions(barbershop._id),
+              barbershopByIdQueryOptions(appointment.barbershopId),
             );
           }),
         );
@@ -69,7 +67,7 @@ export const Route = createFileRoute("/profile/")({
   },
 });
 
-type ProfileTabValue = "account" | "appointments" | "reviews";
+type ProfileTabValue = "account" | "security" | "appointments" | "reviews";
 
 function ProfilePage() {
   const [activeTab, setActiveTab] = useState<ProfileTabValue>("account");
@@ -78,16 +76,13 @@ function ProfilePage() {
 
   const { data: user } = useSession();
 
-  const { data: isBarber } = useIsBarber(user?.userId);
-  const { data: appointments } = useAppointmentsByUser(user?.userId);
-  const { data: reviews } = useReviewsByUser(user?.userId);
-  const { data: recentlyVisitedBarbershops } = useRecentlyVisitedBarbershops(
-    user?.userId,
-  );
+  const { data: isBarber } = useIsBarber(user?.userId!);
+  const { data: appointments } = useAppointmentsByUser(user?.userId!);
+  const { data: reviews } = useReviewsByUser(user?.userId!);
   const { data: barbershops } = useBarbershopsByIds(
     appointments?.map((appointment) => appointment.barbershopId),
   );
-  const { data: profile } = useProfile(user?.userId);
+  const { data: profile } = useProfile(user?.userId!);
 
   const onTabChange = (value: string) => {
     setActiveTab(value as ProfileTabValue);
@@ -101,25 +96,32 @@ function ProfilePage() {
     }
   };
 
-  const tabsToRender = [
-    {
-      value: "account",
-      label: "Cuenta",
-    },
-  ];
+  const tabsToRender = isBarber
+    ? [
+        {
+          value: "account",
+          label: "Cuenta",
+        },
+        {
+          value: "security",
+          label: "Seguridad",
+        },
+      ]
+    : [
+        {
+          value: "appointments",
+          label: "Citas",
+        },
+        {
+          value: "account",
+          label: "Cuenta",
+        },
 
-  if (!isBarber) {
-    tabsToRender.push(
-      {
-        value: "appointments",
-        label: "Citas",
-      },
-      {
-        value: "reviews",
-        label: "Reseñas",
-      },
-    );
-  }
+        {
+          value: "security",
+          label: "Seguridad",
+        },
+      ];
 
   return (
     <BorderContainer className="space-y-6">
@@ -142,7 +144,7 @@ function ProfilePage() {
               <TabsTrigger
                 key={tabOption.value}
                 value={tabOption.value}
-                className="min-w-24 max-w-64"
+                className="min-w-auto md:min-w-32 md:max-w-40"
                 onClick={() => setActiveTab(tabOption.value as ProfileTabValue)}
               >
                 {tabOption.label}
@@ -155,8 +157,14 @@ function ProfilePage() {
               <AccountTab
                 profile={profile}
                 isBarber={isBarber}
-                userId={user?.userId}
+                userId={user?.userId!}
               />
+            </TabsContent>
+          </Activity>
+
+          <Activity mode={activeTab === "security" ? "visible" : "hidden"}>
+            <TabsContent value="security" className="pt-2">
+              <SecurityTab profile={profile} />
             </TabsContent>
           </Activity>
 
@@ -164,6 +172,7 @@ function ProfilePage() {
             <TabsContent value="appointments" className="pt-2">
               <AppointmentsTab
                 appointments={appointments}
+                // @ts-expect-error - barbershops is defined
                 barbershops={barbershops}
               />
             </TabsContent>
@@ -173,7 +182,8 @@ function ProfilePage() {
             <TabsContent value="reviews" className="pt-2">
               <ReviewsTab
                 reviews={reviews}
-                barbershops={recentlyVisitedBarbershops}
+                // @ts-expect-error - barbershops is defined
+                barbershops={barbershops}
               />
             </TabsContent>
           </Activity>

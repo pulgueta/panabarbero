@@ -1,11 +1,15 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Appointment } from "@panabarbero/convex/schemas";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { Calendar1Icon, CalendarIcon, Clock8Icon } from "lucide-react";
 import type { FC, ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Dialog,
   DialogContent,
@@ -29,16 +33,21 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
-import { useAppointmentActions } from "@/hooks/use-appointments";
+import {
+  useAppointmentActions,
+  useAppointmentFormMetadata,
+} from "@/hooks/use-appointments";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useSession } from "@/hooks/use-session";
-import {
-  rescheduleRequestFormSchema,
-  type RescheduleRequestFormData,
-} from "@/lib/schemas";
-import { Calendar1Icon } from "lucide-react";
+import { rescheduleRequestFormSchema } from "@/lib/schemas";
+import { cn } from "@/lib/utils";
 
 interface RescheduleRequestDialogProps {
   appointment: Appointment;
@@ -49,12 +58,6 @@ interface RescheduleRequestDialogProps {
   to?: "barber" | "customer";
 }
 
-function buildTimestamp(date: string, time: string): number {
-  if (!date || !time) return Number.NaN;
-  const composed = new Date(`${date}T${time}:00`);
-  return composed.getTime();
-}
-
 export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
   appointment,
   disabled = false,
@@ -63,23 +66,41 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
   open,
   onOpenChange,
 }) => {
+  const formIds = {
+    date: useId(),
+    time: useId(),
+  };
+  const [internalOpen, setInternalOpen] = useState<boolean>(false);
+
   const { isMobile } = useIsMobile();
   const { data: session } = useSession();
-  const {
-    requestReschedule: { mutateAsync: requestReschedule, isPending },
-  } = useAppointmentActions();
-  const [internalOpen, setInternalOpen] = useState(false);
 
-  const form = useForm<RescheduleRequestFormData>({
+  const {
+    disableDay,
+    scheduleForDate,
+    timeStringToMinutes,
+    minutesOfTimestamp,
+  } = useAppointmentFormMetadata(appointment.barbershopId);
+
+  const {
+    requestReschedule: {
+      mutateAsync: requestReschedule,
+      isPending: isReschedulePending,
+    },
+  } = useAppointmentActions();
+
+  const isCancelled = appointment.status === "cancelled";
+  const isDisabled = disabled || isCancelled;
+
+  const form = useForm({
     resolver: zodResolver(rescheduleRequestFormSchema),
     defaultValues: {
-      date: "",
-      time: "",
+      date: undefined,
       note: "",
     },
   });
 
-  const isControlled = open !== undefined;
+  const isControlled = open;
   const dialogOpen = isControlled ? open : internalOpen;
   const toLabel = to === "barber" ? "barbero" : "cliente";
 
@@ -93,14 +114,13 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
   const closeDialog = () => {
     setDialogOpen(false);
     form.reset({
-      date: "",
-      time: "",
+      date: undefined,
       note: "",
     });
   };
 
   const handleOpenChange = (value: boolean) => {
-    if (disabled && value) return;
+    if (isDisabled && value) return;
     setDialogOpen(value);
     if (!value) {
       form.reset();
@@ -113,33 +133,51 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
       return;
     }
 
-    const timestamp = buildTimestamp(values.date, values.time);
+    const timestamp = values.date;
 
-    if (Number.isNaN(timestamp)) {
-      form.setError("time", {
-        type: "manual",
-        message: "Fecha u hora inválida",
-      });
+    const schedule = scheduleForDate(timestamp);
+
+    if (!schedule || !schedule.weekDay.isActive) {
+      toast.error("La barbería no atiende en el día seleccionado.");
       return;
     }
 
-    try {
-      await requestReschedule({
-        appointmentId: appointment._id,
-        proposedDate: timestamp,
-        requestedByUserId: session.userId,
-        note: values.note?.trim() ? values.note.trim() : undefined,
-      });
+    const selectedMinutes = minutesOfTimestamp(timestamp);
+    const openMinutes = timeStringToMinutes(schedule.openAt);
+    const closeMinutes = timeStringToMinutes(schedule.closeAt);
 
-      toast.success(`Solicitud enviada al ${toLabel}.`);
-      closeDialog();
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "No se pudo solicitar el reagendamiento.",
-      );
+    if (
+      (openMinutes !== null && selectedMinutes < openMinutes) ||
+      (closeMinutes !== null && selectedMinutes >= closeMinutes)
+    ) {
+      toast.error("Selecciona una hora dentro del horario de atención.");
+      return;
     }
+
+    const lunchStartMinutes = timeStringToMinutes(schedule.lunchStart);
+    const lunchEndMinutes = timeStringToMinutes(schedule.lunchEnd);
+
+    if (
+      lunchStartMinutes !== null &&
+      lunchEndMinutes !== null &&
+      selectedMinutes >= lunchStartMinutes &&
+      selectedMinutes < lunchEndMinutes
+    ) {
+      toast.error(
+        "No se puede proponer una cita durante el horario seleccionado.",
+      );
+      return;
+    }
+
+    await requestReschedule({
+      appointmentId: appointment._id,
+      proposedDate: timestamp,
+      requestedByUserId: session.userId,
+      note: values.note?.trim() ? values.note.trim() : undefined,
+    });
+
+    toast.success(`Solicitud enviada al ${toLabel}.`);
+    closeDialog();
   });
 
   const headLabel = "Solicitar reagendamiento";
@@ -149,7 +187,7 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
     if (trigger === null) return null;
     if (trigger === undefined) {
       return (
-        <Button variant="secondary" disabled={disabled}>
+        <Button variant="secondary" disabled={isDisabled}>
           <Calendar1Icon className="mr-2 size-4" />
           {headLabel}
         </Button>
@@ -157,7 +195,7 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
     }
 
     return trigger;
-  }, [disabled, trigger]);
+  }, [isDisabled, trigger]);
 
   const formContent = (
     <form onSubmit={onSubmit} className="space-y-4">
@@ -168,31 +206,97 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel>Fecha propuesta</FieldLabel>
-              <Input
-                type="date"
-                {...field}
-                disabled={isPending}
-                aria-invalid={fieldState.invalid}
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[240px] pl-3 text-left font-normal",
+                      !field.value && "text-muted-foreground",
+                    )}
+                  >
+                    {field.value ? (
+                      format(new Date(field.value as number), "PPP")
+                    ) : (
+                      <span>Seleccione una fecha</span>
+                    )}
+                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="center">
+                  <Calendar
+                    mode="single"
+                    selected={
+                      field.value ? new Date(field.value as number) : undefined
+                    }
+                    onSelect={(date) => {
+                      if (!date) {
+                        field.onChange(undefined);
+                        return;
+                      }
+                      const current = field.value
+                        ? new Date(field.value as number)
+                        : (() => {
+                            const d = new Date();
+                            d.setHours(8, 30, 0, 0);
+                            return d;
+                          })();
+                      const combined = new Date(date);
+                      combined.setHours(
+                        current.getHours(),
+                        current.getMinutes(),
+                        0,
+                        0,
+                      );
+                      field.onChange(combined.getTime());
+                    }}
+                    disabled={disableDay}
+                    className="bg-transparent [--cell-size:--spacing(12)]"
+                    captionLayout="label"
+                    locale={es}
+                  />
+                </PopoverContent>
+              </Popover>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
         />
 
         <Controller
-          name="time"
+          name="date"
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel>Hora propuesta</FieldLabel>
-              <Input
-                type="time"
-                step={300}
-                {...field}
-                disabled={isPending}
-                aria-invalid={fieldState.invalid}
-              />
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              <FieldLabel htmlFor={formIds.time}>Hora propuesta</FieldLabel>
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center justify-center pl-3 text-muted-foreground peer-disabled:opacity-50">
+                  <Clock8Icon className="size-4" />
+                  <span className="sr-only">Hora</span>
+                </div>
+                <Input
+                  type="time"
+                  id={formIds.time}
+                  value={
+                    field.value
+                      ? format(new Date(field.value as number), "HH:mm")
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const time = e.target.value;
+                    const date = field.value
+                      ? new Date(field.value as number)
+                      : undefined;
+                    if (time) {
+                      const [hours, minutes] = time.split(":").map(Number);
+                      const base = date ?? new Date();
+                      const updatedDate = new Date(base);
+                      updatedDate.setHours(hours, minutes, 0, 0);
+                      field.onChange(updatedDate.getTime());
+                    }
+                  }}
+                  className="peer appearance-none bg-background pl-9 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                />
+              </div>
             </Field>
           )}
         />
@@ -206,7 +310,7 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
             <FieldLabel>Nota para el {toLabel} (opcional)</FieldLabel>
             <Textarea
               {...field}
-              disabled={isPending}
+              disabled={isReschedulePending}
               aria-invalid={fieldState.invalid}
               placeholder={`Comparte detalles adicionales con el ${toLabel}.`}
             />
@@ -220,12 +324,12 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
           type="button"
           variant="outline"
           onClick={closeDialog}
-          disabled={isPending}
+          disabled={isReschedulePending}
         >
           Cancelar
         </Button>
-        <Button type="submit" disabled={isPending}>
-          {isPending && <Spinner />}
+        <Button type="submit" disabled={isReschedulePending}>
+          {isReschedulePending && <Spinner />}
           Enviar solicitud
         </Button>
       </div>
@@ -243,6 +347,7 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
             <DrawerTitle>{headLabel}</DrawerTitle>
             <DrawerDescription>{description}</DrawerDescription>
           </DrawerHeader>
+
           <div className="p-4">{formContent}</div>
         </DrawerContent>
       </Drawer>

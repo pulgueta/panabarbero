@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/style/noNonNullAssertion: needed */
 import type { Appointment } from "@panabarbero/convex/schemas";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { format } from "date-fns";
@@ -26,7 +27,7 @@ import {
   useAppointmentById,
 } from "@/hooks/use-appointments";
 import { useBarberByUserId } from "@/hooks/use-barbers";
-import { useSession } from "@/hooks/use-session";
+import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 import {
   getAppointmentStatusBadgeVariant,
   getAppointmentStatusLabel,
@@ -42,31 +43,32 @@ export const Route = createFileRoute(
   "/profile/appointments/reschedule/$appointmentId",
 )({
   loader: async ({ context, params }) => {
-    const appointment = await context.queryClient.ensureQueryData(
-      appointmentByIdQueryOptions(params.appointmentId as Appointment["_id"]),
+    const user = await context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
     );
 
-    if (!appointment) {
-      throw new Error("Cita no encontrada");
+    if (user?.userId) {
+      const _appointment = await context.queryClient.ensureQueryData(
+        appointmentByIdQueryOptions(params.appointmentId as Appointment["_id"]),
+      );
     }
-
-    return { appointmentId: appointment._id };
   },
   component: RouteComponent,
 });
 
 function RouteComponent() {
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState<boolean>(false);
+
   const router = useRouter();
-  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
 
-  const { appointmentId } = Route.useLoaderData();
+  const { appointmentId } = Route.useParams();
 
-  const appointment = useAppointmentById(appointmentId);
+  const { data: appointment } = useAppointmentById(
+    appointmentId as Appointment["_id"],
+  );
 
   const { data: session } = useSession();
-
-  const { data: barberRecord } = useBarberByUserId(session?.userId);
-
+  const { data: barberRecord } = useBarberByUserId(session?.userId!);
   const {
     answerRescheduleRequest: {
       mutateAsync: answerReschedule,

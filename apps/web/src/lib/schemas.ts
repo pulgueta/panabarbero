@@ -237,16 +237,14 @@ export type AppointmentFormData = output<typeof appointmentFormSchema>;
 export type ReviewFormData = output<typeof reviewFormSchema>;
 
 export const rescheduleRequestFormSchema = object({
-  date: string({
-    error: "La fecha propuesta es requerida",
-  }).min(1, "La fecha propuesta es requerida"),
-  time: string({
-    error: "La hora propuesta es requerida",
-  })
-    .min(1, "La hora propuesta es requerida")
-    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, {
-      message: "Formato de hora inválido",
-    }),
+  date: coerce
+    .number({
+      error: "La fecha y hora son requeridas",
+    })
+    .min(
+      Date.now(),
+      "La fecha y hora deben ser mayor a la fecha y hora actual",
+    ),
   note: string()
     .max(280, "La nota debe tener máximo 280 caracteres")
     .optional(),

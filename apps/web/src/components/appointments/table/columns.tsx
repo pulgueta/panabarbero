@@ -7,6 +7,7 @@ import {
   EllipsisVerticalIcon,
   TrashIcon,
 } from "lucide-react";
+import type { FC } from "react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -124,13 +125,17 @@ export const appointmentsTableColumns: ColumnDef<Appointment>[] = [
   },
 ];
 
-function ActionsCell({ appointment }: { appointment: Appointment }) {
+interface ActionsCellProps {
+  appointment: Appointment;
+}
+
+const ActionsCell: FC<ActionsCellProps> = ({ appointment }) => {
   const appointmentId = appointment._id;
-  const isCompleted = appointment.status === "completed";
-  const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
-  const [deleteReason, setDeleteReason] = useState("");
+  const [isRescheduleOpen, setIsRescheduleOpen] = useState<boolean>(false);
+  const [deleteReason, setDeleteReason] = useState<string>("");
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
   const { data: session } = useSession();
   const { isMobile } = useIsMobile();
   const {
@@ -144,6 +149,12 @@ function ActionsCell({ appointment }: { appointment: Appointment }) {
     },
   } = useAppointmentActions();
 
+  const isCompleted = appointment.status === "completed";
+  const isCancelled = appointment.status === "cancelled";
+  const isDenied = appointment.status === "denied";
+  const isAlreadyCancelledOrDenied = isCancelled || isDenied;
+  const canReschedule = !isCompleted && !isCancelled;
+
   const handleDelete = async () => {
     if (!deleteReason.trim()) {
       setDeleteError("Debes ingresar una razón para cancelar la cita.");
@@ -155,26 +166,35 @@ function ActionsCell({ appointment }: { appointment: Appointment }) {
       return;
     }
 
-    try {
-      const reason = deleteReason.trim();
+    const reason = deleteReason.trim();
+
+    if (!isAlreadyCancelledOrDenied) {
       await cancelAppointment({
         appointmentId,
         cancelledByUserId: session.userId,
         reason,
       });
-      await deleteAppointment({ appointmentId });
-      toast.success("La cita fue cancelada y eliminada exitosamente.");
+
+      toast.success("La cita fue cancelada exitosamente.");
       setDeleteReason("");
       setDeleteError(null);
       setIsDeleteDialogOpen(false);
       resetDeleteState();
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "No se pudo eliminar la cita. Inténtalo de nuevo.",
-      );
+      return;
     }
+
+    await deleteAppointment({ appointmentId });
+
+    toast.success(
+      isAlreadyCancelledOrDenied
+        ? "La cita fue eliminada exitosamente."
+        : "La cita fue cancelada y eliminada exitosamente.",
+    );
+
+    setDeleteReason("");
+    setDeleteError(null);
+    setIsDeleteDialogOpen(false);
+    resetDeleteState();
   };
 
   const resetDeleteState = () => {
@@ -214,24 +234,25 @@ function ActionsCell({ appointment }: { appointment: Appointment }) {
             <EllipsisVerticalIcon />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="max-w-52">
+        <DropdownMenuContent align="end" className="max-w-64">
           <DropdownMenuItem
-            disabled={isCompleted}
+            disabled={!canReschedule}
             className="inline-flex w-full items-center gap-x-2"
             onSelect={(event) => {
               event.preventDefault();
-              if (isCompleted) return;
+              if (!canReschedule) return;
               setIsRescheduleOpen(true);
             }}
           >
             <CalendarClockIcon className="size-3" />
             Solicitar reagendamiento
           </DropdownMenuItem>
-          {appointment.proposedDate ? (
+
+          {appointment.proposedDate && (
             <DropdownMenuItem asChild>
               <Link
                 to={"/profile/appointments/reschedule/$appointmentId"}
-                params={{ appointmentId: appointmentId as string }}
+                params={{ appointmentId }}
                 style={{
                   viewTransitionName: `appointment-${appointmentId}-reschedule`,
                 }}
@@ -241,7 +262,8 @@ function ActionsCell({ appointment }: { appointment: Appointment }) {
                 Gestionar reagendamiento
               </Link>
             </DropdownMenuItem>
-          ) : null}
+          )}
+
           {isMobile ? (
             <Drawer
               open={isDeleteDialogOpen}
@@ -359,11 +381,11 @@ function ActionsCell({ appointment }: { appointment: Appointment }) {
       <RescheduleRequestDialog
         appointment={appointment}
         to="customer"
-        disabled={isCompleted}
+        disabled={!canReschedule}
         open={isRescheduleOpen}
         onOpenChange={setIsRescheduleOpen}
         trigger={null}
       />
     </div>
   );
-}
+};

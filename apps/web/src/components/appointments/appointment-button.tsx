@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/style/noNonNullAssertion: can be null */
 import type { Service } from "@panabarbero/convex/schemas";
 import type { FC } from "react";
 import { useState } from "react";
@@ -50,15 +51,16 @@ export const AppointmentButton: FC<AppointmentButtonProps> = ({ service }) => {
             <DrawerTitle>{headLabel}</DrawerTitle>
             <DrawerDescription>{description}</DrawerDescription>
           </DrawerHeader>
+
           <div className="p-4">
             <AppointmentForm
               service={service}
               onSuccess={() => setOpen(false)}
-              userId={user?.userId}
+              userId={user?.userId!}
               initialValues={{
                 customerName: user?.name,
                 contactEmail: user?.email,
-                contactPhone: user?.phoneNumber,
+                contactPhone: user?.phoneNumber!,
               }}
             />
           </div>
@@ -83,10 +85,10 @@ export const AppointmentButton: FC<AppointmentButtonProps> = ({ service }) => {
           initialValues={{
             customerName: user?.name,
             contactEmail: user?.email,
-            contactPhone: user?.phoneNumber,
+            contactPhone: user?.phoneNumber!,
           }}
           onSuccess={() => setOpen(false)}
-          userId={user?.userId}
+          userId={user?.userId!}
         />
       </DialogContent>
     </Dialog>
