@@ -1,5 +1,6 @@
 import type { Service } from "@panabarbero/convex/schemas";
 import type { FC } from "react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +27,8 @@ interface AppointmentDialogProps {
 }
 
 export const AppointmentDialog: FC<AppointmentDialogProps> = ({ service }) => {
+  const [open, setOpen] = useState<boolean>(false);
+
   const { isMobile } = useIsMobile();
 
   const headLabel = "Crear cita";
@@ -33,7 +36,7 @@ export const AppointmentDialog: FC<AppointmentDialogProps> = ({ service }) => {
 
   if (isMobile) {
     return (
-      <Drawer>
+      <Drawer open={open} onOpenChange={setOpen}>
         <DrawerTrigger asChild>
           <Button variant="outline">{headLabel}</Button>
         </DrawerTrigger>
@@ -44,7 +47,10 @@ export const AppointmentDialog: FC<AppointmentDialogProps> = ({ service }) => {
           </DrawerHeader>
 
           <div className="p-4">
-            <AppointmentForm service={service} />
+            <AppointmentForm
+              service={service}
+              onSuccess={() => setOpen(false)}
+            />
           </div>
         </DrawerContent>
       </Drawer>
@@ -52,7 +58,7 @@ export const AppointmentDialog: FC<AppointmentDialogProps> = ({ service }) => {
   }
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline">{headLabel}</Button>
       </DialogTrigger>
@@ -62,7 +68,7 @@ export const AppointmentDialog: FC<AppointmentDialogProps> = ({ service }) => {
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <AppointmentForm service={service} />
+        <AppointmentForm service={service} onSuccess={() => setOpen(false)} />
       </DialogContent>
     </Dialog>
   );

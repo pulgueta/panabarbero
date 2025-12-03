@@ -25,8 +25,10 @@ export const CreateBarbershopDialog: FC<CreateBarbershopDialogProps> = ({
   userId,
 }) => {
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
 
   const onSuccess = (barbershopId: Barbershop["_id"]) => {
+    setOpen(false);
     navigate({
       to: "/profile/barbershops/settings",
       search: (prev) => ({ ...prev, barbershopId }),
@@ -34,7 +36,7 @@ export const CreateBarbershopDialog: FC<CreateBarbershopDialogProps> = ({
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant={variant} className="mt-1.5">
           {triggerLabel}

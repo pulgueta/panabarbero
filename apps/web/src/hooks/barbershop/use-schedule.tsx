@@ -49,7 +49,7 @@ export function useSchedule(availability: Barbershop["availability"] | null) {
     const lunchLabel =
       lunchStart && lunchEnd
         ? ` • No disponible durante: ${lunchStart} - ${lunchEnd}`
-        : "";
+        : null;
 
     return (
       <>

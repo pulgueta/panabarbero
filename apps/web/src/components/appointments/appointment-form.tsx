@@ -64,11 +64,13 @@ type WeekdayKey =
 interface AppointmentFormProps {
   service: Service;
   initialValues?: Partial<AppointmentFormData>;
+  onSuccess?: () => void;
 }
 
 export const AppointmentForm: FC<AppointmentFormProps> = ({
   service,
   initialValues,
+  onSuccess,
 }) => {
   const formIds = {
     customerName: useId(),
@@ -236,6 +238,7 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
     });
 
     toast.success("Cita reservada exitosamente");
+    onSuccess?.();
     form.reset();
     throw navigate({ to: "/profile" });
   });
