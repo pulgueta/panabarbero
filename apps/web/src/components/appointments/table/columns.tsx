@@ -230,8 +230,8 @@ function ActionsCell({ appointment }: { appointment: Appointment }) {
           {appointment.proposedDate ? (
             <DropdownMenuItem asChild>
               <Link
-                to={"/profile/appointments/reschedule/$appointmentId" as any}
-                params={{ appointmentId } as any}
+                to={"/profile/appointments/reschedule/$appointmentId"}
+                params={{ appointmentId: appointmentId as string }}
                 style={{
                   viewTransitionName: `appointment-${appointmentId}-reschedule`,
                 }}

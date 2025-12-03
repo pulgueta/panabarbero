@@ -65,7 +65,7 @@ export const ReviewsTab: FC<ReviewsTabProps> = ({ reviews, barbershops }) => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     Calificación: {review.rating} / 5
                   </p>
                   {review.comment && (
@@ -76,7 +76,7 @@ export const ReviewsTab: FC<ReviewsTabProps> = ({ reviews, barbershops }) => {
             ))}
           </div>
         ) : (
-          <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+          <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground text-sm">
             Aún no has publicado reseñas.
           </div>
         )}
@@ -90,7 +90,7 @@ export const ReviewsTab: FC<ReviewsTabProps> = ({ reviews, barbershops }) => {
           </p>
         </div>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="-translate-y-1/2 absolute top-1/2 left-3 size-4 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -116,7 +116,7 @@ export const ReviewsTab: FC<ReviewsTabProps> = ({ reviews, barbershops }) => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     {item.barbershop.address.fullAddress}
                   </p>
                 </CardContent>
@@ -124,7 +124,7 @@ export const ReviewsTab: FC<ReviewsTabProps> = ({ reviews, barbershops }) => {
             ))}
           </div>
         ) : (
-          <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+          <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground text-sm">
             No encontramos barberías recientes que coincidan con tu búsqueda.
           </div>
         )}

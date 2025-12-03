@@ -145,7 +145,7 @@ export const ReviewForm: FC<ReviewFormProps> = ({
             {isSubmittingReview ? <Spinner /> : "Enviar calificación"}
           </Button>
 
-          <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+          <div className="rounded-md border border-dashed p-3 text-muted-foreground text-sm">
             <p>
               Al enviar esta reseña confirmas que su contenido no podrá editarse
               durante los próximos 15 días. Queremos mantener la confianza de

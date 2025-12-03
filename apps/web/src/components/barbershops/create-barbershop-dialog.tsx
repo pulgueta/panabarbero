@@ -1,6 +1,7 @@
 import type { Barbershop } from "@panabarbero/convex/schemas";
 import { useNavigate } from "@tanstack/react-router";
 import type { FC } from "react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +26,7 @@ export const CreateBarbershopDialog: FC<CreateBarbershopDialogProps> = ({
   userId,
 }) => {
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<boolean>(false);
 
   const onSuccess = (barbershopId: Barbershop["_id"]) => {
     setOpen(false);

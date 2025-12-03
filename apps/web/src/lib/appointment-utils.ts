@@ -16,8 +16,6 @@ export function getAppointmentStatusBadgeVariant(
       return "destructive";
     case "confirmed":
       return "success";
-    case "pending":
-    case "rescheduled":
     default:
       return "secondary";
   }

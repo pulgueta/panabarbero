@@ -190,7 +190,7 @@ function RouteComponent() {
 
         <div className="rounded-lg border bg-card p-4">
           <h2 className="font-semibold text-lg">Notas</h2>
-          <p className="mt-4 text-sm text-muted-foreground">
+          <p className="mt-4 text-muted-foreground text-sm">
             {appointment.notes?.trim()
               ? appointment.notes
               : "No hay notas adicionales para esta solicitud."}

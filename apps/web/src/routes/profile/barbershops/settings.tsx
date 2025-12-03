@@ -34,8 +34,8 @@ export const Route = createFileRoute("/profile/barbershops/settings")({
     );
 
     let barbershop: Barbershop | null = null;
-    let services: Service[] = [];
-    let availability: Barbershop["availability"] = [];
+    let _services: Service[] = [];
+    let _availability: Barbershop["availability"] = [];
 
     if (user?.userId) {
       barbershop = await opts.context.queryClient.ensureQueryData(
@@ -43,10 +43,10 @@ export const Route = createFileRoute("/profile/barbershops/settings")({
       );
 
       if (barbershop) {
-        services = await opts.context.queryClient.ensureQueryData(
+        _services = await opts.context.queryClient.ensureQueryData(
           servicesQueryOptions(barbershop._id),
         );
-        availability = await opts.context.queryClient.ensureQueryData(
+        _availability = await opts.context.queryClient.ensureQueryData(
           barbershopAvailabilityQueryOptions(barbershop._id),
         );
       }
