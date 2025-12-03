@@ -162,7 +162,7 @@ export function useAppointmentActions() {
   const deleteAppointmentMutation = useMutation({
     mutationFn: useConvexMutation(api.appointments.deleteAppointment),
   });
-  const cancel = useMutation({
+  const cancelAppointmentMutation = useMutation({
     mutationFn: useConvexMutation(api.appointments.cancelAppointment),
   });
   const requestReschedule = useMutation({
@@ -177,7 +177,7 @@ export function useAppointmentActions() {
     setStatus,
     updateAppointmentMutation,
     deleteAppointmentMutation,
-    cancel,
+    cancelAppointmentMutation,
     requestReschedule,
     answerRescheduleRequest,
   };

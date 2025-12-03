@@ -143,7 +143,7 @@ const ActionsCell: FC<ActionsCellProps> = ({ appointment }) => {
       mutateAsync: deleteAppointment,
       isPending: isDeletingAppointment,
     },
-    cancel: {
+    cancelAppointmentMutation: {
       mutateAsync: cancelAppointment,
       isPending: isCancellingAppointment,
     },

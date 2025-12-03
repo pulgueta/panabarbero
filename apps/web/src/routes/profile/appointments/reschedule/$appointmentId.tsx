@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { BorderContainer } from "@/components/layout/border-container";
+import { LoadingComponent } from "@/components/layout/loading-component";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -18,7 +19,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -26,12 +26,11 @@ import {
   useAppointmentActions,
   useAppointmentById,
 } from "@/hooks/use-appointments";
-import { useBarberByUserId } from "@/hooks/use-barbers";
-import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 import {
-  getAppointmentStatusBadgeVariant,
-  getAppointmentStatusLabel,
-} from "@/lib/appointment-utils";
+  barberByUserIdQueryOptions,
+  useBarberByUserId,
+} from "@/hooks/use-barbers";
+import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
 const formatDate = (timestamp?: number) => {
   if (!timestamp) return "Sin información";
@@ -42,18 +41,22 @@ const formatDate = (timestamp?: number) => {
 export const Route = createFileRoute(
   "/profile/appointments/reschedule/$appointmentId",
 )({
+  component: RouteComponent,
+  pendingComponent: LoadingComponent,
   loader: async ({ context, params }) => {
     const user = await context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
     );
+    await context.queryClient.ensureQueryData(
+      appointmentByIdQueryOptions(params.appointmentId as Appointment["_id"]),
+    );
 
     if (user?.userId) {
-      const _appointment = await context.queryClient.ensureQueryData(
-        appointmentByIdQueryOptions(params.appointmentId as Appointment["_id"]),
+      await context.queryClient.ensureQueryData(
+        barberByUserIdQueryOptions(user.userId),
       );
     }
   },
-  component: RouteComponent,
 });
 
 function RouteComponent() {
@@ -72,9 +75,12 @@ function RouteComponent() {
   const {
     answerRescheduleRequest: {
       mutateAsync: answerReschedule,
-      isPending: isResponding,
+      isPending: isAnswering,
     },
-    cancel: { mutateAsync: cancelAppointment, isPending: isCancelling },
+    cancelAppointmentMutation: {
+      mutateAsync: cancelAppointment,
+      isPending: isCancellingAppointment,
+    },
   } = useAppointmentActions();
 
   const isCustomer = session?.userId === appointment?.userId;
@@ -82,7 +88,7 @@ function RouteComponent() {
     barberRecord?._id && appointment?.barberId
       ? barberRecord._id === appointment.barberId
       : false;
-  const hasPendingProposal = Boolean(appointment?.proposedDate);
+  const hasPendingProposal = !!appointment?.proposedDate;
 
   const appointmentInfo = useMemo(
     () => [
@@ -138,23 +144,17 @@ function RouteComponent() {
   const handleCancelAppointment = async () => {
     if (!appointment || !session?.userId) return;
 
-    try {
-      await cancelAppointment({
-        appointmentId: appointment._id,
-        cancelledByUserId: session.userId,
-        reason:
-          "El cliente canceló la cita tras la solicitud de reagendamiento.",
-      });
-      toast.success("La cita ha sido cancelada.");
-      setIsCancelDialogOpen(false);
-      router.invalidate();
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "No pudimos cancelar la cita. Intenta nuevamente.",
-      );
-    }
+    await cancelAppointment({
+      appointmentId: appointment._id,
+      cancelledByUserId: session.userId,
+      reason: "El cliente canceló la cita tras la solicitud de reagendamiento.",
+    });
+
+    toast.success("La cita ha sido cancelada.");
+
+    setIsCancelDialogOpen(false);
+
+    router.invalidate();
   };
 
   if (!appointment) {
@@ -172,9 +172,6 @@ function RouteComponent() {
             Revisa los detalles y responde a la solicitud.
           </p>
         </div>
-        <Badge variant={getAppointmentStatusBadgeVariant(appointment.status)}>
-          {getAppointmentStatusLabel(appointment.status)}
-        </Badge>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -213,14 +210,17 @@ function RouteComponent() {
       {canRespond ? (
         <div className="flex flex-wrap gap-3">
           <Button
-            variant="outline"
-            disabled={isResponding}
+            variant="destructive"
+            disabled={isAnswering || isCancellingAppointment}
             onClick={() => handleAnswer(false)}
           >
-            {isResponding ? <Spinner /> : "Rechazar"}
+            {isCancellingAppointment && <Spinner />} Rechazar y cancelar
           </Button>
-          <Button disabled={isResponding} onClick={() => handleAnswer(true)}>
-            {isResponding ? <Spinner /> : "Aceptar nueva fecha"}
+          <Button
+            disabled={isAnswering || isCancellingAppointment}
+            onClick={() => handleAnswer(true)}
+          >
+            {isAnswering && <Spinner />} Aceptar nueva fecha
           </Button>
         </div>
       ) : null}
@@ -237,7 +237,7 @@ function RouteComponent() {
           <Button
             variant="destructive"
             onClick={() => setIsCancelDialogOpen(true)}
-            disabled={isCancelling}
+            disabled={isCancellingAppointment}
           >
             Cancelar cita
           </Button>
@@ -272,24 +272,14 @@ function RouteComponent() {
               <Button
                 variant="destructive"
                 onClick={handleCancelAppointment}
-                disabled={isCancelling}
+                disabled={isCancellingAppointment}
               >
-                {isCancelling ? <Spinner /> : "Sí, cancelar cita"}
+                {isCancellingAppointment ? <Spinner /> : "Sí, cancelar cita"}
               </Button>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <div className="flex justify-end">
-        <Button
-          variant="outline"
-          onClick={() => router.history.back()}
-          type="button"
-        >
-          Volver
-        </Button>
-      </div>
     </BorderContainer>
   );
 }
