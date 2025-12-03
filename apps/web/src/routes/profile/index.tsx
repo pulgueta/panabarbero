@@ -110,17 +110,17 @@ function ProfilePage() {
 
   const tabsToRender = [
     {
-      value: "account",
-      label: "Cuenta",
+      value: isBarber ? "account" : "appointments",
+      label: isBarber ? "Cuenta" : "Citas",
     },
   ];
 
   if (!isBarber) {
     tabsToRender.push(
       {
-        value: "appointments",
-        label: "Citas",
-      },
+      value: "account",
+      label: "Cuenta",
+    },
       {
         value: "reviews",
         label: "Reseñas",
@@ -140,7 +140,7 @@ function ProfilePage() {
           Cerrar sesión
         </Button>
         <Tabs
-          defaultValue="account"
+          defaultValue={isBarber ? "account" : "appointments"}
           className="min-w-full"
           onValueChange={onTabChange}
         >
