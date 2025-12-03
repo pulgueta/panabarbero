@@ -5,7 +5,6 @@ import {
   CalendarCheckIcon,
   CalendarClockIcon,
   EllipsisVerticalIcon,
-  PencilIcon,
   TrashIcon,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -216,19 +215,6 @@ function ActionsCell({ appointment }: { appointment: Appointment }) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="max-w-52">
-          <DropdownMenuItem asChild>
-            <Link
-              to="/profile/appointments/edit/$appointmentId"
-              params={{ appointmentId }}
-              style={{
-                viewTransitionName: `appointment-${appointmentId}-edit`,
-              }}
-              className="inline-flex w-full items-center gap-x-2"
-            >
-              <PencilIcon className="size-3" />
-              Editar
-            </Link>
-          </DropdownMenuItem>
           <DropdownMenuItem
             disabled={isCompleted}
             className="inline-flex w-full items-center gap-x-2"
