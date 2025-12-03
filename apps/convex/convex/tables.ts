@@ -112,6 +112,7 @@ export const tables = {
     barberId: v.id("barbers"),
     date: v.number(),
     proposedDate: v.optional(v.number()),
+    rescheduleRequestedByUserId: v.optional(v.string()),
     customerName: v.string(),
     contactPhone: v.string(),
     contactEmail: v.string(),

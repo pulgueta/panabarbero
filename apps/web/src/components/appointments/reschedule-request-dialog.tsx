@@ -181,7 +181,7 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
   });
 
   const headLabel = "Solicitar reagendamiento";
-  const description = `Propón una nueva fecha y hora para que el ${toLabel} la acepte o rechace.`;
+  const description = `Propón una nueva fecha y hora para que el ${toLabel} la acepte o rechace. Solo puedes solicitar un reagendamiento una vez cada 30 minutos.`;
 
   const triggerNode = useMemo(() => {
     if (trigger === null) return null;

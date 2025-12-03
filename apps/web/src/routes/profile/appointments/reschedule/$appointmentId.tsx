@@ -3,7 +3,7 @@ import type { Appointment } from "@panabarbero/convex/schemas";
 import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { BorderContainer } from "@/components/layout/border-container";
@@ -88,14 +88,21 @@ function RouteComponent() {
   const isBarberForAppointment =
     isBarber && appointment?.barberId === barberRecord?._id;
   const hasPendingProposal = !!appointment?.proposedDate;
-  const requesterUserId = (
-    appointment as Appointment & {
-      rescheduleRequestedByUserId?: string | null;
-    }
-  )?.rescheduleRequestedByUserId;
-  const isViewerRequester = requesterUserId === session?.userId;
+  const appointmentWithRequester = appointment as Appointment & {
+    rescheduleRequestedByUserId?: string | null;
+  };
+  const requesterUserId = appointmentWithRequester?.rescheduleRequestedByUserId;
+  const isRequester = requesterUserId === session?.userId;
+  const canView = isCustomer || isBarberForAppointment;
 
   const redirectTo = isBarber ? "/profile/barbershops" : "/profile";
+
+  useEffect(() => {
+    if (!appointment || !session?.userId) return;
+    if (!canView) {
+      navigate({ to: redirectTo, replace: true });
+    }
+  }, [appointment, canView, navigate, redirectTo, session?.userId]);
 
   const appointmentInfo = useMemo(
     () => [
@@ -162,18 +169,8 @@ function RouteComponent() {
     return null;
   }
 
-  let canRespond = false;
-  if (hasPendingProposal && requesterUserId) {
-    if (requesterUserId === appointment.userId) {
-      // Customer requested, barber responds
-      canRespond = isBarberForAppointment && !isViewerRequester;
-    } else if (requesterUserId === barberRecord?.userId) {
-      // Barber requested, customer responds
-      canRespond = isCustomer && !isViewerRequester;
-    } else {
-      canRespond = (isCustomer || isBarberForAppointment) && !isViewerRequester;
-    }
-  }
+  const canRespond =
+    hasPendingProposal && !!requesterUserId && canView && !isRequester;
 
   return (
     <BorderContainer className="space-y-6">
@@ -219,7 +216,7 @@ function RouteComponent() {
         </Alert>
       ) : null}
 
-      {isViewerRequester && hasPendingProposal ? (
+      {isRequester && hasPendingProposal && (
         <Alert>
           <AlertTitle>Solicitud enviada</AlertTitle>
           <AlertDescription>
@@ -227,9 +224,9 @@ function RouteComponent() {
             acepte o rechace.
           </AlertDescription>
         </Alert>
-      ) : null}
+      )}
 
-      {canRespond ? (
+      {canRespond && (
         <div className="flex flex-wrap gap-3">
           <Button
             variant="destructive"
@@ -242,38 +239,10 @@ function RouteComponent() {
             disabled={isAnswering || isCancellingAppointment}
             onClick={() => handleAnswer(true)}
           >
-            {isAnswering && <Spinner />} Aceptar nueva fecha
+            {isAnswering && <Spinner />} Aceptar
           </Button>
         </div>
-      ) : null}
-
-      {isCustomer ? (
-        <>
-          <Alert>
-            <AlertTitle>¿Deseas cancelar la cita?</AlertTitle>
-            <AlertDescription>
-              Si ya no puedes asistir, cancela la cita para liberar el espacio
-              en la agenda de tu barbero.
-            </AlertDescription>
-          </Alert>
-          <Button
-            variant="destructive"
-            onClick={() => setIsCancelDialogOpen(true)}
-            disabled={isCancellingAppointment}
-          >
-            Cancelar cita
-          </Button>
-        </>
-      ) : null}
-
-      {!isCustomer && !canRespond && !isViewerRequester ? (
-        <Alert variant="destructive">
-          <AlertTitle>No tienes acciones disponibles</AlertTitle>
-          <AlertDescription>
-            Solo el receptor de la solicitud puede aceptarla o rechazarla.
-          </AlertDescription>
-        </Alert>
-      ) : null}
+      )}
 
       <AlertDialog
         open={isCancelDialogOpen}

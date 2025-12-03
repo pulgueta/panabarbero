@@ -1,5 +1,4 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: barbershop is guaranteed to be not null */
-import type { Barbershop, Service } from "@panabarbero/convex/schemas";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { AvailabilityForm } from "@/components/barbershops/availability/availability-form";
@@ -33,20 +32,16 @@ export const Route = createFileRoute("/profile/barbershops/settings")({
       getSessionQueryOptions(),
     );
 
-    let barbershop: Barbershop | null = null;
-    let _services: Service[] = [];
-    let _availability: Barbershop["availability"] = [];
-
     if (user?.userId) {
-      barbershop = await opts.context.queryClient.ensureQueryData(
+      const barbershop = await opts.context.queryClient.ensureQueryData(
         barbershopByOwnerIdQueryOptions(user.userId),
       );
 
       if (barbershop) {
-        _services = await opts.context.queryClient.ensureQueryData(
+        await opts.context.queryClient.ensureQueryData(
           servicesQueryOptions(barbershop._id),
         );
-        _availability = await opts.context.queryClient.ensureQueryData(
+        await opts.context.queryClient.ensureQueryData(
           barbershopAvailabilityQueryOptions(barbershop._id),
         );
       }

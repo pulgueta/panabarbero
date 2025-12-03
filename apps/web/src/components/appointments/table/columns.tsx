@@ -169,33 +169,30 @@ const ActionsCell: FC<ActionsCellProps> = ({ appointment }) => {
 
     const reason = deleteReason.trim();
 
-    if (!isAlreadyCancelledOrDenied) {
-      await cancelAppointment({
-        appointmentId,
-        cancelledByUserId: session.userId,
-        reason,
-      });
+    try {
+      if (!isAlreadyCancelledOrDenied) {
+        await cancelAppointment({
+          appointmentId,
+          cancelledByUserId: session.userId,
+          reason,
+        });
+      }
 
-      toast.success("La cita fue cancelada exitosamente.");
+      await deleteAppointment({ appointmentId });
+
+      toast.success("La cita fue cancelada y eliminada exitosamente.");
+
       setDeleteReason("");
       setDeleteError(null);
       setIsDeleteDialogOpen(false);
       resetDeleteState();
-      return;
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "No se pudo cancelar y eliminar la cita.",
+      );
     }
-
-    await deleteAppointment({ appointmentId });
-
-    toast.success(
-      isAlreadyCancelledOrDenied
-        ? "La cita fue eliminada exitosamente."
-        : "La cita fue cancelada y eliminada exitosamente.",
-    );
-
-    setDeleteReason("");
-    setDeleteError(null);
-    setIsDeleteDialogOpen(false);
-    resetDeleteState();
   };
 
   const resetDeleteState = () => {
@@ -285,7 +282,7 @@ const ActionsCell: FC<ActionsCellProps> = ({ appointment }) => {
                   disabled={isDeletingAppointment || isCancellingAppointment}
                 >
                   <TrashIcon className="size-3 text-destructive dark:text-destructive-foreground" />
-                  Eliminar cita
+                  Cancelar y eliminar
                 </DropdownMenuItem>
               </DrawerTrigger>
               <DrawerContent>
@@ -307,7 +304,7 @@ const ActionsCell: FC<ActionsCellProps> = ({ appointment }) => {
                     {isDeletingAppointment || isCancellingAppointment ? (
                       <Spinner />
                     ) : (
-                      "Sí, eliminar"
+                      "Cancelar y eliminar"
                     )}
                   </Button>
                   <DrawerClose asChild>
@@ -339,7 +336,7 @@ const ActionsCell: FC<ActionsCellProps> = ({ appointment }) => {
                   disabled={isDeletingAppointment || isCancellingAppointment}
                 >
                   <TrashIcon className="size-3 text-destructive dark:text-destructive-foreground" />
-                  Eliminar cita
+                  Cancelar y eliminar
                 </DropdownMenuItem>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -371,7 +368,7 @@ const ActionsCell: FC<ActionsCellProps> = ({ appointment }) => {
                       {isDeletingAppointment || isCancellingAppointment ? (
                         <Spinner />
                       ) : (
-                        "Sí, eliminar"
+                        "Cancelar y eliminar"
                       )}
                     </Button>
                   </AlertDialogAction>

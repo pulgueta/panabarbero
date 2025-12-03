@@ -10,7 +10,7 @@ import {
 } from "./_generated/server";
 import { authComponent } from "./auth";
 import { rateLimiter } from "./ratelimit";
-import { tables, type Barbershop } from "./tables";
+import { type Barbershop, tables } from "./tables";
 
 function parseTimeToMinutes(time: string): number {
   const [hh, mm] = time.split(":").map((n) => Number(n));
@@ -753,7 +753,7 @@ export const requestReschedule = mutation({
       ctx,
       "requestReschedule",
       {
-        key: user._id,
+        key: `${user._id}-${args.appointmentId}`,
       },
     );
 
@@ -776,6 +776,7 @@ export const requestReschedule = mutation({
       status: "pending",
       notes: args.note,
       proposedDate: args.proposedDate,
+      rescheduleRequestedByUserId: args.requestedByUserId,
     });
 
     const requesterProfile = await ctx.runQuery(
@@ -1001,8 +1002,16 @@ export const answerRescheduleRequest = mutation({
 
     if (!appt) throw new ConvexError(errorMessages.notFound("cita"));
 
+    const newStatus = args.accepted ? "rescheduled" : "cancelled";
+
     await ctx.db.patch(args.appointmentId, {
-      status: args.accepted ? "confirmed" : "denied",
+      status: newStatus,
+      date: args.accepted && appt.proposedDate ? appt.proposedDate : appt.date,
+      proposedDate: undefined,
+      rescheduleRequestedByUserId: undefined,
+      notes: args.accepted
+        ? appt.notes
+        : "Petición rechazada, la cita ha sido cancelada.",
     });
 
     const userProfile = await ctx.runQuery(
@@ -1020,8 +1029,8 @@ export const answerRescheduleRequest = mutation({
       ? "Reagendamiento aceptado"
       : "Reagendamiento rechazado";
     const body = args.accepted
-      ? "Tu reagendamiento ha sido aceptado."
-      : "Tu reagendamiento ha sido rechazado.";
+      ? "Tu cita ha sido confirmada con la nueva fecha."
+      : "La solicitud fue rechazada y la cita fue cancelada.";
     const reason = args.accepted
       ? "appointment_rescheduled_accepted"
       : "appointment_rescheduled_denied";

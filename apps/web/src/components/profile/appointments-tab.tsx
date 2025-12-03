@@ -1,4 +1,5 @@
 import type { Appointment } from "@panabarbero/convex/schemas";
+import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
 
 import { RescheduleRequestDialog } from "@/components/appointments/reschedule-request-dialog";
@@ -62,16 +63,28 @@ export const AppointmentsTab: FC<AppointmentsTabProps> = ({ appointments }) => {
                 </Badge>
               </div>
             </CardHeader>
-            <CardFooter>
+            <CardFooter className="gap-4">
               <RescheduleRequestDialog
                 to="barber"
                 appointment={appointment}
-                trigger={
-                  <Button className="mt-4" disabled={disabled}>
-                    Reagendar
-                  </Button>
-                }
+                trigger={<Button disabled={disabled}>Reagendar</Button>}
               />
+
+              {appointment.proposedDate ? (
+                <Button
+                  variant="link"
+                  disabled={disabled}
+                  className="text-muted-foreground"
+                  asChild
+                >
+                  <Link
+                    to="/profile/appointments/reschedule/$appointmentId"
+                    params={{ appointmentId: appointment._id }}
+                  >
+                    Ver solicitud
+                  </Link>
+                </Button>
+              ) : null}
             </CardFooter>
           </Card>
         );
