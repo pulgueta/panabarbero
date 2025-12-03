@@ -36,9 +36,6 @@ import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 export const Route = createFileRoute("/profile/barbershops/")({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
-  beforeLoad: async ({ context }) => {
-    await context.queryClient.prefetchQuery(getSessionQueryOptions());
-  },
   loader: async (opts) => {
     const user = await opts.context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
