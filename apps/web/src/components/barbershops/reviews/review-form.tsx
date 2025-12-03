@@ -144,6 +144,26 @@ export const ReviewForm: FC<ReviewFormProps> = ({
           <Button className="w-full" disabled={isSubmittingReview}>
             {isSubmittingReview ? <Spinner /> : "Enviar calificación"}
           </Button>
+
+          <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+            <p>
+              Al enviar esta reseña confirmas que su contenido no podrá editarse
+              durante los próximos 15 días. Queremos mantener la confianza de
+              otros clientes, por lo que solo podrás actualizarla después de ese
+              periodo.
+            </p>
+            <div className="mt-2">
+              <Button variant="link" size="sm" className="px-0" asChild>
+                <a
+                  href="/policies/reviews"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
+                  Conoce más en la política de reseñas
+                </a>
+              </Button>
+            </div>
+          </div>
         </form>
       </Form>
     </div>

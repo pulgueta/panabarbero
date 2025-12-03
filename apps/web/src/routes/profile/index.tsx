@@ -1,31 +1,28 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: We need to assert non-null values because the hooks return undefined if the data is not loaded */
 import { signOut } from "@panabarbero/convex/auth";
-import type { UserProfileData } from "@panabarbero/convex/schemas";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { InfoIcon, LogOut } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { LogOut } from "lucide-react";
 
-import { CreateBarbershopDialog } from "@/components/barbershops/create-barbershop-dialog";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AccountTab } from "@/components/profile/account-tab";
+import { AppointmentsTab } from "@/components/profile/appointments-tab";
+import { ReviewsTab } from "@/components/profile/reviews-tab";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { isBarberQueryOptions } from "@/hooks/use-barbers";
-import { useIsMobile } from "@/hooks/use-is-mobile";
-import { profileQueryOptions, useProfileActions } from "@/hooks/use-profile";
+  appointmentsByUserQueryOptions,
+  recentlyVisitedBarbershopsQueryOptions,
+  useAppointmentsByUser,
+  useRecentlyVisitedBarbershops,
+} from "@/hooks/use-appointments";
+import { isBarberQueryOptions, useIsBarber } from "@/hooks/use-barbers";
+import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
+import { reviewsByUserQueryOptions, useReviewsByUser } from "@/hooks/use-reviews";
 import { getSessionQueryOptions } from "@/hooks/use-session";
+import { useState } from "react";
+
+
 
 export const Route = createFileRoute("/profile/")({
   component: ProfilePage,
@@ -38,80 +35,46 @@ export const Route = createFileRoute("/profile/")({
       getSessionQueryOptions(),
     );
 
-    let profile: UserProfileData | null = null;
-    let isBarber: boolean = false;
-
     if (user?.userId) {
-      profile = await context.queryClient.ensureQueryData(
+      await context.queryClient.ensureQueryData(
+        appointmentsByUserQueryOptions(user.userId),
+      );
+      await context.queryClient.ensureQueryData(
+        reviewsByUserQueryOptions(user.userId),
+      );
+      await context.queryClient.ensureQueryData(
+        recentlyVisitedBarbershopsQueryOptions(user.userId),
+      );
+      await context.queryClient.ensureQueryData(
         profileQueryOptions(user.userId),
       );
-      isBarber = await context.queryClient.ensureQueryData(
+      await context.queryClient.ensureQueryData(
         isBarberQueryOptions(user.userId),
       );
     }
 
     return {
       user,
-      profile,
-      isBarber,
     };
   },
 });
 
+type ProfileTabValue = "account" | "appointments" | "reviews";
+
 function ProfilePage() {
-  const { user, profile, isBarber } = Route.useLoaderData();
+  const { user } = Route.useLoaderData();
 
-  const { isMobile } = useIsMobile();
+  const [activeTab, setActiveTab] = useState<ProfileTabValue>("account");
 
-  const {
-    updateNameMutation: {
-      mutateAsync: updateName,
-      isPending: isUpdatingName,
-      isSuccess: isUpdatedName,
-    },
-    updatePhoneNumberMutation: {
-      mutateAsync: updatePhoneNumber,
-      isPending: isUpdatingPhoneNumber,
-      isSuccess: isUpdatedPhoneNumber,
-    },
-    updateNotificationPreferenceMutation: {
-      mutateAsync: updateNotificationPreference,
-      isPending: isUpdatingNotificationPreference,
-      isSuccess: isUpdatedNotificationPreference,
-    },
-  } = useProfileActions();
+  const { data: isBarber } = useIsBarber(user?.userId);
+  const { data: appointments } = useAppointmentsByUser(user?.userId);
+  const { data: reviews } = useReviewsByUser(user?.userId);
+  const { data: barbershops } = useRecentlyVisitedBarbershops(user?.userId);
+  const { data: profile } = useProfile(user?.userId);
 
-  const [name, setName] = useState<string>(profile?.name ?? "");
-  const [phone, setPhone] = useState<string>(profile?.phoneNumber ?? "");
-
-  useEffect(() => {
-    if (isUpdatedName) {
-      toast.success("Guardado exitosamente", {
-        description: "El nombre se ha actualizado correctamente.",
-      });
-    }
-
-    if (isUpdatedPhoneNumber) {
-      toast.success("Guardado exitosamente", {
-        description: "El número de contacto se ha actualizado correctamente.",
-      });
-    }
-
-    if (isUpdatedNotificationPreference) {
-      toast.success("Guardado exitosamente", {
-        description:
-          "Las preferencias de notificación se han actualizado correctamente.",
-      });
-    }
-  }, [isUpdatedName, isUpdatedPhoneNumber, isUpdatedNotificationPreference]);
-
-  useEffect(() => {
-    setName(profile?.name ?? "");
-  }, [profile?.name]);
-
-  useEffect(() => {
-    setPhone(profile?.phoneNumber ?? "");
-  }, [profile?.phoneNumber]);
+  const onTabChange = (value: string) => {
+    setActiveTab(value as ProfileTabValue);
+  };
 
   const handleSignOut = async () => {
     const { data } = await signOut();
@@ -123,209 +86,74 @@ function ProfilePage() {
     }
   };
 
-  const tabs = [
+  const tabsToRender = [
     {
-      label: "Cuenta",
       value: "account",
+      label: "Cuenta",
     },
   ];
 
   if (!isBarber) {
-    tabs.push({
-      label: "Citas",
-      value: "appointments",
-    });
+    tabsToRender.push(
+      {
+        value: "appointments",
+        label: "Citas",
+      },
+      {
+        value: "reviews",
+        label: "Reseñas",
+      },
+    );
   }
 
   return (
-    <BorderContainer>
-      <div className="mb-6 flex items-center justify-between gap-2">
-        <Tabs defaultValue="account" className="w-[400px]">
-          <TabsList className="min-w-32 max-w-52">
-            {tabs.map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value} asChild>
-                <Button variant="ghost" className="min-w-24 max-w-48">
-                  {tab.label}
-                </Button>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-      </div>
-      {isMobile && (
-        <Button variant="destructive" onClick={handleSignOut} className="mb-6">
+    <BorderContainer className="space-y-6">
+      <div className="flex flex-col items-start justify-center gap-4">
+        <Button
+          variant="destructive"
+          onClick={handleSignOut}
+          className="min-w-36"
+        >
           <LogOut className="size-4" />
           Cerrar sesión
         </Button>
-      )}
+        <Tabs defaultValue="account" className="min-w-full" onValueChange={onTabChange}>
+          <TabsList>
+            {tabsToRender.map((tabOption) => (
+              <TabsTrigger
+                key={tabOption.value}
+                value={tabOption.value}
+                className="min-w-36 max-w-64"
+                onClick={() => setActiveTab(tabOption.value as ProfileTabValue)}
+              >
+                {tabOption.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-      {!isBarber && user?.userId && (
-        <Alert className="mb-4" variant="info">
-          <InfoIcon />
-          <AlertTitle>¿Tienes una barbería?</AlertTitle>
-          <AlertDescription>
-            Gestiona reservas, barberos, servicios y obtén acceso a analíticas
-            detalladas de tu negocio sin costo adicional.{" "}
-            <CreateBarbershopDialog
-              triggerLabel="Crear mi barbería"
-              variant="outline"
-              userId={user?.userId}
-            />
-          </AlertDescription>
-        </Alert>
-      )}
+          {activeTab === "account" && (
+            <TabsContent value="account" className="pt-2">
 
-      <div className="grid w-full gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Nombre completo</CardTitle>
-            <CardDescription>
-              {isBarber
-                ? "Este es el nombre que se mostrará en tu perfil de barbería"
-                : "Este es el nombre que se mostrará en tu perfil de usuario"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Field>
-              <FieldContent>
-                <div className="flex gap-3">
-                  <Input
-                    defaultValue={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Tu nombre"
-                    autoComplete="name"
-                    disabled={isUpdatingName}
+                <AccountTab
+                  profile={profile}
+                  isBarber={isBarber}
+                  userId={user?.userId}
                   />
-                  <Button
-                    onClick={() => updateName({ name: name! })}
-                    disabled={isUpdatingName}
-                  >
-                    Guardar
-                  </Button>
-                </div>
-              </FieldContent>
-            </Field>
-          </CardContent>
-        </Card>
+                  </TabsContent>
+              )}
+              {activeTab === "appointments" && (
+                <TabsContent value="appointments" className="pt-2">
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Correo electrónico</CardTitle>
-            <CardDescription>
-              Para usar otro correo, inicia sesión con el nuevo correo.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Field>
-              <FieldContent>
-                <div className="flex gap-3">
-                  <Input
-                    type="email"
-                    value={profile?.email}
-                    autoComplete="email"
-                    disabled
-                  />
-                </div>
-              </FieldContent>
-            </Field>
-          </CardContent>
-        </Card>
+                <AppointmentsTab appointments={appointments} />
+                </TabsContent>
+              )}
+              {activeTab === "reviews" && (
+                <TabsContent value="reviews" className="pt-2">
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Número de contacto</CardTitle>
-            <CardDescription>
-              Este es el número donde te enviaremos avisos de la aplicación.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Field>
-              <FieldContent>
-                <div className="flex gap-3">
-                  <Input
-                    defaultValue={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="3014441122"
-                    autoComplete="tel"
-                    type="tel"
-                    disabled={isUpdatingPhoneNumber}
-                  />
-                  <Button
-                    onClick={() =>
-                      updatePhoneNumber({ phoneNumber: phone ?? "" })
-                    }
-                    disabled={isUpdatingPhoneNumber}
-                  >
-                    Guardar
-                  </Button>
-                </div>
-              </FieldContent>
-            </Field>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Preferencias de notificación</CardTitle>
-            <CardDescription>
-              Selecciona los canales por los cuales deseas recibir
-              notificaciones.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Field orientation="horizontal">
-              <FieldLabel>Email</FieldLabel>
-              <FieldContent className="items-end">
-                <Switch
-                  checked={
-                    profile?.notificationsPreferences.find(
-                      (p) => p.type === "email",
-                    )?.enabled
-                  }
-                  onCheckedChange={(val) =>
-                    updateNotificationPreference({
-                      type: "email",
-                      enabled: val,
-                    })
-                  }
-                  disabled={isUpdatingNotificationPreference}
-                />
-              </FieldContent>
-            </Field>
-            {/* <Field orientation="horizontal">
-              <FieldLabel>Push</FieldLabel>
-              <FieldContent>
-                <Switch
-                  checked={
-                    profile?.notificationsPreferences.find(
-                      (p) => p.type === "push",
-                    )?.enabled
-                  }
-                  onCheckedChange={(val) =>
-                    updateNotificationPreference({ type: "push", enabled: val })
-                  }
-                  disabled={isProfileLoading || updateNotificationPreferenceLoading}
-                />
-              </FieldContent>
-            </Field> */}
-            <Field orientation="horizontal">
-              <FieldLabel>Mensaje de texto (SMS)</FieldLabel>
-              <FieldContent className="items-end">
-                <Switch
-                  checked={
-                    profile?.notificationsPreferences.find(
-                      (p) => p.type === "sms",
-                    )?.enabled
-                  }
-                  onCheckedChange={(val) =>
-                    updateNotificationPreference({ type: "sms", enabled: val })
-                  }
-                  disabled={isUpdatingNotificationPreference}
-                />
-              </FieldContent>
-            </Field>
-          </CardContent>
-        </Card>
+                <ReviewsTab reviews={reviews} barbershops={barbershops} />
+                </TabsContent>
+              )}
+        </Tabs>
       </div>
     </BorderContainer>
   );

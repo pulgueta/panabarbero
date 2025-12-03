@@ -10,7 +10,7 @@ import {
 } from "./_generated/server";
 import { authComponent } from "./auth";
 import { rateLimiter } from "./ratelimit";
-import { tables } from "./tables";
+import { tables, type Barbershop } from "./tables";
 
 function parseTimeToMinutes(time: string): number {
   const [hh, mm] = time.split(":").map((n) => Number(n));
@@ -280,20 +280,71 @@ export const getAppointmentsByUserId = query({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
-    if (!user) {
+    if (user?.userId !== args.userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 
     const appointments = await ctx.db
       .query("appointments")
-      .filter(({ eq, field }) => eq(field("userId"), args.userId))
-      .withIndex("by_userId")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .order("asc")
       .collect();
 
     return appointments;
+  },
+});
+
+export const getRecentlyVisitedBarbershops = query({
+  args: {
+    userId: v.string(),
+    search: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    if (user.userId !== args.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    let barbershops: Barbershop[] | Barbershop | null = null;
+
+    if (args.search) {
+      barbershops = await ctx.db
+        .query("barbershops")
+        .withSearchIndex("by_name_search", (q) =>
+          q.search("name", args.search ?? ""),
+        )
+        .first();
+    }
+
+    barbershops = await ctx.db
+      .query("barbershops")
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .order("desc")
+      .collect();
+
+    const appointmentsFromBarbershops = await ctx.db
+      .query("appointments")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", barbershops[0]?._id),
+      )
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("status"), "completed"),
+          q.eq(q.field("userId"), args.userId),
+          q.eq(q.field("contactEmail"), user.email),
+        ),
+      )
+      .order("desc")
+      .take(5);
+
+    return appointmentsFromBarbershops;
   },
 });
 
@@ -714,11 +765,13 @@ export const requestReschedule = mutation({
     );
 
     if (!ok) {
-      throw new Error(
-        `You cannot request a reschedule more than once every 30 minutes. Please try again at ${new Date(Date.now() + retryAfter).toLocaleString()}`,
-        {
-          cause: retryAfter,
-        },
+      throw new ConvexError(
+        errorMessages.rateLimitExceeded(
+          new Date(Date.now() + retryAfter).toLocaleDateString("es-CO", {
+            dateStyle: "full",
+            timeStyle: "short",
+          }),
+        ),
       );
     }
 
@@ -901,7 +954,7 @@ export const answerRescheduleRequest = mutation({
     accepted: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
       throw new ConvexError(errorMessages.unauthorized);
@@ -969,10 +1022,7 @@ export const getBarbershopAvailability = query({
   handler: async (ctx, args) => {
     const barbershop = await ctx.db.get(args.barbershopId);
 
-    if (!barbershop)
-      throw new Error("Barbershop not found", {
-        cause: args.barbershopId,
-      });
+    if (!barbershop) throw new ConvexError(errorMessages.notFound("barbería"));
 
     return barbershop.availability;
   },
@@ -987,17 +1037,11 @@ export const appointmentOverlaps = internalQuery({
   handler: async (ctx, args) => {
     const appointment = await ctx.db.get(args.appointmentId);
 
-    if (!appointment)
-      throw new Error("Appointment not found", {
-        cause: args.appointmentId,
-      });
+    if (!appointment) throw new ConvexError(errorMessages.notFound("cita"));
 
     const service = await ctx.db.get(appointment.serviceId);
 
-    if (!service)
-      throw new Error("Service not found", {
-        cause: appointment.serviceId,
-      });
+    if (!service) throw new ConvexError(errorMessages.notFound("servicio"));
 
     const startOfDay = new Date(args.date);
     startOfDay.setHours(0, 0, 0, 0);

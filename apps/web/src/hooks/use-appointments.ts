@@ -1,7 +1,7 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@panabarbero/convex/api";
 import type { Appointment, Barbershop } from "@panabarbero/convex/schemas";
-import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 
 export function appointmentsQueryOptions() {
   return convexQuery(api.appointments.getAppointments, {});
@@ -40,7 +40,21 @@ export function useAppointmentsByUser(userId: string) {
 }
 
 export function useAppointmentsByBarbershop(barbershopId: Barbershop["_id"]) {
-  return useQuery(appointmentsByBarbershopQueryOptions(barbershopId));
+  return useSuspenseQuery(appointmentsByBarbershopQueryOptions(barbershopId));
+}
+
+export function recentlyVisitedBarbershopsQueryOptions(
+  userId: string,
+  search?: string,
+) {
+  return convexQuery(api.appointments.getRecentlyVisitedBarbershops, {
+    userId,
+    search,
+  });
+}
+
+export function useRecentlyVisitedBarbershops(userId: string) {
+  return useSuspenseQuery(recentlyVisitedBarbershopsQueryOptions(userId));
 }
 
 export function useAppointmentActions() {

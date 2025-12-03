@@ -38,11 +38,6 @@ export const authenticatedRoutes = {
   ],
   barber: [
     {
-      label: "Portal",
-      to: "/profile",
-      icon: User,
-    },
-    {
       label: "Gestión",
       to: "/profile/barbershops",
       icon: Building2,
@@ -51,6 +46,11 @@ export const authenticatedRoutes = {
       label: "Ajustes",
       to: "/profile/barbershops/settings",
       icon: Settings2,
+    },
+    {
+      label: "Portal",
+      to: "/profile",
+      icon: User,
     },
   ],
 };

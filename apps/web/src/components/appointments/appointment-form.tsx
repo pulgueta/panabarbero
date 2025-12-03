@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Service } from "@panabarbero/convex/schemas";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarIcon, ChevronRightIcon, Clock8Icon, Info } from "lucide-react";
@@ -81,6 +81,8 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
     barberId: useId(),
     serviceId: useId(),
   };
+
+  const navigate = useNavigate();
 
   const { data: user } = useSession();
 
@@ -236,6 +238,7 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
 
       toast.success("Cita reservada exitosamente");
       form.reset();
+      throw navigate({ to: "/profile" });
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Error al reservar la cita",
