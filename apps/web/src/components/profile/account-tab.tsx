@@ -1,5 +1,5 @@
 import type { UserProfileData } from "@panabarbero/convex/schemas";
-import { InfoIcon } from "lucide-react";
+import { InfoIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -21,6 +21,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useProfileActions } from "@/hooks/use-profile";
+
+const BARBERSHOP_BANNER_HIDE_KEY = "barbershop-create-banner-hide-until";
 
 interface AccountTabProps {
   profile: UserProfileData | null;
@@ -49,6 +51,34 @@ export function AccountTab({ profile, isBarber, userId }: AccountTabProps) {
 
   const [name, setName] = useState<string>(profile?.name ?? "");
   const [phone, setPhone] = useState<string>(profile?.phoneNumber ?? "");
+  const [showBarbershopBanner, setShowBarbershopBanner] = useState(false);
+
+  useEffect(() => {
+    const checkBannerVisibility = () => {
+      if (typeof window === "undefined") return false;
+
+      const hideUntil = localStorage.getItem(BARBERSHOP_BANNER_HIDE_KEY);
+      if (!hideUntil) {
+        return true;
+      }
+
+      const hideUntilDate = new Date(parseInt(hideUntil, 10));
+      const now = new Date();
+      return now >= hideUntilDate;
+    };
+
+    setShowBarbershopBanner(checkBannerVisibility());
+  }, []);
+
+  const handleHideBanner = () => {
+    const hideUntil = new Date();
+    hideUntil.setDate(hideUntil.getDate() + 30);
+    localStorage.setItem(
+      BARBERSHOP_BANNER_HIDE_KEY,
+      hideUntil.getTime().toString(),
+    );
+    setShowBarbershopBanner(false);
+  };
 
   useEffect(() => {
     if (isUpdatedName) {
@@ -81,11 +111,11 @@ export function AccountTab({ profile, isBarber, userId }: AccountTabProps) {
 
   return (
     <div className="space-y-6">
-      {!isBarber && userId && (
-        <Alert variant="info">
+      {!isBarber && userId && showBarbershopBanner && (
+        <Alert variant="info" className="relative">
           <InfoIcon className="size-4" />
           <AlertTitle>¿Tienes una barbería?</AlertTitle>
-          <AlertDescription>
+          <AlertDescription className="pr-20">
             Gestiona reservas, barberos, servicios y obtén acceso a analíticas
             detalladas de tu negocio sin costo adicional.{" "}
             <CreateBarbershopDialog
@@ -94,6 +124,13 @@ export function AccountTab({ profile, isBarber, userId }: AccountTabProps) {
               userId={userId}
             />
           </AlertDescription>
+          <Button
+            variant="link"
+            className="absolute right-2 top-2 text-muted-foreground"
+            onClick={handleHideBanner}
+          >
+            Ocultar por 30 días
+          </Button>
         </Alert>
       )}
 
