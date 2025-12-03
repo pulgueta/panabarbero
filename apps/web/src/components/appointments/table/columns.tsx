@@ -130,7 +130,6 @@ interface ActionsCellProps {
 }
 
 const ActionsCell: FC<ActionsCellProps> = ({ appointment }) => {
-  const appointmentId = appointment._id;
   const [isRescheduleOpen, setIsRescheduleOpen] = useState<boolean>(false);
   const [deleteReason, setDeleteReason] = useState<string>("");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
@@ -149,8 +148,10 @@ const ActionsCell: FC<ActionsCellProps> = ({ appointment }) => {
     },
   } = useAppointmentActions();
 
+  const appointmentId = appointment._id;
   const isCompleted = appointment.status === "completed";
   const isCancelled = appointment.status === "cancelled";
+  const isConfirmed = appointment.status === "confirmed";
   const isDenied = appointment.status === "denied";
   const isAlreadyCancelledOrDenied = isCancelled || isDenied;
   const canReschedule = !isCompleted && !isCancelled;
@@ -226,6 +227,9 @@ const ActionsCell: FC<ActionsCellProps> = ({ appointment }) => {
     [deleteError, deleteReason],
   );
 
+  const showManageRescheduleLink =
+    Boolean(appointment.proposedDate) && !isConfirmed;
+
   return (
     <div className="text-center">
       <DropdownMenu>
@@ -248,7 +252,7 @@ const ActionsCell: FC<ActionsCellProps> = ({ appointment }) => {
             Solicitar reagendamiento
           </DropdownMenuItem>
 
-          {appointment.proposedDate && (
+          {showManageRescheduleLink && (
             <DropdownMenuItem asChild>
               <Link
                 to={"/profile/appointments/reschedule/$appointmentId"}

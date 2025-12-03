@@ -14,7 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   barbershopByIdQueryOptions,
-  useBarbershopsByIds,
+  userVisitedBarbershopsQueryOptions,
+  useUserVisitedBarbershops,
 } from "@/hooks/barbershop/use-barbershop";
 import {
   appointmentsByUserQueryOptions,
@@ -43,16 +44,18 @@ export const Route = createFileRoute("/profile/")({
       await context.queryClient.ensureQueryData(
         reviewsByUserQueryOptions(user.userId),
       );
-      const appointments = await context.queryClient.ensureQueryData(
-        appointmentsByUserQueryOptions(user.userId),
+      const barbershops = await context.queryClient.ensureQueryData(
+        userVisitedBarbershopsQueryOptions(user.userId),
       );
 
-      if (appointments) {
+      if (barbershops) {
         await Promise.all(
-          appointments.map(async (appointment) => {
-            await context.queryClient.ensureQueryData(
-              barbershopByIdQueryOptions(appointment.barbershopId),
-            );
+          barbershops.map(async (barbershop) => {
+            if (barbershop?._id) {
+              await context.queryClient.ensureQueryData(
+                barbershopByIdQueryOptions(barbershop._id),
+              );
+            }
           }),
         );
       }
@@ -79,9 +82,7 @@ function ProfilePage() {
   const { data: isBarber } = useIsBarber(user?.userId!);
   const { data: appointments } = useAppointmentsByUser(user?.userId!);
   const { data: reviews } = useReviewsByUser(user?.userId!);
-  const { data: barbershops } = useBarbershopsByIds(
-    appointments?.map((appointment) => appointment.barbershopId),
-  );
+  const { data: barbershops } = useUserVisitedBarbershops(user?.userId!);
   const { data: profile } = useProfile(user?.userId!);
 
   const onTabChange = (value: string) => {
@@ -111,6 +112,10 @@ function ProfilePage() {
         {
           value: "appointments",
           label: "Citas",
+        },
+        {
+          value: "reviews",
+          label: "Reseñas",
         },
         {
           value: "account",
@@ -170,11 +175,7 @@ function ProfilePage() {
 
           <Activity mode={activeTab === "appointments" ? "visible" : "hidden"}>
             <TabsContent value="appointments" className="pt-2">
-              <AppointmentsTab
-                appointments={appointments}
-                // @ts-expect-error - barbershops is defined
-                barbershops={barbershops}
-              />
+              <AppointmentsTab appointments={appointments} />
             </TabsContent>
           </Activity>
 
@@ -182,6 +183,7 @@ function ProfilePage() {
             <TabsContent value="reviews" className="pt-2">
               <ReviewsTab
                 reviews={reviews}
+                appointments={appointments}
                 // @ts-expect-error - barbershops is defined
                 barbershops={barbershops}
               />

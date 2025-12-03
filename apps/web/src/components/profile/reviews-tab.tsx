@@ -1,9 +1,14 @@
-import type { Barbershop, Review } from "@panabarbero/convex/schemas";
+import type {
+  Appointment,
+  Barbershop,
+  Review,
+} from "@panabarbero/convex/schemas";
+import { Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { Search } from "lucide-react";
 import type { FC } from "react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,17 +23,11 @@ import { Input } from "@/components/ui/input";
 interface ReviewsTabProps {
   reviews: Review[];
   barbershops: Barbershop[];
+  appointments: Appointment[];
 }
 
 export const ReviewsTab: FC<ReviewsTabProps> = ({ reviews, barbershops }) => {
   const [search, setSearch] = useState("");
-
-  const filteredVisited = useMemo(() => {
-    if (!barbershops) return [];
-    return barbershops.filter((item) =>
-      item.barbershop.name.toLowerCase().includes(search.toLowerCase()),
-    );
-  }, [barbershops, search]);
 
   return (
     <div className="space-y-8">
@@ -42,9 +41,7 @@ export const ReviewsTab: FC<ReviewsTabProps> = ({ reviews, barbershops }) => {
           </div>
           {reviews && reviews.length > 0 && (
             <Button asChild>
-              <a href="/reviews" target="_blank" rel="noreferrer">
-                Crear nueva reseña
-              </a>
+              <Link to="/reviews">Crear nueva reseña</Link>
             </Button>
           )}
         </div>
@@ -55,7 +52,7 @@ export const ReviewsTab: FC<ReviewsTabProps> = ({ reviews, barbershops }) => {
               <Card key={review._id}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">
-                    {review.customerName || "Anónimo"}
+                    {review.userId || "Anónimo"}
                   </CardTitle>
                   <CardDescription>
                     {formatDistanceToNow(new Date(review._creationTime), {
@@ -99,25 +96,16 @@ export const ReviewsTab: FC<ReviewsTabProps> = ({ reviews, barbershops }) => {
           />
         </div>
 
-        {filteredVisited.length > 0 ? (
+        {barbershops && barbershops.length > 0 ? (
           <div className="space-y-3">
-            {filteredVisited.map((item) => (
-              <Card key={item.barbershop._id}>
+            {barbershops.map((barbershop) => (
+              <Card key={barbershop._id}>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">
-                    {item.barbershop.name}
-                  </CardTitle>
-                  <CardDescription>
-                    Última visita:{" "}
-                    {formatDistanceToNow(new Date(item.lastVisitedAt), {
-                      addSuffix: true,
-                      locale: es,
-                    })}
-                  </CardDescription>
+                  <CardTitle className="text-base">{barbershop.name}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground text-sm">
-                    {item.barbershop.address.fullAddress}
+                    {barbershop.address.fullAddress}
                   </p>
                 </CardContent>
               </Card>

@@ -1,4 +1,4 @@
-import type { Appointment, Barbershop } from "@panabarbero/convex/schemas";
+import type { Appointment } from "@panabarbero/convex/schemas";
 import type { FC } from "react";
 
 import { RescheduleRequestDialog } from "@/components/appointments/reschedule-request-dialog";
@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useBarbershopsByIds } from "@/hooks/barbershop/use-barbershop";
 import {
   getAppointmentStatusBadgeVariant,
   getAppointmentStatusLabel,
@@ -18,27 +19,19 @@ import {
 
 interface AppointmentsTabProps {
   appointments: Appointment[];
-  barbershops: Barbershop[];
 }
 
-export const AppointmentsTab: FC<AppointmentsTabProps> = ({
-  appointments,
-  barbershops,
-}) => {
-  if (appointments.length === 0 || barbershops.length === 0) {
-    return (
-      <div className="rounded-lg border border-dashed bg-muted/40 p-6 text-center text-muted-foreground text-sm">
-        Aún no tienes citas registradas.
-      </div>
-    );
-  }
+export const AppointmentsTab: FC<AppointmentsTabProps> = ({ appointments }) => {
+  const { data: barbershops } = useBarbershopsByIds(
+    appointments.map((appointment) => appointment.barbershopId),
+  );
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
       {appointments.map((appointment) => {
-        const barbershopName = barbershops.find(
-          (barbershop) => barbershop._id === appointment.barbershopId,
-        )?.name;
+        const barbershop = barbershops?.find(
+          (barbershop) => barbershop?._id === appointment.barbershopId,
+        );
 
         const disabled =
           appointment.status === "cancelled" || appointment.status === "denied";
@@ -48,7 +41,9 @@ export const AppointmentsTab: FC<AppointmentsTabProps> = ({
             <CardHeader>
               <div className="flex flex-row items-center justify-between">
                 <div className="flex flex-col items-start justify-center">
-                  <CardTitle className="text-base">{barbershopName}</CardTitle>
+                  <CardTitle className="text-base">
+                    {barbershop?.name}
+                  </CardTitle>
                   <CardDescription>
                     {new Date(appointment.date).toLocaleDateString("es-CO", {
                       year: "numeric",

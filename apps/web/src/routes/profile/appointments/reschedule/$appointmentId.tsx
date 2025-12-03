@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: needed */
 import type { Appointment } from "@panabarbero/convex/schemas";
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useMemo, useState } from "react";
@@ -29,6 +29,7 @@ import {
 import {
   barberByUserIdQueryOptions,
   useBarberByUserId,
+  useIsBarber,
 } from "@/hooks/use-barbers";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
@@ -62,8 +63,7 @@ export const Route = createFileRoute(
 function RouteComponent() {
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState<boolean>(false);
 
-  const router = useRouter();
-
+  const navigate = Route.useNavigate();
   const { appointmentId } = Route.useParams();
 
   const { data: appointment } = useAppointmentById(
@@ -72,6 +72,7 @@ function RouteComponent() {
 
   const { data: session } = useSession();
   const { data: barberRecord } = useBarberByUserId(session?.userId!);
+  const { data: isBarber } = useIsBarber(session?.userId!);
   const {
     answerRescheduleRequest: {
       mutateAsync: answerReschedule,
@@ -85,10 +86,16 @@ function RouteComponent() {
 
   const isCustomer = session?.userId === appointment?.userId;
   const isBarberForAppointment =
-    barberRecord?._id && appointment?.barberId
-      ? barberRecord._id === appointment.barberId
-      : false;
+    isBarber && appointment?.barberId === barberRecord?._id;
   const hasPendingProposal = !!appointment?.proposedDate;
+  const requesterUserId = (
+    appointment as Appointment & {
+      rescheduleRequestedByUserId?: string | null;
+    }
+  )?.rescheduleRequestedByUserId;
+  const isViewerRequester = requesterUserId === session?.userId;
+
+  const redirectTo = isBarber ? "/profile/barbershops" : "/profile";
 
   const appointmentInfo = useMemo(
     () => [
@@ -121,24 +128,18 @@ function RouteComponent() {
   const handleAnswer = async (accepted: boolean) => {
     if (!appointment) return;
 
-    try {
-      await answerReschedule({
-        appointmentId: appointment._id,
-        accepted,
-      });
-      toast.success(
-        accepted
-          ? "Has aceptado la solicitud de reagendamiento."
-          : "Has rechazado la solicitud de reagendamiento.",
-      );
-      router.invalidate();
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "No pudimos actualizar la solicitud.",
-      );
-    }
+    await answerReschedule({
+      appointmentId: appointment._id,
+      accepted,
+    });
+
+    toast.success(
+      accepted
+        ? "Has aceptado la solicitud de reagendamiento."
+        : "Has rechazado la solicitud de reagendamiento.",
+    );
+
+    navigate({ to: redirectTo });
   };
 
   const handleCancelAppointment = async () => {
@@ -154,14 +155,25 @@ function RouteComponent() {
 
     setIsCancelDialogOpen(false);
 
-    router.invalidate();
+    navigate({ to: redirectTo });
   };
 
   if (!appointment) {
     return null;
   }
 
-  const canRespond = isBarberForAppointment && hasPendingProposal;
+  let canRespond = false;
+  if (hasPendingProposal && requesterUserId) {
+    if (requesterUserId === appointment.userId) {
+      // Customer requested, barber responds
+      canRespond = isBarberForAppointment && !isViewerRequester;
+    } else if (requesterUserId === barberRecord?.userId) {
+      // Barber requested, customer responds
+      canRespond = isCustomer && !isViewerRequester;
+    } else {
+      canRespond = (isCustomer || isBarberForAppointment) && !isViewerRequester;
+    }
+  }
 
   return (
     <BorderContainer className="space-y-6">
@@ -207,6 +219,16 @@ function RouteComponent() {
         </Alert>
       ) : null}
 
+      {isViewerRequester && hasPendingProposal ? (
+        <Alert>
+          <AlertTitle>Solicitud enviada</AlertTitle>
+          <AlertDescription>
+            Ya enviaste esta solicitud. Debes esperar a que la otra parte la
+            acepte o rechace.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       {canRespond ? (
         <div className="flex flex-wrap gap-3">
           <Button
@@ -244,12 +266,11 @@ function RouteComponent() {
         </>
       ) : null}
 
-      {!isCustomer && !canRespond ? (
+      {!isCustomer && !canRespond && !isViewerRequester ? (
         <Alert variant="destructive">
           <AlertTitle>No tienes acciones disponibles</AlertTitle>
           <AlertDescription>
-            Solo el barbero asignado o el cliente que creó la cita pueden
-            responder o cancelar esta solicitud.
+            Solo el receptor de la solicitud puede aceptarla o rechazarla.
           </AlertDescription>
         </Alert>
       ) : null}
