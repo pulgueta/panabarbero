@@ -14,18 +14,28 @@ import {
   useBarbershopAvailability,
   useBarbershopByUuid,
 } from "@/hooks/barbershop/use-barbershop";
+import { profileQueryOptions } from "@/hooks/use-profile";
 import {
   servicesQueryOptions,
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
-import { useSession } from "@/hooks/use-session";
+import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/barbershops/$barbershopUuid")({
   component: RouteComponent,
   loader: async ({ context, params }) => {
+    const user = await context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
     const barbershop = await context.queryClient.ensureQueryData(
       barbershopByUuidQueryOptions(params.barbershopUuid),
     );
+
+    if (user?.userId) {
+      await context.queryClient.ensureQueryData(
+        profileQueryOptions(user.userId),
+      );
+    }
 
     if (barbershop?._id) {
       await context.queryClient.ensureQueryData(

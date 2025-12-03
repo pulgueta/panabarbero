@@ -44,8 +44,8 @@ import { useBarbershopAvailability } from "@/hooks/barbershop/use-barbershop";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { useAppointmentActions } from "@/hooks/use-appointments";
 import { useBarbersByBarbershopId } from "@/hooks/use-barbers";
+import { useProfile } from "@/hooks/use-profile";
 import { useServicesFromBarbershop } from "@/hooks/use-services";
-import { useSession } from "@/hooks/use-session";
 import type { AppointmentFormData } from "@/lib/schemas";
 import { appointmentFormSchema } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
@@ -65,12 +65,14 @@ interface AppointmentFormProps {
   service: Service;
   initialValues?: Partial<AppointmentFormData>;
   onSuccess?: () => void;
+  userId: string;
 }
 
 export const AppointmentForm: FC<AppointmentFormProps> = ({
   service,
   initialValues,
   onSuccess,
+  userId,
 }) => {
   const formIds = {
     customerName: useId(),
@@ -86,7 +88,7 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
 
   const navigate = useNavigate();
 
-  const { data: user } = useSession();
+  const { data: userProfile } = useProfile(userId);
 
   const { data: barbers, isLoading: isLoadingBarbers } =
     useBarbersByBarbershopId(service.barbershopId);
@@ -105,9 +107,9 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
     resolver: zodResolver(appointmentFormSchema),
     defaultValues: {
       date: undefined,
-      customerName: initialValues?.customerName ?? user?.name,
-      contactPhone: initialValues?.contactPhone ?? user?.phoneNumber ?? "",
-      contactEmail: initialValues?.contactEmail ?? user?.email,
+      customerName: initialValues?.customerName ?? userProfile?.name,
+      contactPhone: initialValues?.contactPhone ?? userProfile?.phoneNumber,
+      contactEmail: initialValues?.contactEmail ?? userProfile?.email,
       notes: "",
       barberId:
         barbers?.length && barbers?.length > 1 ? undefined : barbers?.[0]._id,
@@ -178,7 +180,7 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
   };
 
   const onSubmit = form.handleSubmit(async (formData) => {
-    if (!user?.userId) {
+    if (!userId) {
       toast.error("Debes iniciar sesión para poder reservar un servicio");
       return;
     }
@@ -231,7 +233,7 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
     await createAppointment({
       appointment: {
         ...formData,
-        userId: user.userId,
+        userId,
         barbershopId: service.barbershopId,
         serviceId: selectedService._id || service._id,
       },
@@ -506,7 +508,7 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
         />
       </FieldGroup>
 
-      {!user && (
+      {!userId && (
         <Item variant="warning" asChild>
           <Link to="/login" className="mt-4">
             <ItemMedia>
@@ -526,7 +528,7 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
 
       <Button
         type="submit"
-        disabled={isPending || !user}
+        disabled={isPending || !userId}
         className="mt-4 w-full"
       >
         {isPending ? <Spinner /> : "Reservar"}

@@ -54,9 +54,11 @@ export const AppointmentButton: FC<AppointmentButtonProps> = ({ service }) => {
             <AppointmentForm
               service={service}
               onSuccess={() => setOpen(false)}
+              userId={user?.userId}
               initialValues={{
                 customerName: user?.name,
                 contactEmail: user?.email,
+                contactPhone: user?.phoneNumber,
               }}
             />
           </div>
@@ -81,8 +83,10 @@ export const AppointmentButton: FC<AppointmentButtonProps> = ({ service }) => {
           initialValues={{
             customerName: user?.name,
             contactEmail: user?.email,
+            contactPhone: user?.phoneNumber,
           }}
           onSuccess={() => setOpen(false)}
+          userId={user?.userId}
         />
       </DialogContent>
     </Dialog>

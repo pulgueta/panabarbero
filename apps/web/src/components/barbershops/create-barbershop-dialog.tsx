@@ -25,8 +25,9 @@ export const CreateBarbershopDialog: FC<CreateBarbershopDialogProps> = ({
   variant = "default",
   userId,
 }) => {
-  const navigate = useNavigate();
   const [open, setOpen] = useState<boolean>(false);
+
+  const navigate = useNavigate();
 
   const onSuccess = (barbershopId: Barbershop["_id"]) => {
     setOpen(false);
