@@ -76,8 +76,6 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
     createAppointment: {
       mutateAsync: createAppointment,
       isSuccess: isCreatedAppointment,
-      isError: isCreatedAppointmentError,
-      error: createdAppointmentError,
       isPending: isCreatingAppointment,
     },
   } = useAppointmentActions();
@@ -101,15 +99,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
     if (isCreatedAppointment) {
       toast.success("Cita reservada exitosamente");
     }
-
-    if (isCreatedAppointmentError) {
-      toast.error(getConvexErrorMessage(createdAppointmentError?.message));
-    }
-  }, [
-    isCreatedAppointment,
-    isCreatedAppointmentError,
-    createdAppointmentError?.message,
-  ]);
+  }, [isCreatedAppointment]);
 
   const headLabel = `Reservar: ${service.name}`;
   const description = user
@@ -152,15 +142,20 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
       return;
     }
 
-    await createAppointment({
-      appointment: {
-        ...formData,
-        userId: user?.userId!,
-        barbershopId: service.barbershopId,
-        serviceId: service._id,
-        barbershopMemberId: formData.barbershopMemberId,
-      },
-    });
+    try {
+      await createAppointment({
+        appointment: {
+          ...formData,
+          userId: user?.userId!,
+          barbershopId: service.barbershopId,
+          serviceId: service._id,
+          barbershopMemberId: formData.barbershopMemberId,
+        },
+      });
+    } catch (error) {
+      toast.error(getConvexErrorMessage(error));
+      return;
+    }
 
     form.reset();
     throw navigate({ to: "/profile" });

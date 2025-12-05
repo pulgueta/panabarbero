@@ -63,8 +63,6 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
       mutateAsync: cancelAppointment,
       isPending: isCancellingAppointment,
       isSuccess: isCancelAppointmentSuccess,
-      isError: isCancelAppointmentError,
-      error: cancelAppointmentError,
     },
   } = useAppointmentActions();
 
@@ -72,15 +70,7 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
     if (isCancelAppointmentSuccess) {
       toast.success("Cita cancelada correctamente.");
     }
-
-    if (isCancelAppointmentError) {
-      toast.error(getConvexErrorMessage(cancelAppointmentError?.message));
-    }
-  }, [
-    isCancelAppointmentSuccess,
-    isCancelAppointmentError,
-    cancelAppointmentError?.message,
-  ]);
+  }, [isCancelAppointmentSuccess]);
 
   const title = "Cancelar cita";
   const cancelButtonLabel = "Si, cancelar";
@@ -91,11 +81,16 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
       form.setValue("notes", "");
     }
 
-    await cancelAppointment({
-      appointmentId: appointment._id,
-      reason: values.notes,
-      cancelledByUserId: userId,
-    });
+    try {
+      await cancelAppointment({
+        appointmentId: appointment._id,
+        reason: values.notes,
+        cancelledByUserId: userId,
+      });
+    } catch (error) {
+      toast.error(getConvexErrorMessage(error));
+      return;
+    }
   });
 
   if (isMobile) {

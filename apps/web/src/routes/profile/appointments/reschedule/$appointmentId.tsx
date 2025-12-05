@@ -59,8 +59,6 @@ function RouteComponent() {
       mutateAsync: answerReschedule,
       isPending: isAnswering,
       isSuccess: isAnsweringSuccess,
-      isError: isAnsweringError,
-      error: answeringError,
     },
   } = useAppointmentActions();
 
@@ -91,11 +89,7 @@ function RouteComponent() {
     if (isAnsweringSuccess) {
       toast.success("Has respondido a la solicitud de reagendamiento.");
     }
-
-    if (isAnsweringError) {
-      toast.error(getConvexErrorMessage(answeringError?.message));
-    }
-  }, [isAnsweringSuccess, isAnsweringError, answeringError]);
+  }, [isAnsweringSuccess]);
 
   if (!appointment) {
     throw redirect({ to: redirectTo });
@@ -137,10 +131,15 @@ function RouteComponent() {
   ];
 
   const handleAnswer = async (accepted: boolean) => {
-    await answerReschedule({
-      appointmentId: appointment._id,
-      accepted,
-    });
+    try {
+      await answerReschedule({
+        appointmentId: appointment._id,
+        accepted,
+      });
+    } catch (error) {
+      toast.error(getConvexErrorMessage(error));
+      return;
+    }
 
     navigate({ to: redirectTo });
   };

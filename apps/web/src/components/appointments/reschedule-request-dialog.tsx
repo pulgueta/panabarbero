@@ -2,7 +2,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Appointment } from "@panabarbero/convex/schemas";
 import type { FC, ReactNode } from "react";
-import { useId } from "react";
+import { useEffect, useId } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -33,6 +33,7 @@ import {
 } from "@/hooks/use-appointments";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useSession } from "@/hooks/use-session";
+import { getConvexErrorMessage } from "@/lib/convex-errors";
 import { rescheduleRequestFormSchema } from "@/lib/schemas";
 import { RescheduleRequestForm } from "./reschedule-request-form";
 
@@ -74,8 +75,17 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
     requestRescheduleMutation: {
       mutateAsync: rescheduleRequest,
       isPending: isSendingRescheduleRequest,
+      isSuccess: isSentRescheduleRequest,
     },
   } = useAppointmentActions();
+
+  useEffect(() => {
+    if (isSentRescheduleRequest) {
+      toast.success(
+        `Solicitud enviada al ${to === "barber" ? "barbero" : "cliente"}.`,
+      );
+    }
+  }, [isSentRescheduleRequest, to]);
 
   const onSubmit = form.handleSubmit(async (values) => {
     const timestamp = values.date;
@@ -114,16 +124,17 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
       return;
     }
 
-    await rescheduleRequest({
-      appointmentId: appointment._id,
-      proposedDate: timestamp,
-      requestedByUserId: session?.userId!,
-      note: values.note,
-    });
-
-    toast.success(
-      `Solicitud enviada al ${to === "barber" ? "barbero" : "cliente"}.`,
-    );
+    try {
+      await rescheduleRequest({
+        appointmentId: appointment._id,
+        proposedDate: timestamp,
+        requestedByUserId: session?.userId!,
+        note: values.note,
+      });
+    } catch (error) {
+      toast.error(getConvexErrorMessage(error));
+      return;
+    }
   });
 
   const disabled = isSendingRescheduleRequest || form.formState.isSubmitting;

@@ -1,4 +1,9 @@
-export function getConvexErrorMessage(error: string) {
-  console.error("Convex error: ", error);
-  return error.split("ConvexError: ")[1].split(" at ")[0].trim();
+import { ConvexError } from "convex/values";
+
+export function getConvexErrorMessage(error: unknown) {
+  if (error instanceof ConvexError) {
+    return error.data;
+  }
+
+  return "Ha ocurrido un error al procesar la solicitud.";
 }
