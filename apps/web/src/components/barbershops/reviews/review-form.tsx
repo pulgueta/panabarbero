@@ -153,14 +153,8 @@ export const ReviewForm: FC<ReviewFormProps> = ({
               periodo.
             </p>
             <div className="mt-2">
-              <Button variant="link" size="sm" className="px-0" asChild>
-                <a
-                  href="/policies/reviews"
-                  target="_blank"
-                  rel="noreferrer noopener"
-                >
-                  Conoce más en la política de reseñas
-                </a>
+              <Button variant="link">
+                Conoce más en la política de reseñas
               </Button>
             </div>
           </div>

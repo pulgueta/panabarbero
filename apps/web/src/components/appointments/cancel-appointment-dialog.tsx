@@ -27,6 +27,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { useAppointmentActions } from "@/hooks/use-appointments";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { getConvexErrorMessage } from "@/lib/convex-errors";
 import { cancelAppointmentFormSchema } from "@/lib/schemas";
 import { CancelAppointmentForm } from "./delete-appointment-form";
 
@@ -73,7 +74,7 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
     }
 
     if (isCancelAppointmentError) {
-      toast.error(cancelAppointmentError?.message);
+      toast.error(getConvexErrorMessage(cancelAppointmentError?.message));
     }
   }, [
     isCancelAppointmentSuccess,

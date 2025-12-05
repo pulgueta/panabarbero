@@ -19,6 +19,7 @@ import {
   useIsBarber,
 } from "@/hooks/use-barbershop-members";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { getConvexErrorMessage } from "@/lib/convex-errors";
 
 export const Route = createFileRoute(
   "/profile/appointments/reschedule/$appointmentId",
@@ -92,7 +93,7 @@ function RouteComponent() {
     }
 
     if (isAnsweringError) {
-      toast.error(answeringError?.message);
+      toast.error(getConvexErrorMessage(answeringError?.message));
     }
   }, [isAnsweringSuccess, isAnsweringError, answeringError]);
 

@@ -30,6 +30,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { Field } from "@/components/ui/field";
+import { Spinner } from "@/components/ui/spinner";
 import {
   useAppointmentActions,
   useAppointmentFormMetadata,
@@ -37,8 +38,8 @@ import {
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useProfile } from "@/hooks/use-profile";
 import { useSession } from "@/hooks/use-session";
+import { getConvexErrorMessage } from "@/lib/convex-errors";
 import { appointmentFormSchema } from "@/lib/schemas";
-import { Spinner } from "../ui/spinner";
 import { AppointmentForm } from "./appointment-form";
 
 interface CreateAppointmentDialogProps {
@@ -102,7 +103,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
     }
 
     if (isCreatedAppointmentError) {
-      toast.error(createdAppointmentError?.message);
+      toast.error(getConvexErrorMessage(createdAppointmentError?.message));
     }
   }, [
     isCreatedAppointment,

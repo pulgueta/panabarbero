@@ -1,7 +1,6 @@
 import { errorMessages } from "@panabarbero/constants";
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
 import {
   internalMutation,
   internalQuery,
@@ -177,8 +176,8 @@ export const createAppointment = mutation({
 
     if (
       !withinOpenHours(
-        new Date(dayAvailability.openAt).toISOString(),
-        new Date(dayAvailability.closeAt).toISOString(),
+        dayAvailability.openAt,
+        dayAvailability.closeAt,
         appointment.date,
         endAt,
       )
@@ -334,7 +333,7 @@ export const getAppointmentsByUserId = query({
     const appointments = await ctx.db
       .query("appointments")
       .withIndex("by_userId", (q) => q.eq("userId", args.userId ?? ""))
-      .order("asc")
+      .order("desc")
       .collect();
 
     return appointments;
@@ -395,7 +394,7 @@ export const getRecentlyVisitedBarbershops = query({
 
 export const getAppointmentsByBarbershopId = query({
   args: {
-    barbershopId: v.optional(v.id("barbershops")),
+    barbershopId: v.id("barbershops"),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
@@ -407,7 +406,7 @@ export const getAppointmentsByBarbershopId = query({
     const appointments = await ctx.db
       .query("appointments")
       .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId as Id<"barbershops">),
+        q.eq("barbershopId", args.barbershopId),
       )
       .collect();
 
