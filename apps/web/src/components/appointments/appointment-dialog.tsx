@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useSession } from "@/hooks/use-session";
-import { AppointmentForm } from "./appointment-form";
+import { AppointmentForm } from "./create-appointment-form";
 
 interface AppointmentDialogProps {
   service: Service;

@@ -137,8 +137,6 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
     }
   });
 
-  const disabled = isSendingRescheduleRequest || form.formState.isSubmitting;
-
   const toLabel = to === "barber" ? "barbero" : "cliente";
   const headLabel = "Solicitar reagendamiento";
   const description = `Puedes proponer una nueva fecha y hora para que el ${toLabel} la acepte o rechace.`;
@@ -167,7 +165,11 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
 
           <DrawerFooter>
             <Field>
-              <Button type="submit" form={formIds.form} disabled={disabled}>
+              <Button
+                type="submit"
+                form={formIds.form}
+                disabled={isSendingRescheduleRequest}
+              >
                 {isSendingRescheduleRequest && <Spinner />}
                 {sendButtonLabel}
               </Button>
@@ -197,7 +199,11 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
         />
 
         <DialogFooter>
-          <Button type="submit" form={formIds.form} disabled={disabled}>
+          <Button
+            type="submit"
+            form={formIds.form}
+            disabled={isSendingRescheduleRequest}
+          >
             {isSendingRescheduleRequest && <Spinner />}
             {sendButtonLabel}
           </Button>

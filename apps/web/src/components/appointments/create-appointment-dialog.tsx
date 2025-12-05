@@ -40,7 +40,7 @@ import { useProfile } from "@/hooks/use-profile";
 import { useSession } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 import { appointmentFormSchema } from "@/lib/schemas";
-import { AppointmentForm } from "./appointment-form";
+import { CreateAppointmentForm } from "./create-appointment-form";
 
 interface CreateAppointmentDialogProps {
   service: Service;
@@ -105,7 +105,6 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   const description = user
     ? "Proporciona los datos del cliente para reservar el servicio."
     : "Debes iniciar sesión para poder reservar un servicio";
-  const disabled = form.formState.isSubmitting || isCreatingAppointment;
 
   const onSubmit = form.handleSubmit(async (formData) => {
     const schedule = scheduleForDate(formData.date);
@@ -173,7 +172,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
 
           <Activity mode={user ? "visible" : "hidden"}>
             <div className="p-4">
-              <AppointmentForm
+              <CreateAppointmentForm
                 barbers={barbers}
                 service={service}
                 services={services}
@@ -193,7 +192,11 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
           <DrawerFooter>
             {user ? (
               <Field>
-                <Button type="submit" form={formIds.form} disabled={disabled}>
+                <Button
+                  type="submit"
+                  form={formIds.form}
+                  disabled={isCreatingAppointment}
+                >
                   {isCreatingAppointment && <Spinner />}
                   Reservar
                 </Button>
@@ -219,7 +222,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
         </DialogHeader>
 
         <Activity mode={user ? "visible" : "hidden"}>
-          <AppointmentForm
+          <CreateAppointmentForm
             barbers={barbers}
             service={service}
             services={services}
@@ -238,7 +241,11 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
         <DialogFooter>
           {user ? (
             <Field>
-              <Button type="submit" form={formIds.form} disabled={disabled}>
+              <Button
+                type="submit"
+                form={formIds.form}
+                disabled={isCreatingAppointment}
+              >
                 {isCreatingAppointment && <Spinner />}
                 Reservar
               </Button>

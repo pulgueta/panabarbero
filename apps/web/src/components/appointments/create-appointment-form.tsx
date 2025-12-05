@@ -39,7 +39,7 @@ import { useAppointmentFormMetadata } from "@/hooks/use-appointments";
 import type { appointmentFormSchema } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 
-interface AppointmentFormProps {
+interface CreateAppointmentFormProps {
   service: Service;
   barbers: BarbershopMemberWithName[];
   initialValues?: Partial<output<typeof appointmentFormSchema>>;
@@ -59,7 +59,7 @@ interface AppointmentFormProps {
   };
 }
 
-export const AppointmentForm: FC<AppointmentFormProps> = ({
+export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
   service,
   barbers,
   initialValues,
