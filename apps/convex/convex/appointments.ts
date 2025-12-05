@@ -786,10 +786,6 @@ export const requestReschedule = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    if (user.userId === args.requestedByUserId) {
-      throw new ConvexError("No puedes solicitar reagendamiento a ti mismo.");
-    }
-
     const { ok, retryAfter } = await rateLimiter.limit(
       ctx,
       "requestReschedule",

@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Appointment } from "@panabarbero/convex/schemas";
 import type { FC, ReactNode } from "react";
-import { useId } from "react";
+import { useEffect, useId } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/dialog";
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerDescription,
   DrawerFooter,
@@ -62,9 +61,27 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
     cancelAppointmentMutation: {
       mutateAsync: cancelAppointment,
       isPending: isCancellingAppointment,
+      isSuccess: isCancelAppointmentSuccess,
+      isError: isCancelAppointmentError,
+      error: cancelAppointmentError,
     },
   } = useAppointmentActions();
 
+  useEffect(() => {
+    if (isCancelAppointmentSuccess) {
+      toast.success("Cita cancelada correctamente.");
+    }
+
+    if (isCancelAppointmentError) {
+      toast.error(cancelAppointmentError?.message);
+    }
+  }, [
+    isCancelAppointmentSuccess,
+    isCancelAppointmentError,
+    cancelAppointmentError?.message,
+  ]);
+
+  const title = "Cancelar cita";
   const cancelButtonLabel = "Si, cancelar";
   const cancelDialogDescription = `Esta acción cancelará la cita y no podrá ser recuperada. Tendrás que volver a agendarla y tu ${isBarber ? "cliente" : "barbero"} será notificado.`;
 
@@ -78,8 +95,6 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
       reason: values.notes,
       cancelledByUserId: userId,
     });
-
-    toast.success("Cita cancelada correctamente.");
   });
 
   if (isMobile) {
@@ -88,7 +103,7 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
         <DrawerTrigger asChild>{trigger}</DrawerTrigger>
         <DrawerContent>
           <DrawerHeader>
-            <DrawerTitle>Cancelar cita</DrawerTitle>
+            <DrawerTitle>{title}</DrawerTitle>
             <DrawerDescription>{cancelDialogDescription}</DrawerDescription>
           </DrawerHeader>
 
@@ -113,16 +128,6 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
               {isCancellingAppointment && <Spinner />}
               {cancelButtonLabel}
             </Button>
-
-            <DrawerClose asChild>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isCancellingAppointment}
-              >
-                No, cancelar
-              </Button>
-            </DrawerClose>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
@@ -134,7 +139,7 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Cancelar cita</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{cancelDialogDescription}</DialogDescription>
         </DialogHeader>
 

@@ -123,10 +123,13 @@ export const AccountTab: FC<AccountTabProps> = ({
           <AlertTitle>¿Tienes una barbería?</AlertTitle>
           <AlertDescription className="pr-20">
             Gestiona reservas, barberos, servicios y obtén acceso a analíticas
-            detalladas de tu negocio sin costo adicional.{" "}
+            detalladas de tu negocio sin costo adicional. <br />
             <CreateBarbershopDialog
-              triggerLabel="Crear mi barbería"
-              variant="outline"
+              trigger={
+                <Button variant="outline" className="mt-1.5">
+                  Crear mi barbería
+                </Button>
+              }
               userId={userId}
             />
           </AlertDescription>
@@ -211,6 +214,8 @@ export const AccountTab: FC<AccountTabProps> = ({
                     placeholder="3014441122"
                     autoComplete="tel"
                     type="tel"
+                    pattern="[0-9]*"
+                    maxLength={10}
                     disabled={isUpdatingPhoneNumber}
                   />
                   <Button

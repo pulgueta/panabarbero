@@ -53,7 +53,6 @@ export const CancelAppointmentForm: FC<CancelAppointmentFormProps> = ({
                   id={formIds.notes}
                   disabled={disabled}
                   placeholder="Debe contener mínimo 8 caracteres."
-                  rows={6}
                   className="min-h-24 resize-none"
                   aria-invalid={fieldState.invalid}
                 />

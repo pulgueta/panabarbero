@@ -18,6 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 
 interface ReviewsTabProps {
@@ -73,9 +74,12 @@ export const ReviewsTab: FC<ReviewsTabProps> = ({ reviews, barbershops }) => {
             ))}
           </div>
         ) : (
-          <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground text-sm">
-            Aún no has publicado reseñas.
-          </div>
+          <Empty>
+            <EmptyTitle>Aún no has publicado reseñas.</EmptyTitle>
+            <EmptyDescription>
+              Cuando publiques una reseña, podrás verla aquí.
+            </EmptyDescription>
+          </Empty>
         )}
       </section>
 
@@ -112,9 +116,12 @@ export const ReviewsTab: FC<ReviewsTabProps> = ({ reviews, barbershops }) => {
             ))}
           </div>
         ) : (
-          <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground text-sm">
-            No encontramos barberías recientes que coincidan con tu búsqueda.
-          </div>
+          <Empty>
+            <EmptyTitle>No se han encontrado barberías.</EmptyTitle>
+            <EmptyDescription>
+              Cuando completes una cita, podrás calificar la barbería aquí.
+            </EmptyDescription>
+          </Empty>
         )}
       </section>
     </div>

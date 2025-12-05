@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -19,7 +18,6 @@ import {
 } from "@/components/ui/dialog";
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerDescription,
   DrawerFooter,
@@ -162,12 +160,6 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
                 {isSendingRescheduleRequest && <Spinner />}
                 {sendButtonLabel}
               </Button>
-
-              <DrawerClose asChild>
-                <Button variant="outline" disabled={disabled}>
-                  Cancelar
-                </Button>
-              </DrawerClose>
             </Field>
           </DrawerFooter>
         </DrawerContent>
@@ -194,12 +186,6 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
         />
 
         <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline" disabled={disabled}>
-              Cancelar
-            </Button>
-          </DialogClose>
-
           <Button type="submit" form={formIds.form} disabled={disabled}>
             {isSendingRescheduleRequest && <Spinner />}
             {sendButtonLabel}

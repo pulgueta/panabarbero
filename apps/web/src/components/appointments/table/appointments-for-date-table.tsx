@@ -1,7 +1,5 @@
 import type { Appointment, Service } from "@panabarbero/convex/schemas";
-import { Link } from "@tanstack/react-router";
 import {
-  CalendarCheckIcon,
   CalendarClockIcon,
   EllipsisVerticalIcon,
   TrashIcon,
@@ -60,11 +58,6 @@ export const AppointmentsForDateTable: FC<AppointmentsForDateTableProps> = ({
             (service) => service?._id === appointment.serviceId,
           );
 
-          const isConfirmed = appointment.status === "confirmed";
-
-          const showManageRescheduleLink =
-            !!appointment.proposedDate && !isConfirmed;
-
           const isCancelledOrDenied =
             appointment.status === "cancelled" ||
             appointment.status === "denied";
@@ -119,22 +112,6 @@ export const AppointmentsForDateTable: FC<AppointmentsForDateTableProps> = ({
                           </DropdownMenuItem>
                         }
                       />
-                    )}
-
-                    {showManageRescheduleLink && (
-                      <DropdownMenuItem asChild>
-                        <Link
-                          to={"/profile/appointments/reschedule/$appointmentId"}
-                          params={{ appointmentId: appointment._id }}
-                          style={{
-                            viewTransitionName: `appointment-${appointment._id}-reschedule`,
-                          }}
-                          className="inline-flex w-full items-center gap-x-2"
-                        >
-                          <CalendarCheckIcon className="size-3" />
-                          Gestionar reagendamiento
-                        </Link>
-                      </DropdownMenuItem>
                     )}
 
                     {isCancelledOrDenied ? (

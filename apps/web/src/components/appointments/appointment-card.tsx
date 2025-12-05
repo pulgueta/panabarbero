@@ -83,9 +83,9 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
 
         {appointment.proposedDate && (
           <Button
-            variant="link"
+            variant="outline"
             disabled={appointment.status === "completed"}
-            className="w-full text-muted-foreground md:w-auto"
+            className="w-full md:w-auto"
             asChild
           >
             <Link
