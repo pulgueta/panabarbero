@@ -214,6 +214,9 @@ export type Barbershop = ConvexRows<"barbershops"> &
   Infer<typeof barbershopSchema>;
 export type BarbershopMember = ConvexRows<"barbershopMembers"> &
   Infer<typeof barbershopMemberSchema>;
+export type BarbershopMemberWithName = BarbershopMember & {
+  name: string;
+};
 export type Service = ConvexRows<"services"> & Infer<typeof serviceSchema>;
 export type Review = ConvexRows<"reviews"> & Infer<typeof reviewSchema>;
 export type Appointment = ConvexRows<"appointments"> &

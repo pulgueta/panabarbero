@@ -27,17 +27,33 @@ function minutesOfDay(ts: number): number {
 }
 
 function withinOpenHours(
-  openAt: number,
-  closeAt: number,
-  appointmentDate: number,
-  appointmentEndAt: number,
+  openAt: string | undefined,
+  closeAt: string | undefined,
+  startAt: number,
+  endAt: number,
 ): boolean {
-  if (appointmentDate < openAt) return false;
-  if (appointmentDate > closeAt) return false;
-  if (appointmentEndAt < openAt) return false;
-  if (appointmentEndAt > closeAt) return false;
+  if (!openAt || !closeAt) return true;
 
-  return true;
+  const openMin = parseTimeToMinutes(openAt);
+  const closeMin = parseTimeToMinutes(closeAt);
+
+  if (Number.isNaN(openMin) || Number.isNaN(closeMin)) return true;
+
+  const startMin = minutesOfDay(startAt);
+  const endMin = minutesOfDay(endAt);
+
+  const overnight = closeMin <= openMin;
+
+  if (!overnight) {
+    return startMin >= openMin && endMin <= closeMin;
+  }
+
+  const adjust = (m: number) => (m < openMin ? m + 1440 : m);
+
+  const adjStart = adjust(startMin);
+  const adjEnd = adjust(endMin);
+
+  return adjStart >= openMin && adjEnd <= closeMin + 1440;
 }
 
 function overlapsLunchBreak(
@@ -161,8 +177,8 @@ export const createAppointment = mutation({
 
     if (
       !withinOpenHours(
-        new Date(dayAvailability.openAt).getTime(),
-        new Date(dayAvailability.closeAt).getTime(),
+        new Date(dayAvailability.openAt).toISOString(),
+        new Date(dayAvailability.closeAt).toISOString(),
         appointment.date,
         endAt,
       )
@@ -643,8 +659,8 @@ export const updateAppointment = mutation({
 
     if (
       !withinOpenHours(
-        new Date(dayAvailability.openAt).getTime(),
-        new Date(dayAvailability.closeAt).getTime(),
+        new Date(dayAvailability.openAt).toISOString(),
+        new Date(dayAvailability.closeAt).toISOString(),
         appointment.date,
         endAt,
       )

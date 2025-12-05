@@ -3,12 +3,8 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
-import type { BarbershopMember } from "./tables";
+import type { BarbershopMemberWithName } from "./tables";
 import { tables } from "./tables";
-
-type BarbershopMemberWithName = BarbershopMember & {
-  name: string;
-};
 
 export const createBarbershopMember = internalMutation({
   args: {
