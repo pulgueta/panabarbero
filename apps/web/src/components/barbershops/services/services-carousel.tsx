@@ -44,7 +44,7 @@ export const ServicesCarousel: FC<ServicesCarouselProps> = ({
           >
             <Card className="max-h-36 bg-secondary/20 transition-transform duration-500 dark:bg-secondary/20">
               <CardContent className="flex items-start justify-between gap-4 px-4">
-                <section className="flex flex-col items-start gap-2">
+                <section className="space-y-2">
                   <p className="line-clamp-1 text-pretty font-semibold leading-4.5 tracking-tight">
                     {service.name}
                   </p>
@@ -52,10 +52,7 @@ export const ServicesCarousel: FC<ServicesCarouselProps> = ({
                     {formatCurrency(service.price)}
                   </p>
                   <p className="mb-1 inline-flex items-center gap-1.5 text-muted-foreground text-xs tracking-tight">
-                    <Clock className="size-3" />{" "}
-                    {service.duration
-                      ? `${service.duration} minutos`
-                      : "No hay duración disponible"}
+                    <Clock className="size-3" /> {service.duration} minutos
                   </p>
                 </section>
 

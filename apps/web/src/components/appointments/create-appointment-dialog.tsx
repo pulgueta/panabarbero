@@ -38,6 +38,7 @@ import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useProfile } from "@/hooks/use-profile";
 import { useSession } from "@/hooks/use-session";
 import { appointmentFormSchema } from "@/lib/schemas";
+import { Spinner } from "../ui/spinner";
 import { AppointmentForm } from "./appointment-form";
 
 interface CreateAppointmentDialogProps {
@@ -76,6 +77,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
       isSuccess: isCreatedAppointment,
       isError: isCreatedAppointmentError,
       error: createdAppointmentError,
+      isPending: isCreatingAppointment,
     },
   } = useAppointmentActions();
   const { minutesOfTimestamp, scheduleForDate, timeStringToMinutes } =
@@ -112,6 +114,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   const description = user
     ? "Proporciona los datos del cliente para reservar el servicio."
     : "Debes iniciar sesión para poder reservar un servicio";
+  const disabled = form.formState.isSubmitting || isCreatingAppointment;
 
   const onSubmit = form.handleSubmit(async (formData) => {
     const schedule = scheduleForDate(formData.date);
@@ -194,7 +197,8 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
           <DrawerFooter>
             {user ? (
               <Field>
-                <Button type="submit" form={formIds.form}>
+                <Button type="submit" form={formIds.form} disabled={disabled}>
+                  {isCreatingAppointment && <Spinner />}
                   Reservar
                 </Button>
               </Field>
@@ -238,7 +242,8 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
         <DialogFooter>
           {user ? (
             <Field>
-              <Button type="submit" form={formIds.form}>
+              <Button type="submit" form={formIds.form} disabled={disabled}>
+                {isCreatingAppointment && <Spinner />}
                 Reservar
               </Button>
             </Field>
