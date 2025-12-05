@@ -1,14 +1,17 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import type { Service } from "@panabarbero/convex/schemas";
-import { Link, useNavigate } from "@tanstack/react-router";
+import type {
+  BarbershopMemberWithName,
+  Service,
+} from "@panabarbero/convex/schemas";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon, ChevronRightIcon, Clock8Icon, Info } from "lucide-react";
-import type { FC } from "react";
-import { useId } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
+import { CalendarIcon, Clock8Icon } from "lucide-react";
+import type { BaseSyntheticEvent, FC } from "react";
+import { Activity, Suspense } from "react";
+import type { UseFormReturn } from "react-hook-form";
+import { Controller } from "react-hook-form";
+import type { output } from "zod";
 
+import { ServicesDropdown } from "@/components/barbershops/services/services-dropdown";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -18,13 +21,6 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemMedia,
-  ItemTitle,
-} from "@/components/ui/item";
 import {
   Popover,
   PopoverContent,
@@ -38,167 +34,109 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
-import { useAnalytics } from "@/hooks/use-analytics";
-import {
-  useAppointmentActions,
-  useAppointmentFormMetadata,
-} from "@/hooks/use-appointments";
-import { useBarbersByBarbershopId } from "@/hooks/use-barbershop-members";
-import { useProfile } from "@/hooks/use-profile";
-import { useServicesFromBarbershop } from "@/hooks/use-services";
-import type { AppointmentFormData } from "@/lib/schemas";
-import { appointmentFormSchema } from "@/lib/schemas";
+import { useAppointmentFormMetadata } from "@/hooks/use-appointments";
+import type { appointmentFormSchema } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
-import { useServicesStore } from "@/store/services";
-import { ServicesDropdown } from "../barbershops/services/services-dropdown";
 
 interface AppointmentFormProps {
   service: Service;
-  initialValues?: Partial<AppointmentFormData>;
-  onSuccess?: () => void;
-  userId: string;
+  barbers: BarbershopMemberWithName[];
+  initialValues?: Partial<output<typeof appointmentFormSchema>>;
+  onSubmit: (e: BaseSyntheticEvent) => void;
+  services: Service[];
+  form: UseFormReturn<output<typeof appointmentFormSchema>>;
+  formIds: {
+    form: string;
+    customerName: string;
+    date: string;
+    barbershopMemberId: string;
+    startTime: string;
+    contactPhone: string;
+    contactEmail: string;
+    serviceId: string;
+    notes: string;
+  };
 }
 
 export const AppointmentForm: FC<AppointmentFormProps> = ({
   service,
+  barbers,
   initialValues,
-  onSuccess,
-  userId,
+  onSubmit,
+  services,
+  formIds,
+  form,
 }) => {
-  const formIds = {
-    customerName: useId(),
-    date: useId(),
-    startTime: useId(),
-    contactPhone: useId(),
-    contactEmail: useId(),
-    notes: useId(),
-    form: useId(),
-    barbershopMemberId: useId(),
-    serviceId: useId(),
-  };
+  const { disableDay } = useAppointmentFormMetadata(service.barbershopId);
+  //   if (!userId) {
+  //     toast.error("Debes iniciar sesión para poder reservar un servicio");
+  //     return;
+  //   }
 
-  const navigate = useNavigate();
+  //   if (!formData.barbershopMemberId) {
+  //     toast.error("Debes seleccionar un barbero");
+  //     return;
+  //   }
 
-  const { data: userProfile } = useProfile(userId);
+  //   const schedule = scheduleForDate(formData.date);
 
-  const { data: barbers, isLoading: isLoadingBarbers } =
-    useBarbersByBarbershopId(service.barbershopId);
-  const {
-    disableDay,
-    scheduleForDate,
-    timeStringToMinutes,
-    minutesOfTimestamp,
-  } = useAppointmentFormMetadata(service.barbershopId);
-  const { data: services } = useServicesFromBarbershop(service.barbershopId);
-  const { service: selectedService } = useServicesStore();
-  const {
-    createAppointment: { mutateAsync: createAppointment, isPending },
-  } = useAppointmentActions();
+  //   if (!schedule || !schedule.weekDay.isActive) {
+  //     toast.error("La barbería no atiende en el día seleccionado.");
+  //     return;
+  //   }
 
-  const { captureEvent } = useAnalytics();
+  //   const selectedMinutes = minutesOfTimestamp(formData.date);
+  //   const openMinutes = timeStringToMinutes(schedule.openAt);
+  //   const closeMinutes = timeStringToMinutes(schedule.closeAt);
 
-  const form = useForm({
-    resolver: zodResolver(appointmentFormSchema),
-    defaultValues: {
-      date: undefined,
-      customerName: initialValues?.customerName ?? userProfile?.name,
-      contactPhone: initialValues?.contactPhone ?? userProfile?.phoneNumber,
-      contactEmail: initialValues?.contactEmail ?? userProfile?.email,
-      notes: "",
-      barbershopMemberId:
-        barbers?.length && barbers?.length > 1 ? undefined : barbers?.[0]._id,
-    },
-  });
+  //   if (
+  //     (openMinutes !== null && selectedMinutes < openMinutes) ||
+  //     (closeMinutes !== null && selectedMinutes >= closeMinutes)
+  //   ) {
+  //     toast.error("Selecciona una hora dentro del horario de atención.");
+  //     return;
+  //   }
 
-  const onSubmit = form.handleSubmit(async (formData) => {
-    if (!userId) {
-      toast.error("Debes iniciar sesión para poder reservar un servicio");
-      return;
-    }
+  //   const lunchStartMinutes = timeStringToMinutes(schedule.lunchStart);
+  //   const lunchEndMinutes = timeStringToMinutes(schedule.lunchEnd);
 
-    if (!formData.barbershopMemberId) {
-      toast.error("Debes seleccionar un barbero");
-      return;
-    }
+  //   if (
+  //     lunchStartMinutes !== null &&
+  //     lunchEndMinutes !== null &&
+  //     selectedMinutes >= lunchStartMinutes &&
+  //     selectedMinutes < lunchEndMinutes
+  //   ) {
+  //     toast.error(
+  //       "No se puede reservar una cita durante el horario seleccionado.",
+  //     );
+  //     return;
+  //   }
 
-    const schedule = scheduleForDate(formData.date);
+  //   captureEvent("service_booked", {
+  //     serviceName: service.name,
+  //     serviceId: selectedService._id || service._id,
+  //     barbershopId: service.barbershopId,
+  //   });
 
-    if (!schedule || !schedule.weekDay.isActive) {
-      toast.error("La barbería no atiende en el día seleccionado.");
-      return;
-    }
+  //   await createAppointment({
+  //     appointment: {
+  //       ...formData,
+  //       userId,
+  //       barbershopId: service.barbershopId,
+  //       serviceId: selectedService._id || service._id,
+  //       barbershopMemberId: formData.barbershopMemberId,
+  //     },
+  //   });
 
-    const selectedMinutes = minutesOfTimestamp(formData.date);
-    const openMinutes = timeStringToMinutes(schedule.openAt);
-    const closeMinutes = timeStringToMinutes(schedule.closeAt);
-
-    if (
-      (openMinutes !== null && selectedMinutes < openMinutes) ||
-      (closeMinutes !== null && selectedMinutes >= closeMinutes)
-    ) {
-      toast.error("Selecciona una hora dentro del horario de atención.");
-      return;
-    }
-
-    const lunchStartMinutes = timeStringToMinutes(schedule.lunchStart);
-    const lunchEndMinutes = timeStringToMinutes(schedule.lunchEnd);
-
-    if (
-      lunchStartMinutes !== null &&
-      lunchEndMinutes !== null &&
-      selectedMinutes >= lunchStartMinutes &&
-      selectedMinutes < lunchEndMinutes
-    ) {
-      toast.error(
-        "No se puede reservar una cita durante el horario seleccionado.",
-      );
-      return;
-    }
-
-    captureEvent("service_booked", {
-      serviceName: service.name,
-      serviceId: selectedService._id || service._id,
-      barbershopId: service.barbershopId,
-    });
-
-    await createAppointment({
-      appointment: {
-        ...formData,
-        userId,
-        barbershopId: service.barbershopId,
-        serviceId: selectedService._id || service._id,
-        barbershopMemberId: formData.barbershopMemberId,
-      },
-    });
-
-    toast.success("Cita reservada exitosamente");
-    onSuccess?.();
-    form.reset();
-    throw navigate({ to: "/profile" });
-  });
+  //   toast.success("Cita reservada exitosamente");
+  //   onSuccess?.();
+  //   form.reset();
+  //   throw navigate({ to: "/profile" });
+  // });
 
   return (
     <form id={formIds.form} onSubmit={onSubmit}>
-      {!userId && (
-        <Item variant="warning" asChild>
-          <Link to="/login" className="mb-4">
-            <ItemMedia>
-              <Info className="size-5" />
-            </ItemMedia>
-            <ItemContent>
-              <ItemTitle>
-                Debes iniciar sesión para poder reservar un servicio
-              </ItemTitle>
-            </ItemContent>
-            <ItemActions>
-              <ChevronRightIcon className="size-4" />
-            </ItemActions>
-          </Link>
-        </Item>
-      )}
-
       <FieldGroup>
         <div className="grid grid-cols-2 gap-4">
           {!initialValues && (
@@ -280,21 +218,17 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
             )}
           />
 
-          {isLoadingBarbers ? (
-            <div className="space-y-4">
-              <Skeleton className="h-4 w-24 rounded" />
-              <Skeleton className="h-9 w-full" />
-            </div>
-          ) : barbers?.length && barbers?.length > 0 ? (
-            <Controller
-              name="barbershopMemberId"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={formIds.barbershopMemberId}>
-                    {barbers?.length > 1 ? "Seleccione un barbero" : "Barbero"}
-                  </FieldLabel>
-                  {barbers?.length > 1 ? (
+          <Controller
+            name="barbershopMemberId"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={formIds.barbershopMemberId}>
+                  {barbers?.length > 1 ? "Seleccione un barbero" : "Barbero"}
+                </FieldLabel>
+
+                <Suspense fallback={<Skeleton className="h-9 w-full" />}>
+                  <Activity mode={barbers?.length > 1 ? "visible" : "hidden"}>
                     <Select
                       value={field.value}
                       onValueChange={field.onChange}
@@ -311,31 +245,30 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
                         ))}
                       </SelectContent>
                     </Select>
-                  ) : (
-                    <>
-                      <Input
-                        id={`${formIds.barbershopMemberId}-display`}
-                        disabled
-                        value={barbers[0].name}
-                      />
-                      <Input
-                        {...field}
-                        id={formIds.barbershopMemberId}
-                        type="hidden"
-                      />
-                    </>
-                  )}
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-          ) : (
-            <p className="text-muted-foreground text-sm">
-              No hay barberos disponibles
-            </p>
-          )}
+                  </Activity>
+                </Suspense>
+
+                <Suspense fallback={<Skeleton className="h-9 w-full" />}>
+                  <Activity mode={barbers?.length > 1 ? "hidden" : "visible"}>
+                    <Input
+                      id={`${formIds.barbershopMemberId}-display`}
+                      disabled
+                      value={barbers[0].name}
+                    />
+                    <Input
+                      {...field}
+                      id={formIds.barbershopMemberId}
+                      type="hidden"
+                    />
+                  </Activity>
+                </Suspense>
+
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -463,14 +396,6 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
           )}
         />
       </FieldGroup>
-
-      <Button
-        type="submit"
-        disabled={isPending || !userId}
-        className="mt-4 w-full"
-      >
-        {isPending ? <Spinner /> : "Reservar"}
-      </Button>
     </form>
   );
 };

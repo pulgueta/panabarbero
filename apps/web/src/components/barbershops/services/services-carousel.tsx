@@ -1,8 +1,12 @@
-import type { Service } from "@panabarbero/convex/schemas";
+import type {
+  BarbershopMemberWithName,
+  Service,
+} from "@panabarbero/convex/schemas";
 import { Clock } from "lucide-react";
 import type { FC } from "react";
 
-import { AppointmentButton } from "@/components/appointments/appointment-button";
+import { CreateAppointmentDialog } from "@/components/appointments/create-appointment-dialog";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Carousel,
@@ -14,24 +18,14 @@ import { formatCurrency } from "@/lib/form-utils";
 
 interface ServicesCarouselProps {
   services: Service[];
+  barbers: BarbershopMemberWithName[];
 }
 
-export const ServicesCarousel: FC<ServicesCarouselProps> = (props) => {
-  const { services } = props;
+export const ServicesCarousel: FC<ServicesCarouselProps> = ({
+  services,
+  barbers,
+}) => {
   const [_, setCarouselApi] = useCarouselApi();
-
-  if (!services || services.length === 0) {
-    return (
-      <p
-        className="text-center text-muted-foreground"
-        style={{
-          viewTransitionName: `barbershop-${services[0].barbershopId}-services`,
-        }}
-      >
-        No hay servicios disponibles.
-      </p>
-    );
-  }
 
   return (
     <Carousel
@@ -65,7 +59,12 @@ export const ServicesCarousel: FC<ServicesCarouselProps> = (props) => {
                   </p>
                 </section>
 
-                <AppointmentButton service={service} />
+                <CreateAppointmentDialog
+                  service={service}
+                  services={services}
+                  barbers={barbers}
+                  trigger={<Button>Reservar</Button>}
+                />
               </CardContent>
             </Card>
           </CarouselItem>
