@@ -6,19 +6,23 @@ import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 export function barbersByBarbershopIdQueryOptions(
   barbershopId: Barbershop["_id"],
 ) {
-  return convexQuery(api.barbers.getBarbersByBarbershopId, { barbershopId });
+  return convexQuery(api.barbershopMembers.getBarbersByBarbershopId, {
+    barbershopId,
+  });
 }
 
 export function isBarberQueryOptions(userId: string) {
-  return convexQuery(api.barbers.isBarber, { userId });
+  return convexQuery(api.barbershopMembers.isBarber, { userId });
 }
 
 export function barberByUserIdQueryOptions(userId: string) {
-  return convexQuery(api.barbers.getBarberByUserId, { userId });
+  return convexQuery(api.barbershopMembers.getBarbershopMemberByUserId, {
+    userId,
+  });
 }
 
 export function inviteBarberMutationOptions() {
-  return useConvexMutation(api.barbers.inviteBarber);
+  return useConvexMutation(api.barbershopMembers.inviteBarbershopMember);
 }
 
 export function useBarbersByBarbershopId(barbershopId: Barbershop["_id"]) {

@@ -1,4 +1,4 @@
-import type { Barber } from "@panabarbero/convex/schemas";
+import type { BarbershopMember } from "@panabarbero/convex/schemas";
 import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { EllipsisVerticalIcon, Info, TrashIcon } from "lucide-react";
@@ -13,7 +13,7 @@ import {
 import { useProfile } from "@/hooks/use-profile";
 import { useSession } from "@/hooks/use-session";
 
-export const barbersTableColumns: ColumnDef<Barber>[] = [
+export const barbersTableColumns: ColumnDef<BarbershopMember>[] = [
   {
     accessorKey: "userId",
     header: () => <div className="text-center">Nombre</div>,

@@ -11,7 +11,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import { useIsBarber } from "@/hooks/use-barbers";
+import { useIsBarber } from "@/hooks/use-barbershop-members";
 import type { useSession } from "@/hooks/use-session";
 
 export const UserPopover: FC<ReturnType<typeof useSession>["data"]> = (
