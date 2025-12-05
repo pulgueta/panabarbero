@@ -1,7 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useColombia } from "@panabarbero/constants";
 import type { Barbershop } from "@panabarbero/convex/schemas";
-import { InfoIcon } from "lucide-react";
 import { type FC, useId } from "react";
 import { Controller, useForm } from "react-hook-form";
 
@@ -22,11 +21,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useBarbershopActions } from "@/hooks/barbershop/use-barbershop";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { barbershopFormSchema } from "@/lib/schemas";
@@ -136,15 +130,13 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
   return (
     <form id={formIds.form} onSubmit={onSubmit} className="space-y-2">
       <FieldGroup>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-4">
           <Controller
             name="name"
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={formIds.name}>
-                  Nombre de la barbería
-                </FieldLabel>
+                <FieldLabel htmlFor={formIds.name}>Nombre</FieldLabel>
                 <Input
                   {...field}
                   id={formIds.name}
@@ -152,8 +144,9 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
                   placeholder="Ej. Barbería Central"
                 />
                 <FieldDescription>
-                  Este será el nombre por el que los clientes te encontrarán.
+                  Con este nombre te podrán encontrar en la plataforma.
                 </FieldDescription>
+
                 {fieldState.invalid && (
                   <FieldError errors={[fieldState.error]} />
                 )}
@@ -167,19 +160,7 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor={formIds.gracePeriodMinutes}>
-                  Periodo de gracia (minutos)
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <InfoIcon className="size-4 animate-pulse" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        Se recomienda establecer un periodo de gracia en el cual
-                        los clientes pueden llegar minutos después de la hora de
-                        su reserva sin perderla.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
+                  Periodo de gracia
                 </FieldLabel>
 
                 {/* @ts-expect-error */}
@@ -193,7 +174,7 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
                 />
 
                 <FieldDescription>
-                  Por defecto siempre se establecerá en 5 minutos.
+                  Por defecto se establecerá en 5 minutos.
                 </FieldDescription>
                 {fieldState.invalid && (
                   <FieldError errors={[fieldState.error]} />
@@ -203,32 +184,15 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
           />
         </div>
 
-        <Controller
-          name="description"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={formIds.description}>
-                Descripción (opcional)
-              </FieldLabel>
-              <Input
-                {...field}
-                id={formIds.description}
-                aria-invalid={fieldState.invalid}
-                placeholder="Describe brevemente tu barbería"
-              />
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-4">
           <Controller
             name="address.fullAddress"
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={formIds.address}>Dirección</FieldLabel>
+                <FieldLabel htmlFor={formIds.address}>
+                  Dirección completa
+                </FieldLabel>
                 <Input
                   {...field}
                   id={formIds.address}
@@ -248,7 +212,7 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor={formIds.addressDetails}>
-                  Detalles de dirección (opcional)
+                  Detalles (opcional)
                 </FieldLabel>
                 <Input
                   {...field}
@@ -264,7 +228,7 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-4">
           <Controller
             name="state"
             control={form.control}
@@ -312,50 +276,6 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
                     ))}
                   </SelectContent>
                 </Select>
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Controller
-            name="zipCode"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={formIds.zipCode}>
-                  Código postal (opcional)
-                </FieldLabel>
-                <Input
-                  {...field}
-                  id={formIds.zipCode}
-                  aria-invalid={fieldState.invalid}
-                  placeholder="Ej. 111111"
-                />
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
-          />
-
-          <Controller
-            name="contactPhone"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={formIds.contactPhone}>
-                  Teléfono de contacto (opcional)
-                </FieldLabel>
-                <Input
-                  {...field}
-                  id={formIds.contactPhone}
-                  aria-invalid={fieldState.invalid}
-                  placeholder="Ej. 3001234567"
-                />
                 {fieldState.invalid && (
                   <FieldError errors={[fieldState.error]} />
                 )}

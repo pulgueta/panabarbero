@@ -8,8 +8,6 @@ import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { ButtonGroup } from "@/components/ui/button-group";
-import { Spinner } from "@/components/ui/spinner";
 import {
   appointmentByIdQueryOptions,
   useAppointmentActions,
@@ -59,6 +57,9 @@ function RouteComponent() {
     answerRescheduleRequest: {
       mutateAsync: answerReschedule,
       isPending: isAnswering,
+      isSuccess: isAnsweringSuccess,
+      isError: isAnsweringError,
+      error: answeringError,
     },
   } = useAppointmentActions();
 
@@ -84,6 +85,16 @@ function RouteComponent() {
       navigate({ to: redirectTo, replace: true });
     }
   }, [appointment, canView, navigate, redirectTo, session?.userId]);
+
+  useEffect(() => {
+    if (isAnsweringSuccess) {
+      toast.success("Has respondido a la solicitud de reagendamiento.");
+    }
+
+    if (isAnsweringError) {
+      toast.error(answeringError?.message);
+    }
+  }, [isAnsweringSuccess, isAnsweringError, answeringError]);
 
   if (!appointment) {
     throw redirect({ to: redirectTo });
@@ -129,12 +140,6 @@ function RouteComponent() {
       appointmentId: appointment._id,
       accepted,
     });
-
-    toast.success(
-      accepted
-        ? "Has aceptado la solicitud de reagendamiento."
-        : "Has rechazado la solicitud de reagendamiento.",
-    );
 
     navigate({ to: redirectTo });
   };
@@ -187,7 +192,7 @@ function RouteComponent() {
       )}
 
       {canRespond && (
-        <ButtonGroup>
+        <section className="flex items-center gap-2">
           <Button variant="outline" onClick={() => router.history.back()}>
             Volver
           </Button>
@@ -196,12 +201,12 @@ function RouteComponent() {
             disabled={isAnswering}
             onClick={() => handleAnswer(false)}
           >
-            {isAnswering && <Spinner />} Rechazar
+            Rechazar
           </Button>
           <Button disabled={isAnswering} onClick={() => handleAnswer(true)}>
-            {isAnswering && <Spinner />} Aceptar
+            Aceptar
           </Button>
-        </ButtonGroup>
+        </section>
       )}
     </BorderContainer>
   );
