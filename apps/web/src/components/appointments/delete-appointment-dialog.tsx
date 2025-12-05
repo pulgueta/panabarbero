@@ -1,20 +1,17 @@
 import type { Appointment } from "@panabarbero/convex/schemas";
-import { TrashIcon } from "lucide-react";
-import type { FC } from "react";
-import { useState } from "react";
+import type { FC, ReactNode } from "react";
+import { toast } from "sonner";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Drawer,
   DrawerClose,
@@ -25,89 +22,64 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
+import { useAppointmentActions } from "@/hooks/use-appointments";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 
 interface DeleteAppointmentDialogProps {
-  appointmentId: Appointment["_id"];
-  isAlreadyCancelledOrDenied: boolean;
-  isDeletingAppointment: boolean;
-  isCancellingAppointment: boolean;
-  handleDelete: (obj: {
-    appointmentId: Appointment["_id"];
-    isAlreadyCancelledOrDenied: boolean;
-  }) => void;
-  resetDeleteState: () => void;
+  appointment: Appointment;
+  trigger: ReactNode;
 }
 
 export const DeleteAppointmentDialog: FC<DeleteAppointmentDialogProps> = ({
-  appointmentId,
-  isAlreadyCancelledOrDenied,
-  isDeletingAppointment,
-  isCancellingAppointment,
-  handleDelete,
-  resetDeleteState,
+  appointment,
+  trigger,
 }) => {
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
-
   const { isMobile } = useIsMobile();
 
+  const {
+    deleteAppointmentMutation: {
+      mutateAsync: deleteAppointment,
+      isPending: isDeletingAppointment,
+    },
+  } = useAppointmentActions();
+
+  const deleteButtonLabel = "Si, eliminar";
   const deleteDialogDescription =
-    "Esta acción cancelará la cita, enviará un correo al cliente con el motivo indicado y luego la eliminará definitivamente.";
+    "Esta acción eliminará la cita de los registros y no podrá ser recuperada.";
+
+  const onDelete = async () => {
+    await deleteAppointment({
+      appointmentId: appointment._id,
+    });
+    toast.success("Cita eliminada correctamente.");
+  };
 
   if (isMobile) {
     return (
-      <Drawer
-        open={isDeleteDialogOpen}
-        onOpenChange={(value) => {
-          setIsDeleteDialogOpen(value);
-          if (!value) {
-            resetDeleteState();
-          }
-        }}
-      >
-        <DrawerTrigger asChild>
-          <DropdownMenuItem
-            className="inline-flex w-full items-center gap-x-2"
-            onSelect={(event) => event.preventDefault()}
-            disabled={isDeletingAppointment || isCancellingAppointment}
-          >
-            <TrashIcon className="size-3 text-destructive dark:text-destructive-foreground" />
-            Cancelar y eliminar
-          </DropdownMenuItem>
-        </DrawerTrigger>
+      <Drawer>
+        <DrawerTrigger asChild>{trigger}</DrawerTrigger>
         <DrawerContent>
           <DrawerHeader>
             <DrawerTitle>Eliminar cita</DrawerTitle>
             <DrawerDescription>{deleteDialogDescription}</DrawerDescription>
           </DrawerHeader>
+
           <DrawerFooter>
             <Button
               variant="destructive"
-              onClick={() => {
-                handleDelete({
-                  appointmentId,
-                  isAlreadyCancelledOrDenied,
-                });
-                setIsDeleteDialogOpen(false);
-              }}
-              disabled={isDeletingAppointment || isCancellingAppointment}
+              disabled={isDeletingAppointment}
+              onClick={onDelete}
             >
-              {isDeletingAppointment || isCancellingAppointment ? (
-                <Spinner />
-              ) : (
-                "Cancelar y eliminar"
-              )}
+              {isDeletingAppointment && <Spinner />}
+              {deleteButtonLabel}
             </Button>
+
             <DrawerClose asChild>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  resetDeleteState();
-                  setIsDeleteDialogOpen(false);
-                }}
+                disabled={isDeletingAppointment}
               >
                 No, cancelar
               </Button>
@@ -119,66 +91,25 @@ export const DeleteAppointmentDialog: FC<DeleteAppointmentDialogProps> = ({
   }
 
   return (
-    <AlertDialog
-      open={isDeleteDialogOpen}
-      onOpenChange={(value) => {
-        setIsDeleteDialogOpen(value);
-        if (!value) {
-          resetDeleteState();
-        }
-      }}
-    >
-      <AlertDialogTrigger asChild>
-        <DropdownMenuItem
-          className="inline-flex w-full items-center gap-x-2"
-          onSelect={(event) => event.preventDefault()}
-          disabled={isDeletingAppointment || isCancellingAppointment}
-        >
-          <TrashIcon className="size-3 text-destructive dark:text-destructive-foreground" />
-          Cancelar y eliminar
-        </DropdownMenuItem>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Eliminar cita</AlertDialogTitle>
-          <AlertDialogDescription>
-            {deleteDialogDescription}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel asChild>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                resetDeleteState();
-                setIsDeleteDialogOpen(false);
-              }}
-            >
-              No, cancelar
-            </Button>
-          </AlertDialogCancel>
-          <AlertDialogAction asChild>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                handleDelete({
-                  appointmentId,
-                  isAlreadyCancelledOrDenied,
-                });
-                setIsDeleteDialogOpen(false);
-              }}
-              disabled={isDeletingAppointment || isCancellingAppointment}
-            >
-              {isDeletingAppointment || isCancellingAppointment ? (
-                <Spinner />
-              ) : (
-                "Cancelar y eliminar"
-              )}
-            </Button>
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <Dialog>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Eliminar cita</DialogTitle>
+          <DialogDescription>{deleteDialogDescription}</DialogDescription>
+        </DialogHeader>
+
+        <DialogFooter>
+          <Button
+            variant="destructive"
+            disabled={isDeletingAppointment}
+            onClick={onDelete}
+          >
+            {isDeletingAppointment && <Spinner />}
+            {deleteButtonLabel}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

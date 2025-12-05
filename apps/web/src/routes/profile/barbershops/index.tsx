@@ -19,7 +19,7 @@ import {
 import {
   barbersByBarbershopIdQueryOptions,
   useBarbersByBarbershopId,
-} from "@/hooks/use-barbers";
+} from "@/hooks/use-barbershop-members";
 import { profileQueryOptions } from "@/hooks/use-profile";
 import {
   servicesQueryOptions,

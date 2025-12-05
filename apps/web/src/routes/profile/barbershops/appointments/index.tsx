@@ -1,41 +1,15 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: needed */
 
-import type { Appointment } from "@panabarbero/convex/schemas";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { es } from "date-fns/locale";
-import {
-  CalendarCheckIcon,
-  CalendarClockIcon,
-  EllipsisVerticalIcon,
-} from "lucide-react";
-import { useMemo, useState } from "react";
-import { toast } from "sonner";
+import { useState } from "react";
 
-import { DeleteAppointmentDialog } from "@/components/appointments/delete-appointment-dialog";
-import { RescheduleRequestDialog } from "@/components/appointments/reschedule-request-dialog";
+import { AppointmentsForDateTable } from "@/components/appointments/table/appointments-for-date-table";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty";
-import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -44,7 +18,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 import {
   barbershopByOwnerIdQueryOptions,
   useBarbershopByOwnerId,
@@ -52,19 +25,18 @@ import {
 import {
   appointmentsByBarbershopQueryOptions,
   requestRescheduleQueryOptions,
-  useAppointmentActions,
   useAppointmentsByBarbershop,
   useRescheduledAppointmentRequests,
 } from "@/hooks/use-appointments";
+import {
+  isBarberQueryOptions,
+  useIsBarber,
+} from "@/hooks/use-barbershop-members";
 import {
   servicesByIdsQueryOptions,
   useServicesByIds,
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
-import {
-  getAppointmentStatusBadgeVariant,
-  getAppointmentStatusLabel,
-} from "@/lib/appointment-utils";
 
 export const Route = createFileRoute("/profile/barbershops/appointments/")({
   component: RouteComponent,
@@ -77,6 +49,10 @@ export const Route = createFileRoute("/profile/barbershops/appointments/")({
     if (user?.userId) {
       const barbershop = await context.queryClient.ensureQueryData(
         barbershopByOwnerIdQueryOptions(user.userId),
+      );
+
+      await context.queryClient.ensureQueryData(
+        isBarberQueryOptions(user.userId),
       );
 
       if (barbershop?._id) {
@@ -100,25 +76,9 @@ function RouteComponent() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     new Date(),
   );
-  const [isRescheduleOpen, setIsRescheduleOpen] = useState<boolean>(false);
-  const [deleteReason, setDeleteReason] = useState<string>("");
-  const [_, setDeleteError] = useState<string | null>(null);
 
-  const {
-    deleteAppointmentMutation: {
-      mutateAsync: deleteAppointment,
-      isPending: isDeletingAppointment,
-    },
-    cancelAppointmentMutation: {
-      mutateAsync: cancelAppointment,
-      isPending: isCancellingAppointment,
-    },
-    answerRescheduleRequest: {
-      mutateAsync: answerRescheduleRequest,
-      isPending: isAnsweringRescheduleRequest,
-    },
-  } = useAppointmentActions();
   const { data: session } = useSession();
+  const { data: isBarber } = useIsBarber(session?.userId!);
   const { data: barbershop } = useBarbershopByOwnerId(session?.userId!);
   const { data: rescheduledAppointmentRequests } =
     useRescheduledAppointmentRequests(barbershop?._id!);
@@ -126,41 +86,6 @@ function RouteComponent() {
   const { data: services } = useServicesByIds(
     appointments.map((appointment) => appointment.serviceId),
   );
-
-  const handleDelete = async (obj: {
-    appointmentId: Appointment["_id"];
-    isAlreadyCancelledOrDenied: boolean;
-  }) => {
-    const requiresReason = !obj.isAlreadyCancelledOrDenied;
-
-    if (requiresReason && !deleteReason.trim()) {
-      setDeleteError("Debes ingresar una razón para cancelar la cita.");
-      return;
-    }
-
-    if (!session?.userId) {
-      toast.error("Debes iniciar sesión para eliminar esta cita.");
-      return;
-    }
-
-    const reason = deleteReason.trim();
-
-    if (requiresReason) {
-      await cancelAppointment({
-        appointmentId: obj.appointmentId,
-        cancelledByUserId: session.userId,
-        reason,
-      });
-    }
-
-    await deleteAppointment({ appointmentId: obj.appointmentId });
-
-    toast.success("La cita fue cancelada y eliminada exitosamente.");
-
-    setDeleteReason("");
-    setDeleteError(null);
-    resetDeleteState();
-  };
 
   const appointmentsForSelectedDay = appointments
     .filter((appointment) => {
@@ -172,96 +97,6 @@ function RouteComponent() {
       );
     })
     .sort((a, b) => a.date - b.date);
-
-  const resetDeleteState = () => {
-    setDeleteReason("");
-    setDeleteError(null);
-  };
-
-  const [requestToReject, setRequestToReject] = useState<Appointment | null>(
-    null,
-  );
-  const [requestRejectReason, setRequestRejectReason] = useState<string>("");
-  const [requestRejectError, setRequestRejectError] = useState<string | null>(
-    null,
-  );
-  const [requestInProgressId, setRequestInProgressId] = useState<
-    Appointment["_id"] | null
-  >(null);
-  const [requestInProgressAction, setRequestInProgressAction] = useState<
-    "accept" | "reject" | null
-  >(null);
-
-  const isHandlingRequest = useMemo(
-    () => (id: Appointment["_id"], action?: "accept" | "reject") =>
-      requestInProgressId === id &&
-      (action ? requestInProgressAction === action : true),
-    [requestInProgressAction, requestInProgressId],
-  );
-
-  const resetRequestProgress = () => {
-    setRequestInProgressId(null);
-    setRequestInProgressAction(null);
-  };
-
-  const handleRequestAnswer = async (
-    requestId: Appointment["_id"],
-    accepted: boolean,
-    options?: { reason?: string },
-  ) => {
-    if (!session?.userId) {
-      toast.error("Debes iniciar sesión para gestionar la solicitud.");
-      return;
-    }
-
-    setRequestInProgressId(requestId);
-    setRequestInProgressAction(accepted ? "accept" : "reject");
-    try {
-      await answerRescheduleRequest({
-        appointmentId: requestId,
-        accepted,
-      });
-      if (!accepted) {
-        const reason = options?.reason?.trim();
-        if (!reason) {
-          throw new Error("Debes ingresar una razón válida.");
-        }
-        await cancelAppointment({
-          appointmentId: requestId,
-          cancelledByUserId: session.userId,
-          reason,
-        });
-      }
-      toast.success(
-        accepted
-          ? "Has aceptado la solicitud de reagendamiento."
-          : "Has rechazado la solicitud y la cita fue cancelada.",
-      );
-    } catch (error) {
-      console.error(error);
-      toast.error(
-        "No pudimos actualizar la solicitud. Intenta de nuevo en unos segundos.",
-      );
-    } finally {
-      if (!accepted) {
-        setRequestToReject(null);
-        setRequestRejectReason("");
-        setRequestRejectError(null);
-      }
-      resetRequestProgress();
-    }
-  };
-
-  const handleRejectConfirmation = async () => {
-    if (!requestToReject) return;
-    const reason = requestRejectReason.trim();
-    if (!reason) {
-      setRequestRejectError("Debes ingresar una razón para cancelar la cita.");
-      return;
-    }
-
-    await handleRequestAnswer(requestToReject._id, false, { reason });
-  };
 
   return (
     <BorderContainer className="space-y-6">
@@ -282,7 +117,7 @@ function RouteComponent() {
             disabled={(date) =>
               date.getTime() < new Date().setHours(0, 0, 0, 0)
             }
-            className="mx-auto rounded-lg border border-border [--cell-size:--spacing(12)] md:col-span-1 md:ml-auto md:[--cell-size:--spacing(6)] lg:[--cell-size:--spacing(8)] xl:[--cell-size:--spacing(12)]"
+            className="mx-auto rounded-lg border border-border [--cell-size:--spacing(12)] md:col-span-1 md:ml-auto md:[--cell-size:--spacing(7)] lg:[--cell-size:--spacing(9)] xl:[--cell-size:--spacing(12)]"
           />
         </div>
 
@@ -304,123 +139,12 @@ function RouteComponent() {
           </header>
 
           {appointmentsForSelectedDay.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-center">Hora</TableHead>
-                  <TableHead className="text-center">Cliente</TableHead>
-                  <TableHead className="text-center">Servicio</TableHead>
-                  <TableHead className="text-center">Estado</TableHead>
-                  <TableHead className="text-center">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {appointmentsForSelectedDay.map((appointment) => {
-                  const service = services?.find(
-                    (service) => service?._id === appointment.serviceId,
-                  );
-
-                  const isCompleted = appointment.status === "completed";
-                  const isCancelled = appointment.status === "cancelled";
-                  const isConfirmed = appointment.status === "confirmed";
-                  const isDenied = appointment.status === "denied";
-                  const isAlreadyCancelledOrDenied = isCancelled || isDenied;
-                  const canReschedule = !isCompleted && !isCancelled;
-                  const showManageRescheduleLink =
-                    !!appointment.proposedDate && !isConfirmed;
-
-                  return (
-                    <TableRow key={appointment._id}>
-                      <TableCell className="text-center">
-                        {new Date(appointment.date).toLocaleTimeString(
-                          "es-CO",
-                          {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          },
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center font-medium">
-                        {appointment.customerName}
-                      </TableCell>
-                      <TableCell className="text-center text-muted-foreground">
-                        {service?.name}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge
-                          variant={getAppointmentStatusBadgeVariant(
-                            appointment.status,
-                          )}
-                        >
-                          {getAppointmentStatusLabel(appointment.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="icon">
-                              <EllipsisVerticalIcon />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="max-w-64">
-                            <DropdownMenuItem
-                              disabled={!canReschedule}
-                              className="inline-flex w-full items-center gap-x-2"
-                              onSelect={(event) => {
-                                event.preventDefault();
-                                if (!canReschedule) return;
-                                setIsRescheduleOpen(true);
-                              }}
-                            >
-                              <CalendarClockIcon className="size-3" />
-                              Solicitar reagendamiento
-                            </DropdownMenuItem>
-
-                            {showManageRescheduleLink && (
-                              <DropdownMenuItem asChild>
-                                <Link
-                                  to={
-                                    "/profile/appointments/reschedule/$appointmentId"
-                                  }
-                                  params={{ appointmentId: appointment._id }}
-                                  style={{
-                                    viewTransitionName: `appointment-${appointment._id}-reschedule`,
-                                  }}
-                                  className="inline-flex w-full items-center gap-x-2"
-                                >
-                                  <CalendarCheckIcon className="size-3" />
-                                  Gestionar reagendamiento
-                                </Link>
-                              </DropdownMenuItem>
-                            )}
-
-                            <DeleteAppointmentDialog
-                              appointmentId={appointment._id}
-                              handleDelete={handleDelete}
-                              resetDeleteState={resetDeleteState}
-                              isDeletingAppointment={isDeletingAppointment}
-                              isCancellingAppointment={isCancellingAppointment}
-                              isAlreadyCancelledOrDenied={
-                                isAlreadyCancelledOrDenied
-                              }
-                            />
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-
-                        <RescheduleRequestDialog
-                          appointment={appointment}
-                          to="customer"
-                          disabled={!canReschedule}
-                          open={isRescheduleOpen}
-                          onOpenChange={setIsRescheduleOpen}
-                          trigger={null}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <AppointmentsForDateTable
+              appointments={appointmentsForSelectedDay}
+              // @ts-expect-error - services can be null
+              services={services}
+              isBarber={isBarber}
+            />
           ) : (
             <Empty>
               <EmptyTitle>No hay citas para el día seleccionado.</EmptyTitle>
@@ -489,34 +213,15 @@ function RouteComponent() {
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="mx-auto flex items-center justify-center gap-2">
-                        <Button
-                          variant="destructive"
-                          onClick={() => {
-                            setRequestRejectReason("");
-                            setRequestRejectError(null);
-                            setRequestToReject(request);
-                          }}
-                          disabled={
-                            isHandlingRequest(request._id) ||
-                            isAnsweringRescheduleRequest
-                          }
-                        >
-                          {isHandlingRequest(request._id, "reject") && (
-                            <Spinner className="mr-2 size-4" />
-                          )}
-                          Rechazar y cancelar
-                        </Button>
-                        <Button
-                          onClick={() => handleRequestAnswer(request._id, true)}
-                          disabled={
-                            isHandlingRequest(request._id) ||
-                            isAnsweringRescheduleRequest
-                          }
-                        >
-                          {isHandlingRequest(request._id, "accept") && (
-                            <Spinner className="mr-2 size-4" />
-                          )}
-                          Aceptar
+                        <Button asChild variant="outline">
+                          <Link
+                            to={
+                              "/profile/appointments/reschedule/$appointmentId"
+                            }
+                            params={{ appointmentId: request._id }}
+                          >
+                            Ver solicitud
+                          </Link>
                         </Button>
                       </div>
                     </TableCell>
@@ -537,69 +242,6 @@ function RouteComponent() {
           </Empty>
         )}
       </div>
-      <AlertDialog
-        open={!!requestToReject}
-        onOpenChange={(open) => {
-          if (!open) {
-            setRequestToReject(null);
-            setRequestRejectReason("");
-            setRequestRejectError(null);
-          }
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancelar cita</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción rechazará la solicitud y cancelará la cita de{" "}
-              {requestToReject?.customerName}. ¿Deseas continuar?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-3 text-left">
-            <Textarea
-              value={requestRejectReason}
-              onChange={(event) => {
-                setRequestRejectReason(event.target.value);
-                if (requestRejectError) {
-                  setRequestRejectError(null);
-                }
-              }}
-              placeholder="Explica por qué no puedes aceptar el reagendamiento."
-            />
-            {requestRejectError ? (
-              <p className="text-destructive text-sm">{requestRejectError}</p>
-            ) : null}
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel asChild>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setRequestToReject(null)}
-              >
-                No, conservar cita
-              </Button>
-            </AlertDialogCancel>
-            <AlertDialogAction asChild>
-              <Button
-                variant="destructive"
-                onClick={handleRejectConfirmation}
-                disabled={
-                  !requestToReject ||
-                  isHandlingRequest(requestToReject._id, "reject") ||
-                  !requestRejectReason.trim()
-                }
-              >
-                {requestToReject &&
-                isHandlingRequest(requestToReject._id, "reject") ? (
-                  <Spinner className="mr-2 size-4" />
-                ) : null}
-                Sí, cancelar cita
-              </Button>
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </BorderContainer>
   );
 }

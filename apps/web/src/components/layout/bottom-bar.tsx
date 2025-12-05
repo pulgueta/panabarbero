@@ -1,7 +1,7 @@
 import { tanstack } from "@panabarbero/constants";
 import { Link, useRouterState } from "@tanstack/react-router";
 
-import { useIsBarber } from "@/hooks/use-barbers";
+import { useIsBarber } from "@/hooks/use-barbershop-members";
 import { useSession } from "@/hooks/use-session";
 import { cn } from "@/lib/utils";
 import { ThemeToggler } from "./theme-toggler";

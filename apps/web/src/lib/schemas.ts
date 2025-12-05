@@ -200,7 +200,7 @@ export const appointmentFormSchema = object({
     .min(6, "El email debe tener al menos 6 caracteres")
     .max(255, "El email debe tener menos de 255 caracteres"),
   notes: string().optional(),
-  barberId: zodAny(),
+  barbershopMemberId: zodAny(),
 });
 
 export const reviewFormSchema = object({
@@ -252,4 +252,14 @@ export const rescheduleRequestFormSchema = object({
 
 export type RescheduleRequestFormData = output<
   typeof rescheduleRequestFormSchema
+>;
+
+export const cancelAppointmentFormSchema = object({
+  notes: string()
+    .min(3, "Debes proporcionar una explicación para la cancelación.")
+    .max(300, "La nota debe tener máximo 300 caracteres"),
+});
+
+export type CancelAppointmentFormData = output<
+  typeof cancelAppointmentFormSchema
 >;

@@ -21,7 +21,10 @@ import {
   appointmentsByUserQueryOptions,
   useAppointmentsByUser,
 } from "@/hooks/use-appointments";
-import { isBarberQueryOptions, useIsBarber } from "@/hooks/use-barbers";
+import {
+  isBarberQueryOptions,
+  useIsBarber,
+} from "@/hooks/use-barbershop-members";
 import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
 import {
   reviewsByUserQueryOptions,
@@ -162,7 +165,10 @@ function ProfilePage() {
 
           <Activity mode={activeTab === "appointments" ? "visible" : "hidden"}>
             <TabsContent value="appointments" className="pt-2">
-              <AppointmentsTab appointments={appointments} />
+              <AppointmentsTab
+                appointments={appointments}
+                isBarber={isBarber}
+              />
             </TabsContent>
           </Activity>
 

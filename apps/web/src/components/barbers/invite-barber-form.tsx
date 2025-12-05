@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { useBarberActions } from "@/hooks/use-barbers";
+import { useBarberActions } from "@/hooks/use-barbershop-members";
 import { inviteBarberFormSchema } from "@/lib/schemas";
 
 interface InviteBarberFormProps {

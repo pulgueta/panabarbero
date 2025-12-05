@@ -1,14 +1,10 @@
-import {
-  convexQuery,
-  useConvexAction,
-  useConvexMutation,
-} from "@convex-dev/react-query";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@panabarbero/convex/api";
 import type { Barbershop, Service } from "@panabarbero/convex/schemas";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 
 export function createServiceMutationOptions() {
-  return useConvexAction(api.services.createService);
+  return useConvexMutation(api.services.createService);
 }
 
 export function updateServiceMutationOptions() {

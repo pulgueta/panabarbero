@@ -1,25 +1,14 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: needed */
 import type { Appointment } from "@panabarbero/convex/schemas";
-import { createFileRoute } from "@tanstack/react-router";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
-import { useEffect, useMemo, useState } from "react";
+import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { toast } from "sonner";
 
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
 import { Spinner } from "@/components/ui/spinner";
 import {
   appointmentByIdQueryOptions,
@@ -30,14 +19,8 @@ import {
   barberByUserIdQueryOptions,
   useBarberByUserId,
   useIsBarber,
-} from "@/hooks/use-barbers";
+} from "@/hooks/use-barbershop-members";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
-
-const formatDate = (timestamp?: number) => {
-  if (!timestamp) return "Sin información";
-
-  return format(new Date(timestamp), "PPPp", { locale: es });
-};
 
 export const Route = createFileRoute(
   "/profile/appointments/reschedule/$appointmentId",
@@ -61,10 +44,9 @@ export const Route = createFileRoute(
 });
 
 function RouteComponent() {
-  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState<boolean>(false);
-
   const navigate = Route.useNavigate();
   const { appointmentId } = Route.useParams();
+  const router = useRouter();
 
   const { data: appointment } = useAppointmentById(
     appointmentId as Appointment["_id"],
@@ -78,15 +60,12 @@ function RouteComponent() {
       mutateAsync: answerReschedule,
       isPending: isAnswering,
     },
-    cancelAppointmentMutation: {
-      mutateAsync: cancelAppointment,
-      isPending: isCancellingAppointment,
-    },
   } = useAppointmentActions();
 
-  const isCustomer = session?.userId === appointment?.userId;
+  const isCustomer = session?.userId === appointment?.userId && !isBarber;
+
   const isBarberForAppointment =
-    isBarber && appointment?.barberId === barberRecord?._id;
+    isBarber && appointment?.barbershopMemberId === barberRecord?._id;
   const hasPendingProposal = !!appointment?.proposedDate;
   const appointmentWithRequester = appointment as Appointment & {
     rescheduleRequestedByUserId?: string | null;
@@ -106,37 +85,46 @@ function RouteComponent() {
     }
   }, [appointment, canView, navigate, redirectTo, session?.userId]);
 
-  const appointmentInfo = useMemo(
-    () => [
-      {
-        label: "Fecha original",
-        value: formatDate(appointment?.date),
-      },
-      {
-        label: "Nueva fecha propuesta",
-        value: appointment?.proposedDate
-          ? formatDate(appointment.proposedDate)
-          : "Aún no se ha propuesto una fecha",
-      },
-      {
-        label: "Cliente",
-        value: appointment?.customerName ?? "Sin información",
-      },
-      {
-        label: "Correo de contacto",
-        value: appointment?.contactEmail ?? "Sin información",
-      },
-      {
-        label: "Teléfono de contacto",
-        value: appointment?.contactPhone ?? "Sin información",
-      },
-    ],
-    [appointment],
-  );
+  if (!appointment) {
+    throw redirect({ to: redirectTo });
+  }
+
+  const appointmentInfo = [
+    {
+      label: "Fecha original",
+      value: new Date(appointment.date).toLocaleDateString("es-CO", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    },
+    {
+      label: "Nueva fecha propuesta",
+      value: new Date(appointment.proposedDate!).toLocaleDateString("es-CO", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    },
+    {
+      label: "Cliente",
+      value: appointment.customerName,
+    },
+    {
+      label: "Correo de contacto",
+      value: appointment.contactEmail,
+    },
+    {
+      label: "Teléfono de contacto",
+      value: appointment.contactPhone,
+    },
+  ];
 
   const handleAnswer = async (accepted: boolean) => {
-    if (!appointment) return;
-
     await answerReschedule({
       appointmentId: appointment._id,
       accepted,
@@ -150,26 +138,6 @@ function RouteComponent() {
 
     navigate({ to: redirectTo });
   };
-
-  const handleCancelAppointment = async () => {
-    if (!appointment || !session?.userId) return;
-
-    await cancelAppointment({
-      appointmentId: appointment._id,
-      cancelledByUserId: session.userId,
-      reason: "El cliente canceló la cita tras la solicitud de reagendamiento.",
-    });
-
-    toast.success("La cita ha sido cancelada.");
-
-    setIsCancelDialogOpen(false);
-
-    navigate({ to: redirectTo });
-  };
-
-  if (!appointment) {
-    return null;
-  }
 
   const canRespond =
     hasPendingProposal && !!requesterUserId && canView && !isRequester;
@@ -208,16 +176,6 @@ function RouteComponent() {
         </div>
       </div>
 
-      {!hasPendingProposal ? (
-        <Alert variant="warning">
-          <AlertTitle>No hay solicitud activa</AlertTitle>
-          <AlertDescription>
-            La cita no cuenta con una fecha propuesta para reagendamiento. Pide
-            a tu cliente que envíe una nueva solicitud si aún desea reagendar.
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
       {isRequester && hasPendingProposal && (
         <Alert>
           <AlertTitle>Solicitud enviada</AlertTitle>
@@ -229,49 +187,22 @@ function RouteComponent() {
       )}
 
       {canRespond && (
-        <div className="flex flex-wrap gap-3">
+        <ButtonGroup>
+          <Button variant="outline" onClick={() => router.history.back()}>
+            Volver
+          </Button>
           <Button
             variant="destructive"
-            disabled={isAnswering || isCancellingAppointment}
+            disabled={isAnswering}
             onClick={() => handleAnswer(false)}
           >
-            {isCancellingAppointment && <Spinner />} Rechazar y cancelar
+            {isAnswering && <Spinner />} Rechazar
           </Button>
-          <Button
-            disabled={isAnswering || isCancellingAppointment}
-            onClick={() => handleAnswer(true)}
-          >
+          <Button disabled={isAnswering} onClick={() => handleAnswer(true)}>
             {isAnswering && <Spinner />} Aceptar
           </Button>
-        </div>
+        </ButtonGroup>
       )}
-
-      <AlertDialog
-        open={isCancelDialogOpen}
-        onOpenChange={setIsCancelDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancelar cita</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción cancelará la cita de forma definitiva y notificará al
-              barbero. ¿Deseas continuar?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Seguir esperando</AlertDialogCancel>
-            <AlertDialogAction asChild>
-              <Button
-                variant="destructive"
-                onClick={handleCancelAppointment}
-                disabled={isCancellingAppointment}
-              >
-                {isCancellingAppointment ? <Spinner /> : "Sí, cancelar cita"}
-              </Button>
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </BorderContainer>
   );
 }

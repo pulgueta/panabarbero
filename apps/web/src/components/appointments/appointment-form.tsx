@@ -45,7 +45,7 @@ import {
   useAppointmentActions,
   useAppointmentFormMetadata,
 } from "@/hooks/use-appointments";
-import { useBarbersByBarbershopId } from "@/hooks/use-barbers";
+import { useBarbersByBarbershopId } from "@/hooks/use-barbershop-members";
 import { useProfile } from "@/hooks/use-profile";
 import { useServicesFromBarbershop } from "@/hooks/use-services";
 import type { AppointmentFormData } from "@/lib/schemas";
@@ -75,7 +75,7 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
     contactEmail: useId(),
     notes: useId(),
     form: useId(),
-    barberId: useId(),
+    barbershopMemberId: useId(),
     serviceId: useId(),
   };
 
@@ -107,7 +107,7 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
       contactPhone: initialValues?.contactPhone ?? userProfile?.phoneNumber,
       contactEmail: initialValues?.contactEmail ?? userProfile?.email,
       notes: "",
-      barberId:
+      barbershopMemberId:
         barbers?.length && barbers?.length > 1 ? undefined : barbers?.[0]._id,
     },
   });
@@ -118,7 +118,7 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
       return;
     }
 
-    if (!formData.barberId) {
+    if (!formData.barbershopMemberId) {
       toast.error("Debes seleccionar un barbero");
       return;
     }
@@ -169,6 +169,7 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
         userId,
         barbershopId: service.barbershopId,
         serviceId: selectedService._id || service._id,
+        barbershopMemberId: formData.barbershopMemberId,
       },
     });
 
@@ -286,11 +287,11 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
             </div>
           ) : barbers?.length && barbers?.length > 0 ? (
             <Controller
-              name="barberId"
+              name="barbershopMemberId"
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={formIds.barberId}>
+                  <FieldLabel htmlFor={formIds.barbershopMemberId}>
                     {barbers?.length > 1 ? "Seleccione un barbero" : "Barbero"}
                   </FieldLabel>
                   {barbers?.length > 1 ? (
@@ -313,11 +314,15 @@ export const AppointmentForm: FC<AppointmentFormProps> = ({
                   ) : (
                     <>
                       <Input
-                        id={`${formIds.barberId}-display`}
+                        id={`${formIds.barbershopMemberId}-display`}
                         disabled
                         value={barbers[0].name}
                       />
-                      <Input {...field} id={formIds.barberId} type="hidden" />
+                      <Input
+                        {...field}
+                        id={formIds.barbershopMemberId}
+                        type="hidden"
+                      />
                     </>
                   )}
                   {fieldState.invalid && (

@@ -3,7 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useIsBarber } from "@/hooks/use-barbers";
+import { useIsBarber } from "@/hooks/use-barbershop-members";
 import { useSession } from "@/hooks/use-session";
 import { ThemeToggler } from "../theme-toggler";
 import { UserPopover } from "./user-popover";

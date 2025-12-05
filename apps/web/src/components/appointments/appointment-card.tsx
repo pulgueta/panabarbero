@@ -1,13 +1,13 @@
-import type { Appointment } from "@panabarbero/convex/schemas";
-import { CheckCircle, Edit, Star, Trash2, XCircle } from "lucide-react";
+import type { Appointment, Barbershop } from "@panabarbero/convex/schemas";
+import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -15,112 +15,105 @@ import {
   getAppointmentStatusBadgeVariant,
   getAppointmentStatusLabel,
 } from "@/lib/appointment-utils";
+import { CancelAppointmentDialog } from "./cancel-appointment-dialog";
+import { DeleteAppointmentDialog } from "./delete-appointment-dialog";
+import { RescheduleRequestDialog } from "./reschedule-request-dialog";
 
-type AppointmentCardProps = {
-  appointment: Appointment & { _id: string };
-  onConfirm?: (id: string) => void;
-  onCancel?: (id: string) => void;
-  onComplete?: (id: string) => void;
-  onEdit?: (id: string) => void;
-  onDelete?: (id: string) => void;
-  onAddReview?: (id: string) => void;
-  details?: {
-    barbershop?: string;
-    barber?: string;
-    service?: string;
-    priceLabel?: string;
-  };
-};
+interface AppointmentCardProps {
+  appointment: Appointment;
+  barbershop: Barbershop;
+  isBarber: boolean;
+}
 
-export const AppointmentCard: FC<AppointmentCardProps> = (props) => {
-  const {
-    appointment,
-    onConfirm,
-    onCancel,
-    onComplete,
-    onEdit,
-    onDelete,
-    onAddReview,
-  } = props;
+export const AppointmentCard: FC<AppointmentCardProps> = ({
+  appointment,
+  barbershop,
+  isBarber,
+}) => {
+  const originalDate = new Date(appointment.date);
+
+  const dateString = new Date(originalDate).toLocaleDateString("es-CO", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const disableReschedule =
+    appointment.status === "completed" ||
+    appointment.status === "cancelled" ||
+    appointment.status === "pending" ||
+    appointment.status === "denied";
+
+  const isCancelledOrDenied =
+    appointment.status === "cancelled" || appointment.status === "denied";
 
   return (
-    <Card className="transition-shadow hover:shadow-lg">
+    <Card key={appointment._id}>
       <CardHeader>
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-xl">{appointment.userId}</CardTitle>
-            <CardDescription className="mt-1">
-              {appointment.contactPhone}
-            </CardDescription>
+        <div className="flex flex-row items-center justify-between">
+          <div className="flex flex-col items-start justify-center">
+            <CardTitle className="text-base">{barbershop?.name}</CardTitle>
+            <CardDescription>{dateString}</CardDescription>
           </div>
+
           <Badge variant={getAppointmentStatusBadgeVariant(appointment.status)}>
             {getAppointmentStatusLabel(appointment.status)}
           </Badge>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <p className="text-muted-foreground text-sm">Barbería</p>
-            <p className="font-medium">{String(appointment.barbershopId)}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground text-sm">Barbero</p>
-            <p className="font-medium">{String(appointment.barberId)}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground text-sm">Servicio</p>
-            <p className="font-medium">{String(appointment.serviceId)}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground text-sm">Contacto</p>
-            <p className="font-medium">{appointment.contactPhone}</p>
-          </div>
-        </div>
+      <CardFooter className="flex w-full flex-col items-center gap-2 md:flex-row">
+        {!appointment.proposedDate && (
+          <RescheduleRequestDialog
+            to={!isBarber ? "barber" : "customer"}
+            appointment={appointment}
+            trigger={
+              <Button disabled={disableReschedule} className="w-full md:w-auto">
+                Reagendar
+              </Button>
+            }
+          />
+        )}
 
-        <div className="flex flex-wrap gap-2">
-          {appointment.status === "pending" && (
-            <>
-              <Button onClick={() => onConfirm?.(appointment._id)}>
-                <CheckCircle className="mr-1 h-3 w-3" /> Confirmar
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => onCancel?.(appointment._id)}
-              >
-                <XCircle className="mr-1 h-3 w-3" /> Cancelar
-              </Button>
-            </>
-          )}
-          {appointment.status === "confirmed" && (
-            <>
-              <Button onClick={() => onComplete?.(appointment._id)}>
-                <CheckCircle className="mr-1 h-3 w-3" /> Completar
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => onCancel?.(appointment._id)}
-              >
-                <XCircle className="mr-1 h-3 w-3" /> Cancelar
-              </Button>
-            </>
-          )}
-          {appointment.status === "completed" && (
-            <Button
-              variant="outline"
-              onClick={() => onAddReview?.(appointment._id)}
+        {appointment.proposedDate && (
+          <Button
+            variant="link"
+            disabled={appointment.status === "completed"}
+            className="w-full text-muted-foreground md:w-auto"
+            asChild
+          >
+            <Link
+              to="/profile/appointments/reschedule/$appointmentId"
+              params={{ appointmentId: appointment._id }}
             >
-              <Star className="mr-1 h-3 w-3" /> Reseña
-            </Button>
-          )}
-          <Button variant="outline" onClick={() => onEdit?.(appointment._id)}>
-            <Edit className="mr-1 h-3 w-3" /> Editar
+              Ver solicitud
+            </Link>
           </Button>
-          <Button variant="outline" onClick={() => onDelete?.(appointment._id)}>
-            <Trash2 className="mr-1 h-3 w-3" /> Eliminar
-          </Button>
-        </div>
-      </CardContent>
+        )}
+
+        {isCancelledOrDenied ? (
+          <DeleteAppointmentDialog
+            appointment={appointment}
+            trigger={
+              <Button variant="destructive" className="w-full md:w-auto">
+                Eliminar
+              </Button>
+            }
+          />
+        ) : (
+          <CancelAppointmentDialog
+            appointment={appointment}
+            userId={appointment.userId}
+            isBarber={isBarber}
+            trigger={
+              <Button variant="destructive" className="w-full md:w-auto">
+                Cancelar
+              </Button>
+            }
+          />
+        )}
+      </CardFooter>
     </Card>
   );
 };
