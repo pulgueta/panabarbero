@@ -49,6 +49,7 @@ export const AppointmentsForDateTable: FC<AppointmentsForDateTableProps> = ({
           <TableHead className="text-center">Hora</TableHead>
           <TableHead className="text-center">Cliente</TableHead>
           <TableHead className="text-center">Servicio</TableHead>
+          <TableHead className="text-center">Notas</TableHead>
           <TableHead className="text-center">Estado</TableHead>
           <TableHead className="text-center">Acciones</TableHead>
         </TableRow>
@@ -84,6 +85,9 @@ export const AppointmentsForDateTable: FC<AppointmentsForDateTableProps> = ({
               </TableCell>
               <TableCell className="text-center text-muted-foreground">
                 {service?.name}
+              </TableCell>
+              <TableCell className="text-center">
+                {appointment.notes ?? "N/A"}
               </TableCell>
               <TableCell className="text-center">
                 <Badge

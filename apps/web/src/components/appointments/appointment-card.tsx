@@ -46,6 +46,11 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
     appointment.status === "pending" ||
     appointment.status === "denied";
 
+  const showCancelOrDeleteButton =
+    appointment.status !== "completed" &&
+    appointment.status !== "cancelled" &&
+    appointment.status !== "denied";
+
   const isCancelledOrDenied =
     appointment.status === "cancelled" || appointment.status === "denied";
 
@@ -92,27 +97,28 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
           </Button>
         )}
 
-        {isCancelledOrDenied ? (
-          <DeleteAppointmentDialog
-            appointment={appointment}
-            trigger={
-              <Button variant="destructive" className="w-full md:w-auto">
-                Eliminar
-              </Button>
-            }
-          />
-        ) : (
-          <CancelAppointmentDialog
-            appointment={appointment}
-            userId={appointment.userId}
-            isBarber={isBarber}
-            trigger={
-              <Button variant="destructive" className="w-full md:w-auto">
-                Cancelar
-              </Button>
-            }
-          />
-        )}
+        {showCancelOrDeleteButton &&
+          (isCancelledOrDenied ? (
+            <DeleteAppointmentDialog
+              appointment={appointment}
+              trigger={
+                <Button variant="destructive" className="w-full md:w-auto">
+                  Eliminar
+                </Button>
+              }
+            />
+          ) : (
+            <CancelAppointmentDialog
+              appointment={appointment}
+              userId={appointment.userId}
+              isBarber={isBarber}
+              trigger={
+                <Button variant="destructive" className="w-full md:w-auto">
+                  Cancelar
+                </Button>
+              }
+            />
+          ))}
       </CardFooter>
     </Card>
   );

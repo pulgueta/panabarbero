@@ -125,13 +125,11 @@ function RouteComponent() {
           <header className="mb-4 flex flex-col gap-1">
             <h2 className="font-semibold text-lg">
               Citas para:{" "}
-              {selectedDate
-                ? selectedDate.toLocaleDateString("es-CO", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })
-                : "la fecha seleccionada"}
+              {selectedDate?.toLocaleDateString("es-CO", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
             </h2>
             <p className="text-muted-foreground text-sm">
               {appointmentsForSelectedDay.length} cita(s) encontradas

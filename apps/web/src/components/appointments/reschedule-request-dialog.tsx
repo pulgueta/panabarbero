@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/style/noNonNullAssertion: needed */
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Appointment } from "@panabarbero/convex/schemas";
 import type { FC, ReactNode } from "react";
@@ -33,6 +34,7 @@ import {
   useAppointmentFormMetadata,
 } from "@/hooks/use-appointments";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useSession } from "@/hooks/use-session";
 import { rescheduleRequestFormSchema } from "@/lib/schemas";
 import { RescheduleRequestForm } from "./reschedule-request-form";
 
@@ -62,6 +64,7 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
     },
   });
 
+  const { data: session } = useSession();
   const { isMobile } = useIsMobile();
   const {
     disableDay,
@@ -116,7 +119,7 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
     await rescheduleRequest({
       appointmentId: appointment._id,
       proposedDate: timestamp,
-      requestedByUserId: appointment.userId,
+      requestedByUserId: session?.userId!,
       note: values.note,
     });
 

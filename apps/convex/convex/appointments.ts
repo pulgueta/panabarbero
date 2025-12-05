@@ -782,15 +782,12 @@ export const requestReschedule = mutation({
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
-    console.log("user", user);
-    console.log("requestedByUserId", args.requestedByUserId);
-
     if (!user) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    if (user.userId !== args.requestedByUserId) {
-      throw new ConvexError(errorMessages.unauthorized);
+    if (user.userId === args.requestedByUserId) {
+      throw new ConvexError("No puedes solicitar reagendamiento a ti mismo.");
     }
 
     const { ok, retryAfter } = await rateLimiter.limit(
