@@ -46,13 +46,8 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
     appointment.status === "pending" ||
     appointment.status === "denied";
 
-  const showCancelOrDeleteButton =
-    appointment.status !== "completed" &&
-    appointment.status !== "cancelled" &&
-    appointment.status !== "denied";
-
-  const isCancelledOrDenied =
-    appointment.status === "cancelled" || appointment.status === "denied";
+  const isCancelled = appointment.status === "cancelled";
+  const isDenied = appointment.status === "denied";
 
   return (
     <Card key={appointment._id}>
@@ -69,7 +64,7 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
         </div>
       </CardHeader>
       <CardFooter className="flex w-full flex-col items-center gap-2 md:flex-row">
-        {!appointment.proposedDate && (
+        {!appointment.proposedDate && !isCancelled && !isDenied && (
           <RescheduleRequestDialog
             to={!isBarber ? "barber" : "customer"}
             appointment={appointment}
@@ -97,28 +92,29 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
           </Button>
         )}
 
-        {showCancelOrDeleteButton &&
-          (isCancelledOrDenied ? (
-            <DeleteAppointmentDialog
-              appointment={appointment}
-              trigger={
-                <Button variant="destructive" className="w-full md:w-auto">
-                  Eliminar
-                </Button>
-              }
-            />
-          ) : (
-            <CancelAppointmentDialog
-              appointment={appointment}
-              userId={appointment.userId}
-              isBarber={isBarber}
-              trigger={
-                <Button variant="destructive" className="w-full md:w-auto">
-                  Cancelar
-                </Button>
-              }
-            />
-          ))}
+        {(isCancelled || isDenied) && (
+          <DeleteAppointmentDialog
+            appointment={appointment}
+            trigger={
+              <Button variant="destructive" className="w-full md:w-auto">
+                Eliminar
+              </Button>
+            }
+          />
+        )}
+
+        {!isCancelled && !isDenied && (
+          <CancelAppointmentDialog
+            appointment={appointment}
+            userId={appointment.userId}
+            isBarber={isBarber}
+            trigger={
+              <Button variant="destructive" className="w-full md:w-auto">
+                Cancelar
+              </Button>
+            }
+          />
+        )}
       </CardFooter>
     </Card>
   );
