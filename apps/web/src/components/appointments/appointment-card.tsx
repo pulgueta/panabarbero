@@ -49,6 +49,8 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
   const isCancelled = appointment.status === "cancelled";
   const isDenied = appointment.status === "denied";
 
+  const showDeleteButton = isCancelled || isDenied;
+
   return (
     <Card key={appointment._id}>
       <CardHeader>
@@ -64,7 +66,7 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
         </div>
       </CardHeader>
       <CardFooter className="flex w-full flex-col items-center gap-2 md:flex-row">
-        {!appointment.proposedDate && !isCancelled && !isDenied && (
+        {!appointment.proposedDate && !showDeleteButton && (
           <RescheduleRequestDialog
             to={!isBarber ? "barber" : "customer"}
             appointment={appointment}
@@ -92,7 +94,7 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
           </Button>
         )}
 
-        {(isCancelled || isDenied) && (
+        {showDeleteButton ? (
           <DeleteAppointmentDialog
             appointment={appointment}
             trigger={
@@ -101,9 +103,7 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
               </Button>
             }
           />
-        )}
-
-        {!isCancelled && !isDenied && (
+        ) : (
           <CancelAppointmentDialog
             appointment={appointment}
             userId={appointment.userId}
