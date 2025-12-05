@@ -54,16 +54,11 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
   return (
     <Card key={appointment._id}>
       <CardHeader>
-        <div className="flex flex-row items-center justify-between">
-          <div className="flex flex-col items-start justify-center">
-            <CardTitle className="text-base">{barbershop?.name}</CardTitle>
-            <CardDescription>{dateString}</CardDescription>
-          </div>
-
-          <Badge variant={getAppointmentStatusBadgeVariant(appointment.status)}>
-            {getAppointmentStatusLabel(appointment.status)}
-          </Badge>
-        </div>
+        <CardTitle className="text-base">{barbershop?.name}</CardTitle>
+        <CardDescription>{dateString}</CardDescription>
+        <Badge variant={getAppointmentStatusBadgeVariant(appointment.status)}>
+          {getAppointmentStatusLabel(appointment.status)}
+        </Badge>
       </CardHeader>
       <CardFooter className="flex w-full flex-col items-center gap-2 md:flex-row">
         {!appointment.proposedDate && !showDeleteButton && (
