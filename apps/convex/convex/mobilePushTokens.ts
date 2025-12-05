@@ -2,17 +2,15 @@ import { PushNotifications } from "@convex-dev/expo-push-notifications";
 import { v } from "convex/values";
 import { components } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { internalMutation, mutation, query } from "./_generated/server";
+import { internalMutation, mutation } from "./_generated/server";
 import { authComponent } from "./auth";
-import { tables } from "./tables";
 
 const pushNotifications = new PushNotifications(components.pushNotifications);
 
 export const createMobilePushToken = mutation({
   args: {
-    values: v.object({
-      ...tables.mobilePushTokens,
-    }),
+    token: v.string(),
+    userId: v.string(),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
@@ -23,49 +21,22 @@ export const createMobilePushToken = mutation({
       });
     }
 
-    if (user.userId !== args.values.userId) {
+    if (user.userId !== args.userId) {
       throw new Error(
         "You are not authorized to create this mobile push token",
         {
-          cause: `Invalid user ID: ${args.values.userId}`,
+          cause: `Invalid user ID: ${args.userId}`,
         },
       );
     }
 
-    await pushNotifications.recordToken(ctx, {
+    const tokenId = await pushNotifications.recordToken(ctx, {
       // @ts-expect-error - TODO: fix this
       userId: user.userId as Id<"users">,
-      pushToken: args.values.token,
-    });
-
-    const tokenId = await ctx.db.insert("mobile_push_tokens", {
-      ...args.values,
-      userId: args.values.userId,
-      uuid: crypto.randomUUID(),
+      pushToken: args.token,
     });
 
     return tokenId;
-  },
-});
-
-export const getMobilePushTokensForUser = query({
-  args: { userId: v.string() },
-  handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
-
-    if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
-    }
-
-    const tokens = await ctx.db
-      .query("mobile_push_tokens")
-      .withIndex("by_userId")
-      .filter(({ eq, field }) => eq(field("userId"), args.userId))
-      .collect();
-
-    return tokens;
   },
 });
 

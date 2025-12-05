@@ -65,7 +65,7 @@ export const createAppointment = mutation({
       userId: v.string(),
       barbershopId: v.id("barbershops"),
       serviceId: v.id("services"),
-      barberId: v.id("barbers"),
+      barbershopMemberId: v.id("barbershopMembers"),
       date: v.number(),
       contactPhone: v.string(),
       customerName: v.string(),
@@ -84,7 +84,7 @@ export const createAppointment = mutation({
 
     const [service, barber] = await Promise.all([
       ctx.db.get(appointment.serviceId),
-      ctx.db.get(appointment.barberId),
+      ctx.db.get(appointment.barbershopMemberId),
     ]);
 
     if (!barber) {
@@ -110,7 +110,7 @@ export const createAppointment = mutation({
       )
       .filter((q) =>
         q.and(
-          q.eq(q.field("barberId"), appointment.barberId),
+          q.eq(q.field("barbershopMemberId"), appointment.barbershopMemberId),
           q.and(
             q.gte(q.field("date"), startOfDay.getTime()),
             q.lte(q.field("date"), endOfDay.getTime()),
@@ -459,7 +459,7 @@ export const getAppointmentByUserIdAndBarbershopId = query({
 
 export const getAppointmentsByBarberId = query({
   args: {
-    barberId: v.id("barbers"),
+    barbershopMemberId: v.id("barbershopMembers"),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
@@ -469,7 +469,9 @@ export const getAppointmentsByBarberId = query({
     }
     const appointments = await ctx.db
       .query("appointments")
-      .withIndex("by_barberId", (q) => q.eq("barberId", args.barberId))
+      .withIndex("by_barbershopMemberId", (q) =>
+        q.eq("barbershopMemberId", args.barbershopMemberId),
+      )
       .order("asc")
       .collect();
 
@@ -549,7 +551,7 @@ export const setAppointmentStatus = mutation({
       const title =
         titleMap[args.status as keyof typeof titleMap] ??
         "Actualización de cita";
-      const barber = await ctx.db.get(appt.barberId);
+      const barbershopMember = await ctx.db.get(appt.barbershopMemberId);
 
       await ctx.db.insert("notifications", {
         uuid: crypto.randomUUID(),
@@ -557,7 +559,7 @@ export const setAppointmentStatus = mutation({
         reason,
         title,
         body: title,
-        senderUserId: barber?.userId ?? "system",
+        senderUserId: barbershopMember?.userId ?? "system",
         receiverUserId: appt.userId,
         appointmentId: args.appointmentId,
       });
@@ -668,7 +670,7 @@ export const updateAppointment = mutation({
         (original.date !== appointment.date ||
           original.proposedDate !== appointment.proposedDate));
 
-    const barber = await ctx.db.get(appointment.barberId);
+    const barbershopMember = await ctx.db.get(appointment.barbershopMemberId);
 
     if (isRescheduled) {
       await ctx.db.insert("notifications", {
@@ -677,7 +679,7 @@ export const updateAppointment = mutation({
         reason: "appointment_rescheduled",
         title: "Cita reagendada",
         body: `Tu cita ha sido reagendada con éxito para el ${new Date(appointment.date).toLocaleDateString()}`,
-        senderUserId: barber?.userId ?? "system",
+        senderUserId: barbershopMember?.userId ?? "system",
         receiverUserId: appointment.userId,
         appointmentId,
       });
@@ -698,7 +700,15 @@ export const deleteAppointment = mutation({
     }
     const { appointmentId } = args;
 
+    const appointment = await ctx.db.get(appointmentId);
+
+    if (!appointment) {
+      throw new ConvexError(errorMessages.notFound("cita"));
+    }
+
     await ctx.db.delete(appointmentId);
+
+    // TODO: Notify the barber that the appointment was deleted using the notes
   },
 });
 
@@ -755,7 +765,6 @@ export const cancelAppointment = mutation({
             senderUserId: args.cancelledByUserId,
             receiverUserId: appt.userId,
             appointmentId: args.appointmentId,
-            preview: args.reason ?? "Tu cita ha sido cancelada.",
           },
         },
       );
@@ -771,7 +780,10 @@ export const requestReschedule = mutation({
     note: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    console.log("user", user);
+    console.log("requestedByUserId", args.requestedByUserId);
 
     if (!user) {
       throw new ConvexError(errorMessages.unauthorized);
@@ -857,34 +869,37 @@ export const requestReschedule = mutation({
             senderUserId: requesterProfile.userId,
             channels: customerChannels,
             appointmentId: args.appointmentId,
-            preview: "Tu cita tiene una nueva fecha propuesta.",
           },
         },
       );
     }
 
-    const barber = await ctx.db.get(appt.barberId);
+    const barbershopMember = await ctx.db.get(appt.barbershopMemberId);
 
-    if (!barber) {
+    if (!barbershopMember) {
       throw new ConvexError(errorMessages.notFound("barbero"));
     }
 
-    const barberProfile = await ctx.runQuery(
+    const barbershopMemberProfile = await ctx.runQuery(
       internal.userProfileData.getProfileByUserId,
       {
-        userId: barber.userId,
+        userId: barbershopMember.userId,
       },
     );
 
-    if (!barberProfile) {
+    if (!barbershopMemberProfile) {
       throw new ConvexError(errorMessages.notFound("perfil de barbero"));
     }
 
-    const barberChannels = barberProfile.notificationsPreferences
-      .filter((n) => n.enabled)
-      .map((n) => n.type);
+    const barbershopMemberChannels =
+      barbershopMemberProfile.notificationsPreferences
+        .filter((n) => n.enabled)
+        .map((n) => n.type);
 
-    if (appt.userId === requesterProfile.userId && barberChannels.length > 0) {
+    if (
+      appt.userId === requesterProfile.userId &&
+      barbershopMemberChannels.length > 0
+    ) {
       const requesterName =
         requesterProfile.name ?? appt.customerName ?? "Un cliente";
 
@@ -895,13 +910,12 @@ export const requestReschedule = mutation({
           notification: {
             body: `${requesterName} solicitó reagendar la cita para el ${formattedDate}.${noteSuffix}`,
             reason: "appointment_rescheduled_request",
-            receiverUserId: barber.userId,
+            receiverUserId: barbershopMember.userId,
             title: "Solicitud de reagendamiento",
             uuid: crypto.randomUUID(),
             senderUserId: requesterProfile.userId,
-            channels: barberChannels,
+            channels: barbershopMemberChannels,
             appointmentId: args.appointmentId,
-            preview: "Tienes una solicitud de reagendamiento pendiente.",
           },
         },
       );
@@ -950,16 +964,16 @@ export const notifyUpcomingAppointment = internalMutation({
       throw new ConvexError(errorMessages.notFound("cita"));
     }
 
-    const barber = await ctx.db.get(appointment.barberId);
+    const barbershopMember = await ctx.db.get(appointment.barbershopMemberId);
 
-    if (!barber) {
+    if (!barbershopMember) {
       throw new ConvexError(errorMessages.notFound("barbero"));
     }
 
     const barberProfile = await ctx.runQuery(
       internal.userProfileData.getProfileByUserId,
       {
-        userId: barber.userId,
+        userId: barbershopMember.userId,
       },
     );
 
@@ -1009,7 +1023,7 @@ export const notifyUpcomingAppointment = internalMutation({
             title: notificationTexts.subject,
             uuid: crypto.randomUUID(),
             channels: channels.barber,
-            receiverUserId: barber.userId,
+            receiverUserId: barbershopMember.userId,
             appointmentId: args.appointmentId,
           },
         },
@@ -1034,7 +1048,7 @@ export const answerRescheduleRequest = mutation({
 
     if (!appt) throw new ConvexError(errorMessages.notFound("cita"));
 
-    const newStatus = args.accepted ? "rescheduled" : "cancelled";
+    const newStatus = args.accepted ? "rescheduled" : "denied";
 
     await ctx.db.patch(args.appointmentId, {
       status: newStatus,
@@ -1042,7 +1056,7 @@ export const answerRescheduleRequest = mutation({
       proposedDate: undefined,
       rescheduleRequestedByUserId: undefined,
       notes: args.accepted
-        ? appt.notes
+        ? undefined
         : "Petición rechazada, la cita ha sido cancelada.",
     });
 
@@ -1085,7 +1099,6 @@ export const answerRescheduleRequest = mutation({
             senderUserId: "system",
             channels: userChannels,
             appointmentId: args.appointmentId,
-            preview: title,
           },
         },
       );
@@ -1133,7 +1146,7 @@ export const appointmentOverlaps = internalQuery({
       )
       .filter((q) =>
         q.and(
-          q.eq(q.field("barberId"), appointment.barberId),
+          q.eq(q.field("barbershopMemberId"), appointment.barbershopMemberId),
           q.and(
             q.gte(q.field("date"), startOfDay.getTime()),
             q.lte(q.field("date"), endOfDay.getTime()),

@@ -3,17 +3,17 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
-import type { Barber } from "./tables";
+import type { BarbershopMember } from "./tables";
 import { tables } from "./tables";
 
-type BarberWithName = Barber & {
+type BarbershopMemberWithName = BarbershopMember & {
   name: string;
 };
 
-export const createBarber = internalMutation({
+export const createBarbershopMember = internalMutation({
   args: {
-    barber: v.object({
-      ...tables.barbers,
+    barbershopMember: v.object({
+      ...tables.barbershopMembers,
     }),
   },
   handler: async (ctx, args) => {
@@ -25,13 +25,14 @@ export const createBarber = internalMutation({
       });
     }
 
-    const barberId = await ctx.db.insert("barbers", {
-      ...args.barber,
+    const barbershopMemberId = await ctx.db.insert("barbershopMembers", {
+      ...args.barbershopMember,
       userId: user.userId ?? "",
+      role: "barber",
       uuid: crypto.randomUUID(),
     });
 
-    return barberId;
+    return barbershopMemberId;
   },
 });
 
@@ -39,9 +40,9 @@ export const getBarbersByBarbershopId = query({
   args: {
     barbershopId: v.id("barbershops"),
   },
-  handler: async (ctx, args): Promise<BarberWithName[]> => {
+  handler: async (ctx, args): Promise<BarbershopMemberWithName[]> => {
     const barbers = await ctx.db
-      .query("barbers")
+      .query("barbershopMembers")
       .withIndex("by_barbershopId", (q) =>
         q.eq("barbershopId", args.barbershopId),
       )
@@ -67,20 +68,20 @@ export const getBarbersByBarbershopId = query({
 
 export const getBarberByUuid = query({
   args: { uuid: v.string() },
-  handler: async (ctx, args): Promise<BarberWithName | null> => {
-    const barber = await ctx.db
-      .query("barbers")
+  handler: async (ctx, args): Promise<BarbershopMemberWithName | null> => {
+    const barbershopMember = await ctx.db
+      .query("barbershopMembers")
       .withIndex("by_uuid", (q) => q.eq("uuid", args.uuid))
       .unique();
 
-    if (!barber) {
+    if (!barbershopMember) {
       return null;
     }
 
     const name = await ctx.runQuery(
       internal.userProfileData.getProfileByUserId,
       {
-        userId: barber.userId,
+        userId: barbershopMember.userId,
       },
     );
 
@@ -89,17 +90,17 @@ export const getBarberByUuid = query({
     }
 
     return {
-      ...barber,
+      ...barbershopMember,
       name: name.name ?? "",
     };
   },
 });
 
-export const updateBarber = mutation({
+export const updateBarbershopMember = mutation({
   args: {
-    barberId: v.id("barbers"),
-    barber: v.object({
-      ...tables.barbers,
+    barbershopMemberId: v.id("barbershopMembers"),
+    barbershopMember: v.object({
+      ...tables.barbershopMembers,
     }),
   },
   handler: async (ctx, args) => {
@@ -111,15 +112,18 @@ export const updateBarber = mutation({
       });
     }
 
-    const updatedBarber = await ctx.db.patch(args.barberId, args.barber);
+    const updatedBarbershopMember = await ctx.db.patch(
+      args.barbershopMemberId,
+      args.barbershopMember,
+    );
 
-    return updatedBarber;
+    return updatedBarbershopMember;
   },
 });
 
-export const deleteBarber = internalMutation({
+export const deleteBarbershopMember = internalMutation({
   args: {
-    barberId: v.id("barbers"),
+    barbershopMemberId: v.id("barbershopMembers"),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
@@ -130,9 +134,11 @@ export const deleteBarber = internalMutation({
       });
     }
 
-    const deletedBarber = await ctx.db.delete(args.barberId);
+    const deletedBarbershopMember = await ctx.db.delete(
+      args.barbershopMemberId,
+    );
 
-    return deletedBarber;
+    return deletedBarbershopMember;
   },
 });
 
@@ -146,39 +152,28 @@ export const isBarber = query({
     }
 
     const barberRecord = await ctx.db
-      .query("barbers")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId ?? ""))
+      .query("barbershopMembers")
+      .withIndex("by_role", (q) => q.eq("role", "barber"))
+      .filter((q) => q.eq(q.field("userId"), args.userId ?? ""))
       .unique();
 
     return !!barberRecord;
   },
 });
 
-export const getBarberByUserId = query({
+export const getBarbershopMemberByUserId = query({
   args: {
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
-
-    if (!user) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    if (user.userId !== args.userId) {
-      return null;
-    }
-
-    const barberRecord = await ctx.db
-      .query("barbers")
+    return await ctx.db
+      .query("barbershopMembers")
       .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .unique();
-
-    return barberRecord;
   },
 });
 
-export const inviteBarber = mutation({
+export const inviteBarbershopMember = mutation({
   args: {
     name: v.string(),
     phone: v.string(),

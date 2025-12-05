@@ -69,13 +69,14 @@ export const createBarbershop = mutation({
       );
     }
 
-    await ctx.runMutation(internal.barbers.createBarber, {
-      barber: {
+    await ctx.runMutation(internal.barbershopMembers.createBarbershopMember, {
+      barbershopMember: {
         barbershopId,
         userId: user.userId ?? "",
         uuid: crypto.randomUUID(),
         isActive: true,
         joinedAt: Date.now(),
+        role: "barber",
       },
     });
 
