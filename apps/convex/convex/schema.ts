@@ -27,6 +27,10 @@ export default defineSchema(
       })
       .index("by_uuid", ["uuid"]),
 
+    barbershopMetadata: defineTable({
+      ...tables.barbershopMetadata,
+    }).index("by_barbershopId", ["barbershopId"]),
+
     barbershopMembers: defineTable({
       ...tables.barbershopMembers,
     })

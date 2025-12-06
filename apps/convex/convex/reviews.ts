@@ -24,9 +24,12 @@ export const createReview = mutation({
       userId: user.userId ?? "",
     });
 
-    await ctx.runMutation(internal.barbershops.increaseBarbershopRating, {
-      barbershopId: args.review.barbershopId,
-    });
+    await ctx.runMutation(
+      internal.barbershopMetadata.increaseBarbershopRating,
+      {
+        barbershopId: args.review.barbershopId,
+      },
+    );
 
     return reviewId;
   },

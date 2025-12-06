@@ -59,28 +59,29 @@ export const tables = {
     state: v.string(),
     zipCode: v.optional(v.string()),
     bannerUrl: v.optional(v.string()),
-    metadata: v.optional(
-      v.object({
-        websiteUrl: v.optional(v.string()),
-        contactEmail: v.optional(v.string()),
-        completedAppointments: v.optional(v.number()),
-        reviews: v.optional(v.number()),
-        rating: v.optional(v.number()),
-        socialMedia: v.optional(
-          v.array(
-            v.object({
-              platform: v.union(
-                v.literal("tiktok"),
-                v.literal("instagram"),
-                v.literal("facebook"),
-                v.literal("twitter"),
-                v.literal("youtube"),
-              ),
-              url: v.string(),
-            }),
+    metadataId: v.optional(v.id("barbershopMetadata")),
+  },
+  barbershopMetadata: {
+    barbershopId: v.id("barbershops"),
+    uuid: v.string(),
+    websiteUrl: v.optional(v.string()),
+    contactEmail: v.optional(v.string()),
+    completedAppointments: v.optional(v.number()),
+    reviews: v.optional(v.number()),
+    rating: v.optional(v.number()),
+    socialMedia: v.optional(
+      v.array(
+        v.object({
+          platform: v.union(
+            v.literal("tiktok"),
+            v.literal("instagram"),
+            v.literal("facebook"),
+            v.literal("twitter"),
+            v.literal("youtube"),
           ),
-        ),
-      }),
+          url: v.string(),
+        }),
+      ),
     ),
   },
   barbershopMembers: {
@@ -184,6 +185,9 @@ const userProfileDataSchema = v.object({
 const barbershopSchema = v.object({
   ...tables.barbershops,
 });
+const barbershopMetadataSchema = v.object({
+  ...tables.barbershopMetadata,
+});
 const barbershopMemberSchema = v.object({
   ...tables.barbershopMembers,
 });
@@ -212,6 +216,8 @@ export type UserProfileData = ConvexRows<"userProfileData"> &
   Infer<typeof userProfileDataSchema>;
 export type Barbershop = ConvexRows<"barbershops"> &
   Infer<typeof barbershopSchema>;
+export type BarbershopMetadata = ConvexRows<"barbershopMetadata"> &
+  Infer<typeof barbershopMetadataSchema>;
 export type BarbershopMember = ConvexRows<"barbershopMembers"> &
   Infer<typeof barbershopMemberSchema>;
 export type BarbershopMemberWithName = BarbershopMember & {

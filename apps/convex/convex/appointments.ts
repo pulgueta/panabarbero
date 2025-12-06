@@ -9,7 +9,7 @@ import {
 } from "./_generated/server";
 import { authComponent } from "./auth";
 import { rateLimiter } from "./ratelimit";
-import { type Barbershop, tables } from "./tables";
+import { tables } from "./tables";
 
 function parseTimeToMinutes(time: string): number {
   const [hh, mm] = time.split(":").map((n) => Number(n));
@@ -340,58 +340,6 @@ export const getAppointmentsByUserId = query({
   },
 });
 
-export const getRecentlyVisitedBarbershops = query({
-  args: {
-    userId: v.string(),
-    search: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
-
-    if (!user) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    if (user.userId !== args.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    let barbershops: Barbershop[] | Barbershop | null = null;
-
-    if (args.search) {
-      barbershops = await ctx.db
-        .query("barbershops")
-        .withSearchIndex("by_name_search", (q) =>
-          q.search("name", args.search ?? ""),
-        )
-        .first();
-    }
-
-    barbershops = await ctx.db
-      .query("barbershops")
-      .withIndex("by_isActive", (q) => q.eq("isActive", true))
-      .order("desc")
-      .collect();
-
-    const appointmentsFromBarbershops = await ctx.db
-      .query("appointments")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", barbershops[0]?._id),
-      )
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("status"), "completed"),
-          q.eq(q.field("userId"), args.userId),
-          q.eq(q.field("contactEmail"), user.email),
-        ),
-      )
-      .order("desc")
-      .take(5);
-
-    return appointmentsFromBarbershops;
-  },
-});
-
 export const getAppointmentsByBarbershopId = query({
   args: {
     barbershopId: v.id("barbershops"),
@@ -462,58 +410,6 @@ export const getAppointmentByUserIdAndBarbershopId = query({
       .unique();
 
     return appointment;
-  },
-});
-
-export const getAppointmentsByBarberId = query({
-  args: {
-    barbershopMemberId: v.id("barbershopMembers"),
-  },
-  handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
-
-    if (!user) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-    const appointments = await ctx.db
-      .query("appointments")
-      .withIndex("by_barbershopMemberId", (q) =>
-        q.eq("barbershopMemberId", args.barbershopMemberId),
-      )
-      .order("asc")
-      .collect();
-
-    return appointments;
-  },
-});
-
-export const getAppointmentsByBarbershopAndRange = query({
-  args: {
-    barbershopId: v.id("barbershops"),
-    startAt: v.number(),
-    endAt: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
-
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-    const appointments = await ctx.db
-      .query("appointments")
-      .filter((q) =>
-        q.and(
-          q.lte(q.field("date"), args.endAt),
-          q.gte(q.field("date"), args.startAt),
-        ),
-      )
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
-      )
-      .order("asc")
-      .collect();
-
-    return appointments;
   },
 });
 

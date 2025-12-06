@@ -41,12 +41,14 @@ export const createBarbershop = mutation({
       ownerId: user.userId ?? "",
       isActive: false,
       gracePeriodMinutes: 5,
-      metadata: {
-        completedAppointments: 0,
-        rating: 0,
-        reviews: 0,
-      },
     });
+
+    await ctx.runMutation(
+      internal.barbershopMetadata.createBarbershopInitialMetadata,
+      {
+        barbershopId,
+      },
+    );
 
     if (args.storageId) {
       await ctx.runMutation(internal.barbershops.saveBarbershopBanner, {
@@ -351,27 +353,6 @@ export const updateBarbershop = mutation({
         },
       );
     }
-  },
-});
-
-export const increaseBarbershopRating = internalMutation({
-  args: {
-    barbershopId: v.id("barbershops"),
-  },
-  handler: async (ctx, args) => {
-    const reviews = await ctx.runQuery(api.reviews.getReviewsByBarbershopId, {
-      barbershopId: args.barbershopId,
-    });
-
-    const averageRating =
-      reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length;
-
-    await ctx.db.patch(args.barbershopId, {
-      metadata: {
-        rating: averageRating,
-        reviews: reviews.length,
-      },
-    });
   },
 });
 

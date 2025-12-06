@@ -11,6 +11,7 @@
 import type * as appointments from "../appointments.js";
 import type * as auth from "../auth.js";
 import type * as barbershopMembers from "../barbershopMembers.js";
+import type * as barbershopMetadata from "../barbershopMetadata.js";
 import type * as barbershops from "../barbershops.js";
 import type * as crons from "../crons.js";
 import type * as emailPayload from "../emailPayload.js";
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   appointments: typeof appointments;
   auth: typeof auth;
   barbershopMembers: typeof barbershopMembers;
+  barbershopMetadata: typeof barbershopMetadata;
   barbershops: typeof barbershops;
   crons: typeof crons;
   emailPayload: typeof emailPayload;
