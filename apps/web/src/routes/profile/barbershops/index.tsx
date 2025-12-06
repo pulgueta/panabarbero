@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: Needed */
 
 import { createFileRoute } from "@tanstack/react-router";
-import { ScissorsIcon, UsersIcon } from "lucide-react";
-import { Activity } from "react";
+import { ScissorsIcon } from "lucide-react";
+import { Activity, Suspense } from "react";
 
 import { InviteBarberDialog } from "@/components/barbers/invite-barber-dialog";
 import { barbersTableColumns } from "@/components/barbers/table/columns";
@@ -11,6 +11,12 @@ import { servicesTableColumns } from "@/components/barbershops/services/table/co
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { DataTable } from "@/components/table/data-table";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   barbershopByOwnerIdQueryOptions,
@@ -73,7 +79,15 @@ function RouteComponent() {
         <div className="flex w-full items-center justify-between gap-4">
           <h1 className="font-bold text-xl tracking-tight">Servicios</h1>
 
-          <ServiceDialog barbershopId={barbershop?._id!} />
+          <Suspense fallback={<Skeleton className="h-9 w-24" />}>
+            <Activity
+              mode={
+                !isLoadingServices && barbershop?._id ? "visible" : "hidden"
+              }
+            >
+              <ServiceDialog barbershopId={barbershop?._id!} />
+            </Activity>
+          </Suspense>
         </div>
 
         {isLoadingServices ? (
@@ -98,12 +112,16 @@ function RouteComponent() {
         <div className="flex w-full items-center justify-between gap-4">
           <h1 className="font-bold text-xl tracking-tight">Barberos</h1>
 
-          <InviteBarberDialog barbershopId={barbershop?._id!} />
+          <Suspense fallback={<Skeleton className="h-9 w-24" />}>
+            <Activity
+              mode={!isLoadingBarbers && barbershop?._id ? "visible" : "hidden"}
+            >
+              <InviteBarberDialog barbershopId={barbershop?._id!} />
+            </Activity>
+          </Suspense>
         </div>
 
-        {isLoadingBarbers ? (
-          <Skeleton className="h-48 w-full" />
-        ) : barbers?.length ? (
+        <Suspense fallback={<Skeleton className="h-48 w-full" />}>
           <Activity mode={barbers?.length ? "visible" : "hidden"}>
             <DataTable
               className="max-h-64"
@@ -111,13 +129,19 @@ function RouteComponent() {
               data={barbers?.length ? barbers : []}
             />
           </Activity>
-        ) : (
-          <div className="flex h-48 w-full flex-col items-center justify-center gap-2 rounded-lg border p-4 text-center">
-            <UsersIcon className="size-6" />
-            <p className="text-center text-muted-foreground text-xs md:text-sm">
-              Aún no hay barberos asociados a esta barbería.
-            </p>
-          </div>
+        </Suspense>
+
+        {barbers.length === 0 && (
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>
+                No hay barberos asociados a esta barbería.
+              </EmptyTitle>
+              <EmptyDescription>
+                Cuando invites a un barbero, podrás verlo aquí.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         )}
       </section>
     </BorderContainer>

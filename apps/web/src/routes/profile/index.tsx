@@ -2,21 +2,16 @@
 import { signOut } from "@panabarbero/convex/auth";
 import { createFileRoute } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
-import { Activity, useState } from "react";
+import { Activity, Suspense, useState } from "react";
 
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
+import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
 import { AccountTab } from "@/components/profile/account-tab";
 import { AppointmentsTab } from "@/components/profile/appointments-tab";
-import { ReviewsTab } from "@/components/profile/reviews-tab";
 import { SecurityTab } from "@/components/profile/security-tab";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  barbershopByIdQueryOptions,
-  userVisitedBarbershopsQueryOptions,
-  useUserVisitedBarbershops,
-} from "@/hooks/barbershop/use-barbershop";
 import {
   appointmentsByUserQueryOptions,
   useAppointmentsByUser,
@@ -26,15 +21,41 @@ import {
   useIsBarber,
 } from "@/hooks/use-barbershop-members";
 import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
-import {
-  reviewsByUserQueryOptions,
-  useReviewsByUser,
-} from "@/hooks/use-reviews";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+
+type ProfileTabValue = "account" | "security" | "appointments" | "reviews";
+
+type ProfileSearch = {
+  tab: ProfileTabValue;
+};
+
+const tabs = {
+  account: {
+    label: "Cuenta",
+    value: "account",
+  },
+  security: {
+    label: "Seguridad",
+    value: "security",
+  },
+  appointments: {
+    label: "Citas",
+    value: "appointments",
+  },
+  reviews: {
+    label: "Reseñas",
+    value: "reviews",
+  },
+};
 
 export const Route = createFileRoute("/profile/")({
   component: ProfilePage,
   pendingComponent: LoadingComponent,
+  validateSearch: (search: Record<string, ProfileTabValue>): ProfileSearch => {
+    return {
+      tab: search.tab,
+    };
+  },
   loader: async ({ context }) => {
     const user = await context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
@@ -44,24 +65,6 @@ export const Route = createFileRoute("/profile/")({
       await context.queryClient.ensureQueryData(
         appointmentsByUserQueryOptions(user.userId),
       );
-      await context.queryClient.ensureQueryData(
-        reviewsByUserQueryOptions(user.userId),
-      );
-      const barbershops = await context.queryClient.ensureQueryData(
-        userVisitedBarbershopsQueryOptions(user.userId),
-      );
-
-      if (barbershops) {
-        await Promise.all(
-          barbershops.map(async (barbershop) => {
-            if (barbershop?._id) {
-              await context.queryClient.ensureQueryData(
-                barbershopByIdQueryOptions(barbershop._id),
-              );
-            }
-          }),
-        );
-      }
 
       await context.queryClient.ensureQueryData(
         profileQueryOptions(user.userId),
@@ -73,23 +76,23 @@ export const Route = createFileRoute("/profile/")({
   },
 });
 
-type ProfileTabValue = "account" | "security" | "appointments" | "reviews";
-
 function ProfilePage() {
-  const [activeTab, setActiveTab] = useState<ProfileTabValue>("account");
-
   const navigate = Route.useNavigate();
+  const { tab } = Route.useSearch();
+
+  const [activeTab, setActiveTab] = useState<ProfileTabValue>(tab);
 
   const { data: user } = useSession();
-
   const { data: isBarber } = useIsBarber(user?.userId!);
-  const { data: appointments } = useAppointmentsByUser(user?.userId!);
-  const { data: reviews } = useReviewsByUser(user?.userId!);
-  const { data: barbershops } = useUserVisitedBarbershops(user?.userId!);
-  const { data: profile } = useProfile(user?.userId!);
+  const { data: appointments, isLoading: isLoadingAppointments } =
+    useAppointmentsByUser(user?.userId!);
+  const { data: profile, isLoading: isLoadingProfile } = useProfile(
+    user?.userId!,
+  );
 
   const onTabChange = (value: string) => {
     setActiveTab(value as ProfileTabValue);
+    navigate({ to: "/profile", search: { tab: value as ProfileTabValue } });
   };
 
   const handleSignOut = async () => {
@@ -100,21 +103,13 @@ function ProfilePage() {
 
   const tabsToRender = [
     {
-      value: "appointments",
-      label: "Citas",
+      ...tabs.appointments,
     },
     {
-      value: "reviews",
-      label: "Reseñas",
+      ...tabs.account,
     },
     {
-      value: "account",
-      label: "Cuenta",
-    },
-
-    {
-      value: "security",
-      label: "Seguridad",
+      ...tabs.security,
     },
   ];
 
@@ -130,7 +125,9 @@ function ProfilePage() {
           Cerrar sesión
         </Button>
         <Tabs
-          defaultValue="account"
+          defaultValue={
+            tab ?? (isBarber ? tabs.account.value : tabs.appointments.value)
+          }
           className="min-w-full"
           onValueChange={onTabChange}
         >
@@ -147,32 +144,56 @@ function ProfilePage() {
             ))}
           </TabsList>
 
-          <Activity mode={activeTab === "account" ? "visible" : "hidden"}>
-            <TabsContent value="account" className="pt-2">
-              <AccountTab
-                profile={profile}
-                isBarber={isBarber}
-                userId={user?.userId!}
-              />
-            </TabsContent>
-          </Activity>
+          <Suspense fallback={<ProfileTabSkeleton />}>
+            <Activity
+              mode={
+                activeTab === tabs.account.value && !isLoadingProfile
+                  ? "visible"
+                  : "hidden"
+              }
+            >
+              <TabsContent value={tabs.account.value} className="pt-2">
+                <AccountTab
+                  profile={profile}
+                  isBarber={isBarber}
+                  userId={user?.userId!}
+                />
+              </TabsContent>
+            </Activity>
+          </Suspense>
 
-          <Activity mode={activeTab === "security" ? "visible" : "hidden"}>
-            <TabsContent value="security" className="pt-2">
-              <SecurityTab profile={profile} />
-            </TabsContent>
-          </Activity>
+          <Suspense fallback={<ProfileTabSkeleton />}>
+            <Activity
+              mode={
+                activeTab === tabs.security.value && !isLoadingProfile
+                  ? "visible"
+                  : "hidden"
+              }
+            >
+              <TabsContent value={tabs.security.value} className="pt-2">
+                <SecurityTab profile={profile} />
+              </TabsContent>
+            </Activity>
+          </Suspense>
 
-          <Activity mode={activeTab === "appointments" ? "visible" : "hidden"}>
-            <TabsContent value="appointments" className="pt-2">
-              <AppointmentsTab
-                appointments={appointments}
-                isBarber={isBarber}
-              />
-            </TabsContent>
-          </Activity>
+          <Suspense fallback={<ProfileTabSkeleton />}>
+            <Activity
+              mode={
+                activeTab === tabs.appointments.value && !isLoadingAppointments
+                  ? "visible"
+                  : "hidden"
+              }
+            >
+              <TabsContent value={tabs.appointments.value} className="pt-2">
+                <AppointmentsTab
+                  appointments={appointments}
+                  isBarber={isBarber}
+                />
+              </TabsContent>
+            </Activity>
+          </Suspense>
 
-          <Activity mode={activeTab === "reviews" ? "visible" : "hidden"}>
+          {/* <Activity mode={activeTab === "reviews" ? "visible" : "hidden"}>
             <TabsContent value="reviews" className="pt-2">
               <ReviewsTab
                 reviews={reviews}
@@ -181,7 +202,7 @@ function ProfilePage() {
                 barbershops={barbershops}
               />
             </TabsContent>
-          </Activity>
+          </Activity> */}
         </Tabs>
       </div>
     </BorderContainer>

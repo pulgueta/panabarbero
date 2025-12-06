@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Barbershop, Service } from "@panabarbero/convex/schemas";
+import { useNavigate } from "@tanstack/react-router";
 import type { FC } from "react";
 import { useEffect, useId } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -41,6 +42,8 @@ export const ServiceForm: FC<ServiceFormProps> = ({
     price: useId(),
     duration: useId(),
   };
+
+  const navigate = useNavigate();
 
   const form = useForm({
     resolver: zodResolver(serviceFormSchema),
@@ -87,6 +90,7 @@ export const ServiceForm: FC<ServiceFormProps> = ({
     });
 
     form.reset();
+    navigate({ to: "/profile/barbershops" });
   });
 
   useEffect(() => {

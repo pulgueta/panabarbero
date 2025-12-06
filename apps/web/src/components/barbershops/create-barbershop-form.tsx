@@ -73,14 +73,7 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
       state: "",
       zipCode: "",
       contactPhone: "",
-      metadata: {
-        completedAppointments: undefined,
-        reviews: undefined,
-        rating: undefined,
-        socialMedia: undefined,
-        contactEmail: undefined,
-        websiteUrl: undefined,
-      },
+      metadataId: "",
       isActive: false,
       gracePeriodMinutes: 5,
       availability: [

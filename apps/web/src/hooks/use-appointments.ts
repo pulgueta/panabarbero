@@ -56,22 +56,6 @@ export function appointmentFormMetadataQueryOptions(
   });
 }
 
-export function recentlyVisitedBarbershopsQueryOptions(
-  userId: string,
-  search?: string,
-) {
-  return convexQuery(api.appointments.getRecentlyVisitedBarbershops, {
-    userId,
-    search,
-  });
-}
-
-export function useRecentlyVisitedBarbershops(userId: string, search?: string) {
-  return useSuspenseQuery(
-    recentlyVisitedBarbershopsQueryOptions(userId, search),
-  );
-}
-
 type WeekdayKey =
   | "sunday"
   | "monday"

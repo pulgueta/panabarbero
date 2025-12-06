@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SearchIcon } from "lucide-react";
-import { Activity, useState } from "react";
+import { Activity, Suspense, useState } from "react";
 
 import { BarbershopListCard } from "@/components/barbershops/barbershop-list-card";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
+import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
 import {
   InputGroup,
   InputGroupAddon,
@@ -120,16 +121,22 @@ function RouteComponent() {
           </div>
         </Activity>
 
-        {searchResults && searchResults.length > 0 && (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {searchResults.map((barbershop) => (
-              <BarbershopListCard
-                key={barbershop?._id}
-                barbershop={barbershop}
-              />
-            ))}
-          </div>
-        )}
+        <Suspense fallback={<ProfileTabSkeleton />}>
+          <Activity
+            mode={
+              searchResults && searchResults.length > 0 ? "visible" : "hidden"
+            }
+          >
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {searchResults.map((barbershop) => (
+                <BarbershopListCard
+                  key={barbershop?._id}
+                  barbershop={barbershop}
+                />
+              ))}
+            </div>
+          </Activity>
+        </Suspense>
 
         {searchResults?.length === 0 && (
           <p className="text-pretty text-muted-foreground text-sm">

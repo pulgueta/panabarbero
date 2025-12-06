@@ -24,10 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  getAppointmentStatusBadgeVariant,
-  getAppointmentStatusLabel,
-} from "@/lib/appointment-utils";
+import { getAppointmentDataByStatus } from "@/lib/appointment-utils";
 import { CancelAppointmentDialog } from "../cancel-appointment-dialog";
 
 interface AppointmentsForDateTableProps {
@@ -58,6 +55,10 @@ export const AppointmentsForDateTable: FC<AppointmentsForDateTableProps> = ({
             (service) => service?._id === appointment.serviceId,
           );
 
+          const { label, variant } = getAppointmentDataByStatus(
+            appointment.status,
+          );
+
           const isCancelledOrDenied =
             appointment.status === "cancelled" ||
             appointment.status === "denied";
@@ -83,11 +84,7 @@ export const AppointmentsForDateTable: FC<AppointmentsForDateTableProps> = ({
                 {appointment.notes ?? "N/A"}
               </TableCell>
               <TableCell className="text-center">
-                <Badge
-                  variant={getAppointmentStatusBadgeVariant(appointment.status)}
-                >
-                  {getAppointmentStatusLabel(appointment.status)}
-                </Badge>
+                <Badge variant={variant}>{label}</Badge>
               </TableCell>
               <TableCell className="text-center">
                 <DropdownMenu>

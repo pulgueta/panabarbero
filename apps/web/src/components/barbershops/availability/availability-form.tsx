@@ -219,8 +219,6 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
     );
 
     setFormError(null);
-
-    toast.success("Horario aplicado a los días seleccionados");
   };
 
   const disableSelectedDays = () => {
@@ -466,11 +464,8 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
             onClick={handleSave}
             disabled={isSaving || isUpdatingAvailability}
           >
-            {isSaving || isUpdatingAvailability ? (
-              <Spinner />
-            ) : (
-              "Guardar cambios"
-            )}
+            {(isSaving || isUpdatingAvailability) && <Spinner />} Guardar
+            cambios
           </Button>
         </div>
 

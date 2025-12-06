@@ -13,11 +13,13 @@ import { LoadingComponent } from "@/components/layout/loading-component";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import {
-  barbershopAvailabilityQueryOptions,
   barbershopByOwnerIdQueryOptions,
-  useBarbershopAvailability,
   useBarbershopByOwnerId,
 } from "@/hooks/barbershop/use-barbershop";
+import {
+  barbershopMetadataQueryOptions,
+  useBarbershopMetadata,
+} from "@/hooks/barbershop/use-barbershop-metadata";
 import {
   servicesQueryOptions,
   useServicesFromBarbershop,
@@ -39,10 +41,10 @@ export const Route = createFileRoute("/profile/barbershops/settings")({
 
       if (barbershop) {
         await opts.context.queryClient.ensureQueryData(
-          servicesQueryOptions(barbershop._id),
+          barbershopMetadataQueryOptions(barbershop._id),
         );
         await opts.context.queryClient.ensureQueryData(
-          barbershopAvailabilityQueryOptions(barbershop._id),
+          servicesQueryOptions(barbershop._id),
         );
       }
     }
@@ -53,11 +55,13 @@ function SettingsPage() {
   const { data: user } = useSession();
 
   const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
+  const { data: barbershopMetadata } = useBarbershopMetadata(barbershop?._id!);
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
-  const { data: availability } = useBarbershopAvailability(barbershop?._id!);
 
   const hasService = services?.length && services.length > 0;
-  const hasAnyActiveDay = availability?.some((a) => a.weekDay.isActive);
+  const hasAnyActiveDay = barbershop?.availability?.some(
+    (a) => a.weekDay.isActive,
+  );
 
   return (
     <BorderContainer className="space-y-6">
@@ -105,7 +109,10 @@ function SettingsPage() {
               </p>
             </div>
 
-            <ContactForm barbershop={barbershop} />
+            <ContactForm
+              barbershop={barbershop}
+              barbershopMetadata={barbershopMetadata!}
+            />
           </section>
 
           {/* <Separator /> */}
@@ -162,7 +169,10 @@ function SettingsPage() {
                 </p>
               </div>
 
-              <SocialMediaForm barbershop={barbershop} />
+              <SocialMediaForm
+                barbershop={barbershop}
+                barbershopMetadata={barbershopMetadata!}
+              />
             </section>
           </section>
 
@@ -201,10 +211,10 @@ function SettingsPage() {
           </p>
         </div>
 
-        {barbershop && availability.length > 0 && (
+        {barbershop && barbershop.availability.length > 0 && (
           <AvailabilityForm
             barbershopId={barbershop._id}
-            availability={availability}
+            availability={barbershop?.availability}
           />
         )}
       </section>

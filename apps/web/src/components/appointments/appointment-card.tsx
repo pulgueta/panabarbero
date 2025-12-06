@@ -11,10 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  getAppointmentStatusBadgeVariant,
-  getAppointmentStatusLabel,
-} from "@/lib/appointment-utils";
+import { getAppointmentDataByStatus } from "@/lib/appointment-utils";
 import { CancelAppointmentDialog } from "./cancel-appointment-dialog";
 import { DeleteAppointmentDialog } from "./delete-appointment-dialog";
 import { RescheduleRequestDialog } from "./reschedule-request-dialog";
@@ -51,14 +48,14 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
 
   const showDeleteButton = isCancelled || isDenied;
 
+  const { label, variant } = getAppointmentDataByStatus(appointment.status);
+
   return (
     <Card key={appointment._id}>
       <CardHeader>
         <CardTitle className="text-base">{barbershop?.name}</CardTitle>
         <CardDescription>{dateString}</CardDescription>
-        <Badge variant={getAppointmentStatusBadgeVariant(appointment.status)}>
-          {getAppointmentStatusLabel(appointment.status)}
-        </Badge>
+        <Badge variant={variant}>{label}</Badge>
       </CardHeader>
       <CardFooter className="flex w-full flex-col items-center gap-2 md:flex-row">
         {!appointment.proposedDate && !showDeleteButton && (

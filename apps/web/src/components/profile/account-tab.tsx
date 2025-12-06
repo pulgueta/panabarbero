@@ -28,7 +28,7 @@ const BARBERSHOP_BANNER_HIDE_KEY = "barbershop-create-banner-hide-until";
 interface AccountTabProps {
   profile: UserProfileData | null;
   isBarber: boolean;
-  userId?: string;
+  userId: string;
 }
 
 export const AccountTab: FC<AccountTabProps> = ({
@@ -49,7 +49,6 @@ export const AccountTab: FC<AccountTabProps> = ({
     },
     updateNotificationPreferenceMutation: {
       mutateAsync: updateNotificationPreference,
-      isPending: isUpdatingNotificationPreference,
       isSuccess: isUpdatedNotificationPreference,
     },
   } = useProfileActions();
@@ -254,9 +253,9 @@ export const AccountTab: FC<AccountTabProps> = ({
                     updateNotificationPreference({
                       type: "email",
                       enabled: val,
+                      userId,
                     })
                   }
-                  disabled={isUpdatingNotificationPreference}
                 />
               </FieldContent>
             </FieldRoot>
@@ -274,9 +273,9 @@ export const AccountTab: FC<AccountTabProps> = ({
                     updateNotificationPreference({
                       type: "sms",
                       enabled: val,
+                      userId,
                     })
                   }
-                  disabled={isUpdatingNotificationPreference}
                 />
               </FieldContent>
             </FieldRoot>
