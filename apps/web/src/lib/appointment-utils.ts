@@ -5,7 +5,7 @@ import type { BadgeProps } from "@/components/ui/badge";
 /**
  * Returns the appropriate badge variant for an appointment status
  */
-export function getAppointmentStatusBadgeVariant(
+function getAppointmentStatusBadgeVariant(
   status: Appointment["status"],
 ): BadgeProps["variant"] {
   switch (status) {
@@ -29,9 +29,7 @@ export function getAppointmentStatusBadgeVariant(
 /**
  * Returns the Spanish label for an appointment status
  */
-export function getAppointmentStatusLabel(
-  status: Appointment["status"],
-): string {
+function getAppointmentStatusLabel(status: Appointment["status"]): string {
   switch (status) {
     case "pending":
       return "Pendiente";
@@ -50,4 +48,11 @@ export function getAppointmentStatusLabel(
     default:
       return status;
   }
+}
+
+export function getAppointmentDataByStatus(status: Appointment["status"]) {
+  return {
+    label: getAppointmentStatusLabel(status),
+    variant: getAppointmentStatusBadgeVariant(status),
+  };
 }

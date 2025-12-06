@@ -142,22 +142,6 @@ export const getServicesByIds = query({
   },
 });
 
-export const getServicesByBarbershopId = query({
-  args: {
-    barbershopId: v.optional(v.id("barbershops")),
-  },
-  handler: async (ctx, args) => {
-    const services = await ctx.db
-      .query("services")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId!),
-      )
-      .collect();
-
-    return services;
-  },
-});
-
 export const updateService = mutation({
   args: {
     service: v.object({

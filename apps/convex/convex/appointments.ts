@@ -408,15 +408,8 @@ export const getAppointmentsByBarbershopId = query({
       .withIndex("by_barbershopId", (q) =>
         q.eq("barbershopId", args.barbershopId),
       )
+
       .collect();
-
-    return appointments;
-  },
-});
-
-export const getAppointments = query({
-  handler: async (ctx) => {
-    const appointments = await ctx.db.query("appointments").collect();
 
     return appointments;
   },

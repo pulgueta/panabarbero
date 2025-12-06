@@ -25,11 +25,29 @@ export function useProfileActions() {
   const updateNotificationPreferenceMutation = useMutation({
     mutationFn: useConvexMutation(
       api.userProfileData.updateNotificationPreference,
-    ).withOptimisticUpdate((prev, newData) => {
-      return {
-        ...prev,
-        notificationsPreferences: newData,
-      };
+    ).withOptimisticUpdate((localStore, args) => {
+      const existingProfile = localStore.getQuery(
+        api.userProfileData.getMyProfile,
+        {
+          userId: args.userId,
+        },
+      );
+
+      if (existingProfile) {
+        const updatedPreferences = existingProfile.notificationsPreferences.map(
+          (pref) =>
+            pref.type === args.type ? { ...pref, enabled: args.enabled } : pref,
+        );
+
+        localStore.setQuery(
+          api.userProfileData.getMyProfile,
+          { userId: args.userId },
+          {
+            ...existingProfile,
+            notificationsPreferences: updatedPreferences,
+          },
+        );
+      }
     }),
   });
 

@@ -4,10 +4,6 @@ import type { Appointment, Barbershop } from "@panabarbero/convex/schemas";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { useBarbershopAvailability } from "./barbershop/use-barbershop";
 
-export function appointmentsQueryOptions() {
-  return convexQuery(api.appointments.getAppointments, {});
-}
-
 export function appointmentByIdQueryOptions(appointmentId: Appointment["_id"]) {
   return convexQuery(api.appointments.getAppointmentById, { appointmentId });
 }
@@ -38,10 +34,6 @@ export function useRescheduledAppointmentRequests(
   barbershopId: Barbershop["_id"],
 ) {
   return useSuspenseQuery(requestRescheduleQueryOptions(barbershopId));
-}
-
-export function useAppointments() {
-  return useSuspenseQuery(appointmentsQueryOptions());
 }
 
 export function useAppointmentById(id: Appointment["_id"]) {

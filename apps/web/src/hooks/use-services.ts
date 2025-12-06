@@ -14,7 +14,7 @@ export function updateServiceMutationOptions() {
 export function servicesByBarbershopIdQueryOptions(
   barbershopId: Barbershop["_id"],
 ) {
-  return convexQuery(api.services.getServicesByBarbershopId, { barbershopId });
+  return convexQuery(api.barbershops.getBarbershopServices, { barbershopId });
 }
 
 export function serviceByIdQueryOptions(serviceId: Service["_id"]) {
@@ -30,7 +30,7 @@ export function deleteServiceMutationOptions() {
 }
 
 export function servicesQueryOptions(barbershopId: Barbershop["_id"]) {
-  return convexQuery(api.services.getServicesByBarbershopId, { barbershopId });
+  return convexQuery(api.barbershops.getBarbershopServices, { barbershopId });
 }
 
 export function useServicesFromBarbershop(barbershopId: Barbershop["_id"]) {
