@@ -73,7 +73,6 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
       state: "",
       zipCode: "",
       contactPhone: "",
-      metadataId: "",
       isActive: false,
       gracePeriodMinutes: 5,
       availability: [

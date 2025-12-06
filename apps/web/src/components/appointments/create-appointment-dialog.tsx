@@ -157,7 +157,10 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
     }
 
     form.reset();
-    throw navigate({ to: "/profile" });
+    throw navigate({
+      to: "/profile",
+      search: (prev) => ({ ...prev, tab: "appointments" }),
+    });
   });
 
   if (isMobile) {

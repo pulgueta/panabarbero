@@ -104,7 +104,6 @@ export const barbershopFormSchema = object({
   isActive: boolean().default(false),
   gracePeriodMinutes: coerce.number().min(5).max(60).default(5),
   availability: array(availabilitySchema).default([]),
-  metadataId: zodAny(),
 });
 
 export const barbershopFormSchemaV2 = object({
