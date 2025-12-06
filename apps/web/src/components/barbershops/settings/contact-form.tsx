@@ -1,4 +1,7 @@
-import type { Barbershop } from "@panabarbero/convex/schemas";
+import type {
+  Barbershop,
+  BarbershopMetadata,
+} from "@panabarbero/convex/schemas";
 import type { FC } from "react";
 import { useId, useState } from "react";
 
@@ -15,15 +18,19 @@ import { useBarbershopActions } from "@/hooks/barbershop/use-barbershop";
 
 interface ContactFormProps {
   barbershop: Barbershop;
+  barbershopMetadata: BarbershopMetadata;
 }
 
-export const ContactForm: FC<ContactFormProps> = ({ barbershop }) => {
+export const ContactForm: FC<ContactFormProps> = ({
+  barbershop,
+  barbershopMetadata,
+}) => {
   const ids = {
     phone: useId(),
     email: useId(),
   };
   const [phone, setPhone] = useState(barbershop.contactPhone ?? "");
-  const [email, setEmail] = useState(barbershop.metadata?.contactEmail ?? "");
+  const [email, setEmail] = useState(barbershopMetadata.contactEmail ?? "");
 
   const {
     updateBarbershopMutation: {
@@ -53,14 +60,6 @@ export const ContactForm: FC<ContactFormProps> = ({ barbershop }) => {
         state: barbershop.state,
         zipCode: barbershop.zipCode || undefined,
         bannerUrl: barbershop.bannerUrl || undefined,
-        metadata: {
-          websiteUrl: barbershop.metadata?.websiteUrl || undefined,
-          contactEmail: email || undefined,
-          completedAppointments: barbershop.metadata?.completedAppointments,
-          reviews: barbershop.metadata?.reviews,
-          rating: barbershop.metadata?.rating,
-          socialMedia: barbershop.metadata?.socialMedia || undefined,
-        },
       },
     });
   };

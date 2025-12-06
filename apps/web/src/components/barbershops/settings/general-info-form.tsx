@@ -53,14 +53,6 @@ export const GeneralInfoForm: FC<GeneralInfoFormProps> = ({ barbershop }) => {
         state: barbershop.state,
         zipCode: barbershop.zipCode || undefined,
         bannerUrl: barbershop.bannerUrl || undefined,
-        metadata: {
-          websiteUrl: barbershop.metadata?.websiteUrl || undefined,
-          contactEmail: barbershop.metadata?.contactEmail || undefined,
-          completedAppointments: barbershop.metadata?.completedAppointments,
-          reviews: barbershop.metadata?.reviews,
-          rating: barbershop.metadata?.rating,
-          socialMedia: barbershop.metadata?.socialMedia || undefined,
-        },
       },
     });
   };
