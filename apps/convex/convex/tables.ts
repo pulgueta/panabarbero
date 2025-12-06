@@ -134,26 +134,6 @@ export const tables = {
     ),
     notes: v.optional(v.string()),
   },
-  payments: {
-    uuid: v.string(),
-    appointmentId: v.id("appointments"),
-    transactionId: v.string(),
-    paymentDate: v.number(),
-    amount: v.number(),
-    status: v.union(
-      v.literal("pending"),
-      v.literal("paid"),
-      v.literal("failed"),
-    ),
-    method: v.union(
-      v.literal("cash"),
-      v.literal("card"),
-      v.literal("pse"),
-      v.literal("daviplata"),
-      v.literal("safetypay"),
-      v.literal("nequi"),
-    ),
-  },
   notifications: {
     uuid: v.string(),
     channels: v.array(
@@ -200,9 +180,6 @@ const reviewSchema = v.object({
 const appointmentSchema = v.object({
   ...tables.appointments,
 });
-const paymentSchema = v.object({
-  ...tables.payments,
-});
 const notificationSchema = v.object({
   ...tables.notifications,
 });
@@ -227,6 +204,5 @@ export type Service = ConvexRows<"services"> & Infer<typeof serviceSchema>;
 export type Review = ConvexRows<"reviews"> & Infer<typeof reviewSchema>;
 export type Appointment = ConvexRows<"appointments"> &
   Infer<typeof appointmentSchema>;
-export type Payment = ConvexRows<"payments"> & Infer<typeof paymentSchema>;
 export type Notification = ConvexRows<"notifications"> &
   Infer<typeof notificationSchema>;
