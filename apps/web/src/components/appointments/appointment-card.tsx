@@ -55,6 +55,9 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
       <CardHeader>
         <CardTitle className="text-base">{barbershop?.name}</CardTitle>
         <CardDescription>{dateString}</CardDescription>
+        {appointment.notes && (
+          <CardDescription>{appointment.notes}</CardDescription>
+        }
         <Badge variant={variant}>{label}</Badge>
       </CardHeader>
       <CardFooter className="flex w-full flex-col items-center gap-2 md:flex-row">
