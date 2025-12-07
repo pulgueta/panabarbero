@@ -34,7 +34,7 @@ export default defineSchema(
     barbershopMembers: defineTable({
       ...tables.barbershopMembers,
     })
-      .index("by_userId", ["userId"])
+      .index("by_userProfileDataId", ["userProfileDataId"])
       .index("by_barbershopId", ["barbershopId"])
       .index("by_uuid", ["uuid"])
       .index("by_isActive", ["isActive"])

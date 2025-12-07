@@ -20,7 +20,6 @@ import type * as http from "../http.js";
 import type * as index from "../index.js";
 import type * as mobilePushTokens from "../mobilePushTokens.js";
 import type * as notifications from "../notifications.js";
-import type * as payments from "../payments.js";
 import type * as rag from "../rag.js";
 import type * as ratelimit from "../ratelimit.js";
 import type * as reviews from "../reviews.js";
@@ -48,7 +47,6 @@ declare const fullApi: ApiFromModules<{
   index: typeof index;
   mobilePushTokens: typeof mobilePushTokens;
   notifications: typeof notifications;
-  payments: typeof payments;
   rag: typeof rag;
   ratelimit: typeof ratelimit;
   reviews: typeof reviews;

@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 import { errorMessages } from "@panabarbero/constants";
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
@@ -23,7 +24,6 @@ export const createBarbershopMember = internalMutation({
 
     const barbershopMemberId = await ctx.db.insert("barbershopMembers", {
       ...args.barbershopMember,
-      userId: user.userId ?? "",
       role: "barber",
       uuid: crypto.randomUUID(),
     });
@@ -46,14 +46,15 @@ export const getBarbersByBarbershopId = query({
 
     const barbersWithName = await Promise.all(
       barbers.map(async (barber) => {
-        const name = await ctx.runQuery(
-          internal.userProfileData.getProfileByUserId,
-          { userId: barber.userId },
-        );
+        const barberProfile = await ctx.db.get(barber.userProfileDataId);
+
+        if (!barberProfile) {
+          throw new ConvexError(errorMessages.notFound("perfil de barbero"));
+        }
 
         return {
           ...barber,
-          name: name?.name ?? "",
+          name: barberProfile?.name ?? "",
         };
       }),
     );
@@ -64,31 +65,12 @@ export const getBarbersByBarbershopId = query({
 
 export const getBarberByUuid = query({
   args: { uuid: v.string() },
-  handler: async (ctx, args): Promise<BarbershopMemberWithName | null> => {
-    const barbershopMember = await ctx.db
+  handler: async (ctx, args) => {
+    return await ctx.db
       .query("barbershopMembers")
-      .withIndex("by_uuid", (q) => q.eq("uuid", args.uuid))
+      .withIndex("by_role", (q) => q.eq("role", "barber"))
+      .filter((q) => q.eq(q.field("uuid"), args.uuid))
       .unique();
-
-    if (!barbershopMember) {
-      return null;
-    }
-
-    const name = await ctx.runQuery(
-      internal.userProfileData.getProfileByUserId,
-      {
-        userId: barbershopMember.userId,
-      },
-    );
-
-    if (!name) {
-      return null;
-    }
-
-    return {
-      ...barbershopMember,
-      name: name.name ?? "",
-    };
   },
 });
 
@@ -140,31 +122,33 @@ export const deleteBarbershopMember = internalMutation({
 
 export const isBarber = query({
   args: {
-    userId: v.optional(v.string()),
+    userProfileDataId: v.optional(v.id("userProfileData")),
   },
   handler: async (ctx, args) => {
-    if (!args.userId) {
+    if (!args.userProfileDataId) {
       return false;
     }
 
     const barberRecord = await ctx.db
       .query("barbershopMembers")
       .withIndex("by_role", (q) => q.eq("role", "barber"))
-      .filter((q) => q.eq(q.field("userId"), args.userId ?? ""))
+      .filter((q) => q.eq(q.field("userProfileDataId"), args.userProfileDataId))
       .unique();
 
     return !!barberRecord;
   },
 });
 
-export const getBarbershopMemberByUserId = query({
+export const getBarbershopMemberByUserProfileDataId = query({
   args: {
-    userId: v.string(),
+    userProfileDataId: v.id("userProfileData"),
   },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("barbershopMembers")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userProfileDataId", (q) =>
+        q.eq("userProfileDataId", args.userProfileDataId),
+      )
       .unique();
   },
 });

@@ -86,7 +86,7 @@ export const tables = {
   },
   barbershopMembers: {
     uuid: v.string(),
-    userId: v.string(),
+    userProfileDataId: v.id("userProfileData"),
     barbershopId: v.id("barbershops"),
     joinedAt: v.number(),
     isActive: v.boolean(),

@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 import { errorMessages } from "@panabarbero/constants";
 import { ConvexError, v } from "convex/values";
 import { geospatial, r2 } from ".";
@@ -71,10 +72,19 @@ export const createBarbershop = mutation({
       );
     }
 
+    const userProfile = await ctx.db
+      .query("userProfileData")
+      .withIndex("by_userId", (q) => q.eq("userId", user.userId!))
+      .unique();
+
+    if (!userProfile) {
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
+    }
+
     await ctx.runMutation(internal.barbershopMembers.createBarbershopMember, {
       barbershopMember: {
         barbershopId,
-        userId: user.userId ?? "",
+        userProfileDataId: userProfile._id,
         uuid: crypto.randomUUID(),
         isActive: true,
         joinedAt: Date.now(),
