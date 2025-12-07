@@ -23,7 +23,20 @@ function parseTimeToMinutes(time: string): number {
 function minutesOfDay(ts: number): number {
   const d = new Date(ts);
 
-  return d.getHours() * 60 + d.getMinutes();
+  // Since Convex runs in UTC but barbershop hours are in local time (UTC-5 for Colombia),
+  // we need to convert UTC time to local time by subtracting the timezone offset.
+  // Using getUTCHours() to get UTC hours, then convert to local timezone.
+  const utcHours = d.getUTCHours();
+  const utcMinutes = d.getUTCMinutes();
+
+  // Colombia is UTC-5, so subtract 5 hours to get local time
+  // Handle day rollover if needed
+  let localHours = utcHours - 5;
+  if (localHours < 0) {
+    localHours += 24;
+  }
+
+  return localHours * 60 + utcMinutes;
 }
 
 function withinOpenHours(
@@ -90,7 +103,7 @@ export const createAppointment = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
       throw new ConvexError(errorMessages.unauthorized);
@@ -179,7 +192,7 @@ export const createAppointment = mutation({
       throw new ConvexError(errorMessages.barbershopClosedOnSelectedDay);
     }
 
-    const endAt = appointment.date + (service.duration ?? 0);
+    const endAt = appointment.date + service.duration;
 
     if (
       !withinOpenHours(
@@ -945,9 +958,7 @@ export const answerRescheduleRequest = mutation({
       date: args.accepted && appt.proposedDate ? appt.proposedDate : appt.date,
       proposedDate: undefined,
       rescheduleRequestedByUserId: undefined,
-      notes: args.accepted
-        ? undefined
-        : "Petición rechazada, la cita ha sido cancelada.",
+      notes: args.accepted ? undefined : "Petición rechazada.",
     });
 
     const userProfile = await ctx.runQuery(
@@ -1058,5 +1069,33 @@ export const appointmentOverlaps = internalQuery({
     }
 
     return null;
+  },
+});
+
+export const getAppointmentsByBarbershopIdAndDate = query({
+  args: {
+    barbershopId: v.id("barbershops"),
+    date: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const fromDate = new Date(args.date);
+    fromDate.setHours(0, 0, 0, 0);
+    const toDate = new Date(fromDate);
+    toDate.setHours(23, 59, 59, 999);
+
+    const appointments = await ctx.db
+      .query("appointments")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
+      .filter((q) =>
+        q.and(
+          q.gte(q.field("date"), fromDate.getTime()),
+          q.lte(q.field("date"), toDate.getTime()),
+        ),
+      )
+      .collect();
+
+    return appointments;
   },
 });

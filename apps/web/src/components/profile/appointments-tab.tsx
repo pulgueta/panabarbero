@@ -65,6 +65,9 @@ export const AppointmentsTab: FC<AppointmentsTabProps> = ({
                   city: undefined,
                   state: undefined,
                 }}
+                style={{
+                  viewTransitionName: "barbershops",
+                }}
               >
                 Buscar barberías
               </Link>

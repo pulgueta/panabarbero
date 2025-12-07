@@ -4,7 +4,7 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
-import type { BarbershopMemberWithName } from "./tables";
+import type { BarbershopMember, BarbershopMemberWithName } from "./tables";
 import { tables } from "./tables";
 
 export const createBarbershopMember = internalMutation({
@@ -122,34 +122,56 @@ export const deleteBarbershopMember = internalMutation({
 
 export const isBarber = query({
   args: {
-    userProfileDataId: v.optional(v.id("userProfileData")),
+    userId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    if (!args.userProfileDataId) {
+    if (!args.userId) {
       return false;
     }
 
-    const barberRecord = await ctx.db
-      .query("barbershopMembers")
-      .withIndex("by_role", (q) => q.eq("role", "barber"))
-      .filter((q) => q.eq(q.field("userProfileDataId"), args.userProfileDataId))
+    const userProfile = await ctx.db
+      .query("userProfileData")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId!))
       .unique();
 
-    return !!barberRecord;
+    if (!userProfile) {
+      return false;
+    }
+
+    const barbershopMember = await ctx.db
+      .query("barbershopMembers")
+      .withIndex("by_role", (q) => q.eq("role", "barber"))
+      .filter((q) => q.eq(q.field("userProfileDataId"), userProfile._id))
+      .first();
+
+    return !!barbershopMember;
   },
 });
 
-export const getBarbershopMemberByUserProfileDataId = query({
+export const getBarbershopMemberByUserId = query({
   args: {
-    userProfileDataId: v.id("userProfileData"),
+    userId: v.string(),
   },
-  handler: async (ctx, args) => {
-    return await ctx.db
+  handler: async (ctx, args): Promise<BarbershopMember | null> => {
+    const userProfile = await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      {
+        userId: args.userId,
+      },
+    );
+
+    if (!userProfile?._id) {
+      return null;
+    }
+
+    const barbershopMember = await ctx.db
       .query("barbershopMembers")
       .withIndex("by_userProfileDataId", (q) =>
-        q.eq("userProfileDataId", args.userProfileDataId),
+        q.eq("userProfileDataId", userProfile._id),
       )
-      .unique();
+      .first();
+
+    return barbershopMember;
   },
 });
 

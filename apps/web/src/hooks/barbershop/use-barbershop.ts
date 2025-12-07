@@ -10,8 +10,14 @@ export type BarbershopAvailabilityPayload = {
   date: number;
 };
 
-export function activeBarbershopsQueryOptions(filters: BarbershopSearch) {
-  return convexQuery(api.barbershops.getActiveBarbershops, filters);
+export type ActiveBarbershopsPayload = BarbershopSearch & {
+  userId?: string | undefined;
+};
+
+export function activeBarbershopsQueryOptions(
+  payload: ActiveBarbershopsPayload,
+) {
+  return convexQuery(api.barbershops.getActiveBarbershops, payload);
 }
 
 export function barbershopByUuidQueryOptions(uuid: string) {
@@ -52,8 +58,10 @@ export function useBarbershopByUuid(uuid: string) {
   return useSuspenseQuery(barbershopByUuidQueryOptions(uuid));
 }
 
-export function useActiveBarbershops(filters: BarbershopSearch) {
-  return useSuspenseQuery(activeBarbershopsQueryOptions(filters));
+export function useActiveBarbershops(
+  payload: BarbershopSearch & { userId?: string | undefined },
+) {
+  return useSuspenseQuery(activeBarbershopsQueryOptions(payload));
 }
 
 export function useUserVisitedBarbershops(userId: string) {

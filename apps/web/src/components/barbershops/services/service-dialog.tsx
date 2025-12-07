@@ -1,7 +1,6 @@
 import type { Barbershop, Service } from "@panabarbero/convex/schemas";
-import type { FC, PropsWithChildren } from "react";
+import type { FC, ReactNode } from "react";
 
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -22,19 +21,18 @@ import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { ServiceFormData } from "@/lib/schemas";
 import { ServiceForm } from "./service-form";
 
-interface ServiceDialogProps extends PropsWithChildren {
+interface ServiceDialogProps {
   barbershopId: Barbershop["_id"];
   initialValues?: ServiceFormData;
   serviceId?: Service["_id"];
-  asChild?: boolean;
+  trigger: ReactNode;
 }
 
 export const ServiceDialog: FC<ServiceDialogProps> = ({
   barbershopId,
   initialValues,
   serviceId,
-  asChild = false,
-  children,
+  trigger,
 }) => {
   const { isMobile } = useIsMobile();
 
@@ -44,9 +42,7 @@ export const ServiceDialog: FC<ServiceDialogProps> = ({
   if (isMobile) {
     return (
       <Drawer>
-        <DrawerTrigger asChild={asChild}>
-          {asChild ? children : <Button variant="outline">{headLabel}</Button>}
-        </DrawerTrigger>
+        <DrawerTrigger asChild>{trigger}</DrawerTrigger>
         <DrawerContent>
           <DrawerHeader>
             <DrawerTitle>{headLabel}</DrawerTitle>
@@ -67,9 +63,7 @@ export const ServiceDialog: FC<ServiceDialogProps> = ({
 
   return (
     <Dialog>
-      <DialogTrigger asChild={asChild}>
-        {asChild ? children : <Button variant="outline">{headLabel}</Button>}
-      </DialogTrigger>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{headLabel}</DialogTitle>

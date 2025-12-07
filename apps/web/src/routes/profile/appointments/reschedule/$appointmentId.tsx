@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: needed */
 import type { Appointment } from "@panabarbero/convex/schemas";
-import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
@@ -15,7 +15,6 @@ import {
 } from "@/hooks/use-appointments";
 import {
   barberByUserIdQueryOptions,
-  useBarberByUserId,
   useIsBarber,
 } from "@/hooks/use-barbershop-members";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
@@ -52,7 +51,6 @@ function RouteComponent() {
   );
 
   const { data: session } = useSession();
-  const { data: barberRecord } = useBarberByUserId(session?.userId!);
   const { data: isBarber } = useIsBarber(session?.userId!);
   const {
     answerRescheduleRequest: {
@@ -64,8 +62,7 @@ function RouteComponent() {
 
   const isCustomer = session?.userId === appointment?.userId && !isBarber;
 
-  const isBarberForAppointment =
-    isBarber && appointment?.barbershopMemberId === barberRecord?._id;
+  const isBarberForAppointment = isBarber && appointment?.barbershopMemberId;
   const hasPendingProposal = !!appointment?.proposedDate;
   const appointmentWithRequester = appointment as Appointment & {
     rescheduleRequestedByUserId?: string | null;
@@ -79,11 +76,14 @@ function RouteComponent() {
     : "/profile";
 
   useEffect(() => {
-    if (!appointment || !session?.userId) return;
     if (!canView) {
-      navigate({ to: redirectTo, replace: true });
+      navigate({
+        to: redirectTo,
+        replace: true,
+        search: { tap: isBarber ? "account" : "appointments" },
+      });
     }
-  }, [appointment, canView, navigate, redirectTo, session?.userId]);
+  }, [canView, navigate, redirectTo, isBarber]);
 
   useEffect(() => {
     if (isAnsweringSuccess) {
@@ -91,14 +91,10 @@ function RouteComponent() {
     }
   }, [isAnsweringSuccess]);
 
-  if (!appointment) {
-    throw redirect({ to: redirectTo });
-  }
-
   const appointmentInfo = [
     {
       label: "Fecha original",
-      value: new Date(appointment.date).toLocaleDateString("es-CO", {
+      value: new Date(appointment?.date!).toLocaleDateString("es-CO", {
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -108,7 +104,7 @@ function RouteComponent() {
     },
     {
       label: "Nueva fecha propuesta",
-      value: new Date(appointment.proposedDate!).toLocaleDateString("es-CO", {
+      value: new Date(appointment?.proposedDate!).toLocaleDateString("es-CO", {
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -118,38 +114,42 @@ function RouteComponent() {
     },
     {
       label: "Cliente",
-      value: appointment.customerName,
+      value: appointment?.customerName,
     },
     {
       label: "Correo de contacto",
-      value: appointment.contactEmail,
+      value: appointment?.contactEmail,
     },
     {
       label: "Teléfono de contacto",
-      value: appointment.contactPhone,
+      value: appointment?.contactPhone,
     },
   ];
 
   const handleAnswer = async (accepted: boolean) => {
     try {
       await answerReschedule({
-        appointmentId: appointment._id,
+        appointmentId: appointment?._id!,
         accepted,
+      });
+
+      navigate({
+        to: redirectTo,
+        replace: true,
+        search: { tap: isBarber ? "account" : "appointments" },
       });
     } catch (error) {
       toast.error(getConvexErrorMessage(error));
       return;
     }
-
-    navigate({ to: redirectTo });
   };
 
   const canRespond =
     hasPendingProposal && !!requesterUserId && canView && !isRequester;
 
   return (
-    <BorderContainer className="space-y-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <BorderContainer className="space-y-4">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-bold text-2xl">Solicitud de reagendamiento</h1>
           <p className="text-muted-foreground text-sm">
@@ -174,24 +174,14 @@ function RouteComponent() {
         <div className="rounded-lg border bg-card p-4">
           <h2 className="font-semibold text-lg">Notas</h2>
           <p className="mt-4 text-muted-foreground text-sm">
-            {appointment.notes?.trim()
-              ? appointment.notes
+            {appointment?.notes?.trim()
+              ? appointment?.notes
               : "No hay notas adicionales para esta solicitud."}
           </p>
         </div>
       </div>
 
-      {isRequester && hasPendingProposal && (
-        <Alert>
-          <AlertTitle>Solicitud enviada</AlertTitle>
-          <AlertDescription>
-            Ya enviaste esta solicitud. Debes esperar a que la otra parte la
-            acepte o rechace.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {canRespond && (
+      {canRespond ? (
         <section className="flex items-center gap-2">
           <Button variant="outline" onClick={() => router.history.back()}>
             Volver
@@ -207,6 +197,13 @@ function RouteComponent() {
             Aceptar
           </Button>
         </section>
+      ) : (
+        <Alert variant="primary" className="max-w-xl">
+          <AlertTitle>Solicitud enviada</AlertTitle>
+          <AlertDescription>
+            Espera la respuesta de tu {isBarber ? "cliente" : "barbero"}.
+          </AlertDescription>
+        </Alert>
       )}
     </BorderContainer>
   );

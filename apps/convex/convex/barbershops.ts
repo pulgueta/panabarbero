@@ -119,21 +119,25 @@ export const getActiveBarbershops = query({
   args: {
     city: v.optional(v.string()),
     state: v.optional(v.string()),
+    userId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const barbershops = await ctx.db
       .query("barbershops")
       .withIndex("by_isActive", (q) => q.eq("isActive", true))
       .filter((q) =>
-        args.city && args.state
-          ? q.and(
-              q.eq(q.field("city"), args.city),
-              q.eq(q.field("state"), args.state),
-            )
-          : q.or(
-              q.eq(q.field("city"), args.city),
-              q.eq(q.field("state"), args.state),
-            ),
+        q.and(
+          q.neq(q.field("ownerId"), args.userId),
+          args.city && args.state
+            ? q.and(
+                q.eq(q.field("city"), args.city),
+                q.eq(q.field("state"), args.state),
+              )
+            : q.or(
+                q.eq(q.field("city"), args.city),
+                q.eq(q.field("state"), args.state),
+              ),
+        ),
       )
       .collect();
 

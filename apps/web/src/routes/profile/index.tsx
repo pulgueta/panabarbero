@@ -125,7 +125,7 @@ function ProfilePage() {
               <TabsTrigger
                 key={tabOption.value}
                 value={tabOption.value}
-                className="min-w-auto md:min-w-32 md:max-w-40"
+                className="min-w-24 md:min-w-32 md:max-w-40"
                 onClick={() => setActiveTab(tabOption.value as ProfileTabValue)}
               >
                 {tabOption.label}

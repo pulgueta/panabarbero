@@ -33,10 +33,6 @@ export function useIsBarber(userId: string) {
   return useSuspenseQuery(isBarberQueryOptions(userId));
 }
 
-export function useBarberByUserId(userId: string) {
-  return useSuspenseQuery(barberByUserIdQueryOptions(userId));
-}
-
 export function useBarberActions() {
   const inviteBarberMutation = useMutation({
     mutationFn: inviteBarberMutationOptions(),

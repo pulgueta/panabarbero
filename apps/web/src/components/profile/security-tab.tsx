@@ -50,8 +50,7 @@ export const SecurityTab: FC<SecurityTabProps> = () => {
           <CardHeader>
             <CardTitle>Passkeys</CardTitle>
             <CardDescription>
-              Crea y administra tus passkeys para iniciar sesión en la
-              aplicación sin contraseña.
+              Crea y administra tus passkeys para iniciar sesión sin contraseña.
             </CardDescription>
           </CardHeader>
           <CardContent>

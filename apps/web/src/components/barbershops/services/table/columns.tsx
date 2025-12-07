@@ -76,19 +76,19 @@ export const servicesTableColumns: ColumnDef<Service>[] = [
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <ServiceDialog
-                asChild
                 barbershopId={service.barbershopId}
                 initialValues={service}
                 serviceId={service._id}
-              >
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onSelect={(e) => e.preventDefault()}
-                >
-                  <PencilIcon className="size-3" />
-                  Editar
-                </DropdownMenuItem>
-              </ServiceDialog>
+                trigger={
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    <PencilIcon className="size-3" />
+                    Editar
+                  </DropdownMenuItem>
+                }
+              />
 
               <ConfirmationDialog
                 trigger={

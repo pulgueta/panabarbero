@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: Needed */
 
 import { createFileRoute } from "@tanstack/react-router";
-import { ScissorsIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import { Activity, Suspense } from "react";
 
 import { InviteBarberDialog } from "@/components/barbers/invite-barber-dialog";
@@ -11,6 +11,7 @@ import { servicesTableColumns } from "@/components/barbershops/services/table/co
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { DataTable } from "@/components/table/data-table";
+import { Button } from "@/components/ui/button";
 import {
   Empty,
   EmptyDescription,
@@ -85,26 +86,42 @@ function RouteComponent() {
                 !isLoadingServices && barbershop?._id ? "visible" : "hidden"
               }
             >
-              <ServiceDialog barbershopId={barbershop?._id!} />
+              <ServiceDialog
+                barbershopId={barbershop?._id!}
+                trigger={
+                  <Button variant="outline">
+                    <PlusIcon className="size-3" />
+                    Agregar servicio
+                  </Button>
+                }
+              />
             </Activity>
           </Suspense>
         </div>
 
-        {isLoadingServices ? (
-          <Skeleton className="h-48 w-full" />
-        ) : services?.length ? (
-          <DataTable
-            className="max-h-64"
-            columns={servicesTableColumns}
-            data={services}
-          />
-        ) : (
-          <div className="flex h-48 w-full flex-col items-center justify-center gap-2 rounded-lg border p-4 text-center">
-            <ScissorsIcon className="size-6" />
-            <p className="text-center text-muted-foreground text-xs md:text-sm">
-              Aún no hay servicios disponibles para esta barbería.
-            </p>
-          </div>
+        <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+          <Activity
+            mode={!isLoadingServices && services?.length ? "visible" : "hidden"}
+          >
+            <DataTable
+              className="max-h-64"
+              columns={servicesTableColumns}
+              data={services}
+            />
+          </Activity>
+        </Suspense>
+
+        {services?.length === 0 && (
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>
+                No hay servicios disponibles para esta barbería.
+              </EmptyTitle>
+              <EmptyDescription>
+                Cuando agregues un servicio, podrás verlo aquí.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         )}
       </section>
 

@@ -2,7 +2,7 @@
 
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { es } from "date-fns/locale";
-import { useState } from "react";
+import { Activity, Suspense, useState } from "react";
 
 import { AppointmentsForDateTable } from "@/components/appointments/table/appointments-for-date-table";
 import { BorderContainer } from "@/components/layout/border-container";
@@ -10,6 +10,7 @@ import { LoadingComponent } from "@/components/layout/loading-component";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -80,9 +81,12 @@ function RouteComponent() {
   const { data: session } = useSession();
   const { data: isBarber } = useIsBarber(session?.userId!);
   const { data: barbershop } = useBarbershopByOwnerId(session?.userId!);
-  const { data: rescheduledAppointmentRequests } =
-    useRescheduledAppointmentRequests(barbershop?._id!);
-  const { data: appointments } = useAppointmentsByBarbershop(barbershop?._id!);
+  const {
+    data: rescheduledAppointmentRequests,
+    isLoading: isLoadingRescheduledAppointmentRequests,
+  } = useRescheduledAppointmentRequests(barbershop?._id!);
+  const { data: appointments, isLoading: isLoadingAppointments } =
+    useAppointmentsByBarbershop(barbershop?._id!);
   const { data: services } = useServicesByIds(
     appointments.map((appointment) => appointment.serviceId),
   );
@@ -102,7 +106,7 @@ function RouteComponent() {
     <BorderContainer className="space-y-6">
       <section className="flex w-full flex-col justify-between gap-4">
         <div className="flex w-full items-center justify-between gap-4">
-          <h1 className="font-bold text-xl tracking-tight">Citas</h1>
+          <h1 className="font-bold text-3xl tracking-tight">Citas</h1>
         </div>
       </section>
 
@@ -117,7 +121,7 @@ function RouteComponent() {
             disabled={(date) =>
               date.getTime() < new Date().setHours(0, 0, 0, 0)
             }
-            className="mx-auto rounded-lg border border-border [--cell-size:--spacing(12)] md:col-span-1 md:ml-auto md:[--cell-size:--spacing(7)] lg:[--cell-size:--spacing(9)] xl:[--cell-size:--spacing(12)]"
+            className="mx-auto rounded-lg border border-border [--cell-size:--spacing(11)] md:col-span-1 md:ml-auto md:[--cell-size:--spacing(7)] lg:[--cell-size:--spacing(9)] xl:[--cell-size:--spacing(12)]"
           />
         </div>
 
@@ -132,18 +136,34 @@ function RouteComponent() {
               })}
             </h2>
             <p className="text-muted-foreground text-sm">
-              {appointmentsForSelectedDay.length} cita(s) encontradas
+              {appointmentsForSelectedDay.length} cita
+              {appointmentsForSelectedDay.length > 1 ||
+              appointmentsForSelectedDay.length === 0
+                ? "s"
+                : ""}{" "}
+              encontrada
+              {appointmentsForSelectedDay.length > 1 ? "s" : ""}
             </p>
           </header>
 
-          {appointmentsForSelectedDay.length > 0 ? (
-            <AppointmentsForDateTable
-              appointments={appointmentsForSelectedDay}
-              // @ts-expect-error - services can be null
-              services={services}
-              isBarber={isBarber}
-            />
-          ) : (
+          <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+            <Activity
+              mode={
+                !isLoadingAppointments && appointmentsForSelectedDay.length > 0
+                  ? "visible"
+                  : "hidden"
+              }
+            >
+              <AppointmentsForDateTable
+                appointments={appointmentsForSelectedDay}
+                // @ts-expect-error - services can be null
+                services={services}
+                isBarber={isBarber}
+              />
+            </Activity>
+          </Suspense>
+
+          {appointmentsForSelectedDay.length === 0 && (
             <Empty>
               <EmptyTitle>No hay citas para el día seleccionado.</EmptyTitle>
               <EmptyDescription>
@@ -167,68 +187,79 @@ function RouteComponent() {
           </p>
         </header>
 
-        {rescheduledAppointmentRequests.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-center">Cliente</TableHead>
-                <TableHead className="text-center">Servicio</TableHead>
-                <TableHead className="text-center">Fecha original</TableHead>
-                <TableHead className="text-center">Fecha propuesta</TableHead>
-                <TableHead className="text-center">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rescheduledAppointmentRequests.map((request) => {
-                const service = services?.find(
-                  (service) => service?._id === request.serviceId,
-                );
+        <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+          <Activity
+            mode={
+              !isLoadingRescheduledAppointmentRequests &&
+              rescheduledAppointmentRequests.length > 0
+                ? "visible"
+                : "hidden"
+            }
+          >
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-center">Cliente</TableHead>
+                  <TableHead className="text-center">Servicio</TableHead>
+                  <TableHead className="text-center">Fecha original</TableHead>
+                  <TableHead className="text-center">Fecha propuesta</TableHead>
+                  <TableHead className="text-center">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rescheduledAppointmentRequests.map((request) => {
+                  const service = services?.find(
+                    (service) => service?._id === request.serviceId,
+                  );
 
-                return (
-                  <TableRow key={request._id}>
-                    <TableCell className="text-center">
-                      {request.customerName}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {service?.name}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {new Date(request.date).toLocaleDateString("es-CO", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {new Date(request.proposedDate!).toLocaleDateString(
-                        "es-CO",
-                        {
+                  return (
+                    <TableRow key={request._id}>
+                      <TableCell className="text-center">
+                        {request.customerName}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {service?.name}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {new Date(request.date).toLocaleDateString("es-CO", {
                           year: "numeric",
                           month: "long",
                           day: "numeric",
-                        },
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="mx-auto flex items-center justify-center gap-2">
-                        <Button asChild variant="outline">
-                          <Link
-                            to={
-                              "/profile/appointments/reschedule/$appointmentId"
-                            }
-                            params={{ appointmentId: request._id }}
-                          >
-                            Ver solicitud
-                          </Link>
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        ) : (
+                        })}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {new Date(request.proposedDate!).toLocaleDateString(
+                          "es-CO",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          },
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="mx-auto flex items-center justify-center gap-2">
+                          <Button asChild variant="outline">
+                            <Link
+                              to={
+                                "/profile/appointments/reschedule/$appointmentId"
+                              }
+                              params={{ appointmentId: request._id }}
+                            >
+                              Ver solicitud
+                            </Link>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </Activity>
+        </Suspense>
+
+        {rescheduledAppointmentRequests.length === 0 && (
           <Empty>
             <EmptyTitle>
               No hay solicitudes de reagendamiento pendientes.

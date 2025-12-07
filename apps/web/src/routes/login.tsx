@@ -9,27 +9,34 @@ import {
 import { ArrowLeft, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 
+import { LoadingComponent } from "@/components/layout/loading-component";
 import { Button } from "@/components/ui/button";
-import { useSession } from "@/hooks/use-session";
+import { isBarberQueryOptions } from "@/hooks/use-barbershop-members";
+import { getSessionQueryOptions } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
+  pendingComponent: LoadingComponent,
+  beforeLoad: async ({ context }) => {
+    const user = await context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
+
+    if (user?.userId) {
+      const isBarber = await context.queryClient.ensureQueryData(
+        isBarberQueryOptions(user.userId),
+      );
+
+      throw redirect({ to: isBarber ? "/profile/barbershops" : "/profile" });
+    }
+  },
 });
 
 type Provider = "google" | "apple" | "passkey";
 
 function LoginPage() {
-  const { data: user } = useSession();
-
   const canGoBack = useCanGoBack();
   const router = useRouter();
-
-  if (user) {
-    throw redirect({
-      to: "/barbershops",
-      search: { city: "Barrancabermeja", state: "Santander" },
-    });
-  }
 
   const handleSignIn = async (provider: Provider) => {
     if (provider === "passkey") {
