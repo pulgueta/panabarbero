@@ -65,7 +65,6 @@ export const Route = createFileRoute("/profile/")({
       await context.queryClient.ensureQueryData(
         appointmentsByUserQueryOptions(user.userId),
       );
-
       await context.queryClient.ensureQueryData(
         profileQueryOptions(user.userId),
       );
@@ -101,17 +100,7 @@ function ProfilePage() {
     throw navigate({ to: "/login", replace: true });
   };
 
-  const tabsToRender = [
-    {
-      ...tabs.appointments,
-    },
-    {
-      ...tabs.account,
-    },
-    {
-      ...tabs.security,
-    },
-  ];
+  const tabsToRender = [tabs.appointments, tabs.account, tabs.security];
 
   return (
     <BorderContainer className="space-y-6">
