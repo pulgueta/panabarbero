@@ -1,0 +1,224 @@
+/** biome-ignore-all lint/style/noNonNullAssertion: needed */
+
+import type { Appointment } from "@panabarbero/convex/schemas";
+import { Link } from "@tanstack/react-router";
+import type { ColumnDef } from "@tanstack/react-table";
+import {
+  CalendarClockIcon,
+  EllipsisVerticalIcon,
+  TrashIcon,
+} from "lucide-react";
+
+import { TableHeader } from "@/components/layout/table/header";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useIsBarber } from "@/hooks/use-barbershop-members";
+import { useServiceByAppointmentId } from "@/hooks/use-services";
+import { useSession } from "@/hooks/use-session";
+import { getAppointmentDataByStatus } from "@/lib/appointment-utils";
+import { CancelAppointmentDialog } from "../cancel-appointment-dialog";
+import { DeleteAppointmentDialog } from "../delete-appointment-dialog";
+import { RescheduleRequestDialog } from "../reschedule-request-dialog";
+
+export const appointmentsTableColumns: ColumnDef<Appointment>[] = [
+  {
+    accessorKey: "date",
+    header: ({ column }) => <TableHeader column={column} header="Hora" />,
+    cell: ({ row }) => {
+      const date = new Date(row.original.date).toLocaleTimeString("es-CO", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      return <div className="text-center">{date}</div>;
+    },
+  },
+  {
+    accessorKey: "customerName",
+    header: ({ column }) => <TableHeader column={column} header="Cliente" />,
+    cell: ({ row }) => (
+      <div className="text-center">{row.original.customerName}</div>
+    ),
+  },
+  {
+    accessorKey: "serviceName",
+    header: ({ column }) => <TableHeader column={column} header="Servicio" />,
+    cell: ({ row }) => {
+      const { data: service } = useServiceByAppointmentId(row.original._id);
+
+      return <div className="text-center">{service?.name}</div>;
+    },
+  },
+  {
+    accessorKey: "notes",
+    header: ({ column }) => <TableHeader column={column} header="Notas" />,
+    cell: ({ row }) => (
+      <div className="text-center">{row.original.notes || "No hay notas"}</div>
+    ),
+  },
+  {
+    accessorKey: "status",
+    header: ({ column }) => <TableHeader column={column} header="Estado" />,
+    cell: ({ row }) => {
+      const { label, variant } = getAppointmentDataByStatus(
+        row.original.status,
+      );
+
+      return (
+        <div className="text-center">
+          <Badge variant={variant}>{label}</Badge>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "actions",
+    header: () => <div className="text-center">Acciones</div>,
+    cell: ({ row }) => {
+      const { data: session } = useSession();
+      const { data: isBarber } = useIsBarber(session?.userId!);
+
+      const appointment = row.original;
+      const isCancelledOrDenied =
+        appointment.status === "cancelled" || appointment.status === "denied";
+
+      const canRequestReschedule =
+        appointment.status !== "completed" && !isCancelledOrDenied;
+
+      return (
+        <div className="text-center">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <EllipsisVerticalIcon />
+              </Button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent align="end" className="max-w-64">
+              {!appointment.proposedDate && canRequestReschedule && (
+                <RescheduleRequestDialog
+                  appointment={appointment}
+                  to="customer"
+                  trigger={
+                    <DropdownMenuItem
+                      className="inline-flex w-full items-center gap-x-2"
+                      onSelect={(event) => event.preventDefault()}
+                    >
+                      <CalendarClockIcon className="size-3" />
+                      Solicitar reagendamiento
+                    </DropdownMenuItem>
+                  }
+                />
+              )}
+
+              {isCancelledOrDenied ? (
+                <DeleteAppointmentDialog
+                  appointment={appointment}
+                  trigger={
+                    <DropdownMenuItem
+                      className="inline-flex w-full items-center gap-x-2"
+                      onSelect={(event) => event.preventDefault()}
+                    >
+                      <TrashIcon className="size-3 text-destructive dark:text-destructive-foreground" />
+                      Eliminar
+                    </DropdownMenuItem>
+                  }
+                />
+              ) : (
+                <CancelAppointmentDialog
+                  appointment={appointment}
+                  userId={appointment.userId}
+                  isBarber={isBarber}
+                  trigger={
+                    <DropdownMenuItem
+                      className="inline-flex w-full items-center gap-x-2"
+                      onSelect={(event) => event.preventDefault()}
+                    >
+                      <TrashIcon className="size-3 text-destructive dark:text-destructive-foreground" />
+                      Cancelar
+                    </DropdownMenuItem>
+                  }
+                />
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      );
+    },
+  },
+];
+
+export const rescheduledAppointmentRequestsTableColumns: ColumnDef<
+  Appointment & {
+    rescheduleRequestedByUserId?: string | null;
+  }
+>[] = [
+  {
+    accessorKey: "customerName",
+    header: ({ column }) => <TableHeader column={column} header="Cliente" />,
+    cell: ({ row }) => (
+      <div className="text-center">{row.original.customerName}</div>
+    ),
+  },
+  {
+    accessorKey: "serviceName",
+    header: ({ column }) => <TableHeader column={column} header="Servicio" />,
+    cell: ({ row }) => {
+      const { data: service } = useServiceByAppointmentId(row.original._id);
+
+      return <div className="text-center">{service?.name}</div>;
+    },
+  },
+  {
+    accessorKey: "date",
+    header: ({ column }) => (
+      <TableHeader column={column} header="Fecha original" />
+    ),
+    cell: ({ row }) => (
+      <div className="text-center">
+        {new Date(row.original.date).toLocaleDateString("es-CO", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })}
+      </div>
+    ),
+  },
+  {
+    accessorKey: "proposedDate",
+    header: ({ column }) => (
+      <TableHeader column={column} header="Fecha propuesta" />
+    ),
+    cell: ({ row }) => (
+      <div className="text-center">
+        {new Date(row.original.proposedDate!).toLocaleDateString("es-CO", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })}
+      </div>
+    ),
+  },
+  {
+    accessorKey: "actions",
+    header: () => <div className="text-center">Acciones</div>,
+    cell: ({ row }) => (
+      <div className="text-center">
+        <Button asChild variant="outline">
+          <Link
+            to={"/profile/appointments/reschedule/$appointmentId"}
+            params={{ appointmentId: row.original._id }}
+          >
+            Ver solicitud
+          </Link>
+        </Button>
+      </div>
+    ),
+  },
+];

@@ -1,6 +1,10 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@panabarbero/convex/api";
-import type { Barbershop, Service } from "@panabarbero/convex/schemas";
+import type {
+  Appointment,
+  Barbershop,
+  Service,
+} from "@panabarbero/convex/schemas";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 
 export function createServiceMutationOptions() {
@@ -25,6 +29,12 @@ export function servicesByIdsQueryOptions(serviceIds: Service["_id"][]) {
   return convexQuery(api.services.getServicesByIds, { serviceIds });
 }
 
+export function serviceByAppointmentIdQueryOptions(
+  appointmentId: Appointment["_id"],
+) {
+  return convexQuery(api.services.getServiceByAppointmentId, { appointmentId });
+}
+
 export function deleteServiceMutationOptions() {
   return useConvexMutation(api.services.deleteService);
 }
@@ -43,6 +53,10 @@ export function useServiceById(serviceId: Service["_id"]) {
 
 export function useServicesByIds(serviceIds: Service["_id"][]) {
   return useSuspenseQuery(servicesByIdsQueryOptions(serviceIds));
+}
+
+export function useServiceByAppointmentId(appointmentId: Appointment["_id"]) {
+  return useSuspenseQuery(serviceByAppointmentIdQueryOptions(appointmentId));
 }
 
 export function useServicesByBarbershopId(barbershopId: Barbershop["_id"]) {

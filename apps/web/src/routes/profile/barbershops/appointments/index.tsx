@@ -1,24 +1,19 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: needed */
 
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { es } from "date-fns/locale";
 import { Activity, Suspense, useState } from "react";
 
-import { AppointmentsForDateTable } from "@/components/appointments/table/appointments-for-date-table";
+import {
+  appointmentsTableColumns,
+  rescheduledAppointmentRequestsTableColumns,
+} from "@/components/appointments/table/columns";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
-import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/table/data-table";
 import { Calendar } from "@/components/ui/calendar";
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   barbershopByOwnerIdQueryOptions,
   useBarbershopByOwnerId,
@@ -29,13 +24,10 @@ import {
   useAppointmentsByBarbershop,
   useRescheduledAppointmentRequests,
 } from "@/hooks/use-appointments";
+import { isBarberQueryOptions } from "@/hooks/use-barbershop-members";
 import {
-  isBarberQueryOptions,
-  useIsBarber,
-} from "@/hooks/use-barbershop-members";
-import {
+  serviceByAppointmentIdQueryOptions,
   servicesByIdsQueryOptions,
-  useServicesByIds,
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
@@ -63,11 +55,21 @@ export const Route = createFileRoute("/profile/barbershops/appointments/")({
         await context.queryClient.ensureQueryData(
           requestRescheduleQueryOptions(barbershop._id),
         );
-        await context.queryClient.ensureQueryData(
-          servicesByIdsQueryOptions(
-            appointments.map((appointment) => appointment.serviceId),
-          ),
-        );
+
+        if (appointments) {
+          await context.queryClient.ensureQueryData(
+            servicesByIdsQueryOptions(
+              appointments.map((appointment) => appointment.serviceId),
+            ),
+          );
+          await Promise.all(
+            appointments.map((appointment) =>
+              context.queryClient.ensureQueryData(
+                serviceByAppointmentIdQueryOptions(appointment._id),
+              ),
+            ),
+          );
+        }
       }
     }
   },
@@ -79,7 +81,6 @@ function RouteComponent() {
   );
 
   const { data: session } = useSession();
-  const { data: isBarber } = useIsBarber(session?.userId!);
   const { data: barbershop } = useBarbershopByOwnerId(session?.userId!);
   const {
     data: rescheduledAppointmentRequests,
@@ -87,9 +88,6 @@ function RouteComponent() {
   } = useRescheduledAppointmentRequests(barbershop?._id!);
   const { data: appointments, isLoading: isLoadingAppointments } =
     useAppointmentsByBarbershop(barbershop?._id!);
-  const { data: services } = useServicesByIds(
-    appointments.map((appointment) => appointment.serviceId),
-  );
 
   const appointmentsForSelectedDay = appointments
     .filter((appointment) => {
@@ -128,25 +126,19 @@ function RouteComponent() {
         <div className="md:col-span-2">
           <header className="mb-4 flex flex-col gap-1">
             <h2 className="font-semibold text-lg">
-              Citas para:{" "}
-              {selectedDate?.toLocaleDateString("es-CO", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
+              {selectedDate
+                ? `${appointmentsForSelectedDay.length} cita${appointmentsForSelectedDay.length >= 1 || appointmentsForSelectedDay.length === 0 ? "s" : ""} (${selectedDate.toLocaleDateString(
+                    "es-CO",
+                    {
+                      month: "long",
+                      day: "numeric",
+                    },
+                  )})`
+                : "No hay día seleccionado"}
             </h2>
-            <p className="text-muted-foreground text-sm">
-              {appointmentsForSelectedDay.length} cita
-              {appointmentsForSelectedDay.length > 1 ||
-              appointmentsForSelectedDay.length === 0
-                ? "s"
-                : ""}{" "}
-              encontrada
-              {appointmentsForSelectedDay.length > 1 ? "s" : ""}
-            </p>
           </header>
 
-          <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
             <Activity
               mode={
                 !isLoadingAppointments && appointmentsForSelectedDay.length > 0
@@ -154,11 +146,9 @@ function RouteComponent() {
                   : "hidden"
               }
             >
-              <AppointmentsForDateTable
-                appointments={appointmentsForSelectedDay}
-                // @ts-expect-error - services can be null
-                services={services}
-                isBarber={isBarber}
+              <DataTable
+                columns={appointmentsTableColumns}
+                data={appointmentsForSelectedDay}
               />
             </Activity>
           </Suspense>
@@ -187,7 +177,7 @@ function RouteComponent() {
           </p>
         </header>
 
-        <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
           <Activity
             mode={
               !isLoadingRescheduledAppointmentRequests &&
@@ -196,66 +186,10 @@ function RouteComponent() {
                 : "hidden"
             }
           >
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-center">Cliente</TableHead>
-                  <TableHead className="text-center">Servicio</TableHead>
-                  <TableHead className="text-center">Fecha original</TableHead>
-                  <TableHead className="text-center">Fecha propuesta</TableHead>
-                  <TableHead className="text-center">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rescheduledAppointmentRequests.map((request) => {
-                  const service = services?.find(
-                    (service) => service?._id === request.serviceId,
-                  );
-
-                  return (
-                    <TableRow key={request._id}>
-                      <TableCell className="text-center">
-                        {request.customerName}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {service?.name}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {new Date(request.date).toLocaleDateString("es-CO", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {new Date(request.proposedDate!).toLocaleDateString(
-                          "es-CO",
-                          {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          },
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="mx-auto flex items-center justify-center gap-2">
-                          <Button asChild variant="outline">
-                            <Link
-                              to={
-                                "/profile/appointments/reschedule/$appointmentId"
-                              }
-                              params={{ appointmentId: request._id }}
-                            >
-                              Ver solicitud
-                            </Link>
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <DataTable
+              columns={rescheduledAppointmentRequestsTableColumns}
+              data={rescheduledAppointmentRequests}
+            />
           </Activity>
         </Suspense>
 

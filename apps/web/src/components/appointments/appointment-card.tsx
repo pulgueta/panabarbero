@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
@@ -56,10 +57,12 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
         <CardTitle className="text-base">{barbershop?.name}</CardTitle>
         <CardDescription>{dateString}</CardDescription>
         <Badge variant={variant}>{label}</Badge>
-        {appointment.notes && (
-          <CardDescription>{appointment.notes}</CardDescription>
-        )}
       </CardHeader>
+      <CardContent>
+        <p className="text-pretty text-muted-foreground text-sm">
+          {appointment.notes || "No hay notas"}
+        </p>
+      </CardContent>
       <CardFooter className="flex w-full flex-col items-center gap-2 md:flex-row">
         {!appointment.proposedDate && !showDeleteButton && (
           <RescheduleRequestDialog

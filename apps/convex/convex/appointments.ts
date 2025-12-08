@@ -1,5 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 import { errorMessages } from "@panabarbero/constants";
+import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import {
@@ -157,6 +158,11 @@ export const createAppointment = mutation({
         ),
       )
       .collect();
+
+    // TODO:
+    // Appointments by date
+    // Search parameters on calendar on every day selected
+    // Pagination on appointments and rescheduled appointments
 
     for (const appt of candidates) {
       const apptService = await ctx.db.get(appt.serviceId);
@@ -1076,6 +1082,7 @@ export const getAppointmentsByBarbershopIdAndDate = query({
   args: {
     barbershopId: v.id("barbershops"),
     date: v.number(),
+    pagination: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
     const fromDate = new Date(args.date);

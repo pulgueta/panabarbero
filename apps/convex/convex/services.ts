@@ -200,3 +200,18 @@ export const deleteService = mutation({
     await ctx.db.delete(serviceId);
   },
 });
+
+export const getServiceByAppointmentId = query({
+  args: {
+    appointmentId: v.id("appointments"),
+  },
+  handler: async (ctx, args) => {
+    const appointment = await ctx.db.get(args.appointmentId);
+
+    if (!appointment) {
+      throw new ConvexError(errorMessages.notFound("cita"));
+    }
+
+    return await ctx.db.get(appointment.serviceId);
+  },
+});

@@ -69,7 +69,11 @@ function RouteComponent() {
   };
   const requesterUserId = appointmentWithRequester?.rescheduleRequestedByUserId;
   const isRequester = requesterUserId === session?.userId;
-  const canView = isCustomer || isBarberForAppointment;
+  const canView =
+    isCustomer ||
+    isBarberForAppointment ||
+    appointment?.status === "denied" ||
+    appointment?.status === "cancelled";
 
   const redirectTo = isBarber
     ? "/profile/barbershops/appointments"
