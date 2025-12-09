@@ -24,15 +24,11 @@ function parseTimeToMinutes(time: string): number {
 function minutesOfDay(ts: number): number {
   const d = new Date(ts);
 
-  // Since Convex runs in UTC but barbershop hours are in local time (UTC-5 for Colombia),
-  // we need to convert UTC time to local time by subtracting the timezone offset.
-  // Using getUTCHours() to get UTC hours, then convert to local timezone.
   const utcHours = d.getUTCHours();
   const utcMinutes = d.getUTCMinutes();
 
-  // Colombia is UTC-5, so subtract 5 hours to get local time
-  // Handle day rollover if needed
   let localHours = utcHours - 5;
+
   if (localHours < 0) {
     localHours += 24;
   }
@@ -158,11 +154,6 @@ export const createAppointment = mutation({
         ),
       )
       .collect();
-
-    // TODO:
-    // Appointments by date
-    // Search parameters on calendar on every day selected
-    // Pagination on appointments and rescheduled appointments
 
     for (const appt of candidates) {
       const apptService = await ctx.db.get(appt.serviceId);
@@ -346,13 +337,11 @@ export const getAppointmentsByUserId = query({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    const appointments = await ctx.db
+    return await ctx.db
       .query("appointments")
       .withIndex("by_userId", (q) => q.eq("userId", args.userId ?? ""))
       .order("desc")
       .paginate(args.paginationOpts);
-
-    return appointments;
   },
 });
 

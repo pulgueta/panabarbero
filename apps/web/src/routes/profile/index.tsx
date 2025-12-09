@@ -79,15 +79,13 @@ function ProfilePage() {
   const navigate = Route.useNavigate();
   const { tab } = Route.useSearch();
 
-  const [activeTab, setActiveTab] = useState<ProfileTabValue>(tab);
-
-  const { data: user } = useSession();
-  const { data: isBarber } = useIsBarber(user?.userId!);
   const [cursor, setCursor] = useState<string | null>(null);
   const [cursorStack, setCursorStack] = useState<Array<string | null>>([]);
 
+  const { data: user } = useSession();
+  const { data: isBarber } = useIsBarber(user?.userId!);
   const {
-    data: appointmentsResult,
+    data: appointments,
     isLoading: isLoadingAppointments,
     isFetching: isFetchingAppointments,
   } = useAppointmentsByUser(user?.userId!, cursor);
@@ -96,7 +94,6 @@ function ProfilePage() {
   );
 
   const onTabChange = (value: string) => {
-    setActiveTab(value as ProfileTabValue);
     navigate({ to: "/profile", search: { tab: value as ProfileTabValue } });
   };
 
@@ -132,7 +129,6 @@ function ProfilePage() {
                 key={tabOption.value}
                 value={tabOption.value}
                 className="min-w-24 md:min-w-32 md:max-w-40"
-                onClick={() => setActiveTab(tabOption.value as ProfileTabValue)}
               >
                 {tabOption.label}
               </TabsTrigger>
@@ -142,7 +138,7 @@ function ProfilePage() {
           <Suspense fallback={<ProfileTabSkeleton />}>
             <Activity
               mode={
-                activeTab === tabs.account.value && !isLoadingProfile
+                tab === tabs.account.value && !isLoadingProfile
                   ? "visible"
                   : "hidden"
               }
@@ -160,7 +156,7 @@ function ProfilePage() {
           <Suspense fallback={<ProfileTabSkeleton />}>
             <Activity
               mode={
-                activeTab === tabs.security.value && !isLoadingProfile
+                tab === tabs.security.value && !isLoadingProfile
                   ? "visible"
                   : "hidden"
               }
@@ -174,29 +170,23 @@ function ProfilePage() {
           <Suspense fallback={<ProfileTabSkeleton />}>
             <Activity
               mode={
-                activeTab === tabs.appointments.value && !isLoadingAppointments
+                tab === tabs.appointments.value && !isLoadingAppointments
                   ? "visible"
                   : "hidden"
               }
             >
               <TabsContent value={tabs.appointments.value} className="pt-2">
                 <AppointmentsTab
-                  appointments={appointmentsResult?.page ?? []}
+                  appointments={appointments?.page ?? []}
                   hasNextPage={Boolean(
-                    appointmentsResult &&
-                      !appointmentsResult.isDone &&
-                      appointmentsResult.continueCursor &&
-                      (appointmentsResult.page?.length ?? 0) >= 9,
+                    appointments &&
+                      !appointments.isDone &&
+                      appointments.continueCursor &&
+                      appointments.page?.length >= 9,
                   )}
                   onNextPage={() => {
-                    if (
-                      !appointmentsResult ||
-                      appointmentsResult.isDone ||
-                      !appointmentsResult.continueCursor
-                    )
-                      return;
                     setCursorStack((prev) => [...prev, cursor]);
-                    setCursor(appointmentsResult.continueCursor);
+                    setCursor(appointments.continueCursor);
                   }}
                   onPreviousPage={() => {
                     setCursorStack((prev) => {

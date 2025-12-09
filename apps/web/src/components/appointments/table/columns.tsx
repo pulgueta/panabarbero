@@ -9,7 +9,7 @@ import {
   TrashIcon,
 } from "lucide-react";
 
-import { TableHeader } from "@/components/layout/table/header";
+import { TableHeader } from "@/components/table/header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
