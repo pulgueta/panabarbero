@@ -1,4 +1,3 @@
-import { errorMessages } from "@panabarbero/constants";
 import { ConvexError, v } from "convex/values";
 import {
   internalMutation,
@@ -7,6 +6,7 @@ import {
   query,
 } from "./_generated/server";
 import { authComponent, createAuth } from "./auth";
+import { errorMessages } from "./errors";
 import { tables } from "./tables";
 
 export const getProfileByUserId = internalQuery({

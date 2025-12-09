@@ -3,6 +3,7 @@
 import { Resend } from "@convex-dev/resend";
 import {
   AppointmentCancelledEmail,
+  AppointmentCreatedEmail,
   AppointmentReminderEmail,
   AppointmentRescheduleRequestEmail,
   RescheduleRequestAcceptEmail,
@@ -21,22 +22,6 @@ export const resend = new Resend(components.resend, {
 
 const from = "soporte@panabarbero.com";
 
-export const sendEmail = internalAction({
-  args: {
-    to: v.string(),
-    subject: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const html = await render("template(args.emailPayload.props)");
-
-    await resend.sendEmail(ctx, {
-      from,
-      html,
-      to: args.to,
-      subject: args.subject,
-    });
-  },
-});
 export const sendAppointmentReminderEmail = internalAction({
   args: {
     barbershopName: v.string(),
@@ -143,6 +128,49 @@ export const sendAppointmentRescheduledDeniedEmail = internalAction({
       html,
       to: args.to,
       subject: subjects.appointment_rescheduled_denied,
+    });
+  },
+});
+
+export const sendAppointmentCreatedToUserEmail = internalAction({
+  args: {
+    to: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const html = await render(
+      AppointmentCreatedEmail({
+        sendTo: "customer",
+        subject: subjects.appointment_created,
+      }),
+    );
+
+    await resend.sendEmail(ctx, {
+      from,
+      html,
+      to: args.to,
+      subject: subjects.appointment_created,
+    });
+  },
+});
+
+export const sendAppointmentCreatedToBarberEmail = internalAction({
+  args: {
+    to: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const html = await render(
+      AppointmentCreatedEmail({
+        sendTo: "barber",
+        requestUrl: `${process.env.SITE_URL}/profile/barbershops`,
+        subject: subjects.appointment_created,
+      }),
+    );
+
+    await resend.sendEmail(ctx, {
+      from,
+      html,
+      to: args.to,
+      subject: subjects.appointment_created,
     });
   },
 });

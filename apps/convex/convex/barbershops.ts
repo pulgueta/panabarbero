@@ -1,10 +1,11 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
-import { errorMessages } from "@panabarbero/constants";
+
 import { ConvexError, v } from "convex/values";
 import { geospatial, r2 } from ".";
 import { api, internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
+import { errorMessages } from "./errors";
 import { tables } from "./tables";
 
 export const saveBarbershopBanner = internalMutation({

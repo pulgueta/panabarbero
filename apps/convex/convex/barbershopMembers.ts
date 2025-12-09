@@ -1,9 +1,10 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
-import { errorMessages } from "@panabarbero/constants";
+
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
+import { errorMessages } from "./errors";
 import type { BarbershopMember, BarbershopMemberWithName } from "./tables";
 import { tables } from "./tables";
 
@@ -210,26 +211,27 @@ export const inviteBarbershopMember = mutation({
       throw new ConvexError(errorMessages.requiredAccount);
     }
 
-    const userChannels = userProfile.notificationsPreferences
-      .filter((n) => n.enabled)
-      .map((n) => n.type);
+    // TODO: Send notification to the user when is implemented
+    // const userChannels = userProfile.notificationsPreferences
+    //   .filter((n) => n.enabled)
+    //   .map((n) => n.type);
 
-    if (userChannels.length > 0) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.notifications.createNotification,
-        {
-          notification: {
-            body: `Hola ${args.name}. Has sido invitado a unirte a ${barbershop.name} como barbero.`,
-            title: "Invitación a unirte como barbero",
-            receiverUserId: userProfile.userId,
-            senderUserId: userInviting.userId,
-            uuid: crypto.randomUUID(),
-            reason: "barber_invited",
-            channels: userChannels,
-          },
-        },
-      );
-    }
+    // if (userChannels.length > 0) {
+    //   await ctx.scheduler.runAfter(
+    //     0,
+    //     internal.notifications.createNotification,
+    //     {
+    //       notification: {
+    //         body: `Hola ${args.name}. Has sido invitado a unirte a ${barbershop.name} como barbero.`,
+    //         title: "Invitación a unirte como barbero",
+    //         receiverUserId: userProfile.userId,
+    //         senderUserId: userInviting.userId,
+    //         uuid: crypto.randomUUID(),
+    //         reason: "barber_invited",
+    //         channels: userChannels,
+    //       },
+    //     },
+    //   );
+    // }
   },
 });

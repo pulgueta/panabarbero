@@ -135,6 +135,7 @@ function RouteComponent() {
       await answerReschedule({
         appointmentId: appointment?._id!,
         accepted,
+        answeredBy: isBarber ? "barber" : "customer",
       });
 
       navigate({

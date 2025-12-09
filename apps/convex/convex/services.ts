@@ -1,13 +1,13 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: is always provided */
 
 import type { SearchEntry, SearchResult } from "@convex-dev/rag";
-import { errorMessages } from "@panabarbero/constants";
 import type { EmbeddingModelUsage } from "ai";
 import type { Value } from "convex/values";
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { action, internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
+import { errorMessages } from "./errors";
 import { tables } from "./tables";
 
 type ServiceResult = {
