@@ -1,4 +1,5 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: needed */
+
 import type { Appointment } from "@panabarbero/convex/schemas";
 import type { FC } from "react";
 import { Activity, Suspense } from "react";
@@ -51,6 +52,7 @@ export const AppointmentsTab: FC<AppointmentsTabProps> = ({
                   appointment={appointment}
                   barbershop={barbershop!}
                   isBarber={isBarber}
+                  link
                 />
               );
             })}

@@ -21,12 +21,14 @@ interface AppointmentCardProps {
   appointment: Appointment;
   barbershop: Barbershop;
   isBarber: boolean;
+  link?: boolean;
 }
 
 export const AppointmentCard: FC<AppointmentCardProps> = ({
   appointment,
   barbershop,
   isBarber,
+  link = false,
 }) => {
   const originalDate = new Date(appointment.date);
 
@@ -54,7 +56,16 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
   return (
     <Card className="max-h-full">
       <CardHeader>
-        <CardTitle className="text-base">{barbershop?.name}</CardTitle>
+        {link ? (
+          <Link
+            to="/barbershops/$barbershopUuid"
+            params={{ barbershopUuid: barbershop?.uuid }}
+          >
+            <CardTitle className="text-base">{barbershop?.name}</CardTitle>
+          </Link>
+        ) : (
+          <CardTitle className="text-base">{barbershop?.name}</CardTitle>
+        )}
         <CardDescription>{dateString}</CardDescription>
         <Badge variant={variant}>{label}</Badge>
       </CardHeader>
