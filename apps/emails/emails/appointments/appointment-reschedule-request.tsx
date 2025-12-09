@@ -14,17 +14,22 @@ import {
 import { tailwindConfig } from "../../tailwind-config";
 import { Header } from "../components/header";
 
-export interface AppointmentRescheduleByCustomerEmailProps {
+export interface AppointmentRescheduleRequestEmailProps {
+  requesterName?: string;
   requestUrl: string;
-  customerName: string;
   subject: string;
+  sendTo: "barber" | "customer";
 }
 
-export const AppointmentRescheduleByCustomerEmail = ({
+export const AppointmentRescheduleRequestEmail = ({
   requestUrl,
-  customerName = "Cliente",
-  subject = "Reagendamiento de cita",
-}: AppointmentRescheduleByCustomerEmailProps) => {
+  subject = "Solicitud de reagendamiento",
+  sendTo,
+}: AppointmentRescheduleRequestEmailProps) => {
+  const intro = `${
+    sendTo === "barber" ? "Un cliente" : "Tu barbero"
+  } ha solicitado reagendar una cita.`;
+
   return (
     <Html lang="es" dir="ltr">
       <Head />
@@ -41,9 +46,12 @@ export const AppointmentRescheduleByCustomerEmail = ({
 
             <Section className="my-4">
               <Text className="m-0 mb-[8px] text-gray-700 text-sm">
-                {customerName} ha solicitado reagendar su cita. Haz clic en el
-                botón a continuación para ver la solicitud. Podrás aceptar o
-                rechazar la propuesta.
+                {intro}
+              </Text>
+
+              <Text className="m-0 mb-[8px] text-gray-700 text-sm">
+                Ingresa al siguiente enlace para revisar y responder la
+                solicitud.
               </Text>
             </Section>
 
@@ -55,8 +63,6 @@ export const AppointmentRescheduleByCustomerEmail = ({
                 Ver solicitud
               </Button>
             </Section>
-
-            {/* <Footer /> */}
           </Container>
         </Body>
       </Tailwind>
@@ -64,4 +70,4 @@ export const AppointmentRescheduleByCustomerEmail = ({
   );
 };
 
-export default AppointmentRescheduleByCustomerEmail;
+export default AppointmentRescheduleRequestEmail;

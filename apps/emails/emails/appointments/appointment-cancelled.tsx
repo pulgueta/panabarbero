@@ -12,15 +12,17 @@ import {
 import { tailwindConfig } from "../../tailwind-config";
 import { Header } from "../components/header";
 
-export interface AppointmentCancelledByCustomerEmailProps {
-  customerName: string;
+export interface AppointmentCancelledEmailProps {
+  to: "barber" | "customer";
+  notes: string;
   subject: string;
 }
 
-export const AppointmentCancelledByCustomerEmail = ({
-  customerName = "Cliente",
+export const AppointmentCancelledEmail = ({
+  to = "barber",
+  notes = "Sin motivo alguno. Esto es un mensaje de prueba para ver como se ve el texto en el email.",
   subject = "Cita cancelada",
-}: AppointmentCancelledByCustomerEmailProps) => {
+}: AppointmentCancelledEmailProps) => {
   return (
     <Html lang="es" dir="ltr">
       <Head />
@@ -36,8 +38,16 @@ export const AppointmentCancelledByCustomerEmail = ({
             <Header />
 
             <Text className="text-pretty">
-              {customerName} ha cancelado su cita.
+              {to === "barber"
+                ? "Un cliente ha cancelado su cita. Motivo:"
+                : "Tu cita ha sido cancelada. Tu barbero ha proporcionado el siguiente motivo:"}
             </Text>
+
+            <Container className="mb-4 rounded-lg bg-muted p-4">
+              <Text className="m-0 mb-[8px] text-gray-700 text-sm italic">
+                {notes}
+              </Text>
+            </Container>
 
             {/* <Footer /> */}
           </Container>
@@ -47,4 +57,4 @@ export const AppointmentCancelledByCustomerEmail = ({
   );
 };
 
-export default AppointmentCancelledByCustomerEmail;
+export default AppointmentCancelledEmail;

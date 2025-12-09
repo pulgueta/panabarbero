@@ -1,39 +1,25 @@
 "use node";
 
 import { Resend } from "@convex-dev/resend";
-import type {
-  AppointmentReminderEmailProps,
-  AppointmentRescheduleEmailProps,
-} from "@panabarbero/emails/emails";
 import {
+  AppointmentCancelledEmail,
   AppointmentReminderEmail,
-  AppointmentRescheduleEmail,
+  AppointmentRescheduleRequestEmail,
+  RescheduleRequestAcceptEmail,
+  RescheduleRequestDeniedEmail,
 } from "@panabarbero/emails/emails";
 import { render } from "@react-email/components";
-import type { Infer } from "convex/values";
 import { v } from "convex/values";
-import type { ReactNode } from "react";
 
 import { components } from "./_generated/api";
 import { internalAction } from "./_generated/server";
-import { emailSubjects } from "./notifications";
-import { tables } from "./tables";
+import { subjects } from "./notifications";
 
 export const resend = new Resend(components.resend, {
   testMode: false,
 });
 
-const emailType = tables.notifications.reason;
-
-type EmailType = Infer<typeof emailType>;
-
-type EmailTemplate = {
-  [key in EmailType]: ReactNode;
-};
-
-export type EmailPayload =
-  | { type: "appointment_reminder"; props: AppointmentReminderEmailProps }
-  | { type: "appointment_rescheduled"; props: AppointmentRescheduleEmailProps };
+const from = "soporte@panabarbero.com";
 
 export const sendEmail = internalAction({
   args: {
@@ -44,21 +30,13 @@ export const sendEmail = internalAction({
     const html = await render("template(args.emailPayload.props)");
 
     await resend.sendEmail(ctx, {
-      from: "no-reply@panabarbero.com",
+      from,
       html,
       to: args.to,
       subject: args.subject,
     });
   },
 });
-
-export const emailTemplates = {
-  appointment_reminder: (props: AppointmentReminderEmailProps) =>
-    AppointmentReminderEmail(props),
-  appointment_rescheduled: (props: AppointmentRescheduleEmailProps) =>
-    AppointmentRescheduleEmail(props),
-} as unknown as EmailTemplate;
-
 export const sendAppointmentReminderEmail = internalAction({
   args: {
     barbershopName: v.string(),
@@ -68,14 +46,103 @@ export const sendAppointmentReminderEmail = internalAction({
     const html = await render(
       AppointmentReminderEmail({
         barbershopName: args.barbershopName,
+        subject: subjects.appointment_reminder,
       }),
     );
 
     await resend.sendEmail(ctx, {
-      from: "no-reply@panabarbero.com",
+      from,
       html,
       to: args.to,
-      subject: emailSubjects.appointment_reminder,
+      subject: subjects.appointment_reminder,
+    });
+  },
+});
+
+export const sendAppointmentCancelled = internalAction({
+  args: {
+    sendTo: v.union(v.literal("barber"), v.literal("customer")),
+    notes: v.string(),
+    to: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const html = await render(
+      AppointmentCancelledEmail({
+        notes: args.notes,
+        subject: subjects.appointment_cancelled,
+        to: args.sendTo,
+      }),
+    );
+
+    await resend.sendEmail(ctx, {
+      from,
+      html,
+      to: args.to,
+      subject: subjects.appointment_cancelled,
+    });
+  },
+});
+
+export const sendAppointmentRescheduleRequestEmail = internalAction({
+  args: {
+    to: v.string(),
+    appointmentId: v.id("appointments"),
+    sendTo: v.union(v.literal("barber"), v.literal("customer")),
+  },
+  handler: async (ctx, args) => {
+    const html = await render(
+      AppointmentRescheduleRequestEmail({
+        sendTo: args.sendTo,
+        requestUrl: `${process.env.SITE_URL}/profile/appointments/reschedule/${args.appointmentId}`,
+        subject: subjects.appointment_rescheduled_request,
+      }),
+    );
+
+    await resend.sendEmail(ctx, {
+      from,
+      html,
+      to: args.to,
+      subject: subjects.appointment_rescheduled_request,
+    });
+  },
+});
+
+export const sendAppointmentRescheduledAcceptedEmail = internalAction({
+  args: {
+    to: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const html = await render(
+      RescheduleRequestAcceptEmail({
+        subject: subjects.appointment_rescheduled_accepted,
+      }),
+    );
+
+    await resend.sendEmail(ctx, {
+      from,
+      html,
+      to: args.to,
+      subject: subjects.appointment_rescheduled_accepted,
+    });
+  },
+});
+
+export const sendAppointmentRescheduledDeniedEmail = internalAction({
+  args: {
+    to: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const html = await render(
+      RescheduleRequestDeniedEmail({
+        subject: subjects.appointment_rescheduled_denied,
+      }),
+    );
+
+    await resend.sendEmail(ctx, {
+      from,
+      html,
+      to: args.to,
+      subject: subjects.appointment_rescheduled_denied,
     });
   },
 });
