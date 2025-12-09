@@ -15,17 +15,14 @@ import { tailwindConfig } from "../../tailwind-config";
 import { Header } from "../components/header";
 
 export interface AppointmentRescheduleRequestEmailProps {
-  requesterName?: string;
   requestUrl: string;
   subject: string;
-  sendTo: "barber" | "customer";
   body: string;
 }
 
 export const AppointmentRescheduleRequestEmail = ({
   requestUrl,
   subject = "Solicitud de reagendamiento",
-  sendTo,
   body,
 }: AppointmentRescheduleRequestEmailProps) => {
   return (

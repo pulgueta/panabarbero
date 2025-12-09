@@ -14,7 +14,9 @@ import {
 import { tailwindConfig } from "../../tailwind-config";
 import { Header } from "../components/header";
 
-export type AppointmentCreatedEmailProps =
+export type AppointmentCreatedEmailProps = {
+  body: string;
+} & (
   | {
       sendTo: "customer";
       subject: string;
@@ -23,17 +25,13 @@ export type AppointmentCreatedEmailProps =
       sendTo: "barber";
       requestUrl: string;
       subject: string;
-    };
+    }
+);
 
 export const AppointmentCreatedEmail = (
   props: AppointmentCreatedEmailProps,
 ) => {
-  const { sendTo, subject } = props;
-
-  const body =
-    sendTo === "barber"
-      ? "Un usuario ha agendado una cita en tu barbería."
-      : "Tu cita ha sido agendada.";
+  const { sendTo, subject, body } = props;
 
   return (
     <Html lang="es" dir="ltr">

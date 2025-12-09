@@ -654,7 +654,6 @@ export const requestReschedule = mutation({
     appointmentId: v.id("appointments"),
     proposedDate: v.number(),
     requestedByUserId: v.string(),
-    note: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
@@ -735,44 +734,15 @@ export const requestReschedule = mutation({
       throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
 
-    const formattedDate = new Intl.DateTimeFormat("es-CO", {
-      dateStyle: "full",
-      timeStyle: "short",
-    }).format(new Date(args.proposedDate));
-
-    const noteSuffix = args.note ? ` Nota: ${args.note}` : "";
-
     const isCustomerRequest = appt.userId === requesterProfile.userId;
 
-    if (isCustomerRequest) {
-      await ctx.runMutation(
-        internal.notifications
-          .createAppointmentRescheduleRequestByCustomerNotification,
-        {
-          receiverUserId: barberProfile.userId,
-          customerName:
-            requesterProfile.name ?? appt.customerName ?? "Un cliente",
-          appointmentId: args.appointmentId,
-          to: barberProfile.email,
-        },
-      );
-    } else {
-      const notes =
-        args.note ??
-        `Tu barbero ha solicitado reagendar la cita para el ${formattedDate}.${noteSuffix}`;
-
-      await ctx.runMutation(
-        internal.notifications
-          .createAppointmentRescheduleRequestByBarbershopNotification,
-        {
-          barbershopName: barbershop.name,
-          appointmentId: args.appointmentId,
-          to: customerProfile.email,
-          receiverUserId: customerProfile.userId,
-          notes,
-        },
-      );
-    }
+    await ctx.runMutation(
+      internal.notifications.createAppointmentRescheduleRequestNotification,
+      {
+        appointmentId: args.appointmentId,
+        sendTo: isCustomerRequest ? "barber" : "customer",
+      },
+    );
 
     return true;
   },

@@ -24,13 +24,13 @@ const from = "soporte@panabarbero.com";
 
 export const sendAppointmentReminderEmail = internalAction({
   args: {
-    barbershopName: v.string(),
+    body: v.string(),
     to: v.string(),
   },
   handler: async (ctx, args) => {
     const html = await render(
       AppointmentReminderEmail({
-        barbershopName: args.barbershopName,
+        body: args.body,
         subject: subjects.appointment_reminder,
       }),
     );
@@ -49,13 +49,14 @@ export const sendAppointmentCancelled = internalAction({
     sendTo: v.union(v.literal("barber"), v.literal("customer")),
     notes: v.string(),
     to: v.string(),
+    body: v.string(),
   },
   handler: async (ctx, args) => {
     const html = await render(
       AppointmentCancelledEmail({
         notes: args.notes,
         subject: subjects.appointment_cancelled,
-        to: args.sendTo,
+        body: args.body,
       }),
     );
 
@@ -72,14 +73,14 @@ export const sendAppointmentRescheduleRequestEmail = internalAction({
   args: {
     to: v.string(),
     appointmentId: v.id("appointments"),
-    sendTo: v.union(v.literal("barber"), v.literal("customer")),
+    body: v.string(),
   },
   handler: async (ctx, args) => {
     const html = await render(
       AppointmentRescheduleRequestEmail({
-        sendTo: args.sendTo,
         requestUrl: `${process.env.SITE_URL}/profile/appointments/reschedule/${args.appointmentId}`,
         subject: subjects.appointment_rescheduled_request,
+        body: args.body,
       }),
     );
 
@@ -95,11 +96,13 @@ export const sendAppointmentRescheduleRequestEmail = internalAction({
 export const sendAppointmentRescheduledAcceptedEmail = internalAction({
   args: {
     to: v.string(),
+    body: v.string(),
   },
   handler: async (ctx, args) => {
     const html = await render(
       RescheduleRequestAcceptEmail({
         subject: subjects.appointment_rescheduled_accepted,
+        body: args.body,
       }),
     );
 
@@ -115,11 +118,13 @@ export const sendAppointmentRescheduledAcceptedEmail = internalAction({
 export const sendAppointmentRescheduledDeniedEmail = internalAction({
   args: {
     to: v.string(),
+    body: v.string(),
   },
   handler: async (ctx, args) => {
     const html = await render(
       RescheduleRequestDeniedEmail({
         subject: subjects.appointment_rescheduled_denied,
+        body: args.body,
       }),
     );
 
@@ -135,12 +140,14 @@ export const sendAppointmentRescheduledDeniedEmail = internalAction({
 export const sendAppointmentCreatedToUserEmail = internalAction({
   args: {
     to: v.string(),
+    body: v.string(),
   },
   handler: async (ctx, args) => {
     const html = await render(
       AppointmentCreatedEmail({
         sendTo: "customer",
         subject: subjects.appointment_created,
+        body: args.body,
       }),
     );
 
@@ -156,6 +163,7 @@ export const sendAppointmentCreatedToUserEmail = internalAction({
 export const sendAppointmentCreatedToBarberEmail = internalAction({
   args: {
     to: v.string(),
+    body: v.string(),
   },
   handler: async (ctx, args) => {
     const html = await render(
@@ -163,6 +171,7 @@ export const sendAppointmentCreatedToBarberEmail = internalAction({
         sendTo: "barber",
         requestUrl: `${process.env.SITE_URL}/profile/barbershops`,
         subject: subjects.appointment_created,
+        body: args.body,
       }),
     );
 

@@ -13,13 +13,13 @@ import { tailwindConfig } from "../../tailwind-config";
 import { Header } from "../components/header";
 
 export interface AppointmentReminderEmailProps {
-  barbershopName: string;
   subject: string;
+  body: string;
 }
 
 export const AppointmentReminderEmail = ({
-  barbershopName,
   subject = "Recordatorio de cita",
+  body,
 }: AppointmentReminderEmailProps) => {
   return (
     <Html lang="es" dir="ltr">
@@ -35,10 +35,7 @@ export const AppointmentReminderEmail = ({
           <Container className="mx-auto w-full max-w-md rounded-xl border border-border/50 bg-white px-8 py-2">
             <Header />
 
-            <Text className="mb-4 text-pretty">
-              <strong>¡Recuerda!</strong> Tienes una cita en ~30 minutos en{" "}
-              {barbershopName}.
-            </Text>
+            <Text className="mb-4 text-pretty">{body}</Text>
 
             {/* <Footer /> */}
           </Container>
@@ -49,7 +46,3 @@ export const AppointmentReminderEmail = ({
 };
 
 export default AppointmentReminderEmail;
-
-AppointmentReminderEmail.PreviewProps = {
-  barbershopName: "Eduardo Barberia",
-} as AppointmentReminderEmailProps;

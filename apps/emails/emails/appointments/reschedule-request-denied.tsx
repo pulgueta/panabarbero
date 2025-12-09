@@ -15,10 +15,12 @@ import { Header } from "../components/header";
 
 export interface RescheduleRequestDeniedEmailProps {
   subject: string;
+  body: string;
 }
 
 export const RescheduleRequestDeniedEmail = ({
   subject = "Reagendamiento rechazado",
+  body,
 }: RescheduleRequestDeniedEmailProps) => {
   return (
     <Html lang="es" dir="ltr">
@@ -35,9 +37,7 @@ export const RescheduleRequestDeniedEmail = ({
             <Header />
 
             <Section className="my-4">
-              <Text className="m-0 mb-[8px] text-gray-700 text-sm">
-                Tu solicitud de reagendamiento ha sido rechazada.
-              </Text>
+              <Text className="m-0 mb-[8px] text-gray-700 text-sm">{body}</Text>
             </Section>
 
             {/* <Footer /> */}
