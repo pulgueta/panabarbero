@@ -52,7 +52,7 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
   const { label, variant } = getAppointmentDataByStatus(appointment.status);
 
   return (
-    <Card key={appointment._id}>
+    <Card className="max-h-full">
       <CardHeader>
         <CardTitle className="text-base">{barbershop?.name}</CardTitle>
         <CardDescription>{dateString}</CardDescription>

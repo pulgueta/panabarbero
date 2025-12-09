@@ -12,8 +12,17 @@ export function createAppointmentMutationOptions() {
   return useConvexMutation(api.appointments.createAppointment);
 }
 
-export function appointmentsByUserQueryOptions(userId: string) {
-  return convexQuery(api.appointments.getAppointmentsByUserId, { userId });
+export function appointmentsByUserQueryOptions(
+  userId: string,
+  cursor: string | null = null,
+) {
+  return convexQuery(api.appointments.getAppointmentsByUserId, {
+    userId,
+    paginationOpts: {
+      cursor,
+      numItems: 9,
+    },
+  });
 }
 
 export function requestRescheduleQueryOptions(barbershopId: Barbershop["_id"]) {
@@ -40,8 +49,8 @@ export function useAppointmentById(id: Appointment["_id"]) {
   return useSuspenseQuery(appointmentByIdQueryOptions(id));
 }
 
-export function useAppointmentsByUser(userId: string) {
-  return useSuspenseQuery(appointmentsByUserQueryOptions(userId));
+export function useAppointmentsByUser(userId: string, cursor: string | null) {
+  return useSuspenseQuery(appointmentsByUserQueryOptions(userId, cursor));
 }
 
 export function useAppointmentsByBarbershop(barbershopId: Barbershop["_id"]) {

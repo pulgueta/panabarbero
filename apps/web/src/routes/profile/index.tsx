@@ -63,7 +63,7 @@ export const Route = createFileRoute("/profile/")({
 
     if (user?.userId) {
       await context.queryClient.ensureQueryData(
-        appointmentsByUserQueryOptions(user.userId),
+        appointmentsByUserQueryOptions(user.userId, null),
       );
       await context.queryClient.ensureQueryData(
         profileQueryOptions(user.userId),
@@ -83,8 +83,14 @@ function ProfilePage() {
 
   const { data: user } = useSession();
   const { data: isBarber } = useIsBarber(user?.userId!);
-  const { data: appointments, isLoading: isLoadingAppointments } =
-    useAppointmentsByUser(user?.userId!);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [cursorStack, setCursorStack] = useState<Array<string | null>>([]);
+
+  const {
+    data: appointmentsResult,
+    isLoading: isLoadingAppointments,
+    isFetching: isFetchingAppointments,
+  } = useAppointmentsByUser(user?.userId!, cursor);
   const { data: profile, isLoading: isLoadingProfile } = useProfile(
     user?.userId!,
   );
@@ -175,7 +181,33 @@ function ProfilePage() {
             >
               <TabsContent value={tabs.appointments.value} className="pt-2">
                 <AppointmentsTab
-                  appointments={appointments}
+                  appointments={appointmentsResult?.page ?? []}
+                  hasNextPage={Boolean(
+                    appointmentsResult &&
+                      !appointmentsResult.isDone &&
+                      appointmentsResult.continueCursor &&
+                      (appointmentsResult.page?.length ?? 0) >= 9,
+                  )}
+                  onNextPage={() => {
+                    if (
+                      !appointmentsResult ||
+                      appointmentsResult.isDone ||
+                      !appointmentsResult.continueCursor
+                    )
+                      return;
+                    setCursorStack((prev) => [...prev, cursor]);
+                    setCursor(appointmentsResult.continueCursor);
+                  }}
+                  onPreviousPage={() => {
+                    setCursorStack((prev) => {
+                      const updated = [...prev];
+                      const previousCursor = updated.pop() ?? null;
+                      setCursor(previousCursor);
+                      return updated;
+                    });
+                  }}
+                  canGoPrevious={cursorStack.length > 0}
+                  isFetching={isFetchingAppointments}
                   isBarber={isBarber}
                 />
               </TabsContent>

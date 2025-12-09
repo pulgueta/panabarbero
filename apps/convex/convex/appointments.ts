@@ -337,6 +337,7 @@ export const getRescheduledAppointmentRequests = query({
 export const getAppointmentsByUserId = query({
   args: {
     userId: v.string(),
+    paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
@@ -349,7 +350,7 @@ export const getAppointmentsByUserId = query({
       .query("appointments")
       .withIndex("by_userId", (q) => q.eq("userId", args.userId ?? ""))
       .order("desc")
-      .collect();
+      .paginate(args.paginationOpts);
 
     return appointments;
   },
@@ -734,7 +735,6 @@ export const requestReschedule = mutation({
 
     await ctx.db.patch(args.appointmentId, {
       status: "pending",
-      notes: args.note,
       proposedDate: args.proposedDate,
       rescheduleRequestedByUserId: args.requestedByUserId,
     });
@@ -964,7 +964,6 @@ export const answerRescheduleRequest = mutation({
       date: args.accepted && appt.proposedDate ? appt.proposedDate : appt.date,
       proposedDate: undefined,
       rescheduleRequestedByUserId: undefined,
-      notes: args.accepted ? undefined : "Petición rechazada.",
     });
 
     const userProfile = await ctx.runQuery(
