@@ -237,9 +237,6 @@ export const rescheduleRequestFormSchema = object({
       Date.now(),
       "La fecha y hora deben ser mayor a la fecha y hora actual",
     ),
-  note: string()
-    .max(280, "La nota debe tener máximo 280 caracteres")
-    .optional(),
 });
 
 export type RescheduleRequestFormData = output<

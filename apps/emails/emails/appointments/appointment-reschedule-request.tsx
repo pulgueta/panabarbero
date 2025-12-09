@@ -19,17 +19,15 @@ export interface AppointmentRescheduleRequestEmailProps {
   requestUrl: string;
   subject: string;
   sendTo: "barber" | "customer";
+  body: string;
 }
 
 export const AppointmentRescheduleRequestEmail = ({
   requestUrl,
   subject = "Solicitud de reagendamiento",
   sendTo,
+  body,
 }: AppointmentRescheduleRequestEmailProps) => {
-  const intro = `${
-    sendTo === "barber" ? "Un cliente" : "Tu barbero"
-  } ha solicitado reagendar una cita.`;
-
   return (
     <Html lang="es" dir="ltr">
       <Head />
@@ -45,9 +43,7 @@ export const AppointmentRescheduleRequestEmail = ({
             <Header />
 
             <Section className="my-4">
-              <Text className="m-0 mb-[8px] text-gray-700 text-sm">
-                {intro}
-              </Text>
+              <Text className="m-0 mb-[8px] text-gray-700 text-sm">{body}</Text>
 
               <Text className="m-0 mb-[8px] text-gray-700 text-sm">
                 Ingresa al siguiente enlace para revisar y responder la

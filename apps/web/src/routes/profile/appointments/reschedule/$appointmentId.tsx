@@ -138,11 +138,7 @@ function RouteComponent() {
         answeredBy: isBarber ? "barber" : "customer",
       });
 
-      navigate({
-        to: redirectTo,
-        replace: true,
-        search: { tap: isBarber ? "account" : "appointments" },
-      });
+      router.history.back();
     } catch (error) {
       toast.error(getConvexErrorMessage(error));
       return;

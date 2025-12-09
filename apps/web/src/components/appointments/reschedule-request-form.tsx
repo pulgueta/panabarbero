@@ -1,3 +1,4 @@
+import type { Appointment } from "@panabarbero/convex/schemas";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarIcon, Clock8Icon } from "lucide-react";
@@ -15,37 +16,59 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Textarea } from "@/components/ui/textarea";
 import type { rescheduleRequestFormSchema } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 
 interface RescheduleRequestFormProps {
   disableDay: (day: Date) => boolean;
-  to?: "barber" | "customer";
   form: UseFormReturn<output<typeof rescheduleRequestFormSchema>>;
   formIds: {
     form: string;
     date: string;
     time: string;
-    note: string;
   };
   onSubmit: (e?: BaseSyntheticEvent) => Promise<void>;
+  appointment: Appointment;
 }
 
 export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
   onSubmit,
   formIds,
   disableDay,
-  to,
   form,
+  appointment,
 }) => {
+  const originalDay = new Date(appointment.date).toLocaleDateString("es-CO", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const originalTime = new Date(appointment.date).toLocaleTimeString("es-CO", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
   return (
     <form id={formIds.form} onSubmit={onSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label>Fecha original</Label>
+
+          <Input type="text" value={originalDay} disabled />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Hora original</Label>
+
+          <Input type="text" value={originalTime} disabled />
+        </div>
+      </div>
       <FieldGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Controller
           name="date"
@@ -148,24 +171,6 @@ export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
           )}
         />
       </FieldGroup>
-
-      <Controller
-        name="note"
-        control={form.control}
-        render={({ field, fieldState }) => (
-          <Field data-invalid={fieldState.invalid}>
-            <FieldLabel>
-              Nota para el {to === "barber" ? "barbero" : "cliente"} (opcional)
-            </FieldLabel>
-            <Textarea
-              {...field}
-              aria-invalid={fieldState.invalid}
-              placeholder={`Comparte detalles adicionales con el ${to === "barber" ? "barbero" : "cliente"}.`}
-            />
-            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-          </Field>
-        )}
-      />
     </form>
   );
 };

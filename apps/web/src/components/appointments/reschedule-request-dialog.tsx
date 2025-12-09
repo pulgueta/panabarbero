@@ -52,14 +52,12 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
     form: useId(),
     date: useId(),
     time: useId(),
-    note: useId(),
   };
 
   const form = useForm({
     resolver: zodResolver(rescheduleRequestFormSchema),
     defaultValues: {
       date: undefined,
-      note: "",
     },
   });
 
@@ -129,7 +127,6 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
         appointmentId: appointment._id,
         proposedDate: timestamp,
         requestedByUserId: session?.userId!,
-        note: values.note,
       });
     } catch (error) {
       toast.error(getConvexErrorMessage(error));
@@ -139,7 +136,7 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
 
   const toLabel = to === "barber" ? "barbero" : "cliente";
   const headLabel = "Solicitar reagendamiento";
-  const description = `Puedes proponer una nueva fecha y hora para que el ${toLabel} la acepte o rechace.`;
+  const description = `Puedes proponer una nueva fecha y hora a tu ${toLabel}.`;
   const sendButtonLabel = "Enviar solicitud";
 
   if (isMobile) {
@@ -159,7 +156,7 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
               formIds={formIds}
               onSubmit={onSubmit}
               disableDay={disableDay}
-              to={to}
+              appointment={appointment}
             />
           </div>
 
@@ -195,7 +192,7 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
           formIds={formIds}
           onSubmit={onSubmit}
           disableDay={disableDay}
-          to={to}
+          appointment={appointment}
         />
 
         <DialogFooter>
