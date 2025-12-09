@@ -186,6 +186,8 @@ export const rescheduledAppointmentRequestsTableColumns: ColumnDef<
           year: "numeric",
           month: "long",
           day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
         })}
       </div>
     ),
@@ -201,6 +203,8 @@ export const rescheduledAppointmentRequestsTableColumns: ColumnDef<
           year: "numeric",
           month: "long",
           day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
         })}
       </div>
     ),
