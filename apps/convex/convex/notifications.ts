@@ -127,8 +127,8 @@ export const createAppointmentCancelledNotification = internalMutation({
       customerProfile.name ?? appointment.customerName ?? "El cliente";
 
     const body = isCustomer
-      ? `Tu cita ha sido cancelada. Se han proporcionado los siguientes motivos: ${args.notes}`
-      : `${cancellingCustomerName} ha cancelado su cita. Motivo: ${args.notes}`;
+      ? `Tu cita ha sido cancelada.`
+      : `${cancellingCustomerName} ha cancelado su cita.`;
 
     await ctx.runMutation(internal.notifications.saveNotification, {
       notification: {
@@ -289,9 +289,7 @@ export const createAppointmentRescheduleDecisionNotification = internalMutation(
         .map((n) => n.type);
 
       const acceptedBody = "Tu solicitud de reagendamiento ha sido aceptada.";
-      const deniedBodyForCustomer = `Tu cita en ${args.barbershopName ?? "la barbería"} ha sido cancelada. Tu barbero ha proporcionado el siguiente motivo: ${
-        args.notes ?? "Sin motivo especificado."
-      }`;
+      const deniedBodyForCustomer = `Tu cita en ${args.barbershopName} ha sido cancelada.`;
       const deniedBodyForBarber =
         "Tu solicitud de reagendamiento ha sido rechazada.";
 
