@@ -74,7 +74,7 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
 
   const title = "Cancelar cita";
   const cancelButtonLabel = "Si, cancelar";
-  const cancelDialogDescription = `Esta acción cancelará la cita y no podrá ser recuperada. Tendrás que volver a agendarla y tu ${isBarber ? "cliente" : "barbero"} será notificado.`;
+  const cancelDialogDescription = `Esta acción cancelará la cita y no podrá ser recuperada. Tendrás que volver a agendarla. Tu ${isBarber ? "cliente" : "barbero"} será notificado.`;
 
   const onSubmit = form.handleSubmit(async (values) => {
     if (!isBarber) {
@@ -86,6 +86,7 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
         appointmentId: appointment._id,
         reason: values.notes,
         cancelledByUserId: userId,
+        cancelledBy: isBarber ? "barber" : "customer",
       });
     } catch (error) {
       toast.error(getConvexErrorMessage(error));

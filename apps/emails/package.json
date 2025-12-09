@@ -8,8 +8,8 @@
     "export": "email export"
   },
   "dependencies": {
+    "@panabarbero/emails": "workspace:*",
     "@react-email/components": "1.0.1",
-    "@tanstack/react-pacer": "^0.17.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

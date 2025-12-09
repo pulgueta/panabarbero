@@ -1,7 +1,7 @@
-import { errorMessages } from "@panabarbero/constants";
 import { ConvexError, v } from "convex/values";
 import { api } from "./_generated/api";
 import { internalMutation, query } from "./_generated/server";
+import { errorMessages } from "./errors";
 
 export const createBarbershopInitialMetadata = internalMutation({
   args: {

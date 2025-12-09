@@ -12,7 +12,5 @@ export const errorMessages = {
   requiredAccount:
     "El usuario debe tener una cuenta en el sistema para ser invitado.",
   rateLimitExceeded: (retryAfter: string) =>
-    `Has excedido el límite de solicitudes. Por favor, intenta nuevamente en: ${retryAfter}.`,
+    `Has excedido el límite de solicitudes. Intenta nuevamente a las: ${retryAfter}`,
 } as const;
-
-export type ErrorMessage = keyof typeof errorMessages;
