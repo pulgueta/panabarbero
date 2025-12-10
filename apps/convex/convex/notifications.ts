@@ -15,6 +15,7 @@ export const subjects = {
   appointment_rescheduled_accepted: "Reagendamiento aceptado",
   appointment_rescheduled_denied: "Reagendamiento rechazado",
   appointment_created: "Nueva cita",
+  barber_appointment_created: "",
   barber_invited: "Invitación a unirte como barbero",
 } satisfies Record<Notification["reason"], string>;
 
@@ -409,7 +410,7 @@ export const createAppointmentCreatedNotification = internalMutation({
     };
 
     const body = {
-      barber: "Un nuevo cliente ha reservado una cita.",
+      barber: "Un cliente ha reservado una cita.",
       customer: `Tu cita en ${args.barbershopName} ha sido agendada.`,
     };
 
@@ -418,13 +419,14 @@ export const createAppointmentCreatedNotification = internalMutation({
     const receiverChannels = isCustomer ? channels.customer : channels.barber;
     const receiverBody = isCustomer ? body.customer : body.barber;
     const receiverUserId = isCustomer ? args.customerUserId : args.barberUserId;
+    const subject = isCustomer ? subjects.appointment_created : subjects.barber_appointment_created;
 
     await ctx.runMutation(internal.notifications.saveNotification, {
       notification: {
-        reason: "appointment_created",
+        reason: isCustomer ? "appointment_created" : "barber_appointment_created",
         uuid: crypto.randomUUID(),
         channels: receiverChannels,
-        title: subjects.appointment_created,
+        title: subject,
         body: receiverBody,
         senderUserId: "system",
         receiverUserId,
@@ -443,6 +445,7 @@ export const createAppointmentCreatedNotification = internalMutation({
         {
           to: args.to,
           body: receiverBody,
+          subject,
         },
       );
     }

@@ -150,6 +150,7 @@ export const tables = {
       v.literal("appointment_rescheduled_accepted"),
       v.literal("appointment_rescheduled_denied"),
       v.literal("barber_invited"),
+      v.literal("barber_appointment_created"),
     ),
     title: v.string(),
     body: v.string(),

@@ -158,12 +158,13 @@ export const sendAppointmentCreatedToUserEmail = internalAction({
   args: {
     to: v.string(),
     body: v.string(),
+    subject: v.string(),
   },
   handler: async (ctx, args) => {
     const html = await render(
       AppointmentCreatedEmail({
         sendTo: "customer",
-        subject: subjects.appointment_created,
+        subject: args.subject,
         body: args.body,
       }),
     );
@@ -171,7 +172,7 @@ export const sendAppointmentCreatedToUserEmail = internalAction({
     await ctx.runAction(internal.emails.sendEmail, {
       body: args.body,
       to: args.to,
-      subject: subjects.appointment_created,
+      subject: args.subject,
       html,
     });
   },
@@ -181,13 +182,14 @@ export const sendAppointmentCreatedToBarberEmail = internalAction({
   args: {
     to: v.string(),
     body: v.string(),
+    subject: v.string(),
   },
   handler: async (ctx, args) => {
     const html = await render(
       AppointmentCreatedEmail({
         sendTo: "barber",
         requestUrl: `${process.env.SITE_URL}/profile/barbershops`,
-        subject: subjects.appointment_created,
+        subject: args.subject,
         body: args.body,
       }),
     );
@@ -195,7 +197,7 @@ export const sendAppointmentCreatedToBarberEmail = internalAction({
     await ctx.runAction(internal.emails.sendEmail, {
       body: args.body,
       to: args.to,
-      subject: subjects.appointment_created,
+      subject: args.subject,
       html,
     });
   },
