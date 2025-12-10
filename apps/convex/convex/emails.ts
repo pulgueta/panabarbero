@@ -20,7 +20,6 @@ const from = "contacto@panabarbero.com";
 
 const useSend = new UseSend(
   process.env.USESEND_API_KEY,
-  process.env.USESEND_DOMAIN,
 );
 
 export const sendEmail = internalAction({
