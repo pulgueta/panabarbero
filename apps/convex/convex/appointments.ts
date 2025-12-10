@@ -623,6 +623,7 @@ export const cancelAppointment = mutation({
     await ctx.db.patch(args.appointmentId, {
       status: "cancelled",
       notes: args.reason,
+      proposedDate: undefined,
     });
 
     if (args.cancelledBy === "customer") {
