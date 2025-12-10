@@ -1,6 +1,5 @@
 "use node";
 
-import { Resend } from "@convex-dev/resend";
 import {
   AppointmentCancelledEmail,
   AppointmentCreatedEmail,
@@ -11,16 +10,35 @@ import {
 } from "@panabarbero/emails/emails";
 import { render } from "@react-email/components";
 import { v } from "convex/values";
+import { UseSend } from "usesend-js";
 
-import { components } from "./_generated/api";
+import { internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
 import { subjects } from "./notifications";
 
-export const resend = new Resend(components.resend, {
-  testMode: false,
-});
-
 const from = "soporte@panabarbero.com";
+
+const useSend = new UseSend(
+  process.env.USESEND_API_KEY,
+  process.env.USESEND_DOMAIN,
+);
+
+export const sendEmail = internalAction({
+  args: {
+    to: v.string(),
+    body: v.string(),
+    subject: v.string(),
+    html: v.string(),
+  },
+  handler: async (_, args) => {
+    await useSend.emails.send({
+      to: args.to,
+      from,
+      subject: args.subject,
+      html: args.html,
+    });
+  },
+});
 
 export const sendAppointmentReminderEmail = internalAction({
   args: {
@@ -35,11 +53,11 @@ export const sendAppointmentReminderEmail = internalAction({
       }),
     );
 
-    await resend.sendEmail(ctx, {
-      from,
-      html,
+    await ctx.runAction(internal.emails.sendEmail, {
+      body: args.body,
       to: args.to,
       subject: subjects.appointment_reminder,
+      html,
     });
   },
 });
@@ -60,11 +78,11 @@ export const sendAppointmentCancelled = internalAction({
       }),
     );
 
-    await resend.sendEmail(ctx, {
-      from,
-      html,
+    await ctx.runAction(internal.emails.sendEmail, {
+      body: args.body,
       to: args.to,
       subject: subjects.appointment_cancelled,
+      html,
     });
   },
 });
@@ -84,11 +102,11 @@ export const sendAppointmentRescheduleRequestEmail = internalAction({
       }),
     );
 
-    await resend.sendEmail(ctx, {
-      from,
-      html,
+    await ctx.runAction(internal.emails.sendEmail, {
+      body: args.body,
       to: args.to,
       subject: subjects.appointment_rescheduled_request,
+      html,
     });
   },
 });
@@ -106,11 +124,11 @@ export const sendAppointmentRescheduledAcceptedEmail = internalAction({
       }),
     );
 
-    await resend.sendEmail(ctx, {
-      from,
-      html,
+    await ctx.runAction(internal.emails.sendEmail, {
+      body: args.body,
       to: args.to,
       subject: subjects.appointment_rescheduled_accepted,
+      html,
     });
   },
 });
@@ -128,11 +146,11 @@ export const sendAppointmentRescheduledDeniedEmail = internalAction({
       }),
     );
 
-    await resend.sendEmail(ctx, {
-      from,
-      html,
+    await ctx.runAction(internal.emails.sendEmail, {
+      body: args.body,
       to: args.to,
       subject: subjects.appointment_rescheduled_denied,
+      html,
     });
   },
 });
@@ -151,11 +169,11 @@ export const sendAppointmentCreatedToUserEmail = internalAction({
       }),
     );
 
-    await resend.sendEmail(ctx, {
-      from,
-      html,
+    await ctx.runAction(internal.emails.sendEmail, {
+      body: args.body,
       to: args.to,
       subject: subjects.appointment_created,
+      html,
     });
   },
 });
@@ -175,11 +193,11 @@ export const sendAppointmentCreatedToBarberEmail = internalAction({
       }),
     );
 
-    await resend.sendEmail(ctx, {
-      from,
-      html,
+    await ctx.runAction(internal.emails.sendEmail, {
+      body: args.body,
       to: args.to,
       subject: subjects.appointment_created,
+      html,
     });
   },
 });
