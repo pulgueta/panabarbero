@@ -240,6 +240,7 @@ export const createAppointment = mutation({
           customerUserId: userProfile.userId,
           to: userProfile.email,
           sendTo: "customer",
+          barbershopName: barbershop.name,
         },
       ),
       await ctx.runMutation(
@@ -250,6 +251,7 @@ export const createAppointment = mutation({
           customerUserId: userProfile.userId,
           to: barberProfile.email,
           sendTo: "barber",
+          barbershopName: barbershop.name,
         },
       ),
     ]);

@@ -374,6 +374,7 @@ export const createAppointmentCreatedNotification = internalMutation({
     customerUserId: v.string(),
     barberUserId: v.string(),
     sendTo: v.union(v.literal("customer"), v.literal("barber")),
+    barbershopName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const customerProfile = await ctx.runQuery(
@@ -409,7 +410,7 @@ export const createAppointmentCreatedNotification = internalMutation({
 
     const body = {
       barber: "Un nuevo cliente ha reservado una cita.",
-      customer: "Tu cita ha sido agendada.",
+      customer: `Tu cita en ${args.barbershopName} ha sido agendada.`,
     };
 
     const isCustomer = args.sendTo === "customer";
