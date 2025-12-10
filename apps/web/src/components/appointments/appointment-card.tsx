@@ -1,6 +1,6 @@
 import type { Appointment, Barbershop } from "@panabarbero/convex/schemas";
 import { Link } from "@tanstack/react-router";
-import type { FC } from "react";
+import { Activity, type FC } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,16 +40,19 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
     minute: "2-digit",
   });
 
+  const isPastDate = Date.now() > appointment.date;
+
   const disableReschedule =
     appointment.status === "completed" ||
     appointment.status === "cancelled" ||
     appointment.status === "pending" ||
-    appointment.status === "denied";
+    appointment.status === "denied" ||
+    isPastDate;
 
   const isCancelled = appointment.status === "cancelled";
   const isDenied = appointment.status === "denied";
 
-  const showDeleteButton = isCancelled || isDenied;
+  const showDeleteButton = isCancelled || isDenied || isPastDate;
 
   const { label, variant } = getAppointmentDataByStatus(appointment.status);
 
@@ -75,7 +78,13 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
         </p>
       </CardContent>
       <CardFooter className="flex w-full flex-col items-center gap-2 md:flex-row">
-        {!appointment.proposedDate && !showDeleteButton && (
+        <Activity
+          mode={
+            !appointment.proposedDate && !showDeleteButton
+              ? "visible"
+              : "hidden"
+          }
+        >
           <RescheduleRequestDialog
             to={!isBarber ? "barber" : "customer"}
             appointment={appointment}
@@ -85,9 +94,9 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
               </Button>
             }
           />
-        )}
+        </Activity>
 
-        {appointment.proposedDate && (
+        {appointment.proposedDate && !isPastDate && (
           <Button
             variant="outline"
             disabled={appointment.status === "completed"}

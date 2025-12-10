@@ -2,33 +2,29 @@
   "name": "panabarbero",
   "private": true,
   "engines": {
-    "bun": ">=1.2.21"
+    "bun": ">=1.3.4"
   },
-  "packageManager": "bun@1.3.1",
+  "packageManager": "bun@1.3.4",
   "scripts": {
     "start": "turbo run start",
     "build": "turbo run build",
     "clean": "git clean -xdf node_modules",
     "clean:workspaces": "turbo run clean",
-    "auth:generate": "cd packages/auth && bunx @better-auth/cli generate --config src/index.ts --output src/auth-schema.ts",
-    "db:generate": "cd packages/db && bun run generate",
-    "db:migrate": "cd packages/db && bun run migrate",
-    "db:studio": "cd packages/db && bun run studio",
     "dev": "turbo watch dev --continue",
     "lint": "biome lint --write --unsafe .",
     "format": "biome format --write .",
     "prepare": "husky"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.2.4",
+    "@biomejs/biome": "2.2.4",
     "@commitlint/cli": "^19.8.1",
     "@semantic-release/changelog": "^6.0.3",
-    "@types/bun": "^1.3.3",
+    "@types/bun": "^1.3.4",
     "conventional-changelog-atom": "^5.0.0",
     "husky": "^9.1.7",
     "semantic-release": "^24.2.7",
-    "turbo": "^2.6.0",
-    "typescript": "^5.9.2"
+    "turbo": "^2.6.3",
+    "typescript": "^5.9.3"
   },
   "workspaces": [
     "apps/*",

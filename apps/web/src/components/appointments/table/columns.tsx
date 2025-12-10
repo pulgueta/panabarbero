@@ -8,6 +8,7 @@ import {
   EllipsisVerticalIcon,
   TrashIcon,
 } from "lucide-react";
+import { Activity } from "react";
 
 import { TableHeader } from "@/components/table/header";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +25,7 @@ import { useSession } from "@/hooks/use-session";
 import { getAppointmentDataByStatus } from "@/lib/appointment-utils";
 import { CancelAppointmentDialog } from "../cancel-appointment-dialog";
 import { DeleteAppointmentDialog } from "../delete-appointment-dialog";
+import { MarkAppointmentDialog } from "../mark-appointment-dialog";
 import { RescheduleRequestDialog } from "../reschedule-request-dialog";
 
 export const appointmentsTableColumns: ColumnDef<Appointment>[] = [
@@ -66,13 +68,22 @@ export const appointmentsTableColumns: ColumnDef<Appointment>[] = [
     accessorKey: "status",
     header: ({ column }) => <TableHeader column={column} header="Estado" />,
     cell: ({ row }) => {
-      const { label, variant } = getAppointmentDataByStatus(
-        row.original.status,
-      );
+      const status = row.original.status;
+      const { label, variant } = getAppointmentDataByStatus(status);
+
+      const isPastDate = Date.now() > row.original.date;
+      const hasSetStatus = status === "completed" || status === "no-show";
 
       return (
         <div className="text-center">
-          <Badge variant={variant}>{label}</Badge>
+          {isPastDate && !hasSetStatus ? (
+            <MarkAppointmentDialog
+              trigger={<Button variant="outline">Marcar</Button>}
+              appointmentId={row.original._id}
+            />
+          ) : (
+            <Badge variant={variant}>{label}</Badge>
+          )}
         </div>
       );
     },
@@ -81,15 +92,21 @@ export const appointmentsTableColumns: ColumnDef<Appointment>[] = [
     accessorKey: "actions",
     header: () => <div className="text-center">Acciones</div>,
     cell: ({ row }) => {
+      const appointment = row.original;
+      const status = row.original.status;
+
       const { data: session } = useSession();
       const { data: isBarber } = useIsBarber(session?.userId!);
 
-      const appointment = row.original;
-      const isCancelledOrDenied =
-        appointment.status === "cancelled" || appointment.status === "denied";
+      const isPastDate = Date.now() > appointment.date;
+
+      const isCancelledOrDenied = status === "cancelled" || status === "denied";
 
       const canRequestReschedule =
-        appointment.status !== "completed" && !isCancelledOrDenied;
+        status !== "completed" &&
+        !isCancelledOrDenied &&
+        !isPastDate &&
+        status !== "no-show";
 
       return (
         <div className="text-center">
@@ -101,7 +118,13 @@ export const appointmentsTableColumns: ColumnDef<Appointment>[] = [
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end" className="max-w-64">
-              {!appointment.proposedDate && canRequestReschedule && (
+              <Activity
+                mode={
+                  !appointment.proposedDate && canRequestReschedule
+                    ? "visible"
+                    : "hidden"
+                }
+              >
                 <RescheduleRequestDialog
                   appointment={appointment}
                   to="customer"
@@ -115,9 +138,12 @@ export const appointmentsTableColumns: ColumnDef<Appointment>[] = [
                     </DropdownMenuItem>
                   }
                 />
-              )}
+              </Activity>
 
-              {isCancelledOrDenied ? (
+              {isCancelledOrDenied ||
+              isPastDate ||
+              status === "no-show" ||
+              status === "completed" ? (
                 <DeleteAppointmentDialog
                   appointment={appointment}
                   trigger={

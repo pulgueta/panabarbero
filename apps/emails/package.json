@@ -8,7 +8,6 @@
     "export": "email export"
   },
   "dependencies": {
-    "@panabarbero/emails": "workspace:*",
     "@react-email/components": "1.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

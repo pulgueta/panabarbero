@@ -240,6 +240,7 @@ export const createAppointment = mutation({
           customerUserId: userProfile.userId,
           to: userProfile.email,
           sendTo: "customer",
+          barbershopName: barbershop.name,
         },
       ),
       await ctx.runMutation(
@@ -250,6 +251,7 @@ export const createAppointment = mutation({
           customerUserId: userProfile.userId,
           to: barberProfile.email,
           sendTo: "barber",
+          barbershopName: barbershop.name,
         },
       ),
     ]);
@@ -623,6 +625,7 @@ export const cancelAppointment = mutation({
     await ctx.db.patch(args.appointmentId, {
       status: "cancelled",
       notes: args.reason,
+      proposedDate: undefined,
     });
 
     if (args.cancelledBy === "customer") {
