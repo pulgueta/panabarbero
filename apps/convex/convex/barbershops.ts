@@ -373,7 +373,7 @@ export const updateBarbershop = mutation({
 
 export const getUserVisitedBarbershops = query({
   args: {
-    userId: v.string(),
+    userId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
@@ -392,13 +392,15 @@ export const getUserVisitedBarbershops = query({
       .filter((q) => q.eq(q.field("status"), "completed"))
       .take(5);
 
-    const barbershops = await Promise.all(
-      appointments.map(
-        async (appointment) => await ctx.db.get(appointment.barbershopId),
-      ),
+    const uniqueBarbershopIds = Array.from(
+      new Set(appointments.map((appointment) => appointment.barbershopId)),
     );
 
-    return barbershops;
+    const barbershops = await Promise.all(
+      uniqueBarbershopIds.map((barbershopId) => ctx.db.get(barbershopId)),
+    );
+
+    return barbershops.filter(Boolean);
   },
 });
 
