@@ -16,7 +16,7 @@ import { internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
 import { subjects } from "./notifications";
 
-const from = "soporte@panabarbero.com";
+const from = "contacto@panabarbero.com";
 
 const useSend = new UseSend(
   process.env.USESEND_API_KEY,
