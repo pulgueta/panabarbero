@@ -21,7 +21,7 @@ export const DefaultCatchBoundary: FC<ErrorComponentProps> = ({ error }) => {
 
   return (
     <BorderContainer className="flex min-h-dvh items-center justify-center">
-      <Empty className="bg-destructive/10 max-w-xl rounded-3xl">
+      <Empty className="max-w-xl rounded-3xl bg-destructive/10">
         <EmptyHeader>
           <EmptyMedia variant="icon" className="bg-destructive/20">
             <AlertTriangle className="size-6 text-destructive" />
