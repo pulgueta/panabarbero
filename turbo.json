@@ -13,7 +13,6 @@
       "outputs": [".cache/tsbuildinfo.json", "dist/**", "build/**"]
     },
     "dev": {
-      "inputs": [".env"],
       "dependsOn": ["^dev"],
       "cache": false,
       "persistent": false
