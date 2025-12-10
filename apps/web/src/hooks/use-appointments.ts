@@ -150,7 +150,7 @@ export function useAppointmentActions() {
   const createAppointment = useMutation({
     mutationFn: createAppointmentMutationOptions(),
   });
-  const setStatus = useMutation({
+  const setStatusMutation = useMutation({
     mutationFn: useConvexMutation(api.appointments.setAppointmentStatus),
   });
   const updateAppointmentMutation = useMutation({
@@ -171,7 +171,7 @@ export function useAppointmentActions() {
 
   return {
     createAppointment,
-    setStatus,
+    setStatusMutation,
     updateAppointmentMutation,
     deleteAppointmentMutation,
     cancelAppointmentMutation,
