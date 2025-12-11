@@ -1,5 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 
+import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { geospatial, r2 } from ".";
 import { api, internal } from "./_generated/api";
@@ -207,6 +208,22 @@ export const getBarbershopServices = query({
       .collect();
 
     return services;
+  },
+});
+
+export const getBarbershopServicesPaginated = query({
+  args: {
+    barbershopId: v.id("barbershops"),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("services")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
+      .order("desc")
+      .paginate(args.paginationOpts);
   },
 });
 

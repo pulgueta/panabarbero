@@ -4,7 +4,6 @@ import {
   CalendarPlus,
   Home,
   Scissors,
-  Settings2,
   User,
 } from "lucide-react";
 
@@ -32,7 +31,7 @@ export const authenticatedRoutes = {
   navigation: [
     ...publicRoutes.navigation,
     {
-      label: "Portal",
+      label: "Cuenta",
       to: "/profile",
       icon: User,
     },
@@ -44,17 +43,17 @@ export const authenticatedRoutes = {
       icon: Calendar,
     },
     {
-      label: "Gestión",
-      to: "/profile/barbershops",
+      label: "Servicios",
+      to: "/profile/barbershops/services",
+      icon: Scissors,
+    },
+    {
+      label: "Barbería",
+      to: "/profile/barbershops/settings",
       icon: Building2,
     },
     {
-      label: "Ajustes",
-      to: "/profile/barbershops/settings",
-      icon: Settings2,
-    },
-    {
-      label: "Portal",
+      label: "Cuenta",
       to: "/profile",
       icon: User,
     },
@@ -79,12 +78,7 @@ export const routes = {
       icon: CalendarPlus,
     },
     {
-      label: "Ajustes",
-      to: "/settings",
-      icon: Settings2,
-    },
-    {
-      label: "Portal",
+      label: "Cuenta",
       to: "/profile",
       icon: User,
     },
