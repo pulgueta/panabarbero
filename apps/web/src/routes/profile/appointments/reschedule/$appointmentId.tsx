@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: needed */
 import type { Appointment } from "@panabarbero/convex/schemas";
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
@@ -29,6 +29,7 @@ export const Route = createFileRoute(
     const user = await context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
     );
+
     await context.queryClient.ensureQueryData(
       appointmentByIdQueryOptions(params.appointmentId as Appointment["_id"]),
     );
@@ -37,6 +38,8 @@ export const Route = createFileRoute(
       await context.queryClient.ensureQueryData(
         barberByUserIdQueryOptions(user.userId),
       );
+    } else {
+      throw redirect({ to: "/login", replace: true });
     }
   },
 });

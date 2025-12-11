@@ -209,7 +209,7 @@ export const getServiceByAppointmentId = query({
     const appointment = await ctx.db.get(args.appointmentId);
 
     if (!appointment) {
-      throw new ConvexError(errorMessages.notFound("cita"));
+      return null;
     }
 
     return await ctx.db.get(appointment.serviceId);

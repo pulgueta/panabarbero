@@ -400,7 +400,7 @@ export const getUserVisitedBarbershops = query({
       uniqueBarbershopIds.map((barbershopId) => ctx.db.get(barbershopId)),
     );
 
-    return barbershops.filter(Boolean);
+    return barbershops;
   },
 });
 

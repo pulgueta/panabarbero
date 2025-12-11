@@ -17,8 +17,9 @@ function getAppointmentStatusBadgeVariant(
       return "info";
     case "denied":
     case "cancelled":
-    case "no-show":
       return "destructive";
+    case "no-show":
+      return "outline";
     case "confirmed":
       return "success";
     default:
