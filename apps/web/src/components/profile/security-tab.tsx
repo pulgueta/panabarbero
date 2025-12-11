@@ -83,6 +83,7 @@ export const SecurityTab: FC<SecurityTabProps> = () => {
           </CardContent>
           <CardFooter className="justify-end pt-0">
             <Button
+              disabled
               onClick={async () => {
                 try {
                   await passkey.addPasskey();
