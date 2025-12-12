@@ -257,6 +257,7 @@ export const createAppointment = mutation({
     ]);
 
     const thirtyMinutesBeforeAppointment = appointment.date - 30 * 60 * 1000;
+    const thirtyMinutesAfterAppointment = appointment.date + 30 * 60 * 1000;
 
     await ctx.scheduler.runAt(
       thirtyMinutesBeforeAppointment,
@@ -265,6 +266,14 @@ export const createAppointment = mutation({
         appointmentId,
         barbershopId: appointment.barbershopId,
         userId: appointment.userId,
+      },
+    );
+
+    await ctx.scheduler.runAt(
+      thirtyMinutesAfterAppointment,
+      internal.emails.sendPastAppointmentReminderEmail,
+      {
+        to: barberProfile.email,
       },
     );
 

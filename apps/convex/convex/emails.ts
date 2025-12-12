@@ -5,6 +5,7 @@ import {
   AppointmentCreatedEmail,
   AppointmentReminderEmail,
   AppointmentRescheduleRequestEmail,
+  PastAppointmentReminderEmail,
   RescheduleRequestAcceptEmail,
   RescheduleRequestDeniedEmail,
   WelcomeEmail,
@@ -47,6 +48,25 @@ export const sendWelcomeEmail = internalAction({
     await ctx.runAction(internal.emails.sendEmail, {
       subject: "Bienvenido a PanaBarbero",
       to: args.to,
+      html,
+    });
+  },
+});
+
+export const sendPastAppointmentReminderEmail = internalAction({
+  args: {
+    to: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const html = await render(
+      PastAppointmentReminderEmail({
+        subject: subjects.past_appointment_reminder,
+      }),
+    );
+
+    await ctx.runAction(internal.emails.sendEmail, {
+      to: args.to,
+      subject: subjects.past_appointment_reminder,
       html,
     });
   },

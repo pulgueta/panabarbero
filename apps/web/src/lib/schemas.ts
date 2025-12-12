@@ -102,7 +102,15 @@ export const barbershopFormSchema = object({
   contactPhone: string().optional(),
   bannerUrl: url("URL inválida").optional().or(literal("")),
   isActive: boolean().default(false),
-  gracePeriodMinutes: coerce.number().min(5).max(60).default(5),
+  gracePeriodMinutes: coerce
+    .number()
+    .min(5, {
+      error: "Debes establecer un periodo de gracia mayor a 5 minutos",
+    })
+    .max(20, {
+      error: "Debes establecer un periodo de gracia menor a 20 minutos",
+    })
+    .default(5),
   availability: array(availabilitySchema).default([]),
 });
 
