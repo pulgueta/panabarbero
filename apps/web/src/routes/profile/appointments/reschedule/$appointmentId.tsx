@@ -15,6 +15,7 @@ import {
 } from "@/hooks/use-appointments";
 import {
   barberByUserIdQueryOptions,
+  isBarberQueryOptions,
   useIsBarber,
 } from "@/hooks/use-barbershop-members";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
@@ -30,14 +31,40 @@ export const Route = createFileRoute(
       getSessionQueryOptions(),
     );
 
-    await context.queryClient.ensureQueryData(
-      appointmentByIdQueryOptions(params.appointmentId as Appointment["_id"]),
-    );
-
     if (user?.userId) {
-      await context.queryClient.ensureQueryData(
+      const isBarber = await context.queryClient.ensureQueryData(
+        isBarberQueryOptions(user?.userId!),
+      );
+
+      const redirectTo = isBarber
+        ? "/profile/barbershops/appointments"
+        : "/profile";
+
+      const barber = await context.queryClient.ensureQueryData(
         barberByUserIdQueryOptions(user.userId),
       );
+
+      const appointment = await context.queryClient.ensureQueryData(
+        appointmentByIdQueryOptions(params.appointmentId as Appointment["_id"]),
+      );
+
+      const isBarberForAppointment =
+        isBarber && barber?._id === appointment?.barbershopMemberId;
+      const isCustomerForAppointment =
+        !isBarber && appointment?.userId === user.userId;
+
+      if (
+        appointment?.status === "cancelled" ||
+        appointment?.status === "completed" ||
+        !isBarberForAppointment ||
+        !isCustomerForAppointment
+      ) {
+        throw redirect({
+          to: redirectTo,
+          replace: true,
+          search: { tab: isBarber ? "appointments" : "account" },
+        });
+      }
     } else {
       throw redirect({ to: "/login", replace: true });
     }
@@ -45,7 +72,6 @@ export const Route = createFileRoute(
 });
 
 function RouteComponent() {
-  const navigate = Route.useNavigate();
   const { appointmentId } = Route.useParams();
   const router = useRouter();
 
@@ -77,20 +103,6 @@ function RouteComponent() {
     isBarberForAppointment ||
     appointment?.status === "denied" ||
     appointment?.status === "cancelled";
-
-  const redirectTo = isBarber
-    ? "/profile/barbershops/appointments"
-    : "/profile";
-
-  useEffect(() => {
-    if (!canView) {
-      navigate({
-        to: redirectTo,
-        replace: true,
-        search: { tap: isBarber ? "account" : "appointments" },
-      });
-    }
-  }, [canView, navigate, redirectTo, isBarber]);
 
   useEffect(() => {
     if (isAnsweringSuccess) {
