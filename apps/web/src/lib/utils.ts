@@ -23,7 +23,7 @@ export function barbershopSeo(
     },
     {
       name: "description",
-      content: barbershop.description ?? "No hay descripción disponible.",
+      content: `Visita ${barbershop.name} en PanaBarbero`,
     },
     {
       name: "og:title",
@@ -31,11 +31,11 @@ export function barbershopSeo(
     },
     {
       name: "og:description",
-      content: barbershop.description ?? "No hay descripción disponible.",
+      content: `Visita ${barbershop.name} en PanaBarbero`,
     },
     {
       name: "og:image",
-      content: barbershop.bannerUrl ?? "/default-logo.png",
+      content: `https://storage.panabarbero.com/panabarbero-og.png`,
     },
     {
       name: "og:url",
@@ -51,18 +51,13 @@ export function barbershopSeo(
 export function seo({
   title,
   description,
-  keywords,
-  image,
 }: {
   title: string;
-  description?: string;
-  image?: string;
-  keywords?: string;
+  description: string;
 }) {
-  const tags = [
+  return [
     { title },
     { name: "description", content: description },
-    { name: "keywords", content: keywords },
     { name: "twitter:title", content: title },
     { name: "twitter:description", content: description },
     { name: "twitter:creator", content: "@tannerlinsley" },
@@ -70,14 +65,5 @@ export function seo({
     { name: "og:type", content: "website" },
     { name: "og:title", content: title },
     { name: "og:description", content: description },
-    ...(image
-      ? [
-          { name: "twitter:image", content: image },
-          { name: "twitter:card", content: "summary_large_image" },
-          { name: "og:image", content: image },
-        ]
-      : []),
   ];
-
-  return tags;
 }

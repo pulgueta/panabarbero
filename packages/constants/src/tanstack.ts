@@ -29,7 +29,7 @@ export const publicRoutes = {
 
 export const authenticatedRoutes = {
   navigation: [
-    ...publicRoutes.navigation,
+    ...publicRoutes.navigation.filter((route) => route.to !== "/"),
     {
       label: "Cuenta",
       to: "/profile",

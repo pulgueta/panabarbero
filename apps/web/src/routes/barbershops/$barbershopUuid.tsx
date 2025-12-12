@@ -31,6 +31,7 @@ import {
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { barbershopSeo } from "@/lib/utils";
 
 export const Route = createFileRoute("/barbershops/$barbershopUuid")({
   component: RouteComponent,
@@ -57,7 +58,14 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
         barbersByBarbershopIdQueryOptions(barbershop._id),
       );
     }
+
+    return {
+      barbershop,
+    };
   },
+  head: ({ loaderData }) => ({
+    meta: barbershopSeo(loaderData?.barbershop!),
+  }),
 });
 
 function RouteComponent() {
