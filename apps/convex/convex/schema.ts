@@ -27,13 +27,18 @@ export default defineSchema(
       })
       .index("by_uuid", ["uuid"]),
 
-    barbers: defineTable({
-      ...tables.barbers,
+    barbershopMetadata: defineTable({
+      ...tables.barbershopMetadata,
+    }).index("by_barbershopId", ["barbershopId"]),
+
+    barbershopMembers: defineTable({
+      ...tables.barbershopMembers,
     })
-      .index("by_userId", ["userId"])
+      .index("by_userProfileDataId", ["userProfileDataId"])
       .index("by_barbershopId", ["barbershopId"])
       .index("by_uuid", ["uuid"])
-      .index("by_isActive", ["isActive"]),
+      .index("by_isActive", ["isActive"])
+      .index("by_role", ["role"]),
 
     services: defineTable({
       ...tables.services,
@@ -56,17 +61,9 @@ export default defineSchema(
       .index("by_barbershopId", ["barbershopId"])
       .index("by_userIdAndBarbershopId", ["userId", "barbershopId"])
       .index("by_serviceId", ["serviceId"])
-      .index("by_barberId", ["barberId"])
+      .index("by_barbershopMemberId", ["barbershopMemberId"])
       .index("by_status", ["status"])
       .index("by_date", ["date"]),
-
-    payments: defineTable({
-      ...tables.payments,
-    })
-      .index("by_appointmentId", ["appointmentId"])
-      .index("by_transactionId", ["transactionId"])
-      .index("by_status", ["status"])
-      .index("by_method", ["method"]),
 
     notifications: defineTable({
       ...tables.notifications,
@@ -77,12 +74,6 @@ export default defineSchema(
       .index("by_channels", ["channels"])
       .index("by_reason", ["reason"])
       .index("by_appointmentId", ["appointmentId"]),
-
-    mobile_push_tokens: defineTable({
-      ...tables.mobilePushTokens,
-    })
-      .index("by_userId", ["userId"])
-      .index("by_uuid", ["uuid"]),
   },
   { schemaValidation: true },
 );

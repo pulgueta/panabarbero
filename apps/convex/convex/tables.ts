@@ -59,36 +59,43 @@ export const tables = {
     state: v.string(),
     zipCode: v.optional(v.string()),
     bannerUrl: v.optional(v.string()),
-    metadata: v.optional(
-      v.object({
-        websiteUrl: v.optional(v.string()),
-        contactEmail: v.optional(v.string()),
-        completedAppointments: v.optional(v.number()),
-        reviews: v.optional(v.number()),
-        rating: v.optional(v.number()),
-        socialMedia: v.optional(
-          v.array(
-            v.object({
-              platform: v.union(
-                v.literal("tiktok"),
-                v.literal("instagram"),
-                v.literal("facebook"),
-                v.literal("twitter"),
-                v.literal("youtube"),
-              ),
-              url: v.string(),
-            }),
+    metadataId: v.optional(v.id("barbershopMetadata")),
+  },
+  barbershopMetadata: {
+    barbershopId: v.id("barbershops"),
+    uuid: v.string(),
+    websiteUrl: v.optional(v.string()),
+    contactEmail: v.optional(v.string()),
+    completedAppointments: v.optional(v.number()),
+    reviews: v.optional(v.number()),
+    rating: v.optional(v.number()),
+    socialMedia: v.optional(
+      v.array(
+        v.object({
+          platform: v.union(
+            v.literal("tiktok"),
+            v.literal("instagram"),
+            v.literal("facebook"),
+            v.literal("twitter"),
+            v.literal("youtube"),
           ),
-        ),
-      }),
+          url: v.string(),
+        }),
+      ),
     ),
   },
-  barbers: {
+  barbershopMembers: {
     uuid: v.string(),
-    userId: v.string(),
+    userProfileDataId: v.id("userProfileData"),
     barbershopId: v.id("barbershops"),
     joinedAt: v.number(),
     isActive: v.boolean(),
+    role: v.union(
+      v.literal("owner"),
+      v.literal("admin"),
+      v.literal("barber"),
+      v.literal("staff"),
+    ),
   },
   services: {
     uuid: v.string(),
@@ -109,9 +116,10 @@ export const tables = {
     userId: v.string(),
     barbershopId: v.id("barbershops"),
     serviceId: v.id("services"),
-    barberId: v.id("barbers"),
+    barbershopMemberId: v.id("barbershopMembers"),
     date: v.number(),
     proposedDate: v.optional(v.number()),
+    rescheduleRequestedByUserId: v.optional(v.string()),
     customerName: v.string(),
     contactPhone: v.string(),
     contactEmail: v.string(),
@@ -125,31 +133,6 @@ export const tables = {
       v.literal("denied"),
     ),
     notes: v.optional(v.string()),
-  },
-  payments: {
-    uuid: v.string(),
-    appointmentId: v.id("appointments"),
-    transactionId: v.string(),
-    paymentDate: v.number(),
-    amount: v.number(),
-    status: v.union(
-      v.literal("pending"),
-      v.literal("paid"),
-      v.literal("failed"),
-    ),
-    method: v.union(
-      v.literal("cash"),
-      v.literal("card"),
-      v.literal("pse"),
-      v.literal("daviplata"),
-      v.literal("safetypay"),
-      v.literal("nequi"),
-    ),
-  },
-  mobilePushTokens: {
-    uuid: v.string(),
-    userId: v.string(),
-    token: v.string(),
   },
   notifications: {
     uuid: v.string(),
@@ -167,10 +150,11 @@ export const tables = {
       v.literal("appointment_rescheduled_accepted"),
       v.literal("appointment_rescheduled_denied"),
       v.literal("barber_invited"),
+      v.literal("barber_appointment_created"),
+      v.literal("past_appointment_reminder"),
     ),
     title: v.string(),
     body: v.string(),
-    preview: v.optional(v.string()),
     senderUserId: v.union(v.literal("system"), v.string()),
     receiverUserId: v.string(),
     appointmentId: v.optional(v.id("appointments")),
@@ -183,8 +167,11 @@ const userProfileDataSchema = v.object({
 const barbershopSchema = v.object({
   ...tables.barbershops,
 });
-const barberSchema = v.object({
-  ...tables.barbers,
+const barbershopMetadataSchema = v.object({
+  ...tables.barbershopMetadata,
+});
+const barbershopMemberSchema = v.object({
+  ...tables.barbershopMembers,
 });
 const serviceSchema = v.object({
   ...tables.services,
@@ -194,12 +181,6 @@ const reviewSchema = v.object({
 });
 const appointmentSchema = v.object({
   ...tables.appointments,
-});
-const paymentSchema = v.object({
-  ...tables.payments,
-});
-const mobilePushTokenSchema = v.object({
-  ...tables.mobilePushTokens,
 });
 const notificationSchema = v.object({
   ...tables.notifications,
@@ -214,13 +195,16 @@ export type UserProfileData = ConvexRows<"userProfileData"> &
   Infer<typeof userProfileDataSchema>;
 export type Barbershop = ConvexRows<"barbershops"> &
   Infer<typeof barbershopSchema>;
-export type Barber = ConvexRows<"barbers"> & Infer<typeof barberSchema>;
+export type BarbershopMetadata = ConvexRows<"barbershopMetadata"> &
+  Infer<typeof barbershopMetadataSchema>;
+export type BarbershopMember = ConvexRows<"barbershopMembers"> &
+  Infer<typeof barbershopMemberSchema>;
+export type BarbershopMemberWithName = BarbershopMember & {
+  name: string;
+};
 export type Service = ConvexRows<"services"> & Infer<typeof serviceSchema>;
 export type Review = ConvexRows<"reviews"> & Infer<typeof reviewSchema>;
 export type Appointment = ConvexRows<"appointments"> &
   Infer<typeof appointmentSchema>;
-export type Payment = ConvexRows<"payments"> & Infer<typeof paymentSchema>;
-export type MobilePushToken = ConvexRows<"mobile_push_tokens"> &
-  Infer<typeof mobilePushTokenSchema>;
 export type Notification = ConvexRows<"notifications"> &
   Infer<typeof notificationSchema>;

@@ -1,7 +1,7 @@
 import { tanstack } from "@panabarbero/constants";
 import { Link, useRouterState } from "@tanstack/react-router";
 
-import { useIsBarber } from "@/hooks/use-barbers";
+import { useIsBarber } from "@/hooks/use-barbershop-members";
 import { useSession } from "@/hooks/use-session";
 import { cn } from "@/lib/utils";
 import { ThemeToggler } from "./theme-toggler";
@@ -17,6 +17,8 @@ export const BottomBar = () => {
   const navigationRoutes = user
     ? tanstack.authenticatedRoutes.navigation
     : tanstack.publicRoutes.navigation;
+
+  const defaultProfileTab = isBarber ? "account" : "appointments";
 
   return (
     <div className="fixed right-0 bottom-0 left-0 z-50 mx-auto h-18 w-full border-border border-t bg-background/80 backdrop-blur-sm">
@@ -37,6 +39,11 @@ export const BottomBar = () => {
                     style={{
                       viewTransitionName: item.to,
                     }}
+                    search={
+                      item.to === "/profile"
+                        ? { tab: defaultProfileTab }
+                        : undefined
+                    }
                   >
                     <Icon className="size-5 shrink-0" />
                     <span className="truncate font-medium text-xs leading-none">
@@ -62,6 +69,11 @@ export const BottomBar = () => {
                     style={{
                       viewTransitionName: item.to,
                     }}
+                    search={
+                      item.to === "/profile"
+                        ? { tab: defaultProfileTab }
+                        : undefined
+                    }
                   >
                     <Icon className="size-5 shrink-0" />
                     <span className="truncate font-medium text-xs leading-none">

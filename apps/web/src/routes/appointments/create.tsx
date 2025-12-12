@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SearchIcon } from "lucide-react";
-import { useState } from "react";
+import { Activity, Suspense, useState } from "react";
 
 import { BarbershopListCard } from "@/components/barbershops/barbershop-list-card";
+import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
+import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
 import {
   InputGroup,
   InputGroupAddon,
@@ -11,48 +13,81 @@ import {
 } from "@/components/ui/input-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  searchBarbershopsByNameQueryOptions,
   useSearchBarbershopsByName,
-  useUserVisitedBarbershops,
 } from "@/hooks/barbershop/use-barbershop";
+import {
+  userVisitedBarbershopsQueryOptions,
+  useVisitedBarbershops,
+} from "@/hooks/use-appointments";
 import { useDebounce } from "@/hooks/use-debounce";
-import { useSession } from "@/hooks/use-session";
+import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/appointments/create")({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
+  errorComponent: (props) => <div>{JSON.stringify(props.error.message)}</div>,
+  loader: async (ctx) => {
+    const user = await ctx.context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
+
+    if (user?.userId) {
+      await ctx.context.queryClient.ensureQueryData(
+        userVisitedBarbershopsQueryOptions(user.userId),
+      );
+    }
+
+    await ctx.context.queryClient.ensureQueryData(
+      searchBarbershopsByNameQueryOptions(),
+    );
+  },
 });
 
 function RouteComponent() {
   const [searchQuery, setSearchQuery] = useState<string>("");
+
+  const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
+
   const { data: user } = useSession();
-
-  const debouncedSearchQuery = useDebounce(searchQuery, 500);
-
-  const { data: barbershops } = useUserVisitedBarbershops(user?.userId ?? "");
+  const { data: barbershops } = useVisitedBarbershops(
+    user?.userId ?? undefined,
+  );
   const {
     data: searchResults,
     isLoading: isSearching,
     isRefetching: isSearchingAgain,
   } = useSearchBarbershopsByName(debouncedSearchQuery);
 
+  const searching = isSearching || isSearchingAgain;
+
   return (
-    <div className="container mx-auto flex min-h-[calc(100dvh-65px)] flex-col items-start justify-start gap-8 border-x px-4 py-8 md:px-8 lg:px-16">
+    <BorderContainer className="space-y-4">
       <div className="flex flex-col gap-2">
-        <h1 className="text-balance font-bold text-3xl tracking-tight">
+        <h1 className="text-balance font-bold text-xl tracking-tight">
           Agendamiento rápido:
         </h1>
-        {user ? (
-          barbershops && barbershops.length > 0 ? (
+
+        <Suspense fallback={<ProfileTabSkeleton />}>
+          <Activity
+            mode={barbershops && barbershops.length > 0 ? "visible" : "hidden"}
+          >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {barbershops.map((barbershop) => (
                 <BarbershopListCard
                   key={barbershop?._id}
                   // biome-ignore lint/style/noNonNullAssertion: can be null
                   barbershop={barbershop!}
+                  showAddress={false}
                 />
               ))}
             </div>
-          ) : (
+          </Activity>
+        </Suspense>
+
+        {user ? (
+          barbershops &&
+          barbershops.length === 0 && (
             <p className="text-pretty text-muted-foreground text-sm">
               No has visitado ninguna barbería
             </p>
@@ -87,32 +122,40 @@ function RouteComponent() {
           </InputGroup>
         </div>
 
-        {(isSearching || isSearchingAgain) && (
+        <Activity
+          mode={searching && searchQuery.length > 0 ? "visible" : "hidden"}
+        >
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {Array.from({ length: 4 }).map((_, index) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: key is not needed for skeleton
               <Skeleton key={index} className="h-48 w-full rounded-lg" />
             ))}
           </div>
-        )}
+        </Activity>
 
-        {searchResults && searchResults.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {searchResults.map((barbershop) => (
-              <BarbershopListCard
-                key={barbershop?._id}
-                barbershop={barbershop}
-              />
-            ))}
-          </div>
-        ) : (
-          debouncedSearchQuery.length > 0 && (
-            <p className="text-pretty text-muted-foreground text-sm">
-              No se encontraron barberías con ese nombre.
-            </p>
-          )
+        <Suspense fallback={<ProfileTabSkeleton />}>
+          <Activity
+            mode={
+              searchResults && searchResults.length > 0 ? "visible" : "hidden"
+            }
+          >
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {searchResults.map((barbershop) => (
+                <BarbershopListCard
+                  key={barbershop?._id}
+                  barbershop={barbershop}
+                />
+              ))}
+            </div>
+          </Activity>
+        </Suspense>
+
+        {searchResults?.length === 0 && (
+          <p className="text-pretty text-muted-foreground text-sm">
+            No hay barberías disponibles.
+          </p>
         )}
       </div>
-    </div>
+    </BorderContainer>
   );
 }

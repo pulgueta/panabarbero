@@ -1,4 +1,3 @@
-import { errorMessages } from "@panabarbero/constants";
 import { ConvexError, v } from "convex/values";
 import {
   internalMutation,
@@ -7,6 +6,7 @@ import {
   query,
 } from "./_generated/server";
 import { authComponent, createAuth } from "./auth";
+import { errorMessages } from "./errors";
 import { tables } from "./tables";
 
 export const getProfileByUserId = internalQuery({
@@ -143,6 +143,7 @@ export const updateNotificationPreference = mutation({
   args: {
     type: v.union(v.literal("email"), v.literal("push"), v.literal("sms")),
     enabled: v.boolean(),
+    userId: v.string(),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
@@ -151,9 +152,13 @@ export const updateNotificationPreference = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
+    if (user.userId !== args.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
     const profile = await ctx.db
       .query("userProfileData")
-      .withIndex("by_userId", (q) => q.eq("userId", user.userId ?? ""))
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .unique();
 
     if (!profile)

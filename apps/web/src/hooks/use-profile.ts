@@ -1,15 +1,15 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@panabarbero/convex/api";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 
-export function getProfileQueryOptions(userId: string) {
+export function profileQueryOptions(userId: string) {
   return convexQuery(api.userProfileData.getMyProfile, {
     userId,
   });
 }
 
 export function useProfile(userId: string) {
-  return useQuery(getProfileQueryOptions(userId));
+  return useSuspenseQuery(profileQueryOptions(userId));
 }
 
 export function useProfileActions() {
@@ -25,11 +25,29 @@ export function useProfileActions() {
   const updateNotificationPreferenceMutation = useMutation({
     mutationFn: useConvexMutation(
       api.userProfileData.updateNotificationPreference,
-    ).withOptimisticUpdate((prev, newData) => {
-      return {
-        ...prev,
-        notificationsPreferences: newData,
-      };
+    ).withOptimisticUpdate((localStore, args) => {
+      const existingProfile = localStore.getQuery(
+        api.userProfileData.getMyProfile,
+        {
+          userId: args.userId,
+        },
+      );
+
+      if (existingProfile) {
+        const updatedPreferences = existingProfile.notificationsPreferences.map(
+          (pref) =>
+            pref.type === args.type ? { ...pref, enabled: args.enabled } : pref,
+        );
+
+        localStore.setQuery(
+          api.userProfileData.getMyProfile,
+          { userId: args.userId },
+          {
+            ...existingProfile,
+            notificationsPreferences: updatedPreferences,
+          },
+        );
+      }
     }),
   });
 

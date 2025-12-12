@@ -53,14 +53,6 @@ export const GeneralInfoForm: FC<GeneralInfoFormProps> = ({ barbershop }) => {
         state: barbershop.state,
         zipCode: barbershop.zipCode || undefined,
         bannerUrl: barbershop.bannerUrl || undefined,
-        metadata: {
-          websiteUrl: barbershop.metadata?.websiteUrl || undefined,
-          contactEmail: barbershop.metadata?.contactEmail || undefined,
-          completedAppointments: barbershop.metadata?.completedAppointments,
-          reviews: barbershop.metadata?.reviews,
-          rating: barbershop.metadata?.rating,
-          socialMedia: barbershop.metadata?.socialMedia || undefined,
-        },
       },
     });
   };
@@ -68,8 +60,8 @@ export const GeneralInfoForm: FC<GeneralInfoFormProps> = ({ barbershop }) => {
   const nameInvalid = !name || name.length < 3;
 
   return (
-    <div className="space-y-4">
-      <FieldGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div className="w-full space-y-4">
+      <FieldGroup className="grid grid-cols-1 gap-4">
         <Field data-invalid={nameInvalid}>
           <FieldLabel htmlFor={ids.name}>Nombre</FieldLabel>
           <Input

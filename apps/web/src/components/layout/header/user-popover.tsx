@@ -1,5 +1,5 @@
 import { signOut } from "@panabarbero/convex/auth";
-import { redirect } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
 import type { FC } from "react";
 
@@ -11,24 +11,20 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import { useIsBarber } from "@/hooks/use-barbers";
+import { useIsBarber } from "@/hooks/use-barbershop-members";
 import type { useSession } from "@/hooks/use-session";
 
 export const UserPopover: FC<ReturnType<typeof useSession>["data"]> = (
   user,
 ) => {
+  const navigate = useNavigate();
+
   const { data: isBarber } = useIsBarber(user?.userId ?? "");
 
   const handleSignOut = async () => {
-    await signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          throw redirect({
-            to: "/login",
-          });
-        },
-      },
-    });
+    await signOut();
+
+    throw navigate({ to: "/login", replace: true });
   };
 
   const getUserInitials = () => {

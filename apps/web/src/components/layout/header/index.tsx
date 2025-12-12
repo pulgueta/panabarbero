@@ -3,7 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useIsBarber } from "@/hooks/use-barbers";
+import { useIsBarber } from "@/hooks/use-barbershop-members";
 import { useSession } from "@/hooks/use-session";
 import { ThemeToggler } from "../theme-toggler";
 import { UserPopover } from "./user-popover";
@@ -24,12 +24,15 @@ export const Header = () => {
         (route) => route.to !== "/settings",
       );
 
+  const defaultProfileTab = isBarber ? "account" : "appointments";
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-4">
       <div className="container mx-auto flex h-16 items-center border-x md:px-8 lg:px-16">
         <div className="mr-6 flex">
           <Link
             to="/profile"
+            search={{ tab: defaultProfileTab }}
             className="font-bold text-2xl tracking-tighter lg:text-3xl"
           >
             PanaBarbero
@@ -51,6 +54,11 @@ export const Header = () => {
                       style={{
                         viewTransitionName: route.to,
                       }}
+                      search={
+                        route.to === "/profile"
+                          ? { tab: defaultProfileTab }
+                          : undefined
+                      }
                     >
                       {route.label}
                     </Link>
@@ -68,6 +76,11 @@ export const Header = () => {
                       style={{
                         viewTransitionName: route.to,
                       }}
+                      search={
+                        route.to === "/profile"
+                          ? { tab: defaultProfileTab }
+                          : undefined
+                      }
                     >
                       {route.label}
                     </Link>

@@ -1,13 +1,13 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: is always provided */
 
 import type { SearchEntry, SearchResult } from "@convex-dev/rag";
-import { errorMessages } from "@panabarbero/constants";
 import type { EmbeddingModelUsage } from "ai";
 import type { Value } from "convex/values";
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { action, internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
+import { errorMessages } from "./errors";
 import { tables } from "./tables";
 
 type ServiceResult = {
@@ -43,10 +43,19 @@ export const createServiceMutation = internalMutation({
   handler: async (ctx, args) => {
     const barbershop = await ctx.db.get(args.service.barbershopId);
 
-    if (barbershop?.services?.length === 0) {
-      await ctx.db.patch(args.service.barbershopId, {
-        isActive: true,
-      });
+    if (barbershop && barbershop.isActive === false) {
+      const existingService = await ctx.db
+        .query("services")
+        .withIndex("by_barbershopId", (q) =>
+          q.eq("barbershopId", args.service.barbershopId),
+        )
+        .first();
+
+      if (!existingService) {
+        await ctx.db.patch(args.service.barbershopId, {
+          isActive: true,
+        });
+      }
     }
 
     const serviceId = await ctx.db.insert("services", args.service);
@@ -55,7 +64,7 @@ export const createServiceMutation = internalMutation({
   },
 });
 
-export const createService = action({
+export const createService = mutation({
   args: {
     service: v.object({
       ...tables.services,
@@ -70,25 +79,34 @@ export const createService = action({
 
     const { service } = args;
 
-    await ctx.runAction(internal.rag.addToRAG, {
+    const barbershop = await ctx.db.get(service.barbershopId);
+
+    if (!barbershop?.isActive) {
+      const existingService = await ctx.db
+        .query("services")
+        .withIndex("by_barbershopId", (q) =>
+          q.eq("barbershopId", service.barbershopId),
+        )
+        .first();
+
+      if (!existingService) {
+        await ctx.db.patch(service.barbershopId, {
+          isActive: true,
+        });
+      }
+    }
+
+    await ctx.scheduler.runAfter(0, internal.rag.addToRAG, {
       namespace: "services",
       text: service.name,
       userId: user.userId,
     });
 
-    await ctx.runMutation(internal.services.createServiceMutation, {
-      service,
-    });
+    const serviceId = await ctx.db.insert("services", service);
+
+    return serviceId;
   },
 });
-
-// export const getServices = query({
-//   handler: async (ctx) => {
-//     const services = await ctx.db.query("services").collect();
-
-//     return services;
-//   },
-// });
 
 export const getServiceByUuid = query({
   args: {
@@ -104,19 +122,23 @@ export const getServiceByUuid = query({
   },
 });
 
-export const getServicesByBarbershopId = query({
+export const getServiceById = query({
   args: {
-    barbershopId: v.optional(v.id("barbershops")),
+    serviceId: v.id("services"),
   },
   handler: async (ctx, args) => {
-    const services = await ctx.db
-      .query("services")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId!),
-      )
-      .collect();
+    return await ctx.db.get(args.serviceId);
+  },
+});
 
-    return services;
+export const getServicesByIds = query({
+  args: {
+    serviceIds: v.array(v.id("services")),
+  },
+  handler: async (ctx, args) => {
+    return await Promise.all(
+      args.serviceIds.map(async (serviceId) => await ctx.db.get(serviceId)),
+    );
   },
 });
 
@@ -176,5 +198,20 @@ export const deleteService = mutation({
     }
 
     await ctx.db.delete(serviceId);
+  },
+});
+
+export const getServiceByAppointmentId = query({
+  args: {
+    appointmentId: v.id("appointments"),
+  },
+  handler: async (ctx, args) => {
+    const appointment = await ctx.db.get(args.appointmentId);
+
+    if (!appointment) {
+      return null;
+    }
+
+    return await ctx.db.get(appointment.serviceId);
   },
 });

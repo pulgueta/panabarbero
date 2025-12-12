@@ -1,8 +1,7 @@
 import type { Barbershop } from "@panabarbero/convex/schemas";
 import { useNavigate } from "@tanstack/react-router";
-import type { FC } from "react";
+import type { FC, ReactNode } from "react";
 
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,20 +10,29 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { CreateBarbershopForm } from "./create-barbershop-form";
 
 interface CreateBarbershopDialogProps {
-  triggerLabel?: string;
-  variant?: "default" | "outline" | "ghost" | "secondary" | "destructive";
+  trigger: ReactNode;
   userId: string | undefined;
 }
 
 export const CreateBarbershopDialog: FC<CreateBarbershopDialogProps> = ({
-  triggerLabel = "Crear barbería",
-  variant = "default",
+  trigger,
   userId,
 }) => {
   const navigate = useNavigate();
+
+  const { isMobile } = useIsMobile();
 
   const onSuccess = (barbershopId: Barbershop["_id"]) => {
     navigate({
@@ -33,20 +41,35 @@ export const CreateBarbershopDialog: FC<CreateBarbershopDialogProps> = ({
     });
   };
 
+  const title = "Crea tu barbería";
+  const description =
+    "Proporciona la información necesaria para registrar tu barbería. Podrás completar más detalles luego.";
+
+  if (isMobile) {
+    return (
+      <Drawer>
+        <DrawerTrigger asChild>{trigger}</DrawerTrigger>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>{title}</DrawerTitle>
+            <DrawerDescription>{description}</DrawerDescription>
+          </DrawerHeader>
+
+          <div className="p-4">
+            <CreateBarbershopForm onSuccess={onSuccess} userId={userId} />
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        <Button variant={variant} className="mt-1.5">
-          {triggerLabel}
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-h-[80dvh] overflow-y-auto">
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Crear tu barbería</DialogTitle>
-          <DialogDescription>
-            Proporciona la información necesaria para registrar tu barbería.
-            Podrás completar más detalles luego.
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
         <CreateBarbershopForm onSuccess={onSuccess} userId={userId} />

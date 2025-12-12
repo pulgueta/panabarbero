@@ -32,7 +32,7 @@ export const InviteBarberDialog: FC<InviteBarberDialogProps> = ({
 
   const headLabel = "Invitar barbero";
   const description = "Proporciona los datos del barbero a invitar.";
-  const buttonLabel = "Invitar";
+  const buttonLabel = "Invitar (pronto)";
   const buttonVariant = "outline";
 
   if (isMobile) {

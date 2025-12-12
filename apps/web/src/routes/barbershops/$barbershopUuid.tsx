@@ -1,27 +1,41 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: objects are guaranteed to be not null */
+
 import { createFileRoute } from "@tanstack/react-router";
+import { Activity, Suspense } from "react";
 
 import { BarbershopAvatar } from "@/components/barbershops/barbershop-avatar";
 import { BarbershopHeader } from "@/components/barbershops/barbershop-header";
 import { ServicesCarousel } from "@/components/barbershops/services/services-carousel";
 import { LoadingComponent } from "@/components/layout/loading-component";
+import { ServicesSkeleton } from "@/components/layout/skeleton/services-skeleton";
 import { useCarouselApi } from "@/components/ui/carousel";
-import { Separator } from "@/components/ui/separator";
 import {
-  barbershopAvailabilityQueryOptions,
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
   barbershopByUuidQueryOptions,
-  isBarbershopOwnerQueryOptions,
   useBarbershopByUuid,
 } from "@/hooks/barbershop/use-barbershop";
-import { barbersByBarbershopIdQueryOptions } from "@/hooks/use-barbers";
+import {
+  barbersByBarbershopIdQueryOptions,
+  useBarbersByBarbershopId,
+} from "@/hooks/use-barbershop-members";
+import { profileQueryOptions } from "@/hooks/use-profile";
 import {
   servicesQueryOptions,
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { barbershopSeo } from "@/lib/utils";
 
 export const Route = createFileRoute("/barbershops/$barbershopUuid")({
   component: RouteComponent,
+  pendingComponent: LoadingComponent,
   loader: async ({ context, params }) => {
     const user = await context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
@@ -30,41 +44,61 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
       barbershopByUuidQueryOptions(params.barbershopUuid),
     );
 
-    await context.queryClient.prefetchQuery(
-      barbersByBarbershopIdQueryOptions(barbershop?._id!),
-    );
-    await context.queryClient.prefetchQuery(
-      servicesQueryOptions(barbershop?._id!),
-    );
-    await context.queryClient.prefetchQuery(
-      barbershopAvailabilityQueryOptions(barbershop?._id!),
-    );
-    await context.queryClient.prefetchQuery(
-      isBarbershopOwnerQueryOptions(barbershop?._id!, user?.userId!),
-    );
+    if (user?.userId) {
+      await context.queryClient.ensureQueryData(
+        profileQueryOptions(user.userId),
+      );
+    }
+
+    if (barbershop?._id) {
+      await context.queryClient.ensureQueryData(
+        servicesQueryOptions(barbershop._id),
+      );
+      await context.queryClient.ensureQueryData(
+        barbersByBarbershopIdQueryOptions(barbershop._id),
+      );
+    }
+
+    return {
+      barbershop,
+    };
   },
-  pendingComponent: LoadingComponent,
+  head: ({ loaderData }) => ({
+    meta: barbershopSeo(loaderData?.barbershop!),
+  }),
 });
 
 function RouteComponent() {
-  const [_, _setCarouselApi] = useCarouselApi();
-
-  const params = Route.useParams();
-
-  const { data: barbershop } = useBarbershopByUuid(params.barbershopUuid);
-  const { data: services } = useServicesFromBarbershop(barbershop?._id!);
+  const { barbershopUuid } = Route.useParams();
 
   const { data: user } = useSession();
+
+  const [_, _setCarouselApi] = useCarouselApi();
+
+  const { data: barbershop, isLoading: isLoadingBarbershop } =
+    useBarbershopByUuid(barbershopUuid);
+  const { data: services, isLoading: isLoadingServices } =
+    useServicesFromBarbershop(barbershop?._id!);
+  const { data: barbers, isLoading: isLoadingBarbers } =
+    useBarbersByBarbershopId(barbershop?._id!);
 
   return (
     <div className="w-full">
       <main className="container mx-auto min-h-[calc(100dvh-65px)] border-x">
         <header className="flex w-full flex-row justify-between gap-4 px-4 pt-8 md:px-8 lg:px-16">
-          <BarbershopHeader barbershop={barbershop} userId={user?.userId!} />
+          <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+            <Activity mode={isLoadingBarbershop ? "hidden" : "visible"}>
+              <BarbershopHeader
+                barbershop={barbershop}
+                userId={user?.userId!}
+                availability={barbershop?.availability!}
+              />
 
-          <section>
-            <BarbershopAvatar barbershop={barbershop} size="lg" />
-          </section>
+              <section>
+                <BarbershopAvatar barbershop={barbershop} size="lg" />
+              </section>
+            </Activity>
+          </Suspense>
         </header>
 
         <Separator className="mt-8 mb-6" />
@@ -74,7 +108,30 @@ function RouteComponent() {
             Servicios ofrecidos:
           </h2>
 
-          {services && services.length > 0 ? (
+          <Suspense fallback={<ServicesSkeleton />}>
+            <Activity
+              mode={
+                isLoadingServices || isLoadingBarbers ? "hidden" : "visible"
+              }
+            >
+              <ServicesCarousel services={services} barbers={barbers} />
+            </Activity>
+          </Suspense>
+
+          {!services?.length && (
+            <Empty>
+              <EmptyHeader>
+                <EmptyTitle>No hay servicios disponibles.</EmptyTitle>
+                <EmptyDescription>
+                  Cuando se agregue un servicio, podrás verlo aquí.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          )}
+
+          {/* {isLoadingServices || isLoadingAvailability ? (
+            <Skeleton className="h-48 w-full" />
+          ) : services && services.length > 0 && availability ? (
             <ServicesCarousel services={services} />
           ) : (
             <p
@@ -85,7 +142,7 @@ function RouteComponent() {
             >
               No hay servicios disponibles.
             </p>
-          )}
+          )} */}
         </section>
       </main>
     </div>

@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 import { Scissors } from "lucide-react";
 import type { FC } from "react";
 
-import { BarbershopRating } from "@/components/barbershops/rating";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,10 +16,12 @@ import { BarbershopAvatar } from "./barbershop-avatar";
 
 interface BarbershopListCardProps {
   barbershop: Barbershop;
+  showAddress?: boolean;
 }
 
 export const BarbershopListCard: FC<BarbershopListCardProps> = ({
   barbershop,
+  showAddress = true,
 }) => {
   return (
     <Card className="gap-4 shadow-sm transition-shadow hover:shadow-md">
@@ -59,28 +60,32 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
         </div>
       </CardHeader>
       <CardContent>
-        <CardDescription
-          className="mb-2"
-          style={{
-            viewTransitionName: `barbershop-${barbershop.uuid}-address`,
-          }}
-        >
-          Ubicación: {barbershop.address.fullAddress}
-        </CardDescription>
+        {showAddress && (
+          <>
+            <CardDescription
+              className="mb-2"
+              style={{
+                viewTransitionName: `barbershop-${barbershop.uuid}-address`,
+              }}
+            >
+              Ubicación: {barbershop.address.fullAddress}
+            </CardDescription>
 
-        <div className="mb-4 flex items-center justify-between">
-          <p
-            className="text-muted-foreground text-sm"
-            style={{
-              viewTransitionName: `barbershop-${barbershop._id}-services`,
-            }}
-          >
-            {barbershop.services?.length ? barbershop.services?.length : 0}{" "}
-            {barbershop.services?.length === 1
-              ? "servicio disponible."
-              : "servicios disponibles."}
-          </p>
-        </div>
+            <div className="mb-4 flex items-center justify-between">
+              <p
+                className="text-muted-foreground text-sm"
+                style={{
+                  viewTransitionName: `barbershop-${barbershop._id}-services`,
+                }}
+              >
+                {barbershop.services?.length ? barbershop.services?.length : 0}{" "}
+                {barbershop.services?.length === 1
+                  ? "servicio disponible."
+                  : "servicios disponibles."}
+              </p>
+            </div>
+          </>
+        )}
       </CardContent>
       <CardFooter className="justify-between">
         <Button asChild>
@@ -94,17 +99,17 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
               viewTransitionName: `barbershop-${barbershop.uuid}-link`,
             }}
           >
-            Ver servicios
+            {showAddress ? "Ver servicios" : "Ver barbería"}
           </Link>
         </Button>
 
-        <BarbershopRating
+        {/* <BarbershopRating
           value={barbershop.metadata?.rating ?? 0}
           readOnly
           style={{
             viewTransitionName: `barbershop-${barbershop.uuid}-rating`,
           }}
-        />
+        /> */}
       </CardFooter>
     </Card>
   );

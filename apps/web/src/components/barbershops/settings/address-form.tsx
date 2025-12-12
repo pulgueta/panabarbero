@@ -79,14 +79,6 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
         state,
         zipCode: zip || undefined,
         bannerUrl: barbershop.bannerUrl || undefined,
-        metadata: {
-          websiteUrl: barbershop.metadata?.websiteUrl || undefined,
-          contactEmail: barbershop.metadata?.contactEmail || undefined,
-          completedAppointments: barbershop.metadata?.completedAppointments,
-          reviews: barbershop.metadata?.reviews,
-          rating: barbershop.metadata?.rating,
-          socialMedia: barbershop.metadata?.socialMedia || undefined,
-        },
       },
     });
   };
@@ -95,7 +87,7 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
 
   return (
     <div className="space-y-4">
-      <FieldGroup>
+      <FieldGroup className="gap-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field data-invalid={!fullAddress}>
             <FieldLabel htmlFor={ids.address}>Dirección</FieldLabel>

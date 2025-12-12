@@ -23,11 +23,13 @@ const buttonGroupVariants = cva(
   },
 );
 
+export type ButtonGroupVariants = VariantProps<typeof buttonGroupVariants>;
+
 function ButtonGroup({
   className,
   orientation,
   ...props
-}: ComponentProps<"div"> & VariantProps<typeof buttonGroupVariants>) {
+}: ComponentProps<"div"> & ButtonGroupVariants) {
   return (
     // biome-ignore lint/a11y/useSemanticElements: as shadcn created
     <div

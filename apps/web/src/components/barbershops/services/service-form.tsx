@@ -1,11 +1,3 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import type { Barbershop, Service } from "@panabarbero/convex/schemas";
-import type { FC } from "react";
-import { useEffect, useId } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
-
-import { Button } from "@/components/ui/button";
 import {
   Field,
   FieldError,
@@ -19,86 +11,29 @@ import {
   InputGroupInput,
   InputGroupText,
 } from "@/components/ui/input-group";
-import { Spinner } from "@/components/ui/spinner";
-import { useServiceActions } from "@/hooks/use-services";
-import type { ServiceFormData } from "@/lib/schemas";
-import { serviceFormSchema } from "@/lib/schemas";
+import type { ServiceFormData, serviceFormSchema } from "@/lib/schemas";
+import type { BaseSyntheticEvent, FC } from "react";
+import type { UseFormReturn } from "react-hook-form";
+import { Controller } from "react-hook-form";
+import type { output } from "zod";
 
 interface ServiceFormProps {
-  barbershopId: Barbershop["_id"];
   initialValues?: ServiceFormData;
-  serviceId?: Service["_id"];
+  form: UseFormReturn<output<typeof serviceFormSchema>>;
+  onSubmit: (e: BaseSyntheticEvent) => void;
+  formIds: {
+    form: string;
+    name: string;
+    price: string;
+    duration: string;
+  };
 }
 
 export const ServiceForm: FC<ServiceFormProps> = ({
-  barbershopId,
-  initialValues,
-  serviceId,
+  form,
+  onSubmit,
+  formIds,
 }) => {
-  const formIds = {
-    form: useId(),
-    name: useId(),
-    price: useId(),
-    duration: useId(),
-  };
-
-  const form = useForm({
-    resolver: zodResolver(serviceFormSchema),
-    defaultValues: initialValues ?? {
-      name: "",
-      price: undefined,
-      duration: 5,
-      barbershopId,
-    },
-  });
-
-  const {
-    createServiceMutation: {
-      mutateAsync: createService,
-      isPending: isCreatingService,
-      isSuccess: isCreatedService,
-    },
-    updateServiceMutation: {
-      mutateAsync: updateService,
-      isPending: isUpdatingService,
-      isSuccess: isUpdatedService,
-    },
-  } = useServiceActions();
-
-  const loading = isCreatingService || isUpdatingService;
-
-  const onSubmit = form.handleSubmit(async (data) => {
-    if (initialValues && serviceId) {
-      await updateService({
-        service: {
-          ...data,
-        },
-        serviceId,
-      });
-      return;
-    }
-
-    await createService({
-      service: {
-        ...data,
-        uuid: crypto.randomUUID(),
-        barbershopId,
-      },
-    });
-
-    form.reset();
-  });
-
-  useEffect(() => {
-    if (isCreatedService) {
-      toast.success("Servicio creado exitosamente");
-    }
-
-    if (isUpdatedService) {
-      toast.success("Servicio actualizado exitosamente");
-    }
-  }, [isCreatedService, isUpdatedService]);
-
   return (
     <form id={formIds.form} onSubmit={onSubmit} className="space-y-4">
       <FieldGroup>
@@ -115,7 +50,6 @@ export const ServiceForm: FC<ServiceFormProps> = ({
                 id={formIds.name}
                 aria-invalid={fieldState.invalid}
                 placeholder="Corte de pelo"
-                disabled={loading}
               />
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
@@ -131,7 +65,6 @@ export const ServiceForm: FC<ServiceFormProps> = ({
                 <FieldLabel htmlFor={formIds.duration}>
                   Duración (en minutos)
                 </FieldLabel>
-                {/* @ts-expect-error */}
                 <Input
                   {...field}
                   id={formIds.duration}
@@ -139,7 +72,6 @@ export const ServiceForm: FC<ServiceFormProps> = ({
                   type="number"
                   placeholder="30"
                   className="w-full tabular-nums"
-                  disabled={loading}
                 />
                 {fieldState.invalid && (
                   <FieldError errors={[fieldState.error]} />
@@ -158,7 +90,6 @@ export const ServiceForm: FC<ServiceFormProps> = ({
                   <InputGroupAddon>
                     <InputGroupText>$</InputGroupText>
                   </InputGroupAddon>
-                  {/* @ts-expect-error */}
                   <InputGroupInput
                     {...field}
                     id={formIds.price}
@@ -166,7 +97,6 @@ export const ServiceForm: FC<ServiceFormProps> = ({
                     type="number"
                     placeholder="30000"
                     className="w-full tabular-nums"
-                    disabled={loading}
                   />
                   <InputGroupAddon align="inline-end">
                     <InputGroupText>COP</InputGroupText>
@@ -180,10 +110,6 @@ export const ServiceForm: FC<ServiceFormProps> = ({
           />
         </div>
       </FieldGroup>
-
-      <Button type="submit" disabled={loading} className="mt-4 w-full">
-        {loading ? <Spinner /> : "Guardar"}
-      </Button>
     </form>
   );
 };

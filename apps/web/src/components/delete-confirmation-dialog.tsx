@@ -8,6 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 
 interface DeleteConfirmationDialogProps {
   open: boolean;
@@ -39,11 +40,8 @@ export function DeleteConfirmationDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={onConfirm}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          >
-            Eliminar
+          <AlertDialogAction onClick={onConfirm} asChild>
+            <Button variant="destructive">Eliminar</Button>
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

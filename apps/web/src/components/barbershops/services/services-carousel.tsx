@@ -1,8 +1,12 @@
-import type { Service } from "@panabarbero/convex/schemas";
+import type {
+  BarbershopMemberWithName,
+  Service,
+} from "@panabarbero/convex/schemas";
 import { Clock } from "lucide-react";
 import type { FC } from "react";
 
-import { AppointmentButton } from "@/components/appointments/appointment-button";
+import { CreateAppointmentDialog } from "@/components/appointments/create-appointment-dialog";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Carousel,
@@ -14,24 +18,14 @@ import { formatCurrency } from "@/lib/form-utils";
 
 interface ServicesCarouselProps {
   services: Service[];
+  barbers: BarbershopMemberWithName[];
 }
 
-export const ServicesCarousel: FC<ServicesCarouselProps> = (props) => {
-  const { services } = props;
+export const ServicesCarousel: FC<ServicesCarouselProps> = ({
+  services,
+  barbers,
+}) => {
   const [_, setCarouselApi] = useCarouselApi();
-
-  if (!services || services.length === 0) {
-    return (
-      <p
-        className="text-center text-muted-foreground"
-        style={{
-          viewTransitionName: `barbershop-${services[0].barbershopId}-services`,
-        }}
-      >
-        No hay servicios disponibles.
-      </p>
-    );
-  }
 
   return (
     <Carousel
@@ -50,7 +44,7 @@ export const ServicesCarousel: FC<ServicesCarouselProps> = (props) => {
           >
             <Card className="max-h-36 bg-secondary/20 transition-transform duration-500 dark:bg-secondary/20">
               <CardContent className="flex items-start justify-between gap-4 px-4">
-                <section className="flex flex-col items-start gap-2">
+                <section className="space-y-2">
                   <p className="line-clamp-1 text-pretty font-semibold leading-4.5 tracking-tight">
                     {service.name}
                   </p>
@@ -58,14 +52,16 @@ export const ServicesCarousel: FC<ServicesCarouselProps> = (props) => {
                     {formatCurrency(service.price)}
                   </p>
                   <p className="mb-1 inline-flex items-center gap-1.5 text-muted-foreground text-xs tracking-tight">
-                    <Clock className="size-3" />{" "}
-                    {service.duration
-                      ? `${service.duration} minutos`
-                      : "No hay duración disponible"}
+                    <Clock className="size-3" /> {service.duration} minutos
                   </p>
                 </section>
 
-                <AppointmentButton service={service} />
+                <CreateAppointmentDialog
+                  service={service}
+                  services={services}
+                  barbers={barbers}
+                  trigger={<Button>Reservar</Button>}
+                />
               </CardContent>
             </Card>
           </CarouselItem>

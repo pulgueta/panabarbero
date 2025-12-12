@@ -1,321 +1,261 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: We need to assert non-null values because the hooks return undefined if the data is not loaded */
-import { signOut } from "@panabarbero/convex/auth";
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { InfoIcon, LogOut } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
-import { CreateBarbershopDialog } from "@/components/barbershops/create-barbershop-dialog";
+import { signOut } from "@panabarbero/convex/auth";
+import { createFileRoute } from "@tanstack/react-router";
+import { LogOut } from "lucide-react";
+import { Activity, Suspense, useMemo, useState } from "react";
+
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
+import { AccountTab } from "@/components/profile/account-tab";
+import { AppointmentsTab } from "@/components/profile/appointments-tab";
+import { DangerTab } from "@/components/profile/danger-tab";
+import { SecurityTab } from "@/components/profile/security-tab";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
-import { isBarberQueryOptions, useIsBarber } from "@/hooks/use-barbers";
-import { useIsMobile } from "@/hooks/use-is-mobile";
+  barbershopByOwnerIdQueryOptions,
+  useBarbershopByOwnerId,
+} from "@/hooks/barbershop/use-barbershop";
 import {
-  getProfileQueryOptions,
-  useProfile,
-  useProfileActions,
-} from "@/hooks/use-profile";
-import { getSessionQueryOptions } from "@/hooks/use-session";
+  appointmentsByUserQueryOptions,
+  useAppointmentsByUser,
+} from "@/hooks/use-appointments";
+import {
+  isBarberQueryOptions,
+  useIsBarber,
+} from "@/hooks/use-barbershop-members";
+import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
+import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+
+type ProfileTabValue =
+  | "account"
+  | "security"
+  | "appointments"
+  | "reviews"
+  | "danger";
+
+type ProfileSearch = {
+  tab: ProfileTabValue;
+};
+
+const tabs = {
+  account: {
+    label: "Cuenta",
+    value: "account",
+  },
+  security: {
+    label: "Seguridad",
+    value: "security",
+  },
+  appointments: {
+    label: "Citas",
+    value: "appointments",
+  },
+  reviews: {
+    label: "Reseñas",
+    value: "reviews",
+  },
+  danger: {
+    label: "Zona de peligro",
+    value: "danger",
+  },
+};
 
 export const Route = createFileRoute("/profile/")({
   component: ProfilePage,
   pendingComponent: LoadingComponent,
+  validateSearch: (search: Record<string, ProfileTabValue>): ProfileSearch => {
+    return {
+      tab: search.tab,
+    };
+  },
   loader: async ({ context }) => {
     const user = await context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
     );
 
     if (user?.userId) {
-      await context.queryClient.prefetchQuery(
-        getProfileQueryOptions(user.userId),
+      await context.queryClient.ensureQueryData(
+        appointmentsByUserQueryOptions(user.userId, null),
       );
-      await context.queryClient.prefetchQuery(
+      await context.queryClient.ensureQueryData(
+        profileQueryOptions(user.userId),
+      );
+      await context.queryClient.ensureQueryData(
         isBarberQueryOptions(user.userId),
       );
+      await context.queryClient.ensureQueryData(
+        barbershopByOwnerIdQueryOptions(user.userId),
+      );
     }
-
-    return {
-      user,
-    };
   },
 });
 
 function ProfilePage() {
-  const { user } = Route.useLoaderData();
+  const navigate = Route.useNavigate();
+  const { tab } = Route.useSearch();
 
-  const { data: profile, isLoading: isProfileLoading } = useProfile(
-    user?.userId ?? "",
-  );
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [cursorStack, setCursorStack] = useState<Array<string | null>>([]);
 
-  const { data: isBarber, isLoading: isBarberLoading } = useIsBarber(
-    user?.userId ?? "",
-  );
-
-  const { isMobile } = useIsMobile();
-
+  const { data: user } = useSession();
+  const { data: isBarber } = useIsBarber(user?.userId!);
+  const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
   const {
-    updateNameMutation: {
-      mutateAsync: updateName,
-      isPending: isUpdatingName,
-      isSuccess: isUpdatedName,
-    },
-    updatePhoneNumberMutation: {
-      mutateAsync: updatePhoneNumber,
-      isPending: isUpdatingPhoneNumber,
-      isSuccess: isUpdatedPhoneNumber,
-    },
-    updateNotificationPreferenceMutation: {
-      mutateAsync: updateNotificationPreference,
-      isPending: isUpdatingNotificationPreference,
-      isSuccess: isUpdatedNotificationPreference,
-    },
-  } = useProfileActions();
+    data: appointments,
+    isLoading: isLoadingAppointments,
+    isFetching: isFetchingAppointments,
+  } = useAppointmentsByUser(user?.userId!, cursor);
+  const { data: profile, isLoading: isLoadingProfile } = useProfile(
+    user?.userId!,
+  );
 
-  const [name, setName] = useState<string | undefined>(profile?.name);
-  const [phone, setPhone] = useState<string | undefined>(profile?.phoneNumber);
-
-  useEffect(() => {
-    if (isUpdatedName) {
-      toast.success("Guardado exitosamente", {
-        description: "El nombre se ha actualizado correctamente.",
-      });
-    }
-
-    if (isUpdatedPhoneNumber) {
-      toast.success("Guardado exitosamente", {
-        description: "El número de contacto se ha actualizado correctamente.",
-      });
-    }
-
-    if (isUpdatedNotificationPreference) {
-      toast.success("Guardado exitosamente", {
-        description:
-          "Las preferencias de notificación se han actualizado correctamente.",
-      });
-    }
-  }, [isUpdatedName, isUpdatedPhoneNumber, isUpdatedNotificationPreference]);
-
-  useEffect(() => {
-    if (name) {
-      setName(profile?.name ?? "");
-    }
-
-    if (phone) {
-      setPhone(profile?.phoneNumber ?? "");
-    }
-  }, [name, phone, profile?.name, profile?.phoneNumber]);
-
-  const handleSignOut = async () => {
-    await signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          throw redirect({
-            to: "/login",
-          });
-        },
-      },
-    });
+  const onTabChange = (value: string) => {
+    navigate({ to: "/profile", search: { tab: value as ProfileTabValue } });
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+
+    throw navigate({ to: "/login", replace: true });
+  };
+
+  const tabsToRender = useMemo(() => {
+    const base = [tabs.appointments, tabs.account, tabs.security];
+    if (isBarber) {
+      base.push(tabs.danger);
+    }
+    return base;
+  }, [isBarber]);
+
   return (
-    <BorderContainer>
-      <div className="mb-6 flex items-center justify-between gap-2">
-        <h1 className="font-bold text-3xl tracking-tight">Mi Perfil</h1>
+    <BorderContainer className="space-y-6">
+      <div className="flex flex-col items-start justify-center gap-4">
+        <Button
+          variant="destructive"
+          onClick={handleSignOut}
+          className="min-w-24"
+        >
+          <LogOut className="size-4" />
+          Cerrar sesión
+        </Button>
+        <Tabs
+          defaultValue={
+            tab ?? (isBarber ? tabs.account.value : tabs.appointments.value)
+          }
+          className="min-w-full"
+          onValueChange={onTabChange}
+        >
+          <TabsList>
+            {tabsToRender.map((tabOption) => (
+              <TabsTrigger
+                key={tabOption.value}
+                value={tabOption.value}
+                className="min-w-24 md:min-w-32 md:max-w-40"
+              >
+                {tabOption.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-        {isMobile && (
-          <Button variant="destructive" onClick={handleSignOut}>
-            <LogOut className="size-4" />
-            Cerrar sesión
-          </Button>
-        )}
-      </div>
-
-      {!isBarber && user?.userId && (
-        <Alert className="mb-4" variant="info">
-          <InfoIcon />
-          <AlertTitle>¿Tienes una barbería?</AlertTitle>
-          <AlertDescription>
-            Gestiona reservas, barberos, servicios y obtén acceso a analíticas
-            detalladas de tu negocio sin costo adicional.{" "}
-            <CreateBarbershopDialog
-              triggerLabel="Crear mi barbería"
-              variant="outline"
-              userId={user?.userId}
-            />
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <div className="grid w-full gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Nombre completo</CardTitle>
-            <CardDescription>
-              {isBarberLoading || isProfileLoading ? (
-                <Skeleton className="h-4 w-full" />
-              ) : isBarber ? (
-                "Este es el nombre que se mostrará en tu perfil de barbería"
-              ) : (
-                "Este es el nombre que se mostrará en tu perfil de usuario"
-              )}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Field>
-              <FieldContent>
-                <div className="flex gap-3">
-                  <Input
-                    defaultValue={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Tu nombre"
-                    autoComplete="name"
-                    disabled={isProfileLoading || isUpdatingName}
-                  />
-                  <Button
-                    onClick={() => updateName({ name: name! })}
-                    disabled={isProfileLoading || isUpdatingName}
-                  >
-                    Guardar
-                  </Button>
-                </div>
-              </FieldContent>
-            </Field>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Correo electrónico</CardTitle>
-            <CardDescription>
-              Para usar otro correo, inicia sesión con el nuevo correo.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Field>
-              <FieldContent>
-                <div className="flex gap-3">
-                  <Input
-                    type="email"
-                    value={profile?.email}
-                    autoComplete="email"
-                    disabled
-                  />
-                </div>
-              </FieldContent>
-            </Field>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Número de contacto</CardTitle>
-            <CardDescription>
-              Este es el número donde te enviaremos avisos de la aplicación.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Field>
-              <FieldContent>
-                <div className="flex gap-3">
-                  <Input
-                    defaultValue={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="3000000000"
-                    autoComplete="tel"
-                    type="tel"
-                    disabled={isProfileLoading || isUpdatingPhoneNumber}
-                  />
-                  <Button
-                    onClick={() => updatePhoneNumber({ phoneNumber: phone! })}
-                    disabled={isProfileLoading || isUpdatingPhoneNumber}
-                  >
-                    Guardar
-                  </Button>
-                </div>
-              </FieldContent>
-            </Field>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Preferencias de notificación</CardTitle>
-            <CardDescription>
-              Selecciona los canales por los cuales deseas recibir
-              notificaciones.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Field orientation="horizontal">
-              <FieldLabel>Email</FieldLabel>
-              <FieldContent className="items-end">
-                <Switch
-                  checked={
-                    profile?.notificationsPreferences.find(
-                      (p) => p.type === "email",
-                    )?.enabled
-                  }
-                  onCheckedChange={(val) =>
-                    updateNotificationPreference({
-                      type: "email",
-                      enabled: val,
-                    })
-                  }
-                  disabled={
-                    isProfileLoading || isUpdatingNotificationPreference
-                  }
+          <Suspense fallback={<ProfileTabSkeleton />}>
+            <Activity
+              mode={
+                tab === tabs.account.value && !isLoadingProfile
+                  ? "visible"
+                  : "hidden"
+              }
+            >
+              <TabsContent value={tabs.account.value} className="pt-2">
+                <AccountTab
+                  profile={profile}
+                  isBarber={isBarber}
+                  userId={user?.userId!}
                 />
-              </FieldContent>
-            </Field>
-            {/* <Field orientation="horizontal">
-              <FieldLabel>Push</FieldLabel>
-              <FieldContent>
-                <Switch
-                  checked={
-                    profile?.notificationsPreferences.find(
-                      (p) => p.type === "push",
-                    )?.enabled
-                  }
-                  onCheckedChange={(val) =>
-                    updateNotificationPreference({ type: "push", enabled: val })
-                  }
-                  disabled={isProfileLoading || updateNotificationPreferenceLoading}
+              </TabsContent>
+            </Activity>
+          </Suspense>
+
+          <Suspense fallback={<ProfileTabSkeleton />}>
+            <Activity
+              mode={
+                tab === tabs.security.value && !isLoadingProfile
+                  ? "visible"
+                  : "hidden"
+              }
+            >
+              <TabsContent value={tabs.security.value} className="pt-2">
+                <SecurityTab profile={profile} />
+              </TabsContent>
+            </Activity>
+          </Suspense>
+
+          {isBarber && (
+            <Suspense fallback={<ProfileTabSkeleton />}>
+              <Activity
+                mode={
+                  tab === tabs.danger.value && !isLoadingProfile
+                    ? "visible"
+                    : "hidden"
+                }
+              >
+                <TabsContent value={tabs.danger.value} className="pt-2">
+                  <DangerTab barbershopId={barbershop?._id} />
+                </TabsContent>
+              </Activity>
+            </Suspense>
+          )}
+
+          <Suspense fallback={<ProfileTabSkeleton />}>
+            <Activity
+              mode={
+                tab === tabs.appointments.value && !isLoadingAppointments
+                  ? "visible"
+                  : "hidden"
+              }
+            >
+              <TabsContent value={tabs.appointments.value} className="pt-2">
+                <AppointmentsTab
+                  appointments={appointments?.page ?? []}
+                  hasNextPage={Boolean(
+                    appointments &&
+                      !appointments.isDone &&
+                      appointments.continueCursor &&
+                      appointments.page?.length >= 9,
+                  )}
+                  onNextPage={() => {
+                    setCursorStack((prev) => [...prev, cursor]);
+                    setCursor(appointments.continueCursor);
+                  }}
+                  onPreviousPage={() => {
+                    setCursorStack((prev) => {
+                      const updated = [...prev];
+                      const previousCursor = updated.pop() ?? null;
+                      setCursor(previousCursor);
+                      return updated;
+                    });
+                  }}
+                  canGoPrevious={cursorStack.length > 0}
+                  isFetching={isFetchingAppointments}
+                  isBarber={isBarber}
                 />
-              </FieldContent>
-            </Field> */}
-            <Field orientation="horizontal">
-              <FieldLabel>Mensaje de texto (SMS)</FieldLabel>
-              <FieldContent className="items-end">
-                <Switch
-                  checked={
-                    profile?.notificationsPreferences.find(
-                      (p) => p.type === "sms",
-                    )?.enabled
-                  }
-                  onCheckedChange={(val) =>
-                    updateNotificationPreference({ type: "sms", enabled: val })
-                  }
-                  disabled={
-                    isProfileLoading || isUpdatingNotificationPreference
-                  }
-                />
-              </FieldContent>
-            </Field>
-          </CardContent>
-        </Card>
+              </TabsContent>
+            </Activity>
+          </Suspense>
+
+          {/* <Activity mode={activeTab === "reviews" ? "visible" : "hidden"}>
+            <TabsContent value="reviews" className="pt-2">
+              <ReviewsTab
+                reviews={reviews}
+                appointments={appointments}
+                // @ts-expect-error - barbershops is defined
+                barbershops={barbershops}
+              />
+            </TabsContent>
+          </Activity> */}
+        </Tabs>
       </div>
     </BorderContainer>
   );

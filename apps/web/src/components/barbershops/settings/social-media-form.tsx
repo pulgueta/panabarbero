@@ -1,4 +1,7 @@
-import type { Barbershop } from "@panabarbero/convex/schemas";
+import type {
+  Barbershop,
+  BarbershopMetadata,
+} from "@panabarbero/convex/schemas";
 import type { FC } from "react";
 import { useState } from "react";
 
@@ -20,11 +23,15 @@ type SocialRow = { platform: (typeof socialPlatforms)[number]; url: string };
 
 interface SocialMediaFormProps {
   barbershop: Barbershop;
+  barbershopMetadata: BarbershopMetadata;
 }
 
-export const SocialMediaForm: FC<SocialMediaFormProps> = ({ barbershop }) => {
+export const SocialMediaForm: FC<SocialMediaFormProps> = ({
+  barbershop,
+  barbershopMetadata,
+}) => {
   const [social, setSocial] = useState<SocialRow[]>(
-    barbershop.metadata?.socialMedia ?? [],
+    barbershopMetadata.socialMedia ?? [],
   );
 
   const {
@@ -55,14 +62,6 @@ export const SocialMediaForm: FC<SocialMediaFormProps> = ({ barbershop }) => {
         state: barbershop.state,
         zipCode: barbershop.zipCode || undefined,
         bannerUrl: barbershop.bannerUrl || undefined,
-        metadata: {
-          websiteUrl: barbershop.metadata?.websiteUrl || undefined,
-          contactEmail: barbershop.metadata?.contactEmail || undefined,
-          completedAppointments: barbershop.metadata?.completedAppointments,
-          reviews: barbershop.metadata?.reviews,
-          rating: barbershop.metadata?.rating,
-          socialMedia: social.length ? social : undefined,
-        },
       },
     });
   };
@@ -119,12 +118,12 @@ export const SocialMediaForm: FC<SocialMediaFormProps> = ({ barbershop }) => {
             </div>
           </div>
         ))}
-        <Button variant="outline" onClick={addRow}>
-          Agregar red social
+        <Button variant="outline" onClick={addRow} disabled>
+          Agregar red social (pronto)
         </Button>
       </FieldGroup>
 
-      <Button onClick={onSubmit} disabled={isUpdatingBarbershop}>
+      <Button onClick={onSubmit} disabled>
         {isUpdatingBarbershop ? <Spinner /> : "Guardar"}
       </Button>
     </div>

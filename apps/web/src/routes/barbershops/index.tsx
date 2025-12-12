@@ -1,19 +1,26 @@
 import { tanstack } from "@panabarbero/constants";
 import { createFileRoute } from "@tanstack/react-router";
-import { SearchIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Building2 } from "lucide-react";
+import { Activity, Suspense } from "react";
 
 import { BarbershopFilters } from "@/components/barbershops/barbershop-filters";
 import { BarbershopGrid } from "@/components/barbershops/barbershop-grid";
+import { BarbershopLoadingGrid } from "@/components/barbershops/barbershop-loading-grid";
 import { LocationGate } from "@/components/barbershops/location-gate";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group";
-import { activeBarbershopsQueryOptions } from "@/hooks/barbershop/use-barbershop";
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import {
+  activeBarbershopsQueryOptions,
+  useActiveBarbershops,
+} from "@/hooks/barbershop/use-barbershop";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
 export type BarbershopSearch = {
   city?: string;
@@ -32,10 +39,15 @@ export const Route = createFileRoute("/barbershops/")({
     state: search?.state ?? undefined,
   }),
   loader: async (opts) => {
-    await opts.context.queryClient.prefetchQuery(
+    const user = await opts.context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
+
+    await opts.context.queryClient.ensureQueryData(
       activeBarbershopsQueryOptions({
         city: opts.deps.city,
         state: opts.deps.state,
+        userId: user?.userId ?? undefined,
       }),
     );
   },
@@ -45,6 +57,8 @@ export const Route = createFileRoute("/barbershops/")({
 
 function BarbershopsPage() {
   const search = Route.useSearch();
+
+  const { data: user } = useSession();
 
   const [storedState] = useLocalStorage<string>(
     tanstack.localStorageKeys.barbershopsState,
@@ -56,45 +70,71 @@ function BarbershopsPage() {
   const city = storedCity ?? search.city;
   const state = storedState ?? search.state;
 
-  const [filters, setFilters] = useState<BarbershopSearch>({
-    city,
-    state,
-  });
+  const {
+    data: barbershops,
+    isLoading,
+    isRefetching,
+  } = useActiveBarbershops({ city, state, userId: user?.userId ?? undefined });
 
   const showModal = !city && !state;
 
-  useEffect(() => {
-    if (search.city || search.state) {
-      setFilters({
-        city: search.city,
-        state: search.state,
-      });
-    }
-  }, [search.city, search.state]);
-
   return (
     <div className="container mx-auto min-h-dvh border-x pb-32 md:min-h-[calc(100dvh-65px)] md:pb-0">
-      <header className="flex flex-col items-center justify-between gap-2.5 py-12 md:py-16">
+      <header className="flex flex-col items-center justify-between gap-2.5 py-6 md:py-10">
         <section className="mx-auto w-full max-w-xl space-y-4">
-          <h1 className="text-balance text-center font-bold text-3xl tracking-tight">
-            ¿Qué estilo buscas hoy?
+          <h1
+            className="text-balance text-center font-bold text-3xl tracking-tight"
+            style={{
+              viewTransitionName: "barbershops",
+            }}
+          >
+            Encuentra barberías cerca de ti
           </h1>
 
-          <div className="mx-auto w-full px-4">
+          {/* <div className="mx-auto w-full px-4">
             <InputGroup>
               <InputGroupInput placeholder="Corte y barba..." role="search" />
               <InputGroupAddon>
                 <SearchIcon />
               </InputGroupAddon>
             </InputGroup>
-          </div>
+          </div> */}
         </section>
       </header>
 
       <div className="relative mx-auto w-full border-y bg-accent/20 px-4 py-6 dark:bg-accent/20">
         <BarbershopFilters />
       </div>
-      {showModal ? <LocationGate /> : <BarbershopGrid filters={filters} />}
+
+      <Activity mode={showModal ? "visible" : "hidden"}>
+        <LocationGate />
+      </Activity>
+
+      <Suspense fallback={<BarbershopLoadingGrid />}>
+        <Activity
+          mode={
+            isLoading || isRefetching || barbershops.length < 1
+              ? "hidden"
+              : "visible"
+          }
+        >
+          <BarbershopGrid barbershops={barbershops} />
+        </Activity>
+      </Suspense>
+
+      {barbershops.length < 1 && (
+        <Empty className="bg-accent/20 dark:bg-accent/20">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Building2 className="size-6" />
+            </EmptyMedia>
+            <EmptyTitle>No hay barberías disponibles.</EmptyTitle>
+            <EmptyDescription>
+              Cuando se agregue una barbería, podrás verla aquí.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      )}
     </div>
   );
 }

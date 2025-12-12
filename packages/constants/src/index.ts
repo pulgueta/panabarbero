@@ -31,5 +31,4 @@ export function useColombia() {
   };
 }
 
-export * from "./errors";
 export { api, router, tanstack };

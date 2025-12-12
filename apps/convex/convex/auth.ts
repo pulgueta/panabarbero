@@ -28,6 +28,7 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
             where: [{ field: "_id", operator: "eq", value: doc._id }],
           },
         });
+
         await ctx.runMutation(internal.userProfileData.createProfile, {
           data: {
             name: doc.name,
@@ -50,6 +51,10 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
               },
             ],
           },
+        });
+
+        await ctx.scheduler.runAfter(0, internal.emails.sendWelcomeEmail, {
+          to: doc.email,
         });
       },
       onDelete: async (ctx, doc) => {
@@ -87,11 +92,7 @@ export const createAuth = (
       disabled: optionsOnly,
     },
     appName: APP_NAME,
-    trustedOrigins: [
-      "panabarbero://",
-      siteUrl,
-      process.env.PREVIEW_SITE_URL ?? "",
-    ],
+    trustedOrigins: ["panabarbero://", siteUrl, "http://localhost:3000"],
     database: authComponent.adapter(ctx),
     emailAndPassword: {
       enabled: false,
@@ -100,6 +101,11 @@ export const createAuth = (
       google: {
         clientId: process.env.GOOGLE_CLIENT_ID ?? "",
         clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+        enabled: true,
+      },
+      facebook: {
+        clientId: process.env.FACEBOOK_CLIENT_ID ?? "",
+        clientSecret: process.env.FACEBOOK_CLIENT_SECRET ?? "",
         enabled: true,
       },
     },
