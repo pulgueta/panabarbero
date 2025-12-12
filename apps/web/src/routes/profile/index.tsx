@@ -1,17 +1,23 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: We need to assert non-null values because the hooks return undefined if the data is not loaded */
+
 import { signOut } from "@panabarbero/convex/auth";
 import { createFileRoute } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
-import { Activity, Suspense, useState } from "react";
+import { Activity, Suspense, useMemo, useState } from "react";
 
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
 import { AccountTab } from "@/components/profile/account-tab";
 import { AppointmentsTab } from "@/components/profile/appointments-tab";
+import { DangerTab } from "@/components/profile/danger-tab";
 import { SecurityTab } from "@/components/profile/security-tab";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  barbershopByOwnerIdQueryOptions,
+  useBarbershopByOwnerId,
+} from "@/hooks/barbershop/use-barbershop";
 import {
   appointmentsByUserQueryOptions,
   useAppointmentsByUser,
@@ -23,7 +29,12 @@ import {
 import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
-type ProfileTabValue = "account" | "security" | "appointments" | "reviews";
+type ProfileTabValue =
+  | "account"
+  | "security"
+  | "appointments"
+  | "reviews"
+  | "danger";
 
 type ProfileSearch = {
   tab: ProfileTabValue;
@@ -45,6 +56,10 @@ const tabs = {
   reviews: {
     label: "Reseñas",
     value: "reviews",
+  },
+  danger: {
+    label: "Zona de peligro",
+    value: "danger",
   },
 };
 
@@ -71,6 +86,9 @@ export const Route = createFileRoute("/profile/")({
       await context.queryClient.ensureQueryData(
         isBarberQueryOptions(user.userId),
       );
+      await context.queryClient.ensureQueryData(
+        barbershopByOwnerIdQueryOptions(user.userId),
+      );
     }
   },
 });
@@ -84,6 +102,7 @@ function ProfilePage() {
 
   const { data: user } = useSession();
   const { data: isBarber } = useIsBarber(user?.userId!);
+  const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
   const {
     data: appointments,
     isLoading: isLoadingAppointments,
@@ -103,7 +122,13 @@ function ProfilePage() {
     throw navigate({ to: "/login", replace: true });
   };
 
-  const tabsToRender = [tabs.appointments, tabs.account, tabs.security];
+  const tabsToRender = useMemo(() => {
+    const base = [tabs.appointments, tabs.account, tabs.security];
+    if (isBarber) {
+      base.push(tabs.danger);
+    }
+    return base;
+  }, [isBarber]);
 
   return (
     <BorderContainer className="space-y-6">
@@ -166,6 +191,22 @@ function ProfilePage() {
               </TabsContent>
             </Activity>
           </Suspense>
+
+          {isBarber && (
+            <Suspense fallback={<ProfileTabSkeleton />}>
+              <Activity
+                mode={
+                  tab === tabs.danger.value && !isLoadingProfile
+                    ? "visible"
+                    : "hidden"
+                }
+              >
+                <TabsContent value={tabs.danger.value} className="pt-2">
+                  <DangerTab barbershopId={barbershop?._id} />
+                </TabsContent>
+              </Activity>
+            </Suspense>
+          )}
 
           <Suspense fallback={<ProfileTabSkeleton />}>
             <Activity

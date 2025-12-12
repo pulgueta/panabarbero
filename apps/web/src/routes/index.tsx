@@ -72,9 +72,7 @@ function RouteComponent() {
               </Button>
             )}
             <Button variant="outline" asChild>
-              <Link to="/profile" search={{ tab: "account" }}>
-                Crear cuenta gratuita
-              </Link>
+              <Link to="/login">Crear cuenta gratuita</Link>
             </Button>
           </div>
         </section>

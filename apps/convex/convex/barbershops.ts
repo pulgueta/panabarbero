@@ -227,6 +227,76 @@ export const getBarbershopServicesPaginated = query({
   },
 });
 
+export const deleteBarbershopCascade = mutation({
+  args: {
+    barbershopId: v.id("barbershops"),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    const barbershop = await ctx.db.get(args.barbershopId);
+
+    if (!barbershop || barbershop.ownerId !== user.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    const appointments = await ctx.db
+      .query("appointments")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
+      .collect();
+
+    await Promise.all(
+      appointments.map((appointment) => ctx.db.delete(appointment._id)),
+    );
+
+    const services = await ctx.db
+      .query("services")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
+      .collect();
+
+    await Promise.all(services.map((service) => ctx.db.delete(service._id)));
+
+    const members = await ctx.db
+      .query("barbershopMembers")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
+      .collect();
+
+    await Promise.all(members.map((member) => ctx.db.delete(member._id)));
+
+    const reviews = await ctx.db
+      .query("reviews")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
+      .collect();
+
+    await Promise.all(reviews.map((review) => ctx.db.delete(review._id)));
+
+    const metadata = await ctx.db
+      .query("barbershopMetadata")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
+      .unique();
+
+    if (metadata?._id) {
+      await ctx.db.delete(metadata._id);
+    }
+
+    await ctx.db.delete(args.barbershopId);
+  },
+});
+
 export const getBarbershopAvailabilityForDate = query({
   args: {
     barbershopId: v.id("barbershops"),

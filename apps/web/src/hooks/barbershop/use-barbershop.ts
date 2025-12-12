@@ -95,11 +95,15 @@ export function useBarbershopActions() {
   const updateBarbershopAvailabilityMutation = useMutation({
     mutationFn: useConvexMutation(api.barbershops.updateBarbershopAvailability),
   });
+  const deleteBarbershopMutation = useMutation({
+    mutationFn: useConvexMutation(api.barbershops.deleteBarbershopCascade),
+  });
 
   return {
     createBarbershopMutation,
     updateBarbershopMutation,
     updateBarbershopDayAvailabilityMutation,
     updateBarbershopAvailabilityMutation,
+    deleteBarbershopMutation,
   };
 }
