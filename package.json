@@ -43,6 +43,7 @@
     "core-js",
     "esbuild",
     "prisma",
-    "sharp"
+    "sharp",
+    "workerd"
   ]
 }
