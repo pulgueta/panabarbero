@@ -58,7 +58,7 @@ const tabs = {
     value: "reviews",
   },
   danger: {
-    label: "Zona de peligro",
+    label: "Peligro",
     value: "danger",
   },
 };
