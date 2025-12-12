@@ -28,6 +28,7 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
             where: [{ field: "_id", operator: "eq", value: doc._id }],
           },
         });
+
         await ctx.runMutation(internal.userProfileData.createProfile, {
           data: {
             name: doc.name,
@@ -50,6 +51,10 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
               },
             ],
           },
+        });
+
+        await ctx.scheduler.runAfter(0, internal.emails.sendWelcomeEmail, {
+          to: doc.email,
         });
       },
       onDelete: async (ctx, doc) => {

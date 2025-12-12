@@ -7,6 +7,7 @@ import {
   AppointmentRescheduleRequestEmail,
   RescheduleRequestAcceptEmail,
   RescheduleRequestDeniedEmail,
+  WelcomeEmail,
 } from "@panabarbero/emails/emails";
 import { render } from "@react-email/components";
 import { v } from "convex/values";
@@ -18,14 +19,11 @@ import { subjects } from "./notifications";
 
 const from = "Soporte de PanaBarbero <contacto@panabarbero.com>";
 
-const useSend = new UseSend(
-  process.env.USESEND_API_KEY,
-);
+const useSend = new UseSend(process.env.USESEND_API_KEY);
 
 export const sendEmail = internalAction({
   args: {
     to: v.string(),
-    body: v.string(),
     subject: v.string(),
     html: v.string(),
   },
@@ -35,6 +33,21 @@ export const sendEmail = internalAction({
       from,
       subject: args.subject,
       html: args.html,
+    });
+  },
+});
+
+export const sendWelcomeEmail = internalAction({
+  args: {
+    to: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const html = await render(WelcomeEmail({}));
+
+    await ctx.runAction(internal.emails.sendEmail, {
+      subject: "Bienvenido a PanaBarbero",
+      to: args.to,
+      html,
     });
   },
 });
@@ -53,7 +66,6 @@ export const sendAppointmentReminderEmail = internalAction({
     );
 
     await ctx.runAction(internal.emails.sendEmail, {
-      body: args.body,
       to: args.to,
       subject: subjects.appointment_reminder,
       html,
@@ -78,7 +90,6 @@ export const sendAppointmentCancelled = internalAction({
     );
 
     await ctx.runAction(internal.emails.sendEmail, {
-      body: args.body,
       to: args.to,
       subject: subjects.appointment_cancelled,
       html,
@@ -102,7 +113,6 @@ export const sendAppointmentRescheduleRequestEmail = internalAction({
     );
 
     await ctx.runAction(internal.emails.sendEmail, {
-      body: args.body,
       to: args.to,
       subject: subjects.appointment_rescheduled_request,
       html,
@@ -124,7 +134,6 @@ export const sendAppointmentRescheduledAcceptedEmail = internalAction({
     );
 
     await ctx.runAction(internal.emails.sendEmail, {
-      body: args.body,
       to: args.to,
       subject: subjects.appointment_rescheduled_accepted,
       html,
@@ -146,7 +155,6 @@ export const sendAppointmentRescheduledDeniedEmail = internalAction({
     );
 
     await ctx.runAction(internal.emails.sendEmail, {
-      body: args.body,
       to: args.to,
       subject: subjects.appointment_rescheduled_denied,
       html,
@@ -170,7 +178,6 @@ export const sendAppointmentCreatedToUserEmail = internalAction({
     );
 
     await ctx.runAction(internal.emails.sendEmail, {
-      body: args.body,
       to: args.to,
       subject: args.subject,
       html,
@@ -195,7 +202,6 @@ export const sendAppointmentCreatedToBarberEmail = internalAction({
     );
 
     await ctx.runAction(internal.emails.sendEmail, {
-      body: args.body,
       to: args.to,
       subject: args.subject,
       html,

@@ -19,7 +19,7 @@ export interface AppointmentReminderEmailProps {
 
 export const AppointmentReminderEmail = ({
   subject = "Recordatorio de cita",
-  body,
+  body = "Recordatorio de cita",
 }: AppointmentReminderEmailProps) => {
   return (
     <Html lang="es" dir="ltr">
@@ -32,7 +32,7 @@ export const AppointmentReminderEmail = ({
         }}
       >
         <Body className="bg-gray-100 font-sans">
-          <Container className="mx-auto w-full max-w-md rounded-xl border border-border/50 bg-white px-8 py-2">
+          <Container className="mx-auto w-full max-w-md rounded-xl border border-border/50 bg-white p-4">
             <Header />
 
             <Text className="mb-4 text-pretty">{body}</Text>

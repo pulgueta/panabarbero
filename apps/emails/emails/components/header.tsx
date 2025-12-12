@@ -1,14 +1,13 @@
-import { Heading, Hr, Section, Text } from "@react-email/components";
+import { Hr, Img, Section } from "@react-email/components";
 
 export const Header = () => {
   return (
     <Section>
-      <Heading className="text-balance font-bold tracking-tight">
-        PanaBarbero
-      </Heading>
-      <Text className="text-pretty text-muted-foreground text-sm">
-        La solución para las barberías.
-      </Text>
+      <Img
+        src="https://storage.panabarbero.com/panabarbero-og.png"
+        alt="PanaBarbero"
+        className="w-full rounded-xl"
+      />
 
       <Hr className="border-border" />
     </Section>

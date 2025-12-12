@@ -20,7 +20,7 @@ export interface RescheduleRequestDeniedEmailProps {
 
 export const RescheduleRequestDeniedEmail = ({
   subject = "Reagendamiento rechazado",
-  body,
+  body = "Tu solicitud de reagendamiento ha sido rechazada",
 }: RescheduleRequestDeniedEmailProps) => {
   return (
     <Html lang="es" dir="ltr">
@@ -33,7 +33,7 @@ export const RescheduleRequestDeniedEmail = ({
         }}
       >
         <Body className="bg-gray-100 font-sans">
-          <Container className="mx-auto w-full max-w-md rounded-xl border border-border/50 bg-white px-8 py-2">
+          <Container className="mx-auto w-full max-w-md rounded-xl border border-border/50 bg-white p-4">
             <Header />
 
             <Section className="my-4">
