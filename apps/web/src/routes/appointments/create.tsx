@@ -14,10 +14,12 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   searchBarbershopsByNameQueryOptions,
-  userVisitedBarbershopsQueryOptions,
   useSearchBarbershopsByName,
-  useUserVisitedBarbershops,
 } from "@/hooks/barbershop/use-barbershop";
+import {
+  userVisitedBarbershopsQueryOptions,
+  useVisitedBarbershops,
+} from "@/hooks/use-appointments";
 import { useDebounce } from "@/hooks/use-debounce";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
@@ -48,7 +50,9 @@ function RouteComponent() {
   const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
   const { data: user } = useSession();
-  const { data: barbershops } = useUserVisitedBarbershops(user?.userId ?? "");
+  const { data: barbershops } = useVisitedBarbershops(
+    user?.userId ?? undefined,
+  );
   const {
     data: searchResults,
     isLoading: isSearching,
@@ -60,22 +64,30 @@ function RouteComponent() {
   return (
     <BorderContainer className="space-y-4">
       <div className="flex flex-col gap-2">
-        <h1 className="text-balance font-bold text-3xl tracking-tight">
+        <h1 className="text-balance font-bold text-xl tracking-tight">
           Agendamiento rápido:
         </h1>
 
-        {user ? (
-          barbershops && barbershops.length > 0 ? (
+        <Suspense fallback={<ProfileTabSkeleton />}>
+          <Activity
+            mode={barbershops && barbershops.length > 0 ? "visible" : "hidden"}
+          >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {barbershops.map((barbershop) => (
                 <BarbershopListCard
                   key={barbershop?._id}
                   // biome-ignore lint/style/noNonNullAssertion: can be null
                   barbershop={barbershop!}
+                  showAddress={false}
                 />
               ))}
             </div>
-          ) : (
+          </Activity>
+        </Suspense>
+
+        {user ? (
+          barbershops &&
+          barbershops.length === 0 && (
             <p className="text-pretty text-muted-foreground text-sm">
               No has visitado ninguna barbería
             </p>

@@ -98,6 +98,11 @@ export const createAuth = (
         clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
         enabled: true,
       },
+      facebook: {
+        clientId: process.env.FACEBOOK_CLIENT_ID ?? "",
+        clientSecret: process.env.FACEBOOK_CLIENT_SECRET ?? "",
+        enabled: true,
+      },
     },
     plugins: [
       expo(),

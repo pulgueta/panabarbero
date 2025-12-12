@@ -1,5 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 
+import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { geospatial, r2 } from ".";
 import { api, internal } from "./_generated/api";
@@ -210,6 +211,22 @@ export const getBarbershopServices = query({
   },
 });
 
+export const getBarbershopServicesPaginated = query({
+  args: {
+    barbershopId: v.id("barbershops"),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("services")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
+      .order("desc")
+      .paginate(args.paginationOpts);
+  },
+});
+
 export const getBarbershopAvailabilityForDate = query({
   args: {
     barbershopId: v.id("barbershops"),
@@ -373,7 +390,7 @@ export const updateBarbershop = mutation({
 
 export const getUserVisitedBarbershops = query({
   args: {
-    userId: v.string(),
+    userId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
@@ -392,10 +409,12 @@ export const getUserVisitedBarbershops = query({
       .filter((q) => q.eq(q.field("status"), "completed"))
       .take(5);
 
+    const uniqueBarbershopIds = Array.from(
+      new Set(appointments.map((appointment) => appointment.barbershopId)),
+    );
+
     const barbershops = await Promise.all(
-      appointments.map(
-        async (appointment) => await ctx.db.get(appointment.barbershopId),
-      ),
+      uniqueBarbershopIds.map((barbershopId) => ctx.db.get(barbershopId)),
     );
 
     return barbershops;

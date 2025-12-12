@@ -7,6 +7,7 @@ import { App } from "@/components/layout/app";
 import { DefaultCatchBoundary } from "@/components/layout/error-component";
 import { NotFoundComponent } from "@/components/layout/not-found-component";
 import { getSessionQueryOptions } from "@/hooks/use-session";
+import { seo } from "@/lib/utils";
 
 type RouterContext = {
   queryClient: QueryClient;
@@ -15,43 +16,12 @@ type RouterContext = {
 };
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-  head: () => {
-    return {
-      meta: [
-        {
-          title: "PanaBarbero - La solución para las barberías",
-        },
-        {
-          name: "description",
-          content: "PanaBarbero - La solución para las barberías",
-        },
-        {
-          name: "og:title",
-          content: "PanaBarbero - La solución para las barberías",
-        },
-        {
-          name: "og:description",
-          content: "PanaBarbero - La solución para las barberías",
-        },
-        {
-          name: "og:image",
-          content: "/logo.png",
-        },
-        {
-          name: "og:url",
-          content: "https://panabarbero.com",
-        },
-        {
-          name: "og:type",
-          content: "website",
-        },
-        {
-          name: "og:locale",
-          content: "es_CO",
-        },
-      ],
-    };
-  },
+  head: () => ({
+    meta: seo({
+      title: "PanaBarbero - La solución para las barberías",
+      description: "La solución para las barberías",
+    }),
+  }),
   component: () => <App />,
   errorComponent: (props) => <DefaultCatchBoundary {...props} />,
   notFoundComponent: () => <NotFoundComponent />,

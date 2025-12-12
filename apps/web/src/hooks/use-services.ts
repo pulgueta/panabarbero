@@ -21,6 +21,20 @@ export function servicesByBarbershopIdQueryOptions(
   return convexQuery(api.barbershops.getBarbershopServices, { barbershopId });
 }
 
+export function servicesPaginatedByBarbershopIdQueryOptions(
+  barbershopId: Barbershop["_id"],
+  cursor: string | null = null,
+  numItems = 6,
+) {
+  return convexQuery(api.barbershops.getBarbershopServicesPaginated, {
+    barbershopId,
+    paginationOpts: {
+      cursor,
+      numItems,
+    },
+  });
+}
+
 export function serviceByIdQueryOptions(serviceId: Service["_id"]) {
   return convexQuery(api.services.getServiceById, { serviceId });
 }
@@ -45,6 +59,16 @@ export function servicesQueryOptions(barbershopId: Barbershop["_id"]) {
 
 export function useServicesFromBarbershop(barbershopId: Barbershop["_id"]) {
   return useSuspenseQuery(servicesQueryOptions(barbershopId));
+}
+
+export function usePaginatedServicesFromBarbershop(
+  barbershopId: Barbershop["_id"],
+  cursor: string | null,
+  numItems = 6,
+) {
+  return useSuspenseQuery(
+    servicesPaginatedByBarbershopIdQueryOptions(barbershopId, cursor, numItems),
+  );
 }
 
 export function useServiceById(serviceId: Service["_id"]) {
