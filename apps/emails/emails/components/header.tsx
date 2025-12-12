@@ -4,7 +4,7 @@ export const Header = () => {
   return (
     <Section>
       <Img
-        src="https://storage.panabarbero.com/panabarbero-og.png"
+        src="https://storage.panabarbero.com/panabarbero-email.png"
         alt="PanaBarbero"
         className="w-full rounded-xl"
       />
