@@ -1,0 +1,507 @@
+import type { Barbershop } from "@panabarbero/convex/schemas";
+import type { FC } from "react";
+import {
+  Activity,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+} from "react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldSet,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useBarbershopActions } from "@/hooks/barbershop/use-barbershop";
+
+type DayKey =
+  | "monday"
+  | "tuesday"
+  | "wednesday"
+  | "thursday"
+  | "friday"
+  | "saturday"
+  | "sunday";
+
+const days: Array<{ key: DayKey; label: string; short: string }> = [
+  { key: "monday", label: "Lunes", short: "Lun" },
+  { key: "tuesday", label: "Martes", short: "Mar" },
+  { key: "wednesday", label: "Miércoles", short: "Mié" },
+  { key: "thursday", label: "Jueves", short: "Jue" },
+  { key: "friday", label: "Viernes", short: "Vie" },
+  { key: "saturday", label: "Sábado", short: "Sáb" },
+  { key: "sunday", label: "Domingo", short: "Dom" },
+];
+
+interface AvailabilityFormProps {
+  barbershopId: Barbershop["_id"];
+  availability: Barbershop["availability"];
+}
+
+export const AvailabilityForm: FC<AvailabilityFormProps> = ({
+  barbershopId,
+  availability,
+}) => {
+  const formIds = {
+    availability: useId(),
+    openAt: useId(),
+    closeAt: useId(),
+    lunchStart: useId(),
+    lunchEnd: useId(),
+  };
+  const {
+    updateBarbershopAvailabilityMutation: {
+      mutateAsync: updateBarbershopAvailability,
+      isPending: isUpdatingAvailability,
+    },
+  } = useBarbershopActions();
+
+  const buildInitialRows = useCallback(
+    (avail?: Barbershop["availability"]) =>
+      days.map((d) => {
+        const found = avail?.find((r) => r.weekDay.day === d.key);
+
+        return (
+          found ?? {
+            weekDay: { day: d.key, isActive: false },
+            openAt: "",
+            closeAt: "",
+            lunchStart: undefined,
+            lunchEnd: undefined,
+          }
+        );
+      }),
+    [],
+  );
+
+  const [rows, setRows] = useState<Barbershop["availability"]>(() =>
+    buildInitialRows(availability),
+  );
+
+  const initialSelectedDays = useMemo(
+    () =>
+      availability
+        ?.filter((entry) => entry.weekDay.isActive)
+        .map((entry) => entry.weekDay.day as DayKey) ?? [],
+    [availability],
+  );
+
+  const [selectedDays, setSelectedDays] =
+    useState<DayKey[]>(initialSelectedDays);
+  const [schedule, setSchedule] = useState({
+    openAt: "",
+    closeAt: "",
+    lunchStart: "",
+    lunchEnd: "",
+  });
+  const [hasLunch, setHasLunch] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const nextRows = buildInitialRows(availability);
+
+    setRows(nextRows);
+    setSelectedDays(
+      nextRows
+        .filter((entry) => entry.weekDay.isActive)
+        .map((entry) => entry.weekDay.day as DayKey),
+    );
+  }, [availability, buildInitialRows]);
+
+  useEffect(() => {
+    const base = rows.find((entry) => entry.weekDay.day === selectedDays[0]);
+
+    if (!base) return;
+
+    setSchedule({
+      openAt: base.openAt ?? "",
+      closeAt: base.closeAt ?? "",
+      lunchStart: base.lunchStart ?? "",
+      lunchEnd: base.lunchEnd ?? "",
+    });
+    setHasLunch(Boolean(base.lunchStart && base.lunchEnd));
+  }, [rows, selectedDays]);
+
+  const dayLabelMap = useMemo(
+    () =>
+      days.reduce<Record<DayKey, string>>(
+        (acc, entry) => {
+          acc[entry.key] = entry.label;
+          return acc;
+        },
+        {} as Record<DayKey, string>,
+      ),
+    [],
+  );
+
+  const parseTimeToMinutes = (value: string) => {
+    const [hours, minutes] = value.split(":").map(Number);
+
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return 0;
+
+    return hours * 60 + minutes;
+  };
+
+  const isTimeRangeValid = (start?: string, end?: string) => {
+    if (!start || !end) return false;
+
+    return parseTimeToMinutes(end) > parseTimeToMinutes(start);
+  };
+
+  const handleSelectedDaysChange = (values: string[]) => {
+    const typed = values.filter(
+      (value): value is DayKey => !!dayLabelMap[value as DayKey],
+    );
+
+    setSelectedDays(typed);
+    setFormError(null);
+  };
+
+  const applyScheduleToSelectedDays = () => {
+    if (!selectedDays.length) {
+      setFormError("Selecciona al menos un día");
+
+      return;
+    }
+
+    if (!schedule.openAt || !schedule.closeAt) {
+      setFormError("Debes definir la hora de entrada y salida");
+
+      return;
+    }
+
+    if (!isTimeRangeValid(schedule.openAt, schedule.closeAt)) {
+      setFormError("La hora de salida debe ser mayor a la de entrada");
+
+      return;
+    }
+
+    if (hasLunch) {
+      if (!schedule.lunchStart || !schedule.lunchEnd) {
+        setFormError("Completa ambas horas de almuerzo");
+
+        return;
+      }
+
+      if (!isTimeRangeValid(schedule.lunchStart, schedule.lunchEnd)) {
+        setFormError("La hora de regreso debe ser mayor a la de salida");
+
+        return;
+      }
+    }
+
+    setRows((prev) =>
+      prev.map((entry) =>
+        selectedDays.includes(entry.weekDay.day as DayKey)
+          ? {
+              ...entry,
+              weekDay: { ...entry.weekDay, isActive: true },
+              openAt: schedule.openAt,
+              closeAt: schedule.closeAt,
+              lunchStart: hasLunch ? schedule.lunchStart : undefined,
+              lunchEnd: hasLunch ? schedule.lunchEnd : undefined,
+            }
+          : entry,
+      ),
+    );
+
+    setFormError(null);
+  };
+
+  const disableSelectedDays = () => {
+    if (!selectedDays.length) {
+      setFormError("Selecciona al menos un día");
+
+      return;
+    }
+
+    setRows((prev) =>
+      prev.map((entry) =>
+        selectedDays.includes(entry.weekDay.day as DayKey)
+          ? {
+              ...entry,
+              weekDay: { ...entry.weekDay, isActive: false },
+            }
+          : entry,
+      ),
+    );
+
+    toast.info("Los días seleccionados ahora están inactivos");
+  };
+
+  const validateEntry = (
+    entry: Barbershop["availability"][number],
+  ): Barbershop["availability"][number] => {
+    const formatTime = (value?: string) =>
+      value && value.trim().length > 0 ? value : undefined;
+
+    const lunchStart = formatTime(entry.lunchStart);
+    const lunchEnd = formatTime(entry.lunchEnd);
+
+    if (entry.weekDay.isActive) {
+      if (!entry.openAt || !entry.closeAt) {
+        throw new Error(
+          `Define la hora de entrada y salida para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+        );
+      }
+
+      if (!isTimeRangeValid(entry.openAt, entry.closeAt)) {
+        throw new Error(
+          `La hora de salida debe ser mayor a la de entrada para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+        );
+      }
+    }
+
+    if ((lunchStart && !lunchEnd) || (!lunchStart && lunchEnd)) {
+      throw new Error(
+        `Completa ambas horas de almuerzo para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+      );
+    }
+
+    if (lunchStart && lunchEnd && !isTimeRangeValid(lunchStart, lunchEnd)) {
+      throw new Error(
+        `La hora de regreso debe ser mayor a la de salida para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+      );
+    }
+
+    return {
+      weekDay: entry.weekDay,
+      openAt: entry.openAt ?? "",
+      closeAt: entry.closeAt ?? "",
+      lunchStart,
+      lunchEnd,
+    };
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+
+    try {
+      const validatedRows = rows.map((entry) => validateEntry(entry));
+
+      await updateBarbershopAvailability({
+        barbershopId,
+        availability: validatedRows,
+      });
+
+      toast.success("Disponibilidad actualizada correctamente");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "No pudimos guardar la disponibilidad",
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="w-full space-y-6">
+      <FieldGroup>
+        <FieldSet className="gap-2">
+          <Field>
+            <ToggleGroup
+              type="multiple"
+              variant="outline"
+              value={selectedDays}
+              onValueChange={handleSelectedDaysChange}
+              className="flex flex-wrap justify-start"
+              aria-label="Selecciona los días para aplicar el horario"
+            >
+              {days.map(({ key, label }) => (
+                <ToggleGroupItem
+                  key={key}
+                  value={key}
+                  className="px-3"
+                  aria-pressed={selectedDays.includes(key)}
+                >
+                  <span className="block md:hidden">{label.slice(0, 3)}</span>
+                  <span className="hidden md:block">{label}</span>
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </Field>
+          <FieldDescription className="flex flex-col gap-1">
+            <span>
+              Selecciona los días en los que quieres aplicar el horario deseado.
+            </span>
+            <span className="text-muted-foreground text-sm">
+              {selectedDays.length}{" "}
+              {selectedDays.length === 1
+                ? "día seleccionado"
+                : "días seleccionados"}
+            </span>
+          </FieldDescription>
+          {formError && <FieldError>{formError}</FieldError>}
+        </FieldSet>
+
+        <div className="flex w-full flex-col gap-4 md:flex-row">
+          <FieldSet className="w-full">
+            <Field>
+              <FieldLabel htmlFor={formIds.openAt}>Hora de entrada</FieldLabel>
+              <Input
+                id={formIds.openAt}
+                type="time"
+                value={schedule.openAt}
+                onChange={(e) =>
+                  setSchedule((prev) => ({ ...prev, openAt: e.target.value }))
+                }
+              />
+            </Field>
+          </FieldSet>
+
+          <FieldSet className="w-full">
+            <Field>
+              <FieldLabel htmlFor={formIds.closeAt}>Hora de salida</FieldLabel>
+              <Input
+                id={formIds.closeAt}
+                type="time"
+                value={schedule.closeAt}
+                onChange={(e) =>
+                  setSchedule((prev) => ({ ...prev, closeAt: e.target.value }))
+                }
+              />
+            </Field>
+          </FieldSet>
+        </div>
+
+        <FieldSet>
+          <Field orientation="horizontal">
+            <Checkbox
+              checked={hasLunch}
+              onCheckedChange={(checked) => setHasLunch(Boolean(checked))}
+            />
+            <FieldContent>
+              <FieldLabel htmlFor="lunchToggle">
+                Habilitar hora de almuerzo
+              </FieldLabel>
+              <FieldDescription>
+                Si seleccionas, los clientes no podrán agendar citas durante el
+                rango de almuerzo.
+              </FieldDescription>
+            </FieldContent>
+          </Field>
+        </FieldSet>
+
+        <Activity mode={hasLunch ? "visible" : "hidden"}>
+          <div className="flex w-full flex-col gap-4 md:flex-row">
+            <FieldSet className="w-full">
+              <Field>
+                <FieldLabel htmlFor={formIds.lunchStart}>
+                  Hora de salida
+                </FieldLabel>
+                <Input
+                  id={formIds.lunchStart}
+                  type="time"
+                  value={schedule.lunchStart}
+                  onChange={(e) =>
+                    setSchedule((prev) => ({
+                      ...prev,
+                      lunchStart: e.target.value,
+                    }))
+                  }
+                />
+              </Field>
+              <FieldDescription>A esta hora sales a almorzar.</FieldDescription>
+            </FieldSet>
+
+            <FieldSet className="w-full">
+              <Field>
+                <FieldLabel htmlFor={formIds.lunchEnd}>
+                  Hora de regreso
+                </FieldLabel>
+                <Input
+                  id={formIds.lunchEnd}
+                  type="time"
+                  value={schedule.lunchEnd}
+                  onChange={(e) =>
+                    setSchedule((prev) => ({
+                      ...prev,
+                      lunchEnd: e.target.value,
+                    }))
+                  }
+                />
+              </Field>
+              <FieldDescription>
+                A esta hora regresas de almorzar.
+              </FieldDescription>
+            </FieldSet>
+          </div>
+        </Activity>
+
+        <div className="flex flex-wrap gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={disableSelectedDays}
+            disabled={!selectedDays.length}
+          >
+            Desactivar días seleccionados
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={applyScheduleToSelectedDays}
+          >
+            Aplicar horario
+          </Button>
+          <Button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving || isUpdatingAvailability}
+          >
+            {(isSaving || isUpdatingAvailability) && <Spinner />} Guardar
+            cambios
+          </Button>
+        </div>
+
+        <div className="rounded-lg border p-4">
+          <h3 className="font-semibold text-base">Resumen de disponibilidad</h3>
+
+          <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7">
+            {rows.map((entry) => {
+              const day = entry.weekDay.day as DayKey;
+
+              return (
+                <div key={day} className="rounded border p-4 text-sm">
+                  <p className="font-semibold">{dayLabelMap[day]}</p>
+
+                  {entry.weekDay.isActive ? (
+                    <div className="text-muted-foreground">
+                      <p>
+                        {entry.openAt} – {entry.closeAt}
+                      </p>
+                      {entry.lunchStart && entry.lunchEnd ? (
+                        <p>
+                          Almuerzo: {entry.lunchStart} – {entry.lunchEnd}
+                        </p>
+                      ) : (
+                        <p>Sin almuerzo</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">Inactivo</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </FieldGroup>
+    </div>
+  );
+};

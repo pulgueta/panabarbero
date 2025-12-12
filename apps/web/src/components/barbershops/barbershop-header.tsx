@@ -1,59 +1,42 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: objects are guaranteed to be not null */
 import type { Barbershop } from "@panabarbero/convex/schemas";
-import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
 
-import { BarbershopRating } from "@/components/barbershops/rating";
-import { ReviewForm } from "@/components/barbershops/reviews/review-form";
-import { Button } from "@/components/ui/button";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { useCanReview } from "@/hooks/use-actions";
-import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useSchedule } from "@/hooks/barbershop/use-schedule";
 
 type BarbershopHeaderProps = {
   barbershop: Barbershop | null;
   userId: string | undefined;
+  availability: Barbershop["availability"] | null;
 };
 
 export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
-  const { barbershop, userId } = props;
+  const { barbershop, availability } = props;
 
-  const { isMobile } = useIsMobile();
+  // const { isMobile } = useIsMobile();
+  const { AvailabilityLabel } = useSchedule(availability);
 
-  const canReview = useCanReview({
-    barbershopId: barbershop?._id!,
-    userId: userId!,
-  });
+  // const canReview = useCanReview({
+  //   barbershopId: barbershop?._id!,
+  //   userId: userId!,
+  // });
 
-  const formHeadLabel = "¡Tu opinión ayuda a mejorar el trabajo de todos!";
-  const requiredReviewMessage =
-    "Necesitas haber asistido a la barbería mediante una cita para poder calificar.";
-  const reviews = barbershop?.metadata?.reviews;
+  // const formHeadLabel = "¡Tu opinión ayuda a mejorar el trabajo de todos!";
+  // const requiredReviewMessage =
+  //   "Necesitas haber asistido a la barbería mediante una cita para poder calificar.";
+  // const reviews = barbershop?.metadata?.reviews;
 
-  const socialMediaLabelMap = {
-    instagram: "Instagram",
-    facebook: "Facebook",
-    tiktok: "TikTok",
-    twitter: "X",
-    youtube: "YouTube",
-    website: "Sitio web",
-    email: "Correo electrónico",
-    whatsapp: "WhatsApp",
-    phone: "Teléfono",
-  };
+  // const socialMediaLabelMap = {
+  //   instagram: "Instagram",
+  //   facebook: "Facebook",
+  //   tiktok: "TikTok",
+  //   twitter: "X",
+  //   youtube: "YouTube",
+  //   website: "Sitio web",
+  //   email: "Correo electrónico",
+  //   whatsapp: "WhatsApp",
+  //   phone: "Teléfono",
+  // };
 
   return (
     <section className="space-y-1">
@@ -63,6 +46,9 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
       >
         {barbershop?.name}
       </h1>
+      <p className="mb-1 text-pretty font-medium text-sm">
+        {barbershop?.description ?? "No hay descripción disponible."}
+      </p>
       <p
         className="mb-1 text-muted-foreground text-sm"
         style={{
@@ -108,7 +94,11 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
         </p>
       )}
 
-      <div className="flex flex-col">
+      <p className="mb-1 text-muted-foreground text-sm">
+        <AvailabilityLabel />
+      </p>
+
+      {/* <div className="flex flex-col">
         <BarbershopRating
           value={barbershop?.metadata?.rating ?? 0}
           readOnly
@@ -199,13 +189,9 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
             </Popover>
           )}
         </p>
-      </div>
+      </div> */}
 
-      <p className="mb-2.5 text-pretty font-medium text-sm">
-        {barbershop?.description ?? "No hay descripción disponible."}
-      </p>
-
-      <p className="mb-2 text-pretty text-sm">Links o redes sociales:</p>
+      {/* <p className="mb-2 text-pretty text-sm">Links o redes sociales:</p>
       {barbershop?.metadata?.socialMedia?.length! > 0 ? (
         <ul className="list-disc text-pretty pl-4 text-sm">
           {barbershop?.metadata?.socialMedia?.map((socialMedia) => (
@@ -225,7 +211,7 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
         <p className="text-pretty text-muted-foreground text-sm">
           No hay links o redes sociales disponibles.
         </p>
-      )}
+      )} */}
     </section>
   );
 };

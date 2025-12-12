@@ -36,7 +36,10 @@ code {
   --accent-foreground: oklch(0.21 0.006 285.885);
   --warning: oklch(0.84 0.16 84);
   --warning-foreground: oklch(0.28 0.07 46);
-  --destructive: oklch(0.577 0.245 27.325);
+  --success: oklch(93.3% 0.078 140.7);
+  --success-foreground: oklch(53.9% 0.1521 140.7);
+  --destructive: oklch(59.8% 0.198 25.52);
+  --destructive-foreground: oklch(98.3% 0.0083 25.52);
   --border: oklch(0.92 0.004 286.32);
   --input: oklch(0.92 0.004 286.32);
   --ring: oklch(0.708 0 0);
@@ -72,7 +75,10 @@ code {
   --accent-foreground: oklch(0.985 0 0);
   --warning: oklch(0.41 0.11 46);
   --warning-foreground: oklch(0.99 0.02 95);
-  --destructive: oklch(0.704 0.191 22.216);
+  --success: oklch(31.8% 0.0792 140.7);
+  --success-foreground: oklch(0.7933 0.2287 140.68);
+  --destructive: oklch(38.2% 0.1122 25.52);
+  --destructive-foreground: oklch(78.4% 0.1656 25.52);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
@@ -109,6 +115,8 @@ code {
   --color-accent-foreground: var(--accent-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -141,6 +149,7 @@ code {
     @apply bg-background text-foreground;
   }
 }
+
 
 html:active-view-transition-type(slide-left) {
   &::view-transition-old(main-content) {

@@ -10,15 +10,17 @@
 
 import type * as appointments from "../appointments.js";
 import type * as auth from "../auth.js";
-import type * as barbers from "../barbers.js";
+import type * as barbershopMembers from "../barbershopMembers.js";
+import type * as barbershopMetadata from "../barbershopMetadata.js";
 import type * as barbershops from "../barbershops.js";
 import type * as crons from "../crons.js";
+import type * as emailPayload from "../emailPayload.js";
 import type * as emails from "../emails.js";
+import type * as errors from "../errors.js";
 import type * as http from "../http.js";
 import type * as index from "../index.js";
 import type * as mobilePushTokens from "../mobilePushTokens.js";
 import type * as notifications from "../notifications.js";
-import type * as payments from "../payments.js";
 import type * as rag from "../rag.js";
 import type * as ratelimit from "../ratelimit.js";
 import type * as reviews from "../reviews.js";
@@ -33,26 +35,20 @@ import type {
   FunctionReference,
 } from "convex/server";
 
-/**
- * A utility for referencing Convex functions in your app's API.
- *
- * Usage:
- * ```js
- * const myFunctionReference = api.myModule.myFunction;
- * ```
- */
 declare const fullApi: ApiFromModules<{
   appointments: typeof appointments;
   auth: typeof auth;
-  barbers: typeof barbers;
+  barbershopMembers: typeof barbershopMembers;
+  barbershopMetadata: typeof barbershopMetadata;
   barbershops: typeof barbershops;
   crons: typeof crons;
+  emailPayload: typeof emailPayload;
   emails: typeof emails;
+  errors: typeof errors;
   http: typeof http;
   index: typeof index;
   mobilePushTokens: typeof mobilePushTokens;
   notifications: typeof notifications;
-  payments: typeof payments;
   rag: typeof rag;
   ratelimit: typeof ratelimit;
   reviews: typeof reviews;
@@ -61,14 +57,30 @@ declare const fullApi: ApiFromModules<{
   twilio: typeof twilio;
   userProfileData: typeof userProfileData;
 }>;
-declare const fullApiWithMounts: typeof fullApi;
 
+/**
+ * A utility for referencing Convex functions in your app's public API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = api.myModule.myFunction;
+ * ```
+ */
 export declare const api: FilterApi<
-  typeof fullApiWithMounts,
+  typeof fullApi,
   FunctionReference<any, "public">
 >;
+
+/**
+ * A utility for referencing Convex functions in your app's internal API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = internal.myModule.myFunction;
+ * ```
+ */
 export declare const internal: FilterApi<
-  typeof fullApiWithMounts,
+  typeof fullApi,
   FunctionReference<any, "internal">
 >;
 
@@ -212,10 +224,6 @@ export declare const components: {
                   lastRequest?: null | number;
                 };
                 model: "rateLimit";
-              }
-            | {
-                data: { count: number; key: string; lastRequest: number };
-                model: "ratelimit";
               };
           onCreateHandle?: string;
           select?: Array<string>;
@@ -570,32 +578,6 @@ export declare const components: {
               }
             | {
                 model: "rateLimit";
-                where?: Array<{
-                  connector?: "AND" | "OR";
-                  field: "key" | "count" | "lastRequest" | "_id";
-                  operator?:
-                    | "lt"
-                    | "lte"
-                    | "gt"
-                    | "gte"
-                    | "eq"
-                    | "in"
-                    | "not_in"
-                    | "ne"
-                    | "contains"
-                    | "starts_with"
-                    | "ends_with";
-                  value:
-                    | string
-                    | number
-                    | boolean
-                    | Array<string>
-                    | Array<number>
-                    | null;
-                }>;
-              }
-            | {
-                model: "ratelimit";
                 where?: Array<{
                   connector?: "AND" | "OR";
                   field: "key" | "count" | "lastRequest" | "_id";
@@ -1003,32 +985,6 @@ export declare const components: {
                     | Array<number>
                     | null;
                 }>;
-              }
-            | {
-                model: "ratelimit";
-                where?: Array<{
-                  connector?: "AND" | "OR";
-                  field: "key" | "count" | "lastRequest" | "_id";
-                  operator?:
-                    | "lt"
-                    | "lte"
-                    | "gt"
-                    | "gte"
-                    | "eq"
-                    | "in"
-                    | "not_in"
-                    | "ne"
-                    | "contains"
-                    | "starts_with"
-                    | "ends_with";
-                  value:
-                    | string
-                    | number
-                    | boolean
-                    | Array<string>
-                    | Array<number>
-                    | null;
-                }>;
               };
           onDeleteHandle?: string;
         },
@@ -1050,8 +1006,7 @@ export declare const components: {
             | "oauthAccessToken"
             | "oauthConsent"
             | "jwks"
-            | "rateLimit"
-            | "ratelimit";
+            | "rateLimit";
           offset?: number;
           paginationOpts: {
             cursor: string | null;
@@ -1103,8 +1058,7 @@ export declare const components: {
             | "oauthAccessToken"
             | "oauthConsent"
             | "jwks"
-            | "rateLimit"
-            | "ratelimit";
+            | "rateLimit";
           select?: Array<string>;
           where?: Array<{
             connector?: "AND" | "OR";
@@ -1590,33 +1544,6 @@ export declare const components: {
                   key?: null | string;
                   lastRequest?: null | number;
                 };
-                where?: Array<{
-                  connector?: "AND" | "OR";
-                  field: "key" | "count" | "lastRequest" | "_id";
-                  operator?:
-                    | "lt"
-                    | "lte"
-                    | "gt"
-                    | "gte"
-                    | "eq"
-                    | "in"
-                    | "not_in"
-                    | "ne"
-                    | "contains"
-                    | "starts_with"
-                    | "ends_with";
-                  value:
-                    | string
-                    | number
-                    | boolean
-                    | Array<string>
-                    | Array<number>
-                    | null;
-                }>;
-              }
-            | {
-                model: "ratelimit";
-                update: { count?: number; key?: string; lastRequest?: number };
                 where?: Array<{
                   connector?: "AND" | "OR";
                   field: "key" | "count" | "lastRequest" | "_id";
@@ -2128,33 +2055,6 @@ export declare const components: {
                     | Array<number>
                     | null;
                 }>;
-              }
-            | {
-                model: "ratelimit";
-                update: { count?: number; key?: string; lastRequest?: number };
-                where?: Array<{
-                  connector?: "AND" | "OR";
-                  field: "key" | "count" | "lastRequest" | "_id";
-                  operator?:
-                    | "lt"
-                    | "lte"
-                    | "gt"
-                    | "gte"
-                    | "eq"
-                    | "in"
-                    | "not_in"
-                    | "ne"
-                    | "contains"
-                    | "starts_with"
-                    | "ends_with";
-                  value:
-                    | string
-                    | number
-                    | boolean
-                    | Array<string>
-                    | Array<number>
-                    | null;
-                }>;
               };
           onUpdateHandle?: string;
         },
@@ -2306,135 +2206,6 @@ export declare const components: {
           distance: number;
           key: string;
         }>
-      >;
-    };
-  };
-  resend: {
-    lib: {
-      cancelEmail: FunctionReference<
-        "mutation",
-        "internal",
-        { emailId: string },
-        null
-      >;
-      cleanupAbandonedEmails: FunctionReference<
-        "mutation",
-        "internal",
-        { olderThan?: number },
-        null
-      >;
-      cleanupOldEmails: FunctionReference<
-        "mutation",
-        "internal",
-        { olderThan?: number },
-        null
-      >;
-      createManualEmail: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          from: string;
-          headers?: Array<{ name: string; value: string }>;
-          replyTo?: Array<string>;
-          subject: string;
-          to: string;
-        },
-        string
-      >;
-      get: FunctionReference<
-        "query",
-        "internal",
-        { emailId: string },
-        {
-          complained: boolean;
-          createdAt: number;
-          errorMessage?: string;
-          finalizedAt: number;
-          from: string;
-          headers?: Array<{ name: string; value: string }>;
-          html?: string;
-          opened: boolean;
-          replyTo: Array<string>;
-          resendId?: string;
-          segment: number;
-          status:
-            | "waiting"
-            | "queued"
-            | "cancelled"
-            | "sent"
-            | "delivered"
-            | "delivery_delayed"
-            | "bounced"
-            | "failed";
-          subject: string;
-          text?: string;
-          to: string;
-        } | null
-      >;
-      getStatus: FunctionReference<
-        "query",
-        "internal",
-        { emailId: string },
-        {
-          complained: boolean;
-          errorMessage: string | null;
-          opened: boolean;
-          status:
-            | "waiting"
-            | "queued"
-            | "cancelled"
-            | "sent"
-            | "delivered"
-            | "delivery_delayed"
-            | "bounced"
-            | "failed";
-        } | null
-      >;
-      handleEmailEvent: FunctionReference<
-        "mutation",
-        "internal",
-        { event: any },
-        null
-      >;
-      sendEmail: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          from: string;
-          headers?: Array<{ name: string; value: string }>;
-          html?: string;
-          options: {
-            apiKey: string;
-            initialBackoffMs: number;
-            onEmailEvent?: { fnHandle: string };
-            retryAttempts: number;
-            testMode: boolean;
-          };
-          replyTo?: Array<string>;
-          subject: string;
-          text?: string;
-          to: string;
-        },
-        string
-      >;
-      updateManualEmail: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          emailId: string;
-          errorMessage?: string;
-          resendId?: string;
-          status:
-            | "waiting"
-            | "queued"
-            | "cancelled"
-            | "sent"
-            | "delivered"
-            | "delivery_delayed"
-            | "bounced"
-            | "failed";
-        },
-        null
       >;
     };
   };
@@ -2747,7 +2518,7 @@ export declare const components: {
         "mutation",
         "internal",
         { logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR"; userId: string },
-        any
+        null
       >;
       getNotification: FunctionReference<
         "query",
@@ -2887,6 +2658,38 @@ export declare const components: {
           userId: string;
         },
         string | null
+      >;
+      sendPushNotificationBatch: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          allowUnregisteredTokens?: boolean;
+          logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
+          notifications: Array<{
+            notification: {
+              _contentAvailable?: boolean;
+              badge?: number;
+              body?: string;
+              categoryId?: string;
+              channelId?: string;
+              data?: any;
+              expiration?: number;
+              interruptionLevel?:
+                | "active"
+                | "critical"
+                | "passive"
+                | "time-sensitive";
+              mutableContent?: boolean;
+              priority?: "default" | "normal" | "high";
+              sound?: string | null;
+              subtitle?: string;
+              title?: string;
+              ttl?: number;
+            };
+            userId: string;
+          }>;
+        },
+        Array<string | null>
       >;
       shutdown: FunctionReference<
         "mutation",

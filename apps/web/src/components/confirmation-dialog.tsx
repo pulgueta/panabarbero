@@ -28,7 +28,7 @@ interface ConfirmationDialogProps {
   title: string;
   description: string;
   confirmLabel: ReactNode;
-  cancelLabel: ReactNode;
+  cancelLabel?: ReactNode;
 }
 
 export const ConfirmationDialog: FC<ConfirmationDialogProps> = ({

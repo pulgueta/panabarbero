@@ -2,6 +2,7 @@ import { expo } from "@better-auth/expo";
 import type { AuthFunctions, GenericCtx } from "@convex-dev/better-auth";
 import { createClient } from "@convex-dev/better-auth";
 import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
+import { APP_NAME } from "@panabarbero/constants";
 import { betterAuth } from "better-auth";
 import { twoFactor } from "better-auth/plugins";
 import { passkey } from "better-auth/plugins/passkey";
@@ -27,6 +28,7 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
             where: [{ field: "_id", operator: "eq", value: doc._id }],
           },
         });
+
         await ctx.runMutation(internal.userProfileData.createProfile, {
           data: {
             name: doc.name,
@@ -49,6 +51,10 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
               },
             ],
           },
+        });
+
+        await ctx.scheduler.runAfter(0, internal.emails.sendWelcomeEmail, {
+          to: doc.email,
         });
       },
       onDelete: async (ctx, doc) => {
@@ -76,7 +82,6 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
 export const { onCreate, onUpdate, onDelete } = authComponent.triggersApi();
 
 const siteUrl = process.env.SITE_URL ?? "";
-const previewSiteUrl = process.env.PREVIEW_SITE_URL ?? "";
 
 export const createAuth = (
   ctx: GenericCtx<DataModel>,
@@ -86,7 +91,8 @@ export const createAuth = (
     logger: {
       disabled: optionsOnly,
     },
-    trustedOrigins: ["panabarbero://", siteUrl, previewSiteUrl],
+    appName: APP_NAME,
+    trustedOrigins: ["panabarbero://", siteUrl, "http://localhost:3000"],
     database: authComponent.adapter(ctx),
     emailAndPassword: {
       enabled: false,
@@ -95,6 +101,11 @@ export const createAuth = (
       google: {
         clientId: process.env.GOOGLE_CLIENT_ID ?? "",
         clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+        enabled: true,
+      },
+      facebook: {
+        clientId: process.env.FACEBOOK_CLIENT_ID ?? "",
+        clientSecret: process.env.FACEBOOK_CLIENT_SECRET ?? "",
         enabled: true,
       },
     },

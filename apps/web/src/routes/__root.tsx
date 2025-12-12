@@ -1,21 +1,13 @@
 import type { ConvexQueryClient } from "@convex-dev/react-query";
-import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { QueryClient } from "@tanstack/react-query";
-import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
-import {
-  createRootRouteWithContext,
-  HeadContent,
-  Outlet,
-} from "@tanstack/react-router";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { createRootRouteWithContext } from "@tanstack/react-router";
 import type { ConvexReactClient } from "convex/react";
 
-import { DefaultCatchBoundary } from "@/components/error-component";
-import { BottomBar } from "@/components/layout/bottom-bar";
-import { Header } from "@/components/layout/header";
-import { Toaster } from "@/components/ui/sonner";
-import { useIsMobile } from "@/hooks/use-is-mobile";
-import StoreDevtools from "@/lib/demo-store-devtools";
+import { App } from "@/components/layout/app";
+import { DefaultCatchBoundary } from "@/components/layout/error-component";
+import { NotFoundComponent } from "@/components/layout/not-found-component";
+import { getSessionQueryOptions } from "@/hooks/use-session";
+import { seo } from "@/lib/utils";
 
 type RouterContext = {
   queryClient: QueryClient;
@@ -24,75 +16,16 @@ type RouterContext = {
 };
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-  head: () => {
-    return {
-      meta: [
-        {
-          title: "PanaBarbero - La solución para las barberías",
-        },
-        {
-          name: "description",
-          content: "PanaBarbero - La solución para las barberías",
-        },
-        {
-          name: "og:title",
-          content: "PanaBarbero - La solución para las barberías",
-        },
-        {
-          name: "og:description",
-          content: "PanaBarbero - La solución para las barberías",
-        },
-        {
-          name: "og:image",
-          content: "/logo.png",
-        },
-        {
-          name: "og:url",
-          content: "https://panabarbero.com",
-        },
-        {
-          name: "og:type",
-          content: "website",
-        },
-        {
-          name: "og:locale",
-          content: "es_CO",
-        },
-      ],
-    };
-  },
-  component: () => {
-    const { isMobile } = useIsMobile();
-
-    return (
-      <>
-        <HeadContent />
-        <Toaster richColors position="top-center" />
-
-        {!isMobile && <Header />}
-        <Outlet />
-        {isMobile && <BottomBar />}
-
-        {process.env.NODE_ENV === "development" && (
-          <TanStackDevtools
-            config={{
-              position: "bottom-left",
-            }}
-            plugins={[
-              {
-                name: "Tanstack Router",
-                render: <TanStackRouterDevtoolsPanel />,
-              },
-              {
-                name: "TanStack Query",
-                render: <ReactQueryDevtoolsPanel />,
-              },
-              StoreDevtools,
-            ]}
-          />
-        )}
-      </>
-    );
-  },
+  head: () => ({
+    meta: seo({
+      title: "PanaBarbero - La solución para las barberías",
+      description: "La solución para las barberías",
+    }),
+  }),
+  component: () => <App />,
   errorComponent: (props) => <DefaultCatchBoundary {...props} />,
+  notFoundComponent: () => <NotFoundComponent />,
+  beforeLoad: async ({ context }) => {
+    await context.queryClient.ensureQueryData(getSessionQueryOptions());
+  },
 });

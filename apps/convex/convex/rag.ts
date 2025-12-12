@@ -26,6 +26,7 @@ export const addToRAG = internalAction({
         ? `${args.namespace}-${args.userId}`
         : args.namespace,
       text: args.text,
+      key: args.text.toLowerCase(),
     });
   },
 });

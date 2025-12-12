@@ -78,11 +78,13 @@ const fieldVariants = cva(
   },
 );
 
+export type FieldVariants = VariantProps<typeof fieldVariants>;
+
 function Field({
   className,
   orientation = "vertical",
   ...props
-}: ComponentProps<"div"> & VariantProps<typeof fieldVariants>) {
+}: ComponentProps<"div"> & FieldVariants) {
   return (
     // biome-ignore lint/a11y/useSemanticElements: as shadcn created
     <div
@@ -141,7 +143,7 @@ function FieldDescription({ className, ...props }: ComponentProps<"p">) {
     <p
       data-slot="field-description"
       className={cn(
-        "font-normal text-muted-foreground text-sm leading-normal group-has-[[data-orientation=horizontal]]/field:text-balance",
+        "font-normal text-muted-foreground text-xs leading-normal group-has-[[data-orientation=horizontal]]/field:text-pretty",
         "nth-last-2:-mt-1 [[data-variant=legend]+&]:-mt-1.5 last:mt-0",
         "[&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4",
         className,
@@ -210,7 +212,11 @@ function FieldError({
       <ul className="ml-4 flex list-disc flex-col gap-1">
         {uniqueErrors.map(
           (error) =>
-            error?.message && <li key={error.message}>{error.message}</li>,
+            error?.message && (
+              <li key={error.message} className="text-pretty">
+                {error.message}
+              </li>
+            ),
         )}
       </ul>
     );
@@ -224,7 +230,10 @@ function FieldError({
     <div
       role="alert"
       data-slot="field-error"
-      className={cn("font-normal text-destructive text-sm", className)}
+      className={cn(
+        "text-pretty font-normal text-destructive text-sm",
+        className,
+      )}
       {...props}
     >
       {content}
