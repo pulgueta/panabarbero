@@ -127,7 +127,7 @@ function RouteComponent() {
           <header className="mb-4 flex flex-col gap-1">
             <h2 className="font-semibold text-lg">
               {selectedDate
-                ? `${appointmentsForSelectedDay.length} cita${appointmentsForSelectedDay.length >= 1 || appointmentsForSelectedDay.length === 0 ? "s" : ""} (${selectedDate.toLocaleDateString(
+                ? `${appointmentsForSelectedDay.length} cita${appointmentsForSelectedDay.length > 1 || appointmentsForSelectedDay.length === 0 ? "s" : ""} (${selectedDate.toLocaleDateString(
                     "es-CO",
                     {
                       month: "long",
