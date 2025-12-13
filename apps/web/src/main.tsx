@@ -40,7 +40,11 @@ export function getRouter() {
     createRouter({
       routeTree,
       defaultPreload: "intent",
-      context: { queryClient, convexClient: convex, convexQueryClient },
+      context: {
+        queryClient,
+        convexClient: convexQueryClient.convexClient,
+        convexQueryClient,
+      },
       scrollRestoration: true,
       defaultViewTransition: true,
       Wrap: ({ children }) => (
