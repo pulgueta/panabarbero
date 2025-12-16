@@ -447,14 +447,6 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
           <Button
             type="button"
             variant="secondary"
-            onClick={disableSelectedDays}
-            disabled={!selectedDays.length}
-          >
-            Desactivar días seleccionados
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
             onClick={applyScheduleToSelectedDays}
           >
             Aplicar horario
@@ -466,6 +458,14 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
           >
             {(isSaving || isUpdatingAvailability) && <Spinner />} Guardar
             cambios
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={disableSelectedDays}
+            disabled={!selectedDays.length}
+          >
+            Desactivar días seleccionados
           </Button>
         </div>
 

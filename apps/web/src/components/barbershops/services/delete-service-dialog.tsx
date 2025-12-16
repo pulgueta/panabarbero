@@ -41,7 +41,7 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
   const deleteDialogTitle = "Eliminar servicio";
   const deleteDialogDescription =
     "¿Estás seguro que deseas eliminar este servicio? Esta acción no se puede deshacer.";
-  const deleteButtonLabel = "Si, eliminar";
+  const deleteButtonLabel = "Sí, eliminar";
 
   const onDelete = async () => {
     try {

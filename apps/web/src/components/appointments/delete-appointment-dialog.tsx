@@ -31,7 +31,7 @@ export const DeleteAppointmentDialog: FC<DeleteAppointmentDialogProps> = ({
     },
   } = useAppointmentActions();
 
-  const deleteButtonLabel = "Si, eliminar";
+  const deleteButtonLabel = "Sí, eliminar";
   const deleteDialogDescription =
     "Esta acción eliminará la cita de los registros y no podrá ser recuperada.";
 
