@@ -1,16 +1,17 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: barbershop is guaranteed to be not null */
 import { createFileRoute } from "@tanstack/react-router";
+import { PlusIcon } from "lucide-react";
 
 import { AvailabilityForm } from "@/components/barbershops/availability/availability-form";
 import { ServiceDialog } from "@/components/barbershops/services/service-dialog";
 import { AddressForm } from "@/components/barbershops/settings/address-form";
-import { ContactForm } from "@/components/barbershops/settings/contact-form";
 import { GeneralInfoForm } from "@/components/barbershops/settings/general-info-form";
 import { PreferencesForm } from "@/components/barbershops/settings/preferences-form";
 import { SocialMediaForm } from "@/components/barbershops/settings/social-media-form";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
   barbershopByOwnerIdQueryOptions,
@@ -99,7 +100,7 @@ function SettingsPage() {
             </div>
           </section>
 
-          <Separator />
+          {/* <Separator />
 
           <section className="space-y-4">
             <div>
@@ -113,7 +114,7 @@ function SettingsPage() {
               barbershop={barbershop}
               barbershopMetadata={barbershopMetadata!}
             />
-          </section>
+          </section> */}
 
           {/* <Separator /> */}
 
@@ -197,7 +198,14 @@ function SettingsPage() {
           <AlertDescription>
             Agrega tu primer servicio para que tus clientes puedan reservar.
             <div className="mt-2">
-              <ServiceDialog barbershopId={barbershop._id} />
+              <ServiceDialog
+                barbershopId={barbershop._id}
+                trigger={
+                  <Button variant="outline">
+                    <PlusIcon className="size-3" /> Agregar servicio
+                  </Button>
+                }
+              />
             </div>
           </AlertDescription>
         </Alert>

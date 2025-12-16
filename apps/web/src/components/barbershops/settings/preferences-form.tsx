@@ -5,6 +5,7 @@ import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -72,6 +73,11 @@ export const PreferencesForm: FC<PreferencesFormProps> = ({ barbershop }) => {
             onChange={(e) => setGrace(e.target.value)}
             className="tabular-nums"
           />
+
+          <FieldDescription>
+            Tiempo que el cliente puede llegar tarde sin que se le cancele la
+            cita.
+          </FieldDescription>
           {invalidGrace && (
             <FieldError errors={[{ message: "Valor inválido" }]} />
           )}

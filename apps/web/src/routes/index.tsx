@@ -1,5 +1,6 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { BellRing, Clock3, ShieldCheck } from "lucide-react";
+import { useLayoutEffect } from "react";
 
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
@@ -34,8 +35,21 @@ export const Route = createFileRoute("/")({
 });
 
 function RouteComponent() {
+  const navigate = Route.useNavigate();
+
   const { data: user } = useSession();
   const { data: isBarber } = useIsBarber(user?.userId ?? "");
+
+  useLayoutEffect(() => {
+    if (user?.userId) {
+      navigate({
+        to: isBarber ? "/profile/barbershops/appointments" : "/profile",
+        search: { tab: "account" },
+        replace: true,
+      });
+    }
+  }, [user?.userId, isBarber, navigate]);
+
   return (
     <BorderContainer className="min-h-[calc(100dvh-65px)]">
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-8">
@@ -71,9 +85,12 @@ function RouteComponent() {
                 <Link to="/appointments/create">Buscar barberías</Link>
               </Button>
             )}
-            <Button variant="outline" asChild>
-              <Link to="/login">Crear cuenta gratuita</Link>
-            </Button>
+
+            {!user && (
+              <Button variant="outline" asChild>
+                <Link to="/login">Crear cuenta gratuita</Link>
+              </Button>
+            )}
           </div>
         </section>
 

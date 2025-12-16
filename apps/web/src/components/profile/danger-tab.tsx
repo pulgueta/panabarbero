@@ -41,9 +41,9 @@ export const DangerTab: FC<DangerTabProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <header>
-        <h1 className="font-semibold text-3xl">Eliminar barbería</h1>
+        <h1 className="font-semibold text-2xl">Eliminar barbería</h1>
         <p className="text-muted-foreground text-sm">
           Esta acción elimina la barbería, todos sus servicios, citas y
           miembros. No se puede deshacer.

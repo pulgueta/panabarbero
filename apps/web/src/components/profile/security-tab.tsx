@@ -37,9 +37,9 @@ export const SecurityTab: FC<SecurityTabProps> = () => {
     isLoadingPasskeys || isRefetchingPasskeys ? "hidden" : "visible";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <header>
-        <h1 className="font-semibold text-3xl">Seguridad de tu cuenta</h1>
+        <h1 className="font-semibold text-2xl">Seguridad de tu cuenta</h1>
         <p className="text-muted-foreground text-sm">
           Administra la seguridad de tu cuenta
         </p>

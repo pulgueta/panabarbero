@@ -443,7 +443,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
           </div>
         </Activity>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Button
             type="button"
             variant="secondary"
