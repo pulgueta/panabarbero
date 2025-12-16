@@ -133,6 +133,7 @@ export const tables = {
       v.literal("denied"),
     ),
     notes: v.optional(v.string()),
+    deletedAt: v.optional(v.number()),
   },
   notifications: {
     uuid: v.string(),

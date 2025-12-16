@@ -121,7 +121,7 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
 
   return (
     <form id={formIds.form} onSubmit={onSubmit} className="space-y-2">
-      <FieldGroup>
+      <FieldGroup className="gap-4">
         <div className="grid grid-cols-2 gap-4">
           <Controller
             name="name"
@@ -135,9 +135,6 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
                   aria-invalid={fieldState.invalid}
                   placeholder="Ej. Barbería Central"
                 />
-                <FieldDescription>
-                  Con este nombre te podrán encontrar en la plataforma.
-                </FieldDescription>
 
                 {fieldState.invalid && (
                   <FieldError errors={[fieldState.error]} />
@@ -146,37 +143,6 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
             )}
           />
 
-          <Controller
-            name="gracePeriodMinutes"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={formIds.gracePeriodMinutes}>
-                  Periodo de gracia
-                </FieldLabel>
-
-                {/* @ts-expect-error */}
-                <Input
-                  {...field}
-                  id={formIds.gracePeriodMinutes}
-                  aria-invalid={fieldState.invalid}
-                  placeholder="Ej. 5"
-                  type="number"
-                  className="w-full tabular-nums"
-                />
-
-                <FieldDescription>
-                  Por defecto se establecerá en 5 minutos.
-                </FieldDescription>
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
           <Controller
             name="address.fullAddress"
             control={form.control}
@@ -197,28 +163,26 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
               </Field>
             )}
           />
-
-          <Controller
-            name="address.details"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={formIds.addressDetails}>
-                  Detalles (opcional)
-                </FieldLabel>
-                <Input
-                  {...field}
-                  id={formIds.addressDetails}
-                  aria-invalid={fieldState.invalid}
-                  placeholder="Barrio, referencia, etc."
-                />
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
-          />
         </div>
+
+        <Controller
+          name="address.details"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={formIds.addressDetails}>
+                Detalles (opcional)
+              </FieldLabel>
+              <Input
+                {...field}
+                id={formIds.addressDetails}
+                aria-invalid={fieldState.invalid}
+                placeholder="Barrio, referencia, etc."
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
 
         <div className="grid grid-cols-2 gap-4">
           <Controller
@@ -275,6 +239,34 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
             )}
           />
         </div>
+
+        <Controller
+          name="gracePeriodMinutes"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={formIds.gracePeriodMinutes}>
+                Periodo de gracia
+              </FieldLabel>
+
+              {/* @ts-expect-error */}
+              <Input
+                {...field}
+                id={formIds.gracePeriodMinutes}
+                aria-invalid={fieldState.invalid}
+                placeholder="Ej. 5"
+                type="number"
+                className="w-full tabular-nums"
+              />
+
+              <FieldDescription>
+                Tiempo que el cliente puede llegar tarde sin que se le cancele
+                la cita.
+              </FieldDescription>
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
       </FieldGroup>
 
       <div className="mt-8">

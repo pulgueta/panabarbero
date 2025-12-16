@@ -88,7 +88,7 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
   return (
     <div className="space-y-4">
       <FieldGroup className="gap-4">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-4">
           <Field data-invalid={!fullAddress}>
             <FieldLabel htmlFor={ids.address}>Dirección</FieldLabel>
             <Input
@@ -111,7 +111,7 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
           </Field>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Field data-invalid={!state}>
             <FieldLabel htmlFor={ids.state}>Departamento</FieldLabel>
             <Select

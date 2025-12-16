@@ -110,6 +110,28 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const initialRows = useMemo(
+    () => buildInitialRows(availability),
+    [availability, buildInitialRows],
+  );
+
+  const hasChanges = useMemo(() => {
+    if (initialRows.length !== rows.length) return true;
+
+    return rows.some((row, index) => {
+      const initial = initialRows[index];
+      if (!initial) return true;
+
+      return (
+        row.weekDay.isActive !== initial.weekDay.isActive ||
+        row.openAt !== initial.openAt ||
+        row.closeAt !== initial.closeAt ||
+        row.lunchStart !== initial.lunchStart ||
+        row.lunchEnd !== initial.lunchEnd
+      );
+    });
+  }, [rows, initialRows]);
+
   useEffect(() => {
     const nextRows = buildInitialRows(availability);
 
@@ -443,18 +465,10 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
           </div>
         </Activity>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Button
             type="button"
             variant="secondary"
-            onClick={disableSelectedDays}
-            disabled={!selectedDays.length}
-          >
-            Desactivar días seleccionados
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
             onClick={applyScheduleToSelectedDays}
           >
             Aplicar horario
@@ -462,10 +476,18 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
           <Button
             type="button"
             onClick={handleSave}
-            disabled={isSaving || isUpdatingAvailability}
+            disabled={isSaving || isUpdatingAvailability || !hasChanges}
           >
             {(isSaving || isUpdatingAvailability) && <Spinner />} Guardar
             cambios
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={disableSelectedDays}
+            disabled={!selectedDays.length}
+          >
+            Desactivar días seleccionados
           </Button>
         </div>
 
