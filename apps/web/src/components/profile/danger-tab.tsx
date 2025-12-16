@@ -1,6 +1,7 @@
 import type { Barbershop } from "@panabarbero/convex/schemas";
-import { redirect } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import type { FC } from "react";
+import { useLayoutEffect } from "react";
 import { toast } from "sonner";
 
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
@@ -18,8 +19,13 @@ export const DangerTab: FC<DangerTabProps> = ({
 }: {
   barbershopId?: Barbershop["_id"];
 }) => {
+  const navigate = useNavigate();
   const {
-    deleteBarbershopMutation: { mutateAsync: deleteBarbershop, isPending },
+    deleteBarbershopMutation: {
+      mutateAsync: deleteBarbershop,
+      isPending: isDeletingBarbershop,
+      isSuccess: isDeletedBarbershop,
+    },
   } = useBarbershopActions();
 
   const handleDelete = async () => {
@@ -27,12 +33,6 @@ export const DangerTab: FC<DangerTabProps> = ({
 
     try {
       await deleteBarbershop({ barbershopId });
-      toast.success("Barbería eliminada exitosamente");
-      throw redirect({
-        to: "/barbershops",
-        search: { city: undefined, state: undefined },
-        replace: true,
-      });
     } catch (error) {
       toast.error(getConvexErrorMessage(error));
 
@@ -40,10 +40,21 @@ export const DangerTab: FC<DangerTabProps> = ({
     }
   };
 
+  useLayoutEffect(() => {
+    if (isDeletedBarbershop) {
+      toast.success("Barbería eliminada exitosamente");
+      navigate({
+        to: "/barbershops",
+        search: { city: undefined, state: undefined },
+        replace: true,
+      });
+    }
+  }, [isDeletedBarbershop, navigate]);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <header>
-        <h1 className="font-semibold text-3xl">Eliminar barbería</h1>
+        <h1 className="font-semibold text-2xl">Eliminar barbería</h1>
         <p className="text-muted-foreground text-sm">
           Esta acción elimina la barbería, todos sus servicios, citas y
           miembros. No se puede deshacer.
@@ -54,7 +65,10 @@ export const DangerTab: FC<DangerTabProps> = ({
         title="Eliminar barbería"
         description="¿Estás seguro? Esta acción eliminará la barbería y todos sus datos relacionados."
         trigger={
-          <Button variant="destructive" disabled={!barbershopId || isPending}>
+          <Button
+            variant="destructive"
+            disabled={!barbershopId || isDeletingBarbershop}
+          >
             Eliminar barbería
           </Button>
         }
@@ -62,10 +76,10 @@ export const DangerTab: FC<DangerTabProps> = ({
           <Button
             variant="destructive"
             className="w-full"
-            disabled={!barbershopId || isPending}
+            disabled={!barbershopId || isDeletingBarbershop}
             onClick={handleDelete}
           >
-            {isPending && <Spinner />} Sí, eliminar
+            {isDeletingBarbershop && <Spinner />} Sí, eliminar
           </Button>
         }
       />

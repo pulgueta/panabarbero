@@ -42,7 +42,7 @@ type ProfileSearch = {
 
 const tabs = {
   account: {
-    label: "Cuenta",
+    label: "Perfil",
     value: "account",
   },
   security: {
@@ -153,7 +153,7 @@ function ProfilePage() {
               <TabsTrigger
                 key={tabOption.value}
                 value={tabOption.value}
-                className="min-w-24 md:min-w-32 md:max-w-40"
+                className="text-xs sm:text-sm md:min-w-24 md:max-w-40"
               >
                 {tabOption.label}
               </TabsTrigger>

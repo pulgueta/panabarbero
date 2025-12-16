@@ -17,8 +17,8 @@ export const tailwindConfig = {
         background: "oklch(1 0 0)",
         foreground: "oklch(0.141 0.005 285.823)",
         primary: {
-          DEFAULT: "oklch(36.1% 0.1046 266.8)",
-          foreground: "oklch(0.97 0.014 254.604)",
+          DEFAULT: "oklch(0.5156 0.1651 28.33)",
+          foreground: "oklch(0.971 0.013 17.38)",
         },
         secondary: {
           DEFAULT: "oklch(0.967 0.001 286.375)",

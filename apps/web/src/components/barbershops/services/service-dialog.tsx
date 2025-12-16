@@ -15,18 +15,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
 import { Field } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
-import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useServiceActions } from "@/hooks/use-services";
 import type { ServiceFormData } from "@/lib/schemas";
 import { serviceFormSchema } from "@/lib/schemas";
@@ -52,8 +42,6 @@ export const ServiceDialog: FC<ServiceDialogProps> = ({
     duration: useId(),
   };
   const [open, setOpen] = useState<boolean>(false);
-
-  const { isMobile } = useIsMobile();
 
   const form = useForm({
     resolver: zodResolver(serviceFormSchema),
@@ -116,38 +104,6 @@ export const ServiceDialog: FC<ServiceDialogProps> = ({
 
   const headLabel = `${initialValues ? "Editar" : "Agregar"} servicio`;
   const description = `${initialValues ? "Actualiza los datos del servicio." : "Define los datos básicos del servicio."}`;
-
-  if (isMobile) {
-    return (
-      <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerTrigger asChild>{trigger}</DrawerTrigger>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>{headLabel}</DrawerTitle>
-            <DrawerDescription>{description}</DrawerDescription>
-          </DrawerHeader>
-
-          <div className="p-4">
-            <ServiceForm
-              // @ts-expect-error - zod's coerce method returns an unknown type
-              form={form}
-              onSubmit={onSubmit}
-              formIds={formIds}
-              initialValues={initialValues}
-            />
-          </div>
-
-          <DrawerFooter>
-            <Field>
-              <Button type="submit" form={formIds.form} disabled={loading}>
-                {loading ? <Spinner /> : "Guardar"}
-              </Button>
-            </Field>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-    );
-  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

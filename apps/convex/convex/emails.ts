@@ -122,11 +122,17 @@ export const sendAppointmentRescheduleRequestEmail = internalAction({
     to: v.string(),
     appointmentId: v.id("appointments"),
     body: v.string(),
+    sendTo: v.union(v.literal("barber"), v.literal("customer")),
   },
   handler: async (ctx, args) => {
+    const requestUrl =
+      args.sendTo === "barber"
+        ? `${process.env.SITE_URL}/profile/barbershops/appointments`
+        : `${process.env.SITE_URL}/profile?tab=appointments`;
+
     const html = await render(
       AppointmentRescheduleRequestEmail({
-        requestUrl: `${process.env.SITE_URL}/profile/appointments/reschedule/${args.appointmentId}`,
+        requestUrl,
         subject: subjects.appointment_rescheduled_request,
         body: args.body,
       }),

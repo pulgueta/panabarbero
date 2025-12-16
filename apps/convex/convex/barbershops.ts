@@ -169,7 +169,7 @@ export const getActiveBarbershops = query({
       }),
     );
 
-    return barbershops;
+    return barbershops.filter((barbershop) => barbershop.services?.length);
   },
 });
 
@@ -576,6 +576,6 @@ export const getBarbershopsByName = query({
       }),
     );
 
-    return barbershops;
+    return barbershops.filter((barbershop) => barbershop.services?.length);
   },
 });

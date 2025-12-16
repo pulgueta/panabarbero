@@ -152,6 +152,7 @@ export const createAppointment = mutation({
             q.eq(q.field("status"), "pending"),
             q.eq(q.field("status"), "confirmed"),
           ),
+          q.eq(q.field("deletedAt"), null),
         ),
       )
       .collect();
@@ -305,6 +306,7 @@ export const getRescheduledAppointmentRequests = query({
             q.not(q.eq(q.field("status"), "confirmed")),
             q.not(q.eq(q.field("status"), "no-show")),
           ),
+          q.eq(q.field("deletedAt"), null),
         ),
       )
       .collect();
@@ -325,11 +327,16 @@ export const getAppointmentsByUserId = query({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    return await ctx.db
+    const result = await ctx.db
       .query("appointments")
       .withIndex("by_userId", (q) => q.eq("userId", args.userId ?? ""))
       .order("desc")
       .paginate(args.paginationOpts);
+
+    return {
+      ...result,
+      page: result.page.filter((appt) => !appt.deletedAt),
+    };
   },
 });
 
@@ -349,7 +356,7 @@ export const getAppointmentsByBarbershopId = query({
       .withIndex("by_barbershopId", (q) =>
         q.eq("barbershopId", args.barbershopId),
       )
-
+      .filter((q) => q.eq(q.field("deletedAt"), null))
       .collect();
 
     return appointments;
@@ -361,7 +368,11 @@ export const getAppointmentById = query({
     appointmentId: v.id("appointments"),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.appointmentId);
+    return await ctx.db
+      .query("appointments")
+      .withIndex("by_id", (q) => q.eq("_id", args.appointmentId))
+      .filter((q) => q.eq(q.field("deletedAt"), null))
+      .unique();
   },
 });
 
@@ -375,12 +386,11 @@ export const getAppointmentByUuid = query({
     if (!user) {
       throw new ConvexError(errorMessages.unauthorized);
     }
-    const appointment = await ctx.db
+    return await ctx.db
       .query("appointments")
       .withIndex("by_uuid", (q) => q.eq("uuid", args.uuid))
+      .filter((q) => q.eq(q.field("deletedAt"), null))
       .unique();
-
-    return appointment;
   },
 });
 
@@ -395,14 +405,13 @@ export const getAppointmentByUserIdAndBarbershopId = query({
     if (!user) {
       throw new ConvexError(errorMessages.unauthorized);
     }
-    const appointment = await ctx.db
+    return await ctx.db
       .query("appointments")
       .withIndex("by_userIdAndBarbershopId", (q) =>
         q.eq("userId", args.userId).eq("barbershopId", args.barbershopId),
       )
+      .filter((q) => q.eq(q.field("deletedAt"), null))
       .unique();
-
-    return appointment;
   },
 });
 
@@ -418,10 +427,19 @@ export const setAppointmentStatus = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
+    const appt = await ctx.db.get(args.appointmentId);
+
+    if (!appt) {
+      throw new ConvexError(errorMessages.notFound("cita"));
+    }
+
+    if (appt.deletedAt) {
+      throw new ConvexError(errorMessages.notFound("cita"));
+    }
+
     const updatedAppointment = await ctx.db.patch(args.appointmentId, {
       status: args.status,
     });
-    const appt = await ctx.db.get(args.appointmentId);
 
     if (appt) {
       const titleMap: Record<string, string> = {
@@ -487,6 +505,10 @@ export const updateAppointment = mutation({
     const original = await ctx.db.get(appointmentId);
 
     if (!original) {
+      throw new ConvexError(errorMessages.notFound("cita"));
+    }
+
+    if (original.deletedAt) {
       throw new ConvexError(errorMessages.notFound("cita"));
     }
 
@@ -607,7 +629,18 @@ export const deleteAppointment = mutation({
       throw new ConvexError(errorMessages.notFound("cita"));
     }
 
-    await ctx.db.delete(appointmentId);
+    await ctx.db.patch(appointmentId, {
+      deletedAt: Date.now(),
+    });
+  },
+});
+
+export const removeAppointment = mutation({
+  args: {
+    appointmentId: v.id("appointments"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.appointmentId);
   },
 });
 
@@ -628,6 +661,10 @@ export const cancelAppointment = mutation({
     const appt = await ctx.db.get(args.appointmentId);
 
     if (!appt) {
+      throw new ConvexError(errorMessages.notFound("cita"));
+    }
+
+    if (appt.deletedAt) {
       throw new ConvexError(errorMessages.notFound("cita"));
     }
 
@@ -697,6 +734,10 @@ export const requestReschedule = mutation({
     const appt = await ctx.db.get(args.appointmentId);
 
     if (!appt) throw new ConvexError(errorMessages.notFound("cita"));
+
+    if (appt.deletedAt) {
+      throw new ConvexError(errorMessages.notFound("cita"));
+    }
 
     await ctx.db.patch(args.appointmentId, {
       status: "pending",
@@ -790,6 +831,10 @@ export const notifyUpcomingAppointment = internalMutation({
       throw new ConvexError(errorMessages.notFound("cita"));
     }
 
+    if (appointment.deletedAt) {
+      throw new ConvexError(errorMessages.notFound("cita"));
+    }
+
     const barbershopMember = await ctx.db.get(appointment.barbershopMemberId);
 
     if (!barbershopMember) {
@@ -831,6 +876,10 @@ export const answerRescheduleRequest = mutation({
     const appt = await ctx.db.get(args.appointmentId);
 
     if (!appt) throw new ConvexError(errorMessages.notFound("cita"));
+
+    if (appt.deletedAt) {
+      throw new ConvexError(errorMessages.notFound("cita"));
+    }
 
     const newStatus = args.accepted ? "rescheduled" : "denied";
 
@@ -958,7 +1007,9 @@ export const appointmentOverlaps = internalQuery({
       )
       .collect();
 
-    for (const appt of candidates) {
+    const activeCandidates = candidates.filter((appt) => !appt.deletedAt);
+
+    for (const appt of activeCandidates) {
       const svc = await ctx.db.get(appt.serviceId);
       const apptEnd = appt.date + (svc?.duration ?? 0);
       const overlaps = appt.date < args.endAt && apptEnd > args.date;
@@ -994,6 +1045,6 @@ export const getAppointmentsByBarbershopIdAndDate = query({
       )
       .collect();
 
-    return appointments;
+    return appointments.filter((appt) => !appt.deletedAt);
   },
 });

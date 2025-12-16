@@ -102,7 +102,7 @@ function BarbershopsPage() {
         </section>
       </header>
 
-      <div className="relative mx-auto w-full border-y bg-accent/20 px-4 py-6 dark:bg-accent/20">
+      <div className="relative mx-auto w-full border-y bg-accent/20 px-4 py-6">
         <BarbershopFilters />
       </div>
 

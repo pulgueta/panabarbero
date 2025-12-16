@@ -31,7 +31,7 @@ export const authenticatedRoutes = {
   navigation: [
     ...publicRoutes.navigation.filter((route) => route.to !== "/"),
     {
-      label: "Cuenta",
+      label: "Perfil",
       to: "/profile",
       icon: User,
     },
@@ -53,7 +53,7 @@ export const authenticatedRoutes = {
       icon: Building2,
     },
     {
-      label: "Cuenta",
+      label: "Perfil",
       to: "/profile",
       icon: User,
     },
@@ -78,7 +78,7 @@ export const routes = {
       icon: CalendarPlus,
     },
     {
-      label: "Cuenta",
+      label: "Perfil",
       to: "/profile",
       icon: User,
     },

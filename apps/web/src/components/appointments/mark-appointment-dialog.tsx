@@ -12,19 +12,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Spinner } from "@/components/ui/spinner";
 import { useAppointmentActions } from "@/hooks/use-appointments";
-import { useIsMobile } from "@/hooks/use-is-mobile";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
 interface MarkAppointmentDialogProps {
@@ -38,31 +29,8 @@ export const MarkAppointmentDialog: FC<MarkAppointmentDialogProps> = ({
 }) => {
   const [open, setOpen] = useState<boolean>(false);
 
-  const { isMobile } = useIsMobile();
-
   const title = "Marcar cita";
   const description = "Asigna el estado final de la cita.";
-
-  if (isMobile) {
-    return (
-      <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerTrigger asChild>{trigger}</DrawerTrigger>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>{title}</DrawerTitle>
-            <DrawerDescription>{description}</DrawerDescription>
-          </DrawerHeader>
-
-          <div className="p-4">
-            <OptionsForm
-              appointmentId={appointmentId}
-              onClose={() => setOpen(false)}
-            />
-          </div>
-        </DrawerContent>
-      </Drawer>
-    );
-  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

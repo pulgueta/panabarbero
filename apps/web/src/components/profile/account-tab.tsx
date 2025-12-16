@@ -269,6 +269,7 @@ export const AccountTab: FC<AccountTabProps> = ({
                       (p) => p.type === "sms",
                     )?.enabled
                   }
+                  disabled={!profile?.phoneNumber}
                   onCheckedChange={(val) =>
                     updateNotificationPreference({
                       type: "sms",

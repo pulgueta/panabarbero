@@ -1,5 +1,6 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { BellRing, Clock3, ShieldCheck } from "lucide-react";
+import { useLayoutEffect } from "react";
 
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
@@ -34,8 +35,21 @@ export const Route = createFileRoute("/")({
 });
 
 function RouteComponent() {
+  const navigate = Route.useNavigate();
+
   const { data: user } = useSession();
   const { data: isBarber } = useIsBarber(user?.userId ?? "");
+
+  useLayoutEffect(() => {
+    if (user?.userId) {
+      navigate({
+        to: isBarber ? "/profile/barbershops/appointments" : "/profile",
+        search: { tab: "account" },
+        replace: true,
+      });
+    }
+  }, [user?.userId, isBarber, navigate]);
+
   return (
     <BorderContainer className="min-h-[calc(100dvh-65px)]">
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-8">
@@ -48,7 +62,7 @@ function RouteComponent() {
           </p>
         </section>
 
-        <section className="rounded-2xl border border-border bg-secondary/20 px-4 py-6 md:py-8 lg:py-12">
+        <section className="rounded-2xl border border-border bg-accent/40 px-4 py-6 md:py-8 lg:py-12">
           <header className="space-y-4 text-center text-primary-foreground">
             <h2 className="text-pretty font-bold text-3xl text-foreground tracking-tighter lg:text-4xl">
               Agenda citas, recibe notificaciones e impulsa tu barbería.
@@ -71,13 +85,16 @@ function RouteComponent() {
                 <Link to="/appointments/create">Buscar barberías</Link>
               </Button>
             )}
-            <Button variant="outline" asChild>
-              <Link to="/login">Crear cuenta gratuita</Link>
-            </Button>
+
+            {!user && (
+              <Button variant="outline" asChild>
+                <Link to="/login">Crear cuenta gratuita</Link>
+              </Button>
+            )}
           </div>
         </section>
 
-        <section className="rounded-xl border border-border bg-card p-6 md:p-8">
+        <section className="rounded-xl border border-border bg-accent/20 p-6 md:p-8">
           <div className="flex w-full flex-col gap-4">
             <div className="w-full space-y-2">
               <h2 className="text-pretty font-bold text-xl tracking-tight">
@@ -109,7 +126,7 @@ function RouteComponent() {
                 ].map((item) => (
                   <div
                     key={item.title}
-                    className="flex gap-4 rounded-lg border border-border/60 bg-secondary/30 p-4"
+                    className="flex gap-4 rounded-lg border border-border/80 bg-accent/40 p-4"
                   >
                     <div className="mt-1">{item.icon}</div>
                     <div>
@@ -125,11 +142,11 @@ function RouteComponent() {
           </div>
         </section>
 
-        <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-4 rounded-xl border border-border bg-secondary/20 p-8">
+        <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-4 rounded-xl border border-border bg-accent/20 p-8">
           <h3 className="text-center font-bold text-3xl tracking-tighter">
             ¿Listo para buscar tu nuevo estilo?
           </h3>
-          <p className="text-pretty text-center text-lg text-muted-foreground">
+          <p className="text-pretty text-center text-muted-foreground">
             Empieza a buscar tu pana barbero.
           </p>
           <Button asChild>
@@ -140,9 +157,12 @@ function RouteComponent() {
               Buscar barberías
             </Link>
           </Button>
-          <Button variant="outline" asChild>
-            <Link to="/login">Crear cuenta</Link>
-          </Button>
+
+          {!user && (
+            <Button variant="outline" asChild>
+              <Link to="/login">Crear cuenta</Link>
+            </Button>
+          )}
         </div>
       </main>
     </BorderContainer>
