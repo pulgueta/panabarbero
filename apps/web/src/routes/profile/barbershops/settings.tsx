@@ -1,6 +1,8 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: barbershop is guaranteed to be not null */
+
 import { createFileRoute } from "@tanstack/react-router";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, Share } from "lucide-react";
+import { toast } from "sonner";
 
 import { AvailabilityForm } from "@/components/barbershops/availability/availability-form";
 import { ServiceDialog } from "@/components/barbershops/services/service-dialog";
@@ -21,6 +23,7 @@ import {
   barbershopMetadataQueryOptions,
   useBarbershopMetadata,
 } from "@/hooks/barbershop/use-barbershop-metadata";
+import { useClipboard } from "@/hooks/use-clipboard";
 import {
   servicesQueryOptions,
   useServicesFromBarbershop,
@@ -54,6 +57,7 @@ export const Route = createFileRoute("/profile/barbershops/settings")({
 
 function SettingsPage() {
   const { data: user } = useSession();
+  const [copy] = useClipboard();
 
   const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
   const { data: barbershopMetadata } = useBarbershopMetadata(barbershop?._id!);
@@ -64,16 +68,38 @@ function SettingsPage() {
     (a) => a.weekDay.isActive,
   );
 
+  const onCopyLink = () => {
+    copy(`${window.location.origin}/barbershops/${barbershop?.uuid}`)
+      .then(() => {
+        toast.success("Link copiado al portapapeles");
+      })
+      .catch(() => {
+        toast.error("Error al copiar el link");
+      });
+  };
+
   return (
     <BorderContainer className="space-y-6">
       <header>
-        <h1 className="text-balance font-bold text-3xl tracking-tight">
+        <h1 className="text-balance font-bold text-2xl tracking-tight">
           Configuración de barbería
         </h1>
       </header>
 
       {barbershop && (
         <>
+          <div className="space-y-2">
+            <Button onClick={onCopyLink}>
+              <Share className="size-3" />
+              Copia el link de tu barbería
+            </Button>
+
+            <p className="text-pretty text-muted-foreground text-sm">
+              Comparte el link de tu barbería con tus clientes para que puedan
+              reservar.
+            </p>
+          </div>
+
           <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <header>
