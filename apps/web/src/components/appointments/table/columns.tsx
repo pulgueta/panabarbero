@@ -1,7 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: needed */
 
 import type { Appointment } from "@panabarbero/convex/schemas";
-import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   CalendarClockIcon,
@@ -27,6 +26,7 @@ import { CancelAppointmentDialog } from "../cancel-appointment-dialog";
 import { DeleteAppointmentDialog } from "../delete-appointment-dialog";
 import { MarkAppointmentDialog } from "../mark-appointment-dialog";
 import { RescheduleRequestDialog } from "../reschedule-request-dialog";
+import { RescheduleResponseDialog } from "../reschedule-response-dialog";
 
 export const appointmentsTableColumns: ColumnDef<Appointment>[] = [
   {
@@ -240,14 +240,11 @@ export const rescheduledAppointmentRequestsTableColumns: ColumnDef<
     header: () => <div className="text-center">Acciones</div>,
     cell: ({ row }) => (
       <div className="text-center">
-        <Button asChild variant="outline">
-          <Link
-            to={"/profile/appointments/reschedule/$appointmentId"}
-            params={{ appointmentId: row.original._id }}
-          >
-            Ver solicitud
-          </Link>
-        </Button>
+        <RescheduleResponseDialog
+          appointment={row.original}
+          viewer="barber"
+          trigger={<Button variant="outline">Ver solicitud</Button>}
+        />
       </div>
     ),
   },

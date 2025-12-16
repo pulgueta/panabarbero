@@ -16,6 +16,7 @@ import { getAppointmentDataByStatus } from "@/lib/appointment-utils";
 import { CancelAppointmentDialog } from "./cancel-appointment-dialog";
 import { DeleteAppointmentDialog } from "./delete-appointment-dialog";
 import { RescheduleRequestDialog } from "./reschedule-request-dialog";
+import { RescheduleResponseDialog } from "./reschedule-response-dialog";
 
 interface AppointmentCardProps {
   appointment: Appointment;
@@ -89,7 +90,11 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
             to={!isBarber ? "barber" : "customer"}
             appointment={appointment}
             trigger={
-              <Button disabled={disableReschedule} className="w-full md:w-auto">
+              <Button
+                variant="secondary"
+                disabled={disableReschedule}
+                className="w-full md:w-auto"
+              >
                 Reagendar
               </Button>
             }
@@ -97,19 +102,19 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
         </Activity>
 
         {appointment.proposedDate && !isPastDate && (
-          <Button
-            variant="outline"
-            disabled={appointment.status === "completed"}
-            className="w-full md:w-auto"
-            asChild
-          >
-            <Link
-              to="/profile/appointments/reschedule/$appointmentId"
-              params={{ appointmentId: appointment._id }}
-            >
-              Ver solicitud
-            </Link>
-          </Button>
+          <RescheduleResponseDialog
+            appointment={appointment}
+            viewer={isBarber ? "barber" : "customer"}
+            trigger={
+              <Button
+                variant="outline"
+                disabled={appointment.status === "completed"}
+                className="w-full md:w-auto"
+              >
+                Ver solicitud
+              </Button>
+            }
+          />
         )}
 
         {showDeleteButton ? (

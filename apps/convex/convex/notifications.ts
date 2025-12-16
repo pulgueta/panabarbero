@@ -247,6 +247,7 @@ export const createAppointmentRescheduleRequestNotification = internalMutation({
           appointmentId: args.appointmentId,
           to: toEmail,
           body,
+          sendTo: args.sendTo,
         },
       );
     }
