@@ -1,6 +1,7 @@
 import betterAuth from "@convex-dev/better-auth/convex.config";
 import pushNotifications from "@convex-dev/expo-push-notifications/convex.config";
 import postgis from "@convex-dev/geospatial/convex.config";
+import migrations from "@convex-dev/migrations/convex.config";
 import r2 from "@convex-dev/r2/convex.config";
 import rag from "@convex-dev/rag/convex.config";
 import rateLimiter from "@convex-dev/rate-limiter/convex.config";
@@ -15,4 +16,5 @@ app.use(pushNotifications);
 app.use(rateLimiter);
 app.use(r2);
 app.use(rag);
+app.use(migrations);
 export default app;
