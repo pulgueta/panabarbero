@@ -24,7 +24,7 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
   showAddress = true,
 }) => {
   return (
-    <Card className="gap-4 shadow-sm transition-shadow hover:shadow-md">
+    <Card className="gap-4 transition-shadow hover:shadow-xs">
       <CardHeader className="border-b [.border-b]:pb-4">
         <div className="flex items-start justify-between">
           <div className="flex w-full items-start justify-between">

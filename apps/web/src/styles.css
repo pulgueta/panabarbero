@@ -3,7 +3,7 @@
 @import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
-
+s
 body {
   @apply m-0;
   font-family:
@@ -30,17 +30,17 @@ code {
   --primary-foreground: oklch(0.971 0.013 17.38);
   --secondary: oklch(36.1% 0.1046 266.8);
   --secondary-foreground: oklch(0.97 0.014 254.604);
-  --muted: oklch(0.278 0.033 256.848);
-  --muted-foreground: oklch(0.707 0.022 261.325);
-  --accent: oklch(0.278 0.033 256.848);
-  --accent-foreground: oklch(0.985 0.002 247.839);
+  --muted: oklch(0.967 0.003 264.542);
+  --muted-foreground: oklch(0.551 0.027 264.364);
+  --accent: oklch(0.967 0.003 264.542);
+  --accent-foreground: oklch(0.21 0.034 264.665);
   --warning: oklch(0.84 0.16 84);
   --warning-foreground: oklch(0.28 0.07 46);
   --success: oklch(93.3% 0.078 140.7);
   --success-foreground: oklch(53.9% 0.1521 140.7);
   --destructive: oklch(59.8% 0.198 25.52);
   --destructive-foreground: oklch(98.3% 0.0083 25.52);
-  --border: oklch(1 0 0 / 10%);
+  --border: oklch(0.92 0.004 286.32);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.551 0.027 264.364);
   --chart-1: oklch(0.809 0.105 251.813);
@@ -69,10 +69,10 @@ code {
   --primary-foreground: oklch(0.971 0.013 17.38);
   --secondary: oklch(36.1% 0.1046 266.8);
   --secondary-foreground: oklch(0.97 0.014 254.604);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.278 0.033 256.848);
+  --muted-foreground: oklch(0.707 0.022 261.325);
+  --accent: oklch(0.278 0.033 256.848);
+  --accent-foreground: oklch(0.985 0.002 247.839);
   --warning: oklch(0.41 0.11 46);
   --warning-foreground: oklch(0.99 0.02 95);
   --success: oklch(31.8% 0.0792 140.7);

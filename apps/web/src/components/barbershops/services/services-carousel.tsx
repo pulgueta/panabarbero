@@ -42,7 +42,7 @@ export const ServicesCarousel: FC<ServicesCarouselProps> = ({
             key={service._id}
             className="mx-auto md:basis-1/2 lg:basis-1/3"
           >
-            <Card className="max-h-36 bg-secondary/20 transition-transform duration-500 dark:bg-secondary/20">
+            <Card className="max-h-36 transition-transform duration-500">
               <CardContent className="flex items-start justify-between gap-4 px-4">
                 <section className="space-y-2">
                   <p className="line-clamp-1 text-pretty font-semibold leading-4.5 tracking-tight">
