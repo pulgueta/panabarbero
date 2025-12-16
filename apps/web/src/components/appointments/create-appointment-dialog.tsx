@@ -20,22 +20,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
 import { Field } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import {
   useAppointmentActions,
   useAppointmentFormMetadata,
 } from "@/hooks/use-appointments";
-import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useProfile } from "@/hooks/use-profile";
 import { useSession } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
@@ -69,7 +59,6 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
 
   const navigate = useNavigate();
 
-  const { isMobile } = useIsMobile();
   const { data: user } = useSession();
   const { data: userProfile } = useProfile(user?.userId!);
   const {
@@ -162,58 +151,6 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
       search: (prev) => ({ ...prev, tab: "appointments" }),
     });
   });
-
-  if (isMobile) {
-    return (
-      <Drawer>
-        <DrawerTrigger asChild>{trigger}</DrawerTrigger>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>{headLabel}</DrawerTitle>
-            <DrawerDescription>{description}</DrawerDescription>
-          </DrawerHeader>
-
-          <Activity mode={user ? "visible" : "hidden"}>
-            <div className="p-4">
-              <CreateAppointmentForm
-                barbers={barbers}
-                service={service}
-                services={services}
-                // @ts-expect-error - zod's coerce method returns an unknown type
-                form={form}
-                initialValues={{
-                  customerName: user?.name,
-                  contactEmail: user?.email,
-                  contactPhone: user?.phoneNumber!,
-                }}
-                formIds={formIds}
-                onSubmit={onSubmit}
-              />
-            </div>
-          </Activity>
-
-          <DrawerFooter>
-            {user ? (
-              <Field>
-                <Button
-                  type="submit"
-                  form={formIds.form}
-                  disabled={isCreatingAppointment}
-                >
-                  {isCreatingAppointment && <Spinner />}
-                  Reservar
-                </Button>
-              </Field>
-            ) : (
-              <Button asChild>
-                <Link to="/login">Iniciar sesión</Link>
-              </Button>
-            )}
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-    );
-  }
 
   return (
     <Dialog>

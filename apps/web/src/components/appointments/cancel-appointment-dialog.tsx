@@ -15,18 +15,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
 import { Spinner } from "@/components/ui/spinner";
 import { useAppointmentActions } from "@/hooks/use-appointments";
-import { useIsMobile } from "@/hooks/use-is-mobile";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 import { cancelAppointmentFormSchema } from "@/lib/schemas";
 import { CancelAppointmentForm } from "./delete-appointment-form";
@@ -48,8 +38,6 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
     notes: useId(),
     form: useId(),
   };
-
-  const { isMobile } = useIsMobile();
 
   const form = useForm({
     resolver: zodResolver(cancelAppointmentFormSchema),
@@ -93,43 +81,6 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
       return;
     }
   });
-
-  if (isMobile) {
-    return (
-      <Drawer>
-        <DrawerTrigger asChild>{trigger}</DrawerTrigger>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>{title}</DrawerTitle>
-            <DrawerDescription>{cancelDialogDescription}</DrawerDescription>
-          </DrawerHeader>
-
-          <div className="p-4">
-            <CancelAppointmentForm
-              isBarber={isBarber}
-              form={form}
-              formIds={formIds}
-              onSubmit={onSubmit}
-              disabled={isCancellingAppointment}
-            />
-          </div>
-
-          <DrawerFooter>
-            <Button
-              variant="destructive"
-              disabled={isCancellingAppointment}
-              onClick={onSubmit}
-              form={formIds.form}
-              type="submit"
-            >
-              {isCancellingAppointment && <Spinner />}
-              {cancelButtonLabel}
-            </Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-    );
-  }
 
   return (
     <Dialog>

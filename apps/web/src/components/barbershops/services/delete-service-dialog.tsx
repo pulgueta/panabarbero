@@ -13,17 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
 import { Spinner } from "@/components/ui/spinner";
-import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useServiceActions } from "@/hooks/use-services";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
@@ -40,7 +30,6 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
 }) => {
   const [open, setOpen] = useState<boolean>(false);
 
-  const { isMobile } = useIsMobile();
   const {
     deleteServiceMutation: {
       mutateAsync: deleteService,
@@ -72,27 +61,6 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
       setOpen(false);
     }
   }, [isDeleted]);
-
-  if (isMobile) {
-    return (
-      <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerTrigger asChild>{trigger}</DrawerTrigger>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>{deleteDialogTitle}</DrawerTitle>
-            <DrawerDescription>{deleteDialogDescription}</DrawerDescription>
-          </DrawerHeader>
-
-          <DrawerFooter>
-            <Button variant="destructive" onClick={onDelete}>
-              {isDeleting && <Spinner />}
-              {deleteButtonLabel}
-            </Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-    );
-  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

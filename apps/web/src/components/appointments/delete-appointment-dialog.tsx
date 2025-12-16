@@ -12,19 +12,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
 import { Spinner } from "@/components/ui/spinner";
 import { useAppointmentActions } from "@/hooks/use-appointments";
-import { useIsMobile } from "@/hooks/use-is-mobile";
 
 interface DeleteAppointmentDialogProps {
   appointment: Appointment;
@@ -35,8 +24,6 @@ export const DeleteAppointmentDialog: FC<DeleteAppointmentDialogProps> = ({
   appointment,
   trigger,
 }) => {
-  const { isMobile } = useIsMobile();
-
   const {
     deleteAppointmentMutation: {
       mutateAsync: deleteAppointment,
@@ -54,41 +41,6 @@ export const DeleteAppointmentDialog: FC<DeleteAppointmentDialogProps> = ({
     });
     toast.success("Cita eliminada correctamente.");
   };
-
-  if (isMobile) {
-    return (
-      <Drawer>
-        <DrawerTrigger asChild>{trigger}</DrawerTrigger>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>Eliminar cita</DrawerTitle>
-            <DrawerDescription>{deleteDialogDescription}</DrawerDescription>
-          </DrawerHeader>
-
-          <DrawerFooter>
-            <Button
-              variant="destructive"
-              disabled={isDeletingAppointment}
-              onClick={onDelete}
-            >
-              {isDeletingAppointment && <Spinner />}
-              {deleteButtonLabel}
-            </Button>
-
-            <DrawerClose asChild>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isDeletingAppointment}
-              >
-                No, cancelar
-              </Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-    );
-  }
 
   return (
     <Dialog>

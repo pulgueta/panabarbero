@@ -16,22 +16,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import { Field } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import {
   useAppointmentActions,
   useAppointmentFormMetadata,
 } from "@/hooks/use-appointments";
-import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useSession } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 import { rescheduleRequestFormSchema } from "@/lib/schemas";
@@ -62,7 +51,7 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
   });
 
   const { data: session } = useSession();
-  const { isMobile } = useIsMobile();
+
   const {
     disableDay,
     scheduleForDate,
@@ -138,44 +127,6 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
   const headLabel = "Solicitar reagendamiento";
   const description = `Puedes proponer una nueva fecha y hora a tu ${toLabel}.`;
   const sendButtonLabel = "Enviar solicitud";
-
-  if (isMobile) {
-    return (
-      <Drawer>
-        <DrawerTrigger asChild>{trigger}</DrawerTrigger>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>{headLabel}</DrawerTitle>
-            <DrawerDescription>{description}</DrawerDescription>
-          </DrawerHeader>
-
-          <div className="p-4">
-            <RescheduleRequestForm
-              // @ts-expect-error - zod's coerce method returns an unknown type
-              form={form}
-              formIds={formIds}
-              onSubmit={onSubmit}
-              disableDay={disableDay}
-              appointment={appointment}
-            />
-          </div>
-
-          <DrawerFooter>
-            <Field>
-              <Button
-                type="submit"
-                form={formIds.form}
-                disabled={isSendingRescheduleRequest}
-              >
-                {isSendingRescheduleRequest && <Spinner />}
-                {sendButtonLabel}
-              </Button>
-            </Field>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-    );
-  }
 
   return (
     <Dialog>
