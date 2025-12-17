@@ -184,7 +184,11 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
             // @ts-expect-error - zod's coerce method returns an unknown type
             form={form}
             disabledFields={
-              isBarber ? [] : ["contactEmail", "contactPhone", "customerName"]
+              isBarber
+                ? []
+                : userProfile?.phoneNumber
+                  ? ["contactEmail", "customerName", "contactPhone"]
+                  : ["contactEmail", "customerName"]
             }
             formIds={formIds}
             onSubmit={onSubmit}

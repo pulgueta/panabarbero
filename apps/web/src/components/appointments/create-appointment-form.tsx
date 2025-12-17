@@ -37,6 +37,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppointmentFormMetadata } from "@/hooks/use-appointments";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { appointmentFormSchema } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 
@@ -71,6 +72,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
   formIds,
   form,
 }) => {
+  const { isMobile } = useIsMobile();
   const { disableDay } = useAppointmentFormMetadata(barbershopId);
 
   return (
@@ -123,10 +125,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                   placeholder="3119871234"
                   autoComplete="tel"
                   type="tel"
-                  disabled={
-                    disabledFields?.includes("contactPhone") &&
-                    !!form.getValues("contactPhone").length
-                  }
+                  disabled={disabledFields?.includes("contactPhone")}
                 />
 
                 {fieldState.invalid && (
@@ -232,14 +231,16 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                       )}
                     >
                       {field.value ? (
-                        new Date(field.value as number).toLocaleDateString(
-                          "es-CO",
-                          {
-                            day: "2-digit",
-                            month: "long",
-                            year: "numeric",
-                          },
-                        )
+                        <span className="text-xs sm:text-sm">
+                          {new Date(field.value as number).toLocaleDateString(
+                            "es-CO",
+                            {
+                              day: "2-digit",
+                              month: isMobile ? "short" : "long",
+                              year: "numeric",
+                            },
+                          )}
+                        </span>
                       ) : (
                         <span className="text-xs sm:text-sm">
                           Selecciona una fecha
