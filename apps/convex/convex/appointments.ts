@@ -12,6 +12,7 @@ import {
 import { authComponent } from "./auth";
 import { errorMessages } from "./errors";
 import { rateLimiter } from "./ratelimit";
+import type { UserProfileData } from "./tables";
 import { tables } from "./tables";
 
 function parseTimeToMinutes(time: string): number {
@@ -95,7 +96,7 @@ export const createAppointment = mutation({
       date: v.number(),
       contactPhone: v.string(),
       customerName: v.string(),
-      contactEmail: v.string(),
+      contactEmail: v.optional(v.string()),
       notes: v.optional(v.string()),
       isBarber: v.boolean(),
     }),
@@ -123,12 +124,16 @@ export const createAppointment = mutation({
     }
 
     const barberProfile = await ctx.db.get(barber.userProfileDataId);
-    const customerProfile = await ctx.runQuery(
-      internal.userProfileData.getProfileByEmail,
-      {
-        email: appointment.contactEmail,
-      },
-    );
+    let customerProfile: UserProfileData | null = null;
+
+    if (appointment.contactEmail) {
+      customerProfile = await ctx.runQuery(
+        internal.userProfileData.getProfileByEmail,
+        {
+          email: appointment.contactEmail,
+        },
+      );
+    }
 
     if (!barberProfile) {
       throw new ConvexError(errorMessages.notFound("perfil de barbero"));
@@ -255,6 +260,7 @@ export const createAppointment = mutation({
         appointmentId,
         barberUserId: barberProfile.userId,
         customerUserId: customerProfile?.userId ?? "user_does_not_exist",
+        // @ts-expect-error - email is optional
         to: customerProfile?.email ?? appointment.contactEmail,
         sendTo: "customer",
         barbershopName: barbershop.name,
