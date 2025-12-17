@@ -143,7 +143,6 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
       await createAppointment({
         appointment: {
           ...formData,
-          userId: user?.userId!,
           barbershopId,
           barbershopMemberId: formData.barbershopMemberId,
           serviceId: serviceId ?? service._id,

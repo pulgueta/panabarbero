@@ -89,7 +89,6 @@ function overlapsLunchBreak(
 export const createAppointment = mutation({
   args: {
     appointment: v.object({
-      userId: v.string(),
       barbershopId: v.id("barbershops"),
       serviceId: v.id("services"),
       barbershopMemberId: v.id("barbershopMembers"),
@@ -225,8 +224,8 @@ export const createAppointment = mutation({
     }
 
     const appointmentUserId = isBarberCreatingAppointment
-      ? barberProfile.userId
-      : (customerProfile?.userId ?? "user_does_not_exist");
+      ? (customerProfile?.userId ?? "user_does_not_exist")
+      : barberProfile.userId;
     const { isBarber: _isBarber, ...withoutIsBarber } = appointment;
 
     const appointmentId = await ctx.db.insert("appointments", {
