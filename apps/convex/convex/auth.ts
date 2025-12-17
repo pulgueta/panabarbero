@@ -1,15 +1,14 @@
-import { passkey } from "@better-auth/passkey";
+import { expo } from "@better-auth/expo";
 import type { AuthFunctions, GenericCtx } from "@convex-dev/better-auth";
 import { createClient } from "@convex-dev/better-auth";
 import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
 import { APP_NAME } from "@panabarbero/constants";
 import { betterAuth } from "better-auth";
 import { twoFactor } from "better-auth/plugins";
-
+import { passkey } from "better-auth/plugins/passkey";
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { query } from "./_generated/server";
-import authConfig from "./auth.config";
 
 const authFunctions: AuthFunctions = internal.auth;
 
@@ -86,8 +85,12 @@ const siteUrl = process.env.SITE_URL ?? "";
 
 export const createAuth = (
   ctx: GenericCtx<DataModel>,
+  { optionsOnly } = { optionsOnly: false },
 ) => {
   return betterAuth({
+    logger: {
+      disabled: optionsOnly,
+    },
     appName: APP_NAME,
     trustedOrigins: ["panabarbero://", siteUrl, "http://localhost:3000"],
     database: authComponent.adapter(ctx),
@@ -107,9 +110,8 @@ export const createAuth = (
       },
     },
     plugins: [
-      convex({
-        authConfig
-      }),
+      expo(),
+      convex(),
       crossDomain({ siteUrl }),
       passkey(),
       twoFactor(),
