@@ -4,7 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Activity, Suspense } from "react";
 
 import { BarbershopHeader } from "@/components/barbershops/barbershop-header";
-import { ServicesCarousel } from "@/components/barbershops/services/services-carousel";
+import { ServicesGrid } from "@/components/barbershops/services/services-grid";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ServicesSkeleton } from "@/components/layout/skeleton/services-skeleton";
@@ -116,7 +116,7 @@ function RouteComponent() {
                   : "visible"
               }
             >
-              <ServicesCarousel
+              <ServicesGrid
                 services={services}
                 barbers={barbers}
                 barbershopId={barbershop?._id!}

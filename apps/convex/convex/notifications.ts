@@ -531,3 +531,61 @@ export const createAppointmentReminderNotification = internalMutation({
     }
   },
 });
+
+export const createPastAppointmentReminderNotification = internalMutation({
+  args: {
+    barberUserId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const barberProfile = await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      {
+        userId: args.barberUserId,
+      },
+    );
+
+    if (!barberProfile) {
+      throw new ConvexError(errorMessages.notFound("perfil de barbero"));
+    }
+
+    const channels = barberProfile.notificationsPreferences
+      .filter((n) => n.enabled)
+      .map((n) => n.type);
+
+    const body = `Haz tenido una cita hace poco, no olvides marcar su estado final.`;
+
+    await ctx.runMutation(internal.notifications.saveNotification, {
+      notification: {
+        reason: "past_appointment_reminder",
+        uuid: crypto.randomUUID(),
+        channels,
+        title: subjects.past_appointment_reminder,
+        body,
+        receiverUserId: barberProfile.userId,
+        senderUserId: "system",
+      },
+    });
+
+    if (
+      isNotificationEnabled("email", barberProfile.notificationsPreferences)
+    ) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.emails.sendPastAppointmentReminderEmail,
+        {
+          to: barberProfile.email,
+        },
+      );
+    }
+
+    if (
+      isNotificationEnabled("sms", barberProfile.notificationsPreferences) &&
+      barberProfile.phoneNumber
+    ) {
+      await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
+        body,
+        to: barberProfile.phoneNumber,
+      });
+    }
+  },
+});
