@@ -1088,12 +1088,6 @@ export declare const components: {
         },
         any
       >;
-      migrationRemoveUserId: FunctionReference<
-        "mutation",
-        "internal",
-        { userId: string },
-        any
-      >;
       updateMany: FunctionReference<
         "mutation",
         "internal",

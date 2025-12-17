@@ -124,9 +124,11 @@ function ProfilePage() {
 
   const tabsToRender = useMemo(() => {
     const base = [tabs.appointments, tabs.account, tabs.security];
+
     if (isBarber) {
       base.push(tabs.danger);
     }
+
     return base;
   }, [isBarber]);
 
@@ -140,7 +142,11 @@ function ProfilePage() {
           </p>
         </div>
 
-        <Button variant="destructive" onClick={handleSignOut} className="mt-1">
+        <Button
+          variant="destructive"
+          onClick={handleSignOut}
+          className="mt-1 text-xs sm:text-sm"
+        >
           <LogOut className="hidden size-3 sm:block" />
           Cerrar sesión
         </Button>
@@ -193,7 +199,7 @@ function ProfilePage() {
               }
             >
               <TabsContent value={tabs.security.value} className="pt-2">
-                <SecurityTab profile={profile} />
+                <SecurityTab />
               </TabsContent>
             </Activity>
           </Suspense>
