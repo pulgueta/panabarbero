@@ -143,7 +143,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor={formIds.contactEmail}>
-                  Email de contacto
+                  Email de contacto (opcional)
                 </FieldLabel>
                 <Input
                   {...field}

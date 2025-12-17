@@ -194,11 +194,7 @@ export const appointmentFormSchema = object({
   })
     .min(10, "El teléfono debe tener al menos 10 caracteres")
     .max(10, "El teléfono debe tener menos de 10 caracteres"),
-  contactEmail: email({
-    error: "El email de contacto es requerido",
-  })
-    .min(6, "El email debe tener al menos 6 caracteres")
-    .max(255, "El email debe tener menos de 255 caracteres"),
+  contactEmail: email().optional(),
   notes: string().optional(),
   barbershopMemberId: zodAny(),
   serviceId: zodAny(),

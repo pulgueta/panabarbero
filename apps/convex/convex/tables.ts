@@ -122,7 +122,7 @@ export const tables = {
     rescheduleRequestedByUserId: v.optional(v.string()),
     customerName: v.string(),
     contactPhone: v.string(),
-    contactEmail: v.string(),
+    contactEmail: v.optional(v.string()),
     status: v.union(
       v.literal("pending"),
       v.literal("confirmed"),
