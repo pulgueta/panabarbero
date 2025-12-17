@@ -69,6 +69,7 @@ export const PasskeysSection = () => {
       </CardContent>
       <CardFooter className="justify-end pt-0">
         <Button
+          disabled
           onClick={async () => {
             try {
               const pk = await passkey.addPasskey();
