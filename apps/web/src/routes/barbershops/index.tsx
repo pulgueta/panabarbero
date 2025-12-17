@@ -80,8 +80,8 @@ function BarbershopsPage() {
   const showModal = !city && !state;
 
   return (
-    <BorderContainer className="p-0 md:p-0 lg:p-0">
-      <header className="flex flex-col items-center justify-between gap-2.5 py-6 md:py-10">
+    <BorderContainer className="space-y-8 px-0 lg:px-0">
+      <header className="flex flex-col items-center justify-between gap-2.5 pt-4 pb-2">
         <section className="w-full space-y-4">
           <h1
             className="text-balance text-center font-bold text-3xl tracking-tight"
@@ -103,7 +103,7 @@ function BarbershopsPage() {
         </section>
       </header>
 
-      <div className="w-full border-y bg-accent/20 px-4 py-6">
+      <div className="w-full border-y bg-accent/20 px-4 py-6 md:px-8 lg:px-10">
         <BarbershopFilters />
       </div>
 
