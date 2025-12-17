@@ -441,7 +441,8 @@ export const createAppointmentCreatedNotification = internalMutation({
       isNotificationEnabled(
         "email",
         receiverProfile?.notificationsPreferences ?? [],
-      )
+      ) &&
+      receiverProfile?.email
     ) {
       await ctx.scheduler.runAfter(
         0,
