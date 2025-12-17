@@ -101,10 +101,6 @@ export const createAppointmentCancelledNotification = internalMutation({
       },
     );
 
-    if (!customerProfile) {
-      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
-    }
-
     const barberProfile = await ctx.db.get(barbershopMember.userProfileDataId);
 
     if (!barberProfile) {
@@ -114,23 +110,26 @@ export const createAppointmentCancelledNotification = internalMutation({
     const isCustomer = args.sendTo === "customer";
     const receiverProfile = isCustomer ? customerProfile : barberProfile;
     const receiverUserId = isCustomer
-      ? appointment.userId
+      ? (customerProfile?.userId ?? "user_does_not_exist")
       : barberProfile.userId;
 
     const toEmail = isCustomer
-      ? (customerProfile.email ?? appointment.contactEmail)
+      ? (customerProfile?.email ?? appointment.contactEmail)
       : barberProfile.email;
 
-    const channels = receiverProfile.notificationsPreferences
-      .filter((n) => n.enabled)
-      .map((n) => n.type);
+    const channels =
+      receiverProfile?.notificationsPreferences
+        .filter((n) => n.enabled)
+        .map((n) => n.type) ?? (isCustomer ? ["sms"] : []);
 
     const cancellingCustomerName =
-      customerProfile.name ?? appointment.customerName ?? "El cliente";
+      customerProfile?.name ?? appointment.customerName ?? "El cliente";
 
     const body = isCustomer
       ? `Tu cita ha sido cancelada.`
       : `${cancellingCustomerName} ha cancelado su cita.`;
+
+    const smsBody = args.notes ? `${body} Motivo: ${args.notes}` : body;
 
     await ctx.runMutation(internal.notifications.saveNotification, {
       notification: {
@@ -146,30 +145,37 @@ export const createAppointmentCancelledNotification = internalMutation({
     });
 
     if (
+      receiverProfile &&
       isNotificationEnabled("email", receiverProfile.notificationsPreferences)
     ) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.emails.sendAppointmentCancelled,
-        {
-          notes: args.notes,
-          sendTo: args.sendTo,
-          to: toEmail,
-          body,
-        },
-      );
+      if (toEmail) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.emails.sendAppointmentCancelled,
+          {
+            notes: args.notes,
+            sendTo: args.sendTo,
+            to: toEmail,
+            body,
+          },
+        );
+      }
     }
 
+    const smsEnabled = receiverProfile
+      ? isNotificationEnabled("sms", receiverProfile.notificationsPreferences)
+      : isCustomer;
+
     if (
-      isNotificationEnabled("sms", receiverProfile.notificationsPreferences)
+      smsEnabled &&
+      (receiverProfile?.phoneNumber || appointment.contactPhone)
     ) {
-      const phoneNumber = receiverProfile.phoneNumber;
-      if (phoneNumber) {
-        await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
-          body,
-          to: phoneNumber,
-        });
-      }
+      const phoneNumber =
+        receiverProfile?.phoneNumber ?? appointment.contactPhone;
+      await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
+        body: smsBody,
+        to: phoneNumber,
+      });
     }
   },
 });
