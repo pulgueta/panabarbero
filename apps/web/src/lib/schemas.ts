@@ -11,6 +11,7 @@ import {
   url,
   any as zodAny,
   enum as zodEnum,
+  undefined as zodUndefined,
 } from "zod";
 
 export const dayMapping = {
@@ -194,7 +195,7 @@ export const appointmentFormSchema = object({
   })
     .min(10, "El teléfono debe tener al menos 10 caracteres")
     .max(10, "El teléfono debe tener menos de 10 caracteres"),
-  contactEmail: email().optional(),
+  contactEmail: email().or(zodUndefined()),
   notes: string().optional(),
   barbershopMemberId: zodAny(),
   serviceId: zodAny(),

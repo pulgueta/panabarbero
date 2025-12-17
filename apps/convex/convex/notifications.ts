@@ -373,7 +373,7 @@ export const createAppointmentRescheduleDecisionNotification = internalMutation(
 export const createAppointmentCreatedNotification = internalMutation({
   args: {
     appointmentId: v.id("appointments"),
-    to: v.string(),
+    to: v.optional(v.string()),
     customerUserId: v.string(),
     barberUserId: v.string(),
     sendTo: v.union(v.literal("customer"), v.literal("barber")),
@@ -442,7 +442,8 @@ export const createAppointmentCreatedNotification = internalMutation({
         "email",
         receiverProfile?.notificationsPreferences ?? [],
       ) &&
-      receiverProfile?.email
+      receiverProfile?.email &&
+      args.to
     ) {
       await ctx.scheduler.runAfter(
         0,

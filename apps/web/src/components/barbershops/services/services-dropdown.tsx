@@ -68,7 +68,7 @@ export const ServicesDropdown: FC<ServicesDropdownProps> = ({ services }) => {
                   {service.name}
                   <Check
                     className={cn(
-                      "mr-auto",
+                      "ml-auto size-3",
                       value === service._id ? "opacity-100" : "opacity-0",
                     )}
                   />

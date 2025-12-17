@@ -1088,6 +1088,12 @@ export declare const components: {
         },
         any
       >;
+      migrationRemoveUserId: FunctionReference<
+        "mutation",
+        "internal",
+        { userId: string },
+        any
+      >;
       updateMany: FunctionReference<
         "mutation",
         "internal",
@@ -2188,6 +2194,11 @@ export declare const components: {
         "query",
         "internal",
         {
+          filtering: Array<{
+            filterKey: string;
+            filterValue: string | number | boolean | null | bigint;
+            occur: "should" | "must";
+          }>;
           levelMod: number;
           logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
           maxDistance?: number;
@@ -2196,6 +2207,9 @@ export declare const components: {
           minLevel: number;
           nextCursor?: string;
           point: { latitude: number; longitude: number };
+          sorting: {
+            interval: { endExclusive?: number; startInclusive?: number };
+          };
         },
         Array<{
           coordinates: { latitude: number; longitude: number };

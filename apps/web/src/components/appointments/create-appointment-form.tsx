@@ -81,7 +81,9 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
         <div className="grid grid-cols-2 gap-4">
           {isBarber && (
             <Field className="col-span-2">
-              <FieldLabel htmlFor={formIds.serviceId}>Servicio</FieldLabel>
+              <FieldLabel htmlFor={formIds.serviceId} aria-required>
+                Servicio
+              </FieldLabel>
 
               <ServicesDropdown services={services} />
             </Field>

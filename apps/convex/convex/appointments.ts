@@ -260,8 +260,7 @@ export const createAppointment = mutation({
         appointmentId,
         barberUserId: barberProfile.userId,
         customerUserId: customerProfile?.userId ?? "user_does_not_exist",
-        // @ts-expect-error - email is optional
-        to: customerProfile?.email ?? appointment.contactEmail,
+        to: customerProfile?.email || appointment.contactEmail,
         sendTo: "customer",
         barbershopName: barbershop.name,
       },

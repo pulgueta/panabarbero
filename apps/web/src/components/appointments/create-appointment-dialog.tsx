@@ -81,6 +81,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   const { service } = useServicesStore();
 
   const form = useForm({
+    // @ts-expect-error - zodResolver is not typed correctly
     resolver: zodResolver(appointmentFormSchema),
     defaultValues: {
       date: undefined,
