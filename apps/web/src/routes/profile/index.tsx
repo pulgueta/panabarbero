@@ -131,16 +131,22 @@ function ProfilePage() {
   }, [isBarber]);
 
   return (
-    <BorderContainer className="space-y-6">
-      <div className="flex flex-col items-start justify-center gap-4">
-        <Button
-          variant="destructive"
-          onClick={handleSignOut}
-          className="min-w-24"
-        >
-          <LogOut className="size-4" />
+    <BorderContainer className="space-y-4">
+      <header className="flex items-start justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="font-bold text-2xl tracking-tight">Perfil</h1>
+          <p className="text-pretty text-muted-foreground text-sm">
+            Gestiona tu perfil y tus citas.
+          </p>
+        </div>
+
+        <Button variant="destructive" onClick={handleSignOut} className="mt-1">
+          <LogOut className="hidden size-3 sm:block" />
           Cerrar sesión
         </Button>
+      </header>
+
+      <div className="flex flex-col items-start justify-center gap-4">
         <Tabs
           defaultValue={
             tab ?? (isBarber ? tabs.account.value : tabs.appointments.value)

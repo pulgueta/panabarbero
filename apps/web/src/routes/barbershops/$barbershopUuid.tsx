@@ -3,9 +3,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Activity, Suspense } from "react";
 
-import { BarbershopAvatar } from "@/components/barbershops/barbershop-avatar";
 import { BarbershopHeader } from "@/components/barbershops/barbershop-header";
 import { ServicesCarousel } from "@/components/barbershops/services/services-carousel";
+import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ServicesSkeleton } from "@/components/layout/skeleton/services-skeleton";
 import { useCarouselApi } from "@/components/ui/carousel";
@@ -83,9 +83,9 @@ function RouteComponent() {
     useBarbersByBarbershopId(barbershop?._id!);
 
   return (
-    <div className="w-full">
-      <main className="container mx-auto min-h-[calc(100dvh-65px)] border-x">
-        <header className="flex w-full flex-row justify-between gap-4 px-4 pt-8 md:px-8 lg:px-16">
+    <BorderContainer>
+      <main>
+        <header className="flex w-full flex-row justify-between gap-4">
           <Suspense fallback={<Skeleton className="h-48 w-full" />}>
             <Activity mode={isLoadingBarbershop ? "hidden" : "visible"}>
               <BarbershopHeader
@@ -94,16 +94,16 @@ function RouteComponent() {
                 availability={barbershop?.availability!}
               />
 
-              <section>
+              {/* <section>
                 <BarbershopAvatar barbershop={barbershop} size="lg" />
-              </section>
+              </section> */}
             </Activity>
           </Suspense>
         </header>
 
         <Separator className="mt-8 mb-6" />
 
-        <section className="space-y-4 px-4 md:px-8 lg:px-16">
+        <section className="space-y-4">
           <h2 className="my-6 text-balance text-center font-semibold text-xl tracking-tight">
             Servicios ofrecidos:
           </h2>
@@ -111,10 +111,16 @@ function RouteComponent() {
           <Suspense fallback={<ServicesSkeleton />}>
             <Activity
               mode={
-                isLoadingServices || isLoadingBarbers ? "hidden" : "visible"
+                isLoadingServices || isLoadingBarbers || !barbershop?._id
+                  ? "hidden"
+                  : "visible"
               }
             >
-              <ServicesCarousel services={services} barbers={barbers} />
+              <ServicesCarousel
+                services={services}
+                barbers={barbers}
+                barbershopId={barbershop?._id!}
+              />
             </Activity>
           </Suspense>
 
@@ -145,6 +151,6 @@ function RouteComponent() {
           )} */}
         </section>
       </main>
-    </div>
+    </BorderContainer>
   );
 }

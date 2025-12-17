@@ -2,8 +2,10 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import { es } from "date-fns/locale";
+import { PlusIcon } from "lucide-react";
 import { Activity, Suspense, useState } from "react";
 
+import { CreateAppointmentDialog } from "@/components/appointments/create-appointment-dialog";
 import {
   appointmentsTableColumns,
   rescheduledAppointmentRequestsTableColumns,
@@ -11,6 +13,7 @@ import {
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { DataTable } from "@/components/table/data-table";
+import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,10 +27,15 @@ import {
   useAppointmentsByBarbershop,
   useRescheduledAppointmentRequests,
 } from "@/hooks/use-appointments";
-import { isBarberQueryOptions } from "@/hooks/use-barbershop-members";
+import {
+  barbersByBarbershopIdQueryOptions,
+  isBarberQueryOptions,
+  useBarbersByBarbershopId,
+} from "@/hooks/use-barbershop-members";
 import {
   serviceByAppointmentIdQueryOptions,
   servicesByIdsQueryOptions,
+  useServicesByBarbershopId,
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
@@ -52,6 +60,10 @@ export const Route = createFileRoute("/profile/barbershops/appointments/")({
         const appointments = await context.queryClient.ensureQueryData(
           appointmentsByBarbershopQueryOptions(barbershop._id),
         );
+        await context.queryClient.ensureQueryData(
+          barbersByBarbershopIdQueryOptions(barbershop._id),
+        );
+
         await context.queryClient.ensureQueryData(
           requestRescheduleQueryOptions(barbershop._id),
         );
@@ -82,6 +94,8 @@ function RouteComponent() {
 
   const { data: session } = useSession();
   const { data: barbershop } = useBarbershopByOwnerId(session?.userId!);
+  const { data: barbers } = useBarbersByBarbershopId(barbershop?._id!);
+  const { data: services } = useServicesByBarbershopId(barbershop?._id!);
   const {
     data: rescheduledAppointmentRequests,
     isLoading: isLoadingRescheduledAppointmentRequests,
@@ -101,10 +115,10 @@ function RouteComponent() {
     .sort((a, b) => a.date - b.date);
 
   return (
-    <BorderContainer className="space-y-6">
+    <BorderContainer className="space-y-4">
       <section className="flex w-full flex-col justify-between gap-4">
         <div className="flex w-full items-center justify-between gap-4">
-          <h1 className="font-bold text-3xl tracking-tight">Citas</h1>
+          <h1 className="font-bold text-2xl tracking-tight">Citas</h1>
         </div>
       </section>
 
@@ -124,7 +138,7 @@ function RouteComponent() {
         </div>
 
         <div className="md:col-span-2">
-          <header className="mb-4 flex flex-col gap-1">
+          <header className="mb-2 flex items-center justify-between gap-1">
             <h2 className="font-semibold text-lg">
               {selectedDate
                 ? `${appointmentsForSelectedDay.length} cita${appointmentsForSelectedDay.length > 1 || appointmentsForSelectedDay.length === 0 ? "s" : ""} (${selectedDate.toLocaleDateString(
@@ -136,6 +150,21 @@ function RouteComponent() {
                   )})`
                 : "No hay día seleccionado"}
             </h2>
+
+            {barbershop?._id && (
+              <CreateAppointmentDialog
+                trigger={
+                  <Button>
+                    <PlusIcon className="size-3" />
+                    Crear cita
+                  </Button>
+                }
+                barbershopId={barbershop._id}
+                barbers={barbers}
+                services={services}
+                serviceId={undefined}
+              />
+            )}
           </header>
 
           <Suspense fallback={<Skeleton className="h-96 w-full" />}>
