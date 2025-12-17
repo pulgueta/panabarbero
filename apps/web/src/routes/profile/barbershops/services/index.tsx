@@ -84,11 +84,11 @@ function RouteComponent() {
   const canGoPrevious = cursorStack.length > 0;
 
   return (
-    <BorderContainer className="space-y-6">
+    <BorderContainer className="space-y-4">
       <section className="flex w-full flex-col gap-4">
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div className="space-y-1">
-            <h1 className="font-bold text-xl tracking-tight">
+            <h1 className="font-bold text-2xl tracking-tight">
               Gestiona tus servicios
             </h1>
             <p className="text-muted-foreground text-sm">

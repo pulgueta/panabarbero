@@ -89,7 +89,6 @@ function overlapsLunchBreak(
 export const createAppointment = mutation({
   args: {
     appointment: v.object({
-      userId: v.string(),
       barbershopId: v.id("barbershops"),
       serviceId: v.id("services"),
       barbershopMemberId: v.id("barbershopMembers"),
@@ -98,6 +97,7 @@ export const createAppointment = mutation({
       customerName: v.string(),
       contactEmail: v.string(),
       notes: v.optional(v.string()),
+      isBarber: v.boolean(),
     }),
   },
   handler: async (ctx, args) => {
@@ -123,6 +123,12 @@ export const createAppointment = mutation({
     }
 
     const barberProfile = await ctx.db.get(barber.userProfileDataId);
+    const customerProfile = await ctx.runQuery(
+      internal.userProfileData.getProfileByEmail,
+      {
+        email: appointment.contactEmail,
+      },
+    );
 
     if (!barberProfile) {
       throw new ConvexError(errorMessages.notFound("perfil de barbero"));
@@ -135,6 +141,8 @@ export const createAppointment = mutation({
 
     const endOfDay = new Date(startOfDay);
     endOfDay.setHours(23, 59, 59, 999);
+
+    const isBarberCreatingAppointment = appointment.isBarber;
 
     const candidates = await ctx.db
       .query("appointments")
@@ -152,7 +160,7 @@ export const createAppointment = mutation({
             q.eq(q.field("status"), "pending"),
             q.eq(q.field("status"), "confirmed"),
           ),
-          q.eq(q.field("deletedAt"), null),
+          q.eq(q.field("deletedAt"), undefined),
         ),
       )
       .collect();
@@ -215,47 +223,43 @@ export const createAppointment = mutation({
       throw new ConvexError(errorMessages.appointmentDuringLunchBreak);
     }
 
+    const appointmentUserId = isBarberCreatingAppointment
+      ? (customerProfile?.userId ?? "user_does_not_exist")
+      : barberProfile.userId;
+    const { isBarber: _isBarber, ...withoutIsBarber } = appointment;
+
     const appointmentId = await ctx.db.insert("appointments", {
-      ...appointment,
+      ...withoutIsBarber,
+      userId: appointmentUserId,
       uuid: crypto.randomUUID(),
       status: "confirmed",
     });
 
-    const userProfile = await ctx.runQuery(
-      internal.userProfileData.getProfileByUserId,
-      {
-        userId: appointment.userId,
-      },
-    );
-
-    if (!userProfile) {
-      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
-    }
-
-    await Promise.all([
+    if (!isBarberCreatingAppointment) {
       await ctx.runMutation(
         internal.notifications.createAppointmentCreatedNotification,
         {
           appointmentId,
           barberUserId: barberProfile.userId,
-          customerUserId: userProfile.userId,
-          to: userProfile.email,
-          sendTo: "customer",
-          barbershopName: barbershop.name,
-        },
-      ),
-      await ctx.runMutation(
-        internal.notifications.createAppointmentCreatedNotification,
-        {
-          appointmentId,
-          barberUserId: barberProfile.userId,
-          customerUserId: userProfile.userId,
+          customerUserId: customerProfile?.userId ?? "user_does_not_exist",
           to: barberProfile.email,
           sendTo: "barber",
           barbershopName: barbershop.name,
         },
-      ),
-    ]);
+      );
+    }
+
+    await ctx.runMutation(
+      internal.notifications.createAppointmentCreatedNotification,
+      {
+        appointmentId,
+        barberUserId: barberProfile.userId,
+        customerUserId: customerProfile?.userId ?? "user_does_not_exist",
+        to: customerProfile?.email ?? appointment.contactEmail,
+        sendTo: "customer",
+        barbershopName: barbershop.name,
+      },
+    );
 
     const thirtyMinutesBeforeAppointment = appointment.date - 30 * 60 * 1000;
     const thirtyMinutesAfterAppointment = appointment.date + 30 * 60 * 1000;
@@ -266,7 +270,7 @@ export const createAppointment = mutation({
       {
         appointmentId,
         barbershopId: appointment.barbershopId,
-        userId: appointment.userId,
+        userId: appointmentUserId,
       },
     );
 
@@ -277,8 +281,6 @@ export const createAppointment = mutation({
         to: barberProfile.email,
       },
     );
-
-    return appointmentId;
   },
 });
 
@@ -306,7 +308,7 @@ export const getRescheduledAppointmentRequests = query({
             q.not(q.eq(q.field("status"), "confirmed")),
             q.not(q.eq(q.field("status"), "no-show")),
           ),
-          q.eq(q.field("deletedAt"), null),
+          q.eq(q.field("deletedAt"), undefined),
         ),
       )
       .collect();
@@ -356,7 +358,7 @@ export const getAppointmentsByBarbershopId = query({
       .withIndex("by_barbershopId", (q) =>
         q.eq("barbershopId", args.barbershopId),
       )
-      .filter((q) => q.eq(q.field("deletedAt"), null))
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
       .collect();
 
     return appointments;
@@ -371,7 +373,7 @@ export const getAppointmentById = query({
     return await ctx.db
       .query("appointments")
       .withIndex("by_id", (q) => q.eq("_id", args.appointmentId))
-      .filter((q) => q.eq(q.field("deletedAt"), null))
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
       .unique();
   },
 });
@@ -389,7 +391,7 @@ export const getAppointmentByUuid = query({
     return await ctx.db
       .query("appointments")
       .withIndex("by_uuid", (q) => q.eq("uuid", args.uuid))
-      .filter((q) => q.eq(q.field("deletedAt"), null))
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
       .unique();
   },
 });
@@ -410,7 +412,7 @@ export const getAppointmentByUserIdAndBarbershopId = query({
       .withIndex("by_userIdAndBarbershopId", (q) =>
         q.eq("userId", args.userId).eq("barbershopId", args.barbershopId),
       )
-      .filter((q) => q.eq(q.field("deletedAt"), null))
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
       .unique();
   },
 });
