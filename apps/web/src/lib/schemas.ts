@@ -201,6 +201,7 @@ export const appointmentFormSchema = object({
     .max(255, "El email debe tener menos de 255 caracteres"),
   notes: string().optional(),
   barbershopMemberId: zodAny(),
+  serviceId: zodAny(),
 });
 
 export const reviewFormSchema = object({

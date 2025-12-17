@@ -1,4 +1,5 @@
 import type {
+  Barbershop,
   BarbershopMemberWithName,
   Service,
 } from "@panabarbero/convex/schemas";
@@ -40,9 +41,10 @@ import type { appointmentFormSchema } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 
 interface CreateAppointmentFormProps {
-  service: Service;
+  barbershopId: Barbershop["_id"];
   barbers: BarbershopMemberWithName[];
-  initialValues?: Partial<output<typeof appointmentFormSchema>>;
+  disabledFields?: (keyof output<typeof appointmentFormSchema>)[];
+  isBarber: boolean;
   onSubmit: (e: BaseSyntheticEvent) => void;
   services: Service[];
   form: UseFormReturn<output<typeof appointmentFormSchema>>;
@@ -60,86 +62,22 @@ interface CreateAppointmentFormProps {
 }
 
 export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
-  service,
+  barbershopId,
   barbers,
-  initialValues,
+  disabledFields,
+  isBarber,
   onSubmit,
   services,
   formIds,
   form,
 }) => {
-  const { disableDay } = useAppointmentFormMetadata(service.barbershopId);
-  //   if (!userId) {
-  //     toast.error("Debes iniciar sesión para poder reservar un servicio");
-  //     return;
-  //   }
-
-  //   if (!formData.barbershopMemberId) {
-  //     toast.error("Debes seleccionar un barbero");
-  //     return;
-  //   }
-
-  //   const schedule = scheduleForDate(formData.date);
-
-  //   if (!schedule || !schedule.weekDay.isActive) {
-  //     toast.error("La barbería no atiende en el día seleccionado.");
-  //     return;
-  //   }
-
-  //   const selectedMinutes = minutesOfTimestamp(formData.date);
-  //   const openMinutes = timeStringToMinutes(schedule.openAt);
-  //   const closeMinutes = timeStringToMinutes(schedule.closeAt);
-
-  //   if (
-  //     (openMinutes !== null && selectedMinutes < openMinutes) ||
-  //     (closeMinutes !== null && selectedMinutes >= closeMinutes)
-  //   ) {
-  //     toast.error("Selecciona una hora dentro del horario de atención.");
-  //     return;
-  //   }
-
-  //   const lunchStartMinutes = timeStringToMinutes(schedule.lunchStart);
-  //   const lunchEndMinutes = timeStringToMinutes(schedule.lunchEnd);
-
-  //   if (
-  //     lunchStartMinutes !== null &&
-  //     lunchEndMinutes !== null &&
-  //     selectedMinutes >= lunchStartMinutes &&
-  //     selectedMinutes < lunchEndMinutes
-  //   ) {
-  //     toast.error(
-  //       "No se puede reservar una cita durante el horario seleccionado.",
-  //     );
-  //     return;
-  //   }
-
-  //   captureEvent("service_booked", {
-  //     serviceName: service.name,
-  //     serviceId: selectedService._id || service._id,
-  //     barbershopId: service.barbershopId,
-  //   });
-
-  //   await createAppointment({
-  //     appointment: {
-  //       ...formData,
-  //       userId,
-  //       barbershopId: service.barbershopId,
-  //       serviceId: selectedService._id || service._id,
-  //       barbershopMemberId: formData.barbershopMemberId,
-  //     },
-  //   });
-
-  //   toast.success("Cita reservada exitosamente");
-  //   onSuccess?.();
-  //   form.reset();
-  //   throw navigate({ to: "/profile" });
-  // });
+  const { disableDay } = useAppointmentFormMetadata(barbershopId);
 
   return (
     <form id={formIds.form} onSubmit={onSubmit}>
       <FieldGroup>
         <div className="grid grid-cols-2 gap-4">
-          {!initialValues && (
+          {isBarber && (
             <Field className="col-span-2">
               <FieldLabel htmlFor={formIds.serviceId}>Servicio</FieldLabel>
 
@@ -161,6 +99,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                   aria-invalid={fieldState.invalid}
                   placeholder="Marcos Aguilar"
                   autoComplete="given-name"
+                  disabled={disabledFields?.includes("customerName")}
                 />
                 {fieldState.invalid && (
                   <FieldError errors={[fieldState.error]} />
@@ -184,6 +123,10 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                   placeholder="3119871234"
                   autoComplete="tel"
                   type="tel"
+                  disabled={
+                    disabledFields?.includes("contactPhone") &&
+                    !!form.getValues("contactPhone").length
+                  }
                 />
 
                 {fieldState.invalid && (
@@ -210,6 +153,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                   placeholder="cliente@ejemplo.com"
                   autoComplete="email"
                   type="email"
+                  disabled={disabledFields?.includes("contactEmail")}
                 />
                 {fieldState.invalid && (
                   <FieldError errors={[fieldState.error]} />

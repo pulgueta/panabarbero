@@ -387,10 +387,6 @@ export const createAppointmentCreatedNotification = internalMutation({
       },
     );
 
-    if (!customerProfile) {
-      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
-    }
-
     const barberProfile = await ctx.runQuery(
       internal.userProfileData.getProfileByUserId,
       {
@@ -403,9 +399,10 @@ export const createAppointmentCreatedNotification = internalMutation({
     }
 
     const channels = {
-      customer: customerProfile.notificationsPreferences
-        .filter((n) => n.enabled)
-        .map((n) => n.type),
+      customer:
+        customerProfile?.notificationsPreferences
+          .filter((n) => n.enabled)
+          .map((n) => n.type) ?? [],
       barber: barberProfile.notificationsPreferences
         .filter((n) => n.enabled)
         .map((n) => n.type),
@@ -441,7 +438,10 @@ export const createAppointmentCreatedNotification = internalMutation({
     });
 
     if (
-      isNotificationEnabled("email", receiverProfile.notificationsPreferences)
+      isNotificationEnabled(
+        "email",
+        receiverProfile?.notificationsPreferences ?? [],
+      )
     ) {
       await ctx.scheduler.runAfter(
         0,
@@ -457,8 +457,11 @@ export const createAppointmentCreatedNotification = internalMutation({
     }
 
     if (
-      isNotificationEnabled("sms", receiverProfile.notificationsPreferences) &&
-      receiverProfile.phoneNumber
+      isNotificationEnabled(
+        "sms",
+        receiverProfile?.notificationsPreferences ?? [],
+      ) &&
+      receiverProfile?.phoneNumber
     ) {
       await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
         body: receiverBody,
