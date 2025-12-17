@@ -13,7 +13,7 @@ export const BorderContainer: FC<BorderContainerProps> = ({
   return (
     <div
       className={cn(
-        "container mx-auto min-h-[calc(100dvh-65px)] border-x bg-accent/20 px-4 py-8 pb-24 md:px-8 md:pb-32 lg:px-16",
+        "container mx-auto min-h-[calc(100dvh-65px)] border-x bg-accent/20 px-4 pt-4 pb-24 md:px-8 md:pb-32 lg:px-10",
         className,
       )}
       {...props}
