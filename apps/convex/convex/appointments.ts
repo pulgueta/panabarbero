@@ -276,9 +276,9 @@ export const createAppointment = mutation({
 
     await ctx.scheduler.runAt(
       thirtyMinutesAfterAppointment,
-      internal.emails.sendPastAppointmentReminderEmail,
+      internal.notifications.createPastAppointmentReminderNotification,
       {
-        to: barberProfile.email,
+        barberUserId: barberProfile.userId,
       },
     );
   },
