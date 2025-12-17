@@ -79,10 +79,6 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
     useAppointmentFormMetadata(barbershopId);
 
   const { service } = useServicesStore();
-  const userId =
-    userProfile?.userId === user?.userId && isBarber
-      ? userProfile?.userId!
-      : user?.userId!;
 
   const form = useForm({
     resolver: zodResolver(appointmentFormSchema),
@@ -147,7 +143,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
       await createAppointment({
         appointment: {
           ...formData,
-          userId,
+          userId: user?.userId!,
           barbershopId,
           barbershopMemberId: formData.barbershopMemberId,
           serviceId: serviceId ?? service._id,

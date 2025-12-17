@@ -161,7 +161,7 @@ export const createAppointment = mutation({
             q.eq(q.field("status"), "pending"),
             q.eq(q.field("status"), "confirmed"),
           ),
-          q.eq(q.field("deletedAt"), null),
+          q.eq(q.field("deletedAt"), undefined),
         ),
       )
       .collect();
@@ -226,7 +226,7 @@ export const createAppointment = mutation({
 
     const appointmentUserId = isBarberCreatingAppointment
       ? barberProfile.userId
-      : customerProfile?.userId!;
+      : (customerProfile?.userId ?? "user_does_not_exist");
     const { isBarber: _isBarber, ...withoutIsBarber } = appointment;
 
     const appointmentId = await ctx.db.insert("appointments", {
@@ -309,7 +309,7 @@ export const getRescheduledAppointmentRequests = query({
             q.not(q.eq(q.field("status"), "confirmed")),
             q.not(q.eq(q.field("status"), "no-show")),
           ),
-          q.eq(q.field("deletedAt"), null),
+          q.eq(q.field("deletedAt"), undefined),
         ),
       )
       .collect();
@@ -374,7 +374,7 @@ export const getAppointmentById = query({
     return await ctx.db
       .query("appointments")
       .withIndex("by_id", (q) => q.eq("_id", args.appointmentId))
-      .filter((q) => q.eq(q.field("deletedAt"), null))
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
       .unique();
   },
 });
@@ -392,7 +392,7 @@ export const getAppointmentByUuid = query({
     return await ctx.db
       .query("appointments")
       .withIndex("by_uuid", (q) => q.eq("uuid", args.uuid))
-      .filter((q) => q.eq(q.field("deletedAt"), null))
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
       .unique();
   },
 });
@@ -413,7 +413,7 @@ export const getAppointmentByUserIdAndBarbershopId = query({
       .withIndex("by_userIdAndBarbershopId", (q) =>
         q.eq("userId", args.userId).eq("barbershopId", args.barbershopId),
       )
-      .filter((q) => q.eq(q.field("deletedAt"), null))
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
       .unique();
   },
 });
