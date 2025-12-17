@@ -7,6 +7,7 @@ import { BarbershopFilters } from "@/components/barbershops/barbershop-filters";
 import { BarbershopGrid } from "@/components/barbershops/barbershop-grid";
 import { BarbershopLoadingGrid } from "@/components/barbershops/barbershop-loading-grid";
 import { LocationGate } from "@/components/barbershops/location-gate";
+import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import {
   Empty,
@@ -79,9 +80,9 @@ function BarbershopsPage() {
   const showModal = !city && !state;
 
   return (
-    <div className="container mx-auto min-h-dvh border-x pb-32 md:min-h-[calc(100dvh-65px)] md:pb-0">
+    <BorderContainer className="p-0 md:p-0 lg:p-0">
       <header className="flex flex-col items-center justify-between gap-2.5 py-6 md:py-10">
-        <section className="mx-auto w-full max-w-xl space-y-4">
+        <section className="w-full space-y-4">
           <h1
             className="text-balance text-center font-bold text-3xl tracking-tight"
             style={{
@@ -102,7 +103,7 @@ function BarbershopsPage() {
         </section>
       </header>
 
-      <div className="relative mx-auto w-full border-y bg-accent/20 px-4 py-6">
+      <div className="w-full border-y bg-accent/20 px-4 py-6">
         <BarbershopFilters />
       </div>
 
@@ -135,6 +136,6 @@ function BarbershopsPage() {
           </EmptyHeader>
         </Empty>
       )}
-    </div>
+    </BorderContainer>
   );
 }

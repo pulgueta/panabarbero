@@ -49,6 +49,13 @@ export const appointmentsTableColumns: ColumnDef<Appointment>[] = [
     ),
   },
   {
+    accessorKey: "contactPhone",
+    header: ({ column }) => <TableHeader column={column} header="Teléfono" />,
+    cell: ({ row }) => (
+      <div className="text-center">{row.original.contactPhone}</div>
+    ),
+  },
+  {
     accessorKey: "serviceName",
     header: ({ column }) => <TableHeader column={column} header="Servicio" />,
     cell: ({ row }) => {

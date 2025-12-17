@@ -80,25 +80,22 @@ function SettingsPage() {
 
   return (
     <BorderContainer className="space-y-6">
-      <header>
+      <header className="space-y-1">
         <h1 className="text-balance font-bold text-2xl tracking-tight">
           Configuración de barbería
         </h1>
+
+        <p className="text-pretty text-muted-foreground text-sm">
+          Actualiza la información de tu barbería con la más reciente.
+        </p>
       </header>
 
       {barbershop && (
         <>
-          <div className="space-y-2">
-            <Button onClick={onCopyLink}>
-              <Share className="size-3" />
-              Copia el link de tu barbería
-            </Button>
-
-            <p className="text-pretty text-muted-foreground text-sm">
-              Comparte el link de tu barbería con tus clientes para que puedan
-              reservar.
-            </p>
-          </div>
+          <Button onClick={onCopyLink}>
+            <Share className="size-3" />
+            Copia el link de tu barbería
+          </Button>
 
           <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">

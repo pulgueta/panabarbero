@@ -1,12 +1,13 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: can be null */
 import { zodResolver } from "@hookform/resolvers/zod";
 import type {
+  Barbershop,
   BarbershopMemberWithName,
   Service,
 } from "@panabarbero/convex/schemas";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { FC, ReactNode } from "react";
-import { Activity, useEffect, useId } from "react";
+import { Activity, useEffect, useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -26,23 +27,27 @@ import {
   useAppointmentActions,
   useAppointmentFormMetadata,
 } from "@/hooks/use-appointments";
+import { useIsBarber } from "@/hooks/use-barbershop-members";
 import { useProfile } from "@/hooks/use-profile";
 import { useSession } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 import { appointmentFormSchema } from "@/lib/schemas";
+import { useServicesStore } from "@/store/services";
 import { CreateAppointmentForm } from "./create-appointment-form";
 
 interface CreateAppointmentDialogProps {
-  service: Service;
   services: Service[];
+  serviceId?: Service["_id"];
   barbers: BarbershopMemberWithName[];
+  barbershopId: Barbershop["_id"];
   trigger: ReactNode;
 }
 
 export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
-  service,
   services,
+  serviceId,
   barbers,
+  barbershopId,
   trigger,
 }) => {
   const formIds = {
@@ -56,11 +61,13 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
     barbershopMemberId: useId(),
     serviceId: useId(),
   };
+  const [open, setOpen] = useState<boolean>(false);
 
   const navigate = useNavigate();
 
   const { data: user } = useSession();
   const { data: userProfile } = useProfile(user?.userId!);
+  const { data: isBarber } = useIsBarber(user?.userId!);
   const {
     createAppointment: {
       mutateAsync: createAppointment,
@@ -69,15 +76,17 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
     },
   } = useAppointmentActions();
   const { minutesOfTimestamp, scheduleForDate, timeStringToMinutes } =
-    useAppointmentFormMetadata(service.barbershopId);
+    useAppointmentFormMetadata(barbershopId);
+
+  const { service } = useServicesStore();
 
   const form = useForm({
     resolver: zodResolver(appointmentFormSchema),
     defaultValues: {
       date: undefined,
-      customerName: userProfile?.name,
-      contactPhone: userProfile?.phoneNumber,
-      contactEmail: userProfile?.email,
+      customerName: isBarber ? undefined : userProfile?.name,
+      contactPhone: isBarber ? undefined : userProfile?.phoneNumber,
+      contactEmail: isBarber ? undefined : userProfile?.email,
       notes: "",
       barbershopMemberId:
         barbers.length && barbers.length > 1 ? undefined : barbers[0]._id,
@@ -90,8 +99,8 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
     }
   }, [isCreatedAppointment]);
 
-  const headLabel = `Reservar: ${service.name}`;
-  const description = user
+  const headLabel = "Reservar cita";
+  const description = isBarber
     ? "Proporciona los datos del cliente para reservar el servicio."
     : "Debes iniciar sesión para poder reservar un servicio";
 
@@ -134,10 +143,10 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
       await createAppointment({
         appointment: {
           ...formData,
-          userId: user?.userId!,
-          barbershopId: service.barbershopId,
-          serviceId: service._id,
+          barbershopId,
           barbershopMemberId: formData.barbershopMemberId,
+          serviceId: serviceId ?? service._id,
+          isBarber,
         },
       });
     } catch (error) {
@@ -146,14 +155,19 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
     }
 
     form.reset();
-    throw navigate({
-      to: "/profile",
-      search: (prev) => ({ ...prev, tab: "appointments" }),
-    });
+
+    if (isBarber) {
+      setOpen(false);
+    } else {
+      throw navigate({
+        to: "/profile",
+        search: (prev) => ({ ...prev, tab: "appointments" }),
+      });
+    }
   });
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -163,16 +177,19 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
 
         <Activity mode={user ? "visible" : "hidden"}>
           <CreateAppointmentForm
+            barbershopId={barbershopId}
             barbers={barbers}
-            service={service}
+            isBarber={isBarber}
             services={services}
             // @ts-expect-error - zod's coerce method returns an unknown type
             form={form}
-            initialValues={{
-              customerName: user?.name,
-              contactEmail: user?.email,
-              contactPhone: user?.phoneNumber!,
-            }}
+            disabledFields={
+              isBarber
+                ? []
+                : userProfile?.phoneNumber
+                  ? ["contactEmail", "customerName", "contactPhone"]
+                  : ["contactEmail", "customerName"]
+            }
             formIds={formIds}
             onSubmit={onSubmit}
           />

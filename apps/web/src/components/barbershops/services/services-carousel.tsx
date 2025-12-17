@@ -1,4 +1,5 @@
 import type {
+  Barbershop,
   BarbershopMemberWithName,
   Service,
 } from "@panabarbero/convex/schemas";
@@ -19,11 +20,13 @@ import { formatCurrency } from "@/lib/form-utils";
 interface ServicesCarouselProps {
   services: Service[];
   barbers: BarbershopMemberWithName[];
+  barbershopId: Barbershop["_id"];
 }
 
 export const ServicesCarousel: FC<ServicesCarouselProps> = ({
   services,
   barbers,
+  barbershopId,
 }) => {
   const [_, setCarouselApi] = useCarouselApi();
 
@@ -57,9 +60,10 @@ export const ServicesCarousel: FC<ServicesCarouselProps> = ({
                 </section>
 
                 <CreateAppointmentDialog
-                  service={service}
+                  barbershopId={barbershopId}
                   services={services}
                   barbers={barbers}
+                  serviceId={service._id}
                   trigger={<Button>Reservar</Button>}
                 />
               </CardContent>

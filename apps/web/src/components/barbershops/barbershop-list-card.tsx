@@ -1,6 +1,5 @@
 import type { Barbershop } from "@panabarbero/convex/schemas";
 import { Link } from "@tanstack/react-router";
-import { Scissors } from "lucide-react";
 import type { FC } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { BarbershopAvatar } from "./barbershop-avatar";
 
 interface BarbershopListCardProps {
   barbershop: Barbershop;
@@ -29,12 +27,6 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
         <div className="flex items-start justify-between">
           <div className="flex w-full items-start justify-between">
             <div className="flex items-start gap-2.5">
-              <Scissors
-                className="mt-1.5 size-5 text-muted-foreground"
-                style={{
-                  viewTransitionName: `barbershop-${barbershop.uuid}-scissors`,
-                }}
-              />
               <div>
                 <CardTitle
                   className="text-balance font-bold text-xl tracking-tight"
@@ -55,7 +47,7 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
               </div>
             </div>
 
-            <BarbershopAvatar barbershop={barbershop} />
+            {/* <BarbershopAvatar barbershop={barbershop} /> */}
           </div>
         </div>
       </CardHeader>
