@@ -288,11 +288,20 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                       )}
                     >
                       {field.value ? (
-                        format(new Date(field.value as number), "PPP")
+                        new Date(field.value as number).toLocaleDateString(
+                          "es-CO",
+                          {
+                            day: "2-digit",
+                            month: "long",
+                            year: "numeric",
+                          },
+                        )
                       ) : (
-                        <span>Seleccione una fecha</span>
+                        <span className="text-xs sm:text-sm">
+                          Selecciona una fecha
+                        </span>
                       )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      <CalendarIcon className="hidden sm:ml-auto sm:block sm:size-3 sm:opacity-50" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="center">

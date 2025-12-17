@@ -161,7 +161,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <Activity mode={user ? "visible" : "hidden"}>
+        <Activity mode={!user ? "visible" : "hidden"}>
           <CreateAppointmentForm
             barbers={barbers}
             service={service}
