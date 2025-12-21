@@ -251,14 +251,17 @@ export const createAppointmentRescheduleRequestNotification = internalMutation({
 
     if (
       receiverProfile &&
-      isNotificationEnabled("email", receiverProfile.notificationsPreferences)
+      isNotificationEnabled(
+        "email",
+        receiverProfile.notificationsPreferences,
+      ) &&
+      toEmail
     ) {
       await ctx.scheduler.runAfter(
         0,
         internal.emails.sendAppointmentRescheduleRequestEmail,
         {
           appointmentId: args.appointmentId,
-          // @ts-expect-error - toEmail is not always defined
           to: toEmail,
           body,
           sendTo: args.sendTo,
