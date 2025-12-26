@@ -48,6 +48,8 @@ interface CreateAppointmentFormProps {
   isBarber: boolean;
   onSubmit: (e: BaseSyntheticEvent) => void;
   services: Service[];
+  barberServices?: Service[] | null;
+  onBarberChange?: (barberId: BarbershopMemberWithName["_id"]) => void;
   form: UseFormReturn<output<typeof appointmentFormSchema>>;
   formIds: {
     form: string;
@@ -69,11 +71,16 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
   isBarber,
   onSubmit,
   services,
+  barberServices,
+  onBarberChange,
   formIds,
   form,
 }) => {
   const { isMobile } = useIsMobile();
   const { disableDay } = useAppointmentFormMetadata(barbershopId);
+
+  // Use barber-specific services if available, otherwise fall back to all services
+  const displayServices = barberServices ?? services;
 
   return (
     <form id={formIds.form} onSubmit={onSubmit}>
@@ -85,7 +92,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                 Servicio
               </FieldLabel>
 
-              <ServicesDropdown services={services} />
+              <ServicesDropdown services={displayServices} />
             </Field>
           )}
 
@@ -176,7 +183,12 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                   <Activity mode={barbers?.length > 1 ? "visible" : "hidden"}>
                     <Select
                       value={field.value}
-                      onValueChange={field.onChange}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        onBarberChange?.(
+                          value as BarbershopMemberWithName["_id"],
+                        );
+                      }}
                       aria-invalid={fieldState.invalid}
                     >
                       <SelectTrigger>

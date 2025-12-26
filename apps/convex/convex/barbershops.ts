@@ -29,15 +29,16 @@ export const createBarbershop = mutation({
       ...tables.barbershops,
     }),
     storageId: v.optional(v.id("_storage")),
+    ownerIsBarber: v.boolean(),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
-    if (!user) {
+    if (!user?.userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    const { barbershop } = args;
+    const { barbershop, ownerIsBarber } = args;
 
     const barbershopId = await ctx.db.insert("barbershops", {
       ...barbershop,
@@ -53,35 +54,18 @@ export const createBarbershop = mutation({
       },
     );
 
-    if (args.storageId) {
-      await ctx.runMutation(internal.barbershops.saveBarbershopBanner, {
-        barbershopId,
-        storageId: args.storageId,
-      });
-    }
-
-    if (barbershop.coordinates) {
-      await geospatial.insert(
-        ctx,
-        "Barbershop coordinates",
-        {
-          latitude: barbershop.coordinates.x,
-          longitude: barbershop.coordinates.y,
-        },
-        {
-          key: barbershopId,
-        },
-      );
-    }
-
     const userProfile = await ctx.db
       .query("userProfileData")
       .withIndex("by_userId", (q) => q.eq("userId", user.userId!))
       .unique();
 
     if (!userProfile) {
-      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
+      return null;
     }
+
+    const roles: Array<"owner" | "barber" | "staff"> = ownerIsBarber
+      ? ["owner", "barber"]
+      : ["owner"];
 
     await ctx.runMutation(internal.barbershopMembers.createBarbershopMember, {
       barbershopMember: {
@@ -90,7 +74,7 @@ export const createBarbershop = mutation({
         uuid: crypto.randomUUID(),
         isActive: true,
         joinedAt: Date.now(),
-        role: "barber",
+        roles,
       },
     });
 
@@ -141,6 +125,7 @@ export const getActiveBarbershops = query({
               ),
         ),
       )
+      .order("asc")
       .collect();
 
     await Promise.all(
@@ -513,6 +498,35 @@ export const getBarbershopByOwnerId = query({
     }
 
     return barbershop;
+  },
+});
+
+export const getBarbershopByMemberUserId = query({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userProfile = await ctx.db
+      .query("userProfileData")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .unique();
+
+    if (!userProfile) {
+      return null;
+    }
+
+    const member = await ctx.db
+      .query("barbershopMembers")
+      .withIndex("by_userProfileDataId", (q) =>
+        q.eq("userProfileDataId", userProfile._id),
+      )
+      .first();
+
+    if (!member) {
+      return null;
+    }
+
+    return await ctx.db.get(member.barbershopId);
   },
 });
 

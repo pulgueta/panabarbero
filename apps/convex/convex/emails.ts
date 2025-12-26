@@ -5,6 +5,7 @@ import {
   AppointmentCreatedEmail,
   AppointmentReminderEmail,
   AppointmentRescheduleRequestEmail,
+  BarberInvitationEmail,
   PastAppointmentReminderEmail,
   RescheduleRequestAcceptEmail,
   RescheduleRequestDeniedEmail,
@@ -230,6 +231,34 @@ export const sendAppointmentCreatedToBarberEmail = internalAction({
     await ctx.runAction(internal.emails.sendEmail, {
       to: args.to,
       subject: args.subject,
+      html,
+    });
+  },
+});
+
+export const sendBarberInvitationEmail = internalAction({
+  args: {
+    to: v.string(),
+    barbershopName: v.string(),
+    invitationLink: v.string(),
+    inviterName: v.optional(v.string()),
+    inviteeName: v.optional(v.string()),
+    expiresLabel: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const html = await render(
+      BarberInvitationEmail({
+        barbershopName: args.barbershopName,
+        invitationLink: args.invitationLink,
+        inviterName: args.inviterName ?? undefined,
+        inviteeName: args.inviteeName ?? undefined,
+        expiresLabel: args.expiresLabel ?? undefined,
+      }),
+    );
+
+    await ctx.runAction(internal.emails.sendEmail, {
+      to: args.to,
+      subject: subjects.barber_invited,
       html,
     });
   },

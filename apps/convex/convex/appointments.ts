@@ -10,6 +10,7 @@ import {
   query,
 } from "./_generated/server";
 import { authComponent } from "./auth";
+import { assertBarber } from "./authz";
 import { errorMessages } from "./errors";
 import { rateLimiter } from "./ratelimit";
 import type { UserProfileData } from "./tables";
@@ -104,11 +105,17 @@ export const createAppointment = mutation({
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
-    if (!user) {
+    if (!user?.userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 
     const { appointment } = args;
+    const isBarberCreatingAppointment = appointment.isBarber;
+
+    // If a barber is creating the appointment, verify they have the barber role
+    if (isBarberCreatingAppointment) {
+      await assertBarber(ctx, appointment.barbershopId, user.userId);
+    }
 
     const [service, barber] = await Promise.all([
       ctx.db.get(appointment.serviceId),
@@ -146,8 +153,6 @@ export const createAppointment = mutation({
 
     const endOfDay = new Date(startOfDay);
     endOfDay.setHours(23, 59, 59, 999);
-
-    const isBarberCreatingAppointment = appointment.isBarber;
 
     const candidates = await ctx.db
       .query("appointments")
