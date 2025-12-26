@@ -112,7 +112,6 @@ export const createAppointment = mutation({
     const { appointment } = args;
     const isBarberCreatingAppointment = appointment.isBarber;
 
-    // If a barber is creating the appointment, verify they have the barber role
     if (isBarberCreatingAppointment) {
       await assertBarber(ctx, appointment.barbershopId, user.userId);
     }
@@ -122,12 +121,24 @@ export const createAppointment = mutation({
       ctx.db.get(appointment.barbershopMemberId),
     ]);
 
-    if (!barber?.userProfileDataId) {
+    if (!barber) {
+      throw new ConvexError(errorMessages.notFound("barbero"));
+    }
+
+    if (barber.barbershopId !== appointment.barbershopId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    if (!barber.userProfileDataId) {
       throw new ConvexError(errorMessages.notFound("barbero"));
     }
 
     if (!service) {
       throw new ConvexError(errorMessages.notFound("servicio"));
+    }
+
+    if (service.barbershopId !== appointment.barbershopId) {
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const barberProfile = await ctx.db.get(barber.userProfileDataId);
@@ -177,7 +188,7 @@ export const createAppointment = mutation({
 
     for (const appt of candidates) {
       const apptService = await ctx.db.get(appt.serviceId);
-      const apptEnd = appt.date + (apptService?.duration ?? 0);
+      const apptEnd = appt.date + apptService?.duration!;
       const overlaps = appt.date < endsAt && apptEnd > appointment.date;
 
       if (overlaps) {
@@ -234,8 +245,8 @@ export const createAppointment = mutation({
     }
 
     const appointmentUserId = isBarberCreatingAppointment
-      ? (customerProfile?.userId ?? "user_does_not_exist")
-      : barberProfile.userId;
+      ? customerProfile!.userId
+      : user.userId;
     const { isBarber: _isBarber, ...withoutIsBarber } = appointment;
 
     const appointmentId = await ctx.db.insert("appointments", {
@@ -251,7 +262,7 @@ export const createAppointment = mutation({
         {
           appointmentId,
           barberUserId: barberProfile.userId,
-          customerUserId: customerProfile?.userId ?? "user_does_not_exist",
+          customerUserId: appointmentUserId,
           to: barberProfile.email,
           sendTo: "barber",
           barbershopName: barbershop.name,
@@ -265,7 +276,7 @@ export const createAppointment = mutation({
       {
         appointmentId,
         barberUserId: barberProfile.userId,
-        customerUserId: customerProfile?.userId ?? "user_does_not_exist",
+        customerUserId: appointmentUserId,
         to: customerProfile?.email || appointment.contactEmail,
         sendTo: "customer",
         barbershopName: barbershop.name,
