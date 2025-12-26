@@ -28,9 +28,9 @@ import {
   useRescheduledAppointmentRequests,
 } from "@/hooks/use-appointments";
 import {
-  barbersByBarbershopIdQueryOptions,
+  barbershopMembersByBarbershopIdQueryOptions,
   isBarberQueryOptions,
-  useBarbersByBarbershopId,
+  useBarbershopMembersByBarbershopId,
 } from "@/hooks/use-barbershop-members";
 import {
   serviceByAppointmentIdQueryOptions,
@@ -61,7 +61,7 @@ export const Route = createFileRoute("/profile/barbershops/appointments/")({
           appointmentsByBarbershopQueryOptions(barbershop._id),
         );
         await context.queryClient.ensureQueryData(
-          barbersByBarbershopIdQueryOptions(barbershop._id),
+          barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
         );
 
         await context.queryClient.ensureQueryData(
@@ -94,7 +94,9 @@ function RouteComponent() {
 
   const { data: session } = useSession();
   const { data: barbershop } = useBarbershopByOwnerId(session?.userId!);
-  const { data: barbers } = useBarbersByBarbershopId(barbershop?._id!);
+  const { data: barbershopMembers } = useBarbershopMembersByBarbershopId(
+    barbershop?._id!,
+  );
   const { data: services } = useServicesByBarbershopId(barbershop?._id!);
   const {
     data: rescheduledAppointmentRequests,
@@ -160,7 +162,7 @@ function RouteComponent() {
                   </Button>
                 }
                 barbershopId={barbershop._id}
-                barbers={barbers}
+                barbers={barbershopMembers}
                 services={services}
                 serviceId={undefined}
               />

@@ -25,8 +25,8 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import {
-  barbershopByOwnerIdQueryOptions,
-  useBarbershopByOwnerId,
+  barbershopByMemberUserIdQueryOptions,
+  useBarbershopByMemberUserId,
 } from "@/hooks/barbershop/use-barbershop";
 import { profileQueryOptions } from "@/hooks/use-profile";
 import {
@@ -46,7 +46,7 @@ export const Route = createFileRoute("/profile/barbershops/services/")({
 
     if (user?.userId) {
       const barbershop = await opts.context.queryClient.ensureQueryData(
-        barbershopByOwnerIdQueryOptions(user.userId),
+        barbershopByMemberUserIdQueryOptions(user.userId),
       );
 
       await opts.context.queryClient.ensureQueryData(
@@ -69,7 +69,8 @@ function RouteComponent() {
   const pageSize = 6;
 
   const { data: user } = useSession();
-  const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
+  const { data: barbershop, isLoading: isLoadingBarbershop } =
+    useBarbershopByMemberUserId(user?.userId!);
   const {
     data: servicesResult,
     isLoading: isLoadingServices,
@@ -80,6 +81,7 @@ function RouteComponent() {
   const hasNextPage =
     servicesResult?.continueCursor &&
     !servicesResult?.isDone &&
+    services?.length &&
     services.length >= pageSize;
   const canGoPrevious = cursorStack.length > 0;
 
@@ -96,15 +98,17 @@ function RouteComponent() {
             </p>
           </div>
 
-          <ServiceDialog
-            barbershopId={barbershop?._id!}
-            trigger={
-              <Button variant="outline">
-                <PlusIcon className="size-3" />
-                Agregar servicio
-              </Button>
-            }
-          />
+          {barbershop?._id && !isLoadingBarbershop && (
+            <ServiceDialog
+              barbershopId={barbershop._id}
+              trigger={
+                <Button variant="outline">
+                  <PlusIcon className="size-3" />
+                  Agregar servicio
+                </Button>
+              }
+            />
+          )}
         </div>
 
         <Suspense fallback={<ProfileTabSkeleton />}>

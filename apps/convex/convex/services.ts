@@ -7,6 +7,7 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { action, internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
+import { assertCanManageServices, assertCanManageShop } from "./authz";
 import { errorMessages } from "./errors";
 import { tables } from "./tables";
 
@@ -78,6 +79,9 @@ export const createService = mutation({
     }
 
     const { service } = args;
+
+    // Verify the user has permission to create services (owner or barber)
+    await assertCanManageServices(ctx, service.barbershopId, user.userId);
 
     const barbershop = await ctx.db.get(service.barbershopId);
 
@@ -155,13 +159,14 @@ export const updateService = mutation({
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
-    if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+    if (!user?.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const { service, serviceId } = args;
+
+    // Verify the user has permission to update services (owner or barber)
+    await assertCanManageServices(ctx, service.barbershopId, user.userId);
 
     await ctx.db.patch(serviceId, {
       ...service,
@@ -178,24 +183,14 @@ export const deleteService = mutation({
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
-    if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+    if (!user?.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const { serviceId, barbershopId } = args;
 
-    const fromBarbershop = await ctx.db
-      .query("barbershops")
-      .withIndex("by_id", (q) => q.eq("_id", barbershopId))
-      .unique();
-
-    if (fromBarbershop?.ownerId !== user.userId) {
-      throw new Error("User not authorized", {
-        cause: user.userId,
-      });
-    }
+    // Only owners can delete services
+    await assertCanManageShop(ctx, barbershopId, user.userId);
 
     await ctx.db.delete(serviceId);
   },

@@ -5,6 +5,7 @@ import {
   Home,
   Scissors,
   User,
+  Users,
 } from "lucide-react";
 
 export const publicRoutes = {
@@ -46,6 +47,11 @@ export const authenticatedRoutes = {
       label: "Servicios",
       to: "/profile/barbershops/services",
       icon: Scissors,
+    },
+    {
+      label: "Barberos",
+      to: "/profile/barbershops/barbers",
+      icon: Users,
     },
     {
       label: "Barbería",

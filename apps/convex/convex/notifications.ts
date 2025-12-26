@@ -641,3 +641,67 @@ export const createPastAppointmentReminderNotification = internalMutation({
     }
   },
 });
+
+export const createBarberInvitedNotification = internalMutation({
+  args: {
+    invitationId: v.id("invitations"),
+    barbershopId: v.id("barbershops"),
+    email: v.string(),
+    code: v.string(),
+    inviterUserId: v.string(),
+    name: v.optional(v.string()),
+    roles: v.array(
+      v.union(v.literal("owner"), v.literal("barber"), v.literal("staff")),
+    ),
+    expiresAt: v.number(),
+    phone: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const barbershop = await ctx.db.get(args.barbershopId);
+
+    if (!barbershop) {
+      throw new ConvexError(errorMessages.notFound("barbería"));
+    }
+
+    const inviterProfile = await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      { userId: args.inviterUserId },
+    );
+
+    const receiverProfile = await ctx.runQuery(
+      internal.userProfileData.getProfileByEmail,
+      { email: args.email },
+    );
+
+    const invitationUrl = `${process.env.SITE_URL}/invitations/${args.code}`;
+
+    if (receiverProfile) {
+      const channels = receiverProfile.notificationsPreferences
+        .filter((n) => n.enabled)
+        .map((n) => n.type);
+
+      if (channels.length > 0) {
+        await ctx.runMutation(internal.notifications.saveNotification, {
+          notification: {
+            reason: "barber_invited",
+            uuid: crypto.randomUUID(),
+            channels,
+            title: subjects.barber_invited,
+            body: `${inviterProfile?.name ?? "Alguien"} te invitó a unirte a ${barbershop.name}.`,
+            senderUserId: "system",
+            receiverUserId: receiverProfile.userId,
+          },
+        });
+      }
+    }
+
+    await ctx.scheduler.runAfter(0, internal.emails.sendBarberInvitationEmail, {
+      to: args.email,
+      barbershopName: barbershop.name,
+      invitationLink: invitationUrl,
+      inviterName: inviterProfile?.name ?? undefined,
+      inviteeName: args.name ?? undefined,
+      expiresLabel: new Date(args.expiresAt).toLocaleDateString("es-ES"),
+    });
+  },
+});
