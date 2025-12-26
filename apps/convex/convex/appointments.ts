@@ -250,6 +250,7 @@ export const createAppointment = mutation({
           to: barberProfile.email,
           sendTo: "barber",
           barbershopName: barbershop.name,
+          receiverPhoneNumber: appointment.contactPhone,
         },
       );
     }
@@ -263,6 +264,7 @@ export const createAppointment = mutation({
         to: customerProfile?.email || appointment.contactEmail,
         sendTo: "customer",
         barbershopName: barbershop.name,
+        receiverPhoneNumber: appointment.contactPhone,
       },
     );
 
@@ -821,15 +823,19 @@ export const notifyUpcomingAppointment = internalMutation({
       throw new ConvexError(errorMessages.notFound("barbería"));
     }
 
-    const userProfile = await ctx.runQuery(
-      internal.userProfileData.getProfileByUserId,
-      {
-        userId: args.userId,
-      },
-    );
+    let userProfile: UserProfileData | null = null;
 
-    if (!userProfile) {
-      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
+    if (args.userId !== "user_does_not_exist") {
+      userProfile = await ctx.runQuery(
+        internal.userProfileData.getProfileByUserId,
+        {
+          userId: args.userId,
+        },
+      );
+
+      if (!userProfile) {
+        throw new ConvexError(errorMessages.notFound("perfil de usuario"));
+      }
     }
 
     const appointment = await ctx.db.get(args.appointmentId);
@@ -860,8 +866,9 @@ export const notifyUpcomingAppointment = internalMutation({
       internal.notifications.createAppointmentReminderNotification,
       {
         barbershopName: barbershop.name,
-        customerUserId: userProfile.userId,
-        to: userProfile.email,
+        customerUserId: userProfile?.userId ?? "user_does_not_exist",
+        to: userProfile?.email ?? appointment.contactEmail,
+        receiverPhoneNumber: appointment.contactPhone,
       },
     );
   },
