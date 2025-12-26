@@ -62,11 +62,12 @@ export const getServicesForBarber = query({
     const services = await Promise.all(
       memberServices.map(async (ms) => {
         const service = await ctx.db.get(ms.serviceId);
+
         return service;
       }),
     );
 
-    return services;
+    return services.filter((s): s is Service => s !== null);
   },
 });
 
@@ -78,7 +79,6 @@ export const getBarbersForService = query({
     serviceId: v.id("services"),
   },
   handler: async (ctx, args) => {
-    // Get all assignments for this service
     const assignments = await ctx.db
       .query("barbershopMemberServices")
       .withIndex("by_serviceId", (q) => q.eq("serviceId", args.serviceId))
@@ -86,8 +86,8 @@ export const getBarbersForService = query({
       .collect();
 
     if (assignments.length === 0) {
-      // If no explicit assignments, return all barbers (legacy/migration support)
       const service = await ctx.db.get(args.serviceId);
+
       if (!service) return [];
 
       const members = await ctx.db
@@ -103,6 +103,7 @@ export const getBarbersForService = query({
       return Promise.all(
         barbers.map(async (barber) => {
           const profile = await ctx.db.get(barber.userProfileDataId);
+
           return {
             ...barber,
             name: profile?.name ?? "",
@@ -113,13 +114,14 @@ export const getBarbersForService = query({
       );
     }
 
-    // Get barber details for each assignment
     const barbers = await Promise.all(
       assignments.map(async (a) => {
         const member = await ctx.db.get(a.barbershopMemberId);
+
         if (!member || !member.isActive) return null;
 
         const profile = await ctx.db.get(member.userProfileDataId);
+
         return {
           ...member,
           name: profile?.name ?? "",

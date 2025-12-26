@@ -70,7 +70,7 @@ export function useServicesForBarber(
 }
 
 export function useBarbersForService(serviceId: Service["_id"]) {
-  return useSuspenseQuery(barbersForServiceQueryOptions(serviceId));
+  return useQuery(barbersForServiceQueryOptions(serviceId));
 }
 
 export function useBarbershopMemberActions() {
