@@ -10,6 +10,8 @@
 
 import type * as appointments from "../appointments.js";
 import type * as auth from "../auth.js";
+import type * as authz from "../authz.js";
+import type * as barbershopMemberServices from "../barbershopMemberServices.js";
 import type * as barbershopMembers from "../barbershopMembers.js";
 import type * as barbershopMetadata from "../barbershopMetadata.js";
 import type * as barbershops from "../barbershops.js";
@@ -39,6 +41,8 @@ import type {
 declare const fullApi: ApiFromModules<{
   appointments: typeof appointments;
   auth: typeof auth;
+  authz: typeof authz;
+  barbershopMemberServices: typeof barbershopMemberServices;
   barbershopMembers: typeof barbershopMembers;
   barbershopMetadata: typeof barbershopMetadata;
   barbershops: typeof barbershops;

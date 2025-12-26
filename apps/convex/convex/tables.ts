@@ -90,11 +90,8 @@ export const tables = {
     barbershopId: v.id("barbershops"),
     joinedAt: v.number(),
     isActive: v.boolean(),
-    role: v.union(
-      v.literal("owner"),
-      v.literal("admin"),
-      v.literal("barber"),
-      v.literal("staff"),
+    roles: v.array(
+      v.union(v.literal("owner"), v.literal("barber"), v.literal("staff")),
     ),
   },
   services: {
@@ -160,6 +157,31 @@ export const tables = {
     receiverUserId: v.string(),
     appointmentId: v.optional(v.id("appointments")),
   },
+  barbershopMemberServices: {
+    uuid: v.string(),
+    barbershopId: v.id("barbershops"),
+    barbershopMemberId: v.id("barbershopMembers"),
+    serviceId: v.id("services"),
+    isActive: v.optional(v.boolean()),
+  },
+  invitations: {
+    barbershopId: v.id("barbershops"),
+    email: v.string(),
+    name: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    roles: v.array(
+      v.union(v.literal("owner"), v.literal("barber"), v.literal("staff")),
+    ),
+    code: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("accepted"),
+      v.literal("denied"),
+      v.literal("expired"),
+    ),
+    expiresAt: v.number(),
+    inviterUserId: v.string(),
+  },
 };
 
 const userProfileDataSchema = v.object({
@@ -186,6 +208,12 @@ const appointmentSchema = v.object({
 const notificationSchema = v.object({
   ...tables.notifications,
 });
+const barbershopMemberServicesSchema = v.object({
+  ...tables.barbershopMemberServices,
+});
+const invitationSchema = v.object({
+  ...tables.invitations,
+});
 
 type ConvexRows<T extends TableNames> = {
   _id: Id<T>;
@@ -209,3 +237,7 @@ export type Appointment = ConvexRows<"appointments"> &
   Infer<typeof appointmentSchema>;
 export type Notification = ConvexRows<"notifications"> &
   Infer<typeof notificationSchema>;
+export type BarbershopMemberServices = ConvexRows<"barbershopMemberServices"> &
+  Infer<typeof barbershopMemberServicesSchema>;
+export type Invitation = ConvexRows<"invitations"> &
+  Infer<typeof invitationSchema>;
