@@ -40,7 +40,6 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
     // @ts-expect-error - zod's coerce method returns an unknown type
     resolver: zodResolver(inviteBarberFormSchema),
     defaultValues: {
-      name: "",
       email: "",
       phone: "",
       barbershopId,
@@ -57,17 +56,11 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
       await inviteBarber({
         ...formData,
         phone: formData.phone.trim(),
-        name: formData.name.trim(),
         email: formData.email.trim().toLowerCase(),
       });
+
       toast.success("Invitación enviada correctamente");
-      form.reset({
-        name: "",
-        email: "",
-        phone: "",
-        barbershopId,
-        roles: ["barber"],
-      });
+      form.reset();
     } catch (error) {
       toast.error(getConvexErrorMessage(error));
       return;
@@ -77,48 +70,6 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
   return (
     <form id={formIds.form} onSubmit={onSubmit}>
       <FieldGroup className="gap-4">
-        <div className="grid grid-cols-2 gap-4">
-          <Controller
-            name="name"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={formIds.name}>Nombre</FieldLabel>
-                <Input
-                  {...field}
-                  id={formIds.name}
-                  aria-invalid={fieldState.invalid}
-                  placeholder="Marcos Aguilar"
-                />
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
-          />
-
-          <Controller
-            name="phone"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={formIds.phone}>Teléfono</FieldLabel>
-                <Input
-                  {...field}
-                  id={formIds.phone}
-                  aria-invalid={fieldState.invalid}
-                  placeholder="3119871234"
-                  type="tel"
-                />
-
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
-          />
-        </div>
-
         <Controller
           name="email"
           control={form.control}
@@ -138,6 +89,25 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
                 Se recomienda usar un correo electrónico para poder enviarle el
                 link de invitación al barbero.
               </FieldDescription>
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
+
+        <Controller
+          name="phone"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={formIds.phone}>Teléfono</FieldLabel>
+              <Input
+                {...field}
+                id={formIds.phone}
+                aria-invalid={fieldState.invalid}
+                placeholder="3119871234"
+                type="tel"
+              />
+
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}

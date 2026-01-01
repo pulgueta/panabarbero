@@ -23,7 +23,7 @@ export const BottomBar = () => {
   return (
     <div className="fixed right-0 bottom-0 left-0 z-50 mx-auto h-18 w-full border-border border-t bg-background/80 backdrop-blur-sm">
       <div className="container mx-auto">
-        <nav className="flex h-full items-center justify-around gap-x-2.5 px-4 py-2.5">
+        <nav className="flex h-full items-center justify-around gap-x-2 p-2">
           {isBarber
             ? tanstack.authenticatedRoutes.barber.map((item) => {
                 const Icon = item.icon;

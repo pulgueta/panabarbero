@@ -11,7 +11,6 @@ import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-ske
 import { AccountTab } from "@/components/profile/account-tab";
 import { AppointmentsTab } from "@/components/profile/appointments-tab";
 import { DangerTab } from "@/components/profile/danger-tab";
-import { SecurityTab } from "@/components/profile/security-tab";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -45,10 +44,10 @@ const tabs = {
     label: "Perfil",
     value: "account",
   },
-  security: {
-    label: "Seguridad",
-    value: "security",
-  },
+  // security: {
+  //   label: "Seguridad",
+  //   value: "security",
+  // },
   appointments: {
     label: "Citas",
     value: "appointments",
@@ -123,7 +122,7 @@ function ProfilePage() {
   };
 
   const tabsToRender = useMemo(() => {
-    const base = [tabs.appointments, tabs.account, tabs.security];
+    const base = [tabs.appointments, tabs.account];
 
     if (isBarber) {
       base.push(tabs.danger);
@@ -190,7 +189,7 @@ function ProfilePage() {
             </Activity>
           </Suspense>
 
-          <Suspense fallback={<ProfileTabSkeleton />}>
+          {/* <Suspense fallback={<ProfileTabSkeleton />}>
             <Activity
               mode={
                 tab === tabs.security.value && !isLoadingProfile
@@ -202,7 +201,7 @@ function ProfilePage() {
                 <SecurityTab />
               </TabsContent>
             </Activity>
-          </Suspense>
+          </Suspense> */}
 
           {isBarber && (
             <Suspense fallback={<ProfileTabSkeleton />}>

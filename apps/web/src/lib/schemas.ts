@@ -213,11 +213,6 @@ export const reviewFormSchema = object({
 
 export const inviteBarberFormSchema = object({
   barbershopId: zodAny(),
-  name: string({ error: "El nombre del barbero es requerido" })
-    .min(3, { message: "El nombre del barbero debe tener al menos 3 caracteres" })
-    .max(255, {
-      message: "El nombre del barbero debe tener menos de 255 caracteres",
-    }),
   email: email({ error: "El email del barbero es requerido" }),
   phone: string({ error: "El teléfono del barbero es requerido" })
     .min(10, {
@@ -226,11 +221,7 @@ export const inviteBarberFormSchema = object({
     .regex(/^\+?[0-9]+$/, {
       message: "El teléfono del barbero debe ser válido",
     }),
-  roles: array(
-    zodEnum(["owner", "barber", "staff"], {
-      errorMap: () => ({ message: "Selecciona un rol válido" }),
-    }),
-  )
+  roles: array(zodEnum(["owner", "barber", "staff"]))
     .min(1, { message: "Debes seleccionar al menos un rol" })
     .default(["barber"]),
 });

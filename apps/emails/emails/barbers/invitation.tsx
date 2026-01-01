@@ -18,7 +18,6 @@ export type BarberInvitationEmailProps = {
   barbershopName: string;
   invitationLink: string;
   inviterName?: string;
-  inviteeName?: string;
   expiresLabel?: string;
 };
 
@@ -26,7 +25,6 @@ export const BarberInvitationEmail = ({
   barbershopName,
   invitationLink,
   inviterName,
-  inviteeName,
   expiresLabel,
 }: BarberInvitationEmailProps) => {
   return (
@@ -44,10 +42,6 @@ export const BarberInvitationEmail = ({
             <Header />
 
             <Section className="my-4">
-              <Text className="m-0 mb-2 text-gray-700 text-sm">
-                {inviteeName ? `Hola ${inviteeName},` : "Hola,"}
-              </Text>
-
               <Text className="m-0 mb-2 text-gray-700 text-sm">
                 {inviterName
                   ? `${inviterName} te ha invitado a unirte a ${barbershopName} como parte del equipo.`
@@ -84,6 +78,5 @@ export const BarberInvitationEmail = ({
 };
 
 export default BarberInvitationEmail;
-
 
 
