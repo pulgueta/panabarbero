@@ -76,7 +76,7 @@ export const Route = createFileRoute("/profile/barbershops/appointments/")({
             ),
           );
 
-          if (services.length) {
+          if (services) {
             await Promise.all(
               services.map((service) =>
                 context.queryClient.ensureQueryData(

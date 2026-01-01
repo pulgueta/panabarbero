@@ -1,11 +1,11 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 
 import { ConvexError, v } from "convex/values";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
 import { errorMessages } from "./errors";
-import type { BarbershopMember, Invitation } from "./tables";
+import type { BarbershopMember } from "./tables";
 import { tables } from "./tables";
 
 const INVITATION_EXPIRATION_MS = 1000 * 60 * 60 * 24 * 7;
@@ -177,6 +177,31 @@ export const getBarbershopMemberByUserId = query({
   },
 });
 
+export const getBarbershopMemberRolesByUserId = query({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
+    roles: BarbershopMember["roles"] | undefined;
+    isOwner: boolean | undefined;
+  }> => {
+    const barbershopMember = await ctx.runQuery(
+      api.barbershopMembers.getBarbershopMemberByUserId,
+      {
+        userId: args.userId,
+      },
+    );
+
+    return {
+      roles: barbershopMember?.roles,
+      isOwner: barbershopMember?.roles.includes("owner"),
+    };
+  },
+});
+
 export const inviteBarbershopMember = mutation({
   args: {
     name: v.optional(v.string()),
@@ -219,7 +244,7 @@ export const inviteBarbershopMember = mutation({
           q.eq("barbershopId", args.barbershopId),
         )
         .filter((q) => q.eq(q.field("userProfileDataId"), userProfile._id))
-        .first();
+        .unique();
 
       if (existingMember) {
         throw new ConvexError("Este usuario ya es miembro de la barbería");
@@ -256,7 +281,6 @@ export const inviteBarbershopMember = mutation({
     const invitationId = await ctx.db.insert("invitations", {
       barbershopId: args.barbershopId,
       email,
-      name: args.name,
       phone: args.phone,
       roles: args.roles,
       code,
@@ -274,7 +298,6 @@ export const inviteBarbershopMember = mutation({
         email,
         code,
         inviterUserId: userInviting.userId,
-        name: args.name,
         roles: args.roles,
         expiresAt,
         phone: args.phone,
@@ -325,13 +348,13 @@ export const validateInvitation = mutation({
     }
 
     if (invitation.status !== "pending") {
-      return { status: invitation.status as Invitation["status"] };
+      return { status: invitation.status };
     }
 
     const isExpired = invitation.expiresAt <= Date.now();
 
     if (!isExpired) {
-      return { status: "pending" as Invitation["status"] };
+      return { status: "pending" };
     }
 
     await ctx.db.patch(invitation._id, { status: "expired" });
@@ -356,14 +379,13 @@ export const validateInvitation = mutation({
         email: invitation.email,
         code: newCode,
         inviterUserId: invitation.inviterUserId,
-        name: invitation.name,
         roles: invitation.roles,
         expiresAt,
         phone: invitation.phone,
       },
     );
 
-    return { status: "pending" as Invitation["status"] };
+    return { status: "pending" };
   },
 });
 
@@ -474,6 +496,6 @@ export const denyInvitation = mutation({
 
     await ctx.db.patch(invitation._id, { status: "denied" });
 
-    return "denied" as Invitation["status"];
+    return "denied";
   },
 });

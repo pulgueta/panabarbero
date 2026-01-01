@@ -4,10 +4,11 @@ import type {
   BarbershopMemberWithName,
   Service,
 } from "@panabarbero/convex/schemas";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Check, UserPlus, X } from "lucide-react";
 import type { FC } from "react";
 import { Activity, Suspense, useId, useState } from "react";
+import { toast } from "sonner";
 
 import { InviteBarberDialog } from "@/components/barbers/invite-barber-dialog";
 import { BorderContainer } from "@/components/layout/border-container";
@@ -42,9 +43,13 @@ import {
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import {
-  barbershopByOwnerIdQueryOptions,
-  useBarbershopByOwnerId,
+  barbershopByMemberUserIdQueryOptions,
+  useBarbershopByMemberUserId,
 } from "@/hooks/barbershop/use-barbershop";
+import {
+  barbershopMemberRolesQueryOptions,
+  useBarbershopMemberRoles,
+} from "@/hooks/barbershop/use-barbershop-member";
 import {
   barbershopMembersByBarbershopIdQueryOptions,
   servicesForBarberQueryOptions,
@@ -57,6 +62,7 @@ import {
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { getConvexErrorMessage } from "@/lib/convex-errors";
 
 export const Route = createFileRoute("/profile/barbershops/barbers/")({
   component: RouteComponent,
@@ -68,7 +74,20 @@ export const Route = createFileRoute("/profile/barbershops/barbers/")({
 
     if (user?.userId) {
       const barbershop = await opts.context.queryClient.ensureQueryData(
-        barbershopByOwnerIdQueryOptions(user.userId),
+        barbershopByMemberUserIdQueryOptions(user.userId),
+      );
+
+      const barbershopMemberRoles =
+        await opts.context.queryClient.ensureQueryData(
+          barbershopMemberRolesQueryOptions(user.userId),
+        );
+
+      if (!barbershopMemberRoles?.isOwner) {
+        throw redirect({ to: "/profile/barbershops/appointments" });
+      }
+
+      await opts.context.queryClient.ensureQueryData(
+        barbershopMemberRolesQueryOptions(user.userId),
       );
 
       if (barbershop?._id) {
@@ -96,7 +115,8 @@ export const Route = createFileRoute("/profile/barbershops/barbers/")({
 
 function RouteComponent() {
   const { data: user } = useSession();
-  const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
+  const { data: barbershop } = useBarbershopByMemberUserId(user?.userId!);
+  const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
   const { data: barbershopMembers, isLoading: isLoadingBarbershopMembers } =
     useBarbershopMembersByBarbershopId(barbershop?._id!);
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
@@ -114,15 +134,17 @@ function RouteComponent() {
             </p>
           </div>
 
-          <InviteBarberDialog
-            barbershopId={barbershop?._id!}
-            trigger={
-              <Button variant="outline">
-                <UserPlus className="size-3" />
-                Invitar barbero
-              </Button>
-            }
-          />
+          {rolesData?.isOwner && (
+            <InviteBarberDialog
+              barbershopId={barbershop?._id!}
+              trigger={
+                <Button variant="outline" disabled={!rolesData?.isOwner}>
+                  <UserPlus className="size-3" />
+                  Invitar barbero
+                </Button>
+              }
+            />
+          )}
         </div>
 
         <Activity
@@ -134,13 +156,15 @@ function RouteComponent() {
         >
           <Suspense fallback={<ProfileTabSkeleton />}>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {barbershopMembers.map((barbershopMember) => (
-                <BarberCard
-                  key={barbershopMember._id}
-                  barbershopMember={barbershopMember}
-                  services={services ?? []}
-                />
-              ))}
+              {services &&
+                barbershopMembers.map((barbershopMember) => (
+                  <BarberCard
+                    key={barbershopMember._id}
+                    barbershopMember={barbershopMember}
+                    services={services}
+                    isOwner={rolesData?.isOwner!}
+                  />
+                ))}
             </div>
           </Suspense>
         </Activity>
@@ -163,9 +187,14 @@ function RouteComponent() {
 interface BarberCardProps {
   barbershopMember: BarbershopMemberWithName;
   services: Service[];
+  isOwner: boolean;
 }
 
-const BarberCard: FC<BarberCardProps> = ({ barbershopMember, services }) => {
+const BarberCard: FC<BarberCardProps> = ({
+  barbershopMember,
+  services,
+  isOwner,
+}) => {
   const [open, setOpen] = useState(false);
 
   const { data: barberServices, isLoading: isLoadingBarberServices } =
@@ -224,13 +253,18 @@ const BarberCard: FC<BarberCardProps> = ({ barbershopMember, services }) => {
       </CardContent>
 
       <CardFooter className="justify-end">
-        <ManageServicesDialog
-          barbershopMember={barbershopMember}
-          services={services}
-          currentServices={barberServices}
-          open={open}
-          onOpenChange={setOpen}
-        />
+        {isOwner && (
+          <ManageServicesDialog
+            barbershopMember={barbershopMember}
+            services={services}
+            currentServices={barberServices!}
+            open={open}
+            onOpenChange={setOpen}
+            onSuccess={() => {
+              toast.success("Servicios actualizados correctamente");
+            }}
+          />
+        )}
       </CardFooter>
     </Card>
   );
@@ -257,7 +291,12 @@ function ManageServicesDialog({
     () => new Set(currentServices?.map((s) => s._id)),
   );
 
-  const { setBarberServicesMutation } = useBarbershopMemberActions();
+  const {
+    setBarberServicesMutation: {
+      mutateAsync: setBarberServices,
+      isPending: isSettingBarberServices,
+    },
+  } = useBarbershopMemberActions();
 
   const handleToggleService = (serviceId: Service["_id"]) => {
     setSelectedServices((prev) => {
@@ -280,10 +319,14 @@ function ManageServicesDialog({
   };
 
   const handleSave = async () => {
-    await setBarberServicesMutation.mutateAsync({
-      barbershopMemberId: barbershopMember._id,
-      serviceIds: Array.from(selectedServices),
-    });
+    try {
+      await setBarberServices({
+        barbershopMemberId: barbershopMember._id,
+        serviceIds: Array.from(selectedServices),
+      });
+    } catch (error) {
+      toast.error(getConvexErrorMessage(error));
+    }
   };
 
   // Reset selected services when dialog opens
@@ -354,17 +397,15 @@ function ManageServicesDialog({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={setBarberServicesMutation.isPending}
+            disabled={isSettingBarberServices}
           >
             Cancelar
           </Button>
           <Button
             onClick={handleSave}
-            disabled={
-              setBarberServicesMutation.isPending || services.length === 0
-            }
+            disabled={isSettingBarberServices || services.length === 0}
           >
-            {setBarberServicesMutation.isPending && <Spinner />}
+            {isSettingBarberServices && <Spinner />}
             Guardar cambios
           </Button>
         </DialogFooter>

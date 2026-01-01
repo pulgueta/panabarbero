@@ -44,6 +44,23 @@ export const authenticatedRoutes = {
       icon: Calendar,
     },
     {
+      label: "Perfil",
+      to: "/profile",
+      icon: User,
+    },
+  ],
+  owner: [
+    {
+      label: "Citas",
+      to: "/profile/barbershops/appointments",
+      icon: Calendar,
+    },
+    {
+      label: "Barberías",
+      to: "/profile/barbershops",
+      icon: Scissors,
+    },
+    {
       label: "Servicios",
       to: "/profile/barbershops/services",
       icon: Scissors,
