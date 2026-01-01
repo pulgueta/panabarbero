@@ -15,7 +15,7 @@ export async function getBarbershopMember(
   ctx: QueryCtx | MutationCtx,
   barbershopId: Id<"barbershops">,
   userProfileDataId: Id<"userProfileData">,
-): Promise<BarbershopMember | null> {
+) {
   return await ctx.db
     .query("barbershopMembers")
     .withIndex("by_barbershopId", (q) => q.eq("barbershopId", barbershopId))
@@ -30,7 +30,7 @@ export async function getBarbershopMemberByUserId(
   ctx: QueryCtx | MutationCtx,
   barbershopId: Id<"barbershops">,
   userId: string,
-): Promise<BarbershopMember | null> {
+) {
   const userProfile = await ctx.db
     .query("userProfileData")
     .withIndex("by_userId", (q) => q.eq("userId", userId))
@@ -79,7 +79,7 @@ export async function assertShopRole(
   barbershopId: Id<"barbershops">,
   userId: string,
   requiredRoles: Role | Role[],
-): Promise<BarbershopMember> {
+) {
   const member = await getBarbershopMemberByUserId(ctx, barbershopId, userId);
 
   if (!member) {
@@ -143,7 +143,7 @@ export async function assertBarber(
   ctx: QueryCtx | MutationCtx,
   barbershopId: Id<"barbershops">,
   userId: string,
-): Promise<BarbershopMember> {
+) {
   return assertShopRole(ctx, barbershopId, userId, "barber");
 }
 
@@ -154,7 +154,7 @@ export async function assertCanManageShop(
   ctx: QueryCtx | MutationCtx,
   barbershopId: Id<"barbershops">,
   userId: string,
-): Promise<BarbershopMember> {
+) {
   return assertShopRole(ctx, barbershopId, userId, "owner");
 }
 
@@ -166,7 +166,7 @@ export async function assertCanManageServices(
   ctx: QueryCtx | MutationCtx,
   barbershopId: Id<"barbershops">,
   userId: string,
-): Promise<BarbershopMember> {
+) {
   return assertShopRole(ctx, barbershopId, userId, ["owner", "barber"]);
 }
 
@@ -177,6 +177,6 @@ export async function assertCanManageAppointments(
   ctx: QueryCtx | MutationCtx,
   barbershopId: Id<"barbershops">,
   userId: string,
-): Promise<BarbershopMember> {
+) {
   return assertShopRole(ctx, barbershopId, userId, "barber");
 }

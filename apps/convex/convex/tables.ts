@@ -132,31 +132,6 @@ export const tables = {
     notes: v.optional(v.string()),
     deletedAt: v.optional(v.number()),
   },
-  notifications: {
-    uuid: v.string(),
-    channels: v.array(
-      v.union(v.literal("email"), v.literal("push"), v.literal("sms")),
-    ),
-    reason: v.union(
-      v.literal("appointment_created"),
-      v.literal("appointment_reminder"),
-      v.literal("appointment_cancelled"),
-      v.literal("appointment_rescheduled"),
-      v.literal("appointment_rescheduled_request"),
-      v.literal("appointment_no_show"),
-      v.literal("appointment_confirmed"),
-      v.literal("appointment_rescheduled_accepted"),
-      v.literal("appointment_rescheduled_denied"),
-      v.literal("barber_invited"),
-      v.literal("barber_appointment_created"),
-      v.literal("past_appointment_reminder"),
-    ),
-    title: v.string(),
-    body: v.string(),
-    senderUserId: v.union(v.literal("system"), v.string()),
-    receiverUserId: v.string(),
-    appointmentId: v.optional(v.id("appointments")),
-  },
   barbershopMemberServices: {
     uuid: v.string(),
     barbershopId: v.id("barbershops"),
@@ -167,7 +142,6 @@ export const tables = {
   invitations: {
     barbershopId: v.id("barbershops"),
     email: v.string(),
-    name: v.optional(v.string()),
     phone: v.optional(v.string()),
     roles: v.array(
       v.union(v.literal("owner"), v.literal("barber"), v.literal("staff")),
@@ -205,9 +179,6 @@ const reviewSchema = v.object({
 const appointmentSchema = v.object({
   ...tables.appointments,
 });
-const notificationSchema = v.object({
-  ...tables.notifications,
-});
 const barbershopMemberServicesSchema = v.object({
   ...tables.barbershopMemberServices,
 });
@@ -235,8 +206,6 @@ export type Service = ConvexRows<"services"> & Infer<typeof serviceSchema>;
 export type Review = ConvexRows<"reviews"> & Infer<typeof reviewSchema>;
 export type Appointment = ConvexRows<"appointments"> &
   Infer<typeof appointmentSchema>;
-export type Notification = ConvexRows<"notifications"> &
-  Infer<typeof notificationSchema>;
 export type BarbershopMemberServices = ConvexRows<"barbershopMemberServices"> &
   Infer<typeof barbershopMemberServicesSchema>;
 export type Invitation = ConvexRows<"invitations"> &

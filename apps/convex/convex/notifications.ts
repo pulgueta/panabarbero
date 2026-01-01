@@ -2,8 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation } from "./_generated/server";
 import { errorMessages } from "./errors";
-import type { Notification, UserProfileData } from "./tables";
-import { tables } from "./tables";
+import type { UserProfileData } from "./tables";
 
 export const subjects = {
   appointment_reminder: "Recordatorio de cita",
@@ -18,61 +17,14 @@ export const subjects = {
   barber_appointment_created: "",
   barber_invited: "Invitación a unirte como barbero",
   past_appointment_reminder: "Recordatorio de cita pasada",
-} satisfies Record<Notification["reason"], string>;
+} satisfies Record<string, string>;
 
 export function isNotificationEnabled(
-  channel: Notification["channels"][number],
+  channel: UserProfileData["notificationsPreferences"][number]["type"],
   notificationsPreferences: UserProfileData["notificationsPreferences"],
 ) {
   return notificationsPreferences.some((n) => n.type === channel && n.enabled);
 }
-
-export const saveNotification = internalMutation({
-  args: {
-    notification: v.object({
-      ...tables.notifications,
-    }),
-  },
-  handler: async (ctx, args) => {
-    const isSystemSender = args.notification.senderUserId === "system";
-    let sender: UserProfileData | null = null;
-
-    if (!isSystemSender) {
-      sender = (await ctx.runQuery(
-        internal.userProfileData.getProfileByUserId,
-        {
-          userId: args.notification.senderUserId,
-        },
-      )) as UserProfileData;
-
-      if (!sender) {
-        throw new Error("Sender not found", {
-          cause: sender,
-        });
-      }
-
-      const canSaveNotification =
-        args.notification.senderUserId === sender.userId;
-
-      if (!canSaveNotification) {
-        throw new Error("You cannot save notifications for yourself", {
-          cause: args.notification.senderUserId,
-        });
-      }
-    }
-
-    const notificationId = await ctx.db.insert("notifications", {
-      ...args.notification,
-      uuid: crypto.randomUUID(),
-      // biome-ignore lint/style/noNonNullAssertion: needed
-      senderUserId: isSystemSender ? "system" : sender?.userId!,
-    });
-
-    return notificationId;
-  },
-});
-
-// Emails and SMS notifications
 
 export const createAppointmentCancelledNotification = internalMutation({
   args: {
@@ -109,18 +61,10 @@ export const createAppointmentCancelledNotification = internalMutation({
 
     const isCustomer = args.sendTo === "customer";
     const receiverProfile = isCustomer ? customerProfile : barberProfile;
-    const receiverUserId = isCustomer
-      ? (customerProfile?.userId ?? "user_does_not_exist")
-      : barberProfile.userId;
 
     const toEmail = isCustomer
       ? (customerProfile?.email ?? appointment.contactEmail)
       : barberProfile.email;
-
-    const channels =
-      receiverProfile?.notificationsPreferences
-        .filter((n) => n.enabled)
-        .map((n) => n.type) ?? (isCustomer ? ["sms"] : []);
 
     const cancellingCustomerName =
       customerProfile?.name ?? appointment.customerName ?? "El cliente";
@@ -130,19 +74,6 @@ export const createAppointmentCancelledNotification = internalMutation({
       : `${cancellingCustomerName} ha cancelado su cita.`;
 
     const smsBody = args.notes ? `${body} Motivo: ${args.notes}` : body;
-
-    await ctx.runMutation(internal.notifications.saveNotification, {
-      notification: {
-        reason: "appointment_cancelled",
-        uuid: crypto.randomUUID(),
-        channels,
-        title: subjects.appointment_cancelled,
-        body,
-        senderUserId: "system",
-        receiverUserId,
-        appointmentId: args.appointmentId,
-      },
-    });
 
     if (
       receiverProfile &&
@@ -221,33 +152,11 @@ export const createAppointmentRescheduleRequestNotification = internalMutation({
 
     const isCustomer = args.sendTo === "customer";
     const receiverProfile = isCustomer ? customerProfile : barberProfile;
-    const receiverUserId = isCustomer
-      ? appointment.userId
-      : barberProfile.userId;
-
     const toEmail = isCustomer
       ? (appointment.contactEmail ?? customerProfile?.email)
       : barberProfile.email;
 
-    const channels = receiverProfile?.notificationsPreferences
-      .filter((n) => n.enabled)
-      .map((n) => n.type);
-
     const body = `${isCustomer ? "Tu barbero" : "Un cliente"} ha solicitado reagendar una cita.`;
-
-    if (channels) {
-      await ctx.runMutation(internal.notifications.saveNotification, {
-        notification: {
-          reason: "appointment_rescheduled_request",
-          uuid: crypto.randomUUID(),
-          title: subjects.appointment_rescheduled_request,
-          channels,
-          body,
-          senderUserId: "system",
-          receiverUserId,
-        },
-      });
-    }
 
     if (
       receiverProfile &&
@@ -308,10 +217,6 @@ export const createAppointmentRescheduleDecisionNotification = internalMutation(
         throw new ConvexError(errorMessages.notFound("perfil de usuario"));
       }
 
-      const channels = receiverProfile.notificationsPreferences
-        .filter((n) => n.enabled)
-        .map((n) => n.type);
-
       const acceptedBody = "Tu solicitud de reagendamiento ha sido aceptada.";
       const deniedBodyForCustomer = `Tu cita en ${args.barbershopName} ha sido cancelada.`;
       const deniedBodyForBarber =
@@ -323,26 +228,6 @@ export const createAppointmentRescheduleDecisionNotification = internalMutation(
         : isCustomer
           ? deniedBodyForCustomer
           : deniedBodyForBarber;
-
-      const reason = args.accepted
-        ? "appointment_rescheduled_accepted"
-        : "appointment_rescheduled_denied";
-      const title = args.accepted
-        ? subjects.appointment_rescheduled_accepted
-        : subjects.appointment_rescheduled_denied;
-
-      await ctx.runMutation(internal.notifications.saveNotification, {
-        notification: {
-          reason,
-          uuid: crypto.randomUUID(),
-          channels,
-          title,
-          body,
-          senderUserId: "system",
-          receiverUserId: args.receiverUserId,
-          appointmentId: args.appointmentId,
-        },
-      });
 
       if (
         isNotificationEnabled("email", receiverProfile.notificationsPreferences)
@@ -428,17 +313,6 @@ export const createAppointmentCreatedNotification = internalMutation({
       throw new ConvexError(errorMessages.notFound("perfil de barbero"));
     }
 
-    const customerChannels =
-      customerProfile?.notificationsPreferences
-        .filter((n) => n.enabled)
-        .map((n) => n.type) ?? (args.receiverPhoneNumber ? ["sms"] : []);
-    const channels = {
-      customer: customerChannels,
-      barber: barberProfile.notificationsPreferences
-        .filter((n) => n.enabled)
-        .map((n) => n.type),
-    };
-
     const body = {
       barber: "Un cliente ha reservado una cita.",
       customer: `Tu cita en ${args.barbershopName} ha sido agendada.`,
@@ -446,27 +320,10 @@ export const createAppointmentCreatedNotification = internalMutation({
 
     const isCustomer = args.sendTo === "customer";
     const receiverProfile = isCustomer ? customerProfile : barberProfile;
-    const receiverChannels = isCustomer ? channels.customer : channels.barber;
     const receiverBody = isCustomer ? body.customer : body.barber;
-    const receiverUserId = isCustomer ? args.customerUserId : args.barberUserId;
     const subject = isCustomer
       ? subjects.appointment_created
       : subjects.barber_appointment_created;
-
-    await ctx.runMutation(internal.notifications.saveNotification, {
-      notification: {
-        reason: isCustomer
-          ? "appointment_created"
-          : "barber_appointment_created",
-        uuid: crypto.randomUUID(),
-        channels: receiverChannels,
-        title: subject,
-        body: receiverBody,
-        senderUserId: "system",
-        receiverUserId,
-        appointmentId: args.appointmentId,
-      },
-    });
 
     if (
       isNotificationEnabled(
@@ -530,26 +387,7 @@ export const createAppointmentReminderNotification = internalMutation({
       }
     }
 
-    const channels =
-      customerProfile?.notificationsPreferences
-        .filter((n) => n.enabled)
-        .map((n) => n.type) ?? (args.receiverPhoneNumber ? ["sms"] : []);
-
     const body = `Tienes una cita en ~30 minutos en ${args.barbershopName}.`;
-
-    if (customerProfile) {
-      await ctx.runMutation(internal.notifications.saveNotification, {
-        notification: {
-          reason: "appointment_reminder",
-          uuid: crypto.randomUUID(),
-          channels,
-          title: subjects.appointment_reminder,
-          body,
-          receiverUserId: args.customerUserId,
-          senderUserId: "system",
-        },
-      });
-    }
 
     if (
       customerProfile &&
@@ -600,23 +438,7 @@ export const createPastAppointmentReminderNotification = internalMutation({
       throw new ConvexError(errorMessages.notFound("perfil de barbero"));
     }
 
-    const channels = barberProfile.notificationsPreferences
-      .filter((n) => n.enabled)
-      .map((n) => n.type);
-
     const body = `Haz tenido una cita hace poco, no olvides marcar su estado final.`;
-
-    await ctx.runMutation(internal.notifications.saveNotification, {
-      notification: {
-        reason: "past_appointment_reminder",
-        uuid: crypto.randomUUID(),
-        channels,
-        title: subjects.past_appointment_reminder,
-        body,
-        receiverUserId: barberProfile.userId,
-        senderUserId: "system",
-      },
-    });
 
     if (
       isNotificationEnabled("email", barberProfile.notificationsPreferences)
@@ -649,7 +471,6 @@ export const createBarberInvitedNotification = internalMutation({
     email: v.string(),
     code: v.string(),
     inviterUserId: v.string(),
-    name: v.optional(v.string()),
     roles: v.array(
       v.union(v.literal("owner"), v.literal("barber"), v.literal("staff")),
     ),
@@ -668,39 +489,13 @@ export const createBarberInvitedNotification = internalMutation({
       { userId: args.inviterUserId },
     );
 
-    const receiverProfile = await ctx.runQuery(
-      internal.userProfileData.getProfileByEmail,
-      { email: args.email },
-    );
-
     const invitationUrl = `${process.env.SITE_URL}/invitations/${args.code}`;
-
-    if (receiverProfile) {
-      const channels = receiverProfile.notificationsPreferences
-        .filter((n) => n.enabled)
-        .map((n) => n.type);
-
-      if (channels.length > 0) {
-        await ctx.runMutation(internal.notifications.saveNotification, {
-          notification: {
-            reason: "barber_invited",
-            uuid: crypto.randomUUID(),
-            channels,
-            title: subjects.barber_invited,
-            body: `${inviterProfile?.name ?? "Alguien"} te invitó a unirte a ${barbershop.name}.`,
-            senderUserId: "system",
-            receiverUserId: receiverProfile.userId,
-          },
-        });
-      }
-    }
 
     await ctx.scheduler.runAfter(0, internal.emails.sendBarberInvitationEmail, {
       to: args.email,
       barbershopName: barbershop.name,
       invitationLink: invitationUrl,
       inviterName: inviterProfile?.name ?? undefined,
-      inviteeName: args.name ?? undefined,
       expiresLabel: new Date(args.expiresAt).toLocaleDateString("es-ES"),
     });
   },

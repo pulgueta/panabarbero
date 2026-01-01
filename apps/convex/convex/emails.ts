@@ -242,7 +242,6 @@ export const sendBarberInvitationEmail = internalAction({
     barbershopName: v.string(),
     invitationLink: v.string(),
     inviterName: v.optional(v.string()),
-    inviteeName: v.optional(v.string()),
     expiresLabel: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -251,7 +250,6 @@ export const sendBarberInvitationEmail = internalAction({
         barbershopName: args.barbershopName,
         invitationLink: args.invitationLink,
         inviterName: args.inviterName ?? undefined,
-        inviteeName: args.inviteeName ?? undefined,
         expiresLabel: args.expiresLabel ?? undefined,
       }),
     );

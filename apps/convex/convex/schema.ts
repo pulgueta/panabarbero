@@ -64,16 +64,6 @@ export default defineSchema(
       .index("by_status", ["status"])
       .index("by_date", ["date"]),
 
-    notifications: defineTable({
-      ...tables.notifications,
-    })
-      .index("by_uuid", ["uuid"])
-      .index("by_senderUserId", ["senderUserId"])
-      .index("by_receiverUserId", ["receiverUserId"])
-      .index("by_channels", ["channels"])
-      .index("by_reason", ["reason"])
-      .index("by_appointmentId", ["appointmentId"]),
-
     barbershopMemberServices: defineTable({
       ...tables.barbershopMemberServices,
     })
