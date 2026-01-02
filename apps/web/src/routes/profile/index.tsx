@@ -156,7 +156,7 @@ function ProfilePage() {
           onClick={handleSignOut}
           className="mt-1 text-xs sm:text-sm"
         >
-          <LogOut className="hidden size-3 sm:block" />
+          <LogOut className="size-3" />
           Cerrar sesión
         </Button>
       </header>

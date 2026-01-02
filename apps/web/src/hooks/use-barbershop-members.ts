@@ -96,11 +96,18 @@ export function useBarbershopMemberActions() {
     ),
   });
 
+  const removeBarberMutation = useMutation({
+    mutationFn: useConvexMutation(
+      api.barbershopMembers.removeBarberFromBarbershop,
+    ),
+  });
+
   return {
     inviteBarberMutation,
     validateInvitationMutation,
     acceptInvitationMutation,
     denyInvitationMutation,
     setBarberServicesMutation,
+    removeBarberMutation,
   };
 }

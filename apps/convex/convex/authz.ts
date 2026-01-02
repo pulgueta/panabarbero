@@ -6,7 +6,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { errorMessages } from "./errors";
 import type { BarbershopMember } from "./tables";
 
-export type Role = "owner" | "barber" | "staff";
+export type Role = "owner" | "barber";
 
 /**
  * Get a barbershop member by their user profile data ID and barbershop ID

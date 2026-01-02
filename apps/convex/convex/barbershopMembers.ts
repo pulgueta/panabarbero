@@ -4,6 +4,7 @@ import { ConvexError, v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
+import { assertCanManageShop } from "./authz";
 import { errorMessages } from "./errors";
 import type { BarbershopMember } from "./tables";
 import { tables } from "./tables";
@@ -44,6 +45,7 @@ export const getBarbershopMembersByBarbershopId = query({
       .withIndex("by_barbershopId", (q) =>
         q.eq("barbershopId", args.barbershopId),
       )
+      .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
     const membersWithName = await Promise.all(
@@ -116,6 +118,64 @@ export const deleteBarbershopMember = internalMutation({
     );
 
     return deletedBarbershopMember;
+  },
+});
+
+export const removeBarberFromBarbershop = mutation({
+  args: {
+    barbershopMemberId: v.id("barbershopMembers"),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    const member = await ctx.db.get(args.barbershopMemberId);
+
+    if (!member) {
+      throw new ConvexError(errorMessages.notFound("barbero"));
+    }
+
+    await assertCanManageShop(ctx, member.barbershopId, user.userId);
+
+    if (member.roles.includes("owner")) {
+      throw new ConvexError("No puedes eliminar al dueño de la barbería");
+    }
+
+    const assignments = await ctx.db
+      .query("barbershopMemberServices")
+      .withIndex("by_barbershopMemberId", (q) =>
+        q.eq("barbershopMemberId", args.barbershopMemberId),
+      )
+      .collect();
+
+    const appointments = await ctx.db
+      .query("appointments")
+      .withIndex("by_barbershopMemberId", (q) =>
+        q.eq("barbershopMemberId", args.barbershopMemberId),
+      )
+      .collect();
+
+    await Promise.all(
+      assignments.map((assignment) => ctx.db.delete(assignment._id)),
+    );
+
+    await Promise.all(
+      appointments.map((appt) =>
+        ctx.db.patch(appt._id, {
+          deletedAt: Date.now(),
+          status: "cancelled",
+          notes:
+            "Cita cancelada porque el barbero ya no pertenece a la barbería",
+        }),
+      ),
+    );
+
+    await ctx.db.delete(args.barbershopMemberId);
+
+    return { success: true };
   },
 });
 
@@ -208,9 +268,7 @@ export const inviteBarbershopMember = mutation({
     phone: v.optional(v.string()),
     email: v.string(),
     barbershopId: v.id("barbershops"),
-    roles: v.array(
-      v.union(v.literal("owner"), v.literal("barber"), v.literal("staff")),
-    ),
+    roles: v.array(v.literal("barber")),
   },
   handler: async (ctx, args) => {
     const userInviting = await authComponent.safeGetAuthUser(ctx);

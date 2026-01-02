@@ -221,7 +221,7 @@ export const inviteBarberFormSchema = object({
     .regex(/^\+?[0-9]+$/, {
       message: "El teléfono del barbero debe ser válido",
     }),
-  roles: array(zodEnum(["owner", "barber", "staff"]))
+  roles: array(zodEnum(["barber"]))
     .min(1, { message: "Debes seleccionar al menos un rol" })
     .default(["barber"]),
 });

@@ -14,6 +14,16 @@ import { InviteBarberDialog } from "@/components/barbers/invite-barber-dialog";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -195,10 +205,34 @@ const BarberCard: FC<BarberCardProps> = ({
   services,
   isOwner,
 }) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<boolean>(false);
+  const [removeDialogOpen, setRemoveDialogOpen] = useState<boolean>(false);
 
   const { data: barberServices, isLoading: isLoadingBarberServices } =
     useServicesForBarber(barbershopMember._id);
+  const {
+    removeBarberMutation: {
+      mutateAsync: removeBarber,
+      isPending: isRemovingBarber,
+    },
+  } = useBarbershopMemberActions();
+
+  const canRemoveBarber =
+    isOwner &&
+    barbershopMember.roles.includes("barber") &&
+    !barbershopMember.roles.includes("owner");
+
+  const handleRemoveBarber = async () => {
+    try {
+      await removeBarber({ barbershopMemberId: barbershopMember._id });
+      toast.success(`${barbershopMember.name} fue eliminado de la barbería`);
+    } catch (error) {
+      toast.error(getConvexErrorMessage(error));
+      return;
+    } finally {
+      setRemoveDialogOpen(false);
+    }
+  };
 
   return (
     <Card className="h-full">
@@ -212,11 +246,7 @@ const BarberCard: FC<BarberCardProps> = ({
                   key={role}
                   variant={role === "owner" ? "default" : "secondary"}
                 >
-                  {role === "owner"
-                    ? "Dueño"
-                    : role === "barber"
-                      ? "Barbero"
-                      : "Staff"}
+                  {role === "owner" ? "Dueño" : "Barbero"}
                 </Badge>
               ))}
             </CardDescription>
@@ -252,7 +282,7 @@ const BarberCard: FC<BarberCardProps> = ({
         </div>
       </CardContent>
 
-      <CardFooter className="justify-end">
+      <CardFooter className="justify-end gap-2">
         {isOwner && (
           <ManageServicesDialog
             barbershopMember={barbershopMember}
@@ -264,6 +294,48 @@ const BarberCard: FC<BarberCardProps> = ({
               toast.success("Servicios actualizados correctamente");
             }}
           />
+        )}
+
+        {canRemoveBarber && (
+          <>
+            <Button
+              variant="destructive"
+              onClick={() => setRemoveDialogOpen(true)}
+              disabled={isRemovingBarber}
+            >
+              {isRemovingBarber && <Spinner />}
+              Eliminar
+            </Button>
+            <AlertDialog
+              open={removeDialogOpen}
+              onOpenChange={setRemoveDialogOpen}
+            >
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    Eliminar a {barbershopMember.name}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta acción removerá a este barbero de tu barbería y perderá
+                    el acceso a los servicios asignados.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction asChild>
+                    <Button
+                      variant="destructive"
+                      onClick={handleRemoveBarber}
+                      disabled={isRemovingBarber}
+                    >
+                      {isRemovingBarber && <Spinner />}
+                      Eliminar barbero
+                    </Button>
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
         )}
       </CardFooter>
     </Card>

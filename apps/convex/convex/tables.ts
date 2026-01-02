@@ -90,9 +90,8 @@ export const tables = {
     barbershopId: v.id("barbershops"),
     joinedAt: v.number(),
     isActive: v.boolean(),
-    roles: v.array(
-      v.union(v.literal("owner"), v.literal("barber"), v.literal("staff")),
-    ),
+    completedAppointments: v.optional(v.number()),
+    roles: v.array(v.union(v.literal("owner"), v.literal("barber"))),
   },
   services: {
     uuid: v.string(),
@@ -143,9 +142,7 @@ export const tables = {
     barbershopId: v.id("barbershops"),
     email: v.string(),
     phone: v.optional(v.string()),
-    roles: v.array(
-      v.union(v.literal("owner"), v.literal("barber"), v.literal("staff")),
-    ),
+    roles: v.array(v.literal("barber")),
     code: v.string(),
     status: v.union(
       v.literal("pending"),

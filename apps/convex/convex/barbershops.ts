@@ -63,7 +63,7 @@ export const createBarbershop = mutation({
       return null;
     }
 
-    const roles: Array<"owner" | "barber" | "staff"> = ownerIsBarber
+    const roles: Array<"owner" | "barber"> = ownerIsBarber
       ? ["owner", "barber"]
       : ["owner"];
 

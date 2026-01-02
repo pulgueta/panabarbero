@@ -14,8 +14,6 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Spinner } from "@/components/ui/spinner";
 import { useBarbershopMemberActions } from "@/hooks/use-barbershop-members";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
@@ -48,7 +46,10 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
   });
 
   const {
-    inviteBarberMutation: { isPending, mutateAsync: inviteBarber },
+    inviteBarberMutation: {
+      isPending: isInvitingBarber,
+      mutateAsync: inviteBarber,
+    },
   } = useBarbershopMemberActions();
 
   const onSubmit = form.handleSubmit(async (formData) => {
@@ -112,54 +113,10 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
             </Field>
           )}
         />
-
-        <Controller
-          name="roles"
-          control={form.control}
-          render={({ field, fieldState }) => {
-            const currentValue =
-              Array.isArray(field.value) && field.value.length > 0
-                ? field.value[0]
-                : "barber";
-
-            return (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={formIds.roles}>Rol</FieldLabel>
-                <FieldDescription>
-                  Selecciona el rol que tendrá la persona invitada en la
-                  barbería.
-                </FieldDescription>
-                <RadioGroup
-                  value={currentValue}
-                  onValueChange={(value) =>
-                    field.onChange([value as "barber" | "staff"])
-                  }
-                  className="grid grid-cols-2 gap-2"
-                >
-                  {(["barber", "staff"] as const).map((role) => {
-                    const roleLabel = role === "barber" ? "Barbero" : "Staff";
-
-                    return (
-                      <div className="flex items-center gap-3" key={role}>
-                        <RadioGroupItem value={role} id={role} />
-                        <Label htmlFor={role} className="cursor-pointer">
-                          {roleLabel}
-                        </Label>
-                      </div>
-                    );
-                  })}
-                </RadioGroup>
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            );
-          }}
-        />
       </FieldGroup>
 
-      <Button type="submit" disabled={isPending} className="mt-4 w-full">
-        {isPending ? <Spinner /> : "Invitar"}
+      <Button type="submit" disabled={isInvitingBarber} className="mt-4 w-full">
+        {isInvitingBarber && <Spinner />} Invitar
       </Button>
     </form>
   );
