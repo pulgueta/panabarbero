@@ -56,11 +56,6 @@ export const authenticatedRoutes = {
       icon: Calendar,
     },
     {
-      label: "Barberías",
-      to: "/profile/barbershops",
-      icon: Scissors,
-    },
-    {
       label: "Servicios",
       to: "/profile/barbershops/services",
       icon: Scissors,

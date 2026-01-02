@@ -18,6 +18,10 @@ import {
   useBarbershopByOwnerId,
 } from "@/hooks/barbershop/use-barbershop";
 import {
+  barbershopMemberRolesQueryOptions,
+  useBarbershopMemberRoles,
+} from "@/hooks/barbershop/use-barbershop-member";
+import {
   appointmentsByUserQueryOptions,
   useAppointmentsByUser,
 } from "@/hooks/use-appointments";
@@ -77,6 +81,9 @@ export const Route = createFileRoute("/profile/")({
 
     if (user?.userId) {
       await context.queryClient.ensureQueryData(
+        barbershopMemberRolesQueryOptions(user.userId),
+      );
+      await context.queryClient.ensureQueryData(
         appointmentsByUserQueryOptions(user.userId, null),
       );
       await context.queryClient.ensureQueryData(
@@ -101,6 +108,7 @@ function ProfilePage() {
 
   const { data: user } = useSession();
   const { data: isBarber } = useIsBarber(user?.userId!);
+  const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
   const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
   const {
     data: appointments,
@@ -122,14 +130,16 @@ function ProfilePage() {
   };
 
   const tabsToRender = useMemo(() => {
-    const base = [tabs.appointments, tabs.account];
+    const base = [tabs.account];
 
-    if (isBarber) {
+    if (isBarber && rolesData?.isOwner) {
       base.push(tabs.danger);
+    } else if (!isBarber) {
+      base.push(tabs.appointments);
     }
 
     return base;
-  }, [isBarber]);
+  }, [isBarber, rolesData?.isOwner]);
 
   return (
     <BorderContainer className="space-y-4">
@@ -137,7 +147,7 @@ function ProfilePage() {
         <div className="space-y-1">
           <h1 className="font-bold text-2xl tracking-tight">Perfil</h1>
           <p className="text-pretty text-muted-foreground text-sm">
-            Gestiona tu perfil y tus citas.
+            Gestiona tu perfil {!isBarber && "y tus citas."}
           </p>
         </div>
 
@@ -203,7 +213,7 @@ function ProfilePage() {
             </Activity>
           </Suspense> */}
 
-          {isBarber && (
+          {isBarber && rolesData?.isOwner && (
             <Suspense fallback={<ProfileTabSkeleton />}>
               <Activity
                 mode={

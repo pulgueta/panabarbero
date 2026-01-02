@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: barbershop is guaranteed to be not null */
 
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { PlusIcon, Share } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,6 +19,10 @@ import {
   barbershopByOwnerIdQueryOptions,
   useBarbershopByOwnerId,
 } from "@/hooks/barbershop/use-barbershop";
+import {
+  barbershopMemberRolesQueryOptions,
+  useBarbershopMemberRoles,
+} from "@/hooks/barbershop/use-barbershop-member";
 import {
   barbershopMetadataQueryOptions,
   useBarbershopMetadata,
@@ -43,6 +47,15 @@ export const Route = createFileRoute("/profile/barbershops/settings")({
         barbershopByOwnerIdQueryOptions(user.userId),
       );
 
+      const barbershopMemberRoles =
+        await opts.context.queryClient.ensureQueryData(
+          barbershopMemberRolesQueryOptions(user.userId),
+        );
+
+      if (!barbershopMemberRoles?.isOwner) {
+        throw redirect({ to: "/profile/barbershops/appointments" });
+      }
+
       if (barbershop) {
         await opts.context.queryClient.ensureQueryData(
           barbershopMetadataQueryOptions(barbershop._id),
@@ -62,6 +75,7 @@ function SettingsPage() {
   const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
   const { data: barbershopMetadata } = useBarbershopMetadata(barbershop?._id!);
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
+  const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
 
   const hasService = services?.length && services.length > 0;
   const hasAnyActiveDay = barbershop?.availability?.some(
@@ -90,7 +104,7 @@ function SettingsPage() {
         </p>
       </header>
 
-      {barbershop && (
+      {barbershop && rolesData?.isOwner && (
         <>
           <Button onClick={onCopyLink}>
             <Share className="size-3" />
@@ -204,7 +218,7 @@ function SettingsPage() {
         </>
       )}
 
-      {!hasAnyActiveDay && (
+      {!hasAnyActiveDay && rolesData?.isOwner && (
         <Alert variant="warning">
           <AlertTitle>Horario de atención requerido</AlertTitle>
           <AlertDescription>
@@ -215,7 +229,7 @@ function SettingsPage() {
         </Alert>
       )}
 
-      {!hasService && barbershop && (
+      {!hasService && barbershop && rolesData?.isOwner && (
         <Alert variant="warning">
           <AlertTitle>Debes crear al menos un servicio</AlertTitle>
           <AlertDescription>
@@ -234,21 +248,25 @@ function SettingsPage() {
         </Alert>
       )}
 
-      <section className="space-y-4">
-        <div>
-          <h2 className="font-bold text-xl tracking-tight">Disponibilidad</h2>
-          <p className="text-muted-foreground text-sm">
-            Define los días y horas en los que tu barbería atiende.
-          </p>
-        </div>
+      {rolesData?.isOwner && (
+        <section className="space-y-4">
+          <div>
+            <h2 className="font-bold text-xl tracking-tight">Disponibilidad</h2>
+            <p className="text-muted-foreground text-sm">
+              Define los días y horas en los que tu barbería atiende.
+            </p>
+          </div>
 
-        {barbershop && barbershop.availability.length > 0 && (
-          <AvailabilityForm
-            barbershopId={barbershop._id}
-            availability={barbershop?.availability}
-          />
-        )}
-      </section>
+          {barbershop &&
+            rolesData?.isOwner &&
+            barbershop.availability.length > 0 && (
+              <AvailabilityForm
+                barbershopId={barbershop._id}
+                availability={barbershop?.availability}
+              />
+            )}
+        </section>
+      )}
     </BorderContainer>
   );
 }

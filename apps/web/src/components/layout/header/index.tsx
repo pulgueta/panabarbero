@@ -17,14 +17,6 @@ export const Header = () => {
 
   const currentPath = router.location.pathname;
 
-  const navigationRoutesWithoutSettings = user
-    ? tanstack.authenticatedRoutes.navigation.filter(
-        (route) => route.to !== "/settings",
-      )
-    : tanstack.publicRoutes.navigation.filter(
-        (route) => route.to !== "/settings",
-      );
-
   const defaultProfileTab = isBarber ? "account" : "appointments";
 
   const navigationRoutes = rolesData?.isOwner
@@ -46,30 +38,53 @@ export const Header = () => {
 
         <nav className="flex flex-1 items-center justify-center">
           <div className="flex items-center font-medium text-sm md:space-x-8">
-            {isBarber
-              ? navigationRoutes.map((route) => (
-                  <Button
-                    key={route.to}
-                    variant={currentPath === route.to ? "outline" : "ghost"}
-                    asChild
-                  >
-                    <Link
+            {user
+              ? isBarber
+                ? navigationRoutes.map((route) => (
+                    <Button
                       key={route.to}
-                      to={route.to}
-                      style={{
-                        viewTransitionName: route.to,
-                      }}
-                      search={
-                        route.to === "/profile"
-                          ? { tab: defaultProfileTab }
-                          : undefined
-                      }
+                      variant={currentPath === route.to ? "outline" : "ghost"}
+                      asChild
                     >
-                      {route.label}
-                    </Link>
-                  </Button>
-                ))
-              : navigationRoutesWithoutSettings.map((route) => (
+                      <Link
+                        key={route.to}
+                        to={route.to}
+                        style={{
+                          viewTransitionName: route.to,
+                        }}
+                        search={
+                          route.to === "/profile"
+                            ? { tab: defaultProfileTab }
+                            : undefined
+                        }
+                      >
+                        {route.label}
+                      </Link>
+                    </Button>
+                  ))
+                : tanstack.authenticatedRoutes.navigation.map((route) => (
+                    <Button
+                      key={route.to}
+                      variant={currentPath === route.to ? "outline" : "ghost"}
+                      asChild
+                    >
+                      <Link
+                        key={route.to}
+                        to={route.to}
+                        style={{
+                          viewTransitionName: route.to,
+                        }}
+                        search={
+                          route.to === "/profile"
+                            ? { tab: defaultProfileTab }
+                            : undefined
+                        }
+                      >
+                        {route.label}
+                      </Link>
+                    </Button>
+                  ))
+              : tanstack.publicRoutes.navigation.map((route) => (
                   <Button
                     key={route.to}
                     variant={currentPath === route.to ? "outline" : "ghost"}
