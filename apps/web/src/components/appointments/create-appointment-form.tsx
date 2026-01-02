@@ -199,7 +199,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
             )}
           />
 
-          {barberServices?.length ? (
+          {barbers?.length ? (
             <Controller
               name="barbershopMemberId"
               control={form.control}

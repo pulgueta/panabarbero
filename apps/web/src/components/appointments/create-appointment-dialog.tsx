@@ -109,7 +109,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
       contactPhone: isBarber ? undefined : userProfile?.phoneNumber,
       contactEmail: isBarber ? undefined : userProfile?.email,
       notes: "",
-      barbershopMemberId: defaultBarberId,
+      barbershopMemberId: defaultBarberId ?? selectedBarberId,
     },
   });
 
