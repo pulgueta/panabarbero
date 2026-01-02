@@ -82,7 +82,7 @@ export const getBarbersForService = query({
     const assignments = await ctx.db
       .query("barbershopMemberServices")
       .withIndex("by_serviceId", (q) => q.eq("serviceId", args.serviceId))
-      .filter((q) => q.neq(q.field("isActive"), false))
+      .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
     if (assignments.length === 0) {

@@ -9,7 +9,7 @@ interface BarbershopGridProps {
 
 export const BarbershopGrid: FC<BarbershopGridProps> = ({ barbershops }) => {
   return (
-    <main className="grid grid-cols-1 gap-x-6 gap-y-8 px-4 md:grid-cols-2 md:px-10 xl:grid-cols-3">
+    <main className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
       {barbershops.map((barbershop) => (
         <BarbershopListCard key={barbershop._id} barbershop={barbershop} />
       ))}

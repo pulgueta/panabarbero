@@ -80,3 +80,4 @@ export const BarberInvitationEmail = ({
 export default BarberInvitationEmail;
 
 
+

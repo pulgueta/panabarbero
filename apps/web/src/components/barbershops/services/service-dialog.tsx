@@ -69,8 +69,6 @@ export const ServiceDialog: FC<ServiceDialogProps> = ({
 
   const loading = isCreatingService || isUpdatingService;
 
-  console.log(barbershopId);
-
   const onSubmit = form.handleSubmit(async (data) => {
     if (initialValues && serviceId) {
       await updateService({
