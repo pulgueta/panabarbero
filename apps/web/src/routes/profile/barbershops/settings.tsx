@@ -1,5 +1,4 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: barbershop is guaranteed to be not null */
-
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { PlusIcon, Share } from "lucide-react";
 import { toast } from "sonner";
@@ -69,6 +68,15 @@ export const Route = createFileRoute("/profile/barbershops/settings")({
 });
 
 function SettingsPage() {
+  // const [_, convert, ref] = useToPng<HTMLDivElement>({
+  //   onSuccess: (data) => {
+  //     const link = document.createElement("a");
+  //     link.download = "codigo-qr-barberia.jpeg";
+  //     link.href = data;
+  //     link.click();
+  //   },
+  // });
+
   const { data: user } = useSession();
   const [copy] = useClipboard();
 
@@ -82,8 +90,10 @@ function SettingsPage() {
     (a) => a.weekDay.isActive,
   );
 
+  const url = `${window.location.origin}/barbershops/${barbershop?.uuid}`;
+
   const onCopyLink = () => {
-    copy(`${window.location.origin}/barbershops/${barbershop?.uuid}`)
+    copy(url)
       .then(() => {
         toast.success("Link copiado al portapapeles");
       })
@@ -106,6 +116,31 @@ function SettingsPage() {
 
       {barbershop && rolesData?.isOwner && (
         <>
+          {/* <div className="flex flex-col items-center justify-center gap-2">
+            <div ref={ref}>
+              <QRCode
+                size="lg"
+                value={url}
+                options={{
+                  dotsOptions: { color: "var(--secondary)" },
+                  cornersSquareOptions: { color: "var(--primary)" },
+                  cornersDotOptions: { color: "var(--primary)" },
+                }}
+                className="mx-auto max-w-max"
+              />
+            </div>
+
+            <p className="text-muted-foreground text-sm">
+              Comparte este código QR con tus clientes para agendar en tu
+              barbería.
+            </p>
+
+            <Button onClick={convert}>
+              <Download className="size-3" />
+              Descargar código QR
+            </Button>
+          </div> */}
+
           <Button onClick={onCopyLink}>
             <Share className="size-3" />
             Copia el link de tu barbería

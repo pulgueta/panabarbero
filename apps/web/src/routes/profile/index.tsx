@@ -174,7 +174,7 @@ function ProfilePage() {
               <TabsTrigger
                 key={tabOption.value}
                 value={tabOption.value}
-                className="text-xs sm:text-sm md:min-w-24 md:max-w-40"
+                className="min-w-24 text-sm"
               >
                 {tabOption.label}
               </TabsTrigger>

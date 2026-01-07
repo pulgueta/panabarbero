@@ -9,7 +9,7 @@ import type { FC } from "react";
 import { CreateAppointmentDialog } from "@/components/appointments/create-appointment-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/form-utils";
+import { formatCurrency } from "@/lib/utils";
 
 interface ServicesGridProps {
   services: Service[];
