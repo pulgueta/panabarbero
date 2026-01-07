@@ -1,12 +1,15 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 
 import { ConvexError, v } from "convex/values";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
+import { assertCanManageShop } from "./authz";
 import { errorMessages } from "./errors";
-import type { BarbershopMember, BarbershopMemberWithName } from "./tables";
+import type { BarbershopMember } from "./tables";
 import { tables } from "./tables";
+
+const INVITATION_EXPIRATION_MS = 1000 * 60 * 60 * 24 * 7;
 
 export const createBarbershopMember = internalMutation({
   args: {
@@ -25,7 +28,6 @@ export const createBarbershopMember = internalMutation({
 
     const barbershopMemberId = await ctx.db.insert("barbershopMembers", {
       ...args.barbershopMember,
-      role: "barber",
       uuid: crypto.randomUUID(),
     });
 
@@ -33,45 +35,43 @@ export const createBarbershopMember = internalMutation({
   },
 });
 
-export const getBarbersByBarbershopId = query({
+export const getBarbershopMembersByBarbershopId = query({
   args: {
     barbershopId: v.id("barbershops"),
   },
-  handler: async (ctx, args): Promise<BarbershopMemberWithName[]> => {
-    const barbers = await ctx.db
+  handler: async (ctx, args) => {
+    const members = await ctx.db
       .query("barbershopMembers")
       .withIndex("by_barbershopId", (q) =>
         q.eq("barbershopId", args.barbershopId),
       )
+      .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
-    const barbersWithName = await Promise.all(
-      barbers.map(async (barber) => {
-        const barberProfile = await ctx.db.get(barber.userProfileDataId);
-
-        if (!barberProfile) {
-          throw new ConvexError(errorMessages.notFound("perfil de barbero"));
-        }
+    const membersWithName = await Promise.all(
+      members.map(async (member) => {
+        const memberProfile = await ctx.db.get(member.userProfileDataId);
 
         return {
-          ...barber,
-          name: barberProfile?.name ?? "",
+          ...member,
+          name: memberProfile?.name ?? "",
         };
       }),
     );
 
-    return barbersWithName;
+    return membersWithName;
   },
 });
 
 export const getBarberByUuid = query({
   args: { uuid: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const member = await ctx.db
       .query("barbershopMembers")
-      .withIndex("by_role", (q) => q.eq("role", "barber"))
-      .filter((q) => q.eq(q.field("uuid"), args.uuid))
+      .withIndex("by_uuid", (q) => q.eq("uuid", args.uuid))
       .unique();
+
+    return member?.roles.includes("barber") ? member : null;
   },
 });
 
@@ -121,6 +121,64 @@ export const deleteBarbershopMember = internalMutation({
   },
 });
 
+export const removeBarberFromBarbershop = mutation({
+  args: {
+    barbershopMemberId: v.id("barbershopMembers"),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    const member = await ctx.db.get(args.barbershopMemberId);
+
+    if (!member) {
+      throw new ConvexError(errorMessages.notFound("barbero"));
+    }
+
+    await assertCanManageShop(ctx, member.barbershopId, user.userId);
+
+    if (member.roles.includes("owner")) {
+      throw new ConvexError("No puedes eliminar al dueño de la barbería");
+    }
+
+    const assignments = await ctx.db
+      .query("barbershopMemberServices")
+      .withIndex("by_barbershopMemberId", (q) =>
+        q.eq("barbershopMemberId", args.barbershopMemberId),
+      )
+      .collect();
+
+    const appointments = await ctx.db
+      .query("appointments")
+      .withIndex("by_barbershopMemberId", (q) =>
+        q.eq("barbershopMemberId", args.barbershopMemberId),
+      )
+      .collect();
+
+    await Promise.all(
+      assignments.map((assignment) => ctx.db.delete(assignment._id)),
+    );
+
+    await Promise.all(
+      appointments.map((appt) =>
+        ctx.db.patch(appt._id, {
+          deletedAt: Date.now(),
+          status: "cancelled",
+          notes:
+            "Cita cancelada porque el barbero ya no pertenece a la barbería",
+        }),
+      ),
+    );
+
+    await ctx.db.delete(args.barbershopMemberId);
+
+    return { success: true };
+  },
+});
+
 export const isBarber = query({
   args: {
     userId: v.optional(v.string()),
@@ -141,11 +199,14 @@ export const isBarber = query({
 
     const barbershopMember = await ctx.db
       .query("barbershopMembers")
-      .withIndex("by_role", (q) => q.eq("role", "barber"))
-      .filter((q) => q.eq(q.field("userProfileDataId"), userProfile._id))
+      .withIndex("by_userProfileDataId", (q) =>
+        q.eq("userProfileDataId", userProfile._id),
+      )
       .first();
 
-    return !!barbershopMember;
+    if (!barbershopMember) return false;
+
+    return barbershopMember.roles.includes("barber");
   },
 });
 
@@ -176,12 +237,38 @@ export const getBarbershopMemberByUserId = query({
   },
 });
 
+export const getBarbershopMemberRolesByUserId = query({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
+    roles: BarbershopMember["roles"] | undefined;
+    isOwner: boolean | undefined;
+  }> => {
+    const barbershopMember = await ctx.runQuery(
+      api.barbershopMembers.getBarbershopMemberByUserId,
+      {
+        userId: args.userId,
+      },
+    );
+
+    return {
+      roles: barbershopMember?.roles,
+      isOwner: barbershopMember?.roles.includes("owner"),
+    };
+  },
+});
+
 export const inviteBarbershopMember = mutation({
   args: {
-    name: v.string(),
-    phone: v.string(),
-    email: v.optional(v.string()),
+    name: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    email: v.string(),
     barbershopId: v.id("barbershops"),
+    roles: v.array(v.literal("barber")),
   },
   handler: async (ctx, args) => {
     const userInviting = await authComponent.safeGetAuthUser(ctx);
@@ -196,42 +283,277 @@ export const inviteBarbershopMember = mutation({
       throw new ConvexError(errorMessages.notFound("barbería"));
     }
 
-    let userProfile = null;
+    // Verify the user inviting is the owner of the barbershop
+    if (barbershop.ownerId !== userInviting.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
 
-    if (args.email) {
-      userProfile = await ctx.runQuery(
-        internal.userProfileData.getProfileByEmail,
-        {
-          email: args.email,
-        },
+    const email = args.email.toLowerCase().trim();
+
+    const userProfile = await ctx.runQuery(
+      internal.userProfileData.getProfileByEmail,
+      { email },
+    );
+
+    if (userProfile) {
+      const existingMember = await ctx.db
+        .query("barbershopMembers")
+        .withIndex("by_barbershopId", (q) =>
+          q.eq("barbershopId", args.barbershopId),
+        )
+        .filter((q) => q.eq(q.field("userProfileDataId"), userProfile._id))
+        .unique();
+
+      if (existingMember) {
+        throw new ConvexError("Este usuario ya es miembro de la barbería");
+      }
+    }
+
+    const existingInvitation = await ctx.db
+      .query("invitations")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
+      .filter((q) => q.eq(q.field("email"), email))
+      .first();
+
+    const now = Date.now();
+
+    if (
+      existingInvitation &&
+      existingInvitation.status === "pending" &&
+      existingInvitation.expiresAt > now
+    ) {
+      throw new ConvexError(
+        "Ya existe una invitación activa para este correo.",
       );
     }
 
-    if (!userProfile) {
-      throw new ConvexError(errorMessages.requiredAccount);
+    if (existingInvitation && existingInvitation.status === "pending") {
+      await ctx.db.patch(existingInvitation._id, { status: "expired" });
     }
 
-    // TODO: Send notification to the user when is implemented
-    // const userChannels = userProfile.notificationsPreferences
-    //   .filter((n) => n.enabled)
-    //   .map((n) => n.type);
+    const code = crypto.randomUUID();
+    const expiresAt = now + INVITATION_EXPIRATION_MS;
 
-    // if (userChannels.length > 0) {
-    //   await ctx.scheduler.runAfter(
-    //     0,
-    //     internal.notifications.createNotification,
-    //     {
-    //       notification: {
-    //         body: `Hola ${args.name}. Has sido invitado a unirte a ${barbershop.name} como barbero.`,
-    //         title: "Invitación a unirte como barbero",
-    //         receiverUserId: userProfile.userId,
-    //         senderUserId: userInviting.userId,
-    //         uuid: crypto.randomUUID(),
-    //         reason: "barber_invited",
-    //         channels: userChannels,
-    //       },
-    //     },
-    //   );
-    // }
+    const invitationId = await ctx.db.insert("invitations", {
+      barbershopId: args.barbershopId,
+      email,
+      phone: args.phone,
+      roles: args.roles,
+      code,
+      status: "pending",
+      expiresAt,
+      inviterUserId: userInviting.userId,
+    });
+
+    await ctx.scheduler.runAfter(
+      0,
+      internal.notifications.createBarberInvitedNotification,
+      {
+        invitationId,
+        barbershopId: args.barbershopId,
+        email,
+        code,
+        inviterUserId: userInviting.userId,
+        roles: args.roles,
+        expiresAt,
+        phone: args.phone,
+      },
+    );
+
+    return invitationId;
+  },
+});
+
+export const getInvitationByCode = query({
+  args: { code: v.string() },
+  handler: async (ctx, args) => {
+    const invitation = await ctx.db
+      .query("invitations")
+      .withIndex("by_code", (q) => q.eq("code", args.code))
+      .unique();
+
+    if (!invitation) {
+      return null;
+    }
+
+    const barbershop = await ctx.db.get(invitation.barbershopId);
+    const inviterProfile = await ctx.db
+      .query("userProfileData")
+      .withIndex("by_userId", (q) => q.eq("userId", invitation.inviterUserId))
+      .unique();
+
+    return {
+      invitation,
+      barbershopName: barbershop?.name ?? "",
+      inviterName: inviterProfile?.name ?? null,
+      isExpired: Date.now() > invitation.expiresAt,
+    };
+  },
+});
+
+export const validateInvitation = mutation({
+  args: { code: v.string() },
+  handler: async (ctx, args) => {
+    const invitation = await ctx.db
+      .query("invitations")
+      .withIndex("by_code", (q) => q.eq("code", args.code))
+      .unique();
+
+    if (!invitation) {
+      throw new ConvexError(errorMessages.notFound("invitación"));
+    }
+
+    if (invitation.status !== "pending") {
+      return { status: invitation.status };
+    }
+
+    const isExpired = invitation.expiresAt <= Date.now();
+
+    if (!isExpired) {
+      return { status: "pending" };
+    }
+
+    await ctx.db.patch(invitation._id, { status: "expired" });
+
+    const newCode = crypto.randomUUID();
+    const expiresAt = Date.now() + INVITATION_EXPIRATION_MS;
+    const { _id, _creationTime, ...rest } = invitation;
+
+    const newInvitationId = await ctx.db.insert("invitations", {
+      ...rest,
+      status: "pending",
+      code: newCode,
+      expiresAt,
+    });
+
+    await ctx.scheduler.runAfter(
+      0,
+      internal.notifications.createBarberInvitedNotification,
+      {
+        invitationId: newInvitationId,
+        barbershopId: invitation.barbershopId,
+        email: invitation.email,
+        code: newCode,
+        inviterUserId: invitation.inviterUserId,
+        roles: invitation.roles,
+        expiresAt,
+        phone: invitation.phone,
+      },
+    );
+
+    return { status: "pending" };
+  },
+});
+
+export const acceptInvitation = mutation({
+  args: { code: v.string() },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+
+    if (!user || !user.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    const invitation = await ctx.db
+      .query("invitations")
+      .withIndex("by_code", (q) => q.eq("code", args.code))
+      .unique();
+
+    if (!invitation) {
+      throw new ConvexError(errorMessages.notFound("invitación"));
+    }
+
+    if (invitation.status !== "pending") {
+      throw new ConvexError("La invitación ya fue gestionada.");
+    }
+
+    if (invitation.expiresAt <= Date.now()) {
+      await ctx.db.patch(invitation._id, { status: "expired" });
+      throw new ConvexError(
+        "La invitación ha expirado. Se ha reenviado un nuevo enlace.",
+      );
+    }
+
+    const profile = await ctx.db
+      .query("userProfileData")
+      .withIndex("by_userId", (q) => q.eq("userId", user.userId!))
+      .unique();
+
+    if (!profile) {
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
+    }
+
+    if (profile.email !== invitation.email) {
+      throw new ConvexError("Esta invitación no corresponde a tu cuenta.");
+    }
+
+    const existingMember = await ctx.db
+      .query("barbershopMembers")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", invitation.barbershopId),
+      )
+      .filter((q) => q.eq(q.field("userProfileDataId"), profile._id))
+      .first();
+
+    if (existingMember) {
+      await ctx.db.patch(invitation._id, { status: "accepted" });
+      return existingMember._id;
+    }
+
+    const memberId = await ctx.db.insert("barbershopMembers", {
+      uuid: crypto.randomUUID(),
+      barbershopId: invitation.barbershopId,
+      userProfileDataId: profile._id,
+      roles: invitation.roles,
+      isActive: true,
+      joinedAt: Date.now(),
+    });
+
+    await ctx.db.patch(invitation._id, { status: "accepted" });
+
+    return memberId;
+  },
+});
+
+export const denyInvitation = mutation({
+  args: { code: v.string() },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+
+    if (!user || !user.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    const invitation = await ctx.db
+      .query("invitations")
+      .withIndex("by_code", (q) => q.eq("code", args.code))
+      .unique();
+
+    if (!invitation) {
+      throw new ConvexError(errorMessages.notFound("invitación"));
+    }
+
+    if (invitation.status !== "pending") {
+      return invitation.status;
+    }
+
+    const profile = await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      { userId: user.userId },
+    );
+
+    if (!profile) {
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
+    }
+
+    if (profile.email !== invitation.email) {
+      throw new ConvexError("Esta invitación no corresponde a tu cuenta.");
+    }
+
+    await ctx.db.patch(invitation._id, { status: "denied" });
+
+    return "denied";
   },
 });

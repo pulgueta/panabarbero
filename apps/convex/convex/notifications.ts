@@ -2,8 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation } from "./_generated/server";
 import { errorMessages } from "./errors";
-import type { Notification, UserProfileData } from "./tables";
-import { tables } from "./tables";
+import type { UserProfileData } from "./tables";
 
 export const subjects = {
   appointment_reminder: "Recordatorio de cita",
@@ -18,61 +17,14 @@ export const subjects = {
   barber_appointment_created: "",
   barber_invited: "Invitación a unirte como barbero",
   past_appointment_reminder: "Recordatorio de cita pasada",
-} satisfies Record<Notification["reason"], string>;
+} satisfies Record<string, string>;
 
 export function isNotificationEnabled(
-  channel: Notification["channels"][number],
+  channel: UserProfileData["notificationsPreferences"][number]["type"],
   notificationsPreferences: UserProfileData["notificationsPreferences"],
 ) {
   return notificationsPreferences.some((n) => n.type === channel && n.enabled);
 }
-
-export const saveNotification = internalMutation({
-  args: {
-    notification: v.object({
-      ...tables.notifications,
-    }),
-  },
-  handler: async (ctx, args) => {
-    const isSystemSender = args.notification.senderUserId === "system";
-    let sender: UserProfileData | null = null;
-
-    if (!isSystemSender) {
-      sender = (await ctx.runQuery(
-        internal.userProfileData.getProfileByUserId,
-        {
-          userId: args.notification.senderUserId,
-        },
-      )) as UserProfileData;
-
-      if (!sender) {
-        throw new Error("Sender not found", {
-          cause: sender,
-        });
-      }
-
-      const canSaveNotification =
-        args.notification.senderUserId === sender.userId;
-
-      if (!canSaveNotification) {
-        throw new Error("You cannot save notifications for yourself", {
-          cause: args.notification.senderUserId,
-        });
-      }
-    }
-
-    const notificationId = await ctx.db.insert("notifications", {
-      ...args.notification,
-      uuid: crypto.randomUUID(),
-      // biome-ignore lint/style/noNonNullAssertion: needed
-      senderUserId: isSystemSender ? "system" : sender?.userId!,
-    });
-
-    return notificationId;
-  },
-});
-
-// Emails and SMS notifications
 
 export const createAppointmentCancelledNotification = internalMutation({
   args: {
@@ -109,18 +61,10 @@ export const createAppointmentCancelledNotification = internalMutation({
 
     const isCustomer = args.sendTo === "customer";
     const receiverProfile = isCustomer ? customerProfile : barberProfile;
-    const receiverUserId = isCustomer
-      ? (customerProfile?.userId ?? "user_does_not_exist")
-      : barberProfile.userId;
 
     const toEmail = isCustomer
       ? (customerProfile?.email ?? appointment.contactEmail)
       : barberProfile.email;
-
-    const channels =
-      receiverProfile?.notificationsPreferences
-        .filter((n) => n.enabled)
-        .map((n) => n.type) ?? (isCustomer ? ["sms"] : []);
 
     const cancellingCustomerName =
       customerProfile?.name ?? appointment.customerName ?? "El cliente";
@@ -129,20 +73,13 @@ export const createAppointmentCancelledNotification = internalMutation({
       ? `Tu cita ha sido cancelada.`
       : `${cancellingCustomerName} ha cancelado su cita.`;
 
-    const smsBody = args.notes ? `${body} Motivo: ${args.notes}` : body;
+    // Deep link to view appointments
+    const appointmentLink = isCustomer
+      ? `${process.env.SITE_URL}/profile?tab=appointments`
+      : `${process.env.SITE_URL}/profile/barbershops/appointments`;
 
-    await ctx.runMutation(internal.notifications.saveNotification, {
-      notification: {
-        reason: "appointment_cancelled",
-        uuid: crypto.randomUUID(),
-        channels,
-        title: subjects.appointment_cancelled,
-        body,
-        senderUserId: "system",
-        receiverUserId,
-        appointmentId: args.appointmentId,
-      },
-    });
+    let smsBody = args.notes ? `${body} Motivo: ${args.notes}` : body;
+    smsBody = `${smsBody} Ver detalles: ${appointmentLink}`;
 
     if (
       receiverProfile &&
@@ -221,33 +158,18 @@ export const createAppointmentRescheduleRequestNotification = internalMutation({
 
     const isCustomer = args.sendTo === "customer";
     const receiverProfile = isCustomer ? customerProfile : barberProfile;
-    const receiverUserId = isCustomer
-      ? appointment.userId
-      : barberProfile.userId;
-
     const toEmail = isCustomer
       ? (appointment.contactEmail ?? customerProfile?.email)
       : barberProfile.email;
 
-    const channels = receiverProfile?.notificationsPreferences
-      .filter((n) => n.enabled)
-      .map((n) => n.type);
-
     const body = `${isCustomer ? "Tu barbero" : "Un cliente"} ha solicitado reagendar una cita.`;
 
-    if (channels) {
-      await ctx.runMutation(internal.notifications.saveNotification, {
-        notification: {
-          reason: "appointment_rescheduled_request",
-          uuid: crypto.randomUUID(),
-          title: subjects.appointment_rescheduled_request,
-          channels,
-          body,
-          senderUserId: "system",
-          receiverUserId,
-        },
-      });
-    }
+    // Deep link to view/respond to reschedule request
+    const appointmentLink = isCustomer
+      ? `${process.env.SITE_URL}/profile?tab=appointments`
+      : `${process.env.SITE_URL}/profile/barbershops/appointments`;
+
+    const smsBody = `${body} Responde aquí: ${appointmentLink}`;
 
     if (
       receiverProfile &&
@@ -278,7 +200,7 @@ export const createAppointmentRescheduleRequestNotification = internalMutation({
 
     if (smsEnabled && phoneNumber) {
       await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
-        body,
+        body: smsBody,
         to: phoneNumber,
       });
     }
@@ -308,10 +230,6 @@ export const createAppointmentRescheduleDecisionNotification = internalMutation(
         throw new ConvexError(errorMessages.notFound("perfil de usuario"));
       }
 
-      const channels = receiverProfile.notificationsPreferences
-        .filter((n) => n.enabled)
-        .map((n) => n.type);
-
       const acceptedBody = "Tu solicitud de reagendamiento ha sido aceptada.";
       const deniedBodyForCustomer = `Tu cita en ${args.barbershopName} ha sido cancelada.`;
       const deniedBodyForBarber =
@@ -324,25 +242,12 @@ export const createAppointmentRescheduleDecisionNotification = internalMutation(
           ? deniedBodyForCustomer
           : deniedBodyForBarber;
 
-      const reason = args.accepted
-        ? "appointment_rescheduled_accepted"
-        : "appointment_rescheduled_denied";
-      const title = args.accepted
-        ? subjects.appointment_rescheduled_accepted
-        : subjects.appointment_rescheduled_denied;
+      // Deep link to view appointments
+      const appointmentLink = isCustomer
+        ? `${process.env.SITE_URL}/profile?tab=appointments`
+        : `${process.env.SITE_URL}/profile/barbershops/appointments`;
 
-      await ctx.runMutation(internal.notifications.saveNotification, {
-        notification: {
-          reason,
-          uuid: crypto.randomUUID(),
-          channels,
-          title,
-          body,
-          senderUserId: "system",
-          receiverUserId: args.receiverUserId,
-          appointmentId: args.appointmentId,
-        },
-      });
+      const smsBody = `${body} Ver detalles: ${appointmentLink}`;
 
       if (
         isNotificationEnabled("email", receiverProfile.notificationsPreferences)
@@ -383,7 +288,7 @@ export const createAppointmentRescheduleDecisionNotification = internalMutation(
         receiverProfile.phoneNumber
       ) {
         await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
-          body,
+          body: smsBody,
           to: receiverProfile.phoneNumber,
         });
       }
@@ -428,17 +333,6 @@ export const createAppointmentCreatedNotification = internalMutation({
       throw new ConvexError(errorMessages.notFound("perfil de barbero"));
     }
 
-    const customerChannels =
-      customerProfile?.notificationsPreferences
-        .filter((n) => n.enabled)
-        .map((n) => n.type) ?? (args.receiverPhoneNumber ? ["sms"] : []);
-    const channels = {
-      customer: customerChannels,
-      barber: barberProfile.notificationsPreferences
-        .filter((n) => n.enabled)
-        .map((n) => n.type),
-    };
-
     const body = {
       barber: "Un cliente ha reservado una cita.",
       customer: `Tu cita en ${args.barbershopName} ha sido agendada.`,
@@ -446,27 +340,17 @@ export const createAppointmentCreatedNotification = internalMutation({
 
     const isCustomer = args.sendTo === "customer";
     const receiverProfile = isCustomer ? customerProfile : barberProfile;
-    const receiverChannels = isCustomer ? channels.customer : channels.barber;
     const receiverBody = isCustomer ? body.customer : body.barber;
-    const receiverUserId = isCustomer ? args.customerUserId : args.barberUserId;
     const subject = isCustomer
       ? subjects.appointment_created
       : subjects.barber_appointment_created;
 
-    await ctx.runMutation(internal.notifications.saveNotification, {
-      notification: {
-        reason: isCustomer
-          ? "appointment_created"
-          : "barber_appointment_created",
-        uuid: crypto.randomUUID(),
-        channels: receiverChannels,
-        title: subject,
-        body: receiverBody,
-        senderUserId: "system",
-        receiverUserId,
-        appointmentId: args.appointmentId,
-      },
-    });
+    // Deep link to view appointments
+    const appointmentLink = isCustomer
+      ? `${process.env.SITE_URL}/profile?tab=appointments`
+      : `${process.env.SITE_URL}/profile/barbershops/appointments`;
+
+    const smsBody = `${receiverBody} Ver detalles: ${appointmentLink}`;
 
     if (
       isNotificationEnabled(
@@ -500,7 +384,7 @@ export const createAppointmentCreatedNotification = internalMutation({
 
     if (smsEnabled && fallbackPhone) {
       await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
-        body: receiverBody,
+        body: smsBody,
         to: fallbackPhone,
       });
     }
@@ -530,26 +414,11 @@ export const createAppointmentReminderNotification = internalMutation({
       }
     }
 
-    const channels =
-      customerProfile?.notificationsPreferences
-        .filter((n) => n.enabled)
-        .map((n) => n.type) ?? (args.receiverPhoneNumber ? ["sms"] : []);
-
     const body = `Tienes una cita en ~30 minutos en ${args.barbershopName}.`;
 
-    if (customerProfile) {
-      await ctx.runMutation(internal.notifications.saveNotification, {
-        notification: {
-          reason: "appointment_reminder",
-          uuid: crypto.randomUUID(),
-          channels,
-          title: subjects.appointment_reminder,
-          body,
-          receiverUserId: args.customerUserId,
-          senderUserId: "system",
-        },
-      });
-    }
+    // Deep link to view appointments
+    const appointmentLink = `${process.env.SITE_URL}/profile?tab=appointments`;
+    const smsBody = `${body} Ver detalles: ${appointmentLink}`;
 
     if (
       customerProfile &&
@@ -577,7 +446,7 @@ export const createAppointmentReminderNotification = internalMutation({
 
     if (smsEnabled && phoneNumber) {
       await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
-        body,
+        body: smsBody,
         to: phoneNumber,
       });
     }
@@ -600,23 +469,11 @@ export const createPastAppointmentReminderNotification = internalMutation({
       throw new ConvexError(errorMessages.notFound("perfil de barbero"));
     }
 
-    const channels = barberProfile.notificationsPreferences
-      .filter((n) => n.enabled)
-      .map((n) => n.type);
-
     const body = `Haz tenido una cita hace poco, no olvides marcar su estado final.`;
 
-    await ctx.runMutation(internal.notifications.saveNotification, {
-      notification: {
-        reason: "past_appointment_reminder",
-        uuid: crypto.randomUUID(),
-        channels,
-        title: subjects.past_appointment_reminder,
-        body,
-        receiverUserId: barberProfile.userId,
-        senderUserId: "system",
-      },
-    });
+    // Deep link to appointments management
+    const appointmentLink = `${process.env.SITE_URL}/profile/barbershops/appointments`;
+    const smsBody = `${body} Ver citas: ${appointmentLink}`;
 
     if (
       isNotificationEnabled("email", barberProfile.notificationsPreferences)
@@ -635,9 +492,114 @@ export const createPastAppointmentReminderNotification = internalMutation({
       barberProfile.phoneNumber
     ) {
       await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
-        body,
+        body: smsBody,
         to: barberProfile.phoneNumber,
       });
+    }
+  },
+});
+
+export const createBarberInvitedNotification = internalMutation({
+  args: {
+    invitationId: v.id("invitations"),
+    barbershopId: v.id("barbershops"),
+    email: v.string(),
+    code: v.string(),
+    inviterUserId: v.string(),
+    roles: v.array(
+      v.union(v.literal("owner"), v.literal("barber"), v.literal("staff")),
+    ),
+    expiresAt: v.number(),
+    phone: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const barbershop = await ctx.db.get(args.barbershopId);
+
+    if (!barbershop) {
+      throw new ConvexError(errorMessages.notFound("barbería"));
+    }
+
+    const inviterProfile = await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      { userId: args.inviterUserId },
+    );
+
+    const invitationUrl = `${process.env.SITE_URL}/invitations/${args.code}`;
+
+    await ctx.scheduler.runAfter(0, internal.emails.sendBarberInvitationEmail, {
+      to: args.email,
+      barbershopName: barbershop.name,
+      invitationLink: invitationUrl,
+      inviterName: inviterProfile?.name ?? undefined,
+      expiresLabel: new Date(args.expiresAt).toLocaleDateString("es-ES"),
+    });
+  },
+});
+
+/**
+ * Notification when an appointment is cancelled due to service deletion.
+ * Sends to customer via both email and SMS if contact info is available.
+ */
+export const createServiceDeletedCancellationNotification = internalMutation({
+  args: {
+    appointmentId: v.id("appointments"),
+    customerUserId: v.string(),
+    serviceName: v.string(),
+    barbershopName: v.string(),
+    contactPhone: v.string(),
+    contactEmail: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const customerProfile = await ctx.runQuery(
+      internal.userProfileData.getProfileByUserId,
+      {
+        userId: args.customerUserId,
+      },
+    );
+
+    const body = `Tu cita en ${args.barbershopName} ha sido cancelada porque el servicio "${args.serviceName}" ya no está disponible.`;
+
+    const appointmentsUrl = `${process.env.SITE_URL}/profile?tab=appointments`;
+    const smsBody = `${body} Ver detalles: ${appointmentsUrl}`;
+
+    const toEmail = customerProfile?.email ?? args.contactEmail;
+
+    // Send email if available and enabled
+    if (toEmail) {
+      const emailEnabled = customerProfile
+        ? isNotificationEnabled(
+            "email",
+            customerProfile.notificationsPreferences,
+          )
+        : true; // Default to enabled for guests
+
+      if (emailEnabled) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.emails.sendAppointmentCancelled,
+          {
+            notes: `Servicio "${args.serviceName}" eliminado`,
+            sendTo: "customer",
+            to: toEmail,
+            body,
+          },
+        );
+      }
+    }
+
+    // Send SMS if phone number is available
+    const phoneNumber = customerProfile?.phoneNumber ?? args.contactPhone;
+    if (phoneNumber) {
+      const smsEnabled = customerProfile
+        ? isNotificationEnabled("sms", customerProfile.notificationsPreferences)
+        : true; // Default to enabled for guests
+
+      if (smsEnabled) {
+        await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
+          body: smsBody,
+          to: phoneNumber,
+        });
+      }
     }
   },
 });

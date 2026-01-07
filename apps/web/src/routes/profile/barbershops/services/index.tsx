@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: Needed */
 
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { Activity, Suspense, useState } from "react";
 
@@ -25,16 +25,20 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import {
-  barbershopByOwnerIdQueryOptions,
-  useBarbershopByOwnerId,
+  barbershopByMemberUserIdQueryOptions,
+  useBarbershopByMemberUserId,
 } from "@/hooks/barbershop/use-barbershop";
+import {
+  barbershopMemberRolesQueryOptions,
+  useBarbershopMemberRoles,
+} from "@/hooks/barbershop/use-barbershop-member";
 import { profileQueryOptions } from "@/hooks/use-profile";
 import {
   servicesPaginatedByBarbershopIdQueryOptions,
   usePaginatedServicesFromBarbershop,
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
-import { formatCurrency } from "@/lib/form-utils";
+import { formatCurrency } from "@/lib/utils";
 
 export const Route = createFileRoute("/profile/barbershops/services/")({
   component: RouteComponent,
@@ -46,7 +50,20 @@ export const Route = createFileRoute("/profile/barbershops/services/")({
 
     if (user?.userId) {
       const barbershop = await opts.context.queryClient.ensureQueryData(
-        barbershopByOwnerIdQueryOptions(user.userId),
+        barbershopByMemberUserIdQueryOptions(user.userId),
+      );
+
+      const barbershopMemberRoles =
+        await opts.context.queryClient.ensureQueryData(
+          barbershopMemberRolesQueryOptions(user.userId),
+        );
+
+      if (!barbershopMemberRoles?.isOwner) {
+        throw redirect({ to: "/profile/barbershops/appointments" });
+      }
+
+      await opts.context.queryClient.ensureQueryData(
+        barbershopMemberRolesQueryOptions(user.userId),
       );
 
       await opts.context.queryClient.ensureQueryData(
@@ -69,7 +86,9 @@ function RouteComponent() {
   const pageSize = 6;
 
   const { data: user } = useSession();
-  const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
+  const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
+  const { data: barbershop, isLoading: isLoadingBarbershop } =
+    useBarbershopByMemberUserId(user?.userId!);
   const {
     data: servicesResult,
     isLoading: isLoadingServices,
@@ -80,6 +99,7 @@ function RouteComponent() {
   const hasNextPage =
     servicesResult?.continueCursor &&
     !servicesResult?.isDone &&
+    services?.length &&
     services.length >= pageSize;
   const canGoPrevious = cursorStack.length > 0;
 
@@ -96,15 +116,17 @@ function RouteComponent() {
             </p>
           </div>
 
-          <ServiceDialog
-            barbershopId={barbershop?._id!}
-            trigger={
-              <Button variant="outline">
-                <PlusIcon className="size-3" />
-                Agregar servicio
-              </Button>
-            }
-          />
+          {barbershop?._id && !isLoadingBarbershop && rolesData?.isOwner && (
+            <ServiceDialog
+              barbershopId={barbershop._id}
+              trigger={
+                <Button variant="outline" disabled={!rolesData?.isOwner}>
+                  <PlusIcon className="size-3" />
+                  Agregar servicio
+                </Button>
+              }
+            />
+          )}
         </div>
 
         <Suspense fallback={<ProfileTabSkeleton />}>
@@ -125,20 +147,36 @@ function RouteComponent() {
                     <p className="font-bold">{formatCurrency(service.price)}</p>
                   </CardContent>
 
-                  <CardFooter className="justify-end gap-2">
-                    <ServiceDialog
-                      barbershopId={service.barbershopId}
-                      initialValues={service}
-                      serviceId={service._id}
-                      trigger={<Button variant="outline">Editar</Button>}
-                    />
+                  {rolesData?.isOwner && (
+                    <CardFooter className="justify-end gap-2">
+                      <ServiceDialog
+                        barbershopId={service.barbershopId}
+                        initialValues={service}
+                        serviceId={service._id}
+                        trigger={
+                          <Button
+                            variant="outline"
+                            disabled={!rolesData?.isOwner}
+                          >
+                            Editar
+                          </Button>
+                        }
+                      />
 
-                    <DeleteServiceDialog
-                      serviceId={service._id}
-                      barbershopId={service.barbershopId}
-                      trigger={<Button variant="destructive">Eliminar</Button>}
-                    />
-                  </CardFooter>
+                      <DeleteServiceDialog
+                        serviceId={service._id}
+                        barbershopId={service.barbershopId}
+                        trigger={
+                          <Button
+                            variant="destructive"
+                            disabled={!rolesData?.isOwner}
+                          >
+                            Eliminar
+                          </Button>
+                        }
+                      />
+                    </CardFooter>
+                  )}
                 </Card>
               ))}
             </div>

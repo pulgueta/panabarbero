@@ -1,10 +1,9 @@
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useColombia } from "@panabarbero/constants";
-import type { Barbershop } from "@panabarbero/convex/schemas";
-import { type FC, useId } from "react";
-import { Controller, useForm } from "react-hook-form";
+import type { BaseSyntheticEvent, FC } from "react";
+import type { UseFormReturn } from "react-hook-form";
+import { Controller } from "react-hook-form";
+import type { output } from "zod";
 
-import { Button } from "@/components/ui/button";
 import {
   Field,
   FieldDescription,
@@ -13,6 +12,8 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -20,10 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Spinner } from "@/components/ui/spinner";
-import { useBarbershopActions } from "@/hooks/barbershop/use-barbershop";
-import { useAnalytics } from "@/hooks/use-analytics";
-import { barbershopFormSchema } from "@/lib/schemas";
+import type { barbershopFormSchema } from "@/lib/schemas";
 
 export type CreateBarbershopFormData = {
   name: string;
@@ -37,84 +35,19 @@ export type CreateBarbershopFormData = {
 };
 
 interface CreateBarbershopFormProps {
-  onSuccess?: (barbershopId: Barbershop["_id"]) => void;
-  userId: string | undefined;
+  formIds: {
+    [key: string]: string;
+  };
+  form: UseFormReturn<output<typeof barbershopFormSchema>>;
+  onSubmit: (e: BaseSyntheticEvent) => void;
 }
 
 export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
-  onSuccess,
-  userId,
+  formIds,
+  form,
+  onSubmit,
 }) => {
-  const formIds = {
-    form: useId(),
-    name: useId(),
-    gracePeriodMinutes: useId(),
-    description: useId(),
-    address: useId(),
-    addressDetails: useId(),
-    state: useId(),
-    city: useId(),
-    zipCode: useId(),
-    contactPhone: useId(),
-  };
-
   const { states, citiesFromState } = useColombia();
-
-  const { captureEvent } = useAnalytics();
-
-  const form = useForm({
-    resolver: zodResolver(barbershopFormSchema),
-    defaultValues: {
-      address: {
-        fullAddress: "",
-        details: undefined,
-      },
-      city: "",
-      state: "",
-      zipCode: "",
-      contactPhone: "",
-      isActive: false,
-      gracePeriodMinutes: 5,
-      availability: [
-        {
-          weekDay: {
-            day: "monday",
-            isActive: true,
-          },
-          openAt: "09:00",
-          closeAt: "18:00",
-        },
-      ],
-    },
-  });
-
-  const {
-    createBarbershopMutation: {
-      mutateAsync: createBarbershop,
-      isPending: isCreatingBarbershop,
-    },
-  } = useBarbershopActions();
-
-  const onSubmit = form.handleSubmit(async (data) => {
-    if (!userId) return;
-
-    const uuid = crypto.randomUUID();
-
-    captureEvent("barbershop_created", {
-      barbershopName: data.name,
-      barbershopUuid: uuid,
-    });
-
-    const barbershopId = await createBarbershop({
-      barbershop: {
-        ...data,
-        ownerId: userId,
-        uuid,
-      },
-    });
-
-    if (onSuccess) onSuccess(barbershopId);
-  });
 
   const selectedState = form.watch("state");
   const availableCities = selectedState ? citiesFromState(selectedState) : [];
@@ -240,44 +173,79 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
           />
         </div>
 
-        <Controller
-          name="gracePeriodMinutes"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={formIds.gracePeriodMinutes}>
-                Periodo de gracia
-              </FieldLabel>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Controller
+            name="ownerIsBarber"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={formIds.ownerIsBarber}>Eres:</FieldLabel>
+                <RadioGroup
+                  value={field.value ? "owner-barber" : "owner-only"}
+                  onValueChange={(value) =>
+                    field.onChange(value === "owner-barber")
+                  }
+                  className="grid grid-cols-1 gap-2"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem
+                      value="owner-barber"
+                      id={formIds.ownerBarber}
+                    />
+                    <Label
+                      htmlFor={formIds.ownerBarber}
+                      className="cursor-pointer"
+                    >
+                      Dueño y barbero (atiendo clientes)
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="owner-only" id={formIds.ownerOnly} />
+                    <Label
+                      htmlFor={formIds.ownerOnly}
+                      className="cursor-pointer"
+                    >
+                      Dueño (no atiendo clientes)
+                    </Label>
+                  </div>
+                </RadioGroup>
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
 
-              {/* @ts-expect-error */}
-              <Input
-                {...field}
-                id={formIds.gracePeriodMinutes}
-                aria-invalid={fieldState.invalid}
-                placeholder="Ej. 5"
-                type="number"
-                className="w-full tabular-nums"
-              />
+          <Controller
+            name="gracePeriodMinutes"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={formIds.gracePeriodMinutes}>
+                  Periodo de gracia
+                </FieldLabel>
 
-              <FieldDescription>
-                Tiempo que el cliente puede llegar tarde sin que se le cancele
-                la cita.
-              </FieldDescription>
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
+                <Input
+                  {...field}
+                  id={formIds.gracePeriodMinutes}
+                  aria-invalid={fieldState.invalid}
+                  placeholder="Ej. 5"
+                  type="number"
+                  className="w-full tabular-nums"
+                />
+
+                <FieldDescription>
+                  Tiempo que el cliente puede llegar tarde sin que se le cancele
+                  la cita.
+                </FieldDescription>
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
+        </div>
       </FieldGroup>
-
-      <div className="mt-8">
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isCreatingBarbershop}
-        >
-          {isCreatingBarbershop ? <Spinner /> : "Crear barbería"}
-        </Button>
-      </div>
     </form>
   );
 };

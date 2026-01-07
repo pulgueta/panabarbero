@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
 import { useServiceActions } from "@/hooks/use-services";
-import { formatCurrency } from "@/lib/form-utils";
+import { formatCurrency } from "@/lib/utils";
 
 export const servicesTableColumns: ColumnDef<Service>[] = [
   {

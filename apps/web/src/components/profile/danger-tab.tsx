@@ -1,7 +1,6 @@
 import type { Barbershop } from "@panabarbero/convex/schemas";
 import { useNavigate } from "@tanstack/react-router";
 import type { FC } from "react";
-import { useLayoutEffect } from "react";
 import { toast } from "sonner";
 
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
@@ -20,11 +19,11 @@ export const DangerTab: FC<DangerTabProps> = ({
   barbershopId?: Barbershop["_id"];
 }) => {
   const navigate = useNavigate();
+
   const {
     deleteBarbershopMutation: {
       mutateAsync: deleteBarbershop,
       isPending: isDeletingBarbershop,
-      isSuccess: isDeletedBarbershop,
     },
   } = useBarbershopActions();
 
@@ -33,6 +32,11 @@ export const DangerTab: FC<DangerTabProps> = ({
 
     try {
       await deleteBarbershop({ barbershopId });
+      navigate({
+        to: "/barbershops",
+        search: { city: undefined, state: undefined },
+        replace: true,
+      });
     } catch (error) {
       toast.error(getConvexErrorMessage(error));
 
@@ -40,22 +44,13 @@ export const DangerTab: FC<DangerTabProps> = ({
     }
   };
 
-  useLayoutEffect(() => {
-    if (isDeletedBarbershop) {
-      toast.success("Barbería eliminada exitosamente");
-      navigate({
-        to: "/barbershops",
-        search: { city: undefined, state: undefined },
-        replace: true,
-      });
-    }
-  }, [isDeletedBarbershop, navigate]);
-
   return (
-    <div className="space-y-4">
-      <header>
-        <h1 className="font-semibold text-2xl">Eliminar barbería</h1>
-        <p className="text-muted-foreground text-sm">
+    <div className="mx-auto w-full max-w-xl rounded-xl border p-4">
+      <header className="space-y-2">
+        <h1 className="text-balance text-center font-semibold text-xl">
+          Eliminar barbería
+        </h1>
+        <p className="text-pretty text-center text-muted-foreground text-sm">
           Esta acción elimina la barbería, todos sus servicios, citas y
           miembros. No se puede deshacer.
         </p>
@@ -68,6 +63,7 @@ export const DangerTab: FC<DangerTabProps> = ({
           <Button
             variant="destructive"
             disabled={!barbershopId || isDeletingBarbershop}
+            className="mx-auto mt-4 w-full"
           >
             Eliminar barbería
           </Button>

@@ -27,7 +27,11 @@ import {
   useAppointmentActions,
   useAppointmentFormMetadata,
 } from "@/hooks/use-appointments";
-import { useIsBarber } from "@/hooks/use-barbershop-members";
+import {
+  useBarbersForService,
+  useIsBarber,
+  useServicesForBarber,
+} from "@/hooks/use-barbershop-members";
 import { useProfile } from "@/hooks/use-profile";
 import { useSession } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
@@ -62,12 +66,24 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
     serviceId: useId(),
   };
   const [open, setOpen] = useState<boolean>(false);
+  const [selectedBarberId, setSelectedBarberId] = useState<
+    BarbershopMemberWithName["_id"] | undefined
+  >(undefined);
 
   const navigate = useNavigate();
 
   const { data: user } = useSession();
   const { data: userProfile } = useProfile(user?.userId!);
   const { data: isBarber } = useIsBarber(user?.userId!);
+  const { data: barberServices } = useServicesForBarber(selectedBarberId!);
+  const { data: barbersForService } = useBarbersForService(serviceId!);
+
+  // When customer is booking a specific service, filter barbers to those who offer it
+  // When a barber is creating an appointment, use all barbers
+  const availableBarbers =
+    !isBarber && serviceId && barbersForService?.length
+      ? barbersForService
+      : barbers;
   const {
     createAppointment: {
       mutateAsync: createAppointment,
@@ -80,6 +96,10 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
 
   const { service } = useServicesStore();
 
+  // Determine default barber: use availableBarbers when available
+  const defaultBarberId =
+    availableBarbers?.length === 1 ? availableBarbers[0]._id : undefined;
+
   const form = useForm({
     // @ts-expect-error - zodResolver is not typed correctly
     resolver: zodResolver(appointmentFormSchema),
@@ -89,10 +109,17 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
       contactPhone: isBarber ? undefined : userProfile?.phoneNumber,
       contactEmail: isBarber ? undefined : userProfile?.email,
       notes: "",
-      barbershopMemberId:
-        barbers.length && barbers.length > 1 ? undefined : barbers[0]._id,
+      barbershopMemberId: defaultBarberId ?? selectedBarberId,
     },
   });
+
+  // Update form and state when available barbers change
+  useEffect(() => {
+    if (availableBarbers?.length === 1) {
+      setSelectedBarberId(availableBarbers[0]._id);
+      form.setValue("barbershopMemberId", availableBarbers[0]._id);
+    }
+  }, [availableBarbers, form]);
 
   useEffect(() => {
     if (isCreatedAppointment) {
@@ -179,9 +206,11 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
         <Activity mode={user ? "visible" : "hidden"}>
           <CreateAppointmentForm
             barbershopId={barbershopId}
-            barbers={barbers}
+            barbers={availableBarbers ?? barbers}
             isBarber={isBarber}
             services={services}
+            barberServices={barberServices!}
+            onBarberChange={setSelectedBarberId}
             // @ts-expect-error - zod's coerce method returns an unknown type
             form={form}
             disabledFields={

@@ -48,6 +48,8 @@ interface CreateAppointmentFormProps {
   isBarber: boolean;
   onSubmit: (e: BaseSyntheticEvent) => void;
   services: Service[];
+  barberServices?: Service[] | null;
+  onBarberChange?: (barberId: BarbershopMemberWithName["_id"]) => void;
   form: UseFormReturn<output<typeof appointmentFormSchema>>;
   formIds: {
     form: string;
@@ -69,31 +71,55 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
   isBarber,
   onSubmit,
   services,
+  barberServices,
+  onBarberChange,
   formIds,
   form,
 }) => {
   const { isMobile } = useIsMobile();
   const { disableDay } = useAppointmentFormMetadata(barbershopId);
 
+  // Use barber-specific services if available, otherwise fall back to all services
+  const displayServices = barberServices ?? services;
+
   return (
     <form id={formIds.form} onSubmit={onSubmit}>
-      <FieldGroup>
+      <FieldGroup className="gap-4">
         <div className="grid grid-cols-2 gap-4">
-          {isBarber && (
-            <Field className="col-span-2">
-              <FieldLabel htmlFor={formIds.serviceId} aria-required>
-                Servicio
-              </FieldLabel>
+          <Field className="col-span-2">
+            <FieldLabel
+              htmlFor={formIds.serviceId}
+              aria-required
+              className={cn({
+                hidden: disabledFields?.includes("serviceId") || !isBarber,
+              })}
+            >
+              Servicio
+            </FieldLabel>
 
-              <ServicesDropdown services={services} />
-            </Field>
-          )}
+            <Suspense fallback={<Skeleton className="h-9 w-full" />}>
+              <Activity
+                mode={
+                  disabledFields?.includes("serviceId") || !isBarber
+                    ? "hidden"
+                    : "visible"
+                }
+              >
+                <ServicesDropdown services={displayServices} />
+              </Activity>
+            </Suspense>
+          </Field>
 
           <Controller
             name="customerName"
             control={form.control}
             render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
+              <Field
+                data-invalid={fieldState.invalid}
+                className={cn({
+                  hidden: disabledFields?.includes("customerName") || !isBarber,
+                })}
+              >
                 <FieldLabel htmlFor={formIds.customerName}>
                   Nombre del cliente
                 </FieldLabel>
@@ -116,7 +142,12 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
             name="contactPhone"
             control={form.control}
             render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
+              <Field
+                data-invalid={fieldState.invalid}
+                className={cn({
+                  hidden: disabledFields?.includes("contactPhone") || !isBarber,
+                })}
+              >
                 <FieldLabel htmlFor={formIds.contactPhone}>
                   Teléfono de contacto
                 </FieldLabel>
@@ -143,7 +174,12 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
             name="contactEmail"
             control={form.control}
             render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
+              <Field
+                data-invalid={fieldState.invalid}
+                className={cn({
+                  hidden: !isBarber,
+                })}
+              >
                 <FieldLabel htmlFor={formIds.contactEmail}>
                   Email de contacto (opcional)
                 </FieldLabel>
@@ -163,57 +199,81 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
             )}
           />
 
-          <Controller
-            name="barbershopMemberId"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={formIds.barbershopMemberId}>
-                  {barbers?.length > 1 ? "Seleccione un barbero" : "Barbero"}
-                </FieldLabel>
+          {barbers?.length ? (
+            <Controller
+              name="barbershopMemberId"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field
+                  data-invalid={fieldState.invalid}
+                  className={cn({
+                    "col-span-2":
+                      disabledFields?.includes("barbershopMemberId") ||
+                      !isBarber,
+                  })}
+                >
+                  <FieldLabel htmlFor={formIds.barbershopMemberId}>
+                    {barbers?.length > 1 ? "Seleccione un barbero" : "Barbero"}
+                  </FieldLabel>
 
-                <Suspense fallback={<Skeleton className="h-9 w-full" />}>
-                  <Activity mode={barbers?.length > 1 ? "visible" : "hidden"}>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      aria-invalid={fieldState.invalid}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccione un barbero" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {barbers.map((barber) => (
-                          <SelectItem key={barber._id} value={barber._id}>
-                            {barber.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Activity>
-                </Suspense>
+                  <Suspense fallback={<Skeleton className="h-9 w-full" />}>
+                    <Activity mode={barbers?.length > 1 ? "visible" : "hidden"}>
+                      <Select
+                        value={field.value}
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          onBarberChange?.(
+                            value as BarbershopMemberWithName["_id"],
+                          );
+                        }}
+                        aria-invalid={fieldState.invalid}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione un barbero" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {barbers.map((barber) => (
+                            <SelectItem key={barber._id} value={barber._id}>
+                              {barber.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Activity>
+                  </Suspense>
 
-                <Suspense fallback={<Skeleton className="h-9 w-full" />}>
-                  <Activity mode={barbers?.length > 1 ? "hidden" : "visible"}>
-                    <Input
-                      id={`${formIds.barbershopMemberId}-display`}
-                      disabled
-                      value={barbers[0].name}
-                    />
-                    <Input
-                      {...field}
-                      id={formIds.barbershopMemberId}
-                      type="hidden"
-                    />
-                  </Activity>
-                </Suspense>
+                  <Suspense fallback={<Skeleton className="h-9 w-full" />}>
+                    <Activity mode={barbers?.length > 1 ? "hidden" : "visible"}>
+                      <Input
+                        id={`${formIds.barbershopMemberId}-display`}
+                        disabled
+                        value={barbers[0].name}
+                      />
+                      <Input
+                        {...field}
+                        id={formIds.barbershopMemberId}
+                        type="hidden"
+                      />
+                    </Activity>
+                  </Suspense>
 
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
-          />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+          ) : (
+            <Field>
+              <FieldLabel htmlFor={formIds.barbershopMemberId}>
+                {barbers?.length > 1 ? "Seleccione un barbero" : "Barbero"}
+              </FieldLabel>
+
+              <span className="text-pretty text-muted-foreground text-sm">
+                No hay barberos disponibles para este servicio
+              </span>
+            </Field>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4">

@@ -10,11 +10,12 @@
 
 import type * as appointments from "../appointments.js";
 import type * as auth from "../auth.js";
+import type * as authz from "../authz.js";
+import type * as barbershopMemberServices from "../barbershopMemberServices.js";
 import type * as barbershopMembers from "../barbershopMembers.js";
 import type * as barbershopMetadata from "../barbershopMetadata.js";
 import type * as barbershops from "../barbershops.js";
 import type * as crons from "../crons.js";
-import type * as emailPayload from "../emailPayload.js";
 import type * as emails from "../emails.js";
 import type * as errors from "../errors.js";
 import type * as http from "../http.js";
@@ -39,11 +40,12 @@ import type {
 declare const fullApi: ApiFromModules<{
   appointments: typeof appointments;
   auth: typeof auth;
+  authz: typeof authz;
+  barbershopMemberServices: typeof barbershopMemberServices;
   barbershopMembers: typeof barbershopMembers;
   barbershopMetadata: typeof barbershopMetadata;
   barbershops: typeof barbershops;
   crons: typeof crons;
-  emailPayload: typeof emailPayload;
   emails: typeof emails;
   errors: typeof errors;
   http: typeof http;

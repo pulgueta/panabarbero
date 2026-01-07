@@ -37,8 +37,7 @@ export default defineSchema(
       .index("by_userProfileDataId", ["userProfileDataId"])
       .index("by_barbershopId", ["barbershopId"])
       .index("by_uuid", ["uuid"])
-      .index("by_isActive", ["isActive"])
-      .index("by_role", ["role"]),
+      .index("by_isActive", ["isActive"]),
 
     services: defineTable({
       ...tables.services,
@@ -65,15 +64,21 @@ export default defineSchema(
       .index("by_status", ["status"])
       .index("by_date", ["date"]),
 
-    notifications: defineTable({
-      ...tables.notifications,
+    barbershopMemberServices: defineTable({
+      ...tables.barbershopMemberServices,
     })
       .index("by_uuid", ["uuid"])
-      .index("by_senderUserId", ["senderUserId"])
-      .index("by_receiverUserId", ["receiverUserId"])
-      .index("by_channels", ["channels"])
-      .index("by_reason", ["reason"])
-      .index("by_appointmentId", ["appointmentId"]),
+      .index("by_barbershopMemberId", ["barbershopMemberId"])
+      .index("by_barbershopId", ["barbershopId"])
+      .index("by_serviceId", ["serviceId"]),
+
+    invitations: defineTable({
+      ...tables.invitations,
+    })
+      .index("by_barbershopId", ["barbershopId"])
+      .index("by_email", ["email"])
+      .index("by_code", ["code"])
+      .index("by_status", ["status"]),
   },
   { schemaValidation: true },
 );

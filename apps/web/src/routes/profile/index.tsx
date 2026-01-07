@@ -11,13 +11,16 @@ import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-ske
 import { AccountTab } from "@/components/profile/account-tab";
 import { AppointmentsTab } from "@/components/profile/appointments-tab";
 import { DangerTab } from "@/components/profile/danger-tab";
-import { SecurityTab } from "@/components/profile/security-tab";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   barbershopByOwnerIdQueryOptions,
   useBarbershopByOwnerId,
 } from "@/hooks/barbershop/use-barbershop";
+import {
+  barbershopMemberRolesQueryOptions,
+  useBarbershopMemberRoles,
+} from "@/hooks/barbershop/use-barbershop-member";
 import {
   appointmentsByUserQueryOptions,
   useAppointmentsByUser,
@@ -45,10 +48,10 @@ const tabs = {
     label: "Perfil",
     value: "account",
   },
-  security: {
-    label: "Seguridad",
-    value: "security",
-  },
+  // security: {
+  //   label: "Seguridad",
+  //   value: "security",
+  // },
   appointments: {
     label: "Citas",
     value: "appointments",
@@ -78,6 +81,9 @@ export const Route = createFileRoute("/profile/")({
 
     if (user?.userId) {
       await context.queryClient.ensureQueryData(
+        barbershopMemberRolesQueryOptions(user.userId),
+      );
+      await context.queryClient.ensureQueryData(
         appointmentsByUserQueryOptions(user.userId, null),
       );
       await context.queryClient.ensureQueryData(
@@ -102,6 +108,7 @@ function ProfilePage() {
 
   const { data: user } = useSession();
   const { data: isBarber } = useIsBarber(user?.userId!);
+  const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
   const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
   const {
     data: appointments,
@@ -123,14 +130,16 @@ function ProfilePage() {
   };
 
   const tabsToRender = useMemo(() => {
-    const base = [tabs.appointments, tabs.account, tabs.security];
+    const base = [tabs.account];
 
-    if (isBarber) {
+    if (isBarber && rolesData?.isOwner) {
       base.push(tabs.danger);
+    } else if (!isBarber) {
+      base.push(tabs.appointments);
     }
 
     return base;
-  }, [isBarber]);
+  }, [isBarber, rolesData?.isOwner]);
 
   return (
     <BorderContainer className="space-y-4">
@@ -138,7 +147,7 @@ function ProfilePage() {
         <div className="space-y-1">
           <h1 className="font-bold text-2xl tracking-tight">Perfil</h1>
           <p className="text-pretty text-muted-foreground text-sm">
-            Gestiona tu perfil y tus citas.
+            Gestiona tu perfil {!isBarber && "y tus citas."}
           </p>
         </div>
 
@@ -147,7 +156,7 @@ function ProfilePage() {
           onClick={handleSignOut}
           className="mt-1 text-xs sm:text-sm"
         >
-          <LogOut className="hidden size-3 sm:block" />
+          <LogOut className="size-3" />
           Cerrar sesión
         </Button>
       </header>
@@ -165,7 +174,7 @@ function ProfilePage() {
               <TabsTrigger
                 key={tabOption.value}
                 value={tabOption.value}
-                className="text-xs sm:text-sm md:min-w-24 md:max-w-40"
+                className="min-w-24 text-sm"
               >
                 {tabOption.label}
               </TabsTrigger>
@@ -190,7 +199,7 @@ function ProfilePage() {
             </Activity>
           </Suspense>
 
-          <Suspense fallback={<ProfileTabSkeleton />}>
+          {/* <Suspense fallback={<ProfileTabSkeleton />}>
             <Activity
               mode={
                 tab === tabs.security.value && !isLoadingProfile
@@ -202,9 +211,9 @@ function ProfilePage() {
                 <SecurityTab />
               </TabsContent>
             </Activity>
-          </Suspense>
+          </Suspense> */}
 
-          {isBarber && (
+          {isBarber && rolesData?.isOwner && (
             <Suspense fallback={<ProfileTabSkeleton />}>
               <Activity
                 mode={

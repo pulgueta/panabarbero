@@ -10,6 +10,7 @@ import {
   query,
 } from "./_generated/server";
 import { authComponent } from "./auth";
+import { assertBarber } from "./authz";
 import { errorMessages } from "./errors";
 import { rateLimiter } from "./ratelimit";
 import type { UserProfileData } from "./tables";
@@ -104,23 +105,40 @@ export const createAppointment = mutation({
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
-    if (!user) {
+    if (!user?.userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 
     const { appointment } = args;
+    const isBarberCreatingAppointment = appointment.isBarber;
+
+    if (isBarberCreatingAppointment) {
+      await assertBarber(ctx, appointment.barbershopId, user.userId);
+    }
 
     const [service, barber] = await Promise.all([
       ctx.db.get(appointment.serviceId),
       ctx.db.get(appointment.barbershopMemberId),
     ]);
 
-    if (!barber?.userProfileDataId) {
+    if (!barber) {
+      throw new ConvexError(errorMessages.notFound("barbero"));
+    }
+
+    if (barber.barbershopId !== appointment.barbershopId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    if (!barber.userProfileDataId) {
       throw new ConvexError(errorMessages.notFound("barbero"));
     }
 
     if (!service) {
       throw new ConvexError(errorMessages.notFound("servicio"));
+    }
+
+    if (service.barbershopId !== appointment.barbershopId) {
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const barberProfile = await ctx.db.get(barber.userProfileDataId);
@@ -147,8 +165,6 @@ export const createAppointment = mutation({
     const endOfDay = new Date(startOfDay);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const isBarberCreatingAppointment = appointment.isBarber;
-
     const candidates = await ctx.db
       .query("appointments")
       .withIndex("by_barbershopId", (q) =>
@@ -172,7 +188,7 @@ export const createAppointment = mutation({
 
     for (const appt of candidates) {
       const apptService = await ctx.db.get(appt.serviceId);
-      const apptEnd = appt.date + (apptService?.duration ?? 0);
+      const apptEnd = appt.date + apptService?.duration!;
       const overlaps = appt.date < endsAt && apptEnd > appointment.date;
 
       if (overlaps) {
@@ -230,7 +246,7 @@ export const createAppointment = mutation({
 
     const appointmentUserId = isBarberCreatingAppointment
       ? (customerProfile?.userId ?? "user_does_not_exist")
-      : barberProfile.userId;
+      : user.userId;
     const { isBarber: _isBarber, ...withoutIsBarber } = appointment;
 
     const appointmentId = await ctx.db.insert("appointments", {
@@ -246,7 +262,7 @@ export const createAppointment = mutation({
         {
           appointmentId,
           barberUserId: barberProfile.userId,
-          customerUserId: customerProfile?.userId ?? "user_does_not_exist",
+          customerUserId: appointmentUserId,
           to: barberProfile.email,
           sendTo: "barber",
           barbershopName: barbershop.name,
@@ -260,7 +276,7 @@ export const createAppointment = mutation({
       {
         appointmentId,
         barberUserId: barberProfile.userId,
-        customerUserId: customerProfile?.userId ?? "user_does_not_exist",
+        customerUserId: appointmentUserId,
         to: customerProfile?.email || appointment.contactEmail,
         sendTo: "customer",
         barbershopName: barbershop.name,
@@ -446,176 +462,14 @@ export const setAppointmentStatus = mutation({
       throw new ConvexError(errorMessages.notFound("cita"));
     }
 
+    if (user.userId === appt.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
     const updatedAppointment = await ctx.db.patch(args.appointmentId, {
       status: args.status,
     });
 
-    if (appt) {
-      const titleMap: Record<string, string> = {
-        confirmed: "Cita confirmada",
-        cancelled: "Cita cancelada",
-        completed: "Cita completada",
-        "no-show": "Cita marcada como no asistió",
-        rescheduled: "Cita reagendada",
-        pending: "Cita pendiente",
-      };
-
-      const reasonMap: Record<
-        string,
-        (typeof tables.notifications)["reason"]["type"]
-      > = {
-        confirmed: "appointment_confirmed",
-        cancelled: "appointment_cancelled",
-        completed: "appointment_confirmed",
-        "no-show": "appointment_no_show",
-        rescheduled: "appointment_rescheduled",
-        pending: "appointment_confirmed",
-      } as const;
-      const reason = reasonMap[args.status as keyof typeof reasonMap];
-      const title =
-        titleMap[args.status as keyof typeof titleMap] ??
-        "Actualización de cita";
-      const barbershopMember = await ctx.db.get(appt.barbershopMemberId);
-      const userProfile = await ctx.db.get(
-        barbershopMember?.userProfileDataId!,
-      );
-
-      await ctx.db.insert("notifications", {
-        uuid: crypto.randomUUID(),
-        channels: ["sms"],
-        reason,
-        title,
-        body: title,
-        senderUserId: userProfile?.userId ?? "system",
-        receiverUserId: appt.userId,
-        appointmentId: args.appointmentId,
-      });
-    }
-
-    return updatedAppointment;
-  },
-});
-
-export const updateAppointment = mutation({
-  args: {
-    appointment: v.object({
-      ...tables.appointments,
-    }),
-    appointmentId: v.id("appointments"),
-  },
-  handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
-
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-    const { appointment, appointmentId } = args;
-
-    const original = await ctx.db.get(appointmentId);
-
-    if (!original) {
-      throw new ConvexError(errorMessages.notFound("cita"));
-    }
-
-    if (original.deletedAt) {
-      throw new ConvexError(errorMessages.notFound("cita"));
-    }
-
-    const service = await ctx.db.get(appointment.serviceId);
-
-    if (!service) {
-      throw new ConvexError(errorMessages.notFound("servicio"));
-    }
-
-    const duration =
-      service.duration && original.date && original.proposedDate
-        ? original.date + service.duration
-        : 0;
-
-    const overlap = await ctx.runQuery(
-      internal.appointments.appointmentOverlaps,
-      {
-        appointmentId,
-        date: appointment.date,
-        endAt: duration,
-      },
-    );
-
-    if (overlap) {
-      throw new ConvexError(errorMessages.appointmentOverlaps);
-    }
-
-    const shop = await ctx.db.get(appointment.barbershopId);
-
-    if (!shop) throw new ConvexError(errorMessages.notFound("barbería"));
-
-    const date = new Date(appointment.date);
-    const dayIdx = date.getDay();
-    const dayMap = [
-      "sunday",
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-    ] as const;
-    const day = dayMap[dayIdx];
-    const dayAvailability = shop.availability.find(
-      (a) => a.weekDay.day === day,
-    );
-
-    if (!dayAvailability || !dayAvailability.weekDay.isActive) {
-      throw new Error("Barbershop is closed on selected day");
-    }
-
-    const endAt =
-      appointment.proposedDate ?? appointment.date + (service.duration ?? 0);
-
-    if (
-      !withinOpenHours(
-        new Date(dayAvailability.openAt).toISOString(),
-        new Date(dayAvailability.closeAt).toISOString(),
-        appointment.date,
-        endAt,
-      )
-    ) {
-      throw new Error("Appointment is outside working hours");
-    }
-
-    if (
-      overlapsLunchBreak(
-        dayAvailability.lunchStart,
-        dayAvailability.lunchEnd,
-        appointment.date,
-        endAt,
-      )
-    ) {
-      throw new ConvexError(errorMessages.appointmentDuringLunchBreak);
-    }
-
-    const updatedAppointment = await ctx.db.patch(appointmentId, appointment);
-    const isRescheduled =
-      appointment.status === "rescheduled" ||
-      (original &&
-        (original.date !== appointment.date ||
-          original.proposedDate !== appointment.proposedDate));
-
-    const barbershopMember = await ctx.db.get(appointment.barbershopMemberId);
-    const userProfile = await ctx.db.get(barbershopMember?.userProfileDataId!);
-
-    if (isRescheduled) {
-      await ctx.db.insert("notifications", {
-        uuid: crypto.randomUUID(),
-        channels: ["sms"],
-        reason: "appointment_rescheduled",
-        title: "Cita reagendada",
-        body: `Tu cita ha sido reagendada con éxito para el ${new Date(appointment.date).toLocaleDateString()}`,
-        senderUserId: userProfile?.userId ?? "system",
-        receiverUserId: appointment.userId,
-        appointmentId,
-      });
-    }
     return updatedAppointment;
   },
 });
@@ -638,6 +492,10 @@ export const deleteAppointment = mutation({
       throw new ConvexError(errorMessages.notFound("cita"));
     }
 
+    if (user.userId === appointment.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
     await ctx.db.patch(appointmentId, {
       deletedAt: Date.now(),
     });
@@ -649,6 +507,22 @@ export const removeAppointment = mutation({
     appointmentId: v.id("appointments"),
   },
   handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    const appointment = await ctx.db.get(args.appointmentId);
+
+    if (!appointment) {
+      throw new ConvexError(errorMessages.notFound("cita"));
+    }
+
+    if (user.userId === appointment.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
     await ctx.db.delete(args.appointmentId);
   },
 });

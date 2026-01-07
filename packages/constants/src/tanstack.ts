@@ -5,6 +5,7 @@ import {
   Home,
   Scissors,
   User,
+  Users,
 } from "lucide-react";
 
 export const publicRoutes = {
@@ -43,9 +44,26 @@ export const authenticatedRoutes = {
       icon: Calendar,
     },
     {
+      label: "Perfil",
+      to: "/profile",
+      icon: User,
+    },
+  ],
+  owner: [
+    {
+      label: "Citas",
+      to: "/profile/barbershops/appointments",
+      icon: Calendar,
+    },
+    {
       label: "Servicios",
       to: "/profile/barbershops/services",
       icon: Scissors,
+    },
+    {
+      label: "Barberos",
+      to: "/profile/barbershops/barbers",
+      icon: Users,
     },
     {
       label: "Barbería",

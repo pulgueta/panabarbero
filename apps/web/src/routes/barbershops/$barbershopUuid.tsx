@@ -22,8 +22,9 @@ import {
   useBarbershopByUuid,
 } from "@/hooks/barbershop/use-barbershop";
 import {
-  barbersByBarbershopIdQueryOptions,
-  useBarbersByBarbershopId,
+  barbershopMembersByBarbershopIdQueryOptions,
+  servicesForBarberQueryOptions,
+  useBarbershopMembersByBarbershopId,
 } from "@/hooks/use-barbershop-members";
 import { profileQueryOptions } from "@/hooks/use-profile";
 import {
@@ -31,7 +32,6 @@ import {
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
-import { barbershopSeo } from "@/lib/utils";
 
 export const Route = createFileRoute("/barbershops/$barbershopUuid")({
   component: RouteComponent,
@@ -54,18 +54,22 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
       await context.queryClient.ensureQueryData(
         servicesQueryOptions(barbershop._id),
       );
-      await context.queryClient.ensureQueryData(
-        barbersByBarbershopIdQueryOptions(barbershop._id),
-      );
-    }
 
-    return {
-      barbershop,
-    };
+      const barbershopMembers = await context.queryClient.ensureQueryData(
+        barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+      );
+
+      if (barbershopMembers.length > 0) {
+        await Promise.all(
+          barbershopMembers.map((barbershopMember) =>
+            context.queryClient.ensureQueryData(
+              servicesForBarberQueryOptions(barbershopMember._id),
+            ),
+          ),
+        );
+      }
+    }
   },
-  head: ({ loaderData }) => ({
-    meta: barbershopSeo(loaderData?.barbershop!),
-  }),
 });
 
 function RouteComponent() {
@@ -79,15 +83,15 @@ function RouteComponent() {
     useBarbershopByUuid(barbershopUuid);
   const { data: services, isLoading: isLoadingServices } =
     useServicesFromBarbershop(barbershop?._id!);
-  const { data: barbers, isLoading: isLoadingBarbers } =
-    useBarbersByBarbershopId(barbershop?._id!);
+  const { data: barbershopMembers, isLoading: isLoadingBarbershopMembers } =
+    useBarbershopMembersByBarbershopId(barbershop?._id!);
 
   return (
     <BorderContainer>
       <main>
         <header className="flex w-full flex-row justify-between gap-4">
-          <Suspense fallback={<Skeleton className="h-48 w-full" />}>
-            <Activity mode={isLoadingBarbershop ? "hidden" : "visible"}>
+          <Activity mode={isLoadingBarbershop ? "hidden" : "visible"}>
+            <Suspense fallback={<Skeleton className="h-48 w-full" />}>
               <BarbershopHeader
                 barbershop={barbershop}
                 userId={user?.userId!}
@@ -97,8 +101,8 @@ function RouteComponent() {
               {/* <section>
                 <BarbershopAvatar barbershop={barbershop} size="lg" />
               </section> */}
-            </Activity>
-          </Suspense>
+            </Suspense>
+          </Activity>
         </header>
 
         <Separator className="mt-8 mb-6" />
@@ -111,14 +115,16 @@ function RouteComponent() {
           <Suspense fallback={<ServicesSkeleton />}>
             <Activity
               mode={
-                isLoadingServices || isLoadingBarbers || !barbershop?._id
+                isLoadingServices ||
+                isLoadingBarbershopMembers ||
+                !barbershop?._id
                   ? "hidden"
                   : "visible"
               }
             >
               <ServicesGrid
                 services={services}
-                barbers={barbers}
+                barbers={barbershopMembers}
                 barbershopId={barbershop?._id!}
               />
             </Activity>

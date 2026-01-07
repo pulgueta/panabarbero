@@ -80,11 +80,11 @@ function BarbershopsPage() {
   const showModal = !city && !state;
 
   return (
-    <BorderContainer className="space-y-8 px-0 lg:px-0">
+    <BorderContainer className="space-y-6">
       <header className="flex flex-col items-center justify-between gap-2.5 pt-4 pb-2">
         <section className="w-full space-y-4">
           <h1
-            className="text-balance text-center font-bold text-3xl tracking-tight"
+            className="text-balance text-center font-bold text-2xl tracking-tight md:text-3xl"
             style={{
               viewTransitionName: "barbershops",
             }}
@@ -103,7 +103,7 @@ function BarbershopsPage() {
         </section>
       </header>
 
-      <div className="w-full border-y bg-accent/20 px-4 py-6 md:px-8 lg:px-10">
+      <div className="w-full rounded-xl border bg-accent/20 p-4">
         <BarbershopFilters />
       </div>
 

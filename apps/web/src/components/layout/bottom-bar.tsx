@@ -1,6 +1,7 @@
 import { tanstack } from "@panabarbero/constants";
 import { Link, useRouterState } from "@tanstack/react-router";
 
+import { useBarbershopMemberRoles } from "@/hooks/barbershop/use-barbershop-member";
 import { useIsBarber } from "@/hooks/use-barbershop-members";
 import { useSession } from "@/hooks/use-session";
 import { cn } from "@/lib/utils";
@@ -13,46 +14,82 @@ export const BottomBar = () => {
 
   const { data: user } = useSession();
   const { data: isBarber } = useIsBarber(user?.userId ?? "");
-
-  const navigationRoutes = user
-    ? tanstack.authenticatedRoutes.navigation
-    : tanstack.publicRoutes.navigation;
+  const { data: rolesData } = useBarbershopMemberRoles(user?.userId ?? "");
 
   const defaultProfileTab = isBarber ? "account" : "appointments";
+
+  const navigationRoutes = rolesData?.isOwner
+    ? tanstack.authenticatedRoutes.owner
+    : tanstack.authenticatedRoutes.barber;
+
+  const routesWithoutHome = tanstack.authenticatedRoutes.navigation.filter(
+    (route) => route.to !== "/",
+  );
 
   return (
     <div className="fixed right-0 bottom-0 left-0 z-50 mx-auto h-18 w-full border-border border-t bg-background/80 backdrop-blur-sm">
       <div className="container mx-auto">
-        <nav className="flex h-full items-center justify-around gap-x-2.5 px-4 py-2.5">
-          {isBarber
-            ? tanstack.authenticatedRoutes.barber.map((item) => {
-                const Icon = item.icon;
+        <nav className="flex h-full items-center justify-around gap-x-2 p-2">
+          {user
+            ? isBarber
+              ? navigationRoutes.map((item) => {
+                  const Icon = item.icon;
 
-                return (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    disabled={currentPath === item.to}
-                    className={cn(
-                      "flex max-w-24 flex-1 flex-col items-center justify-center gap-1.5 pt-1.5 pb-2 text-muted-foreground",
-                    )}
-                    style={{
-                      viewTransitionName: item.to,
-                    }}
-                    search={
-                      item.to === "/profile"
-                        ? { tab: defaultProfileTab }
-                        : undefined
-                    }
-                  >
-                    <Icon className="size-5 shrink-0" />
-                    <span className="truncate font-medium text-xs leading-none">
-                      {item.label}
-                    </span>
-                  </Link>
-                );
-              })
-            : navigationRoutes.map((item) => {
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      disabled={currentPath === item.to}
+                      className={cn(
+                        "flex max-w-24 flex-1 flex-col items-center justify-center gap-1.5 pt-1.5 pb-2 text-muted-foreground",
+                      )}
+                      style={{
+                        viewTransitionName: item.to,
+                      }}
+                      search={
+                        item.to === "/profile"
+                          ? { tab: defaultProfileTab }
+                          : undefined
+                      }
+                    >
+                      <Icon className="size-5 shrink-0" />
+                      <span className="truncate font-medium text-xs leading-none">
+                        {item.label}
+                      </span>
+                    </Link>
+                  );
+                })
+              : routesWithoutHome.map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      disabled={currentPath === item.to}
+                      activeProps={{
+                        className: "text-primary",
+                      }}
+                      className={cn(
+                        "flex max-w-24 flex-1 flex-col items-center justify-center gap-1.5 pt-1.5 pb-2 text-muted-foreground",
+                      )}
+                      style={{
+                        viewTransitionName: item.to,
+                      }}
+                      search={
+                        item.to === "/profile"
+                          ? { tab: defaultProfileTab }
+                          : undefined
+                      }
+                    >
+                      <Icon className="size-5 shrink-0" />
+                      <span className="truncate font-medium text-xs leading-none">
+                        {item.label}
+                      </span>
+                    </Link>
+                  );
+                })
+            : tanstack.publicRoutes.navigation.map((item) => {
                 const Icon = item.icon;
 
                 return (

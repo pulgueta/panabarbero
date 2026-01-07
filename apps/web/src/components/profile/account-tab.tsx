@@ -49,7 +49,7 @@ export const AccountTab: FC<AccountTabProps> = ({
     },
     updateNotificationPreferenceMutation: {
       mutateAsync: updateNotificationPreference,
-      isSuccess: isUpdatedNotificationPreference,
+      isPending: isUpdatingNotificationPreference,
     },
   } = useProfileActions();
 
@@ -97,14 +97,7 @@ export const AccountTab: FC<AccountTabProps> = ({
         description: "El número de contacto se ha actualizado correctamente.",
       });
     }
-
-    if (isUpdatedNotificationPreference) {
-      toast.success("Guardado exitosamente", {
-        description:
-          "Las preferencias de notificación se han actualizado correctamente.",
-      });
-    }
-  }, [isUpdatedName, isUpdatedPhoneNumber, isUpdatedNotificationPreference]);
+  }, [isUpdatedName, isUpdatedPhoneNumber]);
 
   useEffect(() => {
     setName(profile?.name ?? "");
@@ -147,9 +140,8 @@ export const AccountTab: FC<AccountTabProps> = ({
           <CardHeader>
             <CardTitle>Nombre completo</CardTitle>
             <CardDescription>
-              {isBarber
-                ? "Este es el nombre que se mostrará en tu perfil de barbería"
-                : "Este es el nombre que se mostrará en tu perfil de usuario"}
+              Este es el nombre que se mostrará en tu perfil de{" "}
+              {isBarber ? "barbería." : "usuario."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -249,6 +241,7 @@ export const AccountTab: FC<AccountTabProps> = ({
                       (p) => p.type === "email",
                     )?.enabled
                   }
+                  disabled={isUpdatingNotificationPreference}
                   onCheckedChange={(val) =>
                     updateNotificationPreference({
                       type: "email",
@@ -269,7 +262,9 @@ export const AccountTab: FC<AccountTabProps> = ({
                       (p) => p.type === "sms",
                     )?.enabled
                   }
-                  disabled={!profile?.phoneNumber}
+                  disabled={
+                    !profile?.phoneNumber || isUpdatingNotificationPreference
+                  }
                   onCheckedChange={(val) =>
                     updateNotificationPreference({
                       type: "sms",

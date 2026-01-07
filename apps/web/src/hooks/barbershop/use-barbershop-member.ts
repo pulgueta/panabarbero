@@ -1,0 +1,13 @@
+import { convexQuery } from "@convex-dev/react-query";
+import { api } from "@panabarbero/convex/api";
+import { useQuery } from "@tanstack/react-query";
+
+export function barbershopMemberRolesQueryOptions(userId: string) {
+  return convexQuery(api.barbershopMembers.getBarbershopMemberRolesByUserId, {
+    userId,
+  });
+}
+
+export function useBarbershopMemberRoles(userId: string) {
+  return useQuery(barbershopMemberRolesQueryOptions(userId));
+}

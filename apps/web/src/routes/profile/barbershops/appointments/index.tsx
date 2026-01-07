@@ -18,8 +18,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  barbershopByOwnerIdQueryOptions,
-  useBarbershopByOwnerId,
+  barbershopByMemberUserIdQueryOptions,
+  useBarbershopByMemberUserId,
 } from "@/hooks/barbershop/use-barbershop";
 import {
   appointmentsByBarbershopQueryOptions,
@@ -28,9 +28,10 @@ import {
   useRescheduledAppointmentRequests,
 } from "@/hooks/use-appointments";
 import {
-  barbersByBarbershopIdQueryOptions,
+  barbersForServiceQueryOptions,
+  barbershopMembersByBarbershopIdQueryOptions,
   isBarberQueryOptions,
-  useBarbersByBarbershopId,
+  useBarbershopMembersByBarbershopId,
 } from "@/hooks/use-barbershop-members";
 import {
   serviceByAppointmentIdQueryOptions,
@@ -49,7 +50,7 @@ export const Route = createFileRoute("/profile/barbershops/appointments/")({
 
     if (user?.userId) {
       const barbershop = await context.queryClient.ensureQueryData(
-        barbershopByOwnerIdQueryOptions(user.userId),
+        barbershopByMemberUserIdQueryOptions(user.userId),
       );
 
       await context.queryClient.ensureQueryData(
@@ -61,7 +62,7 @@ export const Route = createFileRoute("/profile/barbershops/appointments/")({
           appointmentsByBarbershopQueryOptions(barbershop._id),
         );
         await context.queryClient.ensureQueryData(
-          barbersByBarbershopIdQueryOptions(barbershop._id),
+          barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
         );
 
         await context.queryClient.ensureQueryData(
@@ -69,11 +70,22 @@ export const Route = createFileRoute("/profile/barbershops/appointments/")({
         );
 
         if (appointments) {
-          await context.queryClient.ensureQueryData(
+          const services = await context.queryClient.ensureQueryData(
             servicesByIdsQueryOptions(
               appointments.map((appointment) => appointment.serviceId),
             ),
           );
+
+          if (services) {
+            await Promise.all(
+              services.map((service) =>
+                context.queryClient.ensureQueryData(
+                  barbersForServiceQueryOptions(service?._id!),
+                ),
+              ),
+            );
+          }
+
           await Promise.all(
             appointments.map((appointment) =>
               context.queryClient.ensureQueryData(
@@ -93,8 +105,12 @@ function RouteComponent() {
   );
 
   const { data: session } = useSession();
-  const { data: barbershop } = useBarbershopByOwnerId(session?.userId!);
-  const { data: barbers } = useBarbersByBarbershopId(barbershop?._id!);
+  const { data: barbershop } = useBarbershopByMemberUserId(
+    session?.userId ?? "",
+  );
+  const { data: barbershopMembers } = useBarbershopMembersByBarbershopId(
+    barbershop?._id!,
+  );
   const { data: services } = useServicesByBarbershopId(barbershop?._id!);
   const {
     data: rescheduledAppointmentRequests,
@@ -160,7 +176,7 @@ function RouteComponent() {
                   </Button>
                 }
                 barbershopId={barbershop._id}
-                barbers={barbers}
+                barbers={barbershopMembers}
                 services={services}
                 serviceId={undefined}
               />

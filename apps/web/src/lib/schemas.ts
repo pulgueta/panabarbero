@@ -85,20 +85,20 @@ const socialMediaSchema = object({
 });
 
 export const barbershopFormSchema = object({
-  name: string({ error: "El nombre de la barbería es requerido" })
+  name: string({ error: "Nombre requerido" })
     .min(3, {
-      message: "El nombre de la barbería debe tener al menos 3 caracteres",
+      message: "El nombre debe tener al menos 3 caracteres",
     })
     .max(255, {
-      message: "El nombre de la barbería debe tener menos de 255 caracteres",
+      message: "El nombre debe tener menos de 255 caracteres",
     }),
   description: string().optional(),
   address: object({
-    fullAddress: string().min(1, "La dirección de la barbería es requerida"),
+    fullAddress: string().min(1, "Dirección requerida"),
     details: string().optional(),
   }),
-  city: string().min(1, "La ciudad es requerida"),
-  state: string().min(1, "El departamento es requerido"),
+  city: string().min(1, "Selecciona una ciudad"),
+  state: string().min(1, "Selecciona un departamento"),
   zipCode: string().optional(),
   contactPhone: string().optional(),
   bannerUrl: url("URL inválida").optional().or(literal("")),
@@ -113,6 +113,7 @@ export const barbershopFormSchema = object({
     })
     .default(5),
   availability: array(availabilitySchema).default([]),
+  ownerIsBarber: boolean().default(true),
 });
 
 export const barbershopFormSchemaV2 = object({
@@ -212,14 +213,7 @@ export const reviewFormSchema = object({
 
 export const inviteBarberFormSchema = object({
   barbershopId: zodAny(),
-  name: string({ error: "El nombre del barbero es requerido" })
-    .min(3, {
-      message: "El nombre del barbero debe tener al menos 3 caracteres",
-    })
-    .max(255, {
-      message: "El nombre del barbero debe tener menos de 255 caracteres",
-    }),
-  email: email({ error: "El email del barbero es requerido" }).optional(),
+  email: email({ error: "El email del barbero es requerido" }),
   phone: string({ error: "El teléfono del barbero es requerido" })
     .min(10, {
       message: "El teléfono del barbero debe tener 10 caracteres",
@@ -227,6 +221,9 @@ export const inviteBarberFormSchema = object({
     .regex(/^\+?[0-9]+$/, {
       message: "El teléfono del barbero debe ser válido",
     }),
+  roles: array(zodEnum(["barber"]))
+    .min(1, { message: "Debes seleccionar al menos un rol" })
+    .default(["barber"]),
 });
 
 export type BarbershopFormData = output<typeof barbershopFormSchema>;

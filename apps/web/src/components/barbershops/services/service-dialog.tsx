@@ -44,6 +44,7 @@ export const ServiceDialog: FC<ServiceDialogProps> = ({
   const [open, setOpen] = useState<boolean>(false);
 
   const form = useForm({
+    // @ts-expect-error - zod's coerce method returns an unknown type
     resolver: zodResolver(serviceFormSchema),
     defaultValues: initialValues ?? {
       name: "",

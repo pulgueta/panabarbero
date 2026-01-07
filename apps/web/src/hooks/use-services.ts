@@ -5,7 +5,7 @@ import type {
   Barbershop,
   Service,
 } from "@panabarbero/convex/schemas";
-import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 
 export function createServiceMutationOptions() {
   return useConvexMutation(api.services.createService);
@@ -66,7 +66,7 @@ export function usePaginatedServicesFromBarbershop(
   cursor: string | null,
   numItems = 6,
 ) {
-  return useSuspenseQuery(
+  return useQuery(
     servicesPaginatedByBarbershopIdQueryOptions(barbershopId, cursor, numItems),
   );
 }

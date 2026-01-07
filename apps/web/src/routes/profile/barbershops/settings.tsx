@@ -1,6 +1,5 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: barbershop is guaranteed to be not null */
-
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { PlusIcon, Share } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,6 +18,10 @@ import {
   barbershopByOwnerIdQueryOptions,
   useBarbershopByOwnerId,
 } from "@/hooks/barbershop/use-barbershop";
+import {
+  barbershopMemberRolesQueryOptions,
+  useBarbershopMemberRoles,
+} from "@/hooks/barbershop/use-barbershop-member";
 import {
   barbershopMetadataQueryOptions,
   useBarbershopMetadata,
@@ -43,6 +46,15 @@ export const Route = createFileRoute("/profile/barbershops/settings")({
         barbershopByOwnerIdQueryOptions(user.userId),
       );
 
+      const barbershopMemberRoles =
+        await opts.context.queryClient.ensureQueryData(
+          barbershopMemberRolesQueryOptions(user.userId),
+        );
+
+      if (!barbershopMemberRoles?.isOwner) {
+        throw redirect({ to: "/profile/barbershops/appointments" });
+      }
+
       if (barbershop) {
         await opts.context.queryClient.ensureQueryData(
           barbershopMetadataQueryOptions(barbershop._id),
@@ -56,20 +68,32 @@ export const Route = createFileRoute("/profile/barbershops/settings")({
 });
 
 function SettingsPage() {
+  // const [_, convert, ref] = useToPng<HTMLDivElement>({
+  //   onSuccess: (data) => {
+  //     const link = document.createElement("a");
+  //     link.download = "codigo-qr-barberia.jpeg";
+  //     link.href = data;
+  //     link.click();
+  //   },
+  // });
+
   const { data: user } = useSession();
   const [copy] = useClipboard();
 
   const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
   const { data: barbershopMetadata } = useBarbershopMetadata(barbershop?._id!);
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
+  const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
 
   const hasService = services?.length && services.length > 0;
   const hasAnyActiveDay = barbershop?.availability?.some(
     (a) => a.weekDay.isActive,
   );
 
+  const url = `${window.location.origin}/barbershops/${barbershop?.uuid}`;
+
   const onCopyLink = () => {
-    copy(`${window.location.origin}/barbershops/${barbershop?.uuid}`)
+    copy(url)
       .then(() => {
         toast.success("Link copiado al portapapeles");
       })
@@ -90,8 +114,33 @@ function SettingsPage() {
         </p>
       </header>
 
-      {barbershop && (
+      {barbershop && rolesData?.isOwner && (
         <>
+          {/* <div className="flex flex-col items-center justify-center gap-2">
+            <div ref={ref}>
+              <QRCode
+                size="lg"
+                value={url}
+                options={{
+                  dotsOptions: { color: "var(--secondary)" },
+                  cornersSquareOptions: { color: "var(--primary)" },
+                  cornersDotOptions: { color: "var(--primary)" },
+                }}
+                className="mx-auto max-w-max"
+              />
+            </div>
+
+            <p className="text-muted-foreground text-sm">
+              Comparte este código QR con tus clientes para agendar en tu
+              barbería.
+            </p>
+
+            <Button onClick={convert}>
+              <Download className="size-3" />
+              Descargar código QR
+            </Button>
+          </div> */}
+
           <Button onClick={onCopyLink}>
             <Share className="size-3" />
             Copia el link de tu barbería
@@ -204,7 +253,7 @@ function SettingsPage() {
         </>
       )}
 
-      {!hasAnyActiveDay && (
+      {!hasAnyActiveDay && rolesData?.isOwner && (
         <Alert variant="warning">
           <AlertTitle>Horario de atención requerido</AlertTitle>
           <AlertDescription>
@@ -215,7 +264,7 @@ function SettingsPage() {
         </Alert>
       )}
 
-      {!hasService && barbershop && (
+      {!hasService && barbershop && rolesData?.isOwner && (
         <Alert variant="warning">
           <AlertTitle>Debes crear al menos un servicio</AlertTitle>
           <AlertDescription>
@@ -234,21 +283,25 @@ function SettingsPage() {
         </Alert>
       )}
 
-      <section className="space-y-4">
-        <div>
-          <h2 className="font-bold text-xl tracking-tight">Disponibilidad</h2>
-          <p className="text-muted-foreground text-sm">
-            Define los días y horas en los que tu barbería atiende.
-          </p>
-        </div>
+      {rolesData?.isOwner && (
+        <section className="space-y-4">
+          <div>
+            <h2 className="font-bold text-xl tracking-tight">Disponibilidad</h2>
+            <p className="text-muted-foreground text-sm">
+              Define los días y horas en los que tu barbería atiende.
+            </p>
+          </div>
 
-        {barbershop && barbershop.availability.length > 0 && (
-          <AvailabilityForm
-            barbershopId={barbershop._id}
-            availability={barbershop?.availability}
-          />
-        )}
-      </section>
+          {barbershop &&
+            rolesData?.isOwner &&
+            barbershop.availability.length > 0 && (
+              <AvailabilityForm
+                barbershopId={barbershop._id}
+                availability={barbershop?.availability}
+              />
+            )}
+        </section>
+      )}
     </BorderContainer>
   );
 }

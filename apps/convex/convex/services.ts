@@ -7,6 +7,7 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { action, internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
+import { assertCanManageServices, assertCanManageShop } from "./authz";
 import { errorMessages } from "./errors";
 import { tables } from "./tables";
 
@@ -78,6 +79,9 @@ export const createService = mutation({
     }
 
     const { service } = args;
+
+    // Verify the user has permission to create services (owner or barber)
+    await assertCanManageServices(ctx, service.barbershopId, user.userId);
 
     const barbershop = await ctx.db.get(service.barbershopId);
 
@@ -155,13 +159,14 @@ export const updateService = mutation({
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
-    if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+    if (!user?.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const { service, serviceId } = args;
+
+    // Only owners can update services
+    await assertCanManageShop(ctx, service.barbershopId, user.userId);
 
     await ctx.db.patch(serviceId, {
       ...service,
@@ -170,34 +175,105 @@ export const updateService = mutation({
   },
 });
 
+/**
+ * Delete a service with 2-step confirmation if future appointments exist.
+ *
+ * - If `force` is false/undefined and impacted appointments exist:
+ *   throws ConvexError with message "WILL_CANCEL:N" where N is count of impacted appointments.
+ * - If `force` is true: cancels/soft-deletes all impacted appointments, notifies customers, then deletes service.
+ */
 export const deleteService = mutation({
   args: {
     barbershopId: v.id("barbershops"),
     serviceId: v.id("services"),
+    force: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
-    if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+    if (!user?.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
-    const { serviceId, barbershopId } = args;
+    const { serviceId, barbershopId, force } = args;
 
-    const fromBarbershop = await ctx.db
-      .query("barbershops")
-      .withIndex("by_id", (q) => q.eq("_id", barbershopId))
-      .unique();
+    // Only owners can delete services
+    await assertCanManageShop(ctx, barbershopId, user.userId);
 
-    if (fromBarbershop?.ownerId !== user.userId) {
-      throw new Error("User not authorized", {
-        cause: user.userId,
-      });
+    const service = await ctx.db.get(serviceId);
+    if (!service) {
+      throw new ConvexError(errorMessages.notFound("servicio"));
     }
 
+    if (service.barbershopId !== barbershopId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    const now = Date.now();
+
+    // Find impacted appointments: future/upcoming, not deleted, not cancelled/completed/no-show
+    const impactedAppointments = await ctx.db
+      .query("appointments")
+      .withIndex("by_serviceId", (q) => q.eq("serviceId", serviceId))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("deletedAt"), undefined),
+          q.gte(q.field("date"), now),
+          q.or(
+            q.eq(q.field("status"), "pending"),
+            q.eq(q.field("status"), "confirmed"),
+            q.eq(q.field("status"), "rescheduled"),
+          ),
+        ),
+      )
+      .collect();
+
+    // 2-step confirmation: if not force and impacted > 0, throw error with count
+    if (!force && impactedAppointments.length > 0) {
+      throw new ConvexError(`WILL_CANCEL:${impactedAppointments.length}`);
+    }
+
+    // If force or no impacted appointments, proceed with deletion
+    const barbershop = await ctx.db.get(barbershopId);
+
+    // Cancel and soft-delete impacted appointments, notify customers
+    for (const appt of impactedAppointments) {
+      await ctx.db.patch(appt._id, {
+        status: "cancelled",
+        deletedAt: Date.now(),
+        notes: `Servicio "${service.name}" eliminado por la barbería`,
+        proposedDate: undefined,
+        rescheduleRequestedByUserId: undefined,
+      });
+
+      // Send notification to customer
+      await ctx.runMutation(
+        internal.notifications.createServiceDeletedCancellationNotification,
+        {
+          appointmentId: appt._id,
+          customerUserId: appt.userId,
+          serviceName: service.name,
+          barbershopName: barbershop?.name ?? "la barbería",
+          contactPhone: appt.contactPhone,
+          contactEmail: appt.contactEmail,
+        },
+      );
+    }
+
+    // Delete all barber-service assignments for this service
+    const assignments = await ctx.db
+      .query("barbershopMemberServices")
+      .withIndex("by_serviceId", (q) => q.eq("serviceId", serviceId))
+      .collect();
+
+    for (const assignment of assignments) {
+      await ctx.db.delete(assignment._id);
+    }
+
+    // Finally delete the service
     await ctx.db.delete(serviceId);
+
+    return { deletedAppointments: impactedAppointments.length };
   },
 });
 

@@ -49,7 +49,7 @@ export const BarbershopFilters: FC = () => {
   };
 
   return (
-    <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
+    <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
       <Select
         value={state}
         onValueChange={(v) => apply({ state: v ?? undefined })}

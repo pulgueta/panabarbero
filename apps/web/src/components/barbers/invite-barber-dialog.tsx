@@ -1,7 +1,6 @@
 import type { Barbershop } from "@panabarbero/convex/schemas";
-import type { FC } from "react";
+import type { FC, ReactNode } from "react";
 
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -14,23 +13,19 @@ import { InviteBarberForm } from "./invite-barber-form";
 
 interface InviteBarberDialogProps {
   barbershopId: Barbershop["_id"];
+  trigger: ReactNode;
 }
 
 export const InviteBarberDialog: FC<InviteBarberDialogProps> = ({
   barbershopId,
+  trigger,
 }) => {
   const headLabel = "Invitar barbero";
   const description = "Proporciona los datos del barbero a invitar.";
-  const buttonLabel = "Invitar (pronto)";
-  const buttonVariant = "outline";
 
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        <Button disabled variant={buttonVariant}>
-          {buttonLabel}
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{headLabel}</DialogTitle>
