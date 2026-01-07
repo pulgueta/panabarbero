@@ -4,7 +4,7 @@ import { ConvexError } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { errorMessages } from "./errors";
-import type { BarbershopMember } from "./tables";
+import type { Appointment, BarbershopMember } from "./tables";
 
 export type Role = "owner" | "barber";
 
@@ -179,4 +179,120 @@ export async function assertCanManageAppointments(
   userId: string,
 ) {
   return assertShopRole(ctx, barbershopId, userId, "barber");
+}
+
+/**
+ * Assert that a user is a member of a barbershop (any role).
+ * Throws a ConvexError if the user is not a member.
+ */
+export async function assertShopMember(
+  ctx: QueryCtx | MutationCtx,
+  barbershopId: Id<"barbershops">,
+  userId: string,
+): Promise<BarbershopMember> {
+  const member = await getBarbershopMemberByUserId(ctx, barbershopId, userId);
+
+  if (!member) {
+    throw new ConvexError(errorMessages.unauthorized);
+  }
+
+  if (!member.isActive) {
+    throw new ConvexError("Tu membresía está inactiva");
+  }
+
+  return member;
+}
+
+/**
+ * Assert that a user can view appointments for a barbershop.
+ * Requires owner or barber role.
+ */
+export async function assertCanViewAppointments(
+  ctx: QueryCtx | MutationCtx,
+  barbershopId: Id<"barbershops">,
+  userId: string,
+): Promise<BarbershopMember> {
+  return assertShopRole(ctx, barbershopId, userId, ["owner", "barber"]);
+}
+
+/**
+ * Assert that a user can mutate an appointment.
+ * Allowed if: user is the appointment owner (customer) OR user is a shop member (owner/barber).
+ */
+export async function assertCanMutateAppointment(
+  ctx: QueryCtx | MutationCtx,
+  appointment: Appointment,
+  userId: string,
+): Promise<void> {
+  // Appointment owner (customer) can always mutate their own appointment
+  if (appointment.userId === userId) {
+    return;
+  }
+
+  // Otherwise, must be a shop member with owner or barber role
+  const member = await getBarbershopMemberByUserId(
+    ctx,
+    appointment.barbershopId,
+    userId,
+  );
+
+  if (!member || !member.isActive) {
+    throw new ConvexError(errorMessages.unauthorized);
+  }
+
+  if (!memberHasAnyRole(member, ["owner", "barber"])) {
+    throw new ConvexError(errorMessages.unauthorized);
+  }
+}
+
+/**
+ * Check if a user can view an appointment (appointment owner OR shop member).
+ * Returns false instead of throwing.
+ */
+export async function canViewAppointment(
+  ctx: QueryCtx | MutationCtx,
+  appointment: Appointment,
+  userId: string,
+): Promise<boolean> {
+  // Appointment owner can view
+  if (appointment.userId === userId) {
+    return true;
+  }
+
+  // Shop member can view
+  const member = await getBarbershopMemberByUserId(
+    ctx,
+    appointment.barbershopId,
+    userId,
+  );
+
+  if (!member || !member.isActive) {
+    return false;
+  }
+
+  return memberHasAnyRole(member, ["owner", "barber"]);
+}
+
+/**
+ * Check if a user is a barber in a specific barbershop.
+ * Scoped version that doesn't check global membership.
+ */
+export async function isBarberInShop(
+  ctx: QueryCtx | MutationCtx,
+  barbershopId: Id<"barbershops">,
+  userId: string,
+): Promise<boolean> {
+  return hasShopRole(ctx, barbershopId, userId, "barber");
+}
+
+/**
+ * Check if a user is an owner of a specific barbershop.
+ * Scoped version that doesn't check global membership.
+ */
+export async function isOwnerOfShop(
+  ctx: QueryCtx | MutationCtx,
+  barbershopId: Id<"barbershops">,
+  userId: string,
+): Promise<boolean> {
+  return hasShopRole(ctx, barbershopId, userId, "owner");
 }

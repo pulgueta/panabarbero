@@ -38,7 +38,7 @@ import {
   usePaginatedServicesFromBarbershop,
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
-import { formatCurrency } from "@/lib/form-utils";
+import { formatCurrency } from "@/lib/utils";
 
 export const Route = createFileRoute("/profile/barbershops/services/")({
   component: RouteComponent,

@@ -462,6 +462,10 @@ export const setAppointmentStatus = mutation({
       throw new ConvexError(errorMessages.notFound("cita"));
     }
 
+    if (user.userId === appt.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
     const updatedAppointment = await ctx.db.patch(args.appointmentId, {
       status: args.status,
     });
@@ -488,6 +492,10 @@ export const deleteAppointment = mutation({
       throw new ConvexError(errorMessages.notFound("cita"));
     }
 
+    if (user.userId === appointment.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
     await ctx.db.patch(appointmentId, {
       deletedAt: Date.now(),
     });
@@ -499,6 +507,22 @@ export const removeAppointment = mutation({
     appointmentId: v.id("appointments"),
   },
   handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    const appointment = await ctx.db.get(args.appointmentId);
+
+    if (!appointment) {
+      throw new ConvexError(errorMessages.notFound("cita"));
+    }
+
+    if (user.userId === appointment.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
     await ctx.db.delete(args.appointmentId);
   },
 });

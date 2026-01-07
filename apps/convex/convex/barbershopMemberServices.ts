@@ -72,7 +72,9 @@ export const getServicesForBarber = query({
 });
 
 /**
- * Get all barbers who offer a specific service
+ * Get all barbers who offer a specific service.
+ * Only returns barbers who are explicitly assigned to this service.
+ * No fallback to "all barbers" - assignments are mandatory.
  */
 export const getBarbersForService = query({
   args: {
@@ -85,33 +87,9 @@ export const getBarbersForService = query({
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
+    // No fallback - if no assignments, return empty array
     if (assignments.length === 0) {
-      const service = await ctx.db.get(args.serviceId);
-
-      if (!service) return [];
-
-      const members = await ctx.db
-        .query("barbershopMembers")
-        .withIndex("by_barbershopId", (q) =>
-          q.eq("barbershopId", service.barbershopId),
-        )
-        .filter((q) => q.eq(q.field("isActive"), true))
-        .collect();
-
-      const barbers = members.filter((m) => m.roles.includes("barber"));
-
-      return Promise.all(
-        barbers.map(async (barber) => {
-          const profile = await ctx.db.get(barber.userProfileDataId);
-
-          return {
-            ...barber,
-            name: profile?.name ?? "",
-            email: profile?.email ?? "",
-            phoneNumber: profile?.phoneNumber ?? "",
-          };
-        }),
-      );
+      return [];
     }
 
     const barbers = await Promise.all(
@@ -205,6 +183,17 @@ export const setBarberServices = mutation({
       throw new ConvexError("El miembro seleccionado no es un barbero");
     }
 
+    // Validate that all serviceIds belong to the same barbershop
+    for (const serviceId of args.serviceIds) {
+      const service = await ctx.db.get(serviceId);
+      if (!service) {
+        throw new ConvexError(errorMessages.notFound("servicio"));
+      }
+      if (service.barbershopId !== member.barbershopId) {
+        throw new ConvexError("El servicio no pertenece a esta barbería");
+      }
+    }
+
     // Get existing service assignments for this barber
     const existingAssignments = await ctx.db
       .query("barbershopMemberServices")
@@ -274,6 +263,15 @@ export const addServiceToBarber = mutation({
     // Verify the user is an owner of the barbershop
     await assertCanManageShop(ctx, member.barbershopId, user.userId);
 
+    // Validate that the service belongs to the same barbershop
+    const service = await ctx.db.get(args.serviceId);
+    if (!service) {
+      throw new ConvexError(errorMessages.notFound("servicio"));
+    }
+    if (service.barbershopId !== member.barbershopId) {
+      throw new ConvexError("El servicio no pertenece a esta barbería");
+    }
+
     // Check if assignment already exists
     const existing = await ctx.db
       .query("barbershopMemberServices")
@@ -322,6 +320,15 @@ export const removeServiceFromBarber = mutation({
 
     // Verify the user is an owner of the barbershop
     await assertCanManageShop(ctx, member.barbershopId, user.userId);
+
+    // Validate that the service belongs to the same barbershop
+    const service = await ctx.db.get(args.serviceId);
+    if (!service) {
+      throw new ConvexError(errorMessages.notFound("servicio"));
+    }
+    if (service.barbershopId !== member.barbershopId) {
+      throw new ConvexError("El servicio no pertenece a esta barbería");
+    }
 
     const assignment = await ctx.db
       .query("barbershopMemberServices")

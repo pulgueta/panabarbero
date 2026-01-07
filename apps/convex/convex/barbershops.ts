@@ -249,6 +249,17 @@ export const deleteBarbershopCascade = mutation({
 
     await Promise.all(services.map((service) => ctx.db.delete(service._id)));
 
+    const assignments = await ctx.db
+      .query("barbershopMemberServices")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
+      .collect();
+
+    await Promise.all(
+      assignments.map((assignment) => ctx.db.delete(assignment._id)),
+    );
+
     const members = await ctx.db
       .query("barbershopMembers")
       .withIndex("by_barbershopId", (q) =>
