@@ -23,7 +23,6 @@ import type * as index from "../index.js";
 import type * as migrations from "../migrations.js";
 import type * as mobilePushTokens from "../mobilePushTokens.js";
 import type * as notifications from "../notifications.js";
-import type * as polar from "../polar.js";
 import type * as rag from "../rag.js";
 import type * as ratelimit from "../ratelimit.js";
 import type * as reviews from "../reviews.js";
@@ -54,7 +53,6 @@ declare const fullApi: ApiFromModules<{
   migrations: typeof migrations;
   mobilePushTokens: typeof mobilePushTokens;
   notifications: typeof notifications;
-  polar: typeof polar;
   rag: typeof rag;
   ratelimit: typeof ratelimit;
   reviews: typeof reviews;

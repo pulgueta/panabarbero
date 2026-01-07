@@ -115,6 +115,8 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
     },
   });
 
+  console.log(form.formState.errors);
+
   // Update form and state when available barbers change
   useEffect(() => {
     if (availableBarbers?.length === 1) {

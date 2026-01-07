@@ -92,6 +92,7 @@ export const createAuth = (
       disabled: optionsOnly,
     },
     appName: APP_NAME,
+    baseURL: siteUrl,
     trustedOrigins: ["panabarbero://", siteUrl, "http://localhost:3000"],
     database: authComponent.adapter(ctx),
     emailAndPassword: {
