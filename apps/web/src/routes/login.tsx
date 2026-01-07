@@ -12,7 +12,6 @@ import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldGroup } from "@/components/ui/field";
-import { isBarberQueryOptions } from "@/hooks/use-barbershop-members";
 import { getSessionQueryOptions } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/login")({
@@ -24,11 +23,7 @@ export const Route = createFileRoute("/login")({
     );
 
     if (user?.userId) {
-      const isBarber = await context.queryClient.ensureQueryData(
-        isBarberQueryOptions(user.userId),
-      );
-
-      throw redirect({ to: isBarber ? "/profile/barbershops" : "/profile" });
+      throw redirect({ to: "/profile", search: { tab: "account" } });
     }
   },
 });
@@ -47,6 +42,18 @@ function LoginPage() {
     } else {
       const { error } = await signIn.social({
         provider,
+        fetchOptions: {
+          onSuccess: () => {
+            router.navigate({
+              to: "/profile",
+              search: { tab: "account" },
+              replace: true,
+            });
+          },
+          onError: ({ error }) => {
+            toast.error(error.message ?? "Error al iniciar sesión");
+          },
+        },
       });
 
       if (error) {
