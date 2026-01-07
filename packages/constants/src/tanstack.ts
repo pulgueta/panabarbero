@@ -3,6 +3,7 @@ import {
   Calendar,
   CalendarPlus,
   Home,
+  LogIn,
   Scissors,
   User,
   Users,
@@ -24,6 +25,11 @@ export const publicRoutes = {
       label: "Agendar",
       to: "/appointments/create",
       icon: CalendarPlus,
+    },
+    {
+      label: "Cuenta",
+      to: "/login",
+      icon: LogIn,
     },
   ],
 };

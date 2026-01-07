@@ -4,16 +4,16 @@ import { cn } from "@/lib/utils";
 
 interface BorderContainerProps
   extends PropsWithChildren,
-    ComponentProps<"div"> {}
+    ComponentProps<"section"> {}
 
 export const BorderContainer: FC<BorderContainerProps> = ({
   className,
   ...props
 }) => {
   return (
-    <div
+    <section
       className={cn(
-        "container mx-auto min-h-[calc(100dvh-65px)] border-x bg-accent/20 px-4 pt-4 pb-24 md:px-8 md:pb-32 lg:px-10",
+        "container mx-auto min-h-[calc(100dvh-57px)] border-x bg-accent/20 px-4 pt-4 pb-24 md:px-8 md:pb-32 lg:px-10",
         className,
       )}
       {...props}
