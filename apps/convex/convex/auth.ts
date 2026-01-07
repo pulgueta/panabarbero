@@ -96,7 +96,15 @@ export const createAuth = (
     trustedOrigins: ["panabarbero://", siteUrl, "http://localhost:3000"],
     database: authComponent.adapter(ctx),
     emailAndPassword: {
-      enabled: false,
+      enabled: true,
+      requireEmailVerification: true,
+      minPasswordLength: 4,
+      maxPasswordLength: 255,
+    },
+    emailVerification: {
+      sendOnSignUp: true,
+      autoSignInAfterVerification: true,
+      sendVerificationEmail: async ({ user, url, token }, request) => {},
     },
     socialProviders: {
       google: {
