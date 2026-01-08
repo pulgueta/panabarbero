@@ -97,14 +97,10 @@ export const createAuth = (
     database: authComponent.adapter(ctx),
     emailAndPassword: {
       enabled: true,
-      requireEmailVerification: true,
+      requireEmailVerification: false,
+      autoSignIn: true,
       minPasswordLength: 4,
       maxPasswordLength: 255,
-    },
-    emailVerification: {
-      sendOnSignUp: true,
-      autoSignInAfterVerification: true,
-      sendVerificationEmail: async ({ user, url, token }, request) => {},
     },
     socialProviders: {
       google: {

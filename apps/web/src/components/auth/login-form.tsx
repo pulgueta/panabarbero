@@ -72,7 +72,7 @@ export const LoginForm = () => {
       }}
       className="flex flex-col gap-4"
     >
-      <FieldGroup className="gap-4">
+      <FieldGroup className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <form.Field
           name="email"
           children={(field) => {
@@ -157,7 +157,11 @@ export const LoginForm = () => {
             const isInvalid =
               field.state.meta.isTouched && !field.state.meta.isValid;
             return (
-              <Field data-invalid={isInvalid} orientation="horizontal">
+              <Field
+                data-invalid={isInvalid}
+                orientation="horizontal"
+                className="md:col-span-2"
+              >
                 <Checkbox
                   id={field.name}
                   name={field.name}

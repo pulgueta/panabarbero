@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: not needed */
 
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { FormFooter } from "@/components/auth/form-footer";
 import { FormHeader } from "@/components/auth/form-header";
@@ -16,8 +16,6 @@ export const Route = createFileRoute("/_auth/register")({
 });
 
 function RegisterPage() {
-  const router = useRouter();
-
   return (
     <BorderContainer className="flex flex-col items-center justify-center gap-4">
       <FormHeader />

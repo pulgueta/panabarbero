@@ -18,6 +18,7 @@ import { Route as BarbershopsIndexRouteImport } from "./routes/barbershops/index
 import { Route as InvitationsCodeRouteImport } from "./routes/invitations/$code"
 import { Route as BarbershopsBarbershopUuidRouteImport } from "./routes/barbershops/$barbershopUuid"
 import { Route as AppointmentsCreateRouteImport } from "./routes/appointments/create"
+import { Route as AuthResetPasswordRouteImport } from "./routes/_auth/reset-password"
 import { Route as AuthRegisterRouteImport } from "./routes/_auth/register"
 import { Route as AuthLoginRouteImport } from "./routes/_auth/login"
 import { Route as AuthForgotPasswordRouteImport } from "./routes/_auth/forgot-password"
@@ -71,6 +72,11 @@ const AppointmentsCreateRoute = AppointmentsCreateRouteImport.update({
   path: "/appointments/create",
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
+  id: "/reset-password",
+  path: "/reset-password",
+  getParentRoute: () => AuthRouteRoute,
+} as any)
 const AuthRegisterRoute = AuthRegisterRouteImport.update({
   id: "/register",
   path: "/register",
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   "/forgot-password": typeof AuthForgotPasswordRoute
   "/login": typeof AuthLoginRoute
   "/register": typeof AuthRegisterRoute
+  "/reset-password": typeof AuthResetPasswordRoute
   "/appointments/create": typeof AppointmentsCreateRoute
   "/barbershops/$barbershopUuid": typeof BarbershopsBarbershopUuidRoute
   "/invitations/$code": typeof InvitationsCodeRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByTo {
   "/forgot-password": typeof AuthForgotPasswordRoute
   "/login": typeof AuthLoginRoute
   "/register": typeof AuthRegisterRoute
+  "/reset-password": typeof AuthResetPasswordRoute
   "/appointments/create": typeof AppointmentsCreateRoute
   "/barbershops/$barbershopUuid": typeof BarbershopsBarbershopUuidRoute
   "/invitations/$code": typeof InvitationsCodeRoute
@@ -154,6 +162,7 @@ export interface FileRoutesById {
   "/_auth/forgot-password": typeof AuthForgotPasswordRoute
   "/_auth/login": typeof AuthLoginRoute
   "/_auth/register": typeof AuthRegisterRoute
+  "/_auth/reset-password": typeof AuthResetPasswordRoute
   "/appointments/create": typeof AppointmentsCreateRoute
   "/barbershops/$barbershopUuid": typeof BarbershopsBarbershopUuidRoute
   "/invitations/$code": typeof InvitationsCodeRoute
@@ -173,6 +182,7 @@ export interface FileRouteTypes {
     | "/forgot-password"
     | "/login"
     | "/register"
+    | "/reset-password"
     | "/appointments/create"
     | "/barbershops/$barbershopUuid"
     | "/invitations/$code"
@@ -190,6 +200,7 @@ export interface FileRouteTypes {
     | "/forgot-password"
     | "/login"
     | "/register"
+    | "/reset-password"
     | "/appointments/create"
     | "/barbershops/$barbershopUuid"
     | "/invitations/$code"
@@ -208,6 +219,7 @@ export interface FileRouteTypes {
     | "/_auth/forgot-password"
     | "/_auth/login"
     | "/_auth/register"
+    | "/_auth/reset-password"
     | "/appointments/create"
     | "/barbershops/$barbershopUuid"
     | "/invitations/$code"
@@ -300,6 +312,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AppointmentsCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    "/_auth/reset-password": {
+      id: "/_auth/reset-password"
+      path: "/reset-password"
+      fullPath: "/reset-password"
+      preLoaderRoute: typeof AuthResetPasswordRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
     "/_auth/register": {
       id: "/_auth/register"
       path: "/register"
@@ -356,12 +375,14 @@ interface AuthRouteRouteChildren {
   AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
+  AuthResetPasswordRoute: typeof AuthResetPasswordRoute
 }
 
 const AuthRouteRouteChildren: AuthRouteRouteChildren = {
   AuthForgotPasswordRoute: AuthForgotPasswordRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthRegisterRoute: AuthRegisterRoute,
+  AuthResetPasswordRoute: AuthResetPasswordRoute,
 }
 
 const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(

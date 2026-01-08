@@ -2,7 +2,7 @@
 
 import { signUp } from "@panabarbero/convex/auth";
 import { useForm } from "@tanstack/react-form";
-import { useRouter } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
@@ -15,15 +15,16 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import { registerFormSchema } from "@/lib/auth-schemas";
 
 export const RegisterForm = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] =
     useState<boolean>(false);
-  const formId = useId();
 
-  const router = useRouter();
+  const formId = useId();
+  const navigate = useNavigate();
 
   const form = useForm({
     defaultValues: {
@@ -45,7 +46,14 @@ export const RegisterForm = () => {
         });
 
         if (data?.user) {
-          router.navigate({
+          // Show success message about email verification
+          toast.success(
+            "¡Cuenta creada! Revisa tu correo para verificar tu cuenta.",
+          );
+
+          form.reset();
+
+          navigate({
             to: "/profile",
             search: { tab: "account" },
             replace: true,
@@ -56,9 +64,8 @@ export const RegisterForm = () => {
           toast.error(error.message ?? "Error al crear la cuenta");
           return;
         }
+        toast.error("Error al crear la cuenta");
       }
-      toast.error("Error al crear la cuenta");
-      return;
     },
   });
 
@@ -229,7 +236,10 @@ export const RegisterForm = () => {
         </div>
       </FieldGroup>
 
-      <Button type="submit">Crear cuenta</Button>
+      <Button type="submit" disabled={form.state.isSubmitting}>
+        {form.state.isSubmitting && <Spinner />}
+        Crear cuenta
+      </Button>
     </form>
   );
 };
