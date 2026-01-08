@@ -67,7 +67,7 @@ export const LoginForm = () => {
       }}
       className="flex flex-col gap-4"
     >
-      <FieldGroup>
+      <FieldGroup className="gap-4">
         <form.Field
           name="email"
           children={(field) => {

@@ -1,9 +1,9 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: not needed */
 
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { GalleryVerticalEnd } from "lucide-react";
 
 import { FormFooter } from "@/components/auth/form-footer";
+import { FormHeader } from "@/components/auth/form-header";
 import { RegisterForm } from "@/components/auth/register-form";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
@@ -20,16 +20,7 @@ function RegisterPage() {
 
   return (
     <BorderContainer className="flex flex-col items-center justify-center gap-4">
-      <Link
-        to="/"
-        className="flex items-center gap-2 self-center font-semibold text-xl tracking-tighter"
-        style={{ viewTransitionName: "logo" }}
-      >
-        <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-          <GalleryVerticalEnd className="size-4" />
-        </div>
-        PanaBarbero
-      </Link>
+      <FormHeader />
 
       <div className="flex w-full max-w-xl flex-col gap-4 [view-transition-name:main-content]">
         <Card className="w-full max-w-xl">
@@ -40,7 +31,7 @@ function RegisterPage() {
             <FieldGroup>
               <RegisterForm />
 
-              <p className="text-center text-muted-foreground text-xs">
+              <p className="text-center text-muted-foreground text-sm">
                 ¿Ya tienes una cuenta?{" "}
                 <Link
                   to="/login"
