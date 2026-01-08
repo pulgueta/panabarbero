@@ -61,6 +61,33 @@ export const createServiceMutation = internalMutation({
 
     const serviceId = await ctx.db.insert("services", args.service);
 
+    // Auto-assign service to the only barber if there's only one owner-barber member
+    const members = await ctx.db
+      .query("barbershopMembers")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.service.barbershopId),
+      )
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+
+    if (members.length === 1) {
+      const onlyMember = members[0];
+      const isOwnerAndBarber =
+        onlyMember.roles.includes("owner") &&
+        onlyMember.roles.includes("barber");
+
+      if (isOwnerAndBarber) {
+        // Auto-assign service to the only owner-barber
+        await ctx.db.insert("barbershopMemberServices", {
+          uuid: crypto.randomUUID(),
+          barbershopId: args.service.barbershopId,
+          barbershopMemberId: onlyMember._id,
+          serviceId,
+          isActive: true,
+        });
+      }
+    }
+
     return serviceId;
   },
 });
@@ -107,6 +134,33 @@ export const createService = mutation({
     });
 
     const serviceId = await ctx.db.insert("services", service);
+
+    // Auto-assign service to the only barber if there's only one owner-barber member
+    const members = await ctx.db
+      .query("barbershopMembers")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", service.barbershopId),
+      )
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+
+    if (members.length === 1) {
+      const onlyMember = members[0];
+      const isOwnerAndBarber =
+        onlyMember.roles.includes("owner") &&
+        onlyMember.roles.includes("barber");
+
+      if (isOwnerAndBarber) {
+        // Auto-assign service to the only owner-barber
+        await ctx.db.insert("barbershopMemberServices", {
+          uuid: crypto.randomUUID(),
+          barbershopId: service.barbershopId,
+          barbershopMemberId: onlyMember._id,
+          serviceId,
+          isActive: true,
+        });
+      }
+    }
 
     return serviceId;
   },
