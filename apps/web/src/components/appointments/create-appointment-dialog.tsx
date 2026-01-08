@@ -78,6 +78,9 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   const { data: barberServices } = useServicesForBarber(selectedBarberId!);
   const { data: barbersForService } = useBarbersForService(serviceId!);
 
+  // Show phone field if user is a barber OR if user is a customer without a phone number
+  const showPhoneField = isBarber || (!isBarber && !userProfile?.phoneNumber);
+
   // When customer is booking a specific service, filter barbers to those who offer it
   // When a barber is creating an appointment, use all barbers
   const availableBarbers =
@@ -215,6 +218,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
             onBarberChange={setSelectedBarberId}
             // @ts-expect-error - zod's coerce method returns an unknown type
             form={form}
+            showPhoneField={showPhoneField}
             disabledFields={
               isBarber
                 ? []
