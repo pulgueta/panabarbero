@@ -25,10 +25,10 @@ function RegisterPage() {
       <div className="flex w-full max-w-xl flex-col gap-4 [view-transition-name:main-content]">
         <Card className="w-full max-w-xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-xl">Regístrate</CardTitle>
+            <CardTitle className="text-xl tracking-tight">Regístrate</CardTitle>
           </CardHeader>
           <CardContent>
-            <FieldGroup>
+            <FieldGroup className="gap-4">
               <RegisterForm />
 
               <p className="text-center text-muted-foreground text-sm">

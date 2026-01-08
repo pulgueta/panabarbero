@@ -8,6 +8,7 @@ import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
   FieldError,
@@ -27,6 +28,7 @@ export const LoginForm = () => {
     defaultValues: {
       email: "",
       password: "",
+      rememberMe: true,
     },
     validators: {
       onSubmit: loginFormSchema,
@@ -34,19 +36,22 @@ export const LoginForm = () => {
     formId,
     onSubmit: async ({ value }) => {
       try {
-        const { data } = await signIn.email({
-          email: value.email,
-          password: value.password,
-          rememberMe: true,
-        });
-
-        if (data?.redirect) {
-          router.navigate({
-            to: "/profile",
-            search: { tab: "account" },
-            replace: true,
-          });
-        }
+        await signIn.email(
+          {
+            email: value.email,
+            password: value.password,
+            rememberMe: value.rememberMe,
+          },
+          {
+            onSuccess: () => {
+              router.navigate({
+                to: "/profile",
+                search: { tab: "account" },
+                replace: true,
+              });
+            },
+          },
+        );
       } catch (error: unknown) {
         if (error instanceof Error) {
           toast.error(error.message ?? "Error al iniciar sesión");
@@ -102,7 +107,7 @@ export const LoginForm = () => {
                   Contraseña
                   <Link
                     to="/forgot-password"
-                    className="ml-auto text-foreground text-xs underline-offset-4 hover:underline"
+                    className="ml-auto font-light text-muted-foreground text-xs underline-offset-4 hover:underline"
                   >
                     ¿Olvidaste tu contraseña?
                   </Link>
@@ -141,6 +146,29 @@ export const LoginForm = () => {
                   </button>
                 </div>
 
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
+              </Field>
+            );
+          }}
+        />
+        <form.Field
+          name="rememberMe"
+          children={(field) => {
+            const isInvalid =
+              field.state.meta.isTouched && !field.state.meta.isValid;
+            return (
+              <Field data-invalid={isInvalid} orientation="horizontal">
+                <Checkbox
+                  id={field.name}
+                  name={field.name}
+                  checked={field.state.value}
+                  onCheckedChange={(checked) =>
+                    field.handleChange(checked === true)
+                  }
+                  onBlur={field.handleBlur}
+                  aria-invalid={isInvalid}
+                />
+                <FieldLabel htmlFor={field.name}>Recordarme</FieldLabel>
                 {isInvalid && <FieldError errors={field.state.meta.errors} />}
               </Field>
             );

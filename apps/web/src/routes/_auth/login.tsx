@@ -58,11 +58,13 @@ function LoginPage() {
       <div className="flex w-full max-w-xl flex-col gap-4 [view-transition-name:main-content]">
         <Card className="w-full max-w-xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-xl">Iniciar sesión</CardTitle>
+            <CardTitle className="text-xl tracking-tight">
+              Iniciar sesión
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <FieldGroup>
-              <div className="grid grid-cols-2 gap-4">
+            <FieldGroup className="gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Button
                   variant="outline"
                   type="button"
@@ -80,9 +82,7 @@ function LoginPage() {
                   Iniciar sesión con Facebook
                 </Button>
               </div>
-              <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
-                O continúa con:
-              </FieldSeparator>
+              <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card" />
 
               <LoginForm />
 

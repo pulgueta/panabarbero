@@ -19,6 +19,8 @@ import { registerFormSchema } from "@/lib/auth-schemas";
 
 export const RegisterForm = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState<boolean>(false);
   const formId = useId();
 
   const router = useRouter();
@@ -28,6 +30,7 @@ export const RegisterForm = () => {
       name: "",
       email: "",
       password: "",
+      confirmPassword: "",
     },
     validators: {
       onSubmit: registerFormSchema,
@@ -118,54 +121,112 @@ export const RegisterForm = () => {
             );
           }}
         />
-        <form.Field
-          name="password"
-          children={(field) => {
-            const isInvalid =
-              field.state.meta.isTouched && !field.state.meta.isValid;
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <form.Field
+            name="password"
+            children={(field) => {
+              const isInvalid =
+                field.state.meta.isTouched && !field.state.meta.isValid;
 
-            return (
-              <Field data-invalid={isInvalid}>
-                <FieldLabel htmlFor={field.name}>Contraseña</FieldLabel>
+              return (
+                <Field data-invalid={isInvalid}>
+                  <FieldLabel htmlFor={field.name}>Contraseña</FieldLabel>
 
-                <div className="relative w-full">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    name={field.name}
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    aria-invalid={isInvalid}
-                    autoComplete="new-password"
-                    placeholder="********"
-                    maxLength={64}
-                    max={64}
-                  />
-                  <button
-                    type="button"
-                    className={buttonVariants({
-                      className: "absolute top-0.5 right-0.5",
-                      size: "icon",
-                      variant: "ghost",
-                    })}
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label={
-                      showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
-                    }
-                  >
-                    {showPassword ? (
-                      <EyeOffIcon size={16} />
-                    ) : (
-                      <EyeIcon size={16} />
-                    )}
-                  </button>
-                </div>
+                  <div className="relative w-full">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      aria-invalid={isInvalid}
+                      autoComplete="new-password"
+                      placeholder="********"
+                      maxLength={64}
+                      max={64}
+                    />
+                    <button
+                      type="button"
+                      className={buttonVariants({
+                        className: "absolute top-0.5 right-0.5",
+                        size: "icon",
+                        variant: "ghost",
+                      })}
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={
+                        showPassword
+                          ? "Ocultar contraseña"
+                          : "Mostrar contraseña"
+                      }
+                    >
+                      {showPassword ? (
+                        <EyeOffIcon size={16} />
+                      ) : (
+                        <EyeIcon size={16} />
+                      )}
+                    </button>
+                  </div>
 
-                {isInvalid && <FieldError errors={field.state.meta.errors} />}
-              </Field>
-            );
-          }}
-        />
+                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                </Field>
+              );
+            }}
+          />
+          <form.Field
+            name="confirmPassword"
+            children={(field) => {
+              const isInvalid =
+                field.state.meta.isTouched && !field.state.meta.isValid;
+
+              return (
+                <Field data-invalid={isInvalid}>
+                  <FieldLabel htmlFor={field.name}>
+                    Confirmar contraseña
+                  </FieldLabel>
+
+                  <div className="relative w-full">
+                    <Input
+                      type={showConfirmPassword ? "text" : "password"}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      aria-invalid={isInvalid}
+                      autoComplete="new-password"
+                      placeholder="********"
+                      maxLength={64}
+                      max={64}
+                    />
+                    <button
+                      type="button"
+                      className={buttonVariants({
+                        className: "absolute top-0.5 right-0.5",
+                        size: "icon",
+                        variant: "ghost",
+                      })}
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      aria-label={
+                        showConfirmPassword
+                          ? "Ocultar contraseña"
+                          : "Mostrar contraseña"
+                      }
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOffIcon size={16} />
+                      ) : (
+                        <EyeIcon size={16} />
+                      )}
+                    </button>
+                  </div>
+
+                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                </Field>
+              );
+            }}
+          />
+        </div>
       </FieldGroup>
 
       <Button type="submit">Crear cuenta</Button>
