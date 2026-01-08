@@ -9,6 +9,7 @@ import {
   PastAppointmentReminderEmail,
   RescheduleRequestAcceptEmail,
   RescheduleRequestDeniedEmail,
+  ResetPasswordEmail,
   WelcomeEmail,
 } from "@panabarbero/emails/emails";
 import { render } from "@react-email/components";
@@ -257,6 +258,26 @@ export const sendBarberInvitationEmail = internalAction({
     await ctx.runAction(internal.emails.sendEmail, {
       to: args.to,
       subject: subjects.barber_invited,
+      html,
+    });
+  },
+});
+
+export const sendAuthResetPasswordEmail = internalAction({
+  args: {
+    to: v.string(),
+    resetUrl: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const html = await render(
+      ResetPasswordEmail({
+        resetUrl: args.resetUrl,
+      }),
+    );
+
+    await ctx.runAction(internal.emails.sendEmail, {
+      to: args.to,
+      subject: "Restablece tu contraseña - PanaBarbero",
       html,
     });
   },

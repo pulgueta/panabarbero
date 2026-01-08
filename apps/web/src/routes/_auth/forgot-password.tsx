@@ -1,9 +1,194 @@
-import { createFileRoute } from "@tanstack/react-router";
+/** biome-ignore-all lint/correctness/noChildrenProp: Enforced by TanStack Form */
+
+import { forgetPassword } from "@panabarbero/convex/auth";
+import { useForm } from "@tanstack/react-form";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowLeftIcon, CheckCircleIcon } from "lucide-react";
+import { useId, useState } from "react";
+import { toast } from "sonner";
+import { email, object } from "zod";
+
+import { FormHeader } from "@/components/auth/form-header";
+import { BorderContainer } from "@/components/layout/border-container";
+import { LoadingComponent } from "@/components/layout/loading-component";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_auth/forgot-password")({
-  component: RouteComponent,
+  component: ForgotPasswordPage,
+  pendingComponent: LoadingComponent,
 });
 
-function RouteComponent() {
-  return <div>Hello "/_auth/forgot-password"!</div>;
+const forgotPasswordSchema = object({
+  email: email({ message: "El correo electrónico es requerido" })
+    .min(4, "El correo electrónico es requerido")
+    .max(255, "El correo electrónico no puede tener más de 255 caracteres"),
+});
+
+function ForgotPasswordPage() {
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState("");
+  const formId = useId();
+
+  const form = useForm({
+    defaultValues: {
+      email: "",
+    },
+    validators: {
+      onSubmit: forgotPasswordSchema,
+    },
+    formId,
+    onSubmit: async ({ value }) => {
+      try {
+        const { error } = await forgetPassword({
+          email: value.email,
+          redirectTo: "/reset-password",
+        });
+
+        if (error) {
+          toast.error(error.message ?? "Error al enviar el correo");
+          return;
+        }
+
+        setSubmittedEmail(value.email);
+        setIsSubmitted(true);
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          toast.error(error.message ?? "Error al enviar el correo");
+          return;
+        }
+        toast.error("Error al enviar el correo");
+      }
+    },
+  });
+
+  if (isSubmitted) {
+    return (
+      <BorderContainer className="flex flex-col items-center justify-center gap-4">
+        <FormHeader />
+
+        <div className="flex w-full max-w-xl flex-col gap-4 [view-transition-name:main-content]">
+          <Card className="w-full max-w-xl">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
+                <CheckCircleIcon className="size-8 text-green-600 dark:text-green-400" />
+              </div>
+              <CardTitle className="text-xl">Revisa tu correo</CardTitle>
+              <CardDescription>
+                Hemos enviado un enlace para restablecer tu contraseña a{" "}
+                <span className="font-medium text-foreground">
+                  {submittedEmail}
+                </span>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FieldGroup>
+                <p className="text-center text-muted-foreground text-sm">
+                  Si no recibes el correo en unos minutos, revisa tu carpeta de
+                  spam o{" "}
+                  <button
+                    type="button"
+                    onClick={() => setIsSubmitted(false)}
+                    className="text-primary underline-offset-4 hover:underline"
+                  >
+                    intenta de nuevo
+                  </button>
+                </p>
+
+                <Button asChild variant="outline" className="mt-4 w-full">
+                  <Link to="/login">
+                    <ArrowLeftIcon className="size-4" />
+                    Volver al inicio de sesión
+                  </Link>
+                </Button>
+              </FieldGroup>
+            </CardContent>
+          </Card>
+        </div>
+      </BorderContainer>
+    );
+  }
+
+  return (
+    <BorderContainer className="flex flex-col items-center justify-center gap-4">
+      <FormHeader />
+
+      <div className="flex w-full max-w-xl flex-col gap-4 [view-transition-name:main-content]">
+        <Card className="w-full max-w-xl">
+          <CardHeader className="text-center">
+            <CardTitle className="text-xl">¿Olvidaste tu contraseña?</CardTitle>
+            <CardDescription>
+              Ingresa tu correo electrónico y te enviaremos un enlace para
+              restablecer tu contraseña.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form
+              id={formId}
+              onSubmit={(e) => {
+                e.preventDefault();
+                form.handleSubmit();
+              }}
+              className="flex flex-col gap-4"
+            >
+              <FieldGroup className="gap-4">
+                <form.Field
+                  name="email"
+                  children={(field) => {
+                    const isInvalid =
+                      field.state.meta.isTouched && !field.state.meta.isValid;
+                    return (
+                      <Field data-invalid={isInvalid}>
+                        <FieldLabel htmlFor={field.name}>
+                          Correo electrónico
+                        </FieldLabel>
+                        <Input
+                          id={field.name}
+                          name={field.name}
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          aria-invalid={isInvalid}
+                          placeholder="tu@correo.com"
+                          autoComplete="email"
+                        />
+                        {isInvalid && (
+                          <FieldError errors={field.state.meta.errors} />
+                        )}
+                      </Field>
+                    );
+                  }}
+                />
+              </FieldGroup>
+
+              <Button type="submit">Enviar enlace</Button>
+            </form>
+
+            <p className="mt-4 text-center text-muted-foreground text-sm">
+              ¿Recordaste tu contraseña?{" "}
+              <Link
+                to="/login"
+                className="text-primary underline-offset-4 hover:underline"
+              >
+                Inicia sesión
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </BorderContainer>
+  );
 }

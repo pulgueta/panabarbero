@@ -25,4 +25,6 @@ export const {
   passkey,
   twoFactor,
   useListPasskeys,
+  forgetPassword,
+  resetPassword,
 } = authClient;
