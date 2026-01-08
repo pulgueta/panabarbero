@@ -2,7 +2,7 @@
 
 import { signUp } from "@panabarbero/convex/auth";
 import { useForm } from "@tanstack/react-form";
-import { Link, useRouter } from "@tanstack/react-router";
+import { useRouter } from "@tanstack/react-router";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
@@ -41,7 +41,7 @@ export const RegisterForm = () => {
           name: value.name,
         });
 
-        if (data?.redirect) {
+        if (data?.user) {
           router.navigate({
             to: "/profile",
             search: { tab: "account" },
@@ -68,15 +68,16 @@ export const RegisterForm = () => {
       }}
       className="flex flex-col gap-4"
     >
-      <FieldGroup>
+      <FieldGroup className="gap-4">
         <form.Field
           name="name"
           children={(field) => {
             const isInvalid =
               field.state.meta.isTouched && !field.state.meta.isValid;
+
             return (
               <Field data-invalid={isInvalid}>
-                <FieldLabel htmlFor={field.name}>Nombre</FieldLabel>
+                <FieldLabel htmlFor={field.name}>Nombre y apellido</FieldLabel>
                 <Input
                   id={field.name}
                   name={field.name}
@@ -84,7 +85,7 @@ export const RegisterForm = () => {
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
                   aria-invalid={isInvalid}
-                  placeholder="Tu nombre"
+                  placeholder="Juan Pérez"
                   autoComplete="name"
                   maxLength={255}
                 />
@@ -122,6 +123,7 @@ export const RegisterForm = () => {
           children={(field) => {
             const isInvalid =
               field.state.meta.isTouched && !field.state.meta.isValid;
+
             return (
               <Field data-invalid={isInvalid}>
                 <FieldLabel htmlFor={field.name}>Contraseña</FieldLabel>
@@ -170,4 +172,3 @@ export const RegisterForm = () => {
     </form>
   );
 };
-
