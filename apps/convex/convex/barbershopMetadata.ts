@@ -59,3 +59,20 @@ export const getBarbershopMetadata = query({
       .unique();
   },
 });
+
+export const incrementCompletedAppointments = internalMutation({
+  args: {
+    barbershopMetadataId: v.id("barbershopMetadata"),
+  },
+  handler: async (ctx, args) => {
+    const metadata = await ctx.db.get(args.barbershopMetadataId);
+
+    if (!metadata) {
+      throw new ConvexError(errorMessages.notFound("metadata"));
+    }
+
+    await ctx.db.patch(args.barbershopMetadataId, {
+      completedAppointments: (metadata.completedAppointments ?? 0) + 1,
+    });
+  },
+});

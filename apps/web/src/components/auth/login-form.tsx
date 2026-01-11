@@ -1,10 +1,11 @@
 /** biome-ignore-all lint/correctness/noChildrenProp: Enforced by TanStack Form */
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "@panabarbero/convex/auth";
-import { useForm } from "@tanstack/react-form";
 import { Link, useRouter } from "@tanstack/react-router";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
-import { useId, useState } from "react";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -20,7 +21,6 @@ import { loginFormSchema } from "@/lib/auth-schemas";
 
 export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const formId = useId();
 
   const router = useRouter();
 
@@ -30,79 +30,63 @@ export const LoginForm = () => {
       password: "",
       rememberMe: true,
     },
-    validators: {
-      onSubmit: loginFormSchema,
-    },
-    formId,
-    onSubmit: async ({ value }) => {
-      try {
-        await signIn.email(
-          {
-            email: value.email,
-            password: value.password,
-            rememberMe: value.rememberMe,
+    resolver: zodResolver(loginFormSchema),
+  });
+
+  const onSubmit = form.handleSubmit(async (data) => {
+    try {
+      await signIn.email(
+        {
+          email: data.email,
+          password: data.password,
+          rememberMe: data.rememberMe,
+        },
+        {
+          onSuccess: () => {
+            router.navigate({
+              to: "/profile",
+              search: { tab: "account" },
+              replace: true,
+            });
           },
-          {
-            onSuccess: () => {
-              router.navigate({
-                to: "/profile",
-                search: { tab: "account" },
-                replace: true,
-              });
-            },
-          },
-        );
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          toast.error(error.message ?? "Error al iniciar sesión");
-          return;
-        }
+        },
+      );
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error(error.message ?? "Error al iniciar sesión");
+        return;
       }
       toast.error("Error al iniciar sesión");
-      return;
-    },
+    }
   });
 
   return (
-    <form
-      id={formId}
-      onSubmit={(e) => {
-        e.preventDefault();
-        form.handleSubmit();
-      }}
-      className="flex flex-col gap-4"
-    >
-      <FieldGroup className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <form.Field
+    <form onSubmit={onSubmit} className="flex flex-col gap-4">
+      <FieldGroup className="grid grid-cols-1 gap-4">
+        <Controller
           name="email"
-          children={(field) => {
-            const isInvalid =
-              field.state.meta.isTouched && !field.state.meta.isValid;
-            return (
-              <Field data-invalid={isInvalid}>
-                <FieldLabel htmlFor={field.name}>Correo electrónico</FieldLabel>
-                <Input
-                  id={field.name}
-                  name={field.name}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  aria-invalid={isInvalid}
-                  placeholder="tu@correo.com"
-                  autoComplete="email"
-                />
-                {isInvalid && <FieldError errors={field.state.meta.errors} />}
-              </Field>
-            );
-          }}
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name}>Correo electrónico</FieldLabel>
+              <Input
+                {...field}
+                id={field.name}
+                aria-invalid={fieldState.invalid}
+                placeholder="tu@correo.com"
+                autoComplete="email"
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
         />
-        <form.Field
-          name="password"
-          children={(field) => {
-            const isInvalid =
-              field.state.meta.isTouched && !field.state.meta.isValid;
-            return (
-              <Field data-invalid={isInvalid}>
+
+        <div className="space-y-4">
+          <Controller
+            name="password"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor={field.name}>
                   Contraseña
                   <Link
@@ -112,19 +96,16 @@ export const LoginForm = () => {
                     ¿Olvidaste tu contraseña?
                   </Link>
                 </FieldLabel>
-
                 <div className="relative w-full">
                   <Input
-                    type={showPassword ? "text" : "password"}
-                    name={field.name}
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    aria-invalid={isInvalid}
-                    autoComplete="current-password"
+                    {...field}
+                    id={field.name}
+                    aria-invalid={fieldState.invalid}
                     placeholder="********"
+                    autoComplete="current-password"
                     maxLength={64}
                     max={64}
+                    type={showPassword ? "text" : "password"}
                   />
                   <button
                     type="button"
@@ -145,39 +126,31 @@ export const LoginForm = () => {
                     )}
                   </button>
                 </div>
-
-                {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
               </Field>
-            );
-          }}
-        />
-        <form.Field
-          name="rememberMe"
-          children={(field) => {
-            const isInvalid =
-              field.state.meta.isTouched && !field.state.meta.isValid;
-            return (
-              <Field
-                data-invalid={isInvalid}
-                orientation="horizontal"
-                className="md:col-span-2"
-              >
+            )}
+          />
+
+          <Controller
+            name="rememberMe"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid} orientation="horizontal">
                 <Checkbox
                   id={field.name}
                   name={field.name}
-                  checked={field.state.value}
-                  onCheckedChange={(checked) =>
-                    field.handleChange(checked === true)
-                  }
-                  onBlur={field.handleBlur}
-                  aria-invalid={isInvalid}
+                  checked={field.value}
+                  onCheckedChange={(checked) => field.onChange(checked)}
+                  aria-invalid={fieldState.invalid}
                 />
+
                 <FieldLabel htmlFor={field.name}>Recordarme</FieldLabel>
-                {isInvalid && <FieldError errors={field.state.meta.errors} />}
               </Field>
-            );
-          }}
-        />
+            )}
+          />
+        </div>
       </FieldGroup>
 
       <Button type="submit">Iniciar sesión</Button>

@@ -47,12 +47,16 @@ export const createBarbershop = mutation({
       gracePeriodMinutes: 5,
     });
 
-    await ctx.runMutation(
+    const metadataId = await ctx.runMutation(
       internal.barbershopMetadata.createBarbershopInitialMetadata,
       {
         barbershopId,
       },
     );
+
+    await ctx.db.patch(barbershopId, {
+      metadataId,
+    });
 
     const userProfile = await ctx.db
       .query("userProfileData")
