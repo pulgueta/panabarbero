@@ -8,7 +8,6 @@ import { useId, useState } from "react";
 import { toast } from "sonner";
 import { email, object } from "zod";
 
-import { FormHeader } from "@/components/auth/form-header";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Button } from "@/components/ui/button";
@@ -78,8 +77,6 @@ function ForgotPasswordPage() {
   if (isSubmitted) {
     return (
       <BorderContainer className="flex flex-col items-center justify-center gap-4">
-        <FormHeader />
-
         <div className="flex w-full max-w-xl flex-col gap-4 [view-transition-name:main-content]">
           <Card className="w-full max-w-xl">
             <CardHeader className="text-center">
@@ -124,8 +121,6 @@ function ForgotPasswordPage() {
 
   return (
     <BorderContainer className="flex flex-col items-center justify-center gap-4">
-      <FormHeader />
-
       <div className="flex w-full max-w-xl flex-col gap-4 [view-transition-name:main-content]">
         <Card className="w-full max-w-xl">
           <CardHeader className="text-center">

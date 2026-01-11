@@ -458,6 +458,12 @@ export const setAppointmentStatus = mutation({
       throw new ConvexError(errorMessages.notFound("cita"));
     }
 
+    const barbershop = await ctx.db.get(appt.barbershopId);
+
+    if (!barbershop?.metadataId) {
+      throw new ConvexError(errorMessages.notFound("barbería"));
+    }
+
     if (appt.deletedAt) {
       throw new ConvexError(errorMessages.notFound("cita"));
     }
@@ -466,9 +472,32 @@ export const setAppointmentStatus = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    const updatedAppointment = await ctx.db.patch(args.appointmentId, {
-      status: args.status,
-    });
+    let updatedAppointment = null;
+
+    switch (args.status) {
+      case "completed":
+        updatedAppointment = await ctx.db.patch(args.appointmentId, {
+          status: "completed",
+        });
+
+        await ctx.runMutation(
+          internal.barbershopMetadata.incrementCompletedAppointments,
+          {
+            barbershopMetadataId: barbershop.metadataId,
+          },
+        );
+        break;
+
+      case "no-show":
+        updatedAppointment = await ctx.db.patch(args.appointmentId, {
+          status: "no-show",
+        });
+
+        break;
+
+      default:
+        throw new ConvexError(errorMessages.unauthorized);
+    }
 
     return updatedAppointment;
   },
@@ -557,26 +586,31 @@ export const cancelAppointment = mutation({
       proposedDate: undefined,
     });
 
-    if (args.cancelledBy === "customer") {
-      await ctx.runMutation(
-        internal.notifications.createAppointmentCancelledNotification,
-        {
-          appointmentId: args.appointmentId,
-          notes: args.reason,
-          customerUserId: appt.userId,
-          sendTo: "barber",
-        },
-      );
-    } else {
-      await ctx.runMutation(
-        internal.notifications.createAppointmentCancelledNotification,
-        {
-          appointmentId: args.appointmentId,
-          notes: args.reason,
-          customerUserId: appt.userId,
-          sendTo: "customer",
-        },
-      );
+    switch (args.cancelledBy) {
+      case "customer":
+        await ctx.runMutation(
+          internal.notifications.createAppointmentCancelledNotification,
+          {
+            appointmentId: args.appointmentId,
+            notes: args.reason,
+            customerUserId: appt.userId,
+            sendTo: "barber",
+          },
+        );
+        break;
+      case "barber":
+        await ctx.runMutation(
+          internal.notifications.createAppointmentCancelledNotification,
+          {
+            appointmentId: args.appointmentId,
+            notes: args.reason,
+            customerUserId: appt.userId,
+            sendTo: "customer",
+          },
+        );
+        break;
+      default:
+        throw new ConvexError(errorMessages.unauthorized);
     }
   },
 });

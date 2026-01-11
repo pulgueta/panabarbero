@@ -3,7 +3,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { FormFooter } from "@/components/auth/form-footer";
-import { FormHeader } from "@/components/auth/form-header";
 import { RegisterForm } from "@/components/auth/register-form";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
@@ -18,8 +17,6 @@ export const Route = createFileRoute("/_auth/register")({
 function RegisterPage() {
   return (
     <BorderContainer className="flex flex-col items-center justify-center gap-4">
-      <FormHeader />
-
       <div className="flex w-full max-w-xl flex-col gap-4 [view-transition-name:main-content]">
         <Card className="w-full max-w-xl">
           <CardHeader className="text-center">
