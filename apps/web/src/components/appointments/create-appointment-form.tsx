@@ -51,6 +51,7 @@ interface CreateAppointmentFormProps {
   barberServices?: Service[] | null;
   onBarberChange?: (barberId: BarbershopMemberWithName["_id"]) => void;
   form: UseFormReturn<output<typeof appointmentFormSchema>>;
+  showPhoneField?: boolean;
   formIds: {
     form: string;
     customerName: string;
@@ -75,6 +76,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
   onBarberChange,
   formIds,
   form,
+  showPhoneField = false,
 }) => {
   const { isMobile } = useIsMobile();
   const { disableDay } = useAppointmentFormMetadata(barbershopId);
@@ -144,9 +146,14 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
             render={({ field, fieldState }) => (
               <Field
                 data-invalid={fieldState.invalid}
-                className={cn({
-                  hidden: disabledFields?.includes("contactPhone") || !isBarber,
-                })}
+                className={cn(
+                  {
+                    hidden:
+                      disabledFields?.includes("contactPhone") ||
+                      !showPhoneField,
+                  },
+                  "col-span-2",
+                )}
               >
                 <FieldLabel htmlFor={formIds.contactPhone}>
                   Teléfono de contacto
