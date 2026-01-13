@@ -17,6 +17,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import { loginFormSchema } from "@/lib/auth-schemas";
 
 export const LoginForm = () => {
@@ -155,7 +156,10 @@ export const LoginForm = () => {
         </div>
       </FieldGroup>
 
-      <Button type="submit">Iniciar sesión</Button>
+      <Button type="submit" disabled={form.formState.isSubmitting}>
+        {form.formState.isSubmitting && <Spinner />}
+        Iniciar sesión
+      </Button>
     </form>
   );
 };

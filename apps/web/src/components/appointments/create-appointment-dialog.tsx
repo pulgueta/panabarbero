@@ -103,7 +103,6 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
     availableBarbers?.length === 1 ? availableBarbers[0]._id : undefined;
 
   const form = useForm({
-    // @ts-expect-error - zodResolver is not typed correctly
     resolver: zodResolver(appointmentFormSchema),
     defaultValues: {
       date: undefined,
@@ -114,8 +113,6 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
       barbershopMemberId: defaultBarberId ?? selectedBarberId,
     },
   });
-
-  console.log(form.formState.errors);
 
   // Update form and state when available barbers change
   useEffect(() => {

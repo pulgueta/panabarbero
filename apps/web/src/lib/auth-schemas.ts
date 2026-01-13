@@ -26,3 +26,25 @@ export const registerFormSchema = loginFormSchema
     message: "Las contraseñas no coinciden",
     path: ["confirmPassword"],
   });
+
+export const resetPasswordSchema = object({
+  token: string({ message: "El token es requerido" })
+    .min(1, "El token es requerido")
+    .default(""),
+  password: string({ message: "La contraseña es requerida" })
+    .min(4, "La contraseña es requerida")
+    .max(255, "La contraseña no puede tener más de 255 caracteres"),
+  confirmPassword: string({
+    message: "La contraseña no coincide",
+  })
+    .min(4, "La contraseña no coincide")
+    .max(255, "La contraseña no puede tener más de 255 caracteres"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Las contraseñas no coinciden",
+  path: ["confirmPassword"],
+});
+
+export const forgotPasswordSchema = loginFormSchema.omit({
+  password: true,
+  rememberMe: true,
+});

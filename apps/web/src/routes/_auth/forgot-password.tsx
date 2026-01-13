@@ -1,12 +1,12 @@
 /** biome-ignore-all lint/correctness/noChildrenProp: Enforced by TanStack Form */
 
-import { forgetPassword } from "@panabarbero/convex/auth";
-import { useForm } from "@tanstack/react-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { requestPasswordReset } from "@panabarbero/convex/auth";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeftIcon, CheckCircleIcon } from "lucide-react";
-import { useId, useState } from "react";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { email, object } from "zod";
 
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
@@ -15,6 +15,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -25,53 +26,47 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
+import { forgotPasswordSchema } from "@/lib/auth-schemas";
+import { translateBetterAuthError } from "@/lib/better-auth-errors";
 
 export const Route = createFileRoute("/_auth/forgot-password")({
   component: ForgotPasswordPage,
   pendingComponent: LoadingComponent,
 });
 
-const forgotPasswordSchema = object({
-  email: email({ message: "El correo electrónico es requerido" })
-    .min(4, "El correo electrónico es requerido")
-    .max(255, "El correo electrónico no puede tener más de 255 caracteres"),
-});
-
 function ForgotPasswordPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState("");
-  const formId = useId();
 
   const form = useForm({
     defaultValues: {
       email: "",
     },
-    validators: {
-      onSubmit: forgotPasswordSchema,
-    },
-    formId,
-    onSubmit: async ({ value }) => {
-      try {
-        const { error } = await forgetPassword({
-          email: value.email,
-          redirectTo: "/reset-password",
-        });
+    resolver: zodResolver(forgotPasswordSchema),
+  });
 
-        if (error) {
-          toast.error(error.message ?? "Error al enviar el correo");
-          return;
-        }
+  const onSubmit = form.handleSubmit(async ({ email }) => {
+    try {
+      const { error } = await requestPasswordReset({
+        email,
+        redirectTo: "/reset-password",
+      });
 
-        setSubmittedEmail(value.email);
-        setIsSubmitted(true);
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          toast.error(error.message ?? "Error al enviar el correo");
-          return;
-        }
-        toast.error("Error al enviar el correo");
+      if (error?.code) {
+        toast.error(translateBetterAuthError(error.code));
+        return;
       }
-    },
+
+      setSubmittedEmail(email);
+      setIsSubmitted(true);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error(error.message ?? "Error al enviar el correo");
+        return;
+      }
+      toast.error("Error al enviar el correo");
+    }
   });
 
   if (isSubmitted) {
@@ -131,57 +126,45 @@ function ForgotPasswordPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form
-              id={formId}
-              onSubmit={(e) => {
-                e.preventDefault();
-                form.handleSubmit();
-              }}
-              className="flex flex-col gap-4"
-            >
+            <form onSubmit={onSubmit} className="flex flex-col gap-4">
               <FieldGroup className="gap-4">
-                <form.Field
+                <Controller
                   name="email"
-                  children={(field) => {
-                    const isInvalid =
-                      field.state.meta.isTouched && !field.state.meta.isValid;
-                    return (
-                      <Field data-invalid={isInvalid}>
-                        <FieldLabel htmlFor={field.name}>
-                          Correo electrónico
-                        </FieldLabel>
-                        <Input
-                          id={field.name}
-                          name={field.name}
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                          aria-invalid={isInvalid}
-                          placeholder="tu@correo.com"
-                          autoComplete="email"
-                        />
-                        {isInvalid && (
-                          <FieldError errors={field.state.meta.errors} />
-                        )}
-                      </Field>
-                    );
-                  }}
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor={field.name}>
+                        Correo electrónico
+                      </FieldLabel>
+                      <Input
+                        {...field}
+                        id={field.name}
+                        aria-invalid={fieldState.invalid}
+                        placeholder="tu@correo.com"
+                        autoComplete="email"
+                      />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
                 />
               </FieldGroup>
 
-              <Button type="submit">Enviar enlace</Button>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Spinner />}
+                Enviar enlace
+              </Button>
             </form>
-
-            <p className="mt-4 text-center text-muted-foreground text-sm">
-              ¿Recordaste tu contraseña?{" "}
-              <Link
-                to="/login"
-                className="text-primary underline-offset-4 hover:underline"
-              >
-                Inicia sesión
-              </Link>
-            </p>
           </CardContent>
+          <CardFooter className="justify-center py-4">
+            <Link
+              to="/login"
+              className="text-center text-primary text-sm underline-offset-4 hover:underline"
+            >
+              Inicia sesión
+            </Link>
+          </CardFooter>
         </Card>
       </div>
     </BorderContainer>
