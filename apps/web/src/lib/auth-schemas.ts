@@ -48,3 +48,18 @@ export const forgotPasswordSchema = loginFormSchema.omit({
   password: true,
   rememberMe: true,
 });
+
+export const twoFactorPasswordSchema = object({
+  password: string({ message: "La contraseña es requerida" })
+    .min(4, "La contraseña es requerida")
+    .max(255, "La contraseña no puede tener más de 255 caracteres"),
+});
+
+export const twoFactorVerifySchema = object({
+  code: string({ message: "El código es requerido" })
+    .length(6, "El código debe tener 6 dígitos")
+    .regex(/^\d+$/, "El código debe contener solo números"),
+  trustDevice: boolean(),
+});
+
+export const disableTwoFactorSchema = twoFactorPasswordSchema;

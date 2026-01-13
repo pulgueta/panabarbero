@@ -131,7 +131,7 @@ function LoginPage() {
   );
 }
 
-const GoogleIcon = () => (
+export const GoogleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
     <title>Iniciar sesión con Google</title>
     <defs>

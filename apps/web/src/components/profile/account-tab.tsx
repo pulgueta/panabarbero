@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { CreateBarbershopDialog } from "@/components/barbershops/create-barbershop-dialog";
+import { ProfilePhotoUploader } from "@/components/profile/profile-photo-uploader";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,15 +27,18 @@ import { useProfileActions } from "@/hooks/use-profile";
 const BARBERSHOP_BANNER_HIDE_KEY = "barbershop-create-banner-hide-until";
 
 interface AccountTabProps {
-  profile: UserProfileData | null;
+  profile: (UserProfileData & { profilePhotoUrl?: string | null }) | null;
   isBarber: boolean;
   userId: string;
+  /** Auth provider image URL (Google profile picture, etc.) */
+  authProviderImage?: string | null;
 }
 
 export const AccountTab: FC<AccountTabProps> = ({
   profile,
   isBarber,
   userId,
+  authProviderImage,
 }) => {
   const {
     updateNameMutation: {
@@ -134,6 +138,13 @@ export const AccountTab: FC<AccountTabProps> = ({
           </Button>
         </Alert>
       )}
+
+      {/* Profile Photo */}
+      <ProfilePhotoUploader
+        currentPhotoUrl={profile?.profilePhotoUrl ?? null}
+        authProviderImage={authProviderImage}
+        userName={profile?.name}
+      />
 
       <div className="grid w-full gap-6 md:grid-cols-2">
         <Card>

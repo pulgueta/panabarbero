@@ -28,4 +28,8 @@ export const {
   forgetPassword,
   requestPasswordReset,
   resetPassword,
+  linkSocial,
+  unlinkAccount,
+  listAccounts,
+  useListAccounts,
 } = authClient;
