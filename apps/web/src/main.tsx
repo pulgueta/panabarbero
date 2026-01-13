@@ -44,6 +44,7 @@ export function getRouter() {
         queryClient,
         convexClient: convexQueryClient.convexClient,
         convexQueryClient,
+        user: null,
       },
       scrollRestoration: true,
       defaultViewTransition: true,

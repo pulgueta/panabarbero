@@ -1,6 +1,6 @@
 import type { FC } from "react";
 
-// import { TwoFactorSection } from "./2fa";
+import { TwoFactorSection } from "./2fa";
 import { PasskeysSection } from "./passkeys";
 
 export const SecurityTab: FC = () => {
@@ -15,7 +15,7 @@ export const SecurityTab: FC = () => {
 
       <section className="grid w-full gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <PasskeysSection />
-        {/* <TwoFactorSection /> */}
+        <TwoFactorSection />
       </section>
     </div>
   );

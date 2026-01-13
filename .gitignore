@@ -87,3 +87,4 @@ android
 *.key
 *.mobileprovision
 *.orig.*
+.react-email
