@@ -40,7 +40,9 @@ import {
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
-export const Route = createFileRoute("/profile/barbershops/appointments/")({
+export const Route = createFileRoute(
+  "/_authedRoutes/profile/barbershops/appointments/",
+)({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
   loader: async ({ context }) => {
@@ -117,9 +119,11 @@ function RouteComponent() {
     isLoading: isLoadingRescheduledAppointmentRequests,
   } = useRescheduledAppointmentRequests(barbershop?._id!);
   const { data: appointments, isLoading: isLoadingAppointments } =
-    useAppointmentsByBarbershop(barbershop?._id!, session?.userId);
+    useAppointmentsByBarbershop(barbershop?._id!, session?.userId!);
 
-  const isOwner = Boolean(session?.userId && barbershop?.ownerId === session.userId);
+  const isOwner = Boolean(
+    session?.userId && barbershop?.ownerId === session.userId,
+  );
 
   const appointmentsForSelectedDay = appointments
     .filter((appointment) => {

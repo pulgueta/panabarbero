@@ -36,7 +36,7 @@ export const useBarbershopFiltersStore = create<BarbershopFiltersStore>()(
     }),
     {
       name: "barbershop-filters",
-      storage: createJSONStorage(() => sessionStorage),
+      storage: createJSONStorage(() => localStorage),
     },
   ),
 );
