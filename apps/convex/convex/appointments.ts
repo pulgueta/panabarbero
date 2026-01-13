@@ -368,6 +368,7 @@ export const getAppointmentsByUserId = query({
 export const getAppointmentsByBarbershopId = query({
   args: {
     barbershopId: v.id("barbershops"),
+    userId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
@@ -383,6 +384,30 @@ export const getAppointmentsByBarbershopId = query({
       )
       .filter((q) => q.eq(q.field("deletedAt"), undefined))
       .collect();
+
+    // If userId is provided, check if user is a barber (not owner)
+    if (args.userId) {
+      const userProfile = await ctx.db
+        .query("userProfileData")
+        .withIndex("by_userId", (q) => q.eq("userId", args.userId!))
+        .unique();
+
+      if (userProfile) {
+        const barbershopMember = await ctx.db
+          .query("barbershopMembers")
+          .withIndex("by_userProfileDataId", (q) =>
+            q.eq("userProfileDataId", userProfile._id),
+          )
+          .first();
+
+        // If user is a barber (not owner), filter appointments for this barber only
+        if (barbershopMember && !barbershopMember.roles.includes("owner")) {
+          return appointments.filter(
+            (appt) => appt.barbershopMemberId === barbershopMember._id,
+          );
+        }
+      }
+    }
 
     return appointments;
   },

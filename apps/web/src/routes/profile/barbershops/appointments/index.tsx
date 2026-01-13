@@ -7,7 +7,7 @@ import { Activity, Suspense, useState } from "react";
 
 import { CreateAppointmentDialog } from "@/components/appointments/create-appointment-dialog";
 import {
-  appointmentsTableColumns,
+  getAppointmentsTableColumns,
   rescheduledAppointmentRequestsTableColumns,
 } from "@/components/appointments/table/columns";
 import { BorderContainer } from "@/components/layout/border-container";
@@ -59,7 +59,7 @@ export const Route = createFileRoute("/profile/barbershops/appointments/")({
 
       if (barbershop?._id) {
         const appointments = await context.queryClient.ensureQueryData(
-          appointmentsByBarbershopQueryOptions(barbershop._id),
+          appointmentsByBarbershopQueryOptions(barbershop._id, user.userId),
         );
         await context.queryClient.ensureQueryData(
           barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
@@ -117,7 +117,9 @@ function RouteComponent() {
     isLoading: isLoadingRescheduledAppointmentRequests,
   } = useRescheduledAppointmentRequests(barbershop?._id!);
   const { data: appointments, isLoading: isLoadingAppointments } =
-    useAppointmentsByBarbershop(barbershop?._id!);
+    useAppointmentsByBarbershop(barbershop?._id!, session?.userId);
+
+  const isOwner = Boolean(session?.userId && barbershop?.ownerId === session.userId);
 
   const appointmentsForSelectedDay = appointments
     .filter((appointment) => {
@@ -192,7 +194,7 @@ function RouteComponent() {
               }
             >
               <DataTable
-                columns={appointmentsTableColumns}
+                columns={getAppointmentsTableColumns({ isOwner })}
                 data={appointmentsForSelectedDay}
               />
             </Activity>

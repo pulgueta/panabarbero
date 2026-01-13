@@ -73,8 +73,8 @@ const availabilitySchema = object({
     day,
     isActive: boolean(),
   }),
-  openAt: string().min(1, "Hora de apertura requerida"),
-  closeAt: string().min(1, "Hora de cierre requerida"),
+  openAt: string().min(1, "Hora de disponibilidad inicial requerida"),
+  closeAt: string().min(1, "Hora de disponibilidad final requerida"),
   lunchStart: string().optional(),
   lunchEnd: string().optional(),
 });
