@@ -495,6 +495,10 @@ export const setAppointmentStatus = mutation({
 
         break;
 
+      case "cancelled":
+        await ctx.db.delete(args.appointmentId);
+        break;
+
       default:
         throw new ConvexError(errorMessages.unauthorized);
     }
@@ -521,7 +525,22 @@ export const deleteAppointment = mutation({
       throw new ConvexError(errorMessages.notFound("cita"));
     }
 
-    if (user.userId === appointment.userId) {
+    const barbershopMember = await ctx.db.get(appointment.barbershopMemberId);
+
+    if (!barbershopMember) {
+      throw new ConvexError(errorMessages.notFound("barbero"));
+    }
+
+    const barberProfile = await ctx.db.get(barbershopMember.userProfileDataId);
+
+    if (!barberProfile) {
+      throw new ConvexError(errorMessages.notFound("perfil de barbero"));
+    }
+
+    const isAppointmentBarber = barberProfile.userId === user.userId;
+    const isAppointmentCustomer = appointment.userId === user.userId;
+
+    if (!isAppointmentBarber && !isAppointmentCustomer) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 

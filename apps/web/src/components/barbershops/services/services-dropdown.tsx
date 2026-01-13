@@ -36,6 +36,7 @@ export const ServicesDropdown: FC<ServicesDropdownProps> = ({ services }) => {
         <Button
           variant="outline"
           role="combobox"
+          size="md"
           aria-expanded={open}
           className="w-full justify-between"
         >

@@ -87,7 +87,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
   return (
     <form id={formIds.form} onSubmit={onSubmit}>
       <FieldGroup className="gap-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <Field className="col-span-2">
             <FieldLabel
               htmlFor={formIds.serviceId}
@@ -112,71 +112,71 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
             </Suspense>
           </Field>
 
-          <Controller
-            name="customerName"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field
-                data-invalid={fieldState.invalid}
-                className={cn({
-                  hidden: disabledFields?.includes("customerName") || !isBarber,
-                })}
-              >
-                <FieldLabel htmlFor={formIds.customerName}>
-                  Nombre del cliente
-                </FieldLabel>
-                <Input
-                  {...field}
-                  id={formIds.customerName}
-                  aria-invalid={fieldState.invalid}
-                  placeholder="Marcos Aguilar"
-                  autoComplete="given-name"
-                  disabled={disabledFields?.includes("customerName")}
-                />
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
-          />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Controller
+              name="customerName"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field
+                  data-invalid={fieldState.invalid}
+                  className={cn({
+                    hidden:
+                      disabledFields?.includes("customerName") || !isBarber,
+                  })}
+                >
+                  <FieldLabel htmlFor={formIds.customerName}>
+                    Nombre del cliente
+                  </FieldLabel>
+                  <Input
+                    {...field}
+                    id={formIds.customerName}
+                    aria-invalid={fieldState.invalid}
+                    placeholder="Marcos Aguilar"
+                    autoComplete="given-name"
+                    disabled={disabledFields?.includes("customerName")}
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
 
-          <Controller
-            name="contactPhone"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field
-                data-invalid={fieldState.invalid}
-                className={cn(
-                  {
+            <Controller
+              name="contactPhone"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field
+                  data-invalid={fieldState.invalid}
+                  className={cn({
                     hidden:
                       disabledFields?.includes("contactPhone") ||
                       !showPhoneField,
-                  },
-                  "col-span-2",
-                )}
-              >
-                <FieldLabel htmlFor={formIds.contactPhone}>
-                  Teléfono de contacto
-                </FieldLabel>
-                <Input
-                  {...field}
-                  id={formIds.contactPhone}
-                  aria-invalid={fieldState.invalid}
-                  placeholder="3119871234"
-                  autoComplete="tel"
-                  type="tel"
-                  disabled={disabledFields?.includes("contactPhone")}
-                />
+                  })}
+                >
+                  <FieldLabel htmlFor={formIds.contactPhone}>
+                    Teléfono de contacto
+                  </FieldLabel>
+                  <Input
+                    {...field}
+                    id={formIds.contactPhone}
+                    aria-invalid={fieldState.invalid}
+                    placeholder="3119871234"
+                    autoComplete="tel"
+                    type="tel"
+                    disabled={disabledFields?.includes("contactPhone")}
+                  />
 
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
-          />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Controller
             name="contactEmail"
             control={form.control}
@@ -283,7 +283,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Controller
             name="date"
             control={form.control}
