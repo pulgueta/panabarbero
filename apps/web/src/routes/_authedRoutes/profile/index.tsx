@@ -202,6 +202,7 @@ function ProfilePage() {
                   profile={profile}
                   isBarber={isBarber}
                   userId={user?.userId!}
+                  authProviderImage={user?.image}
                 />
               </TabsContent>
             </Activity>

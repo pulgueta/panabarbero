@@ -75,6 +75,19 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
           profileId: profile._id,
         });
       },
+      onUpdate: async (ctx, doc) => {
+        if (doc.image) {
+          await ctx.runMutation(components.betterAuth.adapter.updateOne, {
+            input: {
+              model: "user",
+              update: {
+                image: doc.image,
+              },
+              where: [{ field: "_id", operator: "eq", value: doc._id }],
+            },
+          });
+        }
+      },
     },
   },
 });
@@ -114,7 +127,9 @@ export const createAuth = (
       convex(),
       crossDomain({ siteUrl }),
       passkey(),
-      twoFactor(),
+      twoFactor({
+        issuer: APP_NAME,
+      }),
     ],
   });
 };

@@ -7,6 +7,7 @@ import {
 } from "./_generated/server";
 import { authComponent, createAuth } from "./auth";
 import { errorMessages } from "./errors";
+import { r2 } from "./index";
 import { tables } from "./tables";
 
 export const getProfileByUserId = internalQuery({
@@ -51,7 +52,20 @@ export const getMyProfile = query({
       throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
 
-    return profile;
+    // Resolve profile photo URL from R2 if a key is stored
+    let profilePhotoUrl: string | null = null;
+    if (profile.profilePhotoKey) {
+      try {
+        profilePhotoUrl = await r2.getUrl(profile.profilePhotoKey);
+      } catch (error) {
+        console.error("Failed to get profile photo URL:", error);
+      }
+    }
+
+    return {
+      ...profile,
+      profilePhotoUrl,
+    };
   },
 });
 
@@ -169,6 +183,74 @@ export const updateNotificationPreference = mutation({
     );
 
     await ctx.db.patch(profile._id, { notificationsPreferences: next });
+  },
+});
+
+export const setProfilePhotoKey = mutation({
+  args: {
+    key: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+
+    if (!user) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    const profile = await ctx.db
+      .query("userProfileData")
+      .withIndex("by_userId", (q) => q.eq("userId", user.userId ?? ""))
+      .unique();
+
+    if (!profile) {
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
+    }
+
+    // Delete the old profile photo from R2 if it exists
+    if (profile.profilePhotoKey && profile.profilePhotoKey !== args.key) {
+      try {
+        await r2.deleteObject(ctx, profile.profilePhotoKey);
+      } catch (error) {
+        console.error("Failed to delete old profile photo:", error);
+      }
+    }
+
+    await ctx.db.patch(profile._id, { profilePhotoKey: args.key });
+    return null;
+  },
+});
+
+export const removeProfilePhoto = mutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const user = await authComponent.getAuthUser(ctx);
+
+    if (!user) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    const profile = await ctx.db
+      .query("userProfileData")
+      .withIndex("by_userId", (q) => q.eq("userId", user.userId ?? ""))
+      .unique();
+
+    if (!profile) {
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
+    }
+
+    // Delete the profile photo from R2 if it exists
+    if (profile.profilePhotoKey) {
+      try {
+        await r2.deleteObject(ctx, profile.profilePhotoKey);
+      } catch (error) {
+        console.error("Failed to delete profile photo:", error);
+      }
+    }
+
+    await ctx.db.patch(profile._id, { profilePhotoKey: undefined });
+    return null;
   },
 });
 
