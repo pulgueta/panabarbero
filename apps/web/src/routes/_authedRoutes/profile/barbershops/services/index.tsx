@@ -40,7 +40,9 @@ import {
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 import { formatCurrency } from "@/lib/utils";
 
-export const Route = createFileRoute("/profile/barbershops/services/")({
+export const Route = createFileRoute(
+  "/_authedRoutes/profile/barbershops/services/",
+)({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
   loader: async (opts) => {

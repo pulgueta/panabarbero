@@ -33,7 +33,7 @@ import {
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
-export const Route = createFileRoute("/profile/barbershops/settings")({
+export const Route = createFileRoute("/_authedRoutes/profile/barbershops/settings")({
   component: SettingsPage,
   pendingComponent: LoadingComponent,
   loader: async (opts) => {

@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: We need to assert non-null values because the hooks return undefined if the data is not loaded */
 
 import { signOut } from "@panabarbero/convex/auth";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
 import { Activity, Suspense, useMemo, useState } from "react";
 
@@ -11,6 +11,7 @@ import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-ske
 import { AccountTab } from "@/components/profile/account-tab";
 import { AppointmentsTab } from "@/components/profile/appointments-tab";
 import { DangerTab } from "@/components/profile/danger-tab";
+import { SecurityTab } from "@/components/profile/security-tab";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -48,10 +49,10 @@ const tabs = {
     label: "Perfil",
     value: "account",
   },
-  // security: {
-  //   label: "Seguridad",
-  //   value: "security",
-  // },
+  security: {
+    label: "Seguridad",
+    value: "security",
+  },
   appointments: {
     label: "Citas",
     value: "appointments",
@@ -66,7 +67,7 @@ const tabs = {
   },
 };
 
-export const Route = createFileRoute("/profile/")({
+export const Route = createFileRoute("/_authedRoutes/profile/")({
   component: ProfilePage,
   pendingComponent: LoadingComponent,
   validateSearch: (search: Record<string, ProfileTabValue>): ProfileSearch => {
@@ -95,8 +96,6 @@ export const Route = createFileRoute("/profile/")({
       await context.queryClient.ensureQueryData(
         barbershopByOwnerIdQueryOptions(user.userId),
       );
-    } else {
-      throw redirect({ to: "/login" });
     }
   },
 });
@@ -122,17 +121,24 @@ function ProfilePage() {
   );
 
   const onTabChange = (value: string) => {
-    navigate({ to: "/profile", search: { tab: value as ProfileTabValue } });
+    navigate({
+      to: "/profile",
+      search: { tab: value as ProfileTabValue },
+    });
   };
 
   const handleSignOut = async () => {
-    await signOut();
-
-    throw navigate({ to: "/login", replace: true });
+    await signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          throw navigate({ to: "/login", replace: true });
+        },
+      },
+    });
   };
 
   const tabsToRender = useMemo(() => {
-    const base = [tabs.account];
+    const base = [tabs.account, tabs.security];
 
     if (isBarber && rolesData?.isOwner) {
       base.push(tabs.danger);
@@ -201,7 +207,7 @@ function ProfilePage() {
             </Activity>
           </Suspense>
 
-          {/* <Suspense fallback={<ProfileTabSkeleton />}>
+          <Suspense fallback={<ProfileTabSkeleton />}>
             <Activity
               mode={
                 tab === tabs.security.value && !isLoadingProfile
@@ -213,7 +219,7 @@ function ProfilePage() {
                 <SecurityTab />
               </TabsContent>
             </Activity>
-          </Suspense> */}
+          </Suspense>
 
           {isBarber && rolesData?.isOwner && (
             <Suspense fallback={<ProfileTabSkeleton />}>

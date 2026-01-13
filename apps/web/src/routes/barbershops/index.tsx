@@ -19,8 +19,8 @@ import {
   activeBarbershopsQueryOptions,
   useActiveBarbershops,
 } from "@/hooks/barbershop/use-barbershop";
-import { useBarbershopFiltersStore } from "@/store/barbershop-filters";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { useBarbershopFiltersStore } from "@/store/barbershop-filters";
 
 export type BarbershopSearch = {
   city?: string;

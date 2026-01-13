@@ -15,7 +15,7 @@ import {
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
-export const Route = createFileRoute("/invitations/$code")({
+export const Route = createFileRoute("/_authedRoutes/invitations/$code")({
   pendingComponent: LoadingComponent,
   component: InvitationPage,
   loader: async ({ context, params }) => {
