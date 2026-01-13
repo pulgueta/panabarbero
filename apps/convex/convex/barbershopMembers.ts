@@ -447,8 +447,11 @@ export const validateInvitation = mutation({
   },
 });
 
-export const acceptInvitation = mutation({
-  args: { code: v.string() },
+export const answer = mutation({
+  args: {
+    code: v.string(),
+    answer: v.union(v.literal("accept"), v.literal("deny")),
+  },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
 
@@ -469,91 +472,59 @@ export const acceptInvitation = mutation({
       throw new ConvexError("La invitación ya fue gestionada.");
     }
 
-    if (invitation.expiresAt <= Date.now()) {
-      await ctx.db.patch(invitation._id, { status: "expired" });
-      throw new ConvexError(
-        "La invitación ha expirado. Se ha reenviado un nuevo enlace.",
-      );
+    switch (args.answer) {
+      case "accept": {
+        if (invitation.expiresAt <= Date.now()) {
+          await ctx.db.patch(invitation._id, { status: "expired" });
+
+          throw new ConvexError(
+            "La invitación ha expirado. Se ha reenviado un nuevo enlace.",
+          );
+        }
+
+        const profile = await ctx.db
+          .query("userProfileData")
+          .withIndex("by_userId", (q) => q.eq("userId", user.userId!))
+          .unique();
+
+        if (!profile) {
+          throw new ConvexError(errorMessages.notFound("perfil de usuario"));
+        }
+
+        if (profile.email !== invitation.email) {
+          throw new ConvexError("Esta invitación no corresponde a tu cuenta.");
+        }
+
+        const existingMember = await ctx.db
+          .query("barbershopMembers")
+          .withIndex("by_barbershopId", (q) =>
+            q.eq("barbershopId", invitation.barbershopId),
+          )
+          .filter((q) => q.eq(q.field("userProfileDataId"), profile._id))
+          .first();
+
+        if (existingMember) {
+          await ctx.db.patch(invitation._id, { status: "accepted" });
+          return existingMember._id;
+        }
+
+        await ctx.db.insert("barbershopMembers", {
+          uuid: crypto.randomUUID(),
+          barbershopId: invitation.barbershopId,
+          userProfileDataId: profile._id,
+          roles: invitation.roles,
+          isActive: true,
+          joinedAt: Date.now(),
+        });
+
+        await ctx.db.patch(invitation._id, { status: "accepted" });
+        break;
+      }
+      case "deny":
+        await ctx.db.patch(invitation._id, { status: "denied" });
+        break;
+      default:
+        throw new ConvexError("Respuesta inválida.");
     }
-
-    const profile = await ctx.db
-      .query("userProfileData")
-      .withIndex("by_userId", (q) => q.eq("userId", user.userId!))
-      .unique();
-
-    if (!profile) {
-      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
-    }
-
-    if (profile.email !== invitation.email) {
-      throw new ConvexError("Esta invitación no corresponde a tu cuenta.");
-    }
-
-    const existingMember = await ctx.db
-      .query("barbershopMembers")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", invitation.barbershopId),
-      )
-      .filter((q) => q.eq(q.field("userProfileDataId"), profile._id))
-      .first();
-
-    if (existingMember) {
-      await ctx.db.patch(invitation._id, { status: "accepted" });
-      return existingMember._id;
-    }
-
-    const memberId = await ctx.db.insert("barbershopMembers", {
-      uuid: crypto.randomUUID(),
-      barbershopId: invitation.barbershopId,
-      userProfileDataId: profile._id,
-      roles: invitation.roles,
-      isActive: true,
-      joinedAt: Date.now(),
-    });
-
-    await ctx.db.patch(invitation._id, { status: "accepted" });
-
-    return memberId;
-  },
-});
-
-export const denyInvitation = mutation({
-  args: { code: v.string() },
-  handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
-
-    if (!user || !user.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    const invitation = await ctx.db
-      .query("invitations")
-      .withIndex("by_code", (q) => q.eq("code", args.code))
-      .unique();
-
-    if (!invitation) {
-      throw new ConvexError(errorMessages.notFound("invitación"));
-    }
-
-    if (invitation.status !== "pending") {
-      return invitation.status;
-    }
-
-    const profile = await ctx.runQuery(
-      internal.userProfileData.getProfileByUserId,
-      { userId: user.userId },
-    );
-
-    if (!profile) {
-      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
-    }
-
-    if (profile.email !== invitation.email) {
-      throw new ConvexError("Esta invitación no corresponde a tu cuenta.");
-    }
-
-    await ctx.db.patch(invitation._id, { status: "denied" });
-
-    return "denied";
   },
 });

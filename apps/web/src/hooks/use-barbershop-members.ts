@@ -82,12 +82,8 @@ export function useBarbershopMemberActions() {
     mutationFn: useConvexMutation(api.barbershopMembers.validateInvitation),
   });
 
-  const acceptInvitationMutation = useMutation({
-    mutationFn: useConvexMutation(api.barbershopMembers.acceptInvitation),
-  });
-
-  const denyInvitationMutation = useMutation({
-    mutationFn: useConvexMutation(api.barbershopMembers.denyInvitation),
+  const answerInvitationMutation = useMutation({
+    mutationFn: useConvexMutation(api.barbershopMembers.answer),
   });
 
   const setBarberServicesMutation = useMutation({
@@ -105,8 +101,7 @@ export function useBarbershopMemberActions() {
   return {
     inviteBarberMutation,
     validateInvitationMutation,
-    acceptInvitationMutation,
-    denyInvitationMutation,
+    answerInvitationMutation,
     setBarberServicesMutation,
     removeBarberMutation,
   };

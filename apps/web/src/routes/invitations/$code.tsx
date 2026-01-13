@@ -6,49 +6,46 @@ import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
-  invitationByCodeQueryOptions,
   useBarbershopMemberActions,
   useInvitationByCode,
 } from "@/hooks/use-barbershop-members";
-import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { useSession } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
 export const Route = createFileRoute("/invitations/$code")({
   pendingComponent: LoadingComponent,
   component: InvitationPage,
-  loader: async ({ context, params }) => {
-    const user = await context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
+  // loader: async ({ context, params }) => {
+  //   const user = await context.queryClient.ensureQueryData(
+  //     getSessionQueryOptions(),
+  //   );
 
-    if (user?.userId) {
-      await context.queryClient.ensureQueryData(
-        invitationByCodeQueryOptions(params.code),
-      );
-    }
-  },
+  //   if (user?.userId) {
+  //     const invitation = await context.queryClient.ensureQueryData(
+  //       invitationByCodeQueryOptions(params.code),
+  //     );
+
+  //     if (invitation?.invitation.email !== user.email) {
+  //       throw redirect({ to: "/profile", search: { tab: "account" } });
+  //     }
+  //   }
+  // },
 });
 
 function InvitationPage() {
   const { code } = Route.useParams();
   const navigate = Route.useNavigate();
 
-  const {
-    data: invitationData,
-    refetch: refetchInvitation,
-    isFetching,
-  } = useInvitationByCode(code);
+  const { data: invitationData, refetch: refetchInvitation } =
+    useInvitationByCode(code);
 
   const { data: session } = useSession();
   const {
-    acceptInvitationMutation: {
-      isPending: isAcceptingInvitation,
-      mutateAsync: acceptInvitation,
-    },
-    denyInvitationMutation: {
-      isPending: isDenyingInvitation,
-      mutateAsync: denyInvitation,
+    answerInvitationMutation: {
+      isPending: isAnsweringInvitation,
+      mutateAsync: answerInvitation,
     },
     validateInvitationMutation: {
       isPending: isValidatingInvitation,
@@ -87,21 +84,13 @@ function InvitationPage() {
     return "pending";
   }, [invitationData]);
 
-  const handleAccept = async () => {
+  const handleAnswer = async (answer: "accept" | "deny") => {
     try {
-      await acceptInvitation({ code });
-      toast.success("Invitación aceptada.");
+      await answerInvitation({ code, answer });
+      toast.success(
+        `Invitación ${answer === "accept" ? "aceptada" : "rechazada"}.`,
+      );
       navigate({ to: "/profile", search: { tab: "account" } });
-    } catch (error) {
-      toast.error(getConvexErrorMessage(error));
-    }
-  };
-
-  const handleDeny = async () => {
-    try {
-      await denyInvitation({ code });
-      toast.success("Has rechazado la invitación.");
-      navigate({ to: "/" });
     } catch (error) {
       toast.error(getConvexErrorMessage(error));
     }
@@ -133,59 +122,64 @@ function InvitationPage() {
     );
   }
 
-  if (!invitationData?.invitation && !isFetching) {
-    return (
-      <BorderContainer className="space-y-4">
-        <h1 className="font-semibold text-2xl">Invitación no encontrada</h1>
-        <p className="text-muted-foreground text-sm">
-          El enlace de invitación no es válido o ya fue utilizado.
-        </p>
-        <Button onClick={() => navigate({ to: "/" })}>Volver al inicio</Button>
-      </BorderContainer>
-    );
-  }
+  // if (!invitationData?.invitation && !isFetching) {
+  //   return (
+  //     <BorderContainer className="space-y-4">
+  //       <h1 className="font-semibold text-2xl">Invitación no encontrada</h1>
+  //       <p className="text-muted-foreground text-sm">
+  //         El enlace de invitación no es válido o ya fue utilizado.
+  //       </p>
+  //       <Button onClick={() => navigate({ to: "/" })}>Volver al inicio</Button>
+  //     </BorderContainer>
+  //   );
+  // }
 
-  const isDisabled =
-    statusLabel !== "pending" || isAcceptingInvitation || isDenyingInvitation;
+  const isDisabled = statusLabel !== "pending" || isAnsweringInvitation;
 
   return (
-    <BorderContainer className="space-y-4">
-      <div className="space-y-1">
-        <div className="flex items-center gap-2">
-          <h1 className="font-semibold text-2xl">Invitación</h1>
-          <Badge variant={statusLabel === "pending" ? "default" : "secondary"}>
-            {statusLabel === "pending"
-              ? "Pendiente"
-              : statusLabel === "accepted"
-                ? "Aceptada"
-                : statusLabel === "denied"
-                  ? "Rechazada"
-                  : "Expirada"}
-          </Badge>
+    <BorderContainer className="flex flex-col items-center justify-center space-y-4">
+      <Card className="w-full max-w-xl px-6">
+        <div className="space-y-1">
+          <header className="flex items-center justify-between gap-2">
+            <h1 className="font-semibold text-xl sm:text-3xl">Invitación</h1>
+            <Badge
+              variant={statusLabel === "pending" ? "default" : "secondary"}
+            >
+              {statusLabel === "pending"
+                ? "Pendiente"
+                : statusLabel === "accepted"
+                  ? "Aceptada"
+                  : statusLabel === "denied"
+                    ? "Rechazada"
+                    : "Expirada"}
+            </Badge>
+          </header>
+          <p className="text-muted-foreground text-xs sm:text-sm">
+            {invitationData?.inviterName ?? "Un administrador"} te invitó a
+            unirte a{" "}
+            <strong>{invitationData?.barbershopName ?? "un barbershop"}</strong>
+            .
+          </p>
         </div>
-        <p className="text-muted-foreground text-sm">
-          {invitationData?.inviterName ?? "Un administrador"} te invitó a unirte
-          a <strong>{invitationData?.barbershopName}</strong>.
-        </p>
-      </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <Button
-          className="w-full sm:w-auto"
-          disabled={isDisabled || isValidatingInvitation}
-          onClick={handleAccept}
-        >
-          Aceptar invitación
-        </Button>
-        <Button
-          variant="outline"
-          className="w-full sm:w-auto"
-          disabled={isDisabled || isValidatingInvitation}
-          onClick={handleDeny}
-        >
-          Rechazar
-        </Button>
-      </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <Button
+            className="w-full sm:w-auto"
+            disabled={isDisabled || isValidatingInvitation}
+            onClick={() => handleAnswer("accept")}
+          >
+            Aceptar invitación
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            disabled={isDisabled || isValidatingInvitation}
+            onClick={() => handleAnswer("deny")}
+          >
+            Rechazar
+          </Button>
+        </div>
+      </Card>
 
       {statusLabel !== "pending" && (
         <p className="text-muted-foreground text-sm">
