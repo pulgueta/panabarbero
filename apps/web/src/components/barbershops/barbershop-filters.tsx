@@ -1,6 +1,7 @@
-import { tanstack, useColombia } from "@panabarbero/constants";
+import { useColombia } from "@panabarbero/constants";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import type { FC } from "react";
+import { useEffect, useRef } from "react";
 
 import {
   Select,
@@ -9,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useBarbershopFiltersStore } from "@/store/barbershop-filters";
 
 export const BarbershopFilters: FC = () => {
   const search = useSearch({ from: "/barbershops/" });
@@ -17,52 +18,71 @@ export const BarbershopFilters: FC = () => {
 
   const { states, citiesFromState } = useColombia();
 
-  const [storedState, setStoredState] = useLocalStorage<string | undefined>(
-    tanstack.localStorageKeys.barbershopsState,
-  );
-  const [storedCity, setStoredCity] = useLocalStorage<string | undefined>(
-    tanstack.localStorageKeys.barbershopsCity,
-  );
+  const { state, city, setState, setCity } = useBarbershopFiltersStore();
+  const prevSearchRef = useRef({ state: search.state, city: search.city });
 
-  const city = storedCity ?? search.city ?? "";
-  const state = storedState ?? search.state ?? "";
+  // Sync URL search params with store when URL changes (e.g., browser back/forward, direct link)
+  useEffect(() => {
+    const prevSearch = prevSearchRef.current;
+    const urlChanged =
+      prevSearch.state !== search.state || prevSearch.city !== search.city;
+
+    if (urlChanged) {
+      // URL changed externally or on mount, sync to store
+      if (search.state !== state) {
+        setState(search.state);
+      }
+      if (search.city !== city) {
+        setCity(search.city);
+      }
+
+      // Update ref to current URL
+      prevSearchRef.current = { state: search.state, city: search.city };
+    }
+  }, [search.state, search.city, state, city, setState, setCity]);
 
   const availableCities = state ? citiesFromState?.(state) : [];
 
-  const apply = (next: Partial<typeof search>) => {
-    // If state is being changed, clear the city
-    const isStateChange = next.state !== undefined && next.state !== state;
-    const effCity = next.city ?? (isStateChange ? undefined : city ?? undefined);
+  const handleStateChange = (newState: string) => {
+    // Update store first (this also clears city)
+    setState(newState);
 
-    const finalState = next.state ?? state ?? undefined;
-    const finalCity = isStateChange ? undefined : effCity;
-
-    setStoredState(finalState);
-    setStoredCity(finalCity);
-
+    // Update URL to match store
     navigate({
       to: ".",
-      search: (prev) => ({
-        ...prev,
-        state: finalState,
-        city: finalCity,
+      search: () => ({
+        state: newState,
+        city: undefined,
       }),
+      replace: false,
+    });
+  };
+
+  const handleCityChange = (newCity: string) => {
+    // Update store
+    setCity(newCity);
+
+    // Update URL to match store
+    navigate({
+      to: ".",
+      search: () => ({
+        state,
+        city: newCity,
+      }),
+      replace: false,
     });
   };
 
   return (
     <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
-      <Select
-        value={state}
-        onValueChange={(v) => apply({ state: v ?? undefined })}
-      >
+      <Select value={state ?? ""} onValueChange={handleStateChange}>
         <SelectTrigger className="w-full min-w-48 bg-background dark:bg-card">
           <SelectValue placeholder="Departamento" />
         </SelectTrigger>
         <SelectContent>
-          {states.map((state) => (
-            <SelectItem key={state.state} value={state.state}>
-              {state.state}
+          {states.map((s) => (
+            <SelectItem key={s.state} value={s.state}>
+              {s.state}
             </SelectItem>
           ))}
         </SelectContent>
@@ -70,17 +90,17 @@ export const BarbershopFilters: FC = () => {
 
       <Select
         key={`city-${state}`}
-        value={city}
-        onValueChange={(v) => apply({ city: v ?? undefined })}
+        value={city ?? ""}
+        onValueChange={handleCityChange}
         disabled={!state}
       >
         <SelectTrigger className="w-full min-w-48 bg-background dark:bg-card">
           <SelectValue placeholder="Ciudad" />
         </SelectTrigger>
         <SelectContent>
-          {availableCities.map((city) => (
-            <SelectItem key={city} value={city}>
-              {city}
+          {availableCities.map((c) => (
+            <SelectItem key={c} value={c}>
+              {c}
             </SelectItem>
           ))}
         </SelectContent>
