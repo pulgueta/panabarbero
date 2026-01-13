@@ -2,7 +2,7 @@ import { boolean, email, object, string } from "zod";
 
 export const loginFormSchema = object({
   email: email({ message: "El correo electrónico es requerido" })
-    .min(4, "El correo electrónico es requerido")
+    .min(2, "El correo electrónico es requerido")
     .max(255, "El correo electrónico no puede tener más de 255 caracteres"),
   password: string({ message: "La contraseña es requerida" })
     .min(4, "La contraseña es requerida")

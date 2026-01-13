@@ -1,9 +1,5 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: not needed */
 
-import { signIn } from "@panabarbero/convex/auth";
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { toast } from "sonner";
-
 import { FormHeader } from "@/components/auth/form-header";
 import { LoginForm } from "@/components/auth/login-form";
 import { BorderContainer } from "@/components/layout/border-container";
@@ -11,6 +7,10 @@ import { LoadingComponent } from "@/components/layout/loading-component";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FieldGroup, FieldSeparator } from "@/components/ui/field";
+import { signIn } from "@panabarbero/convex/auth";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { FingerprintIcon } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_auth/login")({
   component: LoginPage,
@@ -22,6 +22,17 @@ type Provider = "google" | "apple" | "passkey" | "facebook";
 function LoginPage() {
   const router = useRouter();
 
+  const oauthProviderLabel = (provider: Provider) => {
+    const baseLabel = "Iniciar sesión con";
+
+    switch (provider) {
+      case "google":
+        return `${baseLabel} Google`;
+      default:
+        return baseLabel;
+    }
+  };
+
   const handleSignIn = async (provider: Provider) => {
     if (provider === "passkey") {
       await signIn.passkey({
@@ -31,17 +42,16 @@ function LoginPage() {
       const { error } = await signIn.social({
         provider,
         fetchOptions: {
-          onSuccess: () => {
-            router.navigate({
-              to: "/profile",
-              search: { tab: "account" },
-              replace: true,
-            });
-          },
           onError: ({ error }) => {
             toast.error(error.message ?? "Error al iniciar sesión");
           },
         },
+      });
+
+      router.navigate({
+        to: "/profile",
+        search: { tab: "account" },
+        replace: true,
       });
 
       if (error) {
@@ -71,22 +81,22 @@ function LoginPage() {
                   onClick={() => handleSignIn("google")}
                 >
                   <GoogleIcon />
-                  Iniciar sesión con Google
+                  {oauthProviderLabel("google")}
                 </Button>
                 <Button
                   variant="outline"
                   type="button"
-                  onClick={() => handleSignIn("facebook")}
+                  onClick={() => handleSignIn("passkey")}
                 >
-                  <FacebookIcon />
-                  Iniciar sesión con Facebook
+                  <FingerprintIcon />
+                  Iniciar sesión con biometría
                 </Button>
               </div>
               <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card" />
 
               <LoginForm />
 
-              <p className="text-center text-muted-foreground text-sm">
+              <p className="py-4 text-center text-muted-foreground text-sm">
                 ¿No tienes una cuenta?{" "}
                 <Link
                   to="/register"
