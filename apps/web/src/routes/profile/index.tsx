@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: We need to assert non-null values because the hooks return undefined if the data is not loaded */
 
 import { signOut } from "@panabarbero/convex/auth";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
 import { Activity, Suspense, useMemo, useState } from "react";
 
@@ -95,6 +95,8 @@ export const Route = createFileRoute("/profile/")({
       await context.queryClient.ensureQueryData(
         barbershopByOwnerIdQueryOptions(user.userId),
       );
+    } else {
+      throw redirect({ to: "/login" });
     }
   },
 });
