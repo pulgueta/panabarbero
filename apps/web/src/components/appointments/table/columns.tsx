@@ -18,7 +18,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useIsBarber } from "@/hooks/use-barbershop-members";
+import { useBarbershopByMemberUserId } from "@/hooks/barbershop/use-barbershop";
+import {
+  useIsBarber,
+  useBarbershopMembersByBarbershopId,
+} from "@/hooks/use-barbershop-members";
 import { useServiceByAppointmentId } from "@/hooks/use-services";
 import { useSession } from "@/hooks/use-session";
 import { getAppointmentDataByStatus } from "@/lib/appointment-utils";
@@ -28,7 +32,10 @@ import { MarkAppointmentDialog } from "../mark-appointment-dialog";
 import { RescheduleRequestDialog } from "../reschedule-request-dialog";
 import { RescheduleResponseDialog } from "../reschedule-response-dialog";
 
-export const appointmentsTableColumns: ColumnDef<Appointment>[] = [
+export function getAppointmentsTableColumns(opts: {
+  isOwner: boolean;
+}): ColumnDef<Appointment>[] {
+  const baseColumns: ColumnDef<Appointment>[] = [
   {
     accessorKey: "date",
     header: ({ column }) => <TableHeader column={column} header="Hora" />,
@@ -186,6 +193,42 @@ export const appointmentsTableColumns: ColumnDef<Appointment>[] = [
     },
   },
 ];
+
+  const barberColumn: ColumnDef<Appointment> = {
+    accessorKey: "barberName",
+    header: ({ column }) => <TableHeader column={column} header="Barbero" />,
+    cell: ({ row }) => {
+      const { data: session } = useSession();
+      const { data: barbershop } = useBarbershopByMemberUserId(
+        session?.userId ?? "",
+      );
+      const { data: barbers } = useBarbershopMembersByBarbershopId(
+        barbershop?._id!,
+      );
+
+      const barber = barbers?.find(
+        (b) => b._id === row.original.barbershopMemberId,
+      );
+
+      return <div className="text-center">{barber?.name || "N/A"}</div>;
+    },
+  };
+
+  if (!opts.isOwner) return baseColumns;
+
+  // Insert the barber column after "Servicio"
+  const serviceIndex = baseColumns.findIndex(
+    (col) => "accessorKey" in col && col.accessorKey === "serviceName",
+  );
+
+  if (serviceIndex === -1) return [...baseColumns, barberColumn];
+
+  return [
+    ...baseColumns.slice(0, serviceIndex + 1),
+    barberColumn,
+    ...baseColumns.slice(serviceIndex + 1),
+  ];
+}
 
 export const rescheduledAppointmentRequestsTableColumns: ColumnDef<
   Appointment & {

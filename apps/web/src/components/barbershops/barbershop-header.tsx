@@ -2,7 +2,31 @@
 import type { Barbershop } from "@panabarbero/convex/schemas";
 import type { FC } from "react";
 
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useSchedule } from "@/hooks/barbershop/use-schedule";
+
+const DAY_NAMES: Record<string, { es: string; short: string }> = {
+  monday: { es: "Lunes", short: "Lun" },
+  tuesday: { es: "Martes", short: "Mar" },
+  wednesday: { es: "Miércoles", short: "Mié" },
+  thursday: { es: "Jueves", short: "Jue" },
+  friday: { es: "Viernes", short: "Vie" },
+  saturday: { es: "Sábado", short: "Sáb" },
+  sunday: { es: "Domingo", short: "Dom" },
+};
 
 type BarbershopHeaderProps = {
   barbershop: Barbershop | null;
@@ -46,9 +70,11 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
       >
         {barbershop?.name}
       </h1>
-      <p className="mb-1 text-pretty font-medium text-sm">
-        {barbershop?.description ?? "No hay descripción disponible."}
-      </p>
+      {barbershop?.description && (
+        <p className="mb-1 text-pretty font-medium text-sm">
+          {barbershop?.description}
+        </p>
+      )}
       <p
         className="mb-1 text-muted-foreground text-sm"
         style={{
@@ -63,7 +89,7 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
           viewTransitionName: `barbershop-${barbershop?.uuid}-address`,
         }}
       >
-        {barbershop?.address.fullAddress}
+        {barbershop?.address.fullAddress}.
         {barbershop?.address.details && (
           <>
             <br />
@@ -82,21 +108,63 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
           </a>
         </p>
       )}
-      {barbershop?.metadata?.contactEmail && (
-        <p className="mb-2.5 text-muted-foreground text-sm">
-          Correo de contacto:{" "}
-          <a
-            href={`mailto:${barbershop?.metadata?.contactEmail}`}
-            className="underline-offset-4 hover:underline"
-          >
-            {barbershop?.metadata?.contactEmail}
-          </a>
-        </p>
-      )}
 
-      <p className="mb-1 text-muted-foreground text-sm">
-        <AvailabilityLabel />
-      </p>
+      <div className="mb-1 flex flex-col items-start gap-1">
+        <p className="text-muted-foreground text-sm">
+          <AvailabilityLabel />
+        </p>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="link"
+              className="h-auto justify-start p-0 text-left text-foreground"
+            >
+              Ver horario
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80">
+            <div className="space-y-2">
+              <h4 className="font-semibold text-sm">Horario de atención</h4>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Día</TableHead>
+                    <TableHead className="text-xs">Horario</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {availability?.map((day) => {
+                    const dayInfo = DAY_NAMES[day.weekDay.day];
+                    const hasLunch = day.lunchStart && day.lunchEnd;
+
+                    return (
+                      <TableRow key={day.weekDay.day}>
+                        <TableCell className="py-2 text-xs">
+                          {dayInfo.es} {hasLunch && <span>*</span>}
+                        </TableCell>
+                        <TableCell className="py-2 text-xs tabular-nums">
+                          {day.weekDay.isActive
+                            ? `${day.openAt} - ${day.closeAt}`
+                            : "Cerrado"}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+              {availability?.some((day) => day.lunchStart && day.lunchEnd) && (
+                <p className="text-muted-foreground text-xs italic">
+                  *: No disponible durante:{" "}
+                  {availability
+                    .filter((day) => day.lunchStart && day.lunchEnd)
+                    .map((day) => `${day.lunchStart} - ${day.lunchEnd}`)
+                    .find(() => true)}
+                </p>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
 
       {/* <div className="flex flex-col">
         <BarbershopRating

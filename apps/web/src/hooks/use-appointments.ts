@@ -37,9 +37,11 @@ export function userVisitedBarbershopsQueryOptions(userId: string | undefined) {
 
 export function appointmentsByBarbershopQueryOptions(
   barbershopId: Barbershop["_id"],
+  userId?: string,
 ) {
   return convexQuery(api.appointments.getAppointmentsByBarbershopId, {
     barbershopId,
+    userId,
   });
 }
 
@@ -57,8 +59,13 @@ export function useAppointmentsByUser(userId: string, cursor: string | null) {
   return useSuspenseQuery(appointmentsByUserQueryOptions(userId, cursor));
 }
 
-export function useAppointmentsByBarbershop(barbershopId: Barbershop["_id"]) {
-  return useSuspenseQuery(appointmentsByBarbershopQueryOptions(barbershopId));
+export function useAppointmentsByBarbershop(
+  barbershopId: Barbershop["_id"],
+  userId?: string,
+) {
+  return useSuspenseQuery(
+    appointmentsByBarbershopQueryOptions(barbershopId, userId),
+  );
 }
 
 export function useVisitedBarbershops(userId: string | undefined) {

@@ -30,10 +30,12 @@ export const BarbershopFilters: FC = () => {
   const availableCities = state ? citiesFromState?.(state) : [];
 
   const apply = (next: Partial<typeof search>) => {
-    const effCity = next.city ?? city ?? undefined;
+    // If state is being changed, clear the city
+    const isStateChange = next.state !== undefined && next.state !== state;
+    const effCity = next.city ?? (isStateChange ? undefined : city ?? undefined);
 
     const finalState = next.state ?? state ?? undefined;
-    const finalCity = next.state ? undefined : effCity;
+    const finalCity = isStateChange ? undefined : effCity;
 
     setStoredState(finalState);
     setStoredCity(finalCity);
@@ -67,6 +69,7 @@ export const BarbershopFilters: FC = () => {
       </Select>
 
       <Select
+        key={`city-${state}`}
         value={city}
         onValueChange={(v) => apply({ city: v ?? undefined })}
         disabled={!state}
