@@ -33,32 +33,34 @@ export const LoginForm = () => {
     resolver: zodResolver(loginFormSchema),
   });
 
-  const onSubmit = form.handleSubmit(async (data) => {
-    try {
-      await signIn.email(
-        {
-          email: data.email,
-          password: data.password,
-          rememberMe: data.rememberMe,
-        },
-        {
-          onSuccess: () => {
-            router.navigate({
-              to: "/profile",
-              search: { tab: "account" },
-              replace: true,
-            });
+  const onSubmit = form.handleSubmit(
+    async ({ email, password, rememberMe }) => {
+      try {
+        await signIn.email(
+          {
+            email,
+            password,
+            rememberMe,
           },
-        },
-      );
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        toast.error(error.message ?? "Error al iniciar sesión");
-        return;
+          {
+            onSuccess: () => {
+              router.navigate({
+                to: "/profile",
+                search: { tab: "account" },
+                replace: true,
+              });
+            },
+          },
+        );
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          toast.error(error.message ?? "Error al iniciar sesión");
+          return;
+        }
+        toast.error("Error al iniciar sesión");
       }
-      toast.error("Error al iniciar sesión");
-    }
-  });
+    },
+  );
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">

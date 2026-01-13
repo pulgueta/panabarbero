@@ -26,7 +26,7 @@ function RegisterPage() {
             <FieldGroup className="gap-4">
               <RegisterForm />
 
-              <p className="text-center text-muted-foreground text-sm">
+              <p className="py-4 text-center text-muted-foreground text-sm">
                 ¿Ya tienes una cuenta?{" "}
                 <Link
                   to="/login"
