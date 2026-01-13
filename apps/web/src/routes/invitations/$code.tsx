@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
 
@@ -8,30 +8,31 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
+  invitationByCodeQueryOptions,
   useBarbershopMemberActions,
   useInvitationByCode,
 } from "@/hooks/use-barbershop-members";
-import { useSession } from "@/hooks/use-session";
+import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
 export const Route = createFileRoute("/invitations/$code")({
   pendingComponent: LoadingComponent,
   component: InvitationPage,
-  // loader: async ({ context, params }) => {
-  //   const user = await context.queryClient.ensureQueryData(
-  //     getSessionQueryOptions(),
-  //   );
+  loader: async ({ context, params }) => {
+    const user = await context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
 
-  //   if (user?.userId) {
-  //     const invitation = await context.queryClient.ensureQueryData(
-  //       invitationByCodeQueryOptions(params.code),
-  //     );
+    if (user?.userId) {
+      const invitation = await context.queryClient.ensureQueryData(
+        invitationByCodeQueryOptions(params.code),
+      );
 
-  //     if (invitation?.invitation.email !== user.email) {
-  //       throw redirect({ to: "/profile", search: { tab: "account" } });
-  //     }
-  //   }
-  // },
+      if (invitation?.invitation.email !== user.email) {
+        throw redirect({ to: "/profile", search: { tab: "account" } });
+      }
+    }
+  },
 });
 
 function InvitationPage() {
@@ -121,18 +122,6 @@ function InvitationPage() {
       </BorderContainer>
     );
   }
-
-  // if (!invitationData?.invitation && !isFetching) {
-  //   return (
-  //     <BorderContainer className="space-y-4">
-  //       <h1 className="font-semibold text-2xl">Invitación no encontrada</h1>
-  //       <p className="text-muted-foreground text-sm">
-  //         El enlace de invitación no es válido o ya fue utilizado.
-  //       </p>
-  //       <Button onClick={() => navigate({ to: "/" })}>Volver al inicio</Button>
-  //     </BorderContainer>
-  //   );
-  // }
 
   const isDisabled = statusLabel !== "pending" || isAnsweringInvitation;
 
