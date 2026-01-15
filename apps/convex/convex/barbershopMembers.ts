@@ -6,8 +6,10 @@ import { internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
 import { assertCanManageShop } from "./authz";
 import { errorMessages } from "./errors";
+import { rateLimitOrThrow } from "./ratelimit";
 import type { BarbershopMember } from "./tables";
 import { tables } from "./tables";
+import { getProfileByEmail, getProfileByUserId } from "./userProfileData";
 
 const INVITATION_EXPIRATION_MS = 1000 * 60 * 60 * 24 * 7;
 
@@ -91,6 +93,8 @@ export const updateBarbershopMember = mutation({
       });
     }
 
+    await rateLimitOrThrow(ctx, "updateBarbershopMember", user._id);
+
     const updatedBarbershopMember = await ctx.db.patch(
       args.barbershopMemberId,
       args.barbershopMember,
@@ -131,6 +135,8 @@ export const removeBarberFromBarbershop = mutation({
     if (!user?.userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
+
+    await rateLimitOrThrow(ctx, "removeBarberFromBarbershop", user._id);
 
     const member = await ctx.db.get(args.barbershopMemberId);
 
@@ -215,12 +221,7 @@ export const getBarbershopMemberByUserId = query({
     userId: v.string(),
   },
   handler: async (ctx, args): Promise<BarbershopMember | null> => {
-    const userProfile = await ctx.runQuery(
-      internal.userProfileData.getProfileByUserId,
-      {
-        userId: args.userId,
-      },
-    );
+    const userProfile = await getProfileByUserId(ctx, args.userId);
 
     if (!userProfile?._id) {
       return null;
@@ -277,6 +278,8 @@ export const inviteBarbershopMember = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
+    await rateLimitOrThrow(ctx, "inviteBarbershopMember", userInviting._id);
+
     const barbershop = await ctx.db.get(args.barbershopId);
 
     if (!barbershop) {
@@ -290,10 +293,7 @@ export const inviteBarbershopMember = mutation({
 
     const email = args.email.toLowerCase().trim();
 
-    const userProfile = await ctx.runQuery(
-      internal.userProfileData.getProfileByEmail,
-      { email },
-    );
+    const userProfile = await getProfileByEmail(ctx, email);
 
     if (userProfile) {
       const existingMember = await ctx.db
@@ -458,6 +458,8 @@ export const answer = mutation({
     if (!user || !user.userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
+
+    await rateLimitOrThrow(ctx, "answerInvitation", `${user._id}-${args.code}`);
 
     const invitation = await ctx.db
       .query("invitations")

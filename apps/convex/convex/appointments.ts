@@ -12,9 +12,10 @@ import {
 import { authComponent } from "./auth";
 import { assertBarber } from "./authz";
 import { errorMessages } from "./errors";
-import { rateLimiter } from "./ratelimit";
+import { rateLimitOrThrow } from "./ratelimit";
 import type { UserProfileData } from "./tables";
 import { tables } from "./tables";
+import { getProfileByEmail, getProfileByUserId } from "./userProfileData";
 
 function parseTimeToMinutes(time: string): number {
   const [hh, mm] = time.split(":").map((n) => Number(n));
@@ -109,6 +110,8 @@ export const createAppointment = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
+    await rateLimitOrThrow(ctx, "createAppointment", user._id);
+
     const { appointment } = args;
     const isBarberCreatingAppointment = appointment.isBarber;
 
@@ -145,12 +148,7 @@ export const createAppointment = mutation({
     let customerProfile: UserProfileData | null = null;
 
     if (appointment.contactEmail) {
-      customerProfile = await ctx.runQuery(
-        internal.userProfileData.getProfileByEmail,
-        {
-          email: appointment.contactEmail,
-        },
-      );
+      customerProfile = await getProfileByEmail(ctx, appointment.contactEmail);
     }
 
     if (!barberProfile) {
@@ -477,6 +475,8 @@ export const setAppointmentStatus = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
+    await rateLimitOrThrow(ctx, "setAppointmentStatus", user._id);
+
     const appt = await ctx.db.get(args.appointmentId);
 
     if (!appt) {
@@ -542,6 +542,8 @@ export const deleteAppointment = mutation({
     if (!user) {
       throw new ConvexError(errorMessages.unauthorized);
     }
+
+    await rateLimitOrThrow(ctx, "deleteAppointment", user._id);
     const { appointmentId } = args;
 
     const appointment = await ctx.db.get(appointmentId);
@@ -586,6 +588,8 @@ export const removeAppointment = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
+    await rateLimitOrThrow(ctx, "removeAppointment", user._id);
+
     const appointment = await ctx.db.get(args.appointmentId);
 
     if (!appointment) {
@@ -613,6 +617,8 @@ export const cancelAppointment = mutation({
     if (!user) {
       throw new ConvexError(errorMessages.unauthorized);
     }
+
+    await rateLimitOrThrow(ctx, "cancelAppointment", user._id);
 
     const appt = await ctx.db.get(args.appointmentId);
 
@@ -672,25 +678,11 @@ export const requestReschedule = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    const { ok, retryAfter } = await rateLimiter.limit(
+    await rateLimitOrThrow(
       ctx,
       "requestReschedule",
-      {
-        key: `${user._id}-${args.appointmentId}`,
-      },
+      `${user._id}-${args.appointmentId}`,
     );
-
-    if (!ok) {
-      throw new ConvexError(
-        errorMessages.rateLimitExceeded(
-          new Intl.DateTimeFormat("es-CO", {
-            hour: "2-digit",
-            minute: "2-digit",
-            timeZone: "America/Bogota",
-          }).format(new Date(Date.now() + retryAfter)),
-        ),
-      );
-    }
 
     const appt = await ctx.db.get(args.appointmentId);
 
@@ -706,12 +698,7 @@ export const requestReschedule = mutation({
       rescheduleRequestedByUserId: args.requestedByUserId,
     });
 
-    const requesterProfile = await ctx.runQuery(
-      internal.userProfileData.getProfileByUserId,
-      {
-        userId: user.userId ?? "",
-      },
-    );
+    const requesterProfile = await getProfileByUserId(ctx, user.userId!);
 
     if (!requesterProfile) {
       throw new ConvexError(errorMessages.notFound("perfil de usuario"));
@@ -737,12 +724,7 @@ export const requestReschedule = mutation({
       throw new ConvexError(errorMessages.notFound("barbería"));
     }
 
-    const customerProfile = await ctx.runQuery(
-      internal.userProfileData.getProfileByUserId,
-      {
-        userId: appt.userId,
-      },
-    );
+    const customerProfile = await getProfileByUserId(ctx, appt.userId);
 
     if (!customerProfile) {
       throw new ConvexError(errorMessages.notFound("perfil de usuario"));
@@ -778,12 +760,7 @@ export const notifyUpcomingAppointment = internalMutation({
     let userProfile: UserProfileData | null = null;
 
     if (args.userId !== "user_does_not_exist") {
-      userProfile = await ctx.runQuery(
-        internal.userProfileData.getProfileByUserId,
-        {
-          userId: args.userId,
-        },
-      );
+      userProfile = await getProfileByUserId(ctx, args.userId);
 
       if (!userProfile) {
         throw new ConvexError(errorMessages.notFound("perfil de usuario"));
@@ -839,6 +816,12 @@ export const answerRescheduleRequest = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
+    await rateLimitOrThrow(
+      ctx,
+      "answerRescheduleRequest",
+      `${user._id}-${args.appointmentId}`,
+    );
+
     const appt = await ctx.db.get(args.appointmentId);
 
     if (!appt) throw new ConvexError(errorMessages.notFound("cita"));
@@ -868,12 +851,7 @@ export const answerRescheduleRequest = mutation({
       throw new ConvexError(errorMessages.notFound("perfil de barbero"));
     }
 
-    const customerProfile = await ctx.runQuery(
-      internal.userProfileData.getProfileByUserId,
-      {
-        userId: appt.userId,
-      },
-    );
+    const customerProfile = await getProfileByUserId(ctx, appt.userId);
 
     if (!customerProfile) {
       throw new ConvexError(errorMessages.notFound("perfil de usuario"));

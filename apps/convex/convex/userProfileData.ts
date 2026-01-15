@@ -1,34 +1,31 @@
 import { ConvexError, v } from "convex/values";
-import {
-  internalMutation,
-  internalQuery,
-  mutation,
-  query,
-} from "./_generated/server";
+
+import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { authComponent, createAuth } from "./auth";
 import { errorMessages } from "./errors";
-import { r2 } from "./index";
+import { rateLimitOrThrow } from "./ratelimit";
 import { tables } from "./tables";
 
-export const getProfileByUserId = internalQuery({
-  args: { userId: tables.userProfileData.userId },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("userProfileData")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .unique();
-  },
-});
+export const getProfileByUserId = async (
+  ctx: QueryCtx | MutationCtx,
+  userId: string,
+) => {
+  return await ctx.db
+    .query("userProfileData")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .unique();
+};
 
-export const getProfileByEmail = internalQuery({
-  args: { email: tables.userProfileData.email },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("userProfileData")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
-      .unique();
-  },
-});
+export const getProfileByEmail = async (
+  ctx: QueryCtx | MutationCtx,
+  email: string,
+) => {
+  return await ctx.db
+    .query("userProfileData")
+    .withIndex("by_email", (q) => q.eq("email", email))
+    .unique();
+};
 
 export const getMyProfile = query({
   args: {
@@ -43,29 +40,13 @@ export const getMyProfile = query({
       return null;
     }
 
-    const profile = await ctx.db
-      .query("userProfileData")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId ?? ""))
-      .unique();
+    const profile = await getProfileByUserId(ctx, args.userId ?? "");
 
     if (!profile) {
-      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
+      return null;
     }
 
-    // Resolve profile photo URL from R2 if a key is stored
-    let profilePhotoUrl: string | null = null;
-    if (profile.profilePhotoKey) {
-      try {
-        profilePhotoUrl = await r2.getUrl(profile.profilePhotoKey);
-      } catch (error) {
-        console.error("Failed to get profile photo URL:", error);
-      }
-    }
-
-    return {
-      ...profile,
-      profilePhotoUrl,
-    };
+    return profile;
   },
 });
 
@@ -75,17 +56,16 @@ export const updateName = mutation({
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
-    const profile = await ctx.db
-      .query("userProfileData")
-      .withIndex("by_userId", (q) => q.eq("userId", user.userId ?? ""))
-      .unique();
+    await rateLimitOrThrow(ctx, "updateName", user._id);
 
-    if (!profile) throw new Error("Profile not found");
+    const profile = await getProfileByUserId(ctx, user.userId ?? "");
+
+    if (!profile) {
+      return null;
+    }
 
     const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
 
@@ -109,13 +89,13 @@ export const updateEmail = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    const profile = await ctx.db
-      .query("userProfileData")
-      .withIndex("by_userId", (q) => q.eq("userId", user.userId ?? ""))
-      .unique();
+    await rateLimitOrThrow(ctx, "updateEmail", user._id);
 
-    if (!profile)
+    const profile = await getProfileByUserId(ctx, user.userId ?? "");
+
+    if (!profile) {
       throw new ConvexError(errorMessages.notFound("perfil de usuario"));
+    }
 
     const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
 
@@ -139,10 +119,9 @@ export const updatePhoneNumber = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    const profile = await ctx.db
-      .query("userProfileData")
-      .withIndex("by_userId", (q) => q.eq("userId", user.userId ?? ""))
-      .unique();
+    await rateLimitOrThrow(ctx, "updatePhoneNumber", user._id);
+
+    const profile = await getProfileByUserId(ctx, user.userId ?? "");
 
     if (!profile)
       throw new ConvexError(errorMessages.notFound("perfil de usuario"));
@@ -170,10 +149,7 @@ export const updateNotificationPreference = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    const profile = await ctx.db
-      .query("userProfileData")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .unique();
+    const profile = await getProfileByUserId(ctx, args.userId);
 
     if (!profile)
       throw new ConvexError(errorMessages.notFound("perfil de usuario"));
@@ -190,7 +166,6 @@ export const setProfilePhotoKey = mutation({
   args: {
     key: v.string(),
   },
-  returns: v.null(),
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
 
@@ -198,32 +173,29 @@ export const setProfilePhotoKey = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    const profile = await ctx.db
-      .query("userProfileData")
-      .withIndex("by_userId", (q) => q.eq("userId", user.userId ?? ""))
-      .unique();
+    await rateLimitOrThrow(ctx, "updateNotificationPreference", user._id);
+
+    const profile = await getProfileByUserId(ctx, user.userId ?? "");
 
     if (!profile) {
       throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
 
     // Delete the old profile photo from R2 if it exists
-    if (profile.profilePhotoKey && profile.profilePhotoKey !== args.key) {
-      try {
-        await r2.deleteObject(ctx, profile.profilePhotoKey);
-      } catch (error) {
-        console.error("Failed to delete old profile photo:", error);
-      }
-    }
+    // if (profile.profilePhotoKey && profile.profilePhotoKey !== args.key) {
+    //   try {
+    //     await r2.deleteObject(ctx, profile.profilePhotoKey);
+    //   } catch (error) {
+    //     console.error("Failed to delete old profile photo:", error);
+    //   }
+    // }
 
-    await ctx.db.patch(profile._id, { profilePhotoKey: args.key });
-    return null;
+    // await ctx.db.patch(profile._id, { profilePhotoKey: args.key });
   },
 });
 
 export const removeProfilePhoto = mutation({
   args: {},
-  returns: v.null(),
   handler: async (ctx) => {
     const user = await authComponent.getAuthUser(ctx);
 
@@ -231,26 +203,26 @@ export const removeProfilePhoto = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    const profile = await ctx.db
-      .query("userProfileData")
-      .withIndex("by_userId", (q) => q.eq("userId", user.userId ?? ""))
-      .unique();
+    await rateLimitOrThrow(ctx, "setProfilePhotoKey", user._id);
+
+    await rateLimitOrThrow(ctx, "removeProfilePhoto", user._id);
+
+    const profile = await getProfileByUserId(ctx, user.userId ?? "");
 
     if (!profile) {
       throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
 
     // Delete the profile photo from R2 if it exists
-    if (profile.profilePhotoKey) {
-      try {
-        await r2.deleteObject(ctx, profile.profilePhotoKey);
-      } catch (error) {
-        console.error("Failed to delete profile photo:", error);
-      }
-    }
+    // if (profile.profilePhotoKey) {
+    //   try {
+    //     await r2.deleteObject(ctx, profile.profilePhotoKey);
+    //   } catch (error) {
+    //     console.error("Failed to delete profile photo:", error);
+    //   }
+    // }
 
-    await ctx.db.patch(profile._id, { profilePhotoKey: undefined });
-    return null;
+    // await ctx.db.patch(profile._id, { profilePhotoKey: undefined });
   },
 });
 
@@ -298,6 +270,7 @@ export const deleteProfile = internalMutation({
     await ctx.db.delete(args.profileId);
   },
 });
+
 export const deleteUserProfiles = internalMutation({
   args: {},
   handler: async (ctx) => {

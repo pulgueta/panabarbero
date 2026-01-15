@@ -7,6 +7,7 @@ import { api, internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
 import { errorMessages } from "./errors";
+import { rateLimitOrThrow } from "./ratelimit";
 import { tables } from "./tables";
 
 export const saveBarbershopBanner = internalMutation({
@@ -37,6 +38,8 @@ export const createBarbershop = mutation({
     if (!user?.userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
+
+    await rateLimitOrThrow(ctx, "createBarbershop", user._id);
 
     const { barbershop, ownerIsBarber } = args;
 
@@ -227,6 +230,8 @@ export const deleteBarbershopCascade = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
+    await rateLimitOrThrow(ctx, "deleteBarbershopCascade", user._id);
+
     const barbershop = await ctx.db.get(args.barbershopId);
 
     if (!barbershop || barbershop.ownerId !== user.userId) {
@@ -360,6 +365,7 @@ export const updateBarbershopDayAvailability = mutation({
         cause: user,
       });
     }
+    await rateLimitOrThrow(ctx, "updateBarbershopDayAvailability", user._id);
     const shop = await ctx.db.get(args.barbershopId);
     if (!shop) throw new Error("Barbershop not found");
 
@@ -405,6 +411,8 @@ export const updateBarbershopAvailability = mutation({
       });
     }
 
+    await rateLimitOrThrow(ctx, "updateBarbershopAvailability", user._id);
+
     const shop = await ctx.db.get(args.barbershopId);
     if (!shop) {
       throw new Error("Barbershop not found");
@@ -432,6 +440,8 @@ export const updateBarbershop = mutation({
     if (!user || user.userId !== args.barbershop.ownerId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
+
+    await rateLimitOrThrow(ctx, "updateBarbershop", user._id);
 
     await ctx.db.patch(args.barbershopId, args.barbershop);
 

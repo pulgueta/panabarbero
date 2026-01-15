@@ -4,6 +4,7 @@ import { components } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { internalMutation, mutation } from "./_generated/server";
 import { authComponent } from "./auth";
+import { rateLimitOrThrow } from "./ratelimit";
 
 const pushNotifications = new PushNotifications(components.pushNotifications);
 
@@ -20,6 +21,8 @@ export const createMobilePushToken = mutation({
         cause: user,
       });
     }
+
+    await rateLimitOrThrow(ctx, "createMobilePushToken", user._id);
 
     if (user.userId !== args.userId) {
       throw new Error(
