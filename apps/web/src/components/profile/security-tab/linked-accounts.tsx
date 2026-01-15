@@ -1,8 +1,9 @@
 import {
   linkSocial,
+  listAccounts,
   unlinkAccount,
-  useListAccounts,
 } from "@panabarbero/convex/auth";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Loader2Icon } from "lucide-react";
 import type { FC } from "react";
 import { useState } from "react";
@@ -19,27 +20,21 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { GoogleIcon } from "@/routes/_auth/login";
 
-interface LinkedAccount {
-  id: string;
-  provider: string;
-  accountId?: string;
-  createdAt?: Date;
-}
-
 export const LinkedAccountsSection: FC = () => {
   const {
     data: accounts,
     isPending: isLoadingAccounts,
     refetch,
-  } = useListAccounts();
+  } = useSuspenseQuery({
+    queryKey: ["linked-accounts"],
+    queryFn: async () => listAccounts().then((res) => res.data),
+  });
   const [linkingProvider, setLinkingProvider] = useState<string | null>(null);
   const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
 
-  const googleAccount = accounts?.find(
-    (acc: LinkedAccount) => acc.provider === "google",
-  );
+  const googleAccount = accounts?.find((acc) => acc.providerId === "google");
   const hasEmailPassword = accounts?.find(
-    (acc: LinkedAccount) => acc.provider === "credential",
+    (acc) => acc.providerId === "credential",
   );
 
   // Determine if we can unlink Google (must have another auth method)

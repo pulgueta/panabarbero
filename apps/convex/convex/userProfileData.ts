@@ -166,7 +166,7 @@ export const setProfilePhotoKey = mutation({
   args: {
     key: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     const user = await authComponent.getAuthUser(ctx);
 
     if (!user) {
@@ -226,7 +226,7 @@ export const removeProfilePhoto = mutation({
   },
 });
 
-export const createProfile = internalMutation({
+export const create = internalMutation({
   args: {
     data: v.object({
       ...tables.userProfileData,
@@ -244,7 +244,7 @@ export const createProfile = internalMutation({
   },
 });
 
-export const updateProfile = internalMutation({
+export const update = internalMutation({
   args: {
     profileId: v.id("userProfileData"),
     data: tables.userProfileData.notificationsPreferences,

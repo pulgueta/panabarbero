@@ -7,7 +7,9 @@ const http = httpRouter();
 
 twilio.registerRoutes(http);
 authComponent.registerRoutes(http, createAuth, {
-  cors: true,
+  cors: {
+    allowedOrigins: [process.env.SITE_URL ?? "", "http://localhost:3000"],
+  },
 });
 
 export default http;

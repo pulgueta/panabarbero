@@ -5,18 +5,18 @@ import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { useBarbershopAvailability } from "./barbershop/use-barbershop";
 
 export function appointmentByIdQueryOptions(appointmentId: Appointment["_id"]) {
-  return convexQuery(api.appointments.getAppointmentById, { appointmentId });
+  return convexQuery(api.appointments.getById, { appointmentId });
 }
 
 export function createAppointmentMutationOptions() {
-  return useConvexMutation(api.appointments.createAppointment);
+  return useConvexMutation(api.appointments.create);
 }
 
 export function appointmentsByUserQueryOptions(
   userId: string,
   cursor: string | null = null,
 ) {
-  return convexQuery(api.appointments.getAppointmentsByUserId, {
+  return convexQuery(api.appointments.getByUserId, {
     userId,
     paginationOpts: {
       cursor,
@@ -26,7 +26,7 @@ export function appointmentsByUserQueryOptions(
 }
 
 export function requestRescheduleQueryOptions(barbershopId: Barbershop["_id"]) {
-  return convexQuery(api.appointments.getRescheduledAppointmentRequests, {
+  return convexQuery(api.appointments.getRescheduledRequests, {
     barbershopId,
   });
 }
@@ -39,7 +39,7 @@ export function appointmentsByBarbershopQueryOptions(
   barbershopId: Barbershop["_id"],
   userId?: string,
 ) {
-  return convexQuery(api.appointments.getAppointmentsByBarbershopId, {
+  return convexQuery(api.appointments.getByBarbershopId, {
     barbershopId,
     userId,
   });
@@ -75,7 +75,7 @@ export function useVisitedBarbershops(userId: string | undefined) {
 export function appointmentFormMetadataQueryOptions(
   barbershopId: Barbershop["_id"],
 ) {
-  return convexQuery(api.appointments.getBarbershopAvailability, {
+  return convexQuery(api.barbershops.getAvailability, {
     barbershopId,
   });
 }
@@ -166,13 +166,13 @@ export function useAppointmentActions() {
     mutationFn: createAppointmentMutationOptions(),
   });
   const setStatusMutation = useMutation({
-    mutationFn: useConvexMutation(api.appointments.setAppointmentStatus),
+    mutationFn: useConvexMutation(api.appointments.setStatus),
   });
   const deleteAppointmentMutation = useMutation({
     mutationFn: useConvexMutation(api.appointments.deleteAppointment),
   });
   const cancelAppointmentMutation = useMutation({
-    mutationFn: useConvexMutation(api.appointments.cancelAppointment),
+    mutationFn: useConvexMutation(api.appointments.cancel),
   });
   const requestRescheduleMutation = useMutation({
     mutationFn: useConvexMutation(api.appointments.requestReschedule),

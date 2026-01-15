@@ -31,5 +31,4 @@ export const {
   linkSocial,
   unlinkAccount,
   listAccounts,
-  useListAccounts,
 } = authClient;

@@ -19,7 +19,7 @@ type ServiceResult = {
   usage: EmbeddingModelUsage;
 };
 
-export const searchServices = action({
+export const search = action({
   args: {
     service: v.string(),
   },
@@ -32,7 +32,7 @@ export const searchServices = action({
 
     await rateLimitOrThrow(ctx, "searchServices", user._id);
 
-    const serviceResults = await ctx.runAction(internal.rag.searchRAG, {
+    const serviceResults = await ctx.runAction(internal.rag.search, {
       namespace: "services",
       query: args.service,
       userId: user.userId ?? undefined,
@@ -42,7 +42,7 @@ export const searchServices = action({
   },
 });
 
-export const createServiceMutation = internalMutation({
+export const createMutation = internalMutation({
   args: {
     service: v.object({
       ...tables.services,
@@ -99,7 +99,7 @@ export const createServiceMutation = internalMutation({
   },
 });
 
-export const createService = mutation({
+export const create = mutation({
   args: {
     service: v.object({
       ...tables.services,
@@ -136,7 +136,7 @@ export const createService = mutation({
       }
     }
 
-    await ctx.scheduler.runAfter(0, internal.rag.addToRAG, {
+    await ctx.scheduler.runAfter(0, internal.rag.add, {
       namespace: "services",
       text: service.name,
       userId: user.userId,
@@ -175,7 +175,7 @@ export const createService = mutation({
   },
 });
 
-export const getServiceByUuid = query({
+export const getByUuid = query({
   args: {
     uuid: v.string(),
   },
@@ -189,7 +189,7 @@ export const getServiceByUuid = query({
   },
 });
 
-export const getServiceById = query({
+export const getById = query({
   args: {
     serviceId: v.id("services"),
   },
@@ -198,7 +198,7 @@ export const getServiceById = query({
   },
 });
 
-export const getServicesByIds = query({
+export const getByIds = query({
   args: {
     serviceIds: v.array(v.id("services")),
   },
@@ -209,7 +209,7 @@ export const getServicesByIds = query({
   },
 });
 
-export const updateService = mutation({
+export const update = mutation({
   args: {
     service: v.object({
       name: v.string(),
@@ -315,7 +315,7 @@ export const deleteService = mutation({
 
       // Send notification to customer
       await ctx.runMutation(
-        internal.notifications.createServiceDeletedCancellationNotification,
+        internal.notifications.createServiceDeletedCancellation,
         {
           appointmentId: appt._id,
           customerUserId: appt.userId,
@@ -344,7 +344,7 @@ export const deleteService = mutation({
   },
 });
 
-export const getServiceByAppointmentId = query({
+export const getByAppointmentId = query({
   args: {
     appointmentId: v.id("appointments"),
   },

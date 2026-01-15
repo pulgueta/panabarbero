@@ -10,7 +10,7 @@ import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 export function barbershopMembersByBarbershopIdQueryOptions(
   barbershopId: Barbershop["_id"],
 ) {
-  return convexQuery(api.barbershopMembers.getBarbershopMembersByBarbershopId, {
+  return convexQuery(api.barbershopMembers.getByBarbershopId, {
     barbershopId,
   });
 }
@@ -34,17 +34,17 @@ export function isBarberQueryOptions(userId: string) {
 }
 
 export function barberByUserIdQueryOptions(userId: string) {
-  return convexQuery(api.barbershopMembers.getBarbershopMemberByUserId, {
+  return convexQuery(api.barbershopMembers.getByUserId, {
     userId,
   });
 }
 
 export function inviteBarberMutationOptions() {
-  return useConvexMutation(api.barbershopMembers.inviteBarbershopMember);
+  return useConvexMutation(api.invitations.invite);
 }
 
 export function invitationByCodeQueryOptions(code: string) {
-  return convexQuery(api.barbershopMembers.getInvitationByCode, { code });
+  return convexQuery(api.invitations.getByCode, { code });
 }
 
 export function useInvitationByCode(code: string) {
@@ -79,11 +79,11 @@ export function useBarbershopMemberActions() {
   });
 
   const validateInvitationMutation = useMutation({
-    mutationFn: useConvexMutation(api.barbershopMembers.validateInvitation),
+    mutationFn: useConvexMutation(api.invitations.validate),
   });
 
   const answerInvitationMutation = useMutation({
-    mutationFn: useConvexMutation(api.barbershopMembers.answer),
+    mutationFn: useConvexMutation(api.invitations.answer),
   });
 
   const setBarberServicesMutation = useMutation({
