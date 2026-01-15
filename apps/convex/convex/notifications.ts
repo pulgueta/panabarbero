@@ -3,6 +3,7 @@ import { internal } from "./_generated/api";
 import { internalMutation } from "./_generated/server";
 import { errorMessages } from "./errors";
 import type { UserProfileData } from "./tables";
+import { getProfileByUserId } from "./userProfileData";
 
 export const subjects = {
   appointment_reminder: "Recordatorio de cita",
@@ -46,12 +47,7 @@ export const createAppointmentCancelledNotification = internalMutation({
       throw new ConvexError(errorMessages.notFound("barbero"));
     }
 
-    const customerProfile = await ctx.runQuery(
-      internal.userProfileData.getProfileByUserId,
-      {
-        userId: appointment.userId,
-      },
-    );
+    const customerProfile = await getProfileByUserId(ctx, appointment.userId);
 
     const barberProfile = await ctx.db.get(barbershopMember.userProfileDataId);
 
@@ -138,12 +134,7 @@ export const createAppointmentRescheduleRequestNotification = internalMutation({
     let customerProfile: UserProfileData | null = null;
 
     if (appointment.userId !== "user_does_not_exist") {
-      customerProfile = await ctx.runQuery(
-        internal.userProfileData.getProfileByUserId,
-        {
-          userId: appointment.userId,
-        },
-      );
+      customerProfile = await getProfileByUserId(ctx, appointment.userId);
 
       if (!customerProfile) {
         throw new ConvexError(errorMessages.notFound("perfil de usuario"));
@@ -219,11 +210,9 @@ export const createAppointmentRescheduleDecisionNotification = internalMutation(
       role: v.union(v.literal("barber"), v.literal("customer")),
     },
     handler: async (ctx, args) => {
-      const receiverProfile = await ctx.runQuery(
-        internal.userProfileData.getProfileByUserId,
-        {
-          userId: args.receiverUserId,
-        },
+      const receiverProfile = await getProfileByUserId(
+        ctx,
+        args.receiverUserId,
       );
 
       if (!receiverProfile) {
@@ -310,24 +299,14 @@ export const createAppointmentCreatedNotification = internalMutation({
     let customerProfile: UserProfileData | null = null;
 
     if (args.customerUserId !== "user_does_not_exist") {
-      customerProfile = await ctx.runQuery(
-        internal.userProfileData.getProfileByUserId,
-        {
-          userId: args.customerUserId,
-        },
-      );
+      customerProfile = await getProfileByUserId(ctx, args.customerUserId);
 
       if (!customerProfile) {
         throw new ConvexError(errorMessages.notFound("perfil de usuario"));
       }
     }
 
-    const barberProfile = await ctx.runQuery(
-      internal.userProfileData.getProfileByUserId,
-      {
-        userId: args.barberUserId,
-      },
-    );
+    const barberProfile = await getProfileByUserId(ctx, args.barberUserId);
 
     if (!barberProfile) {
       throw new ConvexError(errorMessages.notFound("perfil de barbero"));
@@ -402,12 +381,7 @@ export const createAppointmentReminderNotification = internalMutation({
     let customerProfile: UserProfileData | null = null;
 
     if (args.customerUserId !== "user_does_not_exist") {
-      customerProfile = await ctx.runQuery(
-        internal.userProfileData.getProfileByUserId,
-        {
-          userId: args.customerUserId,
-        },
-      );
+      customerProfile = await getProfileByUserId(ctx, args.customerUserId);
 
       if (!customerProfile) {
         throw new ConvexError(errorMessages.notFound("perfil de usuario"));
@@ -458,12 +432,7 @@ export const createPastAppointmentReminderNotification = internalMutation({
     barberUserId: v.string(),
   },
   handler: async (ctx, args) => {
-    const barberProfile = await ctx.runQuery(
-      internal.userProfileData.getProfileByUserId,
-      {
-        userId: args.barberUserId,
-      },
-    );
+    const barberProfile = await getProfileByUserId(ctx, args.barberUserId);
 
     if (!barberProfile) {
       throw new ConvexError(errorMessages.notFound("perfil de barbero"));
@@ -519,10 +488,7 @@ export const createBarberInvitedNotification = internalMutation({
       throw new ConvexError(errorMessages.notFound("barbería"));
     }
 
-    const inviterProfile = await ctx.runQuery(
-      internal.userProfileData.getProfileByUserId,
-      { userId: args.inviterUserId },
-    );
+    const inviterProfile = await getProfileByUserId(ctx, args.inviterUserId);
 
     const invitationUrl = `${process.env.SITE_URL}/invitations/${args.code}`;
 
@@ -550,12 +516,11 @@ export const createServiceDeletedCancellationNotification = internalMutation({
     contactEmail: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const customerProfile = await ctx.runQuery(
-      internal.userProfileData.getProfileByUserId,
-      {
-        userId: args.customerUserId,
-      },
-    );
+    const customerProfile = await getProfileByUserId(ctx, args.customerUserId);
+
+    if (!customerProfile) {
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
+    }
 
     const body = `Tu cita en ${args.barbershopName} ha sido cancelada porque el servicio "${args.serviceName}" ya no está disponible.`;
 

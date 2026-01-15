@@ -9,6 +9,7 @@ import { passkey } from "better-auth/plugins/passkey";
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { query } from "./_generated/server";
+import { getProfileByUserId } from "./userProfileData";
 
 const authFunctions: AuthFunctions = internal.auth;
 
@@ -58,17 +59,14 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
         });
       },
       onDelete: async (ctx, doc) => {
-        const profile = await ctx.runQuery(
-          internal.userProfileData.getProfileByUserId,
-          {
-            userId: doc.userId ?? "",
-          },
-        );
+        if (!doc.userId) {
+          return;
+        }
+
+        const profile = await getProfileByUserId(ctx, doc.userId);
 
         if (!profile) {
-          throw new Error("Profile not found", {
-            cause: doc.userId,
-          });
+          return;
         }
 
         await ctx.runMutation(internal.userProfileData.deleteProfile, {
@@ -114,6 +112,7 @@ export const createAuth = (
       autoSignIn: true,
       minPasswordLength: 4,
       maxPasswordLength: 255,
+      sendResetPassword: async ({ token, url, user }) => {},
     },
     socialProviders: {
       google: {

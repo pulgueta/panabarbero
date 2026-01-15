@@ -9,6 +9,7 @@ import { action, internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
 import { assertCanManageServices, assertCanManageShop } from "./authz";
 import { errorMessages } from "./errors";
+import { rateLimitOrThrow } from "./ratelimit";
 import { tables } from "./tables";
 
 type ServiceResult = {
@@ -24,6 +25,12 @@ export const searchServices = action({
   },
   handler: async (ctx, args): Promise<ServiceResult> => {
     const user = await authComponent.getAuthUser(ctx);
+
+    if (!user) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    await rateLimitOrThrow(ctx, "searchServices", user._id);
 
     const serviceResults = await ctx.runAction(internal.rag.searchRAG, {
       namespace: "services",
@@ -104,6 +111,8 @@ export const createService = mutation({
     if (!user?.userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
+
+    await rateLimitOrThrow(ctx, "createService", user._id);
 
     const { service } = args;
 
@@ -217,6 +226,8 @@ export const updateService = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
+    await rateLimitOrThrow(ctx, "updateService", user._id);
+
     const { service, serviceId } = args;
 
     // Only owners can update services
@@ -248,6 +259,8 @@ export const deleteService = mutation({
     if (!user?.userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
+
+    await rateLimitOrThrow(ctx, "deleteService", user._id);
 
     const { serviceId, barbershopId, force } = args;
 
