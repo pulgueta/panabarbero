@@ -8,17 +8,17 @@ import type {
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 
 export function createServiceMutationOptions() {
-  return useConvexMutation(api.services.createService);
+  return useConvexMutation(api.services.create);
 }
 
 export function updateServiceMutationOptions() {
-  return useConvexMutation(api.services.updateService);
+  return useConvexMutation(api.services.update);
 }
 
 export function servicesByBarbershopIdQueryOptions(
   barbershopId: Barbershop["_id"],
 ) {
-  return convexQuery(api.barbershops.getBarbershopServices, { barbershopId });
+  return convexQuery(api.barbershops.getServices, { barbershopId });
 }
 
 export function servicesPaginatedByBarbershopIdQueryOptions(
@@ -26,7 +26,7 @@ export function servicesPaginatedByBarbershopIdQueryOptions(
   cursor: string | null = null,
   numItems = 6,
 ) {
-  return convexQuery(api.barbershops.getBarbershopServicesPaginated, {
+  return convexQuery(api.barbershops.getServicesPaginated, {
     barbershopId,
     paginationOpts: {
       cursor,
@@ -36,17 +36,17 @@ export function servicesPaginatedByBarbershopIdQueryOptions(
 }
 
 export function serviceByIdQueryOptions(serviceId: Service["_id"]) {
-  return convexQuery(api.services.getServiceById, { serviceId });
+  return convexQuery(api.services.getById, { serviceId });
 }
 
 export function servicesByIdsQueryOptions(serviceIds: Service["_id"][]) {
-  return convexQuery(api.services.getServicesByIds, { serviceIds });
+  return convexQuery(api.services.getByIds, { serviceIds });
 }
 
 export function serviceByAppointmentIdQueryOptions(
   appointmentId: Appointment["_id"],
 ) {
-  return convexQuery(api.services.getServiceByAppointmentId, { appointmentId });
+  return convexQuery(api.services.getByAppointmentId, { appointmentId });
 }
 
 export function deleteServiceMutationOptions() {
@@ -54,7 +54,7 @@ export function deleteServiceMutationOptions() {
 }
 
 export function servicesQueryOptions(barbershopId: Barbershop["_id"]) {
-  return convexQuery(api.barbershops.getBarbershopServices, { barbershopId });
+  return convexQuery(api.barbershops.getServices, { barbershopId });
 }
 
 export function useServicesFromBarbershop(barbershopId: Barbershop["_id"]) {

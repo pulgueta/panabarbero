@@ -6,7 +6,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 export function barbershopMetadataQueryOptions(
   barbershopId: Barbershop["_id"],
 ) {
-  return convexQuery(api.barbershopMetadata.getBarbershopMetadata, {
+  return convexQuery(api.barbershopMetadata.get, {
     barbershopId,
   });
 }

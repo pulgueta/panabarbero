@@ -14,7 +14,7 @@ export const namespace = v.union(
   v.literal("barbershops"),
 );
 
-export const addToRAG = internalAction({
+export const add = internalAction({
   args: {
     userId: v.optional(v.string()),
     text: v.string(),
@@ -31,7 +31,7 @@ export const addToRAG = internalAction({
   },
 });
 
-export const searchRAG = internalAction({
+export const search = internalAction({
   args: {
     query: v.string(),
     namespace,

@@ -60,7 +60,7 @@ export const ResetPasswordEmail = ({ resetUrl }: ResetPasswordEmailProps) => {
                 Si el botón no funciona, copia y pega este enlace en tu
                 navegador:
               </Text>
-              <Text className="break-all text-xs text-primary">
+              <Text className="break-all text-primary text-xs">
                 <Link href={resetUrl}>{resetUrl}</Link>
               </Text>
 

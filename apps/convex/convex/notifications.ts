@@ -27,7 +27,7 @@ export function isNotificationEnabled(
   return notificationsPreferences.some((n) => n.type === channel && n.enabled);
 }
 
-export const createAppointmentCancelledNotification = internalMutation({
+export const createAppointmentCancelled = internalMutation({
   args: {
     customerUserId: v.string(),
     notes: v.string(),
@@ -113,7 +113,7 @@ export const createAppointmentCancelledNotification = internalMutation({
   },
 });
 
-export const createAppointmentRescheduleRequestNotification = internalMutation({
+export const createAppointmentRescheduleRequest = internalMutation({
   args: {
     appointmentId: v.id("appointments"),
     sendTo: v.union(v.literal("customer"), v.literal("barber")),
@@ -198,94 +198,86 @@ export const createAppointmentRescheduleRequestNotification = internalMutation({
   },
 });
 
-export const createAppointmentRescheduleDecisionNotification = internalMutation(
-  {
-    args: {
-      appointmentId: v.id("appointments"),
-      to: v.string(),
-      receiverUserId: v.string(),
-      accepted: v.boolean(),
-      notes: v.optional(v.string()),
-      barbershopName: v.optional(v.string()),
-      role: v.union(v.literal("barber"), v.literal("customer")),
-    },
-    handler: async (ctx, args) => {
-      const receiverProfile = await getProfileByUserId(
-        ctx,
-        args.receiverUserId,
-      );
+export const createAppointmentRescheduleDecision = internalMutation({
+  args: {
+    appointmentId: v.id("appointments"),
+    to: v.string(),
+    receiverUserId: v.string(),
+    accepted: v.boolean(),
+    notes: v.optional(v.string()),
+    barbershopName: v.optional(v.string()),
+    role: v.union(v.literal("barber"), v.literal("customer")),
+  },
+  handler: async (ctx, args) => {
+    const receiverProfile = await getProfileByUserId(ctx, args.receiverUserId);
 
-      if (!receiverProfile) {
-        throw new ConvexError(errorMessages.notFound("perfil de usuario"));
-      }
+    if (!receiverProfile) {
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
+    }
 
-      const acceptedBody = "Tu solicitud de reagendamiento ha sido aceptada.";
-      const deniedBodyForCustomer = `Tu cita en ${args.barbershopName} ha sido cancelada.`;
-      const deniedBodyForBarber =
-        "Tu solicitud de reagendamiento ha sido rechazada.";
+    const acceptedBody = "Tu solicitud de reagendamiento ha sido aceptada.";
+    const deniedBodyForCustomer = `Tu cita en ${args.barbershopName} ha sido cancelada.`;
+    const deniedBodyForBarber =
+      "Tu solicitud de reagendamiento ha sido rechazada.";
 
-      const isCustomer = args.role === "customer";
-      const body = args.accepted
-        ? acceptedBody
-        : isCustomer
-          ? deniedBodyForCustomer
-          : deniedBodyForBarber;
+    const isCustomer = args.role === "customer";
+    const body = args.accepted
+      ? acceptedBody
+      : isCustomer
+        ? deniedBodyForCustomer
+        : deniedBodyForBarber;
 
-      // Deep link to view appointments
-      const appointmentLink = isCustomer
-        ? `${process.env.SITE_URL}/profile?tab=appointments`
-        : `${process.env.SITE_URL}/profile/barbershops/appointments`;
+    // Deep link to view appointments
+    const appointmentLink = isCustomer
+      ? `${process.env.SITE_URL}/profile?tab=appointments`
+      : `${process.env.SITE_URL}/profile/barbershops/appointments`;
 
-      const smsBody = `${body} Ver detalles: ${appointmentLink}`;
+    const smsBody = `${body} Ver detalles: ${appointmentLink}`;
 
-      if (
-        isNotificationEnabled("email", receiverProfile.notificationsPreferences)
-      ) {
-        if (args.accepted) {
+    if (
+      isNotificationEnabled("email", receiverProfile.notificationsPreferences)
+    ) {
+      if (args.accepted) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.emails.sendAppointmentRescheduledAcceptedEmail,
+          { to: args.to, body },
+        );
+      } else {
+        if (isCustomer) {
           await ctx.scheduler.runAfter(
             0,
-            internal.emails.sendAppointmentRescheduledAcceptedEmail,
-            { to: args.to, body },
+            internal.emails.sendAppointmentCancelled,
+            {
+              sendTo: "customer",
+              notes: args.notes ?? "Sin motivo especificado.",
+              to: args.to,
+              body,
+            },
           );
         } else {
-          if (isCustomer) {
-            await ctx.scheduler.runAfter(
-              0,
-              internal.emails.sendAppointmentCancelled,
-              {
-                sendTo: "customer",
-                notes: args.notes ?? "Sin motivo especificado.",
-                to: args.to,
-                body,
-              },
-            );
-          } else {
-            await ctx.scheduler.runAfter(
-              0,
-              internal.emails.sendAppointmentRescheduledDeniedEmail,
-              { to: args.to, body },
-            );
-          }
+          await ctx.scheduler.runAfter(
+            0,
+            internal.emails.sendAppointmentRescheduledDeniedEmail,
+            { to: args.to, body },
+          );
         }
       }
+    }
 
-      if (
-        isNotificationEnabled(
-          "sms",
-          receiverProfile.notificationsPreferences,
-        ) &&
-        receiverProfile.phoneNumber
-      ) {
-        await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
-          body: smsBody,
-          to: receiverProfile.phoneNumber,
-        });
-      }
-    },
+    if (
+      isNotificationEnabled("sms", receiverProfile.notificationsPreferences) &&
+      receiverProfile.phoneNumber
+    ) {
+      await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
+        body: smsBody,
+        to: receiverProfile.phoneNumber,
+      });
+    }
   },
-);
+});
 
-export const createAppointmentCreatedNotification = internalMutation({
+export const createAppointmentCreated = internalMutation({
   args: {
     appointmentId: v.id("appointments"),
     to: v.optional(v.string()),
@@ -370,7 +362,7 @@ export const createAppointmentCreatedNotification = internalMutation({
   },
 });
 
-export const createAppointmentReminderNotification = internalMutation({
+export const createAppointmentReminder = internalMutation({
   args: {
     to: v.optional(v.string()),
     customerUserId: v.string(),
@@ -427,7 +419,7 @@ export const createAppointmentReminderNotification = internalMutation({
   },
 });
 
-export const createPastAppointmentReminderNotification = internalMutation({
+export const createPastAppointmentReminder = internalMutation({
   args: {
     barberUserId: v.string(),
   },
@@ -468,7 +460,7 @@ export const createPastAppointmentReminderNotification = internalMutation({
   },
 });
 
-export const createBarberInvitedNotification = internalMutation({
+export const createBarberInvited = internalMutation({
   args: {
     invitationId: v.id("invitations"),
     barbershopId: v.id("barbershops"),
@@ -506,7 +498,7 @@ export const createBarberInvitedNotification = internalMutation({
  * Notification when an appointment is cancelled due to service deletion.
  * Sends to customer via both email and SMS if contact info is available.
  */
-export const createServiceDeletedCancellationNotification = internalMutation({
+export const createServiceDeletedCancellation = internalMutation({
   args: {
     appointmentId: v.id("appointments"),
     customerUserId: v.string(),

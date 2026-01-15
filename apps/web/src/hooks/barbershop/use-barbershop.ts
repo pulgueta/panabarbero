@@ -17,41 +17,37 @@ export type ActiveBarbershopsPayload = BarbershopSearch & {
 export function activeBarbershopsQueryOptions(
   payload: ActiveBarbershopsPayload,
 ) {
-  return convexQuery(api.barbershops.getActiveBarbershops, payload);
+  return convexQuery(api.barbershops.getActive, payload);
 }
 
 export function barbershopByUuidQueryOptions(uuid: string) {
-  return convexQuery(api.barbershops.getBarbershopByUuid, { uuid });
+  return convexQuery(api.barbershops.getByUuid, { uuid });
 }
 
 export function barbershopsByIdsQueryOptions(
   barbershopIds: Barbershop["_id"][],
 ) {
-  return convexQuery(api.barbershops.getBarbershopsByIds, { barbershopIds });
+  return convexQuery(api.barbershops.getByIds, { barbershopIds });
 }
 
 export function barbershopAvailabilityQueryOptions(
   barbershopId: Barbershop["_id"],
 ) {
-  return convexQuery(api.appointments.getBarbershopAvailability, {
+  return convexQuery(api.barbershops.getAvailability, {
     barbershopId,
   });
 }
 
 export function searchBarbershopsByNameQueryOptions(name?: string) {
-  return convexQuery(api.barbershops.getBarbershopsByName, { name });
-}
-
-export function barbershopByIdQueryOptions(barbershopId: Barbershop["_id"]) {
-  return convexQuery(api.barbershops.getBarbershopById, { barbershopId });
+  return convexQuery(api.barbershops.getByName, { name });
 }
 
 export function barbershopByOwnerIdQueryOptions(ownerId: string) {
-  return convexQuery(api.barbershops.getBarbershopByOwnerId, { ownerId });
+  return convexQuery(api.barbershops.getByOwnerId, { ownerId });
 }
 
 export function barbershopByMemberUserIdQueryOptions(userId: string) {
-  return convexQuery(api.barbershops.getBarbershopByMemberUserId, { userId });
+  return convexQuery(api.barbershops.getByMemberUserId, { userId });
 }
 
 export function useBarbershopByUuid(uuid: string) {
@@ -84,27 +80,21 @@ export function useBarbershopAvailability(barbershopId: Barbershop["_id"]) {
   return useSuspenseQuery(barbershopAvailabilityQueryOptions(barbershopId));
 }
 
-export function useBarbershopById(barbershopId: Barbershop["_id"]) {
-  return useSuspenseQuery(barbershopByIdQueryOptions(barbershopId));
-}
-
 export function useBarbershopActions() {
   const createBarbershopMutation = useMutation({
-    mutationFn: useConvexMutation(api.barbershops.createBarbershop),
+    mutationFn: useConvexMutation(api.barbershops.create),
   });
   const updateBarbershopMutation = useMutation({
-    mutationFn: useConvexMutation(api.barbershops.updateBarbershop),
+    mutationFn: useConvexMutation(api.barbershops.update),
   });
   const updateBarbershopDayAvailabilityMutation = useMutation({
-    mutationFn: useConvexMutation(
-      api.barbershops.updateBarbershopDayAvailability,
-    ),
+    mutationFn: useConvexMutation(api.barbershops.updateDayAvailability),
   });
   const updateBarbershopAvailabilityMutation = useMutation({
-    mutationFn: useConvexMutation(api.barbershops.updateBarbershopAvailability),
+    mutationFn: useConvexMutation(api.barbershops.updateDayAvailability),
   });
   const deleteBarbershopMutation = useMutation({
-    mutationFn: useConvexMutation(api.barbershops.deleteBarbershopCascade),
+    mutationFn: useConvexMutation(api.barbershops.deleteCascade),
   });
 
   return {
