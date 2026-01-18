@@ -44,7 +44,6 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
   createReview: { kind: "fixed window", rate: 3, period: MINUTE },
   updateReview: { kind: "fixed window", rate: 5, period: MINUTE },
   deleteReview: { kind: "fixed window", rate: 5, period: MINUTE },
-  createMobilePushToken: { kind: "fixed window", rate: 10, period: MINUTE },
   deleteR2Object: { kind: "fixed window", rate: 5, period: MINUTE },
   updateName: { kind: "fixed window", rate: 5, period: MINUTE },
   updateEmail: { kind: "fixed window", rate: 3, period: MINUTE },
