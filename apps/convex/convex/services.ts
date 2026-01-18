@@ -1,103 +1,13 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: is always provided */
 
-import type { SearchEntry, SearchResult } from "@convex-dev/rag";
-import type { EmbeddingModelUsage } from "ai";
-import type { Value } from "convex/values";
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
-import { action, internalMutation, mutation, query } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
 import { assertCanManageServices, assertCanManageShop } from "./authz";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
 import { tables } from "./tables";
-
-type ServiceResult = {
-  results: SearchResult[];
-  text: string;
-  entries: SearchEntry<Record<string, Value>, Record<string, Value>>[];
-  usage: EmbeddingModelUsage;
-};
-
-export const search = action({
-  args: {
-    service: v.string(),
-  },
-  handler: async (ctx, args): Promise<ServiceResult> => {
-    const user = await authComponent.getAuthUser(ctx);
-
-    if (!user) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    await rateLimitOrThrow(ctx, "searchServices", user._id);
-
-    const serviceResults = await ctx.runAction(internal.rag.search, {
-      namespace: "services",
-      query: args.service,
-      userId: user.userId ?? undefined,
-    });
-
-    return serviceResults;
-  },
-});
-
-export const createMutation = internalMutation({
-  args: {
-    service: v.object({
-      ...tables.services,
-    }),
-  },
-  handler: async (ctx, args) => {
-    const barbershop = await ctx.db.get(args.service.barbershopId);
-
-    if (barbershop && barbershop.isActive === false) {
-      const existingService = await ctx.db
-        .query("services")
-        .withIndex("by_barbershopId", (q) =>
-          q.eq("barbershopId", args.service.barbershopId),
-        )
-        .first();
-
-      if (!existingService) {
-        await ctx.db.patch(args.service.barbershopId, {
-          isActive: true,
-        });
-      }
-    }
-
-    const serviceId = await ctx.db.insert("services", args.service);
-
-    // Auto-assign service to the only barber if there's only one owner-barber member
-    const members = await ctx.db
-      .query("barbershopMembers")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.service.barbershopId),
-      )
-      .filter((q) => q.eq(q.field("isActive"), true))
-      .collect();
-
-    if (members.length === 1) {
-      const onlyMember = members[0];
-      const isOwnerAndBarber =
-        onlyMember.roles.includes("owner") &&
-        onlyMember.roles.includes("barber");
-
-      if (isOwnerAndBarber) {
-        // Auto-assign service to the only owner-barber
-        await ctx.db.insert("barbershopMemberServices", {
-          uuid: crypto.randomUUID(),
-          barbershopId: args.service.barbershopId,
-          barbershopMemberId: onlyMember._id,
-          serviceId,
-          isActive: true,
-        });
-      }
-    }
-
-    return serviceId;
-  },
-});
 
 export const create = mutation({
   args: {
@@ -135,12 +45,6 @@ export const create = mutation({
         });
       }
     }
-
-    await ctx.scheduler.runAfter(0, internal.rag.add, {
-      namespace: "services",
-      text: service.name,
-      userId: user.userId,
-    });
 
     const serviceId = await ctx.db.insert("services", service);
 

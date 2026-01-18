@@ -16,15 +16,17 @@ import {
 import { tailwindConfig } from "../../tailwind-config";
 import { Header } from "../components/header";
 
-export interface ResetPasswordEmailProps {
-  resetUrl: string;
+export interface VerificationEmailProps {
+  verificationUrl: string;
 }
 
-export const ResetPasswordEmail = ({ resetUrl }: ResetPasswordEmailProps) => {
+export const VerificationEmail = ({
+  verificationUrl,
+}: VerificationEmailProps) => {
   return (
     <Html lang="es" dir="ltr">
       <Head />
-      <Preview>Restablece tu contraseña - PanaBarbero</Preview>
+      <Preview>Verifica tu correo electrónico - PanaBarbero</Preview>
       <Tailwind
         config={{
           presets: [pixelBasedPreset],
@@ -36,20 +38,22 @@ export const ResetPasswordEmail = ({ resetUrl }: ResetPasswordEmailProps) => {
             <Header />
 
             <Heading className="text-balance text-center text-2xl">
-              Restablece tu contraseña
+              Verifica tu correo electrónico
             </Heading>
 
             <Container>
               <Text className="text-pretty text-sm">
-                Haz clic en el siguiente botón para restablecer tu contraseña:
+                Gracias por registrarte en PanaBarbero. Para completar tu
+                registro, por favor verifica tu correo electrónico haciendo clic
+                en el siguiente botón:
               </Text>
 
               <Section className="flex w-full items-center justify-center py-4">
                 <Button
-                  href={resetUrl}
+                  href={verificationUrl}
                   className="mx-auto rounded-md bg-primary px-6 py-3 font-medium text-primary-foreground text-sm"
                 >
-                  Restablecer contraseña
+                  Verificar correo electrónico
                 </Button>
               </Section>
 
@@ -58,13 +62,12 @@ export const ResetPasswordEmail = ({ resetUrl }: ResetPasswordEmailProps) => {
                 navegador:
               </Text>
               <Text className="break-all text-primary text-xs">
-                <Link href={resetUrl}>{resetUrl}</Link>
+                <Link href={verificationUrl}>{verificationUrl}</Link>
               </Text>
 
               <Text className="mt-4 text-pretty text-muted-foreground text-xs">
-                Este enlace expirará en 1 hora por seguridad. Si no solicitaste
-                restablecer tu contraseña, ignora este correo. Tu contraseña
-                actual permanecerá sin cambios.
+                Este enlace expirará en 24 horas por seguridad. Si no creaste
+                una cuenta en PanaBarbero, ignora este correo.
               </Text>
 
               <Text className="mt-2 text-pretty font-medium text-muted-foreground text-xs">
@@ -78,4 +81,4 @@ export const ResetPasswordEmail = ({ resetUrl }: ResetPasswordEmailProps) => {
   );
 };
 
-export default ResetPasswordEmail;
+export default VerificationEmail;

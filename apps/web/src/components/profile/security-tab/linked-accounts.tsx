@@ -142,9 +142,9 @@ export const LinkedAccountsSection: FC = () => {
         </div>
 
         <p className="text-muted-foreground text-xs">
-          {!canUnlinkGoogle && googleAccount
-            ? "Para desvincular Google, primero configura una contraseña o vincula otra cuenta."
-            : "Vincular cuentas te permite iniciar sesión de diferentes formas."}
+          {!canUnlinkGoogle &&
+            googleAccount &&
+            "Para desvincular Google, primero configura una contraseña o vincula otra cuenta."}
         </p>
       </CardContent>
     </Card>

@@ -1,23 +1,15 @@
 /** biome-ignore-all lint/correctness/noChildrenProp: Enforced by TanStack Form */
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { signIn, twoFactor } from "@panabarbero/convex/auth";
+import { signIn } from "@panabarbero/convex/auth";
 import { Link, useRouter } from "@tanstack/react-router";
-import { EyeIcon, EyeOffIcon, ShieldCheckIcon } from "lucide-react";
-import { useId, useState } from "react";
+import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { startTransition, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Field,
   FieldError,
@@ -25,24 +17,14 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSeparator,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
 import { Spinner } from "@/components/ui/spinner";
 import { loginFormSchema } from "@/lib/auth-schemas";
 import { translateBetterAuthError } from "@/lib/better-auth-errors";
+// import { TwoFactorVerificationDialog } from "./two-factor-verification-dialog";
 
 export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [show2FADialog, setShow2FADialog] = useState<boolean>(false);
-  const [totpCode, setTotpCode] = useState<string>("");
-  const [isVerifying2FA, setIsVerifying2FA] = useState<boolean>(false);
-  const [trustDevice, setTrustDevice] = useState<boolean>(true);
-
-  const trustDeviceId = useId();
+  // const [show2FADialog, setShow2FADialog] = useState<boolean>(false);
 
   const router = useRouter();
 
@@ -63,66 +45,30 @@ export const LoginForm = () => {
     });
   };
 
-  const handle2FAVerification = async () => {
-    if (totpCode.length !== 6) {
-      toast.error("Ingresa un código de 6 dígitos");
-      return;
-    }
-
-    setIsVerifying2FA(true);
-    try {
-      const { data, error } = await twoFactor.verifyTotp({
-        code: totpCode,
-        trustDevice,
-      });
-
-      if (data) {
-        toast.success("Verificación exitosa");
-        setShow2FADialog(false);
-        handleSuccessfulLogin();
-      }
-
-      if (error?.code) {
-        toast.error(translateBetterAuthError(error.code));
-      }
-    } catch (error) {
-      toast.error("Error al verificar el código");
-      console.error(error);
-    } finally {
-      setIsVerifying2FA(false);
-    }
-  };
-
   const onSubmit = form.handleSubmit(
     async ({ email, password, rememberMe }) => {
       try {
-        const response = await signIn.email({
+        const { data, error } = await signIn.email({
           email,
           password,
           rememberMe,
         });
 
-        // Check if 2FA is required
-        if ("twoFactorRedirect" in response) {
-          // 2FA is required, show the 2FA dialog
-          setTotpCode("");
-          setShow2FADialog(true);
+        if (error?.code) {
+          toast.error(translateBetterAuthError(error.code));
           return;
         }
 
-        if (response.error) {
-          // Check for specific 2FA-related errors
-          if (response.error.code === "TWO_FACTOR_NOT_ENABLED") {
-            // Regular login without 2FA, should proceed normally
+        // if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) {
+        //   setShow2FADialog(true);
+        //   return;
+        // }
+
+        if (data) {
+          startTransition(() => {
             handleSuccessfulLogin();
-            return;
-          }
-          toast.error(response.error.message ?? "Error al iniciar sesión");
-          return;
+          });
         }
-
-        // Successful login without 2FA
-        handleSuccessfulLogin();
       } catch (error: unknown) {
         if (error instanceof Error) {
           toast.error(error.message ?? "Error al iniciar sesión");
@@ -240,74 +186,11 @@ export const LoginForm = () => {
         </Button>
       </form>
 
-      {/* 2FA Verification Dialog */}
-      <Dialog open={show2FADialog} onOpenChange={setShow2FADialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <div className="flex items-center gap-2">
-              <ShieldCheckIcon className="size-5 text-primary" />
-              <DialogTitle>Verificación de dos factores</DialogTitle>
-            </div>
-            <DialogDescription>
-              Ingresa el código de 6 dígitos de tu aplicación de autenticación
-              para continuar.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex flex-col items-center gap-4 py-4">
-            <InputOTP
-              maxLength={6}
-              value={totpCode}
-              onChange={setTotpCode}
-              disabled={isVerifying2FA}
-            >
-              <InputOTPGroup>
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-              </InputOTPGroup>
-              <InputOTPSeparator />
-              <InputOTPGroup>
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
-                <InputOTPSlot index={5} />
-              </InputOTPGroup>
-            </InputOTP>
-
-            <Field orientation="horizontal" className="mt-2">
-              <Checkbox
-                id={trustDeviceId}
-                checked={trustDevice}
-                onCheckedChange={(checked) => setTrustDevice(checked === true)}
-                disabled={isVerifying2FA}
-              />
-              <FieldLabel htmlFor={trustDeviceId} className="text-sm">
-                Confiar en este dispositivo por 30 días
-              </FieldLabel>
-            </Field>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShow2FADialog(false);
-                setTotpCode("");
-              }}
-              disabled={isVerifying2FA}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handle2FAVerification}
-              disabled={isVerifying2FA || totpCode.length !== 6}
-            >
-              {isVerifying2FA && <Spinner />}
-              Verificar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* <TwoFactorVerificationDialog
+        open={show2FADialog}
+        onOpenChange={setShow2FADialog}
+        onSuccess={handleSuccessfulLogin}
+      /> */}
     </>
   );
 };

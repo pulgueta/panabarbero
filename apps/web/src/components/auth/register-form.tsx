@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { registerFormSchema } from "@/lib/auth-schemas";
+import { translateBetterAuthError } from "@/lib/better-auth-errors";
 
 export const RegisterForm = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -38,18 +39,22 @@ export const RegisterForm = () => {
 
   const onSubmit = form.handleSubmit(async ({ name, email, password }) => {
     try {
-      const { data } = await signUp.email({
+      const { data, error } = await signUp.email({
         email,
         password,
         name,
-        callbackURL: "/profile?tab=account",
+        callbackURL: "/login",
       });
+
+      if (error?.code) {
+        toast.error(translateBetterAuthError(error.code));
+        return;
+      }
 
       if (data?.user) {
         toast.success("¡Cuenta creada! Bienvenido a PanaBarbero.");
         router.navigate({
-          to: "/profile",
-          search: { tab: "account" },
+          to: "/login",
           replace: true,
         });
         form.reset();

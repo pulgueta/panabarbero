@@ -134,7 +134,7 @@ export const updatePhoneNumber = mutation({
 
 export const updateNotificationPreference = mutation({
   args: {
-    type: v.union(v.literal("email"), v.literal("push"), v.literal("sms")),
+    type: v.union(v.literal("email"), v.literal("sms")),
     enabled: v.boolean(),
     userId: v.string(),
   },
