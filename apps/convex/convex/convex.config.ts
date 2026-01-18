@@ -5,6 +5,7 @@ import polar from "@convex-dev/polar/convex.config";
 import r2 from "@convex-dev/r2/convex.config";
 import rag from "@convex-dev/rag/convex.config";
 import rateLimiter from "@convex-dev/rate-limiter/convex.config";
+import resend from "@convex-dev/resend/convex.config";
 import twilio from "@convex-dev/twilio/convex.config";
 import { defineApp } from "convex/server";
 
@@ -13,6 +14,7 @@ app.use(betterAuth);
 app.use(postgis);
 app.use(twilio);
 app.use(rateLimiter);
+app.use(resend);
 app.use(r2);
 app.use(rag);
 app.use(migrations);

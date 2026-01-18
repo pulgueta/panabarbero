@@ -63,3 +63,10 @@ export const twoFactorVerifySchema = object({
 });
 
 export const disableTwoFactorSchema = twoFactorPasswordSchema;
+
+export const twoFactorFormSchema = object({
+  code: string({ message: "El código es requerido" })
+    .length(6, "El código debe tener 6 dígitos")
+    .regex(/^\d+$/, "El código debe contener solo números"),
+  trustDevice: boolean(),
+});
