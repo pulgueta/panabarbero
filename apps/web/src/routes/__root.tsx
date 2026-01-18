@@ -21,7 +21,7 @@ type RouterContext = {
     _creationTime: number;
     userId?: string | null | undefined | undefined;
     image?: string | null | undefined | undefined;
-    twoFactorEnabled?: boolean | null | undefined | undefined;
+    // twoFactorEnabled?: boolean | null | undefined | undefined;
     isAnonymous?: boolean | null | undefined | undefined;
     username?: string | null | undefined | undefined;
     displayUsername?: string | null | undefined | undefined;

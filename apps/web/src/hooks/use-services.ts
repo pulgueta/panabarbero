@@ -7,7 +7,7 @@ import type {
 } from "@panabarbero/convex/schemas";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 
-export function createServiceMutationOptions() {
+export function createServiceOptions() {
   return useConvexMutation(api.services.create);
 }
 
@@ -89,7 +89,7 @@ export function useServicesByBarbershopId(barbershopId: Barbershop["_id"]) {
 
 export function useServiceActions() {
   const createServiceMutation = useMutation({
-    mutationFn: createServiceMutationOptions(),
+    mutationFn: createServiceOptions(),
   });
   const updateServiceMutation = useMutation({
     mutationFn: updateServiceMutationOptions(),
