@@ -20,7 +20,7 @@ import {
   useActiveBarbershops,
 } from "@/hooks/barbershop/use-barbershop";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
-import { useBarbershopFiltersStore } from "@/store/barbershop-filters";
+import { useLocationStore } from "@/store/location";
 
 export type BarbershopSearch = {
   city?: string;
@@ -58,7 +58,7 @@ export const Route = createFileRoute("/barbershops/")({
 function BarbershopsPage() {
   const { data: user } = useSession();
 
-  const { state, city } = useBarbershopFiltersStore();
+  const { state, city } = useLocationStore();
 
   const {
     data: barbershops,
