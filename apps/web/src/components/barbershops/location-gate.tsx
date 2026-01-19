@@ -18,34 +18,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import {
+  setLocationCity,
+  setLocationState,
+  useLocationStore,
+} from "@/store/location";
 
 export const LocationGate = () => {
   const search = useSearch({ from: "/barbershops/" });
   const navigate = useNavigate({ from: "/barbershops" });
 
-  const [state, setState] = useState<string | undefined>();
-  const [city, setCity] = useState<string | undefined>();
   const [open, setOpen] = useState<boolean>(false);
-  const [storedState, setStoredState] = useLocalStorage<string | undefined>(
-    "barbershops_state",
-    undefined,
-  );
-  const [storedCity, setStoredCity] = useLocalStorage<string | undefined>(
-    "barbershops_city",
-    undefined,
-  );
+  const { state, city } = useLocationStore();
 
   const { states, citiesFromState } = useColombia();
 
   useEffect(() => {
-    const initialState = storedState ?? search.state;
-    const initialCity = storedCity ?? search.city;
+    if (search.state && search.state !== state) {
+      setLocationState(search.state);
+    }
+    if (search.city && search.city !== city) {
+      setLocationCity(search.city);
+    }
+  }, [search.city, search.state, state, city]);
 
-    setState(initialState);
-    setCity(initialCity);
-    setOpen(!(initialState && initialCity));
-  }, [search, storedState, storedCity]);
+  useEffect(() => {
+    setOpen(!(state && city));
+  }, [state, city]);
 
   const availableCities = state ? citiesFromState?.(state) : [];
 
@@ -53,8 +52,6 @@ export const LocationGate = () => {
     if (!state || !city) return;
 
     navigate({ to: ".", search: (prev) => ({ ...prev, state, city }) });
-    setStoredState(state);
-    setStoredCity(city);
     setOpen(false);
   };
 
@@ -73,8 +70,7 @@ export const LocationGate = () => {
           <Select
             value={state ?? ""}
             onValueChange={(v) => {
-              setState(v || undefined);
-              setCity(undefined);
+              setLocationState(v || undefined);
             }}
           >
             <SelectTrigger className="w-full">
@@ -92,7 +88,7 @@ export const LocationGate = () => {
           <Select
             disabled={!state}
             value={city ?? ""}
-            onValueChange={(v) => setCity(v || undefined)}
+            onValueChange={(v) => setLocationCity(v || undefined)}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Ciudad" />

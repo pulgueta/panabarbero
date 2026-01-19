@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_auth/login")({
   component: LoginPage,
   pendingComponent: LoadingComponent,
   loader: async ({ context }) => {
-    const user = await context.user;
+    const user = context.user;
 
     console.log(user);
 
@@ -39,8 +39,6 @@ export const Route = createFileRoute("/_auth/login")({
 type Provider = "google" | "apple" | "passkey" | "facebook";
 
 function LoginPage() {
-  const navigate = Route.useNavigate();
-
   const oauthProviderLabel = (provider: Provider) => {
     const baseLabel = "Iniciar sesión con";
 
@@ -58,18 +56,9 @@ function LoginPage() {
         autoFill: true,
       });
     } else {
-      const { error, data } = await signIn.social({
+      const { error } = await signIn.social({
         provider,
-        callbackURL: "/profile?tab=account",
       });
-
-      if (data) {
-        navigate({
-          to: "/profile",
-          search: { tab: "account" },
-          replace: true,
-        });
-      }
 
       if (error?.code) {
         toast.error(translateBetterAuthError(error.code));
