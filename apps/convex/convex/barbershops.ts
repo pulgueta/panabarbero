@@ -102,18 +102,30 @@ export const getActive = query({
       .query("barbershops")
       .withIndex("by_isActive", (q) => q.eq("isActive", true))
       .filter((q) =>
-        q.and(
-          q.neq(q.field("ownerId"), args.userId),
-          args.city && args.state
-            ? q.and(
-                q.eq(q.field("city"), args.city),
-                q.eq(q.field("state"), args.state),
-              )
-            : q.or(
-                q.eq(q.field("city"), args.city),
-                q.eq(q.field("state"), args.state),
-              ),
-        ),
+        args.userId
+          ? q.and(
+              q.neq(q.field("ownerId"), args.userId),
+              args.city && args.state
+                ? q.and(
+                    q.eq(q.field("city"), args.city),
+                    q.eq(q.field("state"), args.state),
+                  )
+                : q.or(
+                    q.eq(q.field("city"), args.city),
+                    q.eq(q.field("state"), args.state),
+                  ),
+            )
+          : q.and(
+              args.city && args.state
+                ? q.and(
+                    q.eq(q.field("city"), args.city),
+                    q.eq(q.field("state"), args.state),
+                  )
+                : q.or(
+                    q.eq(q.field("city"), args.city),
+                    q.eq(q.field("state"), args.state),
+                  ),
+            ),
       )
       .order("asc")
       .collect();

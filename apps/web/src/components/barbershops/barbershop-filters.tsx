@@ -10,7 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useBarbershopFiltersStore } from "@/store/barbershop-filters";
+import {
+  setLocationCity,
+  setLocationState,
+  useLocationStore,
+} from "@/store/location";
 
 export const BarbershopFilters: FC = () => {
   const search = useSearch({ from: "/barbershops/" });
@@ -18,7 +22,7 @@ export const BarbershopFilters: FC = () => {
 
   const { states, citiesFromState } = useColombia();
 
-  const { state, city, setState, setCity } = useBarbershopFiltersStore();
+  const { state, city } = useLocationStore();
   const prevSearchRef = useRef({ state: search.state, city: search.city });
 
   // Sync URL search params with store when URL changes (e.g., browser back/forward, direct link)
@@ -30,22 +34,22 @@ export const BarbershopFilters: FC = () => {
     if (urlChanged) {
       // URL changed externally or on mount, sync to store
       if (search.state !== state) {
-        setState(search.state);
+        setLocationState(search.state);
       }
       if (search.city !== city) {
-        setCity(search.city);
+        setLocationCity(search.city);
       }
 
       // Update ref to current URL
       prevSearchRef.current = { state: search.state, city: search.city };
     }
-  }, [search.state, search.city, state, city, setState, setCity]);
+  }, [search.state, search.city, state, city]);
 
   const availableCities = state ? citiesFromState?.(state) : [];
 
   const handleStateChange = (newState: string) => {
     // Update store first (this also clears city)
-    setState(newState);
+    setLocationState(newState);
 
     // Update URL to match store
     navigate({
@@ -60,7 +64,7 @@ export const BarbershopFilters: FC = () => {
 
   const handleCityChange = (newCity: string) => {
     // Update store
-    setCity(newCity);
+    setLocationCity(newCity);
 
     // Update URL to match store
     navigate({

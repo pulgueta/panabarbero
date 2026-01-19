@@ -29,15 +29,19 @@ import {
   isBarberQueryOptions,
   useIsBarber,
 } from "@/hooks/use-barbershop-members";
-import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/")({
   pendingComponent: LoadingComponent,
   component: RouteComponent,
+  loader: async ({ context }) => {
+    const user = context.user;
+
+    return {
+      user,
+    };
+  },
   beforeLoad: async ({ context }) => {
-    const user = await context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
+    const user = context.user;
 
     if (user?.userId) {
       const isBarber = await context.queryClient.ensureQueryData(
@@ -56,8 +60,8 @@ export const Route = createFileRoute("/")({
 
 function RouteComponent() {
   const navigate = Route.useNavigate();
+  const { user } = Route.useLoaderData();
 
-  const { data: user } = useSession();
   const { data: isBarber } = useIsBarber(user?.userId ?? "");
 
   useLayoutEffect(() => {

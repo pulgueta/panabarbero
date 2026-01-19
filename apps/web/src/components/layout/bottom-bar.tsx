@@ -27,9 +27,9 @@ export const BottomBar = () => {
   );
 
   return (
-    <div className="fixed right-0 bottom-0 left-0 z-50 mx-auto h-16 w-full border-border border-t bg-background/80 backdrop-blur-sm">
+    <div className="fixed right-0 bottom-0 left-0 z-50 mx-auto flex h-16 w-full items-center border-border border-t bg-background/80 backdrop-blur-sm">
       <div className="container mx-auto">
-        <nav className="flex h-full items-center justify-around gap-x-2 px-2 py-1.5">
+        <nav className="flex h-full items-center justify-around gap-x-2 px-2">
           {user
             ? isBarber
               ? navigationRoutes.map((item) => {
@@ -98,10 +98,10 @@ export const BottomBar = () => {
                     to={item.to}
                     disabled={currentPath === item.to}
                     activeProps={{
-                      className: "text-primary bg-primary/10 rounded-md",
+                      className: "text-primary",
                     }}
                     className={cn(
-                      "flex w-full max-w-20 flex-col items-center justify-center gap-1.5 py-1.5 text-muted-foreground",
+                      "flex w-full max-w-20 flex-col items-center justify-center gap-1.5 text-muted-foreground",
                     )}
                     style={{
                       viewTransitionName: item.to,
@@ -120,9 +120,7 @@ export const BottomBar = () => {
                 );
               })}
 
-          <div className="pb-1">
-            <ThemeToggler />
-          </div>
+          <ThemeToggler />
         </nav>
       </div>
     </div>

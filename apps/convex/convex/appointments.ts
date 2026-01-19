@@ -239,7 +239,7 @@ export const create = mutation({
         endAt,
       )
     ) {
-      throw new ConvexError(errorMessages.appointmentDuringLunchBreak);
+      throw new ConvexError(errorMessages.appointmentUnavailableHours);
     }
 
     const appointmentUserId = isBarberCreatingAppointment

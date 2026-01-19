@@ -216,7 +216,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
 
     if (hasLunch) {
       if (!schedule.lunchStart || !schedule.lunchEnd) {
-        setFormError("Completa ambas horas de almuerzo");
+        setFormError("Completa ambas horas");
 
         return;
       }
@@ -294,7 +294,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
 
     if ((lunchStart && !lunchEnd) || (!lunchStart && lunchEnd)) {
       throw new Error(
-        `Completa ambas horas de almuerzo para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+        `Completa ambas horas para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
       );
     }
 
@@ -520,12 +520,11 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
                       <p>
                         {entry.openAt} – {entry.closeAt}
                       </p>
-                      {entry.lunchStart && entry.lunchEnd ? (
+                      {entry.lunchStart && entry.lunchEnd && (
                         <p>
-                          Almuerzo: {entry.lunchStart} – {entry.lunchEnd}
+                          No disponible durante: {entry.lunchStart} –{" "}
+                          {entry.lunchEnd}
                         </p>
-                      ) : (
-                        <p>Sin almuerzo</p>
                       )}
                     </div>
                   ) : (
