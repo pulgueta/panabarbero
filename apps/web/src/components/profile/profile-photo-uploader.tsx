@@ -142,7 +142,7 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
       <CardContent>
         <div className="flex items-center gap-4">
           <div className="relative">
-            <Avatar className="size-20">
+            <Avatar className="size-16">
               <AvatarImage
                 src={displayPhotoUrl ?? undefined}
                 alt="Foto de perfil"
