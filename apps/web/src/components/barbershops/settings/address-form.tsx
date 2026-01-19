@@ -1,7 +1,7 @@
 import { useColombia } from "@panabarbero/constants";
 import type { Barbershop } from "@panabarbero/convex/schemas";
 import type { FC } from "react";
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +20,11 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { useBarbershopActions } from "@/hooks/barbershop/use-barbershop";
+import {
+  setLocationCity,
+  setLocationState,
+  useLocationStore,
+} from "@/store/location";
 
 interface AddressFormProps {
   barbershop: Barbershop;
@@ -34,19 +39,27 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
     zip: useId(),
   };
   const { states, citiesFromState } = useColombia();
+  const { state, city } = useLocationStore();
 
   const [fullAddress, setFullAddress] = useState(
     barbershop.address.fullAddress,
   );
   const [details, setDetails] = useState(barbershop.address.details ?? "");
-  const [state, setState] = useState(barbershop.state);
-  const [city, setCity] = useState(barbershop.city);
   const [zip, setZip] = useState(barbershop.zipCode ?? "");
 
   const availableCities = useMemo(
     () => (state ? citiesFromState(state) : []),
     [state, citiesFromState],
   );
+
+  useEffect(() => {
+    if (barbershop.state && barbershop.state !== state) {
+      setLocationState(barbershop.state);
+    }
+    if (barbershop.city && barbershop.city !== city) {
+      setLocationCity(barbershop.city);
+    }
+  }, [barbershop.state, barbershop.city, state, city]);
 
   const {
     updateBarbershopMutation: {
@@ -75,8 +88,8 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
         gracePeriodMinutes: barbershop.gracePeriodMinutes ?? 5,
         ownerId: barbershop.ownerId,
         availability: barbershop.availability ?? [],
-        city,
-        state,
+        city: city ?? "",
+        state: state ?? "",
         zipCode: zip || undefined,
         bannerUrl: barbershop.bannerUrl || undefined,
       },
@@ -117,8 +130,8 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
             <Select
               value={state}
               onValueChange={(v) => {
-                setState(v);
-                setCity("");
+                setLocationState(v);
+                setLocationCity(undefined);
               }}
             >
               <SelectTrigger className="w-full bg-background dark:bg-card">
@@ -139,7 +152,11 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
 
           <Field data-invalid={!city}>
             <FieldLabel htmlFor={ids.city}>Ciudad</FieldLabel>
-            <Select value={city} onValueChange={setCity} disabled={!state}>
+            <Select
+              value={city}
+              onValueChange={(value) => setLocationCity(value)}
+              disabled={!state}
+            >
               <SelectTrigger className="w-full bg-background dark:bg-card">
                 <SelectValue placeholder="Selecciona ciudad" />
               </SelectTrigger>

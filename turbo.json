@@ -10,7 +10,7 @@
     "build": {
       "inputs": ["$TURBO_DEFAULT$", ".env"],
       "dependsOn": ["^build"],
-      "outputs": [".cache/tsbuildinfo.json", "dist/**", "build/**"]
+      "outputs": [".cache/tsbuildinfo.json", "dist/**", "build/**", "out/**"]
     },
     "dev": {
       "cache": false,

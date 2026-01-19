@@ -20,10 +20,9 @@ import type * as emails from "../emails.js";
 import type * as errors from "../errors.js";
 import type * as http from "../http.js";
 import type * as index from "../index.js";
+import type * as invitations from "../invitations.js";
 import type * as migrations from "../migrations.js";
-import type * as mobilePushTokens from "../mobilePushTokens.js";
 import type * as notifications from "../notifications.js";
-import type * as rag from "../rag.js";
 import type * as ratelimit from "../ratelimit.js";
 import type * as reviews from "../reviews.js";
 import type * as services from "../services.js";
@@ -50,10 +49,9 @@ declare const fullApi: ApiFromModules<{
   errors: typeof errors;
   http: typeof http;
   index: typeof index;
+  invitations: typeof invitations;
   migrations: typeof migrations;
-  mobilePushTokens: typeof mobilePushTokens;
   notifications: typeof notifications;
-  rag: typeof rag;
   ratelimit: typeof ratelimit;
   reviews: typeof reviews;
   services: typeof services;
@@ -1088,12 +1086,6 @@ export declare const components: {
               | null;
           }>;
         },
-        any
-      >;
-      migrationRemoveUserId: FunctionReference<
-        "mutation",
-        "internal",
-        { userId: string },
         any
       >;
       updateMany: FunctionReference<
@@ -2524,199 +2516,6 @@ export declare const components: {
       >;
     };
   };
-  pushNotifications: {
-    public: {
-      deleteNotificationsForUser: FunctionReference<
-        "mutation",
-        "internal",
-        { logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR"; userId: string },
-        null
-      >;
-      getNotification: FunctionReference<
-        "query",
-        "internal",
-        { id: string; logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR" },
-        null | {
-          _contentAvailable?: boolean;
-          _creationTime: number;
-          badge?: number;
-          body?: string;
-          categoryId?: string;
-          channelId?: string;
-          data?: any;
-          expiration?: number;
-          interruptionLevel?:
-            | "active"
-            | "critical"
-            | "passive"
-            | "time-sensitive";
-          mutableContent?: boolean;
-          numPreviousFailures: number;
-          priority?: "default" | "normal" | "high";
-          sound?: string | null;
-          state:
-            | "awaiting_delivery"
-            | "in_progress"
-            | "delivered"
-            | "needs_retry"
-            | "failed"
-            | "maybe_delivered"
-            | "unable_to_deliver";
-          subtitle?: string;
-          title?: string;
-          ttl?: number;
-        }
-      >;
-      getNotificationsForUser: FunctionReference<
-        "query",
-        "internal",
-        {
-          limit?: number;
-          logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
-          userId: string;
-        },
-        Array<{
-          _contentAvailable?: boolean;
-          _creationTime: number;
-          badge?: number;
-          body?: string;
-          categoryId?: string;
-          channelId?: string;
-          data?: any;
-          expiration?: number;
-          id: string;
-          interruptionLevel?:
-            | "active"
-            | "critical"
-            | "passive"
-            | "time-sensitive";
-          mutableContent?: boolean;
-          numPreviousFailures: number;
-          priority?: "default" | "normal" | "high";
-          sound?: string | null;
-          state:
-            | "awaiting_delivery"
-            | "in_progress"
-            | "delivered"
-            | "needs_retry"
-            | "failed"
-            | "maybe_delivered"
-            | "unable_to_deliver";
-          subtitle?: string;
-          title?: string;
-          ttl?: number;
-        }>
-      >;
-      getStatusForUser: FunctionReference<
-        "query",
-        "internal",
-        { logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR"; userId: string },
-        { hasToken: boolean; paused: boolean }
-      >;
-      pauseNotificationsForUser: FunctionReference<
-        "mutation",
-        "internal",
-        { logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR"; userId: string },
-        null
-      >;
-      recordPushNotificationToken: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
-          pushToken: string;
-          userId: string;
-        },
-        null
-      >;
-      removePushNotificationToken: FunctionReference<
-        "mutation",
-        "internal",
-        { logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR"; userId: string },
-        null
-      >;
-      restart: FunctionReference<
-        "mutation",
-        "internal",
-        { logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR" },
-        boolean
-      >;
-      sendPushNotification: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          allowUnregisteredTokens?: boolean;
-          logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
-          notification: {
-            _contentAvailable?: boolean;
-            badge?: number;
-            body?: string;
-            categoryId?: string;
-            channelId?: string;
-            data?: any;
-            expiration?: number;
-            interruptionLevel?:
-              | "active"
-              | "critical"
-              | "passive"
-              | "time-sensitive";
-            mutableContent?: boolean;
-            priority?: "default" | "normal" | "high";
-            sound?: string | null;
-            subtitle?: string;
-            title?: string;
-            ttl?: number;
-          };
-          userId: string;
-        },
-        string | null
-      >;
-      sendPushNotificationBatch: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          allowUnregisteredTokens?: boolean;
-          logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
-          notifications: Array<{
-            notification: {
-              _contentAvailable?: boolean;
-              badge?: number;
-              body?: string;
-              categoryId?: string;
-              channelId?: string;
-              data?: any;
-              expiration?: number;
-              interruptionLevel?:
-                | "active"
-                | "critical"
-                | "passive"
-                | "time-sensitive";
-              mutableContent?: boolean;
-              priority?: "default" | "normal" | "high";
-              sound?: string | null;
-              subtitle?: string;
-              title?: string;
-              ttl?: number;
-            };
-            userId: string;
-          }>;
-        },
-        Array<string | null>
-      >;
-      shutdown: FunctionReference<
-        "mutation",
-        "internal",
-        { logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR" },
-        { data?: any; message: string }
-      >;
-      unpauseNotificationsForUser: FunctionReference<
-        "mutation",
-        "internal",
-        { logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR"; userId: string },
-        null
-      >;
-    };
-  };
   rateLimiter: {
     lib: {
       checkRateLimit: FunctionReference<
@@ -2849,6 +2648,155 @@ export declare const components: {
     };
     time: {
       getServerTime: FunctionReference<"mutation", "internal", {}, number>;
+    };
+  };
+  resend: {
+    lib: {
+      cancelEmail: FunctionReference<
+        "mutation",
+        "internal",
+        { emailId: string },
+        null
+      >;
+      cleanupAbandonedEmails: FunctionReference<
+        "mutation",
+        "internal",
+        { olderThan?: number },
+        null
+      >;
+      cleanupOldEmails: FunctionReference<
+        "mutation",
+        "internal",
+        { olderThan?: number },
+        null
+      >;
+      createManualEmail: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          from: string;
+          headers?: Array<{ name: string; value: string }>;
+          replyTo?: Array<string>;
+          subject: string;
+          to: Array<string> | string;
+        },
+        string
+      >;
+      get: FunctionReference<
+        "query",
+        "internal",
+        { emailId: string },
+        {
+          bcc?: Array<string>;
+          bounced?: boolean;
+          cc?: Array<string>;
+          clicked?: boolean;
+          complained: boolean;
+          createdAt: number;
+          deliveryDelayed?: boolean;
+          errorMessage?: string;
+          failed?: boolean;
+          finalizedAt: number;
+          from: string;
+          headers?: Array<{ name: string; value: string }>;
+          html?: string;
+          opened: boolean;
+          replyTo: Array<string>;
+          resendId?: string;
+          segment: number;
+          status:
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
+          subject?: string;
+          template?: {
+            id: string;
+            variables?: Record<string, string | number>;
+          };
+          text?: string;
+          to: Array<string>;
+        } | null
+      >;
+      getStatus: FunctionReference<
+        "query",
+        "internal",
+        { emailId: string },
+        {
+          bounced: boolean;
+          clicked: boolean;
+          complained: boolean;
+          deliveryDelayed: boolean;
+          errorMessage: string | null;
+          failed: boolean;
+          opened: boolean;
+          status:
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
+        } | null
+      >;
+      handleEmailEvent: FunctionReference<
+        "mutation",
+        "internal",
+        { event: any },
+        null
+      >;
+      sendEmail: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          bcc?: Array<string>;
+          cc?: Array<string>;
+          from: string;
+          headers?: Array<{ name: string; value: string }>;
+          html?: string;
+          options: {
+            apiKey: string;
+            initialBackoffMs: number;
+            onEmailEvent?: { fnHandle: string };
+            retryAttempts: number;
+            testMode: boolean;
+          };
+          replyTo?: Array<string>;
+          subject?: string;
+          template?: {
+            id: string;
+            variables?: Record<string, string | number>;
+          };
+          text?: string;
+          to: Array<string>;
+        },
+        string
+      >;
+      updateManualEmail: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          emailId: string;
+          errorMessage?: string;
+          resendId?: string;
+          status:
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
+        },
+        null
+      >;
     };
   };
   r2: {

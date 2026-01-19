@@ -4,31 +4,18 @@ import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { geospatial, r2 } from ".";
 import { api, internal } from "./_generated/api";
-import { internalMutation, mutation, query } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
 import { errorMessages } from "./errors";
+import { rateLimitOrThrow } from "./ratelimit";
 import { tables } from "./tables";
+import { getProfileByUserId } from "./userProfileData";
 
-export const saveBarbershopBanner = internalMutation({
-  args: {
-    storageId: v.id("_storage"),
-    barbershopId: v.id("barbershops"),
-  },
-  handler: async (ctx, args) => {
-    const updatedBarbershop = await ctx.db.patch(args.barbershopId, {
-      bannerUrl: args.storageId,
-    });
-
-    return updatedBarbershop;
-  },
-});
-
-export const createBarbershop = mutation({
+export const create = mutation({
   args: {
     barbershop: v.object({
       ...tables.barbershops,
     }),
-    storageId: v.optional(v.id("_storage")),
     ownerIsBarber: v.boolean(),
   },
   handler: async (ctx, args) => {
@@ -37,6 +24,8 @@ export const createBarbershop = mutation({
     if (!user?.userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
+
+    await rateLimitOrThrow(ctx, "createBarbershop", user._id);
 
     const { barbershop, ownerIsBarber } = args;
 
@@ -47,12 +36,16 @@ export const createBarbershop = mutation({
       gracePeriodMinutes: 5,
     });
 
-    await ctx.runMutation(
-      internal.barbershopMetadata.createBarbershopInitialMetadata,
+    const metadataId = await ctx.runMutation(
+      internal.barbershopMetadata.createInitial,
       {
         barbershopId,
       },
     );
+
+    await ctx.db.patch(barbershopId, {
+      metadataId,
+    });
 
     const userProfile = await ctx.db
       .query("userProfileData")
@@ -67,7 +60,7 @@ export const createBarbershop = mutation({
       ? ["owner", "barber"]
       : ["owner"];
 
-    await ctx.runMutation(internal.barbershopMembers.createBarbershopMember, {
+    await ctx.runMutation(internal.barbershopMembers.create, {
       barbershopMember: {
         barbershopId,
         userProfileDataId: userProfile._id,
@@ -82,17 +75,14 @@ export const createBarbershop = mutation({
   },
 });
 
-export const getBarbershops = query({
+export const get = query({
   handler: async (ctx) => {
     const barbershops = await ctx.db.query("barbershops").collect();
 
     for (const barbershop of barbershops) {
-      const services = await ctx.runQuery(
-        api.barbershops.getBarbershopServices,
-        {
-          barbershopId: barbershop._id,
-        },
-      );
+      const services = await ctx.runQuery(api.barbershops.getServices, {
+        barbershopId: barbershop._id,
+      });
 
       barbershop.services = services.map((service) => service._id);
     }
@@ -101,7 +91,7 @@ export const getBarbershops = query({
   },
 });
 
-export const getActiveBarbershops = query({
+export const getActive = query({
   args: {
     city: v.optional(v.string()),
     state: v.optional(v.string()),
@@ -112,18 +102,30 @@ export const getActiveBarbershops = query({
       .query("barbershops")
       .withIndex("by_isActive", (q) => q.eq("isActive", true))
       .filter((q) =>
-        q.and(
-          q.neq(q.field("ownerId"), args.userId),
-          args.city && args.state
-            ? q.and(
-                q.eq(q.field("city"), args.city),
-                q.eq(q.field("state"), args.state),
-              )
-            : q.or(
-                q.eq(q.field("city"), args.city),
-                q.eq(q.field("state"), args.state),
-              ),
-        ),
+        args.userId
+          ? q.and(
+              q.neq(q.field("ownerId"), args.userId),
+              args.city && args.state
+                ? q.and(
+                    q.eq(q.field("city"), args.city),
+                    q.eq(q.field("state"), args.state),
+                  )
+                : q.or(
+                    q.eq(q.field("city"), args.city),
+                    q.eq(q.field("state"), args.state),
+                  ),
+            )
+          : q.and(
+              args.city && args.state
+                ? q.and(
+                    q.eq(q.field("city"), args.city),
+                    q.eq(q.field("state"), args.state),
+                  )
+                : q.or(
+                    q.eq(q.field("city"), args.city),
+                    q.eq(q.field("state"), args.state),
+                  ),
+            ),
       )
       .order("asc")
       .collect();
@@ -143,12 +145,9 @@ export const getActiveBarbershops = query({
           }
         }
 
-        const services = await ctx.runQuery(
-          api.barbershops.getBarbershopServices,
-          {
-            barbershopId: barbershop._id,
-          },
-        );
+        const services = await ctx.runQuery(api.barbershops.getServices, {
+          barbershopId: barbershop._id,
+        });
 
         barbershop.services = services.map((service) => service._id);
       }),
@@ -158,7 +157,7 @@ export const getActiveBarbershops = query({
   },
 });
 
-export const getBarbershopByUuid = query({
+export const getByUuid = query({
   args: {
     uuid: v.optional(tables.barbershops.uuid),
   },
@@ -170,7 +169,7 @@ export const getBarbershopByUuid = query({
 
     if (!barbershop) return null;
 
-    const services = await ctx.runQuery(api.barbershops.getBarbershopServices, {
+    const services = await ctx.runQuery(api.barbershops.getServices, {
       barbershopId: barbershop?._id,
     });
 
@@ -180,7 +179,7 @@ export const getBarbershopByUuid = query({
   },
 });
 
-export const getBarbershopServices = query({
+export const getServices = query({
   args: {
     barbershopId: v.id("barbershops"),
   },
@@ -196,7 +195,7 @@ export const getBarbershopServices = query({
   },
 });
 
-export const getBarbershopServicesPaginated = query({
+export const getServicesPaginated = query({
   args: {
     barbershopId: v.id("barbershops"),
     paginationOpts: paginationOptsValidator,
@@ -212,7 +211,7 @@ export const getBarbershopServicesPaginated = query({
   },
 });
 
-export const deleteBarbershopCascade = mutation({
+export const deleteCascade = mutation({
   args: {
     barbershopId: v.id("barbershops"),
   },
@@ -222,6 +221,8 @@ export const deleteBarbershopCascade = mutation({
     if (!user) {
       throw new ConvexError(errorMessages.unauthorized);
     }
+
+    await rateLimitOrThrow(ctx, "deleteBarbershopCascade", user._id);
 
     const barbershop = await ctx.db.get(args.barbershopId);
 
@@ -293,7 +294,20 @@ export const deleteBarbershopCascade = mutation({
   },
 });
 
-export const getBarbershopAvailabilityForDate = query({
+export const getAvailability = query({
+  args: {
+    barbershopId: v.id("barbershops"),
+  },
+  handler: async (ctx, args) => {
+    const barbershop = await ctx.db.get(args.barbershopId);
+
+    if (!barbershop) throw new ConvexError(errorMessages.notFound("barbería"));
+
+    return barbershop.availability;
+  },
+});
+
+export const getAvailabilityForDate = query({
   args: {
     barbershopId: v.id("barbershops"),
     date: v.number(),
@@ -330,7 +344,7 @@ export const getBarbershopAvailabilityForDate = query({
   },
 });
 
-export const updateBarbershopDayAvailability = mutation({
+export const updateDayAvailability = mutation({
   args: {
     barbershopId: v.id("barbershops"),
     day: v.union(
@@ -356,6 +370,7 @@ export const updateBarbershopDayAvailability = mutation({
         cause: user,
       });
     }
+    await rateLimitOrThrow(ctx, "updateBarbershopDayAvailability", user._id);
     const shop = await ctx.db.get(args.barbershopId);
     if (!shop) throw new Error("Barbershop not found");
 
@@ -387,7 +402,7 @@ export const updateBarbershopDayAvailability = mutation({
   },
 });
 
-export const updateBarbershopAvailability = mutation({
+export const updateAvailability = mutation({
   args: {
     barbershopId: v.id("barbershops"),
     availability: tables.barbershops.availability,
@@ -400,6 +415,8 @@ export const updateBarbershopAvailability = mutation({
         cause: user,
       });
     }
+
+    await rateLimitOrThrow(ctx, "updateBarbershopAvailability", user._id);
 
     const shop = await ctx.db.get(args.barbershopId);
     if (!shop) {
@@ -414,7 +431,7 @@ export const updateBarbershopAvailability = mutation({
   },
 });
 
-export const updateBarbershop = mutation({
+export const update = mutation({
   args: {
     barbershopId: v.id("barbershops"),
     storageId: v.optional(v.id("_storage")),
@@ -429,14 +446,9 @@ export const updateBarbershop = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    await ctx.db.patch(args.barbershopId, args.barbershop);
+    await rateLimitOrThrow(ctx, "updateBarbershop", user._id);
 
-    if (args.storageId) {
-      await ctx.runMutation(internal.barbershops.saveBarbershopBanner, {
-        barbershopId: args.barbershopId,
-        storageId: args.storageId,
-      });
-    }
+    await ctx.db.patch(args.barbershopId, args.barbershop);
 
     if (args.barbershop.coordinates) {
       await geospatial.insert(
@@ -487,7 +499,7 @@ export const getUserVisitedBarbershops = query({
   },
 });
 
-export const getBarbershopByOwnerId = query({
+export const getByOwnerId = query({
   args: {
     ownerId: v.string(),
   },
@@ -498,12 +510,9 @@ export const getBarbershopByOwnerId = query({
       .unique();
 
     if (barbershop) {
-      const services = await ctx.runQuery(
-        api.barbershops.getBarbershopServices,
-        {
-          barbershopId: barbershop._id,
-        },
-      );
+      const services = await ctx.runQuery(api.barbershops.getServices, {
+        barbershopId: barbershop._id,
+      });
 
       barbershop.services = services.map((service) => service._id);
     }
@@ -512,15 +521,12 @@ export const getBarbershopByOwnerId = query({
   },
 });
 
-export const getBarbershopByMemberUserId = query({
+export const getByMemberUserId = query({
   args: {
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const userProfile = await ctx.db
-      .query("userProfileData")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .unique();
+    const userProfile = await getProfileByUserId(ctx, args.userId);
 
     if (!userProfile) {
       return null;
@@ -541,26 +547,7 @@ export const getBarbershopByMemberUserId = query({
   },
 });
 
-export const getBarbershopById = query({
-  args: {
-    barbershopId: v.id("barbershops"),
-  },
-  handler: async (ctx, args) => {
-    const barbershop = await ctx.db.get(args.barbershopId);
-
-    const services = await ctx.runQuery(api.barbershops.getBarbershopServices, {
-      barbershopId: args.barbershopId,
-    });
-
-    if (barbershop) {
-      barbershop.services = services.map((service) => service._id);
-    }
-
-    return barbershop;
-  },
-});
-
-export const getBarbershopsByIds = query({
+export const getByIds = query({
   args: {
     barbershopIds: v.array(v.id("barbershops")),
   },
@@ -575,7 +562,7 @@ export const getBarbershopsByIds = query({
   },
 });
 
-export const getBarbershopsByName = query({
+export const getByName = query({
   args: {
     name: v.optional(v.string()),
   },
@@ -590,12 +577,9 @@ export const getBarbershopsByName = query({
 
     await Promise.all(
       barbershops.map(async (barbershop) => {
-        const services = await ctx.runQuery(
-          api.barbershops.getBarbershopServices,
-          {
-            barbershopId: barbershop._id,
-          },
-        );
+        const services = await ctx.runQuery(api.barbershops.getServices, {
+          barbershopId: barbershop._id,
+        });
 
         barbershop.services = services.map((service) => service._id);
       }),

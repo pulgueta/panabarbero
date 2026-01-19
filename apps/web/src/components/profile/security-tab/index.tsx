@@ -1,7 +1,8 @@
 import type { FC } from "react";
 
 // import { TwoFactorSection } from "./2fa";
-import { PasskeysSection } from "./passkeys";
+import { LinkedAccountsSection } from "./linked-accounts";
+import { PasswordResetSection } from "./password-reset";
 
 export const SecurityTab: FC = () => {
   return (
@@ -14,7 +15,9 @@ export const SecurityTab: FC = () => {
       </header>
 
       <section className="grid w-full gap-4 lg:grid-cols-2 xl:grid-cols-3">
-        <PasskeysSection />
+        <LinkedAccountsSection />
+        <PasswordResetSection />
+        {/* <PasskeysSection /> */}
         {/* <TwoFactorSection /> */}
       </section>
     </div>

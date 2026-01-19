@@ -52,17 +52,16 @@ export function useSchedule(availability: Barbershop["availability"] | null) {
         : null;
 
     return (
-      <>
+      <div className="space-y-1 [&>span]:block">
         <span>
           Horario de hoy: {openAt} - {closeAt}
         </span>
         {lunchLabel && (
           <span>
-            <br />
             No disponible durante: {lunchStart} - {lunchEnd}
           </span>
         )}
-      </>
+      </div>
     );
   };
 

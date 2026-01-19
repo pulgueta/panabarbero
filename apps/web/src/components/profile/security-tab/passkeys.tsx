@@ -36,7 +36,8 @@ export const PasskeysSection = () => {
       <CardHeader>
         <CardTitle>Passkeys</CardTitle>
         <CardDescription>
-          Crea y administra tus passkeys para iniciar sesión sin contraseña.
+          Crea y administra tus passkeys para iniciar sesión con tu biometría
+          entre dispositivos.
         </CardDescription>
       </CardHeader>
       <CardContent>

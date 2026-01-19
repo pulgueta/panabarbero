@@ -5,6 +5,7 @@ import { internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
 import { assertCanManageShop, getBarbershopMemberByUserId } from "./authz";
 import { errorMessages } from "./errors";
+import { rateLimitOrThrow } from "./ratelimit";
 import type { Service } from "./tables";
 
 /**
@@ -169,6 +170,8 @@ export const setBarberServices = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
+    await rateLimitOrThrow(ctx, "setBarberServices", user._id);
+
     // Get the barbershop member to find the barbershop
     const member = await ctx.db.get(args.barbershopMemberId);
     if (!member) {
@@ -255,6 +258,8 @@ export const addServiceToBarber = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
+    await rateLimitOrThrow(ctx, "addServiceToBarber", user._id);
+
     const member = await ctx.db.get(args.barbershopMemberId);
     if (!member) {
       throw new ConvexError(errorMessages.notFound("miembro de barbería"));
@@ -312,6 +317,8 @@ export const removeServiceFromBarber = mutation({
     if (!user?.userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
+
+    await rateLimitOrThrow(ctx, "removeServiceFromBarber", user._id);
 
     const member = await ctx.db.get(args.barbershopMemberId);
     if (!member) {

@@ -1,5 +1,6 @@
 "use node";
 
+import { Resend } from "@convex-dev/resend";
 import {
   AppointmentCancelledEmail,
   AppointmentCreatedEmail,
@@ -9,19 +10,18 @@ import {
   PastAppointmentReminderEmail,
   RescheduleRequestAcceptEmail,
   RescheduleRequestDeniedEmail,
-  WelcomeEmail,
 } from "@panabarbero/emails/emails";
 import { render } from "@react-email/components";
 import { v } from "convex/values";
-import { UseSend } from "usesend-js";
-
-import { internal } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
 import { subjects } from "./notifications";
 
-const from = "Soporte de PanaBarbero <contacto@panabarbero.com>";
+export const from = "Soporte de PanaBarbero <contacto@panabarbero.com>";
 
-const useSend = new UseSend(process.env.USESEND_API_KEY);
+export const resend = new Resend(components.resend, {
+  testMode: false,
+});
 
 export const sendEmail = internalAction({
   args: {
@@ -29,27 +29,12 @@ export const sendEmail = internalAction({
     subject: v.string(),
     html: v.string(),
   },
-  handler: async (_, args) => {
-    await useSend.emails.send({
+  handler: async (ctx, args) => {
+    await resend.sendEmail(ctx, {
       to: args.to,
       from,
       subject: args.subject,
       html: args.html,
-    });
-  },
-});
-
-export const sendWelcomeEmail = internalAction({
-  args: {
-    to: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const html = await render(WelcomeEmail({}));
-
-    await ctx.runAction(internal.emails.sendEmail, {
-      subject: "Bienvenido a PanaBarbero",
-      to: args.to,
-      html,
     });
   },
 });

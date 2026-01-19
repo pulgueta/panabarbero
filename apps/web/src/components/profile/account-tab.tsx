@@ -26,15 +26,18 @@ import { useProfileActions } from "@/hooks/use-profile";
 const BARBERSHOP_BANNER_HIDE_KEY = "barbershop-create-banner-hide-until";
 
 interface AccountTabProps {
-  profile: UserProfileData | null;
+  profile: (UserProfileData & { profilePhotoUrl?: string | null }) | null;
   isBarber: boolean;
   userId: string;
+  /** Auth provider image URL (Google profile picture, etc.) */
+  authProviderImage?: string | null;
 }
 
 export const AccountTab: FC<AccountTabProps> = ({
   profile,
   isBarber,
   userId,
+  authProviderImage,
 }) => {
   const {
     updateNameMutation: {
@@ -108,12 +111,12 @@ export const AccountTab: FC<AccountTabProps> = ({
   }, [profile?.phoneNumber]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {!isBarber && userId && showBarbershopBanner && (
         <Alert variant="info" className="relative">
           <InfoIcon className="size-4" />
-          <AlertTitle>¿Tienes una barbería?</AlertTitle>
-          <AlertDescription className="pr-20">
+          <AlertTitle className="mb-1">¿Tienes una barbería?</AlertTitle>
+          <AlertDescription className="text-xs md:text-sm">
             Gestiona reservas, barberos, servicios y obtén acceso a analíticas
             detalladas de tu negocio sin costo adicional. <br />
             <CreateBarbershopDialog
@@ -127,7 +130,7 @@ export const AccountTab: FC<AccountTabProps> = ({
           </AlertDescription>
           <Button
             variant="link"
-            className="absolute top-2 right-2 text-muted-foreground"
+            className="absolute top-2 right-2 text-muted-foreground text-xs md:text-sm"
             onClick={handleHideBanner}
           >
             Ocultar por 7 días
@@ -135,7 +138,12 @@ export const AccountTab: FC<AccountTabProps> = ({
         </Alert>
       )}
 
-      <div className="grid w-full gap-6 md:grid-cols-2">
+      <div className="grid w-full gap-4 md:grid-cols-2 [&_p]:text-xs">
+        {/* <ProfilePhotoUploader
+          currentPhotoUrl={profile?.profilePhotoUrl ?? null}
+          authProviderImage={authProviderImage}
+          userName={profile?.name}
+        /> */}
         <Card>
           <CardHeader>
             <CardTitle>Nombre completo</CardTitle>
