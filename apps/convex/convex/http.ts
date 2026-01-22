@@ -1,5 +1,7 @@
 import { httpRouter } from "convex/server";
+
 import { authComponent, createAuth } from "./auth";
+import { polar } from "./polar";
 import { twilio } from "./twilio";
 
 const http = httpRouter();
@@ -11,5 +13,6 @@ authComponent.registerRoutes(http, createAuth, {
     allowedOrigins: [process.env.SITE_URL!],
   },
 });
+polar.registerRoutes(http);
 
 export default http;

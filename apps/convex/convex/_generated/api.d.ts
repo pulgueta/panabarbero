@@ -23,6 +23,7 @@ import type * as index from "../index.js";
 import type * as invitations from "../invitations.js";
 import type * as migrations from "../migrations.js";
 import type * as notifications from "../notifications.js";
+import type * as polar from "../polar.js";
 import type * as ratelimit from "../ratelimit.js";
 import type * as reviews from "../reviews.js";
 import type * as services from "../services.js";
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   invitations: typeof invitations;
   migrations: typeof migrations;
   notifications: typeof notifications;
+  polar: typeof polar;
   ratelimit: typeof ratelimit;
   reviews: typeof reviews;
   services: typeof services;

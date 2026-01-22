@@ -340,13 +340,13 @@ export const getByUserId = query({
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
-    if (user?.userId !== args.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
+    if (!user?.userId || user.userId !== args.userId) {
+      return [];
     }
 
     const result = await ctx.db
       .query("appointments")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId ?? ""))
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .order("desc")
       .paginate(args.paginationOpts);
 
