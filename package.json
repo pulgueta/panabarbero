@@ -43,6 +43,7 @@
     "core-js",
     "esbuild",
     "prisma",
+    "protobufjs",
     "sharp",
     "workerd"
   ]

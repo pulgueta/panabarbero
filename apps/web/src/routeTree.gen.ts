@@ -24,6 +24,7 @@ import { Route as AuthRegisterRouteImport } from "./routes/_auth/register"
 import { Route as AuthLoginRouteImport } from "./routes/_auth/login"
 import { Route as AuthForgotPasswordRouteImport } from "./routes/_auth/forgot-password"
 import { Route as AuthedRoutesProfileIndexRouteImport } from "./routes/_authedRoutes/profile/index"
+import { Route as ApiAuthSplatRouteImport } from "./routes/api/auth/$"
 import { Route as AuthedRoutesInvitationsCodeRouteImport } from "./routes/_authedRoutes/invitations/$code"
 import { Route as AuthedRoutesProfileBarbershopsSettingsRouteImport } from "./routes/_authedRoutes/profile/barbershops/settings"
 import { Route as AuthedRoutesProfileBarbershopsServicesIndexRouteImport } from "./routes/_authedRoutes/profile/barbershops/services/index"
@@ -105,6 +106,11 @@ const AuthedRoutesProfileIndexRoute =
     path: "/profile/",
     getParentRoute: () => AuthedRoutesRouteRoute,
   } as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: "/api/auth/$",
+  path: "/api/auth/$",
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthedRoutesInvitationsCodeRoute =
   AuthedRoutesInvitationsCodeRouteImport.update({
     id: "/invitations/$code",
@@ -148,13 +154,14 @@ export interface FileRoutesByFullPath {
   "/verify-email": typeof AuthVerifyEmailRoute
   "/appointments/create": typeof AppointmentsCreateRoute
   "/barbershops/$barbershopUuid": typeof BarbershopsBarbershopUuidRoute
-  "/barbershops": typeof BarbershopsIndexRoute
+  "/barbershops/": typeof BarbershopsIndexRoute
   "/invitations/$code": typeof AuthedRoutesInvitationsCodeRoute
-  "/profile": typeof AuthedRoutesProfileIndexRoute
+  "/api/auth/$": typeof ApiAuthSplatRoute
+  "/profile/": typeof AuthedRoutesProfileIndexRoute
   "/profile/barbershops/settings": typeof AuthedRoutesProfileBarbershopsSettingsRoute
-  "/profile/barbershops/appointments": typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
-  "/profile/barbershops/barbers": typeof AuthedRoutesProfileBarbershopsBarbersIndexRoute
-  "/profile/barbershops/services": typeof AuthedRoutesProfileBarbershopsServicesIndexRoute
+  "/profile/barbershops/appointments/": typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
+  "/profile/barbershops/barbers/": typeof AuthedRoutesProfileBarbershopsBarbersIndexRoute
+  "/profile/barbershops/services/": typeof AuthedRoutesProfileBarbershopsServicesIndexRoute
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
@@ -170,6 +177,7 @@ export interface FileRoutesByTo {
   "/barbershops/$barbershopUuid": typeof BarbershopsBarbershopUuidRoute
   "/barbershops": typeof BarbershopsIndexRoute
   "/invitations/$code": typeof AuthedRoutesInvitationsCodeRoute
+  "/api/auth/$": typeof ApiAuthSplatRoute
   "/profile": typeof AuthedRoutesProfileIndexRoute
   "/profile/barbershops/settings": typeof AuthedRoutesProfileBarbershopsSettingsRoute
   "/profile/barbershops/appointments": typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
@@ -193,6 +201,7 @@ export interface FileRoutesById {
   "/barbershops/$barbershopUuid": typeof BarbershopsBarbershopUuidRoute
   "/barbershops/": typeof BarbershopsIndexRoute
   "/_authedRoutes/invitations/$code": typeof AuthedRoutesInvitationsCodeRoute
+  "/api/auth/$": typeof ApiAuthSplatRoute
   "/_authedRoutes/profile/": typeof AuthedRoutesProfileIndexRoute
   "/_authedRoutes/profile/barbershops/settings": typeof AuthedRoutesProfileBarbershopsSettingsRoute
   "/_authedRoutes/profile/barbershops/appointments/": typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
@@ -213,13 +222,14 @@ export interface FileRouteTypes {
     | "/verify-email"
     | "/appointments/create"
     | "/barbershops/$barbershopUuid"
-    | "/barbershops"
+    | "/barbershops/"
     | "/invitations/$code"
-    | "/profile"
+    | "/api/auth/$"
+    | "/profile/"
     | "/profile/barbershops/settings"
-    | "/profile/barbershops/appointments"
-    | "/profile/barbershops/barbers"
-    | "/profile/barbershops/services"
+    | "/profile/barbershops/appointments/"
+    | "/profile/barbershops/barbers/"
+    | "/profile/barbershops/services/"
   fileRoutesByTo: FileRoutesByTo
   to:
     | "/"
@@ -235,6 +245,7 @@ export interface FileRouteTypes {
     | "/barbershops/$barbershopUuid"
     | "/barbershops"
     | "/invitations/$code"
+    | "/api/auth/$"
     | "/profile"
     | "/profile/barbershops/settings"
     | "/profile/barbershops/appointments"
@@ -257,6 +268,7 @@ export interface FileRouteTypes {
     | "/barbershops/$barbershopUuid"
     | "/barbershops/"
     | "/_authedRoutes/invitations/$code"
+    | "/api/auth/$"
     | "/_authedRoutes/profile/"
     | "/_authedRoutes/profile/barbershops/settings"
     | "/_authedRoutes/profile/barbershops/appointments/"
@@ -274,6 +286,7 @@ export interface RootRouteChildren {
   AppointmentsCreateRoute: typeof AppointmentsCreateRoute
   BarbershopsBarbershopUuidRoute: typeof BarbershopsBarbershopUuidRoute
   BarbershopsIndexRoute: typeof BarbershopsIndexRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module "@tanstack/react-router" {
@@ -302,14 +315,14 @@ declare module "@tanstack/react-router" {
     "/_authedRoutes": {
       id: "/_authedRoutes"
       path: ""
-      fullPath: ""
+      fullPath: "/"
       preLoaderRoute: typeof AuthedRoutesRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/_auth": {
       id: "/_auth"
       path: ""
-      fullPath: ""
+      fullPath: "/"
       preLoaderRoute: typeof AuthRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -323,7 +336,7 @@ declare module "@tanstack/react-router" {
     "/barbershops/": {
       id: "/barbershops/"
       path: "/barbershops"
-      fullPath: "/barbershops"
+      fullPath: "/barbershops/"
       preLoaderRoute: typeof BarbershopsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -379,9 +392,16 @@ declare module "@tanstack/react-router" {
     "/_authedRoutes/profile/": {
       id: "/_authedRoutes/profile/"
       path: "/profile"
-      fullPath: "/profile"
+      fullPath: "/profile/"
       preLoaderRoute: typeof AuthedRoutesProfileIndexRouteImport
       parentRoute: typeof AuthedRoutesRouteRoute
+    }
+    "/api/auth/$": {
+      id: "/api/auth/$"
+      path: "/api/auth/$"
+      fullPath: "/api/auth/$"
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
     }
     "/_authedRoutes/invitations/$code": {
       id: "/_authedRoutes/invitations/$code"
@@ -400,21 +420,21 @@ declare module "@tanstack/react-router" {
     "/_authedRoutes/profile/barbershops/services/": {
       id: "/_authedRoutes/profile/barbershops/services/"
       path: "/profile/barbershops/services"
-      fullPath: "/profile/barbershops/services"
+      fullPath: "/profile/barbershops/services/"
       preLoaderRoute: typeof AuthedRoutesProfileBarbershopsServicesIndexRouteImport
       parentRoute: typeof AuthedRoutesRouteRoute
     }
     "/_authedRoutes/profile/barbershops/barbers/": {
       id: "/_authedRoutes/profile/barbershops/barbers/"
       path: "/profile/barbershops/barbers"
-      fullPath: "/profile/barbershops/barbers"
+      fullPath: "/profile/barbershops/barbers/"
       preLoaderRoute: typeof AuthedRoutesProfileBarbershopsBarbersIndexRouteImport
       parentRoute: typeof AuthedRoutesRouteRoute
     }
     "/_authedRoutes/profile/barbershops/appointments/": {
       id: "/_authedRoutes/profile/barbershops/appointments/"
       path: "/profile/barbershops/appointments"
-      fullPath: "/profile/barbershops/appointments"
+      fullPath: "/profile/barbershops/appointments/"
       preLoaderRoute: typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRouteImport
       parentRoute: typeof AuthedRoutesRouteRoute
     }
@@ -476,7 +496,17 @@ const rootRouteChildren: RootRouteChildren = {
   AppointmentsCreateRoute: AppointmentsCreateRoute,
   BarbershopsBarbershopUuidRoute: BarbershopsBarbershopUuidRoute,
   BarbershopsIndexRoute: BarbershopsIndexRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from "./router.tsx"
+import type { createStart } from "@tanstack/react-start"
+declare module "@tanstack/react-start" {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

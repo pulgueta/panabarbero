@@ -1,17 +1,15 @@
-import { expo } from "@better-auth/expo";
-import { passkey } from "@better-auth/passkey";
 import type { AuthFunctions, GenericCtx } from "@convex-dev/better-auth";
 import { createClient } from "@convex-dev/better-auth";
-import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
+import { convex } from "@convex-dev/better-auth/plugins";
 import { requireActionCtx } from "@convex-dev/better-auth/utils";
 import { APP_NAME } from "@panabarbero/constants";
 import { betterAuth } from "better-auth";
 import { twoFactor } from "better-auth/plugins";
+import { passkey } from "better-auth/plugins/passkey";
 
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { internalQuery, query } from "./_generated/server";
-import authConfig from "./auth.config";
 import { from, resend } from "./emails";
 import { getProfileByUserId } from "./userProfileData";
 
@@ -86,8 +84,14 @@ export const { onCreate, onUpdate, onDelete } = authComponent.triggersApi();
 
 const siteUrl = process.env.SITE_URL ?? "";
 
-export const createAuth = (ctx: GenericCtx<DataModel>) => {
+export const createAuth = (
+  ctx: GenericCtx<DataModel>,
+  { optionsOnly } = { optionsOnly: false },
+) => {
   return betterAuth({
+    logger: {
+      disabled: optionsOnly,
+    },
     appName: APP_NAME,
     trustedOrigins: [siteUrl],
     database: authComponent.adapter(ctx),
@@ -157,9 +161,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
       },
     },
     plugins: [
-      expo(),
-      convex({ authConfig }),
-      crossDomain({ siteUrl }),
+      convex(),
       passkey(),
       twoFactor({
         issuer: APP_NAME,

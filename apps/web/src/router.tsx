@@ -1,23 +1,29 @@
 import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import { ConvexQueryClient } from "@convex-dev/react-query";
 import { authClient } from "@panabarbero/convex/auth";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createRouter, RouterProvider } from "@tanstack/react-router";
+import {
+  notifyManager,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
+import { createRouter } from "@tanstack/react-router";
+import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
 import { routerWithQueryClient } from "@tanstack/react-router-with-query";
 import { ConvexReactClient } from "convex/react";
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
 
-import { ThemeProvider } from "@/components/theme";
 import { env } from "@/env";
 import { PostHogProvider } from "@/providers/posthog";
-import reportWebVitals from "./reportWebVitals";
+import { ThemeProvider } from "@/providers/theme/theme-provider";
+
 import { routeTree } from "./routeTree.gen";
-// @ts-expect-error
 import "./styles.css";
 
 export function getRouter() {
-  const convex = new ConvexReactClient(env.PUBLIC_CONVEX_URL, {
+  if (typeof document !== "undefined") {
+    notifyManager.setScheduler(window.requestAnimationFrame);
+  }
+
+  const convex = new ConvexReactClient(env.VITE_CONVEX_URL, {
     verbose: true,
   });
 
@@ -30,6 +36,15 @@ export function getRouter() {
         queryFn: convexQueryClient.queryFn(),
         experimental_prefetchInRender: true,
         staleTime: 15 * 60 * 1000,
+        retry: (failureCount, error) => {
+          if (error && typeof error === "object" && "status" in error) {
+            const status = (error as { status: number }).status;
+            if (status >= 400 && status < 500) {
+              return false;
+            }
+          }
+          return failureCount < 3;
+        },
       },
     },
   });
@@ -54,15 +69,22 @@ export function getRouter() {
             client={convexQueryClient.convexClient}
             authClient={authClient}
           >
-            <QueryClientProvider client={queryClient}>
-              <PostHogProvider>{children}</PostHogProvider>
-            </QueryClientProvider>
+            <PostHogProvider>
+              <QueryClientProvider client={queryClient}>
+                {children}
+              </QueryClientProvider>
+            </PostHogProvider>
           </ConvexBetterAuthProvider>
         </ThemeProvider>
       ),
     }),
     queryClient,
   );
+
+  setupRouterSsrQueryIntegration({
+    router,
+    queryClient,
+  });
 
   return router;
 }
@@ -73,19 +95,3 @@ declare module "@tanstack/react-router" {
     router: ReturnType<typeof getRouter>;
   }
 }
-
-// Render the app
-const rootElement = document.getElementById("app");
-if (rootElement && !rootElement.innerHTML) {
-  const root = createRoot(rootElement);
-  root.render(
-    <StrictMode>
-      <RouterProvider router={getRouter()} />
-    </StrictMode>,
-  );
-}
-
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();

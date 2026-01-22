@@ -6,8 +6,8 @@ import { env } from "@/env";
 export const PostHogProvider: FC<PropsWithChildren> = ({ children }) => {
   return (
     <Provider
-      apiKey={env.PUBLIC_POSTHOG_API_KEY}
-      options={{ api_host: env.PUBLIC_POSTHOG_HOST, autocapture: true }}
+      apiKey={env.VITE_POSTHOG_API_KEY}
+      options={{ api_host: env.VITE_POSTHOG_HOST, autocapture: true }}
     >
       {children}
     </Provider>
