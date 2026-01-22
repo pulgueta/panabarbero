@@ -107,7 +107,7 @@ function RouteComponent() {
 
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               {isBarber ? (
-                <Button size="md" asChild className="group">
+                <Button asChild className="group">
                   <Link to="/profile/barbershops/appointments">
                     Ver mis citas
                     <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />

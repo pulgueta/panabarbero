@@ -10,7 +10,7 @@ import { twoFactor } from "better-auth/plugins";
 
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
-import { query } from "./_generated/server";
+import { internalQuery, query } from "./_generated/server";
 import authConfig from "./auth.config";
 import { from, resend } from "./emails";
 import { getProfileByUserId } from "./userProfileData";
@@ -97,14 +97,14 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
       minPasswordLength: 4,
       maxPasswordLength: 255,
       requireEmailVerification: true,
-      sendResetPassword: async ({ url, user }) => {
+      sendResetPassword: async ({ user, token }) => {
         await resend.sendEmail(requireActionCtx(ctx), {
           from,
           to: user.email,
           template: {
             id: "password-reset",
             variables: {
-              RESET_PASSWORD_URL: url,
+              TOKEN: token,
             },
           },
         });
@@ -172,5 +172,27 @@ export const getCurrentUser = query({
   args: {},
   handler: async (ctx) => {
     return await authComponent.safeGetAuthUser(ctx);
+  },
+});
+
+export const getPolarUser = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      return null;
+    }
+
+    const profile = await getProfileByUserId(ctx, user.userId);
+
+    if (!profile) {
+      return null;
+    }
+
+    return {
+      userId: profile.userId,
+      email: profile.email,
+    };
   },
 });

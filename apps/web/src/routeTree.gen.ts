@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from "./routes/__root"
 import { Route as TosRouteImport } from "./routes/tos"
 import { Route as PrivacyPolicyRouteImport } from "./routes/privacy-policy"
+import { Route as PricingRouteImport } from "./routes/pricing"
 import { Route as AuthedRoutesRouteRouteImport } from "./routes/_authedRoutes/route"
 import { Route as AuthRouteRouteImport } from "./routes/_auth/route"
 import { Route as IndexRouteImport } from "./routes/index"
@@ -37,6 +38,11 @@ const TosRoute = TosRouteImport.update({
 const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
   id: "/privacy-policy",
   path: "/privacy-policy",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: "/pricing",
+  path: "/pricing",
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthedRoutesRouteRoute = AuthedRoutesRouteRouteImport.update({
@@ -132,6 +138,7 @@ const AuthedRoutesProfileBarbershopsAppointmentsIndexRoute =
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
+  "/pricing": typeof PricingRoute
   "/privacy-policy": typeof PrivacyPolicyRoute
   "/tos": typeof TosRoute
   "/forgot-password": typeof AuthForgotPasswordRoute
@@ -151,6 +158,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
+  "/pricing": typeof PricingRoute
   "/privacy-policy": typeof PrivacyPolicyRoute
   "/tos": typeof TosRoute
   "/forgot-password": typeof AuthForgotPasswordRoute
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   "/": typeof IndexRoute
   "/_auth": typeof AuthRouteRouteWithChildren
   "/_authedRoutes": typeof AuthedRoutesRouteRouteWithChildren
+  "/pricing": typeof PricingRoute
   "/privacy-policy": typeof PrivacyPolicyRoute
   "/tos": typeof TosRoute
   "/_auth/forgot-password": typeof AuthForgotPasswordRoute
@@ -194,6 +203,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | "/"
+    | "/pricing"
     | "/privacy-policy"
     | "/tos"
     | "/forgot-password"
@@ -213,6 +223,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | "/"
+    | "/pricing"
     | "/privacy-policy"
     | "/tos"
     | "/forgot-password"
@@ -234,6 +245,7 @@ export interface FileRouteTypes {
     | "/"
     | "/_auth"
     | "/_authedRoutes"
+    | "/pricing"
     | "/privacy-policy"
     | "/tos"
     | "/_auth/forgot-password"
@@ -256,6 +268,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRouteRoute: typeof AuthRouteRouteWithChildren
   AuthedRoutesRouteRoute: typeof AuthedRoutesRouteRouteWithChildren
+  PricingRoute: typeof PricingRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   TosRoute: typeof TosRoute
   AppointmentsCreateRoute: typeof AppointmentsCreateRoute
@@ -277,6 +290,13 @@ declare module "@tanstack/react-router" {
       path: "/privacy-policy"
       fullPath: "/privacy-policy"
       preLoaderRoute: typeof PrivacyPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/pricing": {
+      id: "/pricing"
+      path: "/pricing"
+      fullPath: "/pricing"
+      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/_authedRoutes": {
@@ -450,6 +470,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRouteRoute: AuthRouteRouteWithChildren,
   AuthedRoutesRouteRoute: AuthedRoutesRouteRouteWithChildren,
+  PricingRoute: PricingRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   TosRoute: TosRoute,
   AppointmentsCreateRoute: AppointmentsCreateRoute,

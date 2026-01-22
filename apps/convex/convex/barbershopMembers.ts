@@ -1,7 +1,8 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 
 import { ConvexError, v } from "convex/values";
-import { api } from "./_generated/api";
+
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
 import { assertCanManageShop } from "./authz";
@@ -237,19 +238,8 @@ export const getRolesByUserId = query({
   args: {
     userId: v.string(),
   },
-  handler: async (
-    ctx,
-    args,
-  ): Promise<{
-    roles: BarbershopMember["roles"] | undefined;
-    isOwner: boolean | undefined;
-  }> => {
-    const barbershopMember = await ctx.runQuery(
-      api.barbershopMembers.getByUserId,
-      {
-        userId: args.userId,
-      },
-    );
+  handler: async (ctx, args) => {
+    const barbershopMember = await getByUserIdFn(ctx, args);
 
     return {
       roles: barbershopMember?.roles,
@@ -257,3 +247,21 @@ export const getRolesByUserId = query({
     };
   },
 });
+
+export const getByUserIdFn = async (
+  ctx: QueryCtx | MutationCtx,
+  args: { userId: string },
+) => {
+  const profile = await getProfileByUserId(ctx, args.userId);
+
+  if (!profile?._id) {
+    return null;
+  }
+
+  return await ctx.db
+    .query("barbershopMembers")
+    .withIndex("by_userProfileDataId", (q) =>
+      q.eq("userProfileDataId", profile._id),
+    )
+    .first();
+};

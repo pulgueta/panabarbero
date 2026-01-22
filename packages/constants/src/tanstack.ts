@@ -1,6 +1,7 @@
 import {
   Calendar,
   CalendarPlus,
+  DollarSign,
   Home,
   Scissors,
   Settings,
@@ -24,6 +25,11 @@ export const publicRoutes = {
       label: "Agendar",
       to: "/appointments/create",
       icon: CalendarPlus,
+    },
+    {
+      label: "Precios",
+      to: "/pricing",
+      icon: DollarSign,
     },
   ],
 };

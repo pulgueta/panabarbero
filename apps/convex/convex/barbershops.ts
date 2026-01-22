@@ -567,11 +567,13 @@ export const getByName = query({
     name: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    if (!args.name) {
+      return [];
+    }
+
     const barbershops = await ctx.db
       .query("barbershops")
-      .withSearchIndex("by_name_search", (q) =>
-        q.search("name", args.name ?? "barber"),
-      )
+      .withSearchIndex("by_name_search", (q) => q.search("name", args.name!))
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
