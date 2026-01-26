@@ -3,7 +3,6 @@
   "version": "1.1.0",
   "private": true,
   "scripts": {
-    "build": "email build",
     "dev": "email dev --port 3001",
     "export": "email export"
   },
