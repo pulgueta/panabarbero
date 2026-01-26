@@ -1,4 +1,3 @@
-import { expo } from "@better-auth/expo";
 import { passkey } from "@better-auth/passkey";
 import type { AuthFunctions, GenericCtx } from "@convex-dev/better-auth";
 import { createClient } from "@convex-dev/better-auth";
@@ -157,7 +156,6 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
       },
     },
     plugins: [
-      expo(),
       convex({ authConfig }),
       crossDomain({ siteUrl }),
       passkey(),

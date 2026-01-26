@@ -148,13 +148,13 @@ export interface FileRoutesByFullPath {
   "/verify-email": typeof AuthVerifyEmailRoute
   "/appointments/create": typeof AppointmentsCreateRoute
   "/barbershops/$barbershopUuid": typeof BarbershopsBarbershopUuidRoute
-  "/barbershops": typeof BarbershopsIndexRoute
+  "/barbershops/": typeof BarbershopsIndexRoute
   "/invitations/$code": typeof AuthedRoutesInvitationsCodeRoute
-  "/profile": typeof AuthedRoutesProfileIndexRoute
+  "/profile/": typeof AuthedRoutesProfileIndexRoute
   "/profile/barbershops/settings": typeof AuthedRoutesProfileBarbershopsSettingsRoute
-  "/profile/barbershops/appointments": typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
-  "/profile/barbershops/barbers": typeof AuthedRoutesProfileBarbershopsBarbersIndexRoute
-  "/profile/barbershops/services": typeof AuthedRoutesProfileBarbershopsServicesIndexRoute
+  "/profile/barbershops/appointments/": typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
+  "/profile/barbershops/barbers/": typeof AuthedRoutesProfileBarbershopsBarbersIndexRoute
+  "/profile/barbershops/services/": typeof AuthedRoutesProfileBarbershopsServicesIndexRoute
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
@@ -213,13 +213,13 @@ export interface FileRouteTypes {
     | "/verify-email"
     | "/appointments/create"
     | "/barbershops/$barbershopUuid"
-    | "/barbershops"
+    | "/barbershops/"
     | "/invitations/$code"
-    | "/profile"
+    | "/profile/"
     | "/profile/barbershops/settings"
-    | "/profile/barbershops/appointments"
-    | "/profile/barbershops/barbers"
-    | "/profile/barbershops/services"
+    | "/profile/barbershops/appointments/"
+    | "/profile/barbershops/barbers/"
+    | "/profile/barbershops/services/"
   fileRoutesByTo: FileRoutesByTo
   to:
     | "/"
@@ -302,14 +302,14 @@ declare module "@tanstack/react-router" {
     "/_authedRoutes": {
       id: "/_authedRoutes"
       path: ""
-      fullPath: ""
+      fullPath: "/"
       preLoaderRoute: typeof AuthedRoutesRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/_auth": {
       id: "/_auth"
       path: ""
-      fullPath: ""
+      fullPath: "/"
       preLoaderRoute: typeof AuthRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -323,7 +323,7 @@ declare module "@tanstack/react-router" {
     "/barbershops/": {
       id: "/barbershops/"
       path: "/barbershops"
-      fullPath: "/barbershops"
+      fullPath: "/barbershops/"
       preLoaderRoute: typeof BarbershopsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -379,7 +379,7 @@ declare module "@tanstack/react-router" {
     "/_authedRoutes/profile/": {
       id: "/_authedRoutes/profile/"
       path: "/profile"
-      fullPath: "/profile"
+      fullPath: "/profile/"
       preLoaderRoute: typeof AuthedRoutesProfileIndexRouteImport
       parentRoute: typeof AuthedRoutesRouteRoute
     }
@@ -400,21 +400,21 @@ declare module "@tanstack/react-router" {
     "/_authedRoutes/profile/barbershops/services/": {
       id: "/_authedRoutes/profile/barbershops/services/"
       path: "/profile/barbershops/services"
-      fullPath: "/profile/barbershops/services"
+      fullPath: "/profile/barbershops/services/"
       preLoaderRoute: typeof AuthedRoutesProfileBarbershopsServicesIndexRouteImport
       parentRoute: typeof AuthedRoutesRouteRoute
     }
     "/_authedRoutes/profile/barbershops/barbers/": {
       id: "/_authedRoutes/profile/barbershops/barbers/"
       path: "/profile/barbershops/barbers"
-      fullPath: "/profile/barbershops/barbers"
+      fullPath: "/profile/barbershops/barbers/"
       preLoaderRoute: typeof AuthedRoutesProfileBarbershopsBarbersIndexRouteImport
       parentRoute: typeof AuthedRoutesRouteRoute
     }
     "/_authedRoutes/profile/barbershops/appointments/": {
       id: "/_authedRoutes/profile/barbershops/appointments/"
       path: "/profile/barbershops/appointments"
-      fullPath: "/profile/barbershops/appointments"
+      fullPath: "/profile/barbershops/appointments/"
       preLoaderRoute: typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRouteImport
       parentRoute: typeof AuthedRoutesRouteRoute
     }
