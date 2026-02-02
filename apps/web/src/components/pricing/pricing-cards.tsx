@@ -14,7 +14,7 @@ import {
 import { usePricingPlans } from "@/hooks/billing/use-pricing";
 
 export const PricingCards: FC = () => {
-  const { data: products, isLoading } = usePricingPlans();
+  const { data: products } = usePricingPlans();
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
