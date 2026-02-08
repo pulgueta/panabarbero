@@ -55,6 +55,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
   availability,
 }) => {
   const formIds = {
+    disableHours: useId(),
     availability: useId(),
     openAt: useId(),
     closeAt: useId(),
@@ -200,26 +201,30 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
     }
 
     if (!schedule.openAt || !schedule.closeAt) {
-      setFormError("Debes definir la hora de entrada y salida");
+      setFormError("Debes definir el horario disponible");
 
       return;
     }
 
     if (!isTimeRangeValid(schedule.openAt, schedule.closeAt)) {
-      setFormError("La hora de salida debe ser mayor a la de entrada");
+      setFormError(
+        "La hora de disponibilidad final debe ser mayor a la hora inicial",
+      );
 
       return;
     }
 
     if (hasLunch) {
       if (!schedule.lunchStart || !schedule.lunchEnd) {
-        setFormError("Completa ambas horas de almuerzo");
+        setFormError("Completa ambas horas");
 
         return;
       }
 
       if (!isTimeRangeValid(schedule.lunchStart, schedule.lunchEnd)) {
-        setFormError("La hora de regreso debe ser mayor a la de salida");
+        setFormError(
+          "La hora de disponibilidad nuevamente debe ser mayor a la hora de no disponibilidad",
+        );
 
         return;
       }
@@ -276,26 +281,26 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
     if (entry.weekDay.isActive) {
       if (!entry.openAt || !entry.closeAt) {
         throw new Error(
-          `Define la hora de entrada y salida para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+          `Define el horario disponible para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
         );
       }
 
       if (!isTimeRangeValid(entry.openAt, entry.closeAt)) {
         throw new Error(
-          `La hora de salida debe ser mayor a la de entrada para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+          `La hora de disponibilidad final debe ser mayor a la hora inicial para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
         );
       }
     }
 
     if ((lunchStart && !lunchEnd) || (!lunchStart && lunchEnd)) {
       throw new Error(
-        `Completa ambas horas de almuerzo para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+        `Completa ambas horas para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
       );
     }
 
     if (lunchStart && lunchEnd && !isTimeRangeValid(lunchStart, lunchEnd)) {
       throw new Error(
-        `La hora de regreso debe ser mayor a la de salida para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+        `La hora de disponibilidad nuevamente debe ser mayor a la hora de no disponibilidad para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
       );
     }
 
@@ -374,7 +379,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
         <div className="flex w-full flex-col gap-4 md:flex-row">
           <FieldSet className="w-full">
             <Field>
-              <FieldLabel htmlFor={formIds.openAt}>Hora de entrada</FieldLabel>
+              <FieldLabel htmlFor={formIds.openAt}>Disponible desde</FieldLabel>
               <Input
                 id={formIds.openAt}
                 type="time"
@@ -383,12 +388,17 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
                   setSchedule((prev) => ({ ...prev, openAt: e.target.value }))
                 }
               />
+              <FieldDescription>
+                Los clientes podrán agendar citas a partir de esta hora.
+              </FieldDescription>
             </Field>
           </FieldSet>
 
           <FieldSet className="w-full">
             <Field>
-              <FieldLabel htmlFor={formIds.closeAt}>Hora de salida</FieldLabel>
+              <FieldLabel htmlFor={formIds.closeAt}>
+                Disponible hasta
+              </FieldLabel>
               <Input
                 id={formIds.closeAt}
                 type="time"
@@ -397,6 +407,9 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
                   setSchedule((prev) => ({ ...prev, closeAt: e.target.value }))
                 }
               />
+              <FieldDescription>
+                Los clientes podrán agendar citas hasta esta hora.
+              </FieldDescription>
             </Field>
           </FieldSet>
         </div>
@@ -406,14 +419,15 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
             <Checkbox
               checked={hasLunch}
               onCheckedChange={(checked) => setHasLunch(Boolean(checked))}
+              id={formIds.disableHours}
             />
             <FieldContent>
-              <FieldLabel htmlFor="lunchToggle">
-                Habilitar hora de almuerzo
+              <FieldLabel htmlFor={formIds.disableHours}>
+                Deshabilitar horas
               </FieldLabel>
               <FieldDescription>
                 Si seleccionas, los clientes no podrán agendar citas durante el
-                rango de almuerzo.
+                rango de tiempo seleccionado.
               </FieldDescription>
             </FieldContent>
           </Field>
@@ -423,9 +437,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
           <div className="flex w-full flex-col gap-4 md:flex-row">
             <FieldSet className="w-full">
               <Field>
-                <FieldLabel htmlFor={formIds.lunchStart}>
-                  Hora de salida
-                </FieldLabel>
+                <FieldLabel htmlFor={formIds.lunchStart}>Inicio</FieldLabel>
                 <Input
                   id={formIds.lunchStart}
                   type="time"
@@ -438,14 +450,14 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
                   }
                 />
               </Field>
-              <FieldDescription>A esta hora sales a almorzar.</FieldDescription>
+              <FieldDescription>
+                Los clientes no podrán agendar citas a partir de esta hora.
+              </FieldDescription>
             </FieldSet>
 
             <FieldSet className="w-full">
               <Field>
-                <FieldLabel htmlFor={formIds.lunchEnd}>
-                  Hora de regreso
-                </FieldLabel>
+                <FieldLabel htmlFor={formIds.lunchEnd}>Fin</FieldLabel>
                 <Input
                   id={formIds.lunchEnd}
                   type="time"
@@ -459,7 +471,8 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
                 />
               </Field>
               <FieldDescription>
-                A esta hora regresas de almorzar.
+                Los clientes podrán agendar citas nuevamente a partir de esta
+                hora.
               </FieldDescription>
             </FieldSet>
           </div>
@@ -507,12 +520,11 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
                       <p>
                         {entry.openAt} – {entry.closeAt}
                       </p>
-                      {entry.lunchStart && entry.lunchEnd ? (
+                      {entry.lunchStart && entry.lunchEnd && (
                         <p>
-                          Almuerzo: {entry.lunchStart} – {entry.lunchEnd}
+                          No disponible durante: {entry.lunchStart} –{" "}
+                          {entry.lunchEnd}
                         </p>
-                      ) : (
-                        <p>Sin almuerzo</p>
                       )}
                     </div>
                   ) : (

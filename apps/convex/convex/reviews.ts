@@ -2,9 +2,10 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
+import { rateLimitOrThrow } from "./ratelimit";
 import { tables } from "./tables";
 
-export const createReview = mutation({
+export const create = mutation({
   args: {
     review: v.object({
       ...tables.reviews,
@@ -18,6 +19,8 @@ export const createReview = mutation({
         cause: user,
       });
     }
+
+    await rateLimitOrThrow(ctx, "createReview", user._id);
 
     const reviewId = await ctx.db.insert("reviews", {
       ...args.review,
@@ -35,7 +38,7 @@ export const createReview = mutation({
   },
 });
 
-export const getReviewsByBarbershopId = query({
+export const getByBarbershopId = query({
   args: { barbershopId: v.id("barbershops") },
   handler: async (ctx, args) => {
     const reviews = await ctx.db
@@ -49,7 +52,7 @@ export const getReviewsByBarbershopId = query({
   },
 });
 
-export const getReviewsByUserId = query({
+export const getByUserId = query({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
     const reviews = await ctx.db
@@ -61,7 +64,7 @@ export const getReviewsByUserId = query({
   },
 });
 
-export const updateReview = mutation({
+export const update = mutation({
   args: {
     reviewId: v.id("reviews"),
     review: v.object({ ...tables.reviews }),
@@ -74,6 +77,8 @@ export const updateReview = mutation({
         cause: user,
       });
     }
+
+    await rateLimitOrThrow(ctx, "updateReview", user._id);
     const updated = await ctx.db.patch(args.reviewId, args.review);
 
     return updated;
@@ -90,6 +95,8 @@ export const deleteReview = mutation({
         cause: user,
       });
     }
+
+    await rateLimitOrThrow(ctx, "deleteReview", user._id);
 
     await ctx.db.delete(args.reviewId);
   },

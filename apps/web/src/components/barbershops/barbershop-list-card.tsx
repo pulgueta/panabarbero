@@ -2,6 +2,7 @@ import type { Barbershop } from "@panabarbero/convex/schemas";
 import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,10 +18,60 @@ interface BarbershopListCardProps {
   showAddress?: boolean;
 }
 
+const isCurrentlyOpen = (barbershop: Barbershop): boolean => {
+  const now = new Date();
+  const currentDay = now.getDay();
+  const dayMap = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ];
+  const currentDayName = dayMap[currentDay];
+
+  const todaySchedule = barbershop.availability.find(
+    (day) => day.weekDay.day === currentDayName && day.weekDay.isActive,
+  );
+
+  if (!todaySchedule) return false;
+
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const [openHour, openMin] = todaySchedule.openAt.split(":").map(Number);
+  const [closeHour, closeMin] = todaySchedule.closeAt.split(":").map(Number);
+
+  const openMinutes = openHour * 60 + openMin;
+  const closeMinutes = closeHour * 60 + closeMin;
+
+  // Check if currently during lunch break
+  if (todaySchedule.lunchStart && todaySchedule.lunchEnd) {
+    const [lunchStartHour, lunchStartMin] = todaySchedule.lunchStart
+      .split(":")
+      .map(Number);
+    const [lunchEndHour, lunchEndMin] = todaySchedule.lunchEnd
+      .split(":")
+      .map(Number);
+    const lunchStartMinutes = lunchStartHour * 60 + lunchStartMin;
+    const lunchEndMinutes = lunchEndHour * 60 + lunchEndMin;
+
+    if (
+      currentMinutes >= lunchStartMinutes &&
+      currentMinutes < lunchEndMinutes
+    ) {
+      return false;
+    }
+  }
+
+  return currentMinutes >= openMinutes && currentMinutes < closeMinutes;
+};
+
 export const BarbershopListCard: FC<BarbershopListCardProps> = ({
   barbershop,
   showAddress = true,
 }) => {
+  const isOpen = isCurrentlyOpen(barbershop);
   return (
     <Card className="gap-4 transition-shadow hover:shadow-xs">
       <CardHeader className="border-b [.border-b]:pb-4">
@@ -28,14 +79,22 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
           <div className="flex w-full items-start justify-between">
             <div className="flex items-start gap-2.5">
               <div>
-                <CardTitle
-                  className="text-balance font-bold text-xl tracking-tight"
-                  style={{
-                    viewTransitionName: `barbershop-${barbershop.uuid}`,
-                  }}
-                >
-                  {barbershop.name}
-                </CardTitle>
+                <div className="mb-1 flex items-center gap-2">
+                  <CardTitle
+                    className="text-balance font-bold text-xl tracking-tight"
+                    style={{
+                      viewTransitionName: `barbershop-${barbershop.uuid}`,
+                    }}
+                  >
+                    {barbershop.name}
+                  </CardTitle>
+                  <Badge
+                    variant={isOpen ? "success" : "secondary"}
+                    className="text-xs"
+                  >
+                    {isOpen ? "Abierto" : "Cerrado"}
+                  </Badge>
+                </div>
                 <p
                   className="text-muted-foreground text-xs"
                   style={{

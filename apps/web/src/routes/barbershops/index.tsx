@@ -1,4 +1,3 @@
-import { tanstack } from "@panabarbero/constants";
 import { createFileRoute } from "@tanstack/react-router";
 import { Building2 } from "lucide-react";
 import { Activity, Suspense } from "react";
@@ -20,8 +19,8 @@ import {
   activeBarbershopsQueryOptions,
   useActiveBarbershops,
 } from "@/hooks/barbershop/use-barbershop";
-import { useLocalStorage } from "@/hooks/use-local-storage";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { useLocationStore } from "@/store/location";
 
 export type BarbershopSearch = {
   city?: string;
@@ -57,25 +56,19 @@ export const Route = createFileRoute("/barbershops/")({
 });
 
 function BarbershopsPage() {
-  const search = Route.useSearch();
-
   const { data: user } = useSession();
 
-  const [storedState] = useLocalStorage<string>(
-    tanstack.localStorageKeys.barbershopsState,
-  );
-  const [storedCity] = useLocalStorage<string>(
-    tanstack.localStorageKeys.barbershopsCity,
-  );
-
-  const city = storedCity ?? search.city;
-  const state = storedState ?? search.state;
+  const { state, city } = useLocationStore();
 
   const {
     data: barbershops,
     isLoading,
     isRefetching,
-  } = useActiveBarbershops({ city, state, userId: user?.userId ?? undefined });
+  } = useActiveBarbershops({
+    city,
+    state,
+    userId: user?.userId ?? undefined,
+  });
 
   const showModal = !city && !state;
 

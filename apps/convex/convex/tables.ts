@@ -11,7 +11,7 @@ export const tables = {
     phoneNumber: v.optional(v.string()),
     notificationsPreferences: v.array(
       v.object({
-        type: v.union(v.literal("email"), v.literal("push"), v.literal("sms")),
+        type: v.union(v.literal("email"), v.literal("sms")),
         enabled: v.boolean(),
       }),
     ),

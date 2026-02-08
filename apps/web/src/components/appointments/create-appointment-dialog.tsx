@@ -103,7 +103,6 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
     availableBarbers?.length === 1 ? availableBarbers[0]._id : undefined;
 
   const form = useForm({
-    // @ts-expect-error - zodResolver is not typed correctly
     resolver: zodResolver(appointmentFormSchema),
     defaultValues: {
       date: undefined,

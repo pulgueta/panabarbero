@@ -6,9 +6,9 @@ export const Footer = () => {
       <Hr className="border-border" />
 
       <Section className="text-center text-muted-foreground">
-        <Text className="text-xs">
+        {/* <Text className="text-xs">
           Calle 61 #18a 20, Barrancabermeja, Santander, Colombia
-        </Text>
+        </Text> */}
         <Text className="text-xs">
           &copy; {new Date().getFullYear()} PanaBarbero S.A.S.
         </Text>

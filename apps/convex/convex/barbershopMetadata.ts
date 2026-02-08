@@ -3,7 +3,7 @@ import { api } from "./_generated/api";
 import { internalMutation, query } from "./_generated/server";
 import { errorMessages } from "./errors";
 
-export const createBarbershopInitialMetadata = internalMutation({
+export const createInitial = internalMutation({
   args: {
     barbershopId: v.id("barbershops"),
   },
@@ -25,7 +25,7 @@ export const increaseBarbershopRating = internalMutation({
     barbershopId: v.id("barbershops"),
   },
   handler: async (ctx, args) => {
-    const reviews = await ctx.runQuery(api.reviews.getReviewsByBarbershopId, {
+    const reviews = await ctx.runQuery(api.reviews.getByBarbershopId, {
       barbershopId: args.barbershopId,
     });
     const barbershop = await ctx.db.get(args.barbershopId);
@@ -46,7 +46,7 @@ export const increaseBarbershopRating = internalMutation({
   },
 });
 
-export const getBarbershopMetadata = query({
+export const get = query({
   args: {
     barbershopId: v.id("barbershops"),
   },
@@ -57,5 +57,22 @@ export const getBarbershopMetadata = query({
         q.eq("barbershopId", args.barbershopId),
       )
       .unique();
+  },
+});
+
+export const incrementCompletedAppointments = internalMutation({
+  args: {
+    barbershopMetadataId: v.id("barbershopMetadata"),
+  },
+  handler: async (ctx, args) => {
+    const metadata = await ctx.db.get(args.barbershopMetadataId);
+
+    if (!metadata) {
+      throw new ConvexError(errorMessages.notFound("metadata"));
+    }
+
+    await ctx.db.patch(args.barbershopMetadataId, {
+      completedAppointments: (metadata.completedAppointments ?? 0) + 1,
+    });
   },
 });

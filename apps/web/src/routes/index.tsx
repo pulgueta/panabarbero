@@ -29,15 +29,19 @@ import {
   isBarberQueryOptions,
   useIsBarber,
 } from "@/hooks/use-barbershop-members";
-import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/")({
   pendingComponent: LoadingComponent,
   component: RouteComponent,
+  loader: async ({ context }) => {
+    const user = context.user;
+
+    return {
+      user,
+    };
+  },
   beforeLoad: async ({ context }) => {
-    const user = await context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
+    const user = context.user;
 
     if (user?.userId) {
       const isBarber = await context.queryClient.ensureQueryData(
@@ -56,8 +60,8 @@ export const Route = createFileRoute("/")({
 
 function RouteComponent() {
   const navigate = Route.useNavigate();
+  const { user } = Route.useLoaderData();
 
-  const { data: user } = useSession();
   const { data: isBarber } = useIsBarber(user?.userId ?? "");
 
   useLayoutEffect(() => {
@@ -75,7 +79,7 @@ function RouteComponent() {
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         {/* Background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5" />
+        <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-transparent to-secondary/5" />
         <div className="-translate-x-1/2 absolute top-0 left-1/2 h-[600px] w-[800px] rounded-full bg-primary/10 opacity-20 blur-3xl" />
 
         <div className="container relative mx-auto px-4 pt-16 pb-24 md:pt-24 md:pb-32">
@@ -90,7 +94,7 @@ function RouteComponent() {
 
             <h1 className="mb-4 text-balance font-bold text-4xl tracking-tight md:text-5xl">
               Gestiona tu barbería.{" "}
-              <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-primary to-primary/70 bg-clip-text text-transparent">
                 Sin complicaciones.
               </span>
             </h1>
@@ -103,7 +107,7 @@ function RouteComponent() {
 
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               {isBarber ? (
-                <Button size="md" asChild className="group">
+                <Button asChild className="group">
                   <Link to="/profile/barbershops/appointments">
                     Ver mis citas
                     <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
@@ -201,7 +205,7 @@ function RouteComponent() {
             ].map((feature) => (
               <Card
                 key={feature.title}
-                className="group relative overflow-hidden border-border/50 bg-gradient-to-br transition-all hover:border-primary/30 hover:shadow"
+                className="group relative overflow-hidden border-border/50 bg-linear-to-br transition-all hover:border-primary/30 hover:shadow"
               >
                 <CardHeader>
                   <div className="mb-3 flex size-12 items-center justify-center rounded-xl bg-primary/10 transition-colors group-hover:bg-primary/20">
@@ -300,7 +304,7 @@ function RouteComponent() {
 
           <div className="grid gap-8 lg:grid-cols-2">
             {/* For Barbers */}
-            <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 to-transparent pt-0 pb-4">
+            <Card className="overflow-hidden border-primary/20 bg-linear-to-br from-primary/5 to-transparent pt-0 pb-4">
               <CardHeader className="border-primary/10 border-b bg-primary/5 pt-6">
                 <div className="flex items-center gap-4">
                   <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
@@ -334,7 +338,7 @@ function RouteComponent() {
             </Card>
 
             {/* For Clients */}
-            <Card className="overflow-hidden border-secondary/20 bg-gradient-to-br from-secondary/5 to-transparent pt-0 pb-4">
+            <Card className="overflow-hidden border-secondary/20 bg-linear-to-br from-secondary/5 to-transparent pt-0 pb-4">
               <CardHeader className="border-secondary/10 border-b bg-secondary/5 pt-6">
                 <div className="flex items-center gap-4">
                   <div className="flex size-12 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
@@ -428,8 +432,8 @@ function RouteComponent() {
       {/* Final CTA Section */}
       <section className="relative overflow-hidden py-32">
         {/* Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent" />
-        <div className="absolute right-0 bottom-0 left-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-br from-primary/10 via-primary/5 to-transparent" />
+        <div className="absolute right-0 bottom-0 left-0 h-px bg-linear-to-r from-transparent via-primary/50 to-transparent" />
 
         <div className="container relative mx-auto px-4">
           <div className="mx-auto max-w-3xl text-center">

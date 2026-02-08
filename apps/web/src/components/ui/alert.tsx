@@ -1,6 +1,4 @@
-import type { VariantProps } from "class-variance-authority";
-import { cva } from "class-variance-authority";
-import type { ComponentProps } from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
@@ -10,12 +8,8 @@ const alertVariants = cva(
     variants: {
       variant: {
         default: "bg-card text-card-foreground",
-        primary: "bg-primary text-primary-foreground",
         destructive:
           "bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 [&>svg]:text-current",
-        info: "bg-blue-100 text-blue-600 *:data-[slot=alert-description]:text-blue-600/90 dark:bg-blue-950 dark:text-blue-100 dark:*:data-[slot=alert-description]:text-blue-100/90 [&>svg]:text-current",
-        warning:
-          "bg-yellow-100 text-yellow-600 *:data-[slot=alert-description]:text-yellow-600/90 dark:bg-yellow-950 dark:text-yellow-100 dark:*:data-[slot=alert-description]:text-yellow-100/90 [&>svg]:text-current",
       },
     },
     defaultVariants: {
@@ -28,7 +22,7 @@ function Alert({
   className,
   variant,
   ...props
-}: ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
+}: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
   return (
     <div
       data-slot="alert"
@@ -39,7 +33,7 @@ function Alert({
   );
 }
 
-function AlertTitle({ className, ...props }: ComponentProps<"div">) {
+function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="alert-title"
@@ -52,7 +46,10 @@ function AlertTitle({ className, ...props }: ComponentProps<"div">) {
   );
 }
 
-function AlertDescription({ className, ...props }: ComponentProps<"div">) {
+function AlertDescription({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="alert-description"

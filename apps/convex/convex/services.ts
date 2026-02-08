@@ -1,71 +1,15 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: is always provided */
 
-import type { SearchEntry, SearchResult } from "@convex-dev/rag";
-import type { EmbeddingModelUsage } from "ai";
-import type { Value } from "convex/values";
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
-import { action, internalMutation, mutation, query } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
 import { assertCanManageServices, assertCanManageShop } from "./authz";
 import { errorMessages } from "./errors";
+import { rateLimitOrThrow } from "./ratelimit";
 import { tables } from "./tables";
 
-type ServiceResult = {
-  results: SearchResult[];
-  text: string;
-  entries: SearchEntry<Record<string, Value>, Record<string, Value>>[];
-  usage: EmbeddingModelUsage;
-};
-
-export const searchServices = action({
-  args: {
-    service: v.string(),
-  },
-  handler: async (ctx, args): Promise<ServiceResult> => {
-    const user = await authComponent.getAuthUser(ctx);
-
-    const serviceResults = await ctx.runAction(internal.rag.searchRAG, {
-      namespace: "services",
-      query: args.service,
-      userId: user.userId ?? undefined,
-    });
-
-    return serviceResults;
-  },
-});
-
-export const createServiceMutation = internalMutation({
-  args: {
-    service: v.object({
-      ...tables.services,
-    }),
-  },
-  handler: async (ctx, args) => {
-    const barbershop = await ctx.db.get(args.service.barbershopId);
-
-    if (barbershop && barbershop.isActive === false) {
-      const existingService = await ctx.db
-        .query("services")
-        .withIndex("by_barbershopId", (q) =>
-          q.eq("barbershopId", args.service.barbershopId),
-        )
-        .first();
-
-      if (!existingService) {
-        await ctx.db.patch(args.service.barbershopId, {
-          isActive: true,
-        });
-      }
-    }
-
-    const serviceId = await ctx.db.insert("services", args.service);
-
-    return serviceId;
-  },
-});
-
-export const createService = mutation({
+export const create = mutation({
   args: {
     service: v.object({
       ...tables.services,
@@ -77,6 +21,8 @@ export const createService = mutation({
     if (!user?.userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
+
+    await rateLimitOrThrow(ctx, "createService", user._id);
 
     const { service } = args;
 
@@ -100,19 +46,40 @@ export const createService = mutation({
       }
     }
 
-    await ctx.scheduler.runAfter(0, internal.rag.addToRAG, {
-      namespace: "services",
-      text: service.name,
-      userId: user.userId,
-    });
-
     const serviceId = await ctx.db.insert("services", service);
+
+    // Auto-assign service to the only barber if there's only one owner-barber member
+    const members = await ctx.db
+      .query("barbershopMembers")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", service.barbershopId),
+      )
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+
+    if (members.length === 1) {
+      const onlyMember = members[0];
+      const isOwnerAndBarber =
+        onlyMember.roles.includes("owner") &&
+        onlyMember.roles.includes("barber");
+
+      if (isOwnerAndBarber) {
+        // Auto-assign service to the only owner-barber
+        await ctx.db.insert("barbershopMemberServices", {
+          uuid: crypto.randomUUID(),
+          barbershopId: service.barbershopId,
+          barbershopMemberId: onlyMember._id,
+          serviceId,
+          isActive: true,
+        });
+      }
+    }
 
     return serviceId;
   },
 });
 
-export const getServiceByUuid = query({
+export const getByUuid = query({
   args: {
     uuid: v.string(),
   },
@@ -126,7 +93,7 @@ export const getServiceByUuid = query({
   },
 });
 
-export const getServiceById = query({
+export const getById = query({
   args: {
     serviceId: v.id("services"),
   },
@@ -135,7 +102,7 @@ export const getServiceById = query({
   },
 });
 
-export const getServicesByIds = query({
+export const getByIds = query({
   args: {
     serviceIds: v.array(v.id("services")),
   },
@@ -146,7 +113,7 @@ export const getServicesByIds = query({
   },
 });
 
-export const updateService = mutation({
+export const update = mutation({
   args: {
     service: v.object({
       name: v.string(),
@@ -162,6 +129,8 @@ export const updateService = mutation({
     if (!user?.userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
+
+    await rateLimitOrThrow(ctx, "updateService", user._id);
 
     const { service, serviceId } = args;
 
@@ -194,6 +163,8 @@ export const deleteService = mutation({
     if (!user?.userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
+
+    await rateLimitOrThrow(ctx, "deleteService", user._id);
 
     const { serviceId, barbershopId, force } = args;
 
@@ -248,7 +219,7 @@ export const deleteService = mutation({
 
       // Send notification to customer
       await ctx.runMutation(
-        internal.notifications.createServiceDeletedCancellationNotification,
+        internal.notifications.createServiceDeletedCancellation,
         {
           appointmentId: appt._id,
           customerUserId: appt.userId,
@@ -277,7 +248,7 @@ export const deleteService = mutation({
   },
 });
 
-export const getServiceByAppointmentId = query({
+export const getByAppointmentId = query({
   args: {
     appointmentId: v.id("appointments"),
   },

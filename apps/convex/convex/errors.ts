@@ -4,8 +4,8 @@ export const errorMessages = {
     "La reserva se cruza con otra. Intenta con una hora o fecha distinta.",
   appointmentOutsideWorkingHours:
     "La barbería no está abierta en el horario seleccionado.",
-  appointmentDuringLunchBreak:
-    "La barbería no atiende durante el horario de almuerzo seleccionado.",
+  appointmentUnavailableHours:
+    "La barbería no atiende durante el horario seleccionado.",
   notFound: (resource: string) => `El recurso "${resource}" no fue encontrado`,
   barbershopClosedOnSelectedDay:
     "La barbería no está abierta en el día seleccionado",

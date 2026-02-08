@@ -1,9 +1,10 @@
 import {
-  Building2,
   Calendar,
   CalendarPlus,
+  DollarSign,
   Home,
   Scissors,
+  Settings,
   User,
   Users,
 } from "lucide-react";
@@ -24,6 +25,11 @@ export const publicRoutes = {
       label: "Agendar",
       to: "/appointments/create",
       icon: CalendarPlus,
+    },
+    {
+      label: "Precios",
+      to: "/pricing",
+      icon: DollarSign,
     },
   ],
 };
@@ -66,9 +72,9 @@ export const authenticatedRoutes = {
       icon: Users,
     },
     {
-      label: "Barbería",
+      label: "Ajustes",
       to: "/profile/barbershops/settings",
-      icon: Building2,
+      icon: Settings,
     },
     {
       label: "Perfil",

@@ -1,5 +1,6 @@
 import { useColombia } from "@panabarbero/constants";
 import type { BaseSyntheticEvent, FC } from "react";
+import { useEffect } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { Controller } from "react-hook-form";
 import type { output } from "zod";
@@ -22,6 +23,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { barbershopFormSchema } from "@/lib/schemas";
+import {
+  setLocationCity,
+  setLocationState,
+  useLocationStore,
+} from "@/store/location";
 
 export type CreateBarbershopFormData = {
   name: string;
@@ -49,8 +55,17 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
 }) => {
   const { states, citiesFromState } = useColombia();
 
-  const selectedState = form.watch("state");
-  const availableCities = selectedState ? citiesFromState(selectedState) : [];
+  const { state, city } = useLocationStore();
+  const availableCities = state ? citiesFromState(state) : [];
+
+  useEffect(() => {
+    if (state !== form.getValues("state")) {
+      form.setValue("state", state ?? "");
+    }
+    if (city !== form.getValues("city")) {
+      form.setValue("city", city ?? "");
+    }
+  }, [state, city, form]);
 
   return (
     <form id={formIds.form} onSubmit={onSubmit} className="space-y-2">
@@ -124,7 +139,15 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor={formIds.state}>Departamento</FieldLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select
+                  value={state ?? ""}
+                  onValueChange={(value) => {
+                    setLocationState(value || undefined);
+                    setLocationCity(undefined);
+                    field.onChange(value);
+                    form.setValue("city", "");
+                  }}
+                >
                   <SelectTrigger className="w-full bg-background dark:bg-card">
                     <SelectValue placeholder="Selecciona departamento" />
                   </SelectTrigger>
@@ -150,9 +173,12 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor={formIds.city}>Ciudad</FieldLabel>
                 <Select
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  disabled={!selectedState}
+                  value={city ?? ""}
+                  onValueChange={(value) => {
+                    setLocationCity(value || undefined);
+                    field.onChange(value);
+                  }}
+                  disabled={!state}
                 >
                   <SelectTrigger className="w-full bg-background dark:bg-card">
                     <SelectValue placeholder="Selecciona ciudad" />

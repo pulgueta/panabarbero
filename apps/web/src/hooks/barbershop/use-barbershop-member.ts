@@ -3,7 +3,7 @@ import { api } from "@panabarbero/convex/api";
 import { useQuery } from "@tanstack/react-query";
 
 export function barbershopMemberRolesQueryOptions(userId: string) {
-  return convexQuery(api.barbershopMembers.getBarbershopMemberRolesByUserId, {
+  return convexQuery(api.barbershopMembers.getRolesByUserId, {
     userId,
   });
 }
