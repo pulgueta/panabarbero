@@ -462,7 +462,7 @@ export const createPastAppointmentReminder = internalMutation({
 
 export const createBarberInvited = internalMutation({
   args: {
-    invitationId: v.id("invitations"),
+    invitationId: v.id("barbershopInvitations"),
     barbershopId: v.id("barbershops"),
     email: v.string(),
     code: v.string(),

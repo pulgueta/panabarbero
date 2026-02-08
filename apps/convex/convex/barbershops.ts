@@ -4,13 +4,105 @@ import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { geospatial, r2 } from ".";
 import { api, internal } from "./_generated/api";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
+import {
+  assertCanManageOrganization,
+  getOrganizationMembership,
+} from "./authz";
 import { errorMessages } from "./errors";
+import { getPlanTypeFromSlug, PLAN_LIMITS } from "./lib/plans";
+import { getPolarProducts } from "./lib/polarProducts";
 import { rateLimitOrThrow } from "./ratelimit";
 import { tables } from "./tables";
 import { getProfileByUserId } from "./userProfileData";
 
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
+/**
+ * Get plan limits for an organization based on their active subscription
+ */
+async function getOrganizationPlanLimits(
+  ctx: QueryCtx | MutationCtx,
+  organizationId: string,
+) {
+  const subscription = await ctx.db
+    .query("subscription")
+    .withIndex("organizationId_status", (q) =>
+      q.eq("organizationId", organizationId).eq("status", "active"),
+    )
+    .first();
+
+  if (!subscription) {
+    return PLAN_LIMITS.free;
+  }
+
+  const products = await getPolarProducts();
+  const product = products.find((p) => p.productId === subscription.productId);
+  const planType = product ? getPlanTypeFromSlug(product.slug) : "free";
+
+  return PLAN_LIMITS[planType];
+}
+
+/**
+ * Count barbershops owned by an organization
+ */
+async function countOrganizationBarbershops(
+  ctx: QueryCtx | MutationCtx,
+  organizationId: string,
+) {
+  const barbershops = await ctx.db
+    .query("barbershops")
+    .withIndex("by_organizationId", (q) =>
+      q.eq("organizationId", organizationId),
+    )
+    .collect();
+
+  return barbershops.length;
+}
+
+/**
+ * Check if an organization can create a new barbershop based on their plan limits
+ */
+async function canOrganizationCreateBarbershop(
+  ctx: QueryCtx | MutationCtx,
+  organizationId: string,
+): Promise<{
+  allowed: boolean;
+  reason?: string;
+  currentCount: number;
+  limit: number;
+}> {
+  const planLimits = await getOrganizationPlanLimits(ctx, organizationId);
+  const currentCount = await countOrganizationBarbershops(ctx, organizationId);
+
+  if (currentCount >= planLimits.maxBarbershopsPerOrganization) {
+    return {
+      allowed: false,
+      reason: `Has alcanzado el límite de ${planLimits.maxBarbershopsPerOrganization} barberías para tu plan. Actualiza tu plan para crear más.`,
+      currentCount,
+      limit: planLimits.maxBarbershopsPerOrganization,
+    };
+  }
+
+  return {
+    allowed: true,
+    currentCount,
+    limit: planLimits.maxBarbershopsPerOrganization,
+  };
+}
+
+// =============================================================================
+// Mutations
+// =============================================================================
+
+/**
+ * @deprecated Use createForOrganization instead
+ * Creates a barbershop linked to a user (legacy - for backward compatibility)
+ */
 export const create = mutation({
   args: {
     barbershop: v.object({
@@ -72,6 +164,220 @@ export const create = mutation({
     });
 
     return barbershopId;
+  },
+});
+
+/**
+ * Creates a barbershop linked to an organization with plan limit enforcement
+ */
+export const createForOrganization = mutation({
+  args: {
+    organizationId: v.string(),
+    barbershop: v.object({
+      uuid: v.string(),
+      name: v.string(),
+      description: v.optional(v.string()),
+      address: v.object({
+        fullAddress: v.string(),
+        details: v.optional(v.string()),
+      }),
+      coordinates: v.optional(
+        v.object({
+          x: v.number(),
+          y: v.number(),
+        }),
+      ),
+      contactPhone: v.optional(v.string()),
+      availability: v.array(
+        v.object({
+          weekDay: v.object({
+            day: v.union(
+              v.literal("monday"),
+              v.literal("tuesday"),
+              v.literal("wednesday"),
+              v.literal("thursday"),
+              v.literal("friday"),
+              v.literal("saturday"),
+              v.literal("sunday"),
+            ),
+            isActive: v.boolean(),
+          }),
+          openAt: v.string(),
+          closeAt: v.string(),
+          lunchStart: v.optional(v.string()),
+          lunchEnd: v.optional(v.string()),
+        }),
+      ),
+      city: v.string(),
+      state: v.string(),
+      zipCode: v.optional(v.string()),
+      bannerUrl: v.optional(v.string()),
+    }),
+    ownerIsBarber: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    // Verify user has permission to create barbershops in this organization
+    await assertCanManageOrganization(ctx, args.organizationId, user.userId);
+
+    await rateLimitOrThrow(ctx, "createBarbershop", user._id);
+
+    // Check plan limits
+    const canCreate = await canOrganizationCreateBarbershop(
+      ctx,
+      args.organizationId,
+    );
+    if (!canCreate.allowed) {
+      throw new ConvexError(canCreate.reason!);
+    }
+
+    const { barbershop, ownerIsBarber, organizationId } = args;
+
+    const barbershopId = await ctx.db.insert("barbershops", {
+      ...barbershop,
+      ownerId: user.userId, // Still store for backward compatibility
+      organizationId, // New organization link
+      isActive: false,
+      gracePeriodMinutes: 5,
+      services: undefined,
+      metadataId: undefined,
+    });
+
+    const metadataId = await ctx.runMutation(
+      internal.barbershopMetadata.createInitial,
+      {
+        barbershopId,
+      },
+    );
+
+    await ctx.db.patch(barbershopId, {
+      metadataId,
+    });
+
+    const userProfile = await ctx.db
+      .query("userProfileData")
+      .withIndex("by_userId", (q) => q.eq("userId", user.userId!))
+      .unique();
+
+    if (!userProfile) {
+      return {
+        barbershopId,
+        warning: "User profile not found, member not created",
+      };
+    }
+
+    const roles: Array<"owner" | "barber"> = ownerIsBarber
+      ? ["owner", "barber"]
+      : ["owner"];
+
+    // Create barbershop member with both legacy and new fields
+    await ctx.runMutation(internal.barbershopMembers.create, {
+      barbershopMember: {
+        barbershopId,
+        userProfileDataId: userProfile._id, // Legacy field
+        userId: user.userId, // New field
+        organizationId, // New field
+        uuid: crypto.randomUUID(),
+        isActive: true,
+        joinedAt: Date.now(),
+        roles,
+      },
+    });
+
+    return { barbershopId };
+  },
+});
+
+/**
+ * Gets barbershops for an organization
+ */
+export const getByOrganizationId = query({
+  args: {
+    organizationId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      return [];
+    }
+
+    // Verify user is member of the organization
+    const membership = await getOrganizationMembership(
+      ctx,
+      args.organizationId,
+      user.userId,
+    );
+
+    if (!membership) {
+      return [];
+    }
+
+    const barbershops = await ctx.db
+      .query("barbershops")
+      .withIndex("by_organizationId", (q) =>
+        q.eq("organizationId", args.organizationId),
+      )
+      .collect();
+
+    // Enrich with services
+    await Promise.all(
+      barbershops.map(async (barbershop) => {
+        const services = await ctx.runQuery(api.barbershops.getServices, {
+          barbershopId: barbershop._id,
+        });
+        barbershop.services = services.map((service) => service._id);
+      }),
+    );
+
+    return barbershops;
+  },
+});
+
+/**
+ * Gets organization plan limits and usage for barbershops
+ */
+export const getOrganizationBarbershopUsage = query({
+  args: {
+    organizationId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      return null;
+    }
+
+    const membership = await getOrganizationMembership(
+      ctx,
+      args.organizationId,
+      user.userId,
+    );
+
+    if (!membership) {
+      return null;
+    }
+
+    const planLimits = await getOrganizationPlanLimits(
+      ctx,
+      args.organizationId,
+    );
+    const currentCount = await countOrganizationBarbershops(
+      ctx,
+      args.organizationId,
+    );
+
+    return {
+      currentCount,
+      limit: planLimits.maxBarbershopsPerOrganization,
+      canCreate: currentCount < planLimits.maxBarbershopsPerOrganization,
+      planLimits,
+    };
   },
 });
 

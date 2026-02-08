@@ -55,7 +55,7 @@ export const invite = mutation({
     }
 
     const existingInvitation = await ctx.db
-      .query("invitations")
+      .query("barbershopInvitations")
       .withIndex("by_barbershopId", (q) =>
         q.eq("barbershopId", args.barbershopId),
       )
@@ -81,7 +81,7 @@ export const invite = mutation({
     const code = crypto.randomUUID();
     const expiresAt = now + INVITATION_EXPIRATION_MS;
 
-    const invitationId = await ctx.db.insert("invitations", {
+    const invitationId = await ctx.db.insert("barbershopInvitations", {
       barbershopId: args.barbershopId,
       email,
       phone: args.phone,
@@ -115,7 +115,7 @@ export const getByCode = query({
   args: { code: v.string() },
   handler: async (ctx, args) => {
     const invitation = await ctx.db
-      .query("invitations")
+      .query("barbershopInvitations")
       .withIndex("by_code", (q) => q.eq("code", args.code))
       .unique();
 
@@ -142,7 +142,7 @@ export const validate = mutation({
   args: { code: v.string() },
   handler: async (ctx, args) => {
     const invitation = await ctx.db
-      .query("invitations")
+      .query("barbershopInvitations")
       .withIndex("by_code", (q) => q.eq("code", args.code))
       .unique();
 
@@ -166,7 +166,7 @@ export const validate = mutation({
     const expiresAt = Date.now() + INVITATION_EXPIRATION_MS;
     const { _id, _creationTime, ...rest } = invitation;
 
-    const newInvitationId = await ctx.db.insert("invitations", {
+    const newInvitationId = await ctx.db.insert("barbershopInvitations", {
       ...rest,
       status: "pending",
       code: newCode,
@@ -207,7 +207,7 @@ export const answer = mutation({
     await rateLimitOrThrow(ctx, "answerInvitation", `${user._id}-${args.code}`);
 
     const invitation = await ctx.db
-      .query("invitations")
+      .query("barbershopInvitations")
       .withIndex("by_code", (q) => q.eq("code", args.code))
       .unique();
 

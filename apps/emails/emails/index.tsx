@@ -8,4 +8,5 @@ export * from "./appointments/reschedule-request-denied";
 export * from "./auth/reset-password";
 export * from "./auth/verification";
 export * from "./barbers/invitation";
+export * from "./orgs/org-invitation";
 export * from "./welcome-email";

@@ -34,7 +34,11 @@ export const tables = {
     contactPhone: v.optional(v.string()),
     isActive: v.boolean(),
     gracePeriodMinutes: v.optional(v.number()),
+    // DEPRECATED: ownerId - kept for backward compatibility during migration
+    // New barbershops should use organizationId instead
     ownerId: v.string(),
+    // NEW: Organization-based ownership (optional during migration)
+    organizationId: v.optional(v.string()),
     availability: v.array(
       v.object({
         weekDay: v.object({
@@ -86,7 +90,13 @@ export const tables = {
   },
   barbershopMembers: {
     uuid: v.string(),
+    // DEPRECATED: userProfileDataId - kept for backward compatibility
+    // New records should use userId instead
     userProfileDataId: v.id("userProfileData"),
+    // NEW: Direct user reference (optional during migration)
+    userId: v.optional(v.string()),
+    // NEW: Organization reference (optional during migration)
+    organizationId: v.optional(v.string()),
     barbershopId: v.id("barbershops"),
     joinedAt: v.number(),
     isActive: v.boolean(),
@@ -138,7 +148,8 @@ export const tables = {
     serviceId: v.id("services"),
     isActive: v.optional(v.boolean()),
   },
-  invitations: {
+  // Renamed from 'invitations' to avoid conflict with better-auth organization invitation table
+  barbershopInvitations: {
     barbershopId: v.id("barbershops"),
     email: v.string(),
     phone: v.optional(v.string()),
@@ -179,8 +190,8 @@ const appointmentSchema = v.object({
 const barbershopMemberServicesSchema = v.object({
   ...tables.barbershopMemberServices,
 });
-const invitationSchema = v.object({
-  ...tables.invitations,
+const barbershopInvitationSchema = v.object({
+  ...tables.barbershopInvitations,
 });
 
 type ConvexRows<T extends TableNames> = {
@@ -205,5 +216,8 @@ export type Appointment = ConvexRows<"appointments"> &
   Infer<typeof appointmentSchema>;
 export type BarbershopMemberServices = ConvexRows<"barbershopMemberServices"> &
   Infer<typeof barbershopMemberServicesSchema>;
-export type Invitation = ConvexRows<"invitations"> &
-  Infer<typeof invitationSchema>;
+export type BarbershopInvitation = ConvexRows<"barbershopInvitations"> &
+  Infer<typeof barbershopInvitationSchema>;
+
+// Re-export as Invitation for backward compatibility
+export type Invitation = BarbershopInvitation;

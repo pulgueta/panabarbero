@@ -6,7 +6,11 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { errorMessages } from "./errors";
 import type { Appointment, BarbershopMember } from "./tables";
 
+// Barbershop member roles
 export type Role = "owner" | "barber";
+
+// Organization member roles (from better-auth)
+export type OrganizationRole = "owner" | "admin" | "member";
 
 /**
  * Get a barbershop member by their user profile data ID and barbershop ID
@@ -295,4 +299,196 @@ export async function isOwnerOfShop(
   userId: string,
 ): Promise<boolean> {
   return hasShopRole(ctx, barbershopId, userId, "owner");
+}
+
+// =============================================================================
+// Organization-based Authorization (Better Auth)
+// =============================================================================
+
+/**
+ * Get organization membership for a user
+ */
+export async function getOrganizationMembership(
+  ctx: QueryCtx | MutationCtx,
+  organizationId: string,
+  userId: string,
+) {
+  return await ctx.db
+    .query("member")
+    .withIndex("organizationId_userId", (q) =>
+      q.eq("organizationId", organizationId).eq("userId", userId),
+    )
+    .unique();
+}
+
+/**
+ * Assert that a user is a member of an organization
+ * Throws a ConvexError if the user is not a member
+ */
+export async function assertOrganizationMember(
+  ctx: QueryCtx | MutationCtx,
+  organizationId: string,
+  userId: string,
+) {
+  const membership = await getOrganizationMembership(
+    ctx,
+    organizationId,
+    userId,
+  );
+
+  if (!membership) {
+    throw new ConvexError("No eres miembro de esta organización");
+  }
+
+  return membership;
+}
+
+/**
+ * Assert that a user has a specific role in an organization
+ * Throws a ConvexError if the user doesn't have the required role
+ */
+export async function assertOrganizationRole(
+  ctx: QueryCtx | MutationCtx,
+  organizationId: string,
+  userId: string,
+  allowedRoles: OrganizationRole[],
+) {
+  const membership = await assertOrganizationMember(
+    ctx,
+    organizationId,
+    userId,
+  );
+
+  if (!allowedRoles.includes(membership.role as OrganizationRole)) {
+    throw new ConvexError(
+      `Se requiere uno de los siguientes roles: ${allowedRoles.join(", ")}`,
+    );
+  }
+
+  return membership;
+}
+
+/**
+ * Assert that a user is an owner or admin of an organization
+ */
+export async function assertCanManageOrganization(
+  ctx: QueryCtx | MutationCtx,
+  organizationId: string,
+  userId: string,
+) {
+  return assertOrganizationRole(ctx, organizationId, userId, [
+    "owner",
+    "admin",
+  ]);
+}
+
+/**
+ * Check if a user is a member of an organization (non-throwing)
+ */
+export async function isOrganizationMember(
+  ctx: QueryCtx | MutationCtx,
+  organizationId: string,
+  userId: string,
+): Promise<boolean> {
+  const membership = await getOrganizationMembership(
+    ctx,
+    organizationId,
+    userId,
+  );
+  return !!membership;
+}
+
+/**
+ * Check if a user has a specific role in an organization (non-throwing)
+ */
+export async function hasOrganizationRole(
+  ctx: QueryCtx | MutationCtx,
+  organizationId: string,
+  userId: string,
+  allowedRoles: OrganizationRole[],
+): Promise<boolean> {
+  const membership = await getOrganizationMembership(
+    ctx,
+    organizationId,
+    userId,
+  );
+
+  if (!membership) {
+    return false;
+  }
+
+  return allowedRoles.includes(membership.role as OrganizationRole);
+}
+
+/**
+ * Assert that a user can manage a barbershop within an organization.
+ * Requires either:
+ * 1. Organization owner/admin role, OR
+ * 2. Barbershop owner/barber role
+ */
+export async function assertCanManageBarbershopInOrg(
+  ctx: QueryCtx | MutationCtx,
+  barbershopId: Id<"barbershops">,
+  userId: string,
+) {
+  const barbershop = await ctx.db.get(barbershopId);
+
+  if (!barbershop) {
+    throw new ConvexError(errorMessages.notFound("barbería"));
+  }
+
+  // If barbershop has organizationId, check organization membership first
+  if (barbershop.organizationId) {
+    const orgMembership = await getOrganizationMembership(
+      ctx,
+      barbershop.organizationId,
+      userId,
+    );
+
+    // Org owners/admins can manage all barbershops in their org
+    if (
+      orgMembership &&
+      ["owner", "admin"].includes(orgMembership.role as OrganizationRole)
+    ) {
+      return { barbershop, orgMembership };
+    }
+  }
+
+  // Fallback: check barbershop-level membership
+  const shopMember = await getBarbershopMemberByUserId(
+    ctx,
+    barbershopId,
+    userId,
+  );
+
+  if (!shopMember || !memberHasAnyRole(shopMember, ["owner", "barber"])) {
+    throw new ConvexError(errorMessages.unauthorized);
+  }
+
+  return { barbershop, shopMember };
+}
+
+/**
+ * Get the organization for a barbershop
+ */
+export async function getBarbershopOrganization(
+  ctx: QueryCtx | MutationCtx,
+  barbershopId: Id<"barbershops">,
+) {
+  const barbershop = await ctx.db.get(barbershopId);
+
+  if (!barbershop) {
+    return null;
+  }
+
+  if (!barbershop.organizationId) {
+    return null;
+  }
+
+  return await ctx.db
+    .query("organization")
+    .filter((q) =>
+      q.eq(q.field("_id"), barbershop.organizationId as Id<"organization">),
+    )
+    .unique();
 }
