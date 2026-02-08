@@ -13,8 +13,6 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -199,8 +197,8 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Controller
+        <div className="grid grid-cols-1 gap-4">
+          {/* <Controller
             name="ownerIsBarber"
             control={form.control}
             render={({ field, fieldState }) => (
@@ -240,7 +238,7 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
                 )}
               </Field>
             )}
-          />
+          /> */}
 
           <Controller
             name="gracePeriodMinutes"

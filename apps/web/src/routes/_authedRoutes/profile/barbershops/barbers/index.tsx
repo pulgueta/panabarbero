@@ -71,7 +71,7 @@ import {
   servicesQueryOptions,
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
-import { useSession } from "@/hooks/use-session";
+import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
 export const Route = createFileRoute(
@@ -80,7 +80,9 @@ export const Route = createFileRoute(
   component: RouteComponent,
   pendingComponent: LoadingComponent,
   loader: async (opts) => {
-    const user = await opts.context.user;
+    const user = await opts.context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
 
     if (user?.userId) {
       const barbershop = await opts.context.queryClient.ensureQueryData(

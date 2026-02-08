@@ -29,19 +29,24 @@ import {
   isBarberQueryOptions,
   useIsBarber,
 } from "@/hooks/use-barbershop-members";
+import { getSessionQueryOptions } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/")({
   pendingComponent: LoadingComponent,
   component: RouteComponent,
   loader: async ({ context }) => {
-    const user = context.user;
+    const user = await context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
 
     return {
       user,
     };
   },
   beforeLoad: async ({ context }) => {
-    const user = context.user;
+    const user = await context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
 
     if (user?.userId) {
       const isBarber = await context.queryClient.ensureQueryData(
