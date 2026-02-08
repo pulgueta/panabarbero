@@ -256,7 +256,7 @@ function SettingsPage() {
       )}
 
       {!hasAnyActiveDay && rolesData?.isOwner && (
-        <Alert variant="warning">
+        <Alert>
           <AlertTitle>Horario de atención requerido</AlertTitle>
           <AlertDescription>
             Configura el horario de apertura y cierre de tu barbería. Puedes
@@ -267,7 +267,7 @@ function SettingsPage() {
       )}
 
       {!hasService && barbershop && rolesData?.isOwner && (
-        <Alert variant="warning">
+        <Alert>
           <AlertTitle>Debes crear al menos un servicio</AlertTitle>
           <AlertDescription>
             Agrega tu primer servicio para que tus clientes puedan reservar.

@@ -81,21 +81,19 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
     );
 
     if (user?.userId) {
-      await context.queryClient.ensureQueryData(
-        barbershopMemberRolesQueryOptions(user.userId),
-      );
-      await context.queryClient.ensureQueryData(
-        appointmentsByUserQueryOptions(user.userId, null),
-      );
-      await context.queryClient.ensureQueryData(
-        profileQueryOptions(user.userId),
-      );
-      await context.queryClient.ensureQueryData(
-        isBarberQueryOptions(user.userId),
-      );
-      await context.queryClient.ensureQueryData(
-        barbershopByOwnerIdQueryOptions(user.userId),
-      );
+      await Promise.all([
+        context.queryClient.ensureQueryData(
+          barbershopMemberRolesQueryOptions(user.userId),
+        ),
+        context.queryClient.ensureQueryData(
+          appointmentsByUserQueryOptions(user.userId, null),
+        ),
+        context.queryClient.ensureQueryData(profileQueryOptions(user.userId)),
+        context.queryClient.ensureQueryData(isBarberQueryOptions(user.userId)),
+        context.queryClient.ensureQueryData(
+          barbershopByOwnerIdQueryOptions(user.userId),
+        ),
+      ]);
     }
   },
 });

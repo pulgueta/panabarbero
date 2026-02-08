@@ -2,7 +2,6 @@
 
 import { signIn } from "@panabarbero/convex/auth";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { FingerprintIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { FormHeader } from "@/components/auth/form-header";
@@ -13,13 +12,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FieldGroup, FieldSeparator } from "@/components/ui/field";
 import { isBarberQueryOptions } from "@/hooks/use-barbershop-members";
+import { getSessionQueryOptions } from "@/hooks/use-session";
 import { translateBetterAuthError } from "@/lib/better-auth-errors";
 
 export const Route = createFileRoute("/_auth/login")({
   component: LoginPage,
   pendingComponent: LoadingComponent,
   loader: async ({ context }) => {
-    const user = context.user;
+    const user = await context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
 
     console.log(user);
 
@@ -80,7 +82,7 @@ function LoginPage() {
           </CardHeader>
           <CardContent>
             <FieldGroup className="gap-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4">
                 <Button
                   variant="outline"
                   type="button"
@@ -89,14 +91,14 @@ function LoginPage() {
                   <GoogleIcon />
                   {oauthProviderLabel("google")}
                 </Button>
-                <Button
+                {/* <Button
                   variant="outline"
                   type="button"
                   onClick={() => handleSignIn("passkey")}
                 >
                   <FingerprintIcon />
                   Iniciar sesión con biometría
-                </Button>
+                </Button> */}
               </div>
               <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card" />
 

@@ -8,7 +8,6 @@ import { App } from "@/components/layout/app";
 import { DefaultCatchBoundary } from "@/components/layout/error-component";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { NotFoundComponent } from "@/components/layout/not-found-component";
-import { getSessionQueryOptions } from "@/hooks/use-session";
 import { seo } from "@/lib/utils";
 
 type RouterContext = {
@@ -46,13 +45,4 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   errorComponent: (props) => <DefaultCatchBoundary {...props} />,
   notFoundComponent: () => <NotFoundComponent />,
   pendingComponent: () => <LoadingComponent />,
-  beforeLoad: async ({ context }) => {
-    const user = await context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
-
-    if (user) {
-      context.user = user;
-    }
-  },
 });

@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
 
@@ -8,31 +8,34 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-  invitationByCodeQueryOptions,
   useBarbershopMemberActions,
   useInvitationByCode,
 } from "@/hooks/use-barbershop-members";
-import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { useSession } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
 export const Route = createFileRoute("/_authedRoutes/invitations/$code")({
   pendingComponent: LoadingComponent,
   component: InvitationPage,
-  loader: async ({ context, params }) => {
-    const user = await context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
+  // loader: async ({ context, params }) => {
+  //   const user = await context.queryClient.ensureQueryData(
+  //     getSessionQueryOptions(),
+  //   );
 
-    if (user?.userId) {
-      const invitation = await context.queryClient.ensureQueryData(
-        invitationByCodeQueryOptions(params.code),
-      );
+  //   if (user?.userId) {
+  //     const invitation = await context.queryClient.ensureQueryData(
+  //       invitationByCodeQueryOptions(params.code),
+  //     );
 
-      if (invitation?.invitation.email !== user.email) {
-        throw redirect({ to: "/profile", search: { tab: "account" } });
-      }
-    }
-  },
+  //     if (invitation?.invitation.email !== user.email) {
+  //       throw redirect({ to: "/profile", search: { tab: "account" } });
+  //     }
+  //   }
+
+  //   return {
+  //     user,
+  //   };
+  // },
 });
 
 function InvitationPage() {
@@ -41,8 +44,8 @@ function InvitationPage() {
 
   const { data: invitationData, refetch: refetchInvitation } =
     useInvitationByCode(code);
+  const { data: user } = useSession();
 
-  const { data: session } = useSession();
   const {
     answerInvitationMutation: {
       isPending: isAnsweringInvitation,
@@ -97,7 +100,7 @@ function InvitationPage() {
     }
   };
 
-  if (!session?.userId) {
+  if (!user?.userId) {
     return (
       <BorderContainer className="space-y-4">
         <h1 className="font-semibold text-2xl">Inicia sesión</h1>

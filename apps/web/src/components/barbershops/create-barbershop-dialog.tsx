@@ -48,7 +48,6 @@ export const CreateBarbershopDialog: FC<CreateBarbershopDialogProps> = ({
   const navigate = useNavigate();
 
   const form = useForm({
-    // @ts-expect-error - zod's coerce method returns an unknown type
     resolver: zodResolver(barbershopFormSchema),
     defaultValues: {
       address: {
