@@ -156,7 +156,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
       },
     },
     plugins: [
-      convex({ authConfig }),
+      convex({ authConfig, jwksRotateOnTokenGenerationError: true }),
       crossDomain({ siteUrl }),
       passkey(),
       twoFactor({
