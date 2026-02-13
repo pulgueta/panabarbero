@@ -1,5 +1,4 @@
 import betterAuth from "@convex-dev/better-auth/convex.config";
-import postgis from "@convex-dev/geospatial/convex.config";
 import migrations from "@convex-dev/migrations/convex.config";
 import polar from "@convex-dev/polar/convex.config";
 import r2 from "@convex-dev/r2/convex.config";
@@ -10,7 +9,6 @@ import { defineApp } from "convex/server";
 
 const app = defineApp();
 app.use(betterAuth);
-app.use(postgis);
 app.use(twilio);
 app.use(rateLimiter);
 app.use(resend);

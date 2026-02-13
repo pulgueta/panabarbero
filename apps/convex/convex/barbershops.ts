@@ -2,7 +2,7 @@
 
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { geospatial, r2 } from ".";
+import { r2 } from ".";
 import { api, internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
@@ -449,20 +449,6 @@ export const update = mutation({
     await rateLimitOrThrow(ctx, "updateBarbershop", user._id);
 
     await ctx.db.patch(args.barbershopId, args.barbershop);
-
-    if (args.barbershop.coordinates) {
-      await geospatial.insert(
-        ctx,
-        "Barbershop coordinates",
-        {
-          latitude: args.barbershop.coordinates.x,
-          longitude: args.barbershop.coordinates.y,
-        },
-        {
-          key: args.barbershopId,
-        },
-      );
-    }
   },
 });
 

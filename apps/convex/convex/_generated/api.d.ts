@@ -998,6 +998,7 @@ export declare const components: {
         "query",
         "internal",
         {
+          join?: any;
           limit?: number;
           model:
             | "user"
@@ -1051,6 +1052,7 @@ export declare const components: {
         "query",
         "internal",
         {
+          join?: any;
           model:
             | "user"
             | "session"
@@ -2060,159 +2062,8 @@ export declare const components: {
       >;
     };
     adapterTest: {
-      count: FunctionReference<"query", "internal", any, any>;
-      create: FunctionReference<"mutation", "internal", any, any>;
-      delete: FunctionReference<"mutation", "internal", any, any>;
-      deleteMany: FunctionReference<"mutation", "internal", any, any>;
-      findMany: FunctionReference<"query", "internal", any, any>;
-      findOne: FunctionReference<"query", "internal", any, any>;
-      update: FunctionReference<"mutation", "internal", any, any>;
-      updateMany: FunctionReference<"mutation", "internal", any, any>;
-    };
-  };
-  geospatial: {
-    document: {
-      get: FunctionReference<
-        "query",
-        "internal",
-        { key: string },
-        {
-          coordinates: { latitude: number; longitude: number };
-          filterKeys: Record<
-            string,
-            | string
-            | number
-            | boolean
-            | null
-            | bigint
-            | Array<string | number | boolean | null | bigint>
-          >;
-          key: string;
-          sortKey: number;
-        } | null
-      >;
-      insert: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          document: {
-            coordinates: { latitude: number; longitude: number };
-            filterKeys: Record<
-              string,
-              | string
-              | number
-              | boolean
-              | null
-              | bigint
-              | Array<string | number | boolean | null | bigint>
-            >;
-            key: string;
-            sortKey: number;
-          };
-          levelMod: number;
-          maxCells: number;
-          maxLevel: number;
-          minLevel: number;
-        },
-        null
-      >;
-      remove: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          key: string;
-          levelMod: number;
-          maxCells: number;
-          maxLevel: number;
-          minLevel: number;
-        },
-        boolean
-      >;
-    };
-    query: {
-      debugCells: FunctionReference<
-        "query",
-        "internal",
-        {
-          levelMod: number;
-          maxCells: number;
-          maxLevel: number;
-          minLevel: number;
-          rectangle: {
-            east: number;
-            north: number;
-            south: number;
-            west: number;
-          };
-        },
-        Array<{
-          token: string;
-          vertices: Array<{ latitude: number; longitude: number }>;
-        }>
-      >;
-      execute: FunctionReference<
-        "query",
-        "internal",
-        {
-          cursor?: string;
-          levelMod: number;
-          logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
-          maxCells: number;
-          maxLevel: number;
-          minLevel: number;
-          query: {
-            filtering: Array<{
-              filterKey: string;
-              filterValue: string | number | boolean | null | bigint;
-              occur: "should" | "must";
-            }>;
-            maxResults: number;
-            rectangle: {
-              east: number;
-              north: number;
-              south: number;
-              west: number;
-            };
-            sorting: {
-              interval: { endExclusive?: number; startInclusive?: number };
-            };
-          };
-        },
-        {
-          nextCursor?: string;
-          results: Array<{
-            coordinates: { latitude: number; longitude: number };
-            key: string;
-          }>;
-        }
-      >;
-      nearestPoints: FunctionReference<
-        "query",
-        "internal",
-        {
-          filtering: Array<{
-            filterKey: string;
-            filterValue: string | number | boolean | null | bigint;
-            occur: "should" | "must";
-          }>;
-          levelMod: number;
-          logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
-          maxDistance?: number;
-          maxLevel: number;
-          maxResults: number;
-          minLevel: number;
-          nextCursor?: string;
-          point: { latitude: number; longitude: number };
-          sorting: {
-            interval: { endExclusive?: number; startInclusive?: number };
-          };
-        },
-        Array<{
-          coordinates: { latitude: number; longitude: number };
-          distance: number;
-          key: string;
-        }>
-      >;
+      runCustomTests: FunctionReference<"action", "internal", any, any>;
+      runTests: FunctionReference<"action", "internal", any, any>;
     };
   };
   twilio: {

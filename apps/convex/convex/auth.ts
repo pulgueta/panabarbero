@@ -9,7 +9,7 @@ import { twoFactor } from "better-auth/plugins";
 
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
-import { internalQuery, query } from "./_generated/server";
+import { internalAction, internalQuery, query } from "./_generated/server";
 import authConfig from "./auth.config";
 import { from, resend } from "./emails";
 import { getProfileByUserId } from "./userProfileData";
@@ -192,5 +192,14 @@ export const getPolarUser = internalQuery({
       userId: profile.userId,
       email: profile.email,
     };
+  },
+});
+
+export const getLatestJwks = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    const auth = createAuth(ctx);
+
+    return await auth.api.getLatestJwks();
   },
 });

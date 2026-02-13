@@ -1,11 +1,9 @@
-import { GeospatialIndex } from "@convex-dev/geospatial";
 import { R2 } from "@convex-dev/r2";
 import { v } from "convex/values";
 import { components } from "./_generated/api";
 import { mutation } from "./_generated/server";
 import { rateLimitOrThrow } from "./ratelimit";
 
-export const geospatial = new GeospatialIndex(components.geospatial);
 export const r2 = new R2(components.r2);
 
 export const { generateUploadUrl, listMetadata, deleteObject, getMetadata } =
