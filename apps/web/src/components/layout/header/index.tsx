@@ -7,6 +7,7 @@ import { useBarbershopMemberRoles } from "@/hooks/barbershop/use-barbershop-memb
 import { useIsBarber } from "@/hooks/use-barbershop-members";
 import { useSession } from "@/hooks/use-session";
 import { ThemeToggler } from "../theme-toggler";
+import { UserAvatar } from "../user-avatar";
 
 export const Header = () => {
   const { data: user, isLoading } = useSession();
@@ -49,7 +50,7 @@ export const Header = () => {
         </div>
 
         <nav className="flex flex-1 items-center justify-center">
-          <div className="flex items-center font-medium text-sm md:space-x-8">
+          <div className="flex items-center font-medium text-sm md:space-x-4 lg:space-x-8">
             {user
               ? isBarber
                 ? navigationRoutes.map((route) => (
@@ -124,7 +125,7 @@ export const Header = () => {
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
             {isLoading ? (
-              <Skeleton className="h-9 w-28" />
+              <Skeleton className="h-8 w-28" />
             ) : (
               !user && (
                 <Button asChild>
@@ -133,6 +134,18 @@ export const Header = () => {
               )
             )}
 
+            {user?.userId && (
+              <div className="hidden md:block">
+                <UserAvatar
+                  user={{
+                    userId: user.userId,
+                    email: user.email,
+                    name: user.name,
+                    image: user.image,
+                  }}
+                />
+              </div>
+            )}
             <ThemeToggler />
           </div>
         </div>

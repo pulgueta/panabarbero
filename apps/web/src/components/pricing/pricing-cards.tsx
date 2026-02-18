@@ -1,8 +1,4 @@
-import { CheckoutLink } from "@convex-dev/polar/react";
-import { api } from "@panabarbero/convex/api";
-import { CheckCircle2 } from "lucide-react";
-import type { FC } from "react";
-
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -12,9 +8,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { usePricingPlans } from "@/hooks/billing/use-pricing";
+import { useSession } from "@/hooks/use-session";
+import { cn } from "@/lib/utils";
+import { CustomerPortalLink } from "@convex-dev/polar/react";
+import { api } from "@panabarbero/convex/api";
+import { Link } from "@tanstack/react-router";
+import { CheckCircle2 } from "lucide-react";
+import type { FC } from "react";
 
 export const PricingCards: FC = () => {
   const { data: products } = usePricingPlans();
+  const { data: session } = useSession();
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -44,17 +48,23 @@ export const PricingCards: FC = () => {
               ))}
             </ul>
           </CardContent>
-          <CardFooter className="mt-auto">
-            <CheckoutLink
-              polarApi={{
-                generateCheckoutLink: api.polar.generateCheckoutLink,
-              }}
-              productIds={[product.id]}
 
-              // className={cn(buttonVariants({ className: "w-full" }))}
-            >
-              Elegir product
-            </CheckoutLink>
+          <CardFooter className="mt-auto">
+            {session?.userId ? (
+              <CustomerPortalLink
+                polarApi={{
+                  generateCustomerPortalUrl:
+                    api.polar.generateCustomerPortalUrl,
+                }}
+                className={cn(buttonVariants({ className: "w-full" }))}
+              >
+                Administrar suscripción
+              </CustomerPortalLink>
+            ) : (
+              <Button asChild className="w-full">
+                <Link to="/login">Iniciar sesión</Link>
+              </Button>
+            )}
           </CardFooter>
         </Card>
       ))}

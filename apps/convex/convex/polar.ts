@@ -1,16 +1,17 @@
 import { Polar } from "@convex-dev/polar";
-import { api, components } from "./_generated/api";
+import { components, internal } from "./_generated/api";
+import { internalAction } from "./_generated/server";
 
 export const polar = new Polar(components.polar, {
   getUserInfo: async (ctx) => {
-    const user = (await ctx.runQuery(api.auth.getCurrentUser)) as {
+    const user = (await ctx.runQuery(internal.auth.getPolarUser)) as {
       userId: string;
       email: string;
     };
 
     return {
-      userId: user?.userId ?? "",
-      email: user?.email ?? "",
+      userId: user.userId,
+      email: user.email,
     };
   },
 });
@@ -23,3 +24,10 @@ export const {
   generateCheckoutLink,
   generateCustomerPortalUrl,
 } = polar.api();
+
+export const syncExistingProducts = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    await polar.syncProducts(ctx);
+  },
+});
