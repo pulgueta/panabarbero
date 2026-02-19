@@ -1,10 +1,11 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: can be null */
-import { zodResolver } from "@hookform/resolvers/zod";
+
 import type {
   Barbershop,
   BarbershopMemberWithName,
   Service,
 } from "@convex/tables";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { FC, ReactNode } from "react";
 import { Activity, useEffect, useId, useState } from "react";
@@ -86,6 +87,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
     !isBarber && serviceId && barbersForService?.length
       ? barbersForService
       : barbers;
+
   const {
     createAppointment: {
       mutateAsync: createAppointment,
@@ -188,7 +190,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
     if (isBarber) {
       setOpen(false);
     } else {
-      throw navigate({
+      navigate({
         to: "/profile",
         search: (prev) => ({ ...prev, tab: "appointments" }),
       });

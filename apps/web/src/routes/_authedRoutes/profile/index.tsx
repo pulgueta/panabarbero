@@ -1,5 +1,9 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: We need to assert non-null values because the hooks return undefined if the data is not loaded */
 
+import { createFileRoute } from "@tanstack/react-router";
+import { LogOut } from "lucide-react";
+import { Activity, Suspense, useMemo, useState } from "react";
+
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
@@ -26,11 +30,7 @@ import {
   useIsBarber,
 } from "@/hooks/use-barbershop-members";
 import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
-import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 import { signOut } from "@/lib/auth-client";
-import { createFileRoute } from "@tanstack/react-router";
-import { LogOut } from "lucide-react";
-import { Activity, Suspense, useMemo, useState } from "react";
 
 type ProfileTabValue =
   | "account"
@@ -75,36 +75,40 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
     };
   },
   loader: async ({ context }) => {
-    const user = await context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
-
-    if (user?.userId) {
+    if (context.user?.userId) {
       await Promise.all([
         context.queryClient.ensureQueryData(
-          barbershopMemberRolesQueryOptions(user.userId),
+          barbershopMemberRolesQueryOptions(context.user.userId),
         ),
         context.queryClient.ensureQueryData(
-          appointmentsByUserQueryOptions(user.userId, null),
+          appointmentsByUserQueryOptions(context.user.userId, null),
         ),
-        context.queryClient.ensureQueryData(profileQueryOptions(user.userId)),
-        context.queryClient.ensureQueryData(isBarberQueryOptions(user.userId)),
         context.queryClient.ensureQueryData(
-          barbershopByOwnerIdQueryOptions(user.userId),
+          profileQueryOptions(context.user.userId),
+        ),
+        context.queryClient.ensureQueryData(
+          isBarberQueryOptions(context.user.userId),
+        ),
+        context.queryClient.ensureQueryData(
+          barbershopByOwnerIdQueryOptions(context.user.userId),
         ),
       ]);
     }
+
+    return {
+      user: context.user,
+    };
   },
 });
 
 function ProfilePage() {
   const navigate = Route.useNavigate();
+  const { user } = Route.useLoaderData();
   const { tab } = Route.useSearch();
 
   const [cursor, setCursor] = useState<string | null>(null);
   const [cursorStack, setCursorStack] = useState<Array<string | null>>([]);
 
-  const { data: user } = useSession();
   const { data: isBarber } = useIsBarber(user?.userId!);
   const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
   const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
@@ -128,7 +132,7 @@ function ProfilePage() {
     await signOut({
       fetchOptions: {
         onSuccess: () => {
-          throw navigate({ to: "/login", replace: true });
+          window.location.reload();
         },
       },
     });

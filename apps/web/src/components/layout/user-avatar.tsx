@@ -1,3 +1,5 @@
+import { LogOut } from "lucide-react";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,8 +9,6 @@ import {
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { signOut } from "@/lib/auth-client";
-import { useNavigate } from "@tanstack/react-router";
-import { LogOut } from "lucide-react";
 
 interface UserAvatarProps {
   user: {
@@ -20,13 +20,11 @@ interface UserAvatarProps {
 }
 
 export function UserAvatar({ user }: UserAvatarProps) {
-  const navigate = useNavigate();
-
   const handleSignOut = async () => {
     await signOut({
       fetchOptions: {
         onSuccess: () => {
-          navigate({ to: "/login", replace: true });
+          window.location.reload();
         },
       },
     });

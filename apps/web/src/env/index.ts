@@ -8,6 +8,7 @@ export const env = createEnv({
     PUBLIC_CONVEX_SITE_URL: z.url(),
     PUBLIC_POSTHOG_API_KEY: z.string(),
     PUBLIC_POSTHOG_HOST: z.string(),
+    PUBLIC_STORAGE_URL: z.url(),
   },
   runtimeEnvStrict: {
     PUBLIC_CONVEX_URL: import.meta.env.PUBLIC_CONVEX_URL,
@@ -17,5 +18,6 @@ export const env = createEnv({
     ),
     PUBLIC_POSTHOG_API_KEY: import.meta.env.PUBLIC_POSTHOG_API_KEY,
     PUBLIC_POSTHOG_HOST: import.meta.env.PUBLIC_POSTHOG_HOST,
+    PUBLIC_STORAGE_URL: import.meta.env.PUBLIC_STORAGE_URL,
   },
 });

@@ -1,48 +1,154 @@
+/// <reference types="vite/client" />
+
+import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import type { ConvexQueryClient } from "@convex-dev/react-query";
-import type { QueryClient } from "@tanstack/react-query";
-import { createRootRouteWithContext } from "@tanstack/react-router";
-import type { Id } from "convex/_generated/dataModel";
+import { TanStackDevtools } from "@tanstack/react-devtools";
+import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
+import {
+  createRootRouteWithContext,
+  HeadContent,
+  Outlet,
+  Scripts,
+} from "@tanstack/react-router";
+import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { createServerFn } from "@tanstack/react-start";
 import type { ConvexReactClient } from "convex/react";
 
-import { App } from "@/components/layout/app";
+import { BottomBar } from "@/components/layout/bottom-bar";
 import { DefaultCatchBoundary } from "@/components/layout/error-component";
+import { Header } from "@/components/layout/header";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { NotFoundComponent } from "@/components/layout/not-found-component";
-import { seo } from "@/lib/utils";
+import { Toaster } from "@/components/ui/sonner";
+import { useIsMobile } from "@/hooks/use-is-mobile";
+import { getSessionQueryOptions } from "@/hooks/use-session";
+import { authClient } from "@/lib/auth-client";
+import { getToken } from "@/lib/auth-server";
+import { getThemeServern } from "@/lib/theme";
+import { getViewportServerFn } from "@/lib/viewport";
+import { PostHogProvider } from "@/providers/posthog";
+import appCss from "@/styles.css?url";
 
 type RouterContext = {
   queryClient: QueryClient;
   convexClient: ConvexReactClient;
   convexQueryClient: ConvexQueryClient;
-  user: {
-    // @ts-expect-error
-    _id: Id<"user">;
-    _creationTime: number;
-    userId?: string | null | undefined | undefined;
-    image?: string | null | undefined | undefined;
-    // twoFactorEnabled?: boolean | null | undefined | undefined;
-    isAnonymous?: boolean | null | undefined | undefined;
-    username?: string | null | undefined | undefined;
-    displayUsername?: string | null | undefined | undefined;
-    phoneNumber?: string | null | undefined | undefined;
-    phoneNumberVerified?: boolean | null | undefined | undefined;
-    createdAt: number;
-    updatedAt: number;
-    email: string;
-    emailVerified: boolean;
-    name: string;
-  } | null;
 };
+
+const getAuth = createServerFn({ method: "GET" }).handler(async () => {
+  return await getToken();
+});
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   head: () => ({
-    meta: seo({
-      title: "PanaBarbero - La solución para las barberías",
-      description: "La solución para las barberías",
-    }),
+    meta: [
+      {
+        charSet: "utf-8",
+      },
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1",
+      },
+      {
+        title: "PanaBarbero - La solución para las barberías.",
+      },
+      {
+        name: "description",
+        content: "PanaBarbero - La solución para las barberías.",
+      },
+      {
+        name: "twitter:title",
+        content: "PanaBarbero - La solución para las barberías.",
+      },
+    ],
+    links: [
+      {
+        rel: "stylesheet",
+        href: appCss,
+      },
+    ],
   }),
-  component: () => <App />,
+  beforeLoad: async ({ context }) => {
+    const [theme, viewport, token, user] = await Promise.all([
+      getThemeServern(),
+      getViewportServerFn(),
+      getAuth(),
+      context.queryClient.ensureQueryData(getSessionQueryOptions()),
+    ]);
+
+    if (token) {
+      context.convexQueryClient.serverHttpClient?.setAuth(token);
+    }
+
+    return {
+      theme,
+      token,
+      user,
+      isMobile: viewport === "mobile",
+    };
+  },
+  shellComponent: () => <RootComponent />,
   errorComponent: (props) => <DefaultCatchBoundary {...props} />,
   notFoundComponent: () => <NotFoundComponent />,
   pendingComponent: () => <LoadingComponent />,
 });
+
+function RootComponent() {
+  return (
+    <RootDocument>
+      <Outlet />
+    </RootDocument>
+  );
+}
+
+const RootDocument = ({ children }: { children: React.ReactNode }) => {
+  const { theme, convexQueryClient, queryClient, token } =
+    Route.useRouteContext();
+
+  const { isMobile } = useIsMobile();
+
+  return (
+    <html lang="es" suppressHydrationWarning className={theme}>
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        <QueryClientProvider client={queryClient}>
+          <ConvexBetterAuthProvider
+            client={convexQueryClient.convexClient}
+            authClient={authClient}
+            initialToken={token}
+          >
+            <PostHogProvider>
+              <Toaster richColors position="top-center" />
+
+              {!isMobile && <Header />}
+              {children}
+              {isMobile && <BottomBar />}
+
+              {process.env.NODE_ENV === "development" && (
+                <TanStackDevtools
+                  config={{
+                    position: "bottom-left",
+                  }}
+                  plugins={[
+                    {
+                      name: "Tanstack Router",
+                      render: <TanStackRouterDevtoolsPanel />,
+                    },
+                    {
+                      name: "TanStack Query",
+                      render: <ReactQueryDevtoolsPanel />,
+                    },
+                  ]}
+                />
+              )}
+              <Scripts />
+            </PostHogProvider>
+          </ConvexBetterAuthProvider>
+        </QueryClientProvider>
+      </body>
+    </html>
+  );
+};

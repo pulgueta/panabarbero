@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { ClientOnly, Link, useRouterState } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,13 +36,7 @@ export const Header = () => {
                   : "/profile"
                 : "/"
             }
-            search={
-              user
-                ? isBarber
-                  ? { tab: defaultProfileTab }
-                  : { tab: defaultProfileTab }
-                : undefined
-            }
+            search={user ? { tab: defaultProfileTab } : undefined}
             className="font-bold text-2xl tracking-tighter lg:text-3xl"
           >
             PanaBarbero
@@ -146,7 +140,9 @@ export const Header = () => {
                 />
               </div>
             )}
-            <ThemeToggler />
+            <ClientOnly fallback={<Skeleton className="size-8" />}>
+              <ThemeToggler />
+            </ClientOnly>
           </div>
         </div>
       </div>

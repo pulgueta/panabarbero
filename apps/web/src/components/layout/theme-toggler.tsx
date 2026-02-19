@@ -1,6 +1,6 @@
+import { useRouteContext, useRouter } from "@tanstack/react-router";
 import { Moon, Smartphone, Sun } from "lucide-react";
 
-import { useTheme } from "@/components/theme";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -8,9 +8,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { setThemeServerFn } from "@/lib/theme";
 
 export const ThemeToggler = () => {
-  const { theme, setTheme } = useTheme();
+  const { theme } = useRouteContext({ from: "__root__" });
+  const router = useRouter();
+
+  const toggleTheme = (setTheme: "light" | "dark" | "system") =>
+    setThemeServerFn({ data: setTheme }).then(() => router.invalidate());
 
   return (
     <DropdownMenu>
@@ -28,14 +33,11 @@ export const ThemeToggler = () => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
+        <DropdownMenuItem onClick={() => toggleTheme("light")}>
           Claro
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
+        <DropdownMenuItem onClick={() => toggleTheme("dark")}>
           Oscuro
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
-          Sistema
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

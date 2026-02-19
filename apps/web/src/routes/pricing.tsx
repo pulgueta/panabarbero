@@ -12,11 +12,14 @@ import { getSessionQueryOptions } from "@/hooks/use-session";
 export const Route = createFileRoute("/pricing")({
   component: PricingPage,
   pendingComponent: LoadingComponent,
-  loader: async (opts) => {
+  loader: async ({ context }) => {
+    if (context.token) {
+      context.queryClient.ensureQueryData(getSessionQueryOptions());
+    }
+
     await Promise.all([
-      opts.context.queryClient.ensureQueryData(getPricingPlansQueryOptions()),
-      opts.context.queryClient.ensureQueryData(getSessionQueryOptions()),
-      opts.context.queryClient.ensureQueryData(getSubscriptionQueryOptions()),
+      context.queryClient.ensureQueryData(getPricingPlansQueryOptions()),
+      context.queryClient.ensureQueryData(getSubscriptionQueryOptions()),
     ]);
   },
 });

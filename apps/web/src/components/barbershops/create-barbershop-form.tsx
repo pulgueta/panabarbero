@@ -1,3 +1,9 @@
+import type { BaseSyntheticEvent, FC } from "react";
+import { useEffect } from "react";
+import type { UseFormReturn } from "react-hook-form";
+import { Controller } from "react-hook-form";
+import type { output } from "zod";
+
 import {
   Field,
   FieldDescription,
@@ -20,11 +26,6 @@ import {
   setLocationState,
   useLocationStore,
 } from "@/store/location";
-import type { BaseSyntheticEvent, FC } from "react";
-import { useEffect } from "react";
-import type { UseFormReturn } from "react-hook-form";
-import { Controller } from "react-hook-form";
-import type { output } from "zod";
 
 export type CreateBarbershopFormData = {
   name: string;
