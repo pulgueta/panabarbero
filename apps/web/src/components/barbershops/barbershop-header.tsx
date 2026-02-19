@@ -1,5 +1,5 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: objects are guaranteed to be not null */
-import type { Barbershop } from "@panabarbero/convex/schemas";
+import type { Barbershop } from "@convex/tables";
 import type { FC } from "react";
 
 import { Button } from "@/components/ui/button";

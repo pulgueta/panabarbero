@@ -2,7 +2,7 @@ import type {
   Barbershop,
   BarbershopMemberWithName,
   Service,
-} from "@panabarbero/convex/schemas";
+} from "@convex/tables";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarIcon, Clock8Icon } from "lucide-react";
@@ -178,34 +178,36 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
           )}
         </div>
 
-        <Controller
-          name="contactEmail"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field
-              data-invalid={fieldState.invalid}
-              className={cn({
-                hidden: disabledFields?.includes("contactEmail") || !isBarber,
-              })}
-            >
-              <FieldLabel htmlFor={formIds.contactEmail}>
-                Email de contacto (opcional)
-              </FieldLabel>
-              <Input
-                {...field}
-                id={formIds.contactEmail}
-                aria-invalid={fieldState.invalid}
-                placeholder="cliente@ejemplo.com"
-                autoComplete="email"
-                type="email"
-                disabled={disabledFields?.includes("contactEmail")}
-              />
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
-
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Controller
+            name="contactEmail"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field
+                data-invalid={fieldState.invalid}
+                className={cn({
+                  hidden: disabledFields?.includes("contactEmail") || !isBarber,
+                })}
+              >
+                <FieldLabel htmlFor={formIds.contactEmail}>
+                  Email de contacto (opcional)
+                </FieldLabel>
+                <Input
+                  {...field}
+                  id={formIds.contactEmail}
+                  aria-invalid={fieldState.invalid}
+                  placeholder="cliente@ejemplo.com"
+                  autoComplete="email"
+                  type="email"
+                  disabled={disabledFields?.includes("contactEmail")}
+                />
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
+
           {barbers?.length ? (
             <Controller
               name="barbershopMemberId"
@@ -283,7 +285,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-2 gap-4">
           <Controller
             name="date"
             control={form.control}

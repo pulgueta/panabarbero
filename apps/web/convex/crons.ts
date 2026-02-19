@@ -26,4 +26,10 @@ export const cleanupResend = internalMutation({
   },
 });
 
+crons.interval(
+  "Sync existing products from Polar",
+  { hours: 24 },
+  internal.polar.syncExistingProducts,
+);
+
 export default crons;

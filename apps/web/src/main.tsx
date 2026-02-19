@@ -1,16 +1,15 @@
+import { ThemeProvider } from "@/components/theme";
+import { env } from "@/env";
+import { authClient } from "@/lib/auth-client";
+import { PostHogProvider } from "@/providers/posthog";
 import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import { ConvexQueryClient } from "@convex-dev/react-query";
-import { authClient } from "@panabarbero/convex/auth";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { routerWithQueryClient } from "@tanstack/react-router-with-query";
 import { ConvexReactClient } from "convex/react";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-
-import { ThemeProvider } from "@/components/theme";
-import { env } from "@/env";
-import { PostHogProvider } from "@/providers/posthog";
 import reportWebVitals from "./reportWebVitals";
 import { routeTree } from "./routeTree.gen";
 // @ts-expect-error

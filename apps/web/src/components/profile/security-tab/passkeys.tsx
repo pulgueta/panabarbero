@@ -1,8 +1,3 @@
-import { passkey, useListPasskeys } from "@panabarbero/convex/auth";
-import { Fingerprint } from "lucide-react";
-import type { ActivityProps } from "react";
-import { Activity } from "react";
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,6 +15,10 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
+import { passkey, useListPasskeys } from "@/lib/auth-client";
+import { Fingerprint } from "lucide-react";
+import type { ActivityProps } from "react";
+import { Activity } from "react";
 
 export const PasskeysSection = () => {
   const {

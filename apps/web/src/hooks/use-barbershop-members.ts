@@ -1,11 +1,7 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
-import { api } from "@panabarbero/convex/api";
-import type {
-  Barbershop,
-  BarbershopMember,
-  Service,
-} from "@panabarbero/convex/schemas";
+import type { Barbershop, BarbershopMember, Service } from "@convex/tables";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { api } from "convex/_generated/api";
 
 export function barbershopMembersByBarbershopIdQueryOptions(
   barbershopId: Barbershop["_id"],

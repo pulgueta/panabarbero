@@ -1,4 +1,4 @@
-import type { Service } from "@panabarbero/convex/schemas";
+import type { Service } from "@convex/tables";
 import { Check, ChevronsUpDown } from "lucide-react";
 import type { FC } from "react";
 import { useState } from "react";

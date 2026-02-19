@@ -1,12 +1,13 @@
-import { tanstack } from "@panabarbero/constants";
 import { Link, useRouterState } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { authenticatedRoutes, publicRoutes } from "@/config";
 import { useBarbershopMemberRoles } from "@/hooks/barbershop/use-barbershop-member";
 import { useIsBarber } from "@/hooks/use-barbershop-members";
 import { useSession } from "@/hooks/use-session";
 import { ThemeToggler } from "../theme-toggler";
+import { UserAvatar } from "../user-avatar";
 
 export const Header = () => {
   const { data: user, isLoading } = useSession();
@@ -20,8 +21,8 @@ export const Header = () => {
   const defaultProfileTab = isBarber ? "account" : "appointments";
 
   const navigationRoutes = rolesData?.isOwner
-    ? tanstack.authenticatedRoutes.owner
-    : tanstack.authenticatedRoutes.barber;
+    ? authenticatedRoutes.owner
+    : authenticatedRoutes.barber;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/60 md:px-4">
@@ -49,7 +50,7 @@ export const Header = () => {
         </div>
 
         <nav className="flex flex-1 items-center justify-center">
-          <div className="flex items-center font-medium text-sm md:space-x-8">
+          <div className="flex items-center font-medium text-sm md:space-x-4 lg:space-x-8">
             {user
               ? isBarber
                 ? navigationRoutes.map((route) => (
@@ -74,7 +75,7 @@ export const Header = () => {
                       </Link>
                     </Button>
                   ))
-                : tanstack.authenticatedRoutes.navigation.map((route) => (
+                : authenticatedRoutes.navigation.map((route) => (
                     <Button
                       key={route.to}
                       variant={currentPath === route.to ? "outline" : "ghost"}
@@ -96,7 +97,7 @@ export const Header = () => {
                       </Link>
                     </Button>
                   ))
-              : tanstack.publicRoutes.navigation.map((route) => (
+              : publicRoutes.navigation.map((route) => (
                   <Button
                     key={route.to}
                     variant={currentPath === route.to ? "outline" : "ghost"}
@@ -124,7 +125,7 @@ export const Header = () => {
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
             {isLoading ? (
-              <Skeleton className="h-9 w-28" />
+              <Skeleton className="h-8 w-28" />
             ) : (
               !user && (
                 <Button asChild>
@@ -133,6 +134,18 @@ export const Header = () => {
               )
             )}
 
+            {user?.userId && (
+              <div className="hidden md:block">
+                <UserAvatar
+                  user={{
+                    userId: user.userId,
+                    email: user.email,
+                    name: user.name,
+                    image: user.image,
+                  }}
+                />
+              </div>
+            )}
             <ThemeToggler />
           </div>
         </div>

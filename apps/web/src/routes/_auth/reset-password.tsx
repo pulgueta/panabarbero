@@ -1,13 +1,5 @@
 /** biome-ignore-all lint/correctness/noChildrenProp: Enforced by TanStack Form */
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { resetPassword } from "@panabarbero/convex/auth";
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { EyeIcon, EyeOffIcon } from "lucide-react";
-import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
-
 import { FormHeader } from "@/components/auth/form-header";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
@@ -27,8 +19,15 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { resetPassword } from "@/lib/auth-client";
 import { resetPasswordSchema } from "@/lib/auth-schemas";
 import { translateBetterAuthError } from "@/lib/better-auth-errors";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_auth/reset-password")({
   component: ResetPasswordPage,

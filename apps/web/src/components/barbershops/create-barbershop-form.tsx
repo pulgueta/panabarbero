@@ -1,10 +1,3 @@
-import { useColombia } from "@panabarbero/constants";
-import type { BaseSyntheticEvent, FC } from "react";
-import { useEffect } from "react";
-import type { UseFormReturn } from "react-hook-form";
-import { Controller } from "react-hook-form";
-import type { output } from "zod";
-
 import {
   Field,
   FieldDescription,
@@ -20,12 +13,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useColombia } from "@/hooks/use-colombia";
 import type { barbershopFormSchema } from "@/lib/schemas";
 import {
   setLocationCity,
   setLocationState,
   useLocationStore,
 } from "@/store/location";
+import type { BaseSyntheticEvent, FC } from "react";
+import { useEffect } from "react";
+import type { UseFormReturn } from "react-hook-form";
+import { Controller } from "react-hook-form";
+import type { output } from "zod";
 
 export type CreateBarbershopFormData = {
   name: string;

@@ -1,4 +1,4 @@
-import type { Appointment } from "@panabarbero/convex/schemas";
+import type { Appointment } from "@convex/tables";
 import type { FC, ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";

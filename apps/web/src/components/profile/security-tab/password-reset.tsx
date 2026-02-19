@@ -1,16 +1,3 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  listAccounts,
-  requestPasswordReset,
-  useSession,
-} from "@panabarbero/convex/auth";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { MailIcon } from "lucide-react";
-import type { FC } from "react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,7 +7,19 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  listAccounts,
+  requestPasswordReset,
+  useSession,
+} from "@/lib/auth-client";
 import { forgotPasswordSchema } from "@/lib/auth-schemas";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { MailIcon } from "lucide-react";
+import type { FC } from "react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 export const PasswordResetSection: FC = () => {
   const { data: session } = useSession();

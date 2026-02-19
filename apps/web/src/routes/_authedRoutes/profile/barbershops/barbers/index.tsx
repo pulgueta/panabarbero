@@ -1,9 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: Needed */
 
-import type {
-  BarbershopMemberWithName,
-  Service,
-} from "@panabarbero/convex/schemas";
+import type { BarbershopMemberWithName, Service } from "@convex/tables";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Check, UserPlus, X } from "lucide-react";
 import type { FC } from "react";

@@ -1,4 +1,4 @@
-import type { UserProfileData } from "@panabarbero/convex/schemas";
+import type { UserProfileData } from "@convex/tables";
 import { InfoIcon } from "lucide-react";
 import type { FC } from "react";
 import { useEffect, useState } from "react";

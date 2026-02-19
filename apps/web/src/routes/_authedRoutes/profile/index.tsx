@@ -1,10 +1,5 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: We need to assert non-null values because the hooks return undefined if the data is not loaded */
 
-import { signOut } from "@panabarbero/convex/auth";
-import { createFileRoute } from "@tanstack/react-router";
-import { LogOut } from "lucide-react";
-import { Activity, Suspense, useMemo, useState } from "react";
-
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
@@ -32,6 +27,10 @@ import {
 } from "@/hooks/use-barbershop-members";
 import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { signOut } from "@/lib/auth-client";
+import { createFileRoute } from "@tanstack/react-router";
+import { LogOut } from "lucide-react";
+import { Activity, Suspense, useMemo, useState } from "react";
 
 type ProfileTabValue =
   | "account"

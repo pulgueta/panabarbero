@@ -1,10 +1,3 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { twoFactor } from "@panabarbero/convex/auth";
-import type { FC } from "react";
-import { startTransition } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
-
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,8 +15,14 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { twoFactor } from "@/lib/auth-client";
 import { disableTwoFactorSchema } from "@/lib/auth-schemas";
 import { translateBetterAuthError } from "@/lib/better-auth-errors";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { FC } from "react";
+import { startTransition } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 interface DisableDialogProps {
   open: boolean;

@@ -1,4 +1,4 @@
-import type { Appointment } from "@panabarbero/convex/schemas";
+import type { Appointment } from "@convex/tables";
 
 import type { BadgeProps } from "@/components/ui/badge";
 

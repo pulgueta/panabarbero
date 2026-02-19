@@ -1,5 +1,5 @@
+import type { Barbershop } from "@convex/tables";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { Barbershop } from "@panabarbero/convex/schemas";
 import type { FC } from "react";
 import { useId } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -35,7 +35,6 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
   };
 
   const form = useForm({
-    // @ts-expect-error - zod's coerce method returns an unknown type
     resolver: zodResolver(inviteBarberFormSchema),
     defaultValues: {
       email: "",

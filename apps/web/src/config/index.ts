@@ -1,12 +1,15 @@
 import {
   Calendar,
   CalendarPlus,
+  DollarSign,
   Home,
   Scissors,
   Settings,
   User,
   Users,
 } from "lucide-react";
+
+export const APP_NAME = "PanaBarbero" as const;
 
 export const publicRoutes = {
   navigation: [
@@ -25,11 +28,11 @@ export const publicRoutes = {
       to: "/appointments/create",
       icon: CalendarPlus,
     },
-    // {
-    //   label: "Precios",
-    //   to: "/pricing",
-    //   icon: DollarSign,
-    // },
+    {
+      label: "Precios",
+      to: "/pricing",
+      icon: DollarSign,
+    },
   ],
 };
 
