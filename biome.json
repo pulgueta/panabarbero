@@ -9,38 +9,28 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "experimentalScannerIgnores": ["apps/web/src/routeTree.gen.ts"]
+    "experimentalScannerIgnores": [
+      "apps/web/src/routeTree.gen.ts",
+      "apps/web/convex/_generated/**/*.ts"
+    ]
   },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
     "indentWidth": 2,
-    "includes": [
-      "apps/**/*.ts",
-      "apps/**/*.tsx",
-      "packages/**/*.ts",
-      "packages/**/*.tsx"
-    ]
+    "includes": ["apps/**/*.ts", "apps/**/*.tsx"]
   },
   "overrides": [
     {
       "includes": [
         "apps/web/src/routeTree.gen.ts",
-        "apps/convex/convex/_generated/**/*.ts"
+        "apps/web/convex/_generated/**/*.ts"
       ],
       "linter": {
-        "rules": {
-          "complexity": {
-            "noBannedTypes": "off"
-          },
-          "correctness": {
-            "noUnusedVariables": "off",
-            "noUnusedImports": "off"
-          },
-          "suspicious": {
-            "noExplicitAny": "off"
-          }
-        }
+        "enabled": false
+      },
+      "formatter": {
+        "enabled": false
       }
     }
   ],
