@@ -1,4 +1,4 @@
-import type { Barbershop, Service } from "@panabarbero/convex/schemas";
+import type { Barbershop, Service } from "@convex/tables";
 import type { FC, ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";

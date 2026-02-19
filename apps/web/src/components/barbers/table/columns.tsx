@@ -1,4 +1,4 @@
-import type { BarbershopMember } from "@panabarbero/convex/schemas";
+import type { BarbershopMember } from "@convex/tables";
 import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { EllipsisVerticalIcon, Info, TrashIcon } from "lucide-react";

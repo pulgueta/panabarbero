@@ -2,7 +2,7 @@ import type {
   Barbershop,
   BarbershopMemberWithName,
   Service,
-} from "@panabarbero/convex/schemas";
+} from "@convex/tables";
 import { Clock } from "lucide-react";
 import type { FC } from "react";
 

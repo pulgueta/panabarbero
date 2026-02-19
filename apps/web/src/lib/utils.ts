@@ -1,4 +1,4 @@
-import type { Barbershop } from "@panabarbero/convex/schemas";
+import type { Barbershop } from "@convex/tables";
 import type { ClassValue } from "clsx";
 import { clsx } from "clsx";
 import type { DetailedHTMLProps, MetaHTMLAttributes } from "react";

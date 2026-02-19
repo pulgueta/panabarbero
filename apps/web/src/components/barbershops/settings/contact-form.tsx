@@ -1,7 +1,4 @@
-import type {
-  Barbershop,
-  BarbershopMetadata,
-} from "@panabarbero/convex/schemas";
+import type { Barbershop, BarbershopMetadata } from "@convex/tables";
 import type { FC } from "react";
 import { useId, useState } from "react";
 

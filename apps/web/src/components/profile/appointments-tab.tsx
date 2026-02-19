@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: needed */
 
-import type { Appointment } from "@panabarbero/convex/schemas";
+import type { Appointment } from "@convex/tables";
 import type { FC } from "react";
 import { Activity, Suspense } from "react";
 

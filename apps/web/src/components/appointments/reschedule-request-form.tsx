@@ -1,4 +1,4 @@
-import type { Appointment } from "@panabarbero/convex/schemas";
+import type { Appointment } from "@convex/tables";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarIcon, Clock8Icon } from "lucide-react";

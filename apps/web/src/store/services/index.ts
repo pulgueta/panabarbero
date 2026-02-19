@@ -1,4 +1,4 @@
-import type { Barbershop, Service } from "@panabarbero/convex/schemas";
+import type { Barbershop, Service } from "@convex/tables";
 import { useStore } from "@tanstack/react-store";
 import { Store } from "@tanstack/store";
 

@@ -1,5 +1,5 @@
 import { convexQuery } from "@convex-dev/react-query";
-import type { Barbershop } from "@panabarbero/convex/schemas";
+import type { Barbershop } from "@convex/tables";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 

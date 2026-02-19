@@ -1,9 +1,5 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
-import type {
-  Appointment,
-  Barbershop,
-  Service,
-} from "@panabarbero/convex/schemas";
+import type { Appointment, Barbershop, Service } from "@convex/tables";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 

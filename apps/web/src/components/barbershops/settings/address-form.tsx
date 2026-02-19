@@ -21,7 +21,7 @@ import {
   setLocationState,
   useLocationStore,
 } from "@/store/location";
-import type { Barbershop } from "@panabarbero/convex/schemas";
+import type { Barbershop } from "@convex/tables";
 import type { FC } from "react";
 import { useEffect, useId, useMemo, useState } from "react";
 

@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: needed */
 
-import type { Appointment } from "@panabarbero/convex/schemas";
+import type { Appointment } from "@convex/tables";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   CalendarClockIcon,
@@ -20,8 +20,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useBarbershopByMemberUserId } from "@/hooks/barbershop/use-barbershop";
 import {
-  useIsBarber,
   useBarbershopMembersByBarbershopId,
+  useIsBarber,
 } from "@/hooks/use-barbershop-members";
 import { useServiceByAppointmentId } from "@/hooks/use-services";
 import { useSession } from "@/hooks/use-session";

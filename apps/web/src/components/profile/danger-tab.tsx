@@ -1,4 +1,4 @@
-import type { Barbershop } from "@panabarbero/convex/schemas";
+import type { Barbershop } from "@convex/tables";
 import { useNavigate } from "@tanstack/react-router";
 import type { FC } from "react";
 import { toast } from "sonner";
