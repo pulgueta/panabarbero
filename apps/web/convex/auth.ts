@@ -22,13 +22,11 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
   triggers: {
     user: {
       onCreate: async (ctx, doc) => {
-        const userIdUuid = crypto.randomUUID();
-
         await ctx.runMutation(components.betterAuth.adapter.updateOne, {
           input: {
             model: "user",
             update: {
-              userId: userIdUuid,
+              userId: doc._id,
             },
             where: [{ field: "_id", operator: "eq", value: doc._id }],
           },
@@ -37,7 +35,7 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
         await ctx.runMutation(internal.userProfileData.create, {
           data: {
             name: doc.name,
-            userId: userIdUuid,
+            userId: doc._id,
             uuid: crypto.randomUUID(),
             email: doc.email,
             phoneNumber: doc.phoneNumber ?? undefined,
@@ -138,11 +136,6 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
         });
       },
     },
-    advanced: {
-      ipAddress: {
-        ipAddressHeaders: ["cf-connecting-ip"],
-      },
-    },
     telemetry: {
       enabled: false,
     },
@@ -190,7 +183,7 @@ export const getPolarUser = internalQuery({
     }
 
     return {
-      userId: profile.userId,
+      userId: user._id,
       email: profile.email,
     };
   },

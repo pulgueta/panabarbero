@@ -1,5 +1,8 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: not needed */
 
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { toast } from "sonner";
+
 import { FormHeader } from "@/components/auth/form-header";
 import { LoginForm } from "@/components/auth/login-form";
 import { BorderContainer } from "@/components/layout/border-container";
@@ -11,8 +14,6 @@ import { isBarberQueryOptions } from "@/hooks/use-barbershop-members";
 import { getSessionQueryOptions } from "@/hooks/use-session";
 import { signIn } from "@/lib/auth-client";
 import { translateBetterAuthError } from "@/lib/better-auth-errors";
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/_auth/login")({
   component: LoginPage,
@@ -21,8 +22,6 @@ export const Route = createFileRoute("/_auth/login")({
     const user = await context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
     );
-
-    console.log(user);
 
     if (user?.userId) {
       const isBarber = await context.queryClient.ensureQueryData(
