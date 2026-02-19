@@ -1,13 +1,5 @@
 /** biome-ignore-all lint/correctness/noChildrenProp: Enforced by TanStack Form */
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { signIn } from "@panabarbero/convex/auth";
-import { Link, useRouter } from "@tanstack/react-router";
-import { EyeIcon, EyeOffIcon } from "lucide-react";
-import { startTransition, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
-
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -18,8 +10,15 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { signIn } from "@/lib/auth-client";
 import { loginFormSchema } from "@/lib/auth-schemas";
 import { translateBetterAuthError } from "@/lib/better-auth-errors";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Link, useRouter } from "@tanstack/react-router";
+import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { startTransition, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 // import { TwoFactorVerificationDialog } from "./two-factor-verification-dialog";
 
 export const LoginForm = () => {

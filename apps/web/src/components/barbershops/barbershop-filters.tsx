@@ -1,4 +1,3 @@
-import { useColombia } from "@panabarbero/constants";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import type { FC } from "react";
 import { useEffect, useRef } from "react";
@@ -10,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useColombia } from "@/hooks/use-colombia";
 import {
   setLocationCity,
   setLocationState,
@@ -18,7 +18,7 @@ import {
 
 export const BarbershopFilters: FC = () => {
   const search = useSearch({ from: "/barbershops/" });
-  const navigate = useNavigate({ from: "/barbershops" });
+  const navigate = useNavigate({ from: "/barbershops/" });
 
   const { states, citiesFromState } = useColombia();
 

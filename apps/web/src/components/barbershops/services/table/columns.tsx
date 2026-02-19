@@ -1,4 +1,4 @@
-import type { Service } from "@panabarbero/convex/schemas";
+import type { Service } from "@convex/tables";
 import type { ColumnDef } from "@tanstack/react-table";
 import { EllipsisVerticalIcon, PencilIcon, TrashIcon } from "lucide-react";
 import { useEffect, useState } from "react";

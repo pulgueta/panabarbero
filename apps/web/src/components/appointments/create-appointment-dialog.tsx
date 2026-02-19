@@ -4,7 +4,7 @@ import type {
   Barbershop,
   BarbershopMemberWithName,
   Service,
-} from "@panabarbero/convex/schemas";
+} from "@convex/tables";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { FC, ReactNode } from "react";
 import { Activity, useEffect, useId, useState } from "react";

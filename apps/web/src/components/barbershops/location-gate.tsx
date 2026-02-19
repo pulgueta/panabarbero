@@ -1,7 +1,3 @@
-import { useColombia } from "@panabarbero/constants";
-import { useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,11 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useColombia } from "@/hooks/use-colombia";
 import {
   setLocationCity,
   setLocationState,
   useLocationStore,
 } from "@/store/location";
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 
 export const LocationGate = () => {
   const search = useSearch({ from: "/barbershops/" });

@@ -2,7 +2,7 @@ import type {
   Barbershop,
   BarbershopMemberWithName,
   Service,
-} from "@panabarbero/convex/schemas";
+} from "@convex/tables";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarIcon, Clock8Icon } from "lucide-react";

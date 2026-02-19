@@ -1,5 +1,5 @@
+import type { Appointment } from "@convex/tables";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { Appointment } from "@panabarbero/convex/schemas";
 import type { FC, ReactNode } from "react";
 import { useEffect, useId } from "react";
 import { useForm } from "react-hook-form";

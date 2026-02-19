@@ -3,10 +3,10 @@ import type { AuthFunctions, GenericCtx } from "@convex-dev/better-auth";
 import { createClient } from "@convex-dev/better-auth";
 import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
 import { requireActionCtx } from "@convex-dev/better-auth/utils";
-import { APP_NAME } from "@panabarbero/constants";
 import { betterAuth } from "better-auth";
 import { twoFactor } from "better-auth/plugins";
 
+import { APP_NAME } from "../src/config";
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { internalAction, internalQuery, query } from "./_generated/server";

@@ -1,8 +1,4 @@
-import type {
-  Appointment,
-  Barbershop,
-  Review,
-} from "@panabarbero/convex/schemas";
+import type { Appointment, Barbershop, Review } from "@convex/tables";
 import { Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";

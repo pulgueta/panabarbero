@@ -1,6 +1,6 @@
-import { tanstack } from "@panabarbero/constants";
 import { Link, useRouterState } from "@tanstack/react-router";
 
+import { authenticatedRoutes, publicRoutes } from "@/config";
 import { useBarbershopMemberRoles } from "@/hooks/barbershop/use-barbershop-member";
 import { useIsBarber } from "@/hooks/use-barbershop-members";
 import { useSession } from "@/hooks/use-session";
@@ -19,10 +19,10 @@ export const BottomBar = () => {
   const defaultProfileTab = isBarber ? "account" : "appointments";
 
   const navigationRoutes = rolesData?.isOwner
-    ? tanstack.authenticatedRoutes.owner
-    : tanstack.authenticatedRoutes.barber;
+    ? authenticatedRoutes.owner
+    : authenticatedRoutes.barber;
 
-  const routesWithoutHome = tanstack.authenticatedRoutes.navigation.filter(
+  const routesWithoutHome = authenticatedRoutes.navigation.filter(
     (route) => route.to !== "/",
   );
 
@@ -89,7 +89,7 @@ export const BottomBar = () => {
                     </Link>
                   );
                 })
-            : tanstack.publicRoutes.navigation.map((item) => {
+            : publicRoutes.navigation.map((item) => {
                 const Icon = item.icon;
 
                 return (

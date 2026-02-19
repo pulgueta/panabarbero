@@ -1,9 +1,5 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: not needed */
 
-import { signIn } from "@panabarbero/convex/auth";
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { toast } from "sonner";
-
 import { FormHeader } from "@/components/auth/form-header";
 import { LoginForm } from "@/components/auth/login-form";
 import { BorderContainer } from "@/components/layout/border-container";
@@ -13,7 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FieldGroup, FieldSeparator } from "@/components/ui/field";
 import { isBarberQueryOptions } from "@/hooks/use-barbershop-members";
 import { getSessionQueryOptions } from "@/hooks/use-session";
+import { signIn } from "@/lib/auth-client";
 import { translateBetterAuthError } from "@/lib/better-auth-errors";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_auth/login")({
   component: LoginPage,

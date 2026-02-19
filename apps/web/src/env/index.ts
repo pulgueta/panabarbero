@@ -11,7 +11,10 @@ export const env = createEnv({
   },
   runtimeEnvStrict: {
     PUBLIC_CONVEX_URL: import.meta.env.PUBLIC_CONVEX_URL,
-    PUBLIC_CONVEX_SITE_URL: import.meta.env.PUBLIC_CONVEX_SITE_URL,
+    PUBLIC_CONVEX_SITE_URL: import.meta.env.PUBLIC_CONVEX_URL?.replace(
+      ".cloud",
+      ".site",
+    ),
     PUBLIC_POSTHOG_API_KEY: import.meta.env.PUBLIC_POSTHOG_API_KEY,
     PUBLIC_POSTHOG_HOST: import.meta.env.PUBLIC_POSTHOG_HOST,
   },

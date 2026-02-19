@@ -1,7 +1,7 @@
 import type { ConvexQueryClient } from "@convex-dev/react-query";
-import type { Id } from "@panabarbero/convex/dataModel";
 import type { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext } from "@tanstack/react-router";
+import type { Id } from "convex/_generated/dataModel";
 import type { ConvexReactClient } from "convex/react";
 
 import { App } from "@/components/layout/app";

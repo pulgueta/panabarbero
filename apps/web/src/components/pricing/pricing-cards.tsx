@@ -1,6 +1,6 @@
 import { CheckoutLink, CustomerPortalLink } from "@convex-dev/polar/react";
-import { api } from "@panabarbero/convex/api";
 import { Link } from "@tanstack/react-router";
+import { api } from "convex/_generated/api";
 import { CheckCircle2 } from "lucide-react";
 import type { FC } from "react";
 import { useState } from "react";

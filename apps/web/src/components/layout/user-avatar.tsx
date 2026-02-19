@@ -1,7 +1,3 @@
-import { signOut } from "@panabarbero/convex/auth";
-import { useNavigate } from "@tanstack/react-router";
-import { LogOut } from "lucide-react";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +6,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
+import { signOut } from "@/lib/auth-client";
+import { useNavigate } from "@tanstack/react-router";
+import { LogOut } from "lucide-react";
 
 interface UserAvatarProps {
   user: {
