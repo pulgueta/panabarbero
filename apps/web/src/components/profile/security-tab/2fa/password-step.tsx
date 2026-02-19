@@ -1,11 +1,3 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { twoFactor } from "@panabarbero/convex/auth";
-import { EyeIcon, EyeOffIcon } from "lucide-react";
-import type { FC } from "react";
-import { startTransition, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
-
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DialogDescription,
@@ -21,8 +13,15 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { twoFactor } from "@/lib/auth-client";
 import { twoFactorPasswordSchema } from "@/lib/auth-schemas";
 import { translateBetterAuthError } from "@/lib/better-auth-errors";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { EyeIcon, EyeOffIcon } from "lucide-react";
+import type { FC } from "react";
+import { startTransition, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 interface PasswordStepProps {
   onNext: (totpUri: string, backupCodes: string[]) => void;

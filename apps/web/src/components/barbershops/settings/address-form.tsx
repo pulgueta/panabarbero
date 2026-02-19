@@ -1,8 +1,3 @@
-import { useColombia } from "@panabarbero/constants";
-import type { Barbershop } from "@panabarbero/convex/schemas";
-import type { FC } from "react";
-import { useEffect, useId, useMemo, useState } from "react";
-
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -20,11 +15,15 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { useBarbershopActions } from "@/hooks/barbershop/use-barbershop";
+import { useColombia } from "@/hooks/use-colombia";
 import {
   setLocationCity,
   setLocationState,
   useLocationStore,
 } from "@/store/location";
+import type { Barbershop } from "@panabarbero/convex/schemas";
+import type { FC } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 
 interface AddressFormProps {
   barbershop: Barbershop;

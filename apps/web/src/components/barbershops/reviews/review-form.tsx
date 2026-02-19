@@ -1,8 +1,8 @@
 import { useConvexMutation } from "@convex-dev/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { api } from "@panabarbero/convex/api";
-import type { Id } from "@panabarbero/convex/dataModel";
 import { useMutation } from "@tanstack/react-query";
+import { api } from "convex/_generated/api";
+import type { Id } from "convex/_generated/dataModel";
 import { Minus, Plus, StarIcon } from "lucide-react";
 import type { FC } from "react";
 import { useForm } from "react-hook-form";

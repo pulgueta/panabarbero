@@ -1,7 +1,7 @@
 import { convexQuery } from "@convex-dev/react-query";
-import { api } from "@panabarbero/convex/api";
-import type { Id } from "@panabarbero/convex/dataModel";
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { api } from "convex/_generated/api";
+import type { Id } from "convex/_generated/dataModel";
 
 interface UseCanReviewPayload {
   userId: string;

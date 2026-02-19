@@ -1,7 +1,7 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
-import { api } from "@panabarbero/convex/api";
 import type { Appointment, Barbershop } from "@panabarbero/convex/schemas";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { api } from "convex/_generated/api";
 import { useBarbershopAvailability } from "./barbershop/use-barbershop";
 
 export function appointmentByIdQueryOptions(appointmentId: Appointment["_id"]) {

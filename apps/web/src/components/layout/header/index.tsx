@@ -1,8 +1,8 @@
-import { tanstack } from "@panabarbero/constants";
 import { Link, useRouterState } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { authenticatedRoutes, publicRoutes } from "@/config";
 import { useBarbershopMemberRoles } from "@/hooks/barbershop/use-barbershop-member";
 import { useIsBarber } from "@/hooks/use-barbershop-members";
 import { useSession } from "@/hooks/use-session";
@@ -21,8 +21,8 @@ export const Header = () => {
   const defaultProfileTab = isBarber ? "account" : "appointments";
 
   const navigationRoutes = rolesData?.isOwner
-    ? tanstack.authenticatedRoutes.owner
-    : tanstack.authenticatedRoutes.barber;
+    ? authenticatedRoutes.owner
+    : authenticatedRoutes.barber;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/60 md:px-4">
@@ -75,7 +75,7 @@ export const Header = () => {
                       </Link>
                     </Button>
                   ))
-                : tanstack.authenticatedRoutes.navigation.map((route) => (
+                : authenticatedRoutes.navigation.map((route) => (
                     <Button
                       key={route.to}
                       variant={currentPath === route.to ? "outline" : "ghost"}
@@ -97,7 +97,7 @@ export const Header = () => {
                       </Link>
                     </Button>
                   ))
-              : tanstack.publicRoutes.navigation.map((route) => (
+              : publicRoutes.navigation.map((route) => (
                   <Button
                     key={route.to}
                     variant={currentPath === route.to ? "outline" : "ghost"}

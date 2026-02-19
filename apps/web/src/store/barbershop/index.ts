@@ -1,6 +1,6 @@
-import type { Id } from "@panabarbero/convex/dataModel";
 import type { Barbershop } from "@panabarbero/convex/schemas";
 import { Store, useStore } from "@tanstack/react-store";
+import type { Id } from "convex/_generated/dataModel";
 
 export const barbershopStore = new Store<Barbershop>({
   _creationTime: 0,

@@ -1,9 +1,4 @@
-import * as api from "./api";
-import jsonStates from "./colombia.json";
-import * as router from "./router";
-import * as tanstack from "./tanstack";
-
-export const APP_NAME = "PanaBarbero" as const;
+import jsonStates from "../../public/colombia.json";
 
 export function useColombia() {
   const states = jsonStates.map((state) => ({
@@ -30,5 +25,3 @@ export function useColombia() {
     stateFromCity,
   };
 }
-
-export { api, router, tanstack };

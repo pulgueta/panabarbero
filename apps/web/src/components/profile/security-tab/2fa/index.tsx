@@ -1,8 +1,3 @@
-import { useSession } from "@panabarbero/convex/auth";
-import { CheckCircle2Icon, ShieldIcon } from "lucide-react";
-import type { FC } from "react";
-import { useState } from "react";
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,6 +15,10 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { useSession } from "@/lib/auth-client";
+import { CheckCircle2Icon, ShieldIcon } from "lucide-react";
+import type { FC } from "react";
+import { useState } from "react";
 import { DisableDialog } from "./disable-dialog";
 import { PasswordStep } from "./password-step";
 import { QrCodeStep } from "./qrcode-step";

@@ -1,14 +1,3 @@
-import {
-  linkSocial,
-  listAccounts,
-  unlinkAccount,
-} from "@panabarbero/convex/auth";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { Loader2Icon } from "lucide-react";
-import type { FC } from "react";
-import { useState } from "react";
-import { toast } from "sonner";
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,7 +7,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
+import { linkSocial, listAccounts, unlinkAccount } from "@/lib/auth-client";
 import { GoogleIcon } from "@/routes/_auth/login";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { Loader2Icon } from "lucide-react";
+import type { FC } from "react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export const LinkedAccountsSection: FC = () => {
   const {

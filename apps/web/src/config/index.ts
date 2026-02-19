@@ -9,6 +9,8 @@ import {
   Users,
 } from "lucide-react";
 
+export const APP_NAME = "PanaBarbero" as const;
+
 export const publicRoutes = {
   navigation: [
     {

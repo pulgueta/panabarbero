@@ -6,7 +6,9 @@
     "bun": ">=1.3.2"
   },
   "scripts": {
-    "dev": "rsbuild dev",
+    "dev": "concurrently \"rsbuild dev\" \"convex dev\"",
+    "dev:web": "rsbuild dev",
+    "dev:convex": "convex dev",
     "build": "rsbuild build",
     "preview": "rsbuild preview",
     "test": "vitest run"
@@ -15,12 +17,23 @@
     "./components": "./src/components/ui/index.tsx"
   },
   "dependencies": {
+    "@better-auth/passkey": "^1.4.13",
+    "@convex-dev/migrations": "^0.3.1",
+    "@convex-dev/polar": "^0.8.1",
+    "@convex-dev/r2": "^0.9.1",
+    "@convex-dev/rate-limiter": "^0.3.2",
+    "@convex-dev/resend": "^0.2.3",
+    "@convex-dev/twilio": "^0.2.1",
+    "@panabarbero/emails": "workspace:*",
+    "@react-email/components": "^1.0.7",
+    "@react-email/render": "^2.0.4",
+    "better-auth": "^1.4.9",
+    "react-email": "^5.2.8",
     "@convex-dev/better-auth": "^0.10.4",
     "@convex-dev/react-query": "^0.1.0",
     "@hookform/resolvers": "^5.2.2",
     "@hugocxl/react-to-image": "^0.0.9",
     "@icons-pack/react-simple-icons": "^13.8.0",
-    "@panabarbero/convex": "workspace:*",
     "@posthog/react": "^1.7.0",
     "@rsbuild/plugin-babel": "^1.1.0",
     "@t3-oss/env-core": "^0.13.10",
@@ -74,6 +87,7 @@
     "@types/react": "^19.2.13",
     "@types/react-dom": "^19.2.3",
     "baseline-browser-mapping": "^2.9.19",
+    "concurrently": "^9.2.1",
     "jsdom": "^28.0.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18",

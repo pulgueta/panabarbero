@@ -1,11 +1,5 @@
 /** biome-ignore-all lint/correctness/noChildrenProp: Enforced by TanStack Form */
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { twoFactor } from "@panabarbero/convex/auth";
-import { startTransition, useId } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
-
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -23,8 +17,13 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { Spinner } from "@/components/ui/spinner";
+import { twoFactor } from "@/lib/auth-client";
 import { twoFactorFormSchema } from "@/lib/auth-schemas";
 import { translateBetterAuthError } from "@/lib/better-auth-errors";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { startTransition, useId } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 interface TwoFactorVerificationDialogProps {
   open: boolean;
