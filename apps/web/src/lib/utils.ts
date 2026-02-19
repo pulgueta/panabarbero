@@ -68,10 +68,10 @@ export function seo({
   ];
 }
 
-export function formatCurrency(amount: number): string {
+export function formatCurrency(amount: number, currency = "COP"): string {
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
-    currency: "COP",
+    currency,
     minimumFractionDigits: 0,
   }).format(amount);
 }

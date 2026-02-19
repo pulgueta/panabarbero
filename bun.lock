@@ -23,7 +23,7 @@
         "@better-auth/passkey": "^1.4.13",
         "@convex-dev/better-auth": "0.10.10",
         "@convex-dev/migrations": "^0.3.1",
-        "@convex-dev/polar": "^0.7.3",
+        "@convex-dev/polar": "^0.8.1",
         "@convex-dev/r2": "^0.9.1",
         "@convex-dev/rate-limiter": "^0.3.2",
         "@convex-dev/resend": "^0.2.3",
@@ -461,7 +461,7 @@
 
     "@convex-dev/migrations": ["@convex-dev/migrations@0.3.1", "", { "peerDependencies": { "convex": "^1.24.8" } }, "sha512-dGiN82vWMN415/AGMcVooDOJk8iTousZahBBs27uA03pL74Uo3ksucUW3CiCfPx75rv+x9UnenEakimQYYNIrA=="],
 
-    "@convex-dev/polar": ["@convex-dev/polar@0.7.3", "", { "dependencies": { "buffer": "^6.0.3", "convex-helpers": "^0.1.63", "remeda": "^2.20.2", "standardwebhooks": "^1.0.0" }, "peerDependencies": { "@polar-sh/checkout": ">=0.1.10", "@polar-sh/sdk": ">=0.32.11", "convex": "^1.29.0", "react": "^18 || ^19", "react-dom": "^18 || ^19" } }, "sha512-0WT8ty+vbo5WhPgvq2WyMucg00kqkkwfbQ+dvEu3B2E6uXLWzAwSBZgDiKDDnglNacEHvkKU4sMnNF7A4pyMiQ=="],
+    "@convex-dev/polar": ["@convex-dev/polar@0.8.1", "", { "dependencies": { "buffer": "^6.0.3", "convex-helpers": "^0.1.63", "remeda": "^2.20.2", "standardwebhooks": "^1.0.0" }, "peerDependencies": { "@polar-sh/checkout": ">=0.1.10", "@polar-sh/sdk": ">=0.35.4", "convex": "^1.29.0", "react": "^18 || ^19", "react-dom": "^18 || ^19" } }, "sha512-/7mD7RlU/1YIcVcLdafgrt+VXQ9LunB4U7X3IOzlVTs22BWLjeuil3Df06YXo1wnaL9nDhhOUm2ZMz4wo46p1g=="],
 
     "@convex-dev/r2": ["@convex-dev/r2@0.9.1", "", { "dependencies": { "@aws-sdk/client-s3": "3.726.1", "@aws-sdk/s3-request-presigner": "^3.693.0", "@convex-dev/action-retrier": "^0.3.0", "convex-helpers": "^0.1.67", "file-type": "^20.4.1", "uuid": "^11.1.0" }, "peerDependencies": { "convex": "^1.24.8", "convex-svelte": "^0.0.11", "convex-vue": "^0.1.5", "react": "^18 || ^19", "react-dom": "^18 || ^19", "svelte": ">=5.0.0", "vue": "^3.5.0" }, "optionalPeers": ["convex-svelte", "convex-vue", "react", "react-dom", "svelte", "vue"] }, "sha512-ahAr+waVAVj1FrW9dPKw9+FU8CBfqyr9kePUOg/fo4yadeMW7XmJg587eawVdb2XfpVya3qGLPhX2eYHC/GMaA=="],
 

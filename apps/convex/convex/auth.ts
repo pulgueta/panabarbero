@@ -12,6 +12,7 @@ import type { DataModel } from "./_generated/dataModel";
 import { internalAction, internalQuery, query } from "./_generated/server";
 import authConfig from "./auth.config";
 import { from, resend } from "./emails";
+import { polar } from "./polar";
 import { getProfileByUserId } from "./userProfileData";
 
 const authFunctions: AuthFunctions = internal.auth;
@@ -201,5 +202,22 @@ export const getLatestJwks = internalAction({
     const auth = createAuth(ctx);
 
     return await auth.api.getLatestJwks();
+  },
+});
+
+export const getUserSubscription = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      return null;
+    }
+
+    const subscription = await polar.getCurrentSubscription(ctx, {
+      userId: user.userId,
+    });
+
+    return subscription;
   },
 });

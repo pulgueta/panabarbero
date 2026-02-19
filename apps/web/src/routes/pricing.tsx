@@ -3,7 +3,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { PricingCards } from "@/components/pricing/pricing-cards";
-import { getPricingPlansQueryOptions } from "@/hooks/billing/use-pricing";
+import {
+  getPricingPlansQueryOptions,
+  getSubscriptionQueryOptions,
+} from "@/hooks/billing/use-pricing";
 import { getSessionQueryOptions } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/pricing")({
@@ -13,6 +16,7 @@ export const Route = createFileRoute("/pricing")({
     await Promise.all([
       opts.context.queryClient.ensureQueryData(getPricingPlansQueryOptions()),
       opts.context.queryClient.ensureQueryData(getSessionQueryOptions()),
+      opts.context.queryClient.ensureQueryData(getSubscriptionQueryOptions()),
     ]);
   },
 });

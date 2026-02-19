@@ -21,6 +21,7 @@ export const {
   cancelCurrentSubscription,
   getConfiguredProducts,
   listAllProducts,
+  listAllSubscriptions,
   generateCheckoutLink,
   generateCustomerPortalUrl,
 } = polar.api();

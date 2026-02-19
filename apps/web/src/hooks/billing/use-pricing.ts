@@ -9,3 +9,11 @@ export function getPricingPlansQueryOptions() {
 export function usePricingPlans() {
   return useSuspenseQuery(getPricingPlansQueryOptions());
 }
+
+export function getSubscriptionQueryOptions() {
+  return convexQuery(api.auth.getUserSubscription, {});
+}
+
+export function useSubscription() {
+  return useSuspenseQuery(getSubscriptionQueryOptions());
+}
