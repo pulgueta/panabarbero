@@ -59,23 +59,14 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
 
 type RateLimitName = keyof NonNullable<typeof rateLimiter.limits>;
 
-const formatRetryAfter = (retryAfter: number) =>
-  new Intl.DateTimeFormat("es-CO", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "America/Bogota",
-  }).format(new Date(Date.now() + retryAfter));
-
 export const rateLimitOrThrow = async (
   ctx: RunMutationCtx,
   name: RateLimitName,
   key: string,
 ) => {
-  const { ok, retryAfter } = await rateLimiter.limit(ctx, name, { key });
+  const { ok } = await rateLimiter.limit(ctx, name, { key });
 
   if (!ok) {
-    throw new ConvexError(
-      errorMessages.rateLimitExceeded(formatRetryAfter(retryAfter)),
-    );
+    throw new ConvexError(errorMessages.rateLimitExceeded);
   }
 };

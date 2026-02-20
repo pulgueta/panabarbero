@@ -1,8 +1,8 @@
-import { useTheme } from "next-themes";
+import { useRouteContext } from "@tanstack/react-router";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme();
+  const { theme = "system" } = useRouteContext({ from: "__root__" });
 
   return (
     <Sonner

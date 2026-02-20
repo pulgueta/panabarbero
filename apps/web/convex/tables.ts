@@ -141,7 +141,7 @@ export const tables = {
   invitations: {
     barbershopId: v.id("barbershops"),
     email: v.string(),
-    phone: v.optional(v.string()),
+    phone: v.string(),
     roles: v.array(v.literal("barber")),
     code: v.string(),
     status: v.union(

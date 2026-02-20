@@ -1,73 +1,61 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 
-interface UseIsMobileReturn {
-  isMobile: boolean;
-  isLoading: boolean;
-}
+import { useRouteContext, useRouter } from "@tanstack/react-router";
 
-export const useIsMobile = (): UseIsMobileReturn => {
-  const [isMobile, setIsMobile] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+import { setViewportServerFn } from "@/lib/viewport";
+
+const MOBILE_BREAKPOINT = 768;
+
+const mobileKeywords = [
+  "android",
+  "webos",
+  "iphone",
+  "ipad",
+  "ipod",
+  "blackberry",
+  "windows phone",
+  "mobile",
+];
+
+const detectIsMobile = () => {
+  const mediaQuery = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
+  const isMobileUA = mobileKeywords.some((keyword) =>
+    navigator.userAgent.toLowerCase().includes(keyword),
+  );
+  return (
+    mediaQuery.matches || (isMobileUA && window.innerWidth <= MOBILE_BREAKPOINT)
+  );
+};
+
+export const useIsMobile = () => {
+  const { isMobile } = useRouteContext({ from: "__root__" });
+  const router = useRouter();
+  const prevRef = useRef(isMobile);
 
   useEffect(() => {
-    const checkIsMobile = () => {
-      // Check using media query
-      const mediaQuery = window.matchMedia("(max-width: 768px)");
+    const checkAndPersist = () => {
+      const detected = detectIsMobile();
 
-      // Check using user agent (additional detection)
-      const userAgent = navigator.userAgent.toLowerCase();
-      const mobileKeywords = [
-        "android",
-        "webos",
-        "iphone",
-        "ipad",
-        "ipod",
-        "blackberry",
-        "windows phone",
-        "mobile",
-      ];
-
-      const isMobileUA = mobileKeywords.some((keyword) =>
-        userAgent.includes(keyword),
-      );
-
-      // Combine both checks - prioritize media query but consider user agent
-      const isMobileDevice =
-        mediaQuery.matches || (isMobileUA && window.innerWidth <= 768);
-
-      setIsMobile(isMobileDevice);
-      setIsLoading(false);
+      if (detected !== prevRef.current) {
+        prevRef.current = detected;
+        setViewportServerFn({ data: detected ? "mobile" : "desktop" }).then(
+          () => router.invalidate(),
+        );
+      }
     };
 
-    // Initial check
-    checkIsMobile();
+    checkAndPersist();
 
-    // Listen for media query changes
-    const mediaQuery = window.matchMedia("(max-width: 768px)");
-    const handleChange = () => checkIsMobile();
+    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
 
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener("change", handleChange);
-    } else {
-      // Fallback for older browsers
-      mediaQuery.addListener(handleChange);
-    }
-
-    // Listen for window resize
-    window.addEventListener("resize", checkIsMobile);
+    mq.addEventListener("change", checkAndPersist);
+    window.addEventListener("resize", checkAndPersist);
 
     return () => {
-      if (mediaQuery.removeEventListener) {
-        mediaQuery.removeEventListener("change", handleChange);
-      } else {
-        mediaQuery.removeListener(handleChange);
-      }
-      window.removeEventListener("resize", checkIsMobile);
+      mq.removeEventListener("change", checkAndPersist);
+      window.removeEventListener("resize", checkAndPersist);
     };
-  }, []);
+  }, [router]);
 
-  return {
-    isMobile,
-    isLoading,
-  };
+  return { isMobile };
 };

@@ -1,7 +1,6 @@
 export const errorMessages = {
   unauthorized: "No estás autorizado para acceder a esta página",
-  appointmentOverlaps:
-    "La reserva se cruza con otra. Intenta con una hora o fecha distinta.",
+  appointmentOverlaps: "Hora no disponible. Intenta con una distinta.",
   appointmentOutsideWorkingHours:
     "La barbería no está abierta en el horario seleccionado.",
   appointmentUnavailableHours:
@@ -11,6 +10,5 @@ export const errorMessages = {
     "La barbería no está abierta en el día seleccionado",
   requiredAccount:
     "El usuario debe tener una cuenta en el sistema para ser invitado.",
-  rateLimitExceeded: (retryAfter: string) =>
-    `Has excedido el límite de solicitudes. Intenta nuevamente a las: ${retryAfter}`,
+  rateLimitExceeded: `Has excedido el límite de solicitudes. Intenta después.`,
 } as const;

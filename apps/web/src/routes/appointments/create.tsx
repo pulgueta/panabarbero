@@ -28,9 +28,13 @@ export const Route = createFileRoute("/appointments/create")({
   pendingComponent: LoadingComponent,
   errorComponent: (props) => <div>{JSON.stringify(props.error.message)}</div>,
   loader: async (ctx) => {
-    const user = await ctx.context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
+    let user = null;
+
+    if (ctx.context.token) {
+      user = await ctx.context.queryClient.ensureQueryData(
+        getSessionQueryOptions(),
+      );
+    }
 
     if (user?.userId) {
       await ctx.context.queryClient.ensureQueryData(

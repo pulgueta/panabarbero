@@ -1,13 +1,13 @@
-import jsonStates from "../../public/colombia.json";
+import { colombia } from "@/config/colombia";
 
 export function useColombia() {
-  const states = jsonStates.map((state) => ({
+  const states = colombia?.map((state) => ({
     state: state.departamento,
     cities: state.ciudades,
   }));
 
   const citiesFromState = (state: string) => {
-    const found = states.find((s) => s.state === state);
+    const found = states?.find((s) => s.state === state);
 
     if (!found) {
       return [];
@@ -17,7 +17,7 @@ export function useColombia() {
   };
 
   const stateFromCity = (city: string) =>
-    states.find((s) => (s.cities.includes(city) ? s.state : undefined))?.state;
+    states?.find((s) => (s.cities.includes(city) ? s.state : undefined))?.state;
 
   return {
     states,

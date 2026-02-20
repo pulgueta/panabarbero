@@ -39,9 +39,13 @@ export const Route = createFileRoute("/barbershops/")({
     state: search?.state ?? undefined,
   }),
   loader: async (opts) => {
-    const user = await opts.context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
+    let user = null;
+
+    if (opts.context.token) {
+      user = await opts.context.queryClient.ensureQueryData(
+        getSessionQueryOptions(),
+      );
+    }
 
     await opts.context.queryClient.ensureQueryData(
       activeBarbershopsQueryOptions({

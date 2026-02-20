@@ -9,6 +9,7 @@ import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-ske
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty";
 import { useBarbershopsByIds } from "@/hooks/barbershop/use-barbershop";
+import { useServicesByIds } from "@/hooks/use-services";
 
 interface AppointmentsTabProps {
   appointments: Appointment[];
@@ -33,6 +34,10 @@ export const AppointmentsTab: FC<AppointmentsTabProps> = ({
     appointments.map((appointment) => appointment.barbershopId),
   );
 
+  const { data: services } = useServicesByIds(
+    appointments.map((appointment) => appointment.serviceId),
+  );
+
   const disableNext = isFetching || !hasNextPage;
   const disablePrevious = isFetching || !canGoPrevious;
 
@@ -45,6 +50,9 @@ export const AppointmentsTab: FC<AppointmentsTabProps> = ({
               const barbershop = barbershops?.find(
                 (barbershop) => barbershop?._id === appointment.barbershopId,
               );
+              const service = services?.find(
+                (service) => service?._id === appointment.serviceId,
+              );
 
               return (
                 <AppointmentCard
@@ -52,7 +60,7 @@ export const AppointmentsTab: FC<AppointmentsTabProps> = ({
                   appointment={appointment}
                   barbershop={barbershop!}
                   isBarber={isBarber}
-                  link
+                  service={service!}
                 />
               );
             })}

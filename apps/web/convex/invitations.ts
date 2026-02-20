@@ -11,7 +11,7 @@ const INVITATION_EXPIRATION_MS = 1000 * 60 * 60 * 24 * 7;
 export const invite = mutation({
   args: {
     name: v.optional(v.string()),
-    phone: v.optional(v.string()),
+    phone: v.string(),
     email: v.string(),
     barbershopId: v.id("barbershops"),
     roles: v.array(v.literal("barber")),

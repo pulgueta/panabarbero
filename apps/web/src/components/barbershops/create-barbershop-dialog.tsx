@@ -99,7 +99,6 @@ export const CreateBarbershopDialog: FC<CreateBarbershopDialogProps> = ({
     if (barbershopId) {
       navigate({
         to: "/profile/barbershops/settings",
-        search: (prev) => ({ ...prev, barbershopId }),
       });
     }
   });

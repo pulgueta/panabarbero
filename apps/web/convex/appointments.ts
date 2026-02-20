@@ -17,6 +17,8 @@ import type { UserProfileData } from "./tables";
 import { tables } from "./tables";
 import { getProfileByEmail, getProfileByUserId } from "./userProfileData";
 
+const MINUTE_MS = 60 * 1000;
+
 function parseTimeToMinutes(time: string): number {
   const [hh, mm] = time.split(":").map((n) => Number(n));
 
@@ -155,7 +157,7 @@ export const create = mutation({
       throw new ConvexError(errorMessages.notFound("perfil de barbero"));
     }
 
-    const endsAt = appointment.date + service.duration;
+    const endsAt = appointment.date + service.duration * MINUTE_MS;
 
     const startOfDay = new Date(appointment.date);
     startOfDay.setHours(0, 0, 0, 0);
@@ -178,6 +180,7 @@ export const create = mutation({
           q.or(
             q.eq(q.field("status"), "pending"),
             q.eq(q.field("status"), "confirmed"),
+            q.eq(q.field("status"), "rescheduled"),
           ),
           q.eq(q.field("deletedAt"), undefined),
         ),
@@ -186,7 +189,7 @@ export const create = mutation({
 
     for (const appt of candidates) {
       const apptService = await ctx.db.get(appt.serviceId);
-      const apptEnd = appt.date + apptService?.duration!;
+      const apptEnd = appt.date + (apptService?.duration ?? 0) * MINUTE_MS;
       const overlaps = appt.date < endsAt && apptEnd > appointment.date;
 
       if (overlaps) {
@@ -218,7 +221,7 @@ export const create = mutation({
       throw new ConvexError(errorMessages.barbershopClosedOnSelectedDay);
     }
 
-    const endAt = appointment.date + service.duration;
+    const endAt = appointment.date + service.duration * MINUTE_MS;
 
     if (
       !withinOpenHours(
@@ -800,6 +803,28 @@ export const answerRescheduleRequest = mutation({
       throw new ConvexError(errorMessages.notFound("cita"));
     }
 
+    if (args.accepted) {
+      if (!appt.proposedDate) {
+        throw new ConvexError(errorMessages.notFound("fecha propuesta"));
+      }
+
+      const service = await ctx.db.get(appt.serviceId);
+
+      if (!service) {
+        throw new ConvexError(errorMessages.notFound("servicio"));
+      }
+
+      const overlap = await ctx.runQuery(internal.appointments.overlaps, {
+        appointmentId: args.appointmentId,
+        date: appt.proposedDate,
+        endAt: appt.proposedDate + service.duration * MINUTE_MS,
+      });
+
+      if (overlap) {
+        throw new ConvexError(errorMessages.appointmentOverlaps);
+      }
+    }
+
     const newStatus = args.accepted ? "rescheduled" : "denied";
 
     await ctx.db.patch(args.appointmentId, {
@@ -902,6 +927,7 @@ export const overlaps = internalQuery({
           q.or(
             q.eq(q.field("status"), "pending"),
             q.eq(q.field("status"), "confirmed"),
+            q.eq(q.field("status"), "rescheduled"),
           ),
           q.neq(q.field("_id"), args.appointmentId),
         ),
@@ -912,7 +938,7 @@ export const overlaps = internalQuery({
 
     for (const appt of activeCandidates) {
       const svc = await ctx.db.get(appt.serviceId);
-      const apptEnd = appt.date + (svc?.duration ?? 0);
+      const apptEnd = appt.date + (svc?.duration ?? 0) * MINUTE_MS;
       const overlaps = appt.date < args.endAt && apptEnd > args.date;
       if (overlaps) return appt;
     }

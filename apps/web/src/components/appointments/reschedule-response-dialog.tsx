@@ -86,7 +86,9 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
         <DialogHeader>
           <DialogTitle>Solicitud de reagendamiento</DialogTitle>
           <DialogDescription>
-            Revisa las fechas antes de responder.
+            {isRequester
+              ? "Estos son los detalles de tu solicitud."
+              : "Revisa las fechas antes de responder."}
           </DialogDescription>
         </DialogHeader>
 
