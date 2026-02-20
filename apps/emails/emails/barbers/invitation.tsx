@@ -49,8 +49,7 @@ export const BarberInvitationEmail = ({
               </Text>
 
               <Text className="m-0 mb-4 text-gray-700 text-sm">
-                Presiona el siguiente botón para aceptar la invitación y crear
-                tu cuenta.
+                Ingresa para aceptar la invitación y crear tu cuenta.
               </Text>
             </Section>
 

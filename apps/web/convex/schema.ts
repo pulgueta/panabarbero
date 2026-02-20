@@ -62,7 +62,8 @@ export default defineSchema(
       .index("by_serviceId", ["serviceId"])
       .index("by_barbershopMemberId", ["barbershopMemberId"])
       .index("by_status", ["status"])
-      .index("by_date", ["date"]),
+      .index("by_date", ["date"])
+      .index("by_deletedAt", ["deletedAt"]),
 
     barbershopMemberServices: defineTable({
       ...tables.barbershopMemberServices,

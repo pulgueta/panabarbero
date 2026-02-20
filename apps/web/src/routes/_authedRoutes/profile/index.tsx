@@ -30,6 +30,7 @@ import {
   useIsBarber,
 } from "@/hooks/use-barbershop-members";
 import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
+import { servicesByIdsQueryOptions } from "@/hooks/use-services";
 import { signOut } from "@/lib/auth-client";
 
 type ProfileTabValue =
@@ -76,12 +77,12 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
   },
   loader: async ({ context }) => {
     if (context.user?.userId) {
-      await Promise.all([
-        context.queryClient.ensureQueryData(
-          barbershopMemberRolesQueryOptions(context.user.userId),
-        ),
+      const [appointments] = await Promise.all([
         context.queryClient.ensureQueryData(
           appointmentsByUserQueryOptions(context.user.userId, null),
+        ),
+        context.queryClient.ensureQueryData(
+          barbershopMemberRolesQueryOptions(context.user.userId),
         ),
         context.queryClient.ensureQueryData(
           profileQueryOptions(context.user.userId),
@@ -93,6 +94,15 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
           barbershopByOwnerIdQueryOptions(context.user.userId),
         ),
       ]);
+
+      if (appointments) {
+        await context.queryClient.ensureQueryData(
+          servicesByIdsQueryOptions(
+            // @ts-expect-error - appointments is defined
+            appointments.page.map((appointment) => appointment.serviceId),
+          ),
+        );
+      }
     }
 
     return {

@@ -15,7 +15,7 @@ export const subjects = {
   appointment_rescheduled_accepted: "Reagendamiento aceptado",
   appointment_rescheduled_denied: "Reagendamiento rechazado",
   appointment_created: "Nueva cita",
-  barber_appointment_created: "",
+  barber_appointment_created: "Nueva cita en tu barbería",
   barber_invited: "Invitación a unirte como barbero",
   past_appointment_reminder: "Recordatorio de cita pasada",
 } satisfies Record<string, string>;
@@ -266,12 +266,13 @@ export const createAppointmentRescheduleDecision = internalMutation({
     }
 
     if (
-      isNotificationEnabled("sms", receiverProfile.notificationsPreferences) &&
-      receiverProfile.phoneNumber
+      isNotificationEnabled("sms", receiverProfile.notificationsPreferences) ||
+      receiverProfile.phoneNumber?.length
     ) {
       await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
         body: smsBody,
-        to: receiverProfile.phoneNumber,
+        // biome-ignore lint/style/noNonNullAssertion: phoneNumber is guaranteed to be defined at this point
+        to: receiverProfile.phoneNumber!,
       });
     }
   },
@@ -471,7 +472,7 @@ export const createBarberInvited = internalMutation({
       v.union(v.literal("owner"), v.literal("barber"), v.literal("staff")),
     ),
     expiresAt: v.number(),
-    phone: v.optional(v.string()),
+    phone: v.string(),
   },
   handler: async (ctx, args) => {
     const barbershop = await ctx.db.get(args.barbershopId);
@@ -483,6 +484,11 @@ export const createBarberInvited = internalMutation({
     const inviterProfile = await getProfileByUserId(ctx, args.inviterUserId);
 
     const invitationUrl = `${process.env.SITE_URL}/invitations/${args.code}`;
+
+    await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
+      to: args.phone,
+      body: `Has sido invitado a unirte a ${barbershop.name} como barbero. Ver detalles: ${invitationUrl}`,
+    });
 
     await ctx.scheduler.runAfter(0, internal.emails.sendBarberInvitationEmail, {
       to: args.email,

@@ -1,6 +1,7 @@
-import type { Appointment, Barbershop } from "@convex/tables";
+import type { Appointment, Barbershop, Service } from "@convex/tables";
 import { Link } from "@tanstack/react-router";
-import { Activity, type FC } from "react";
+import type { FC } from "react";
+import { Activity } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,14 +23,14 @@ interface AppointmentCardProps {
   appointment: Appointment;
   barbershop: Barbershop;
   isBarber: boolean;
-  link?: boolean;
+  service: Service;
 }
 
 export const AppointmentCard: FC<AppointmentCardProps> = ({
   appointment,
   barbershop,
   isBarber,
-  link = false,
+  service,
 }) => {
   const originalDate = new Date(appointment.date);
 
@@ -60,20 +61,19 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
   return (
     <Card className="max-h-full">
       <CardHeader>
-        {link ? (
-          <Link
-            to="/barbershops/$barbershopUuid"
-            params={{ barbershopUuid: barbershop?.uuid }}
-          >
-            <CardTitle className="text-base">{barbershop?.name}</CardTitle>
-          </Link>
-        ) : (
-          <CardTitle className="text-base">{barbershop?.name}</CardTitle>
-        )}
+        <Link
+          to="/barbershops/$barbershopUuid"
+          params={{ barbershopUuid: barbershop?.uuid }}
+        >
+          <CardTitle>{barbershop?.name}</CardTitle>
+        </Link>
         <CardDescription>{dateString}</CardDescription>
         <Badge variant={variant}>{label}</Badge>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-2">
+        <p className="text-pretty text-muted-foreground text-sm">
+          Servicio: {service.name}
+        </p>
         <p className="text-pretty text-muted-foreground text-sm">
           {appointment.notes || "No hay notas"}
         </p>

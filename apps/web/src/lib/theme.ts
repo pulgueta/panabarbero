@@ -3,7 +3,7 @@ import { getCookie, setCookie } from "@tanstack/react-start/server";
 import { z } from "zod";
 
 const storageKey = "app-theme";
-export const getThemeServern = createServerFn().handler(
+export const getThemeServerFn = createServerFn().handler(
   () => getCookie(storageKey) ?? "system",
 );
 

@@ -133,7 +133,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   const headLabel = "Reservar cita";
   const description = isBarber
     ? "Proporciona los datos del cliente para reservar el servicio."
-    : "Debes iniciar sesión para poder reservar un servicio";
+    : "Ingresa los datos para reservar el servicio.";
 
   const onSubmit = form.handleSubmit(async (formData) => {
     const schedule = scheduleForDate(formData.date);
@@ -148,8 +148,8 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
     const closeMinutes = timeStringToMinutes(schedule.closeAt);
 
     if (
-      (openMinutes !== null && selectedMinutes < openMinutes) ||
-      (closeMinutes !== null && selectedMinutes >= closeMinutes)
+      (openMinutes && selectedMinutes < openMinutes) ||
+      (closeMinutes && selectedMinutes >= closeMinutes)
     ) {
       toast.error("Selecciona una hora dentro del horario de atención.");
       return;
@@ -159,8 +159,8 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
     const lunchEndMinutes = timeStringToMinutes(schedule.lunchEnd);
 
     if (
-      lunchStartMinutes !== null &&
-      lunchEndMinutes !== null &&
+      lunchStartMinutes &&
+      lunchEndMinutes &&
       selectedMinutes >= lunchStartMinutes &&
       selectedMinutes < lunchEndMinutes
     ) {
@@ -180,20 +180,20 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
           isBarber,
         },
       });
+
+      setOpen(false);
+
+      form.reset();
+
+      if (!isBarber) {
+        navigate({
+          to: "/profile",
+          search: (prev) => ({ ...prev, tab: "appointments" }),
+        });
+      }
     } catch (error) {
       toast.error(getConvexErrorMessage(error));
       return;
-    }
-
-    form.reset();
-
-    if (isBarber) {
-      setOpen(false);
-    } else {
-      navigate({
-        to: "/profile",
-        search: (prev) => ({ ...prev, tab: "appointments" }),
-      });
     }
   });
 
@@ -203,7 +203,11 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{headLabel}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogDescription>
+            {user
+              ? description
+              : "Debes iniciar sesión para poder reservar un servicio"}
+          </DialogDescription>
         </DialogHeader>
 
         <Activity mode={user ? "visible" : "hidden"}>
