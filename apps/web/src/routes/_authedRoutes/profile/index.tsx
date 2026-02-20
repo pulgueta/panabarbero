@@ -143,6 +143,10 @@ function ProfilePage() {
       fetchOptions: {
         onSuccess: () => {
           window.location.reload();
+          navigate({
+            to: "/login",
+            replace: true,
+          });
         },
       },
     });

@@ -32,11 +32,12 @@ import {
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { barbershopSeo } from "@/lib/utils";
 
 export const Route = createFileRoute("/barbershops/$barbershopUuid")({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
-  loader: async ({ context, params }) => {
+  beforeLoad: async ({ context, params }) => {
     let user = null;
 
     if (context.token) {
@@ -74,6 +75,17 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
         );
       }
     }
+
+    return {
+      seoBarbershop: barbershop,
+    };
+  },
+  head: ({ match }) => {
+    const barbershop = match.context.seoBarbershop;
+
+    return {
+      meta: barbershopSeo(barbershop!),
+    };
   },
 });
 
