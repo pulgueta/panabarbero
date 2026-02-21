@@ -5,7 +5,6 @@ import { useBarbershopMemberRoles } from "@/hooks/barbershop/use-barbershop-memb
 import { useIsBarber } from "@/hooks/use-barbershop-members";
 import { useSession } from "@/hooks/use-session";
 import { cn } from "@/lib/utils";
-import { ThemeToggler } from "./theme-toggler";
 
 export const BottomBar = () => {
   const router = useRouterState();
@@ -119,8 +118,6 @@ export const BottomBar = () => {
                   </Link>
                 );
               })}
-
-          <ThemeToggler />
         </nav>
       </div>
     </div>

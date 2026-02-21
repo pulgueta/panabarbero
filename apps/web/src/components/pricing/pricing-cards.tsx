@@ -45,7 +45,7 @@ export const PricingCards: FC = () => {
           return (
             <Card key={product.id} className="flex h-full flex-col">
               <CardHeader>
-                <CardTitle className="text-xl">{product.name}</CardTitle>
+                <CardTitle className="text-3xl">{product.name}</CardTitle>
                 {product.description ? (
                   <CardDescription>{product.description}</CardDescription>
                 ) : null}

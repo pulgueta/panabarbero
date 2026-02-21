@@ -101,7 +101,7 @@ export const AccountTab: FC<AccountTabProps> = ({
   return (
     <div className="space-y-4">
       {!isBarber && userId && showBarbershopBanner && (
-        <Alert className="w-full md:max-w-sm">
+        <Alert className="w-full md:max-w-md">
           <InfoIcon className="size-4" />
           <AlertTitle className="mb-1">¿Tienes una barbería?</AlertTitle>
           <AlertDescription>

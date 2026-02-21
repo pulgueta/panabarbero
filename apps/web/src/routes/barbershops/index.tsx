@@ -19,7 +19,7 @@ import {
   activeBarbershopsQueryOptions,
   useActiveBarbershops,
 } from "@/hooks/barbershop/use-barbershop";
-import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { useSession } from "@/hooks/use-session";
 import { useLocationStore } from "@/store/location";
 
 export type BarbershopSearch = {
@@ -39,13 +39,7 @@ export const Route = createFileRoute("/barbershops/")({
     state: search?.state ?? undefined,
   }),
   loader: async (opts) => {
-    let user = null;
-
-    if (opts.context.token) {
-      user = await opts.context.queryClient.ensureQueryData(
-        getSessionQueryOptions(),
-      );
-    }
+    const user = opts.context.user;
 
     await opts.context.queryClient.ensureQueryData(
       activeBarbershopsQueryOptions({
