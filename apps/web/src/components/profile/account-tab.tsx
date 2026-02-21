@@ -1,3 +1,5 @@
+import { CheckoutLink } from "@convex-dev/polar/react";
+import { api } from "@convex/_generated/api";
 import type { UserProfileData } from "@convex/tables";
 import { InfoIcon } from "lucide-react";
 import type { FC } from "react";
@@ -20,6 +22,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { usePricingPlans, useSubscription } from "@/hooks/billing/use-pricing";
 import { useProfileActions } from "@/hooks/use-profile";
 
 const BARBERSHOP_BANNER_HIDE_KEY = "barbershop-create-banner-hide-until";
@@ -52,6 +55,13 @@ export const AccountTab: FC<AccountTabProps> = ({
   const [phone, setPhone] = useState<string>(profile?.phoneNumber ?? "");
   const [showBarbershopBanner, setShowBarbershopBanner] =
     useState<boolean>(false);
+
+  const { data: subscription } = useSubscription();
+  const { data: products } = usePricingPlans();
+
+  const freeProduct = products.find((product) =>
+    product.prices.find((price) => price.amountType === "free"),
+  );
 
   useEffect(() => {
     const checkBannerVisibility = () => {
@@ -91,12 +101,11 @@ export const AccountTab: FC<AccountTabProps> = ({
   return (
     <div className="space-y-4">
       {!isBarber && userId && showBarbershopBanner && (
-        <Alert className="relative max-w-2xl">
+        <Alert className="w-full md:max-w-sm">
           <InfoIcon className="size-4" />
           <AlertTitle className="mb-1">¿Tienes una barbería?</AlertTitle>
           <AlertDescription>
-            Gestiona reservas, barberos, servicios y obtén acceso a analíticas
-            detalladas de tu negocio sin costo adicional. <br />
+            Gestiona reservas, barberos, servicios sin costo. <br />
             <Button
               variant="link"
               className="px-0 text-muted-foreground text-xs md:text-sm"
@@ -107,9 +116,22 @@ export const AccountTab: FC<AccountTabProps> = ({
             <br />
             <CreateBarbershopDialog
               trigger={
-                <Button variant="default" className="mt-1.5">
-                  Crear mi barbería
-                </Button>
+                subscription?.isSubscribed ? (
+                  <Button variant="default" className="mt-1.5">
+                    Crear mi barbería
+                  </Button>
+                ) : freeProduct ? (
+                  <CheckoutLink
+                    polarApi={{
+                      generateCheckoutLink: api.polar.generateCheckoutLink,
+                    }}
+                    productIds={[freeProduct.id]}
+                    // biome-ignore lint/correctness/noChildrenProp: can do
+                    children={<Button>Adquirir plan</Button>}
+                  />
+                ) : (
+                  <Button disabled>Adquirir plan</Button>
+                )
               }
               userId={userId}
             />

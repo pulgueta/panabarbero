@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 import { api } from "convex/_generated/api";
 import { CheckCircle2 } from "lucide-react";
 import type { FC } from "react";
-import { useState } from "react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -14,15 +13,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { usePricingPlans, useSubscription } from "@/hooks/billing/use-pricing";
 import { useSession } from "@/hooks/use-session";
 import { cn, formatCurrency } from "@/lib/utils";
 
 export const PricingCards: FC = () => {
-  const [activeTab, setActiveTab] = useState<"yearly" | "monthly">("monthly");
-
   const { data: products } = usePricingPlans();
   const { data: session } = useSession();
   const { data: subscription } = useSubscription();
@@ -35,27 +30,17 @@ export const PricingCards: FC = () => {
     (product) => product.recurringInterval === "month",
   );
 
-  const displayedProducts =
-    activeTab === "yearly" ? yearlyProducts : monthlyProducts;
-
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col items-center justify-center">
-        <div className="flex items-center gap-2">
-          <Label>Mensual</Label>
-          <Switch
-            checked={activeTab === "yearly"}
-            onCheckedChange={(checked) =>
-              setActiveTab(checked ? "yearly" : "monthly")
-            }
-          />
-          <Label>Anual</Label>
-        </div>
-      </div>
-
       <div className="grid gap-6 lg:grid-cols-3">
-        {displayedProducts.map((product) => {
+        {monthlyProducts.map((product) => {
           const isSubscribed = subscription?.productId === product.id;
+          const yearlyProduct = yearlyProducts.find(
+            (p) => p.name === product.name,
+          );
+          const checkoutProductIds = yearlyProduct
+            ? [product.id, yearlyProduct.id]
+            : [product.id];
 
           return (
             <Card key={product.id} className="flex h-full flex-col">
@@ -80,9 +65,7 @@ export const PricingCards: FC = () => {
                     product.prices[0].priceAmount &&
                     product.prices[0].priceAmount > 0 && (
                       <span className="text-muted-foreground text-sm">
-                        {product.recurringInterval === "year"
-                          ? "Anual"
-                          : "Mensual"}
+                        Mensual
                       </span>
                     )}
                 </div>
@@ -113,14 +96,24 @@ export const PricingCards: FC = () => {
                       polarApi={{
                         generateCheckoutLink: api.polar.generateCheckoutLink,
                       }}
-                      productIds={[product.id]}
-                      className={cn(buttonVariants({ className: "w-full" }))}
+                      productIds={checkoutProductIds}
+                      className={cn(buttonVariants({ className: "w-full" }), {
+                        "has-data-data-polar*:cursor-not-allowed has-data-data-polar*:opacity-50":
+                          subscription?.isSubscribed,
+                      })}
+                      lazy
                     >
-                      Adquirir plan
+                      {subscription?.productPlanId === product.id
+                        ? "Plan actual"
+                        : "Adquirir plan"}
                     </CheckoutLink>
                   )
                 ) : (
-                  <Button className="w-full" render={<Link to="/login" />}>
+                  <Button
+                    nativeButton={false}
+                    className="w-full"
+                    render={<Link to="/login" />}
+                  >
                     Iniciar sesión para adquirir plan
                   </Button>
                 )}

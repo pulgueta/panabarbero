@@ -22,6 +22,10 @@ import {
   useBarbershopMemberRoles,
 } from "@/hooks/barbershop/use-barbershop-member";
 import {
+  getPricingPlansQueryOptions,
+  getSubscriptionQueryOptions,
+} from "@/hooks/billing/use-pricing";
+import {
   appointmentsByUserQueryOptions,
   useAppointmentsByUser,
 } from "@/hooks/use-appointments";
@@ -93,6 +97,8 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
         context.queryClient.ensureQueryData(
           barbershopByOwnerIdQueryOptions(context.user.userId),
         ),
+        context.queryClient.ensureQueryData(getPricingPlansQueryOptions()),
+        context.queryClient.ensureQueryData(getSubscriptionQueryOptions()),
       ]);
 
       if (appointments) {

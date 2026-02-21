@@ -9,7 +9,7 @@ import { twoFactor } from "better-auth/plugins";
 import { APP_NAME } from "../src/config";
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
-import { internalAction, internalQuery, query } from "./_generated/server";
+import { internalQuery, query } from "./_generated/server";
 import authConfig from "./auth.config";
 import { from, resend } from "./emails";
 import { polar } from "./polar";
@@ -81,6 +81,7 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
 });
 
 export const { onCreate, onUpdate, onDelete } = authComponent.triggersApi();
+export const { getAuthUser } = authComponent.clientApi();
 
 const siteUrl = process.env.SITE_URL ?? "";
 
@@ -150,7 +151,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
       },
     },
     plugins: [
-      convex({ authConfig, jwksRotateOnTokenGenerationError: true }),
+      convex({ authConfig, jwks: process.env.JWKS }),
       passkey(),
       twoFactor({
         issuer: APP_NAME,
@@ -188,14 +189,8 @@ export const getPolarUser = internalQuery({
   },
 });
 
-export const getLatestJwks = internalAction({
-  args: {},
-  handler: async (ctx) => {
-    const auth = createAuth(ctx);
-
-    return await auth.api.getLatestJwks();
-  },
-});
+const PRO_PRICE = 1500;
+const PREMIUM_PRICE = 2500;
 
 export const getUserSubscription = query({
   args: {},
@@ -210,6 +205,25 @@ export const getUserSubscription = query({
       userId: user.userId,
     });
 
-    return subscription;
+    return {
+      ...subscription,
+      isSubscribed: subscription?.status === "active",
+      productPlanId: subscription?.productId,
+      isFree: subscription?.product.prices.some(
+        (price) => price.amountType === "free",
+      ),
+      isPro: subscription?.product.prices.some(
+        (price) =>
+          price.amountType === "fixed" &&
+          (price.priceAmount === PRO_PRICE ||
+            price.priceAmount === PREMIUM_PRICE * 10),
+      ),
+      isPremium: subscription?.product.prices.some(
+        (price) =>
+          price.amountType === "fixed" &&
+          (price.priceAmount === PREMIUM_PRICE ||
+            price.priceAmount === PREMIUM_PRICE * 10),
+      ),
+    };
   },
 });
