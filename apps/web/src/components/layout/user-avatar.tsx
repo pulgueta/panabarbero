@@ -48,17 +48,20 @@ export function UserAvatar({ user }: UserAvatarProps) {
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" className="relative size-8 rounded-full">
-          <Avatar className="size-8">
-            <AvatarImage
-              src={user.image || undefined}
-              alt={user.name || user.email}
-            />
-            <AvatarFallback>{initials}</AvatarFallback>
-          </Avatar>
-        </Button>
-      </PopoverTrigger>
+      <PopoverTrigger
+        nativeButton={false}
+        render={
+          <Button variant="ghost" className="relative size-8 rounded-full">
+            <Avatar className="size-8">
+              <AvatarImage
+                src={user.image || undefined}
+                alt={user.name || user.email}
+              />
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+          </Button>
+        }
+      />
       <PopoverContent className="w-64" align="end" sideOffset={8}>
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">

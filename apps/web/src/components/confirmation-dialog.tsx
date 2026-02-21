@@ -1,4 +1,4 @@
-import type { FC, ReactNode } from "react";
+import type { FC, ReactElement } from "react";
 
 import {
   AlertDialog,
@@ -13,11 +13,11 @@ import {
 } from "@/components/ui/alert-dialog";
 
 interface ConfirmationDialogProps {
-  trigger: ReactNode;
+  trigger: ReactElement;
   title: string;
   description: string;
-  confirmLabel: ReactNode;
-  cancelLabel?: ReactNode;
+  confirmLabel: ReactElement;
+  cancelLabel?: ReactElement;
 }
 
 export const ConfirmationDialog: FC<ConfirmationDialogProps> = ({
@@ -29,15 +29,15 @@ export const ConfirmationDialog: FC<ConfirmationDialogProps> = ({
 }) => {
   return (
     <AlertDialog>
-      <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
+      <AlertDialogTrigger nativeButton={false} render={trigger} />
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel asChild>{cancelLabel}</AlertDialogCancel>
-          <AlertDialogAction asChild>{confirmLabel}</AlertDialogAction>
+          <AlertDialogCancel nativeButton={false} render={cancelLabel} />
+          <AlertDialogAction nativeButton={false} render={confirmLabel} />
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

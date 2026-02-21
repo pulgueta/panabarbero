@@ -51,30 +51,51 @@ export const Header = () => {
                     <Button
                       key={route.to}
                       variant={currentPath === route.to ? "outline" : "ghost"}
-                      asChild
+                      render={
+                        <Link
+                          key={route.to}
+                          to={route.to}
+                          style={{
+                            viewTransitionName: route.to,
+                          }}
+                          search={
+                            route.to === "/profile"
+                              ? { tab: defaultProfileTab }
+                              : undefined
+                          }
+                        />
+                      }
                     >
-                      <Link
-                        key={route.to}
-                        to={route.to}
-                        style={{
-                          viewTransitionName: route.to,
-                        }}
-                        search={
-                          route.to === "/profile"
-                            ? { tab: defaultProfileTab }
-                            : undefined
-                        }
-                      >
-                        {route.label}
-                      </Link>
+                      {route.label}
                     </Button>
                   ))
                 : authenticatedRoutes.navigation.map((route) => (
                     <Button
                       key={route.to}
                       variant={currentPath === route.to ? "outline" : "ghost"}
-                      asChild
+                      render={
+                        <Link
+                          key={route.to}
+                          to={route.to}
+                          style={{
+                            viewTransitionName: route.to,
+                          }}
+                          search={
+                            route.to === "/profile"
+                              ? { tab: defaultProfileTab }
+                              : undefined
+                          }
+                        />
+                      }
                     >
+                      {route.label}
+                    </Button>
+                  ))
+              : publicRoutes.navigation.map((route) => (
+                  <Button
+                    key={route.to}
+                    variant={currentPath === route.to ? "outline" : "ghost"}
+                    render={
                       <Link
                         key={route.to}
                         to={route.to}
@@ -86,31 +107,10 @@ export const Header = () => {
                             ? { tab: defaultProfileTab }
                             : undefined
                         }
-                      >
-                        {route.label}
-                      </Link>
-                    </Button>
-                  ))
-              : publicRoutes.navigation.map((route) => (
-                  <Button
-                    key={route.to}
-                    variant={currentPath === route.to ? "outline" : "ghost"}
-                    asChild
+                      />
+                    }
                   >
-                    <Link
-                      key={route.to}
-                      to={route.to}
-                      style={{
-                        viewTransitionName: route.to,
-                      }}
-                      search={
-                        route.to === "/profile"
-                          ? { tab: defaultProfileTab }
-                          : undefined
-                      }
-                    >
-                      {route.label}
-                    </Link>
+                    {route.label}
                   </Button>
                 ))}
           </div>
@@ -122,9 +122,7 @@ export const Header = () => {
               <Skeleton className="h-8 w-28" />
             ) : (
               !user && (
-                <Button asChild>
-                  <Link to="/login">Iniciar sesión</Link>
-                </Button>
+                <Button render={<Link to="/login" />}>Iniciar sesión</Button>
               )
             )}
 

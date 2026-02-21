@@ -139,19 +139,21 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
         )}
       </CardContent>
       <CardFooter className="justify-between">
-        <Button asChild>
-          <Link
-            to="/barbershops/$barbershopUuid"
-            params={{
-              barbershopUuid: barbershop.uuid,
-            }}
-            preload="intent"
-            style={{
-              viewTransitionName: `barbershop-${barbershop.uuid}-link`,
-            }}
-          >
-            {showAddress ? "Ver servicios" : "Ver barbería"}
-          </Link>
+        <Button
+          render={
+            <Link
+              to="/barbershops/$barbershopUuid"
+              params={{
+                barbershopUuid: barbershop.uuid,
+              }}
+              preload="intent"
+              style={{
+                viewTransitionName: `barbershop-${barbershop.uuid}-link`,
+              }}
+            />
+          }
+        >
+          {showAddress ? "Ver servicios" : "Ver barbería"}
         </Button>
 
         {/* <BarbershopRating

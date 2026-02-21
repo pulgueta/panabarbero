@@ -114,14 +114,17 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
           <AvailabilityLabel />
         </p>
         <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="link"
-              className="h-auto justify-start p-0 text-left text-foreground"
-            >
-              Ver horario
-            </Button>
-          </PopoverTrigger>
+          <PopoverTrigger
+            nativeButton={false}
+            render={
+              <Button
+                variant="link"
+                className="h-auto justify-start p-0 text-left text-foreground"
+              >
+                Ver horario
+              </Button>
+            }
+          />
           <PopoverContent className="w-80">
             <div className="space-y-2">
               <h4 className="font-semibold text-sm">Horario de atención</h4>

@@ -279,33 +279,36 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor={formIds.date}>Fecha</FieldLabel>
                 <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-[240px] pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground",
-                      )}
-                    >
-                      {field.value ? (
-                        <span className="text-xs sm:text-sm">
-                          {new Date(field.value as number).toLocaleDateString(
-                            "es-CO",
-                            {
-                              day: "2-digit",
-                              month: isMobile ? "short" : "long",
-                              year: "numeric",
-                            },
-                          )}
-                        </span>
-                      ) : (
-                        <span className="text-xs sm:text-sm">
-                          Selecciona una fecha
-                        </span>
-                      )}
-                      <CalendarIcon className="hidden sm:ml-auto sm:block sm:size-3 sm:opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
+                  <PopoverTrigger
+                    nativeButton={false}
+                    render={
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-[240px] pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground",
+                        )}
+                      >
+                        {field.value ? (
+                          <span className="text-xs sm:text-sm">
+                            {new Date(field.value as number).toLocaleDateString(
+                              "es-CO",
+                              {
+                                day: "2-digit",
+                                month: isMobile ? "short" : "long",
+                                year: "numeric",
+                              },
+                            )}
+                          </span>
+                        ) : (
+                          <span className="text-xs sm:text-sm">
+                            Selecciona una fecha
+                          </span>
+                        )}
+                        <CalendarIcon className="hidden sm:ml-auto sm:block sm:size-3 sm:opacity-50" />
+                      </Button>
+                    }
+                  />
                   <PopoverContent className="w-auto p-0" align="center">
                     <Calendar
                       mode="single"

@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "@tanstack/react-router";
-import type { FC, ReactNode } from "react";
+import type { FC, ReactElement } from "react";
 import { useId } from "react";
 import { useForm } from "react-hook-form";
 
@@ -21,7 +21,7 @@ import { barbershopFormSchema } from "@/lib/schemas";
 import { CreateBarbershopForm } from "./create-barbershop-form";
 
 interface CreateBarbershopDialogProps {
-  trigger: ReactNode;
+  trigger: ReactElement;
   userId: string | undefined;
 }
 
@@ -108,7 +108,7 @@ export const CreateBarbershopDialog: FC<CreateBarbershopDialogProps> = ({
 
   return (
     <Dialog>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogTrigger nativeButton={false} render={trigger} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>

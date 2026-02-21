@@ -2,7 +2,7 @@
 
 import type { Appointment } from "@convex/tables";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { FC, ReactNode } from "react";
+import type { FC, ReactElement } from "react";
 import { useEffect, useId } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -29,7 +29,7 @@ import { RescheduleRequestForm } from "./reschedule-request-form";
 
 interface RescheduleRequestDialogProps {
   appointment: Appointment;
-  trigger: ReactNode;
+  trigger: ReactElement;
   to?: "barber" | "customer";
 }
 
@@ -131,7 +131,7 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
 
   return (
     <Dialog>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogTrigger nativeButton={false} render={trigger} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{headLabel}</DialogTitle>

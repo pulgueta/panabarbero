@@ -19,19 +19,22 @@ export const ThemeToggler = () => {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon">
-          {theme === "system" ? (
-            <Smartphone className="size-4" />
-          ) : theme === "dark" ? (
-            <Moon className="size-4" />
-          ) : (
-            <Sun className="size-4" />
-          )}
+      <DropdownMenuTrigger
+        nativeButton={false}
+        render={
+          <Button variant="outline" size="icon">
+            {theme === "system" ? (
+              <Smartphone className="size-4" />
+            ) : theme === "dark" ? (
+              <Moon className="size-4" />
+            ) : (
+              <Sun className="size-4" />
+            )}
 
-          <span className="sr-only">Toggle theme</span>
-        </Button>
-      </DropdownMenuTrigger>
+            <span className="sr-only">Toggle theme</span>
+          </Button>
+        }
+      />
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => toggleTheme("light")}>
           Claro

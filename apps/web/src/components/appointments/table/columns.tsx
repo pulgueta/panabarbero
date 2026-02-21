@@ -128,11 +128,14 @@ export function getAppointmentsTableColumns(opts: {
         return (
           <div className="text-center">
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <EllipsisVerticalIcon />
-                </Button>
-              </DropdownMenuTrigger>
+              <DropdownMenuTrigger
+                nativeButton={false}
+                render={
+                  <Button variant="outline" size="icon">
+                    <EllipsisVerticalIcon />
+                  </Button>
+                }
+              />
 
               <DropdownMenuContent align="end" className="max-w-64">
                 <Activity

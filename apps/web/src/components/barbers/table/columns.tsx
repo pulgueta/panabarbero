@@ -82,12 +82,15 @@ export const barbersTableColumns: ColumnDef<BarbershopMember>[] = [
       return (
         <div className="text-center">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
-                <span className="sr-only">Abrir menú</span>
-                <EllipsisVerticalIcon />
-              </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+              nativeButton={false}
+              render={
+                <Button variant="outline" size="icon">
+                  <span className="sr-only">Abrir menú</span>
+                  <EllipsisVerticalIcon />
+                </Button>
+              }
+            />
             <DropdownMenuContent align="end">
               {isCurrentUser ? (
                 <DropdownMenuItem>

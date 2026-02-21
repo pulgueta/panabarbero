@@ -1,6 +1,6 @@
 import type { Appointment } from "@convex/tables";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { FC, ReactNode } from "react";
+import type { FC, ReactElement } from "react";
 import { useEffect, useId } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -23,7 +23,7 @@ import { CancelAppointmentForm } from "./delete-appointment-form";
 
 interface CancelAppointmentDialogProps {
   appointment: Appointment;
-  trigger: ReactNode;
+  trigger: ReactElement;
   userId: string;
   isBarber: boolean;
 }
@@ -84,7 +84,7 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
 
   return (
     <Dialog>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogTrigger nativeButton={false} render={trigger} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>

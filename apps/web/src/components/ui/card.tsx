@@ -2,59 +2,59 @@ import type { ComponentProps, FC } from "react";
 
 import { cn } from "@/lib/utils";
 
-type CardProps = ComponentProps<"div"> & { size?: "default" | "sm" };
+type CardProps = ComponentProps<"article"> & { size?: "default" | "sm" };
 
 export const Card: FC<CardProps> = ({
   className,
   size = "default",
   ...props
 }) => (
-  <div
+  <article
     data-slot="card"
     data-size={size}
     className={cn(
-      "group/card flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-card-foreground text-sm shadow-xs ring-1 ring-foreground/10 has-[>img:first-child]:pt-0 data-[size=sm]:gap-4 data-[size=sm]:py-4 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+      "group/card flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-4 text-card-foreground text-sm shadow-xs ring-1 ring-foreground/10 has-[>img:first-child]:pt-0 data-[size=sm]:gap-4 data-[size=sm]:py-4 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
       className,
     )}
     {...props}
   />
 );
 
-type CardHeaderProps = ComponentProps<"div">;
+type CardHeaderProps = ComponentProps<"header">;
 
 export const CardHeader: FC<CardHeaderProps> = ({ className, ...props }) => (
-  <div
+  <header
     data-slot="card-header"
     className={cn(
-      "group/card-header @container/card-header grid auto-rows-min items-start gap-1 rounded-t-xl px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto] group-data-[size=sm]/card:px-4 [.border-b]:pb-6 group-data-[size=sm]/card:[.border-b]:pb-4",
+      "group/card-header @container/card-header grid auto-rows-min items-start gap-1 rounded-t-xl px-4 has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto] group-data-[size=sm]/card:px-4 [.border-b]:pb-6 group-data-[size=sm]/card:[.border-b]:pb-4",
       className,
     )}
     {...props}
   />
 );
 
-type CardTitleProps = ComponentProps<"div">;
+type CardTitleProps = ComponentProps<"h3">;
 
 export const CardTitle: FC<CardTitleProps> = ({ className, ...props }) => (
-  <div
+  <h3
     data-slot="card-title"
     className={cn(
-      "font-medium text-base leading-normal group-data-[size=sm]/card:text-sm",
+      "text-balance font-semibold text-xl leading-normal group-data-[size=sm]/card:text-lg",
       className,
     )}
     {...props}
   />
 );
 
-type CardDescriptionProps = ComponentProps<"div">;
+type CardDescriptionProps = ComponentProps<"p">;
 
 export const CardDescription: FC<CardDescriptionProps> = ({
   className,
   ...props
 }) => (
-  <div
+  <p
     data-slot="card-description"
-    className={cn("text-muted-foreground text-sm", className)}
+    className={cn("text-pretty text-muted-foreground text-sm", className)}
     {...props}
   />
 );
@@ -72,23 +72,23 @@ export const CardAction: FC<CardActionProps> = ({ className, ...props }) => (
   />
 );
 
-type CardContentProps = ComponentProps<"div">;
+type CardContentProps = ComponentProps<"section">;
 
 export const CardContent: FC<CardContentProps> = ({ className, ...props }) => (
-  <div
+  <section
     data-slot="card-content"
-    className={cn("px-6 group-data-[size=sm]/card:px-4", className)}
+    className={cn("px-4 group-data-[size=sm]/card:px-4", className)}
     {...props}
   />
 );
 
-type CardFooterProps = ComponentProps<"div">;
+type CardFooterProps = ComponentProps<"footer">;
 
 export const CardFooter: FC<CardFooterProps> = ({ className, ...props }) => (
-  <div
+  <footer
     data-slot="card-footer"
     className={cn(
-      "flex items-center rounded-b-xl px-6 group-data-[size=sm]/card:px-4 [.border-t]:pt-6 group-data-[size=sm]/card:[.border-t]:pt-4",
+      "flex items-center rounded-b-xl px-4 group-data-[size=sm]/card:px-4 [.border-t]:pt-6 group-data-[size=sm]/card:[.border-t]:pt-4",
       className,
     )}
     {...props}

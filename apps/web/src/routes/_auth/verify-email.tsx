@@ -124,8 +124,8 @@ function VerifyEmailPage() {
           </CardContent>
           {(status === "success" || status === "error") && (
             <CardFooter className="justify-center">
-              <Button asChild variant="outline">
-                <Link to="/login">Ir al inicio de sesión</Link>
+              <Button variant="outline" render={<Link to="/login" />}>
+                Ir al inicio de sesión
               </Button>
             </CardFooter>
           )}

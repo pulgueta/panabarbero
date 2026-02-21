@@ -7,7 +7,7 @@ import type {
 } from "@convex/tables";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "@tanstack/react-router";
-import type { FC, ReactNode } from "react";
+import type { FC, ReactElement } from "react";
 import { Activity, useEffect, useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -45,7 +45,7 @@ interface CreateAppointmentDialogProps {
   serviceId?: Service["_id"];
   barbers: BarbershopMemberWithName[];
   barbershopId: Barbershop["_id"];
-  trigger: ReactNode;
+  trigger: ReactElement;
 }
 
 export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
@@ -199,7 +199,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogTrigger nativeButton={false} render={trigger} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{headLabel}</DialogTitle>
@@ -246,9 +246,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
               </Button>
             </Field>
           ) : (
-            <Button asChild>
-              <Link to="/login">Iniciar sesión</Link>
-            </Button>
+            <Button render={<Link to="/login" />}>Iniciar sesión</Button>
           )}
         </DialogFooter>
       </DialogContent>

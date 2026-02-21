@@ -120,8 +120,11 @@ export const PricingCards: FC = () => {
                     </CheckoutLink>
                   )
                 ) : (
-                  <Button asChild className="w-full">
-                    <Link to="/login">Iniciar sesión para adquirir plan</Link>
+                  <Button
+                    className="w-full"
+                    render={<Link to="/login" />}
+                  >
+                    Iniciar sesión para adquirir plan
                   </Button>
                 )}
               </CardFooter>

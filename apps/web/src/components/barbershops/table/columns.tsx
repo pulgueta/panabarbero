@@ -74,17 +74,20 @@ export const barbershopsTableColumns: ColumnDef<Barbershop>[] = [
 
       return (
         <div className="text-center">
-          <Button variant="outline" asChild>
-            <Link
-              to="/profile/barbershops/edit/$barbershopId"
-              params={{ barbershopId }}
-              style={{
-                viewTransitionName: `barbershop-${barbershopId}-edit`,
-              }}
-            >
-              <PencilIcon className="size-3" />
-              Editar
-            </Link>
+          <Button
+            variant="outline"
+            render={
+              <Link
+                to="/profile/barbershops/edit/$barbershopId"
+                params={{ barbershopId }}
+                style={{
+                  viewTransitionName: `barbershop-${barbershopId}-edit`,
+                }}
+              />
+            }
+          >
+            <PencilIcon className="size-3" />
+            Editar
           </Button>
         </div>
       );

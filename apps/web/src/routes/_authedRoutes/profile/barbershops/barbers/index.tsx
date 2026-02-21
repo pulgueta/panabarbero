@@ -321,15 +321,18 @@ const BarberCard: FC<BarberCardProps> = ({
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction asChild>
-                    <Button
-                      variant="destructive"
-                      onClick={handleRemoveBarber}
-                      disabled={isRemovingBarber}
-                    >
-                      {isRemovingBarber && <Spinner />}
-                      Eliminar barbero
-                    </Button>
+                  <AlertDialogAction
+                    nativeButton={false}
+                    render={
+                      <Button
+                        variant="destructive"
+                        onClick={handleRemoveBarber}
+                        disabled={isRemovingBarber}
+                      />
+                    }
+                  >
+                    {isRemovingBarber && <Spinner />}
+                    Eliminar barbero
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -410,9 +413,10 @@ function ManageServicesDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="outline">Gestionar servicios</Button>
-      </DialogTrigger>
+      <DialogTrigger
+        nativeButton={false}
+        render={<Button variant="outline">Gestionar servicios</Button>}
+      />
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Servicios de {barbershopMember.name}</DialogTitle>

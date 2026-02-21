@@ -68,12 +68,15 @@ export const servicesTableColumns: ColumnDef<Service>[] = [
       return (
         <div className="text-center">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" disabled={isDeleting}>
-                <span className="sr-only">Abrir menú</span>
-                <EllipsisVerticalIcon />
-              </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+              nativeButton={false}
+              render={
+                <Button variant="outline" size="icon" disabled={isDeleting}>
+                  <span className="sr-only">Abrir menú</span>
+                  <EllipsisVerticalIcon />
+                </Button>
+              }
+            />
             <DropdownMenuContent align="end">
               <ServiceDialog
                 barbershopId={service.barbershopId}

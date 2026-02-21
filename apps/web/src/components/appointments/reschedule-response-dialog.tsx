@@ -1,5 +1,5 @@
 import type { Appointment } from "@convex/tables";
-import type { FC, ReactNode } from "react";
+import type { FC, ReactElement } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -22,7 +22,7 @@ interface RescheduleResponseDialogProps {
   appointment: Appointment & {
     rescheduleRequestedByUserId?: string | null;
   };
-  trigger: ReactNode;
+  trigger: ReactElement;
   viewer: "barber" | "customer";
 }
 
@@ -81,7 +81,7 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogTrigger nativeButton={false} render={trigger} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Solicitud de reagendamiento</DialogTitle>

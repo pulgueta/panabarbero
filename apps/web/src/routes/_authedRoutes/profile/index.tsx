@@ -190,6 +190,7 @@ function ProfilePage() {
             tab ?? (isBarber ? tabs.account.value : tabs.appointments.value)
           }
           className="min-w-full"
+          orientation="horizontal"
           onValueChange={onTabChange}
         >
           <TabsList>
