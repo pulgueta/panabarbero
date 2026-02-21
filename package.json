@@ -38,6 +38,7 @@
     "better-sqlite3",
     "core-js",
     "esbuild",
+    "msw",
     "prisma",
     "protobufjs",
     "sharp",

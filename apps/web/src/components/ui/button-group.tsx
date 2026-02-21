@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { cva, type VariantProps } from "class-variance-authority";
@@ -26,8 +27,7 @@ function ButtonGroup({
   className,
   orientation,
   ...props
-}: React.ComponentProps<"fieldset"> &
-  VariantProps<typeof buttonGroupVariants>) {
+}: ComponentProps<"fieldset"> & VariantProps<typeof buttonGroupVariants>) {
   return (
     <fieldset
       data-slot="button-group"
@@ -69,7 +69,7 @@ function ButtonGroupSeparator({
   className,
   orientation = "vertical",
   ...props
-}: React.ComponentProps<typeof Separator>) {
+}: ComponentProps<typeof Separator>) {
   return (
     <Separator
       data-slot="button-group-separator"

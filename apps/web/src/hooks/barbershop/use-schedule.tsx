@@ -52,7 +52,7 @@ export function useSchedule(availability: Barbershop["availability"] | null) {
         : null;
 
     return (
-      <div className="space-y-1 [&>span]:block">
+      <div className="space-y-1 text-muted-foreground text-sm [&>span]:block">
         <span>
           Horario de hoy: {openAt} - {closeAt}
         </span>

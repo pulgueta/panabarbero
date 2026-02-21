@@ -49,7 +49,6 @@ export function UserAvatar({ user }: UserAvatarProps) {
   return (
     <Popover>
       <PopoverTrigger
-        nativeButton={false}
         render={
           <Button variant="ghost" className="relative size-8 rounded-full">
             <Avatar className="size-8">

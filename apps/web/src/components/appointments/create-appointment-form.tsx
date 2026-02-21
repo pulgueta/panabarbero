@@ -83,29 +83,31 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
     <form id={formIds.form} onSubmit={onSubmit}>
       <div className="space-y-4">
         <div className="grid grid-cols-1 gap-4">
-          <Field className="col-span-2">
-            <FieldLabel
-              htmlFor={formIds.serviceId}
-              aria-required
-              className={cn({
-                hidden: disabledFields?.includes("serviceId") || !isBarber,
-              })}
-            >
-              Servicio
-            </FieldLabel>
-
-            <Suspense fallback={<Skeleton className="h-9 w-full" />}>
-              <Activity
-                mode={
-                  disabledFields?.includes("serviceId") || !isBarber
-                    ? "hidden"
-                    : "visible"
-                }
+          {(disabledFields?.includes("serviceId") || !isBarber) && (
+            <Field className="col-span-2">
+              <FieldLabel
+                htmlFor={formIds.serviceId}
+                aria-required
+                className={cn({
+                  hidden: disabledFields?.includes("serviceId") || !isBarber,
+                })}
               >
-                <ServicesDropdown services={displayServices} />
-              </Activity>
-            </Suspense>
-          </Field>
+                Servicio
+              </FieldLabel>
+
+              <Suspense fallback={<Skeleton className="h-9 w-full" />}>
+                <Activity
+                  mode={
+                    disabledFields?.includes("serviceId") || !isBarber
+                      ? "hidden"
+                      : "visible"
+                  }
+                >
+                  <ServicesDropdown services={displayServices} />
+                </Activity>
+              </Suspense>
+            </Field>
+          )}
 
           {(isBarber || showPhoneField) && (
             <div className="grid grid-cols-2 gap-4">
@@ -280,7 +282,6 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                 <FieldLabel htmlFor={formIds.date}>Fecha</FieldLabel>
                 <Popover>
                   <PopoverTrigger
-                    nativeButton={false}
                     render={
                       <Button
                         variant="outline"

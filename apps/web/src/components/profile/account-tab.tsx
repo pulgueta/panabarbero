@@ -2,7 +2,6 @@ import type { UserProfileData } from "@convex/tables";
 import { InfoIcon } from "lucide-react";
 import type { FC } from "react";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 import { CreateBarbershopDialog } from "@/components/barbershops/create-barbershop-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -39,19 +38,13 @@ export const AccountTab: FC<AccountTabProps> = ({
   userId,
 }) => {
   const {
-    updateNameMutation: {
-      mutateAsync: updateName,
-      isPending: isUpdatingName,
-      isSuccess: isUpdatedName,
-    },
+    updateNameMutation: { mutateAsync: updateName, isPending: isUpdatingName },
     updatePhoneNumberMutation: {
       mutateAsync: updatePhoneNumber,
       isPending: isUpdatingPhoneNumber,
-      isSuccess: isUpdatedPhoneNumber,
     },
     updateNotificationPreferenceMutation: {
       mutateAsync: updateNotificationPreference,
-      isPending: isUpdatingNotificationPreference,
     },
   } = useProfileActions();
 
@@ -88,20 +81,6 @@ export const AccountTab: FC<AccountTabProps> = ({
   };
 
   useEffect(() => {
-    if (isUpdatedName) {
-      toast.success("Guardado exitosamente", {
-        description: "El nombre se ha actualizado correctamente.",
-      });
-    }
-
-    if (isUpdatedPhoneNumber) {
-      toast.success("Guardado exitosamente", {
-        description: "El número de contacto se ha actualizado correctamente.",
-      });
-    }
-  }, [isUpdatedName, isUpdatedPhoneNumber]);
-
-  useEffect(() => {
     setName(profile?.name ?? "");
   }, [profile?.name]);
 
@@ -112,28 +91,29 @@ export const AccountTab: FC<AccountTabProps> = ({
   return (
     <div className="space-y-4">
       {!isBarber && userId && showBarbershopBanner && (
-        <Alert className="relative">
+        <Alert className="relative max-w-2xl">
           <InfoIcon className="size-4" />
           <AlertTitle className="mb-1">¿Tienes una barbería?</AlertTitle>
-          <AlertDescription className="text-xs md:text-sm">
+          <AlertDescription>
             Gestiona reservas, barberos, servicios y obtén acceso a analíticas
             detalladas de tu negocio sin costo adicional. <br />
+            <Button
+              variant="link"
+              className="px-0 text-muted-foreground text-xs md:text-sm"
+              onClick={handleHideBanner}
+            >
+              Ocultar por 7 días
+            </Button>
+            <br />
             <CreateBarbershopDialog
               trigger={
-                <Button variant="outline" className="mt-1.5">
+                <Button variant="default" className="mt-1.5">
                   Crear mi barbería
                 </Button>
               }
               userId={userId}
             />
           </AlertDescription>
-          <Button
-            variant="link"
-            className="absolute top-2 right-2 text-muted-foreground text-xs md:text-sm"
-            onClick={handleHideBanner}
-          >
-            Ocultar por 7 días
-          </Button>
         </Alert>
       )}
 
@@ -160,7 +140,6 @@ export const AccountTab: FC<AccountTabProps> = ({
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Tu nombre"
                     autoComplete="name"
-                    disabled={isUpdatingName}
                   />
                   <Button
                     onClick={() => updateName({ name: name ?? "" })}
@@ -238,7 +217,7 @@ export const AccountTab: FC<AccountTabProps> = ({
               notificaciones.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="flex flex-col gap-2">
             <FieldRoot orientation="horizontal">
               <FieldLabel>Email</FieldLabel>
               <FieldContent className="items-end">
@@ -248,7 +227,6 @@ export const AccountTab: FC<AccountTabProps> = ({
                       (p) => p.type === "email",
                     )?.enabled
                   }
-                  disabled={isUpdatingNotificationPreference}
                   onCheckedChange={(val) =>
                     updateNotificationPreference({
                       type: "email",
@@ -269,9 +247,7 @@ export const AccountTab: FC<AccountTabProps> = ({
                       (p) => p.type === "sms",
                     )?.enabled
                   }
-                  disabled={
-                    !profile?.phoneNumber || isUpdatingNotificationPreference
-                  }
+                  disabled={!profile?.phoneNumber}
                   onCheckedChange={(val) =>
                     updateNotificationPreference({
                       type: "sms",

@@ -89,7 +89,7 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
                     {barbershop.name}
                   </CardTitle>
                   <Badge
-                    variant={isOpen ? "success" : "secondary"}
+                    variant={isOpen ? "secondary" : "warning"}
                     className="text-xs"
                   >
                     {isOpen ? "Abierto" : "Cerrado"}
@@ -140,6 +140,7 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
       </CardContent>
       <CardFooter className="justify-between">
         <Button
+          nativeButton={false}
           render={
             <Link
               to="/barbershops/$barbershopUuid"

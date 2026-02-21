@@ -1,6 +1,5 @@
-import { useEffect, useRef } from "react";
-
 import { useRouteContext, useRouter } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 
 import { setViewportServerFn } from "@/lib/viewport";
 

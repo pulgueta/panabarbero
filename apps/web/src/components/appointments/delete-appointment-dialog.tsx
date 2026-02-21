@@ -44,7 +44,7 @@ export const DeleteAppointmentDialog: FC<DeleteAppointmentDialogProps> = ({
 
   return (
     <Dialog>
-      <DialogTrigger nativeButton={false} render={trigger} />
+      <DialogTrigger render={trigger} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Eliminar cita</DialogTitle>

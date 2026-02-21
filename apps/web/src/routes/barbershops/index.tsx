@@ -100,7 +100,7 @@ function BarbershopsPage() {
         </section>
       </header>
 
-      <div className="w-full rounded-xl border bg-accent/20 p-4">
+      <div className="mx-auto w-full max-w-3xl rounded-xl border bg-accent/20 p-4">
         <BarbershopFilters />
       </div>
 

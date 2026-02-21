@@ -9,7 +9,7 @@ import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FieldGroup, FieldSeparator } from "@/components/ui/field";
+import { FieldGroup } from "@/components/ui/field";
 import { isBarberQueryOptions } from "@/hooks/use-barbershop-members";
 import { getSessionQueryOptions } from "@/hooks/use-session";
 import { signIn } from "@/lib/auth-client";
@@ -19,19 +19,22 @@ export const Route = createFileRoute("/_auth/login")({
   component: LoginPage,
   pendingComponent: LoadingComponent,
   loader: async ({ context }) => {
-    const user = await context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
-
-    if (user?.userId) {
-      const isBarber = await context.queryClient.ensureQueryData(
-        isBarberQueryOptions(user.userId),
+    if (context.token) {
+      const user = await context.queryClient.ensureQueryData(
+        getSessionQueryOptions(),
       );
 
-      throw redirect({
-        to: isBarber ? "/profile/barbershops/appointments" : "/profile",
-        search: { tab: "account" },
-      });
+      if (user?.userId) {
+        const isBarber = await context.queryClient.ensureQueryData(
+          isBarberQueryOptions(user.userId),
+        );
+
+        throw redirect({
+          to: isBarber ? "/profile/barbershops/appointments" : "/profile",
+          search: { tab: isBarber ? "appointments" : "account" },
+          replace: true,
+        });
+      }
     }
   },
 });
@@ -98,7 +101,6 @@ function LoginPage() {
                   Iniciar sesión con biometría
                 </Button> */}
               </div>
-              <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card" />
 
               <LoginForm />
 

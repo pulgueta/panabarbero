@@ -109,6 +109,7 @@ function RouteComponent() {
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               {isBarber ? (
                 <Button
+                  nativeButton={false}
                   className="group"
                   render={<Link to="/profile/barbershops/appointments" />}
                 >
@@ -117,7 +118,7 @@ function RouteComponent() {
                 </Button>
               ) : (
                 <Button
-                  size="default"
+                  nativeButton={false}
                   className="group"
                   render={<Link to="/appointments/create" />}
                 >
@@ -128,8 +129,8 @@ function RouteComponent() {
 
               {!user && (
                 <Button
+                  nativeButton={false}
                   variant="outline"
-                  size="default"
                   render={<Link to="/login" />}
                 >
                   Crear cuenta gratis
@@ -452,7 +453,7 @@ function RouteComponent() {
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               {isBarber ? (
                 <Button
-                  size="lg"
+                  nativeButton={false}
                   className="group"
                   render={<Link to="/profile/barbershops/appointments" />}
                 >
@@ -461,7 +462,7 @@ function RouteComponent() {
                 </Button>
               ) : (
                 <Button
-                  size="default"
+                  nativeButton={false}
                   className="group"
                   render={
                     <Link
@@ -478,7 +479,7 @@ function RouteComponent() {
               {!user && (
                 <Button
                   variant="outline"
-                  size="default"
+                  nativeButton={false}
                   render={<Link to="/login" />}
                 >
                   Registrarme gratis

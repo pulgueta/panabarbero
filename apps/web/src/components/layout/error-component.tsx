@@ -44,9 +44,12 @@ export const DefaultCatchBoundary: FC<ErrorComponentProps> = ({ error }) => {
           </Button>
 
           <div className="flex items-center gap-2">
-            <Button render={<Link to="/" />}>Inicio</Button>
+            <Button nativeButton={false} render={<Link to="/" />}>
+              Inicio
+            </Button>
             <Button
               variant="secondary"
+              nativeButton={false}
               render={
                 <Link
                   to="/"

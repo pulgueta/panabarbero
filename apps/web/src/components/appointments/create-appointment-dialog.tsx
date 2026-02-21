@@ -199,7 +199,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger nativeButton={false} render={trigger} />
+      <DialogTrigger render={trigger} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{headLabel}</DialogTitle>
@@ -246,7 +246,9 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
               </Button>
             </Field>
           ) : (
-            <Button render={<Link to="/login" />}>Iniciar sesión</Button>
+            <Button nativeButton={false} render={<Link to="/login" />}>
+              Iniciar sesión
+            </Button>
           )}
         </DialogFooter>
       </DialogContent>

@@ -186,7 +186,7 @@ function ProfilePage() {
 
       <div className="flex flex-col items-start justify-center gap-4">
         <Tabs
-          defaultValue={
+          value={
             tab ?? (isBarber ? tabs.account.value : tabs.appointments.value)
           }
           className="min-w-full"

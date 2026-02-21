@@ -51,6 +51,7 @@ export const Header = () => {
                     <Button
                       key={route.to}
                       variant={currentPath === route.to ? "outline" : "ghost"}
+                      nativeButton={false}
                       render={
                         <Link
                           key={route.to}
@@ -73,6 +74,7 @@ export const Header = () => {
                     <Button
                       key={route.to}
                       variant={currentPath === route.to ? "outline" : "ghost"}
+                      nativeButton={false}
                       render={
                         <Link
                           key={route.to}
@@ -95,6 +97,7 @@ export const Header = () => {
                   <Button
                     key={route.to}
                     variant={currentPath === route.to ? "outline" : "ghost"}
+                    nativeButton={false}
                     render={
                       <Link
                         key={route.to}
@@ -122,7 +125,9 @@ export const Header = () => {
               <Skeleton className="h-8 w-28" />
             ) : (
               !user && (
-                <Button render={<Link to="/login" />}>Iniciar sesión</Button>
+                <Button nativeButton={false} render={<Link to="/login" />}>
+                  Iniciar sesión
+                </Button>
               )
             )}
 

@@ -1,12 +1,13 @@
-import type * as React from "react";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
-import { cva, type VariantProps } from "class-variance-authority";
+import type { VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
+import type { ComponentProps } from "react";
 
-import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
-function ItemGroup({ className, ...props }: React.ComponentProps<"ul">) {
+function ItemGroup({ className, ...props }: ComponentProps<"ul">) {
   return (
     <ul
       data-slot="item-group"
@@ -22,7 +23,7 @@ function ItemGroup({ className, ...props }: React.ComponentProps<"ul">) {
 function ItemSeparator({
   className,
   ...props
-}: React.ComponentProps<typeof Separator>) {
+}: ComponentProps<typeof Separator>) {
   return (
     <Separator
       data-slot="item-separator"
@@ -41,6 +42,8 @@ const itemVariants = cva(
         default: "border-transparent",
         outline: "border-border",
         muted: "border-transparent bg-muted/50",
+        warning:
+          "border-warning/20 bg-warning/10 text-warning focus-visible:ring-warning/20 dark:bg-warning/20 dark:focus-visible:ring-warning/40 [a]:hover:bg-warning/20",
       },
       size: {
         default: "gap-3.5 px-4 py-3.5",
@@ -100,7 +103,7 @@ function ItemMedia({
   className,
   variant = "default",
   ...props
-}: React.ComponentProps<"div"> & VariantProps<typeof itemMediaVariants>) {
+}: ComponentProps<"div"> & VariantProps<typeof itemMediaVariants>) {
   return (
     <div
       data-slot="item-media"
@@ -111,7 +114,7 @@ function ItemMedia({
   );
 }
 
-function ItemContent({ className, ...props }: React.ComponentProps<"div">) {
+function ItemContent({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       data-slot="item-content"
@@ -124,7 +127,7 @@ function ItemContent({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function ItemTitle({ className, ...props }: React.ComponentProps<"div">) {
+function ItemTitle({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       data-slot="item-title"
@@ -137,7 +140,7 @@ function ItemTitle({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function ItemDescription({ className, ...props }: React.ComponentProps<"p">) {
+function ItemDescription({ className, ...props }: ComponentProps<"p">) {
   return (
     <p
       data-slot="item-description"
@@ -150,7 +153,7 @@ function ItemDescription({ className, ...props }: React.ComponentProps<"p">) {
   );
 }
 
-function ItemActions({ className, ...props }: React.ComponentProps<"div">) {
+function ItemActions({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       data-slot="item-actions"
@@ -160,7 +163,7 @@ function ItemActions({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function ItemHeader({ className, ...props }: React.ComponentProps<"div">) {
+function ItemHeader({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       data-slot="item-header"
@@ -173,7 +176,7 @@ function ItemHeader({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function ItemFooter({ className, ...props }: React.ComponentProps<"div">) {
+function ItemFooter({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       data-slot="item-footer"
@@ -188,13 +191,13 @@ function ItemFooter({ className, ...props }: React.ComponentProps<"div">) {
 
 export {
   Item,
-  ItemMedia,
-  ItemContent,
   ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemFooter,
   ItemGroup,
+  ItemHeader,
+  ItemMedia,
   ItemSeparator,
   ItemTitle,
-  ItemDescription,
-  ItemHeader,
-  ItemFooter,
 };

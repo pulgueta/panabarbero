@@ -5,7 +5,7 @@ import { z } from "zod";
 const storageKey = "app-viewport";
 
 export const getViewportServerFn = createServerFn().handler(
-  () => getCookie(storageKey) ?? "desktop",
+  () => getCookie(storageKey) ?? "mobile",
 );
 
 const setViewportValidator = z.enum(["mobile", "desktop"]);

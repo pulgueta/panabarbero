@@ -13,7 +13,7 @@ export const Card: FC<CardProps> = ({
     data-slot="card"
     data-size={size}
     className={cn(
-      "group/card flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-4 text-card-foreground text-sm shadow-xs ring-1 ring-foreground/10 has-[>img:first-child]:pt-0 data-[size=sm]:gap-4 data-[size=sm]:py-4 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+      "group/card flex max-h-max flex-col gap-6 overflow-hidden rounded-xl bg-card py-4 text-card-foreground text-sm shadow-xs ring-1 ring-foreground/10 has-[>img:first-child]:pt-0 has-data-[slot=card-footer]:pb-0 data-[size=sm]:gap-4 data-[size=sm]:py-4 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
       className,
     )}
     {...props}
@@ -39,7 +39,7 @@ export const CardTitle: FC<CardTitleProps> = ({ className, ...props }) => (
   <h3
     data-slot="card-title"
     className={cn(
-      "text-balance font-semibold text-xl leading-normal group-data-[size=sm]/card:text-lg",
+      "text-balance font-semibold text-xl leading-normal tracking-tight group-data-[size=sm]/card:text-lg",
       className,
     )}
     {...props}
@@ -54,7 +54,10 @@ export const CardDescription: FC<CardDescriptionProps> = ({
 }) => (
   <p
     data-slot="card-description"
-    className={cn("text-pretty text-muted-foreground text-sm", className)}
+    className={cn(
+      "text-pretty text-muted-foreground text-sm tracking-tight",
+      className,
+    )}
     {...props}
   />
 );
@@ -88,7 +91,7 @@ export const CardFooter: FC<CardFooterProps> = ({ className, ...props }) => (
   <footer
     data-slot="card-footer"
     className={cn(
-      "flex items-center rounded-b-xl px-4 group-data-[size=sm]/card:px-4 [.border-t]:pt-6 group-data-[size=sm]/card:[.border-t]:pt-4",
+      "flex min-h-fit items-center rounded-b-xl border-border border-t bg-accent/50 p-4 group-data-[size=sm]/card:px-4",
       className,
     )}
     {...props}

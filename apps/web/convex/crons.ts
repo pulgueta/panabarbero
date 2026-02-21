@@ -32,6 +32,15 @@ export const cleanupAppointments = internalMutation({
     const appointments = await ctx.db
       .query("appointments")
       .withIndex("by_deletedAt", (q) => q.lte("deletedAt", Date.now()))
+      .filter((q) =>
+        q.and(
+          q.and(
+            q.not(q.eq(q.field("deletedAt"), undefined)),
+            q.lte(q.field("deletedAt"), Date.now()),
+          ),
+          q.eq(q.field("status"), "cancelled"),
+        ),
+      )
       .collect();
 
     for (const appointment of appointments) {
