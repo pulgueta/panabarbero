@@ -7,11 +7,12 @@
   },
   "scripts": {
     "dev": "concurrently \"bun run dev:web\" \"bun run dev:convex\"",
-    "dev:web": "bun --bun vite dev --host",
+    "dev:web": "vite dev --host",
     "dev:convex": "convex dev",
-    "build": "bun --bun vite build",
-    "preview": "bun --bun vite preview",
-    "start": "bun run .output/server/index.mjs",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "bun run build && wrangler deploy",
+    "cf-typegen": "wrangler types",
     "test": "vitest run"
   },
   "dependencies": {
@@ -77,6 +78,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.25.2",
     "@tailwindcss/postcss": "^4.1.18",
     "@tanstack/devtools-event-client": "^0.4.0",
     "@tanstack/devtools-vite": "^0.5.1",
@@ -94,6 +96,7 @@
     "vite": "^7.3.1",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.0.18",
-    "web-vitals": "^5.1.0"
+    "web-vitals": "^5.1.0",
+    "wrangler": "^4.67.0"
   }
 }
