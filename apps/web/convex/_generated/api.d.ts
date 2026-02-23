@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as acl from "../acl.js";
 import type * as appointments from "../appointments.js";
 import type * as auth from "../auth.js";
 import type * as authz from "../authz.js";
@@ -23,6 +24,7 @@ import type * as index from "../index.js";
 import type * as invitations from "../invitations.js";
 import type * as migrations from "../migrations.js";
 import type * as notifications from "../notifications.js";
+import type * as plans from "../plans.js";
 import type * as polar from "../polar.js";
 import type * as ratelimit from "../ratelimit.js";
 import type * as reviews from "../reviews.js";
@@ -38,6 +40,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  acl: typeof acl;
   appointments: typeof appointments;
   auth: typeof auth;
   authz: typeof authz;
@@ -53,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   invitations: typeof invitations;
   migrations: typeof migrations;
   notifications: typeof notifications;
+  plans: typeof plans;
   polar: typeof polar;
   ratelimit: typeof ratelimit;
   reviews: typeof reviews;

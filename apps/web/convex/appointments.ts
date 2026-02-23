@@ -9,6 +9,7 @@ import {
   mutation,
   query,
 } from "./_generated/server";
+import { assertCanCreateStaffAppointment } from "./acl";
 import { authComponent } from "./auth";
 import { assertBarber } from "./authz";
 import { errorMessages } from "./errors";
@@ -119,6 +120,9 @@ export const create = mutation({
 
     if (isBarberCreatingAppointment) {
       await assertBarber(ctx, appointment.barbershopId, user.userId);
+      // Only paid plans (pro / premium) allow staff to create appointments
+      // on behalf of clients.
+      await assertCanCreateStaffAppointment(ctx, user.userId);
     }
 
     const [service, barber] = await Promise.all([
@@ -769,6 +773,7 @@ export const notifyUpcoming = internalMutation({
 
     await ctx.runMutation(internal.notifications.createAppointmentReminder, {
       barbershopName: barbershop.name,
+      barbershopId: args.barbershopId,
       customerUserId: userProfile?.userId ?? "user_does_not_exist",
       to: userProfile?.email ?? appointment.contactEmail,
       receiverPhoneNumber: appointment.contactPhone,

@@ -12,6 +12,7 @@ import type { DataModel } from "./_generated/dataModel";
 import { internalQuery, query } from "./_generated/server";
 import authConfig from "./auth.config";
 import { from, resend } from "./emails";
+import { getLimitsForProductKey, getTierForProductKey } from "./plans";
 import { polar } from "./polar";
 import { getProfileByUserId } from "./userProfileData";
 
@@ -189,9 +190,6 @@ export const getPolarUser = internalQuery({
   },
 });
 
-const PRO_PRICE = 1500;
-const PREMIUM_PRICE = 2500;
-
 export const getUserSubscription = query({
   args: {},
   handler: async (ctx) => {
@@ -205,25 +203,19 @@ export const getUserSubscription = query({
       userId: user.userId,
     });
 
+    const planTier = getTierForProductKey(subscription?.productKey);
+    const planLimits = getLimitsForProductKey(subscription?.productKey);
+
     return {
       ...subscription,
       isSubscribed: subscription?.status === "active",
       productPlanId: subscription?.productId,
-      isFree: subscription?.product.prices.some(
-        (price) => price.amountType === "free",
-      ),
-      isPro: subscription?.product.prices.some(
-        (price) =>
-          price.amountType === "fixed" &&
-          (price.priceAmount === PRO_PRICE ||
-            price.priceAmount === PREMIUM_PRICE * 10),
-      ),
-      isPremium: subscription?.product.prices.some(
-        (price) =>
-          price.amountType === "fixed" &&
-          (price.priceAmount === PREMIUM_PRICE ||
-            price.priceAmount === PREMIUM_PRICE * 10),
-      ),
+      planTier,
+      planLimits,
+      // Backward-compatible boolean helpers
+      isFree: planTier === "free",
+      isPro: planTier === "pro",
+      isPremium: planTier === "premium",
     };
   },
 });

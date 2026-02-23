@@ -1,6 +1,6 @@
-import { CheckoutLink } from "@convex-dev/polar/react";
 import { api } from "@convex/_generated/api";
 import type { UserProfileData } from "@convex/tables";
+import { CheckoutLink } from "@convex-dev/polar/react";
 import { InfoIcon } from "lucide-react";
 import type { FC } from "react";
 import { useEffect, useState } from "react";
@@ -22,7 +22,8 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { usePricingPlans, useSubscription } from "@/hooks/billing/use-pricing";
+import { usePlan } from "@/hooks/billing/use-plan";
+import { usePricingPlans } from "@/hooks/billing/use-pricing";
 import { useProfileActions } from "@/hooks/use-profile";
 
 const BARBERSHOP_BANNER_HIDE_KEY = "barbershop-create-banner-hide-until";
@@ -56,7 +57,7 @@ export const AccountTab: FC<AccountTabProps> = ({
   const [showBarbershopBanner, setShowBarbershopBanner] =
     useState<boolean>(false);
 
-  const { data: subscription } = useSubscription();
+  const { isSubscribed } = usePlan();
   const { data: products } = usePricingPlans();
 
   const freeProduct = products.find((product) =>
@@ -116,7 +117,7 @@ export const AccountTab: FC<AccountTabProps> = ({
             <br />
             <CreateBarbershopDialog
               trigger={
-                subscription?.isSubscribed ? (
+                isSubscribed ? (
                   <Button variant="default" className="mt-1.5">
                     Crear mi barbería
                   </Button>

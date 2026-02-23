@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
+import { assertBarberInviteAllowed } from "./acl";
 import { authComponent } from "./auth";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
@@ -35,6 +36,13 @@ export const invite = mutation({
     if (barbershop.ownerId !== userInviting.userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
+
+    // Enforce plan-based barber invite limit
+    await assertBarberInviteAllowed(
+      ctx,
+      args.barbershopId,
+      userInviting.userId,
+    );
 
     const email = args.email.toLowerCase().trim();
 

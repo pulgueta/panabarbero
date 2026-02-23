@@ -153,6 +153,13 @@ export const tables = {
     expiresAt: v.number(),
     inviterUserId: v.string(),
   },
+  smsUsage: {
+    barbershopId: v.id("barbershops"),
+    /** Calendar month in `YYYY-MM` format (UTC). */
+    month: v.string(),
+    /** Number of SMS sent in this calendar month. */
+    smsSent: v.number(),
+  },
 };
 
 const userProfileDataSchema = v.object({
@@ -182,6 +189,9 @@ const barbershopMemberServicesSchema = v.object({
 const invitationSchema = v.object({
   ...tables.invitations,
 });
+const smsUsageSchema = v.object({
+  ...tables.smsUsage,
+});
 
 type ConvexRows<T extends TableNames> = {
   _id: Id<T>;
@@ -207,3 +217,4 @@ export type BarbershopMemberServices = ConvexRows<"barbershopMemberServices"> &
   Infer<typeof barbershopMemberServicesSchema>;
 export type Invitation = ConvexRows<"invitations"> &
   Infer<typeof invitationSchema>;
+export type SmsUsage = ConvexRows<"smsUsage"> & Infer<typeof smsUsageSchema>;
