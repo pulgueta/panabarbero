@@ -15,8 +15,6 @@ export const BottomBar = () => {
   const { data: isBarber } = useIsBarber(user?.userId ?? "");
   const { data: rolesData } = useBarbershopMemberRoles(user?.userId ?? "");
 
-  const defaultProfileTab = isBarber ? "account" : "appointments";
-
   const navigationRoutes = rolesData?.isOwner
     ? authenticatedRoutes.owner
     : authenticatedRoutes.barber;
@@ -46,9 +44,7 @@ export const BottomBar = () => {
                         viewTransitionName: item.to,
                       }}
                       search={
-                        item.to === "/profile"
-                          ? { tab: defaultProfileTab }
-                          : undefined
+                        item.to === "/profile" ? { tab: "account" } : undefined
                       }
                     >
                       <Icon className="size-5 shrink-0" />
@@ -76,9 +72,7 @@ export const BottomBar = () => {
                         viewTransitionName: item.to,
                       }}
                       search={
-                        item.to === "/profile"
-                          ? { tab: defaultProfileTab }
-                          : undefined
+                        item.to === "/profile" ? { tab: "account" } : undefined
                       }
                     >
                       <Icon className="size-5 shrink-0" />
@@ -106,9 +100,7 @@ export const BottomBar = () => {
                       viewTransitionName: item.to,
                     }}
                     search={
-                      item.to === "/profile"
-                        ? { tab: defaultProfileTab }
-                        : undefined
+                      item.to === "/profile" ? { tab: "account" } : undefined
                     }
                   >
                     <Icon className="size-5 shrink-0" />

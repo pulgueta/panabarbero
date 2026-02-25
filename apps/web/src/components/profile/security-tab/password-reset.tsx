@@ -69,10 +69,12 @@ export const PasswordResetSection: FC = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-muted-foreground text-sm">
-          Te enviaremos un enlace a tu correo electrónico para que puedas crear
-          una nueva contraseña.
-        </p>
+        {!hasSocialAccount && (
+          <p className="text-muted-foreground text-sm">
+            Te enviaremos un enlace a tu correo electrónico para que puedas
+            crear una nueva contraseña.
+          </p>
+        )}
 
         {emailSent && (
           <div className="flex flex-col items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-4 text-center dark:border-green-900 dark:bg-green-950">

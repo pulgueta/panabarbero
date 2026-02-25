@@ -18,8 +18,6 @@ export const Header = () => {
 
   const currentPath = router.location.pathname;
 
-  const defaultProfileTab = isBarber ? "account" : "appointments";
-
   const navigationRoutes = rolesData?.isOwner
     ? authenticatedRoutes.owner
     : authenticatedRoutes.barber;
@@ -36,7 +34,7 @@ export const Header = () => {
                   : "/profile"
                 : "/"
             }
-            search={user ? { tab: defaultProfileTab } : undefined}
+            search={user ? { tab: "account" } : undefined}
             className="font-bold text-2xl tracking-tighter lg:text-3xl"
           >
             PanaBarbero
@@ -61,7 +59,7 @@ export const Header = () => {
                           }}
                           search={
                             route.to === "/profile"
-                              ? { tab: defaultProfileTab }
+                              ? { tab: "account" }
                               : undefined
                           }
                         />
@@ -84,7 +82,7 @@ export const Header = () => {
                           }}
                           search={
                             route.to === "/profile"
-                              ? { tab: defaultProfileTab }
+                              ? { tab: "account" }
                               : undefined
                           }
                         />
@@ -107,7 +105,7 @@ export const Header = () => {
                         }}
                         search={
                           route.to === "/profile"
-                            ? { tab: defaultProfileTab }
+                            ? { tab: "account" }
                             : undefined
                         }
                       />

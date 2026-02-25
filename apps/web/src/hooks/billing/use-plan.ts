@@ -1,5 +1,5 @@
-import { PLAN_LIMITS, type PlanLimits, type PlanTier } from "@convex/plans";
 import { convexQuery } from "@convex-dev/react-query";
+import { PLAN_LIMITS, type PlanLimits, type PlanTier } from "@convex/plans";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 
@@ -49,7 +49,10 @@ export function usePlan(): UsePlanResult {
 
   const planTier: PlanTier = subscription?.planTier ?? "free";
   const planLimits: PlanLimits = subscription?.planLimits ?? PLAN_LIMITS.free;
-  const isSubscribed = subscription?.isSubscribed ?? false;
+  const isSubscribed =
+    subscription?.isSubscribed ||
+    subscription?.status === "active" ||
+    subscription?.status === "trialing";
 
   return {
     planTier,

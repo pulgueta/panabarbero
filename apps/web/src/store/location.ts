@@ -1,5 +1,4 @@
-import { useStore } from "@tanstack/react-store";
-import { Store } from "@tanstack/store";
+import { Store, useStore } from "@tanstack/react-store";
 
 type LocationState = {
   state: string | undefined;
@@ -53,4 +52,4 @@ export const resetLocation = () => {
   persistState(nextState);
 };
 
-export const useLocationStore = () => useStore(locationStore);
+export const useLocationStore = () => useStore(locationStore, (state) => state);

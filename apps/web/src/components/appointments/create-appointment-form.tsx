@@ -83,7 +83,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
     <form id={formIds.form} onSubmit={onSubmit}>
       <div className="space-y-4">
         <div className="grid grid-cols-1 gap-4">
-          {(disabledFields?.includes("serviceId") || !isBarber) && (
+          {(disabledFields?.includes("serviceId") || isBarber) && (
             <Field className="col-span-2">
               <FieldLabel
                 htmlFor={formIds.serviceId}

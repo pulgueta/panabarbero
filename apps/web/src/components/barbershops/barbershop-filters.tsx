@@ -47,8 +47,9 @@ export const BarbershopFilters: FC = () => {
 
   const availableCities = state ? citiesFromState?.(state) : [];
 
-  const handleStateChange = (newState: string) => {
-    // Update store first (this also clears city)
+  const handleStateChange = (newState: string | null) => {
+    if (!newState) return;
+
     setLocationState(newState);
 
     // Update URL to match store
@@ -62,7 +63,9 @@ export const BarbershopFilters: FC = () => {
     });
   };
 
-  const handleCityChange = (newCity: string) => {
+  const handleCityChange = (newCity: string | null) => {
+    if (!newCity) return;
+
     // Update store
     setLocationCity(newCity);
 

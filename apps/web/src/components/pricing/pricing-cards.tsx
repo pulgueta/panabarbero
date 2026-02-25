@@ -45,7 +45,9 @@ export const PricingCards: FC = () => {
           return (
             <Card key={product.id} className="flex h-full flex-col">
               <CardHeader>
-                <CardTitle className="text-3xl">{product.name}</CardTitle>
+                <CardTitle className="text-xl md:text-2xl xl:text-3xl">
+                  {product.name}
+                </CardTitle>
                 {product.description ? (
                   <CardDescription>{product.description}</CardDescription>
                 ) : null}
@@ -53,13 +55,10 @@ export const PricingCards: FC = () => {
               <CardContent className="flex flex-1 flex-col gap-4">
                 <div className="flex items-end gap-2">
                   <span className="font-semibold text-3xl">
-                    {product.prices[0].priceAmount &&
-                    product.prices[0].priceAmount > 0
-                      ? formatCurrency(
-                          product.prices[0].priceAmount / 100,
-                          "USD",
-                        )
-                      : "  Gratis"}
+                    {formatCurrency(
+                      (product.prices[0]?.priceAmount ?? 0) / 100,
+                      "USD",
+                    )}
                   </span>
                   {product.isRecurring &&
                     product.prices[0].priceAmount &&

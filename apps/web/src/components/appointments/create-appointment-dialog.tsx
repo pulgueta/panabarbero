@@ -98,7 +98,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   const { minutesOfTimestamp, scheduleForDate, timeStringToMinutes } =
     useAppointmentFormMetadata(barbershopId);
 
-  const { service } = useServicesStore();
+  const service = useServicesStore();
 
   // Determine default barber: use availableBarbers when available
   const defaultBarberId =

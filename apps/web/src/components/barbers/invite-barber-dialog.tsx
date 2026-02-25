@@ -25,7 +25,7 @@ export const InviteBarberDialog: FC<InviteBarberDialogProps> = ({
 
   return (
     <Dialog>
-      <DialogTrigger nativeButton={false} render={trigger} />
+      <DialogTrigger render={trigger} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{headLabel}</DialogTitle>

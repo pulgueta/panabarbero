@@ -17,7 +17,7 @@ export const subjects = {
   appointment_confirmed: "Cita confirmada",
   appointment_rescheduled_accepted: "Reagendamiento aceptado",
   appointment_rescheduled_denied: "Reagendamiento rechazado",
-  appointment_created: "Nueva cita",
+  appointment_created: "Cita agendada",
   barber_appointment_created: "Nueva cita en tu barbería",
   barber_invited: "Invitación a unirte como barbero",
   past_appointment_reminder: "Recordatorio de cita pasada",

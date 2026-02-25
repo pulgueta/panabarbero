@@ -1,3 +1,6 @@
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,12 +23,10 @@ import {
   setLocationState,
   useLocationStore,
 } from "@/store/location";
-import { useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 
 export const LocationGate = () => {
   const search = useSearch({ from: "/barbershops/" });
-  const navigate = useNavigate({ from: "/barbershops" });
+  const navigate = useNavigate({ from: "/barbershops/" });
 
   const [open, setOpen] = useState<boolean>(false);
   const { state, city } = useLocationStore();

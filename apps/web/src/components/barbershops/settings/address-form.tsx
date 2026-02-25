@@ -1,3 +1,7 @@
+import type { Barbershop } from "@convex/tables";
+import type { FC } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -21,9 +25,6 @@ import {
   setLocationState,
   useLocationStore,
 } from "@/store/location";
-import type { Barbershop } from "@convex/tables";
-import type { FC } from "react";
-import { useEffect, useId, useMemo, useState } from "react";
 
 interface AddressFormProps {
   barbershop: Barbershop;
@@ -129,6 +130,8 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
             <Select
               value={state}
               onValueChange={(v) => {
+                if (!v) return;
+
                 setLocationState(v);
                 setLocationCity(undefined);
               }}
@@ -153,7 +156,10 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
             <FieldLabel htmlFor={ids.city}>Ciudad</FieldLabel>
             <Select
               value={city}
-              onValueChange={(value) => setLocationCity(value)}
+              onValueChange={(value) => {
+                if (!value) return;
+                setLocationCity(value);
+              }}
               disabled={!state}
             >
               <SelectTrigger className="w-full bg-background dark:bg-card">

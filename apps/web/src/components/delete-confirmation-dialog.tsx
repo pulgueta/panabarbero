@@ -41,7 +41,6 @@ export function DeleteConfirmationDialog({
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
           <AlertDialogAction
-            nativeButton={false}
             onClick={onConfirm}
             render={<Button variant="destructive">Eliminar</Button>}
           />

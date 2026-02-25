@@ -113,7 +113,7 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger nativeButton={false} render={trigger} />
+      <DialogTrigger render={trigger} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>

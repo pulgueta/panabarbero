@@ -322,7 +322,6 @@ const BarberCard: FC<BarberCardProps> = ({
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
                   <AlertDialogAction
-                    nativeButton={false}
                     render={
                       <Button
                         variant="destructive"
@@ -414,7 +413,6 @@ function ManageServicesDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger
-        nativeButton={false}
         render={<Button variant="outline">Gestionar servicios</Button>}
       />
       <DialogContent className="max-w-md">

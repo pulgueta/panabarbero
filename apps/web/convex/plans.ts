@@ -8,10 +8,6 @@
  * configured in the Polar constructor), NOT on product IDs or price amounts.
  */
 
-// ---------------------------------------------------------------------------
-// Product keys — must match the keys used in `convex/polar.ts` `products` map
-// ---------------------------------------------------------------------------
-
 export const PLAN_PRODUCT_KEYS = [
   "independiente",
   "barberiaMonthly",

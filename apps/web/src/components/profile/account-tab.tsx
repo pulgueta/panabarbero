@@ -1,6 +1,6 @@
+import { CheckoutLink } from "@convex-dev/polar/react";
 import { api } from "@convex/_generated/api";
 import type { UserProfileData } from "@convex/tables";
-import { CheckoutLink } from "@convex-dev/polar/react";
 import { InfoIcon } from "lucide-react";
 import type { FC } from "react";
 import { useEffect, useState } from "react";

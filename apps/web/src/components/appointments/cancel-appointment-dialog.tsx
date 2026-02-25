@@ -84,7 +84,7 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
 
   return (
     <Dialog>
-      <DialogTrigger nativeButton={false} render={trigger} />
+      <DialogTrigger render={trigger} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>

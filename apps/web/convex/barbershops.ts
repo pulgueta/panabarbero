@@ -494,6 +494,10 @@ export const getByOwnerId = query({
     ownerId: v.string(),
   },
   handler: async (ctx, args) => {
+    if (!args.ownerId) {
+      return null;
+    }
+
     const barbershop = await ctx.db
       .query("barbershops")
       .withIndex("by_ownerId", (q) => q.eq("ownerId", args.ownerId))

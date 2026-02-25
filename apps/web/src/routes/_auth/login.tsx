@@ -31,7 +31,7 @@ export const Route = createFileRoute("/_auth/login")({
 
         throw redirect({
           to: isBarber ? "/profile/barbershops/appointments" : "/profile",
-          search: { tab: isBarber ? "appointments" : "account" },
+          search: { tab: "account" },
           replace: true,
         });
       }

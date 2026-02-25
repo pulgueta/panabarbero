@@ -61,7 +61,7 @@ export async function assertIsSubscribed(
 ): Promise<void> {
   const sub = await getSubscription(ctx, userId);
 
-  if (!sub || sub.status !== "active") {
+  if (!sub || (sub.status !== "active" && sub.status !== "trialing")) {
     throw new ConvexError(errorMessages.subscriptionRequired);
   }
 }
