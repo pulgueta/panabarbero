@@ -77,22 +77,25 @@ export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel>Fecha propuesta</FieldLabel>
               <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-[240px] pl-3 text-left font-normal",
-                      !field.value && "text-muted-foreground",
-                    )}
-                  >
-                    {field.value ? (
-                      format(new Date(field.value as number), "PPP")
-                    ) : (
-                      <span>Seleccione una fecha</span>
-                    )}
-                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
+                <PopoverTrigger
+                  nativeButton={false}
+                  render={
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-[240px] pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground",
+                      )}
+                    >
+                      {field.value ? (
+                        format(new Date(field.value as number), "PPP")
+                      ) : (
+                        <span>Seleccione una fecha</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  }
+                />
                 <PopoverContent className="w-auto p-0" align="center">
                   <Calendar
                     mode="single"

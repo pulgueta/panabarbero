@@ -1,5 +1,5 @@
 import type { Appointment } from "@convex/tables";
-import type { FC, FormEvent, ReactNode } from "react";
+import type { FC, FormEvent, ReactElement } from "react";
 import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 
@@ -19,7 +19,7 @@ import { useAppointmentActions } from "@/hooks/use-appointments";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
 interface MarkAppointmentDialogProps {
-  trigger: ReactNode;
+  trigger: ReactElement;
   appointmentId: Appointment["_id"];
 }
 
@@ -34,7 +34,7 @@ export const MarkAppointmentDialog: FC<MarkAppointmentDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogTrigger nativeButton={false} render={trigger} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>

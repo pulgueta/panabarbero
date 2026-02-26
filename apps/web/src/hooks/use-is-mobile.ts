@@ -1,61 +1,23 @@
-import { useEffect, useRef } from "react";
-
-import { useRouteContext, useRouter } from "@tanstack/react-router";
-
-import { setViewportServerFn } from "@/lib/viewport";
+import { useEffect, useState } from "react";
 
 const MOBILE_BREAKPOINT = 768;
 
-const mobileKeywords = [
-  "android",
-  "webos",
-  "iphone",
-  "ipad",
-  "ipod",
-  "blackberry",
-  "windows phone",
-  "mobile",
-];
-
-const detectIsMobile = () => {
-  const mediaQuery = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
-  const isMobileUA = mobileKeywords.some((keyword) =>
-    navigator.userAgent.toLowerCase().includes(keyword),
-  );
-  return (
-    mediaQuery.matches || (isMobileUA && window.innerWidth <= MOBILE_BREAKPOINT)
-  );
-};
-
-export const useIsMobile = () => {
-  const { isMobile } = useRouteContext({ from: "__root__" });
-  const router = useRouter();
-  const prevRef = useRef(isMobile);
+export function useIsMobile() {
+  const [isMobile, setIsMobile] = useState<boolean | undefined>(undefined);
 
   useEffect(() => {
-    const checkAndPersist = () => {
-      const detected = detectIsMobile();
+    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
 
-      if (detected !== prevRef.current) {
-        prevRef.current = detected;
-        setViewportServerFn({ data: detected ? "mobile" : "desktop" }).then(
-          () => router.invalidate(),
-        );
-      }
+    const onChange = () => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
     };
 
-    checkAndPersist();
+    mql.addEventListener("change", onChange);
 
-    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
+    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
 
-    mq.addEventListener("change", checkAndPersist);
-    window.addEventListener("resize", checkAndPersist);
-
-    return () => {
-      mq.removeEventListener("change", checkAndPersist);
-      window.removeEventListener("resize", checkAndPersist);
-    };
-  }, [router]);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
 
   return { isMobile };
-};
+}

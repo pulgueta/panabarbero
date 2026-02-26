@@ -1,3 +1,8 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
+import type { FC } from "react";
+import { useState } from "react";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,18 +14,9 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { linkSocial, listAccounts, unlinkAccount } from "@/lib/auth-client";
 import { GoogleIcon } from "@/routes/_auth/login";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { Loader2Icon } from "lucide-react";
-import type { FC } from "react";
-import { useState } from "react";
-import { toast } from "sonner";
 
 export const LinkedAccountsSection: FC = () => {
-  const {
-    data: accounts,
-    isPending: isLoadingAccounts,
-    refetch,
-  } = useSuspenseQuery({
+  const { data: accounts, refetch } = useSuspenseQuery({
     queryKey: ["linked-accounts"],
     queryFn: async () => listAccounts().then((res) => res.data),
   });
@@ -69,23 +65,6 @@ export const LinkedAccountsSection: FC = () => {
       setUnlinkingId(null);
     }
   };
-
-  if (isLoadingAccounts) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Cuentas conectadas</CardTitle>
-          <CardDescription>
-            Vincula tus cuentas de redes sociales para iniciar sesión más
-            rápido.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center py-6">
-          <Loader2Icon className="size-6 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card>
@@ -136,11 +115,11 @@ export const LinkedAccountsSection: FC = () => {
           )}
         </div>
 
-        <p className="text-muted-foreground text-xs">
+        {/* <p className="text-muted-foreground text-xs">
           {!canUnlinkGoogle &&
             googleAccount &&
             "Para desvincular Google, primero configura una contraseña o vincula otra cuenta."}
-        </p>
+        </p> */}
       </CardContent>
     </Card>
   );

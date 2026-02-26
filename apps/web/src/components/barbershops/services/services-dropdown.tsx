@@ -32,20 +32,22 @@ export const ServicesDropdown: FC<ServicesDropdownProps> = ({ services }) => {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          size="md"
-          aria-expanded={open}
-          className="w-full justify-between"
-        >
-          {services && value
-            ? services.find((service) => service._id === value)?.name
-            : "Seleccionar servicio..."}
-          <ChevronsUpDown className="opacity-50" />
-        </Button>
-      </PopoverTrigger>
+      <PopoverTrigger
+        render={
+          <Button
+            variant="outline"
+            role="combobox"
+            size="default"
+            aria-expanded={open}
+            className="w-full justify-between"
+          >
+            {services && value
+              ? services.find((service) => service._id === value)?.name
+              : "Seleccionar servicio..."}
+            <ChevronsUpDown className="opacity-50" />
+          </Button>
+        }
+      />
       <PopoverContent className="w-full p-0">
         <Command>
           <CommandInput placeholder="Buscar servicio..." className="h-9" />

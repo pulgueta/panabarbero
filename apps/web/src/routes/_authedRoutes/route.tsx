@@ -1,18 +1,22 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
+import { ClientAuthBoundary } from "@/components/layout/auth-boundary";
 import { LoadingComponent } from "@/components/layout/loading-component";
 
 export const Route = createFileRoute("/_authedRoutes")({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
-  // Authentication is too slow, commented for now
-  // loader: async ({ context }) => {
-  //   if (!context.token) {
-  //     throw redirect({ to: "/login", replace: true });
-  //   }
-  // },
+  beforeLoad: async ({ context }) => {
+    if (!context.token) {
+      throw redirect({ to: "/login", replace: true });
+    }
+  },
 });
 
 function RouteComponent() {
-  return <Outlet />;
+  return (
+    <ClientAuthBoundary>
+      <Outlet />
+    </ClientAuthBoundary>
+  );
 }

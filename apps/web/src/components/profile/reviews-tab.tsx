@@ -37,9 +37,7 @@ export const ReviewsTab: FC<ReviewsTabProps> = ({ reviews, barbershops }) => {
             </p>
           </div>
           {reviews && reviews.length > 0 && (
-            <Button asChild>
-              <Link to="/reviews">Crear nueva reseña</Link>
-            </Button>
+            <Button render={<Link to="/reviews" />}>Crear nueva reseña</Button>
           )}
         </div>
 

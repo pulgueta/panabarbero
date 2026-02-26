@@ -1,5 +1,5 @@
 import type { Barbershop, Service } from "@convex/tables";
-import type { FC, ReactNode } from "react";
+import type { FC, ReactElement } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -18,7 +18,7 @@ import { useServiceActions } from "@/hooks/use-services";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
 interface DeleteServiceDialogProps {
-  trigger: ReactNode;
+  trigger: ReactElement;
   serviceId: Service["_id"];
   barbershopId: Barbershop["_id"];
 }
@@ -113,7 +113,7 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogTrigger render={trigger} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>

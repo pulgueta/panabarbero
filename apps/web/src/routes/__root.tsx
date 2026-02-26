@@ -13,6 +13,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { createServerFn } from "@tanstack/react-start";
+import { Analytics } from "@vercel/analytics/react";
 import type { ConvexReactClient } from "convex/react";
 
 import { BottomBar } from "@/components/layout/bottom-bar";
@@ -26,7 +27,6 @@ import { getSessionQueryOptions } from "@/hooks/use-session";
 import { authClient } from "@/lib/auth-client";
 import { getToken } from "@/lib/auth-server";
 import { getThemeServerFn } from "@/lib/theme";
-import { getViewportServerFn } from "@/lib/viewport";
 import { PostHogProvider } from "@/providers/posthog";
 import appCss from "@/styles.css?url";
 
@@ -70,9 +70,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     ],
   }),
   beforeLoad: async ({ context }) => {
-    const [theme, viewport, token, user] = await Promise.all([
+    const [theme, token, user] = await Promise.all([
       getThemeServerFn(),
-      getViewportServerFn(),
       getAuth(),
       context.queryClient.ensureQueryData(getSessionQueryOptions()),
     ]);
@@ -85,7 +84,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       theme,
       token,
       user,
-      isMobile: viewport === "mobile",
     };
   },
   shellComponent: () => <RootComponent />,
@@ -121,6 +119,8 @@ const RootDocument = ({ children }: { children: React.ReactNode }) => {
             initialToken={token}
           >
             <PostHogProvider>
+              {process.env.NODE_ENV === "production" && <Analytics />}
+
               <Toaster richColors position="top-center" />
 
               {!isMobile && <Header />}

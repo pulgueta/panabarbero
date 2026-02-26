@@ -9,9 +9,10 @@ import { twoFactor } from "better-auth/plugins";
 import { APP_NAME } from "../src/config";
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
-import { internalAction, internalQuery, query } from "./_generated/server";
+import { internalQuery, query } from "./_generated/server";
 import authConfig from "./auth.config";
 import { from, resend } from "./emails";
+import { getLimitsForProductKey, getTierForProductKey } from "./plans";
 import { polar } from "./polar";
 import { getProfileByUserId } from "./userProfileData";
 
@@ -81,6 +82,7 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
 });
 
 export const { onCreate, onUpdate, onDelete } = authComponent.triggersApi();
+export const { getAuthUser } = authComponent.clientApi();
 
 const siteUrl = process.env.SITE_URL ?? "";
 
@@ -150,7 +152,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
       },
     },
     plugins: [
-      convex({ authConfig, jwksRotateOnTokenGenerationError: true }),
+      convex({ authConfig, jwks: process.env.JWKS }),
       passkey(),
       twoFactor({
         issuer: APP_NAME,
@@ -188,15 +190,6 @@ export const getPolarUser = internalQuery({
   },
 });
 
-export const getLatestJwks = internalAction({
-  args: {},
-  handler: async (ctx) => {
-    const auth = createAuth(ctx);
-
-    return await auth.api.getLatestJwks();
-  },
-});
-
 export const getUserSubscription = query({
   args: {},
   handler: async (ctx) => {
@@ -210,6 +203,19 @@ export const getUserSubscription = query({
       userId: user.userId,
     });
 
-    return subscription;
+    const planTier = getTierForProductKey(subscription?.productKey);
+    const planLimits = getLimitsForProductKey(subscription?.productKey);
+
+    return {
+      ...subscription,
+      isSubscribed: subscription?.status === "active",
+      productPlanId: subscription?.productId,
+      planTier,
+      planLimits,
+      // Backward-compatible boolean helpers
+      isFree: planTier === "free",
+      isPro: planTier === "pro",
+      isPremium: planTier === "premium",
+    };
   },
 });

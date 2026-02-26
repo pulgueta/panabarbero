@@ -7,7 +7,6 @@ import { defineConfig } from "vite";
 import viteTsConfigPaths from "vite-tsconfig-paths";
 
 const config = defineConfig({
-  envPrefix: ["PUBLIC_"],
   plugins: [
     devtools(),
     nitro({

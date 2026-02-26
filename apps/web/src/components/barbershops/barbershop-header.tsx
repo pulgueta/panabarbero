@@ -109,27 +109,22 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
         </p>
       )}
 
-      <div className="mb-1 flex flex-col items-start gap-1">
-        <p className="text-muted-foreground text-sm">
-          <AvailabilityLabel />
-        </p>
+      <div className="mb-1 flex flex-col items-start gap-2">
+        <AvailabilityLabel />
+
         <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="link"
-              className="h-auto justify-start p-0 text-left text-foreground"
-            >
-              Ver horario
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80">
+          <PopoverTrigger
+            render={<Button variant="outline">Ver horario</Button>}
+          />
+          <PopoverContent className="w-full">
             <div className="space-y-2">
-              <h4 className="font-semibold text-sm">Horario de atención</h4>
+              <h4 className="font-semibold">Horario de atención</h4>
+
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-xs">Día</TableHead>
-                    <TableHead className="text-xs">Horario</TableHead>
+                    <TableHead className="text-sm">Día</TableHead>
+                    <TableHead className="text-sm">Horario</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

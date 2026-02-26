@@ -5,6 +5,7 @@ import { ConvexError, v } from "convex/values";
 import { r2 } from ".";
 import { api, internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
+import { assertIsSubscribed } from "./acl";
 import { authComponent } from "./auth";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
@@ -24,6 +25,9 @@ export const create = mutation({
     if (!user?.userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
+
+    // User must have at least the free plan (Independiente) to create a barbershop
+    await assertIsSubscribed(ctx, user.userId);
 
     await rateLimitOrThrow(ctx, "createBarbershop", user._id);
 
@@ -490,6 +494,10 @@ export const getByOwnerId = query({
     ownerId: v.string(),
   },
   handler: async (ctx, args) => {
+    if (!args.ownerId) {
+      return null;
+    }
+
     const barbershop = await ctx.db
       .query("barbershops")
       .withIndex("by_ownerId", (q) => q.eq("ownerId", args.ownerId))

@@ -342,7 +342,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
         <FieldSet className="gap-2">
           <Field>
             <ToggleGroup
-              type="multiple"
+              multiple
               variant="outline"
               value={selectedDays}
               onValueChange={handleSelectedDaysChange}

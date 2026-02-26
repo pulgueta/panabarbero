@@ -14,7 +14,7 @@ export function getRouter() {
     notifyManager.setScheduler(window.requestAnimationFrame);
   }
 
-  const convex = new ConvexReactClient(env.PUBLIC_CONVEX_URL, {
+  const convex = new ConvexReactClient(env.VITE_CONVEX_URL, {
     verbose: true,
   });
 

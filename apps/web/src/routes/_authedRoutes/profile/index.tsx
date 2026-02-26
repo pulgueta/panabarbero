@@ -10,6 +10,7 @@ import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-ske
 import { AccountTab } from "@/components/profile/account-tab";
 import { AppointmentsTab } from "@/components/profile/appointments-tab";
 import { DangerTab } from "@/components/profile/danger-tab";
+import { PlansTab } from "@/components/profile/plans-tab";
 import { SecurityTab } from "@/components/profile/security-tab";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,6 +23,10 @@ import {
   useBarbershopMemberRoles,
 } from "@/hooks/barbershop/use-barbershop-member";
 import {
+  getPricingPlansQueryOptions,
+  getSubscriptionQueryOptions,
+} from "@/hooks/billing/use-pricing";
+import {
   appointmentsByUserQueryOptions,
   useAppointmentsByUser,
 } from "@/hooks/use-appointments";
@@ -31,6 +36,7 @@ import {
 } from "@/hooks/use-barbershop-members";
 import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
 import { servicesByIdsQueryOptions } from "@/hooks/use-services";
+import { useSession } from "@/hooks/use-session";
 import { signOut } from "@/lib/auth-client";
 
 type ProfileTabValue =
@@ -38,7 +44,8 @@ type ProfileTabValue =
   | "security"
   | "appointments"
   | "reviews"
-  | "danger";
+  | "danger"
+  | "plans";
 
 type ProfileSearch = {
   tab: ProfileTabValue;
@@ -61,6 +68,10 @@ const tabs = {
     label: "Reseñas",
     value: "reviews",
   },
+  plans: {
+    label: "Planes",
+    value: "plans",
+  },
   danger: {
     label: "Peligro",
     value: "danger",
@@ -77,22 +88,28 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
   },
   loader: async ({ context }) => {
     if (context.user?.userId) {
+      const isBarber = await context.queryClient.ensureQueryData(
+        isBarberQueryOptions(context.user.userId),
+      );
+
+      if (isBarber) {
+        await context.queryClient.ensureQueryData(
+          barbershopMemberRolesQueryOptions(context.user.userId),
+        );
+        await context.queryClient.ensureQueryData(
+          barbershopByOwnerIdQueryOptions(context.user.userId),
+        );
+      }
+
       const [appointments] = await Promise.all([
         context.queryClient.ensureQueryData(
           appointmentsByUserQueryOptions(context.user.userId, null),
         ),
         context.queryClient.ensureQueryData(
-          barbershopMemberRolesQueryOptions(context.user.userId),
-        ),
-        context.queryClient.ensureQueryData(
           profileQueryOptions(context.user.userId),
         ),
-        context.queryClient.ensureQueryData(
-          isBarberQueryOptions(context.user.userId),
-        ),
-        context.queryClient.ensureQueryData(
-          barbershopByOwnerIdQueryOptions(context.user.userId),
-        ),
+        context.queryClient.ensureQueryData(getPricingPlansQueryOptions()),
+        context.queryClient.ensureQueryData(getSubscriptionQueryOptions()),
       ]);
 
       if (appointments) {
@@ -113,12 +130,12 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
 
 function ProfilePage() {
   const navigate = Route.useNavigate();
-  const { user } = Route.useLoaderData();
   const { tab } = Route.useSearch();
 
   const [cursor, setCursor] = useState<string | null>(null);
   const [cursorStack, setCursorStack] = useState<Array<string | null>>([]);
 
+  const { data: user } = useSession();
   const { data: isBarber } = useIsBarber(user?.userId!);
   const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
   const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
@@ -157,6 +174,7 @@ function ProfilePage() {
 
     if (isBarber && rolesData?.isOwner) {
       base.push(tabs.danger);
+      base.push(tabs.plans);
     } else if (!isBarber) {
       base.push(tabs.appointments);
     }
@@ -186,10 +204,9 @@ function ProfilePage() {
 
       <div className="flex flex-col items-start justify-center gap-4">
         <Tabs
-          defaultValue={
-            tab ?? (isBarber ? tabs.account.value : tabs.appointments.value)
-          }
+          value={tab ?? tabs.account.value}
           className="min-w-full"
+          orientation="horizontal"
           onValueChange={onTabChange}
         >
           <TabsList>
@@ -253,6 +270,22 @@ function ProfilePage() {
             </Suspense>
           )}
 
+          {isBarber && rolesData?.isOwner && (
+            <Suspense fallback={<ProfileTabSkeleton />}>
+              <Activity
+                mode={
+                  tab === tabs.plans.value && !isLoadingProfile
+                    ? "visible"
+                    : "hidden"
+                }
+              >
+                <TabsContent value={tabs.plans.value} className="pt-2">
+                  <PlansTab />
+                </TabsContent>
+              </Activity>
+            </Suspense>
+          )}
+
           <Suspense fallback={<ProfileTabSkeleton />}>
             <Activity
               mode={
@@ -262,30 +295,32 @@ function ProfilePage() {
               }
             >
               <TabsContent value={tabs.appointments.value} className="pt-2">
-                <AppointmentsTab
-                  appointments={appointments?.page ?? []}
-                  hasNextPage={Boolean(
-                    appointments &&
-                      !appointments.isDone &&
-                      appointments.continueCursor &&
-                      appointments.page?.length >= 9,
-                  )}
-                  onNextPage={() => {
-                    setCursorStack((prev) => [...prev, cursor]);
-                    setCursor(appointments.continueCursor);
-                  }}
-                  onPreviousPage={() => {
-                    setCursorStack((prev) => {
-                      const updated = [...prev];
-                      const previousCursor = updated.pop() ?? null;
-                      setCursor(previousCursor);
-                      return updated;
-                    });
-                  }}
-                  canGoPrevious={cursorStack.length > 0}
-                  isFetching={isFetchingAppointments}
-                  isBarber={isBarber}
-                />
+                {"page" in appointments && (
+                  <AppointmentsTab
+                    appointments={appointments?.page ?? []}
+                    hasNextPage={Boolean(
+                      appointments &&
+                        !appointments.isDone &&
+                        appointments.continueCursor &&
+                        appointments.page?.length >= 9,
+                    )}
+                    onNextPage={() => {
+                      setCursorStack((prev) => [...prev, cursor]);
+                      setCursor(appointments.continueCursor);
+                    }}
+                    onPreviousPage={() => {
+                      setCursorStack((prev) => {
+                        const updated = [...prev];
+                        const previousCursor = updated.pop() ?? null;
+                        setCursor(previousCursor);
+                        return updated;
+                      });
+                    }}
+                    canGoPrevious={cursorStack.length > 0}
+                    isFetching={isFetchingAppointments}
+                    isBarber={isBarber}
+                  />
+                )}
               </TabsContent>
             </Activity>
           </Suspense>

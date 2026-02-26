@@ -18,8 +18,6 @@ export const Header = () => {
 
   const currentPath = router.location.pathname;
 
-  const defaultProfileTab = isBarber ? "account" : "appointments";
-
   const navigationRoutes = rolesData?.isOwner
     ? authenticatedRoutes.owner
     : authenticatedRoutes.barber;
@@ -36,7 +34,7 @@ export const Header = () => {
                   : "/profile"
                 : "/"
             }
-            search={user ? { tab: defaultProfileTab } : undefined}
+            search={user ? { tab: "account" } : undefined}
             className="font-bold text-2xl tracking-tighter lg:text-3xl"
           >
             PanaBarbero
@@ -51,30 +49,54 @@ export const Header = () => {
                     <Button
                       key={route.to}
                       variant={currentPath === route.to ? "outline" : "ghost"}
-                      asChild
+                      nativeButton={false}
+                      render={
+                        <Link
+                          key={route.to}
+                          to={route.to}
+                          style={{
+                            viewTransitionName: route.to,
+                          }}
+                          search={
+                            route.to === "/profile"
+                              ? { tab: "account" }
+                              : undefined
+                          }
+                        />
+                      }
                     >
-                      <Link
-                        key={route.to}
-                        to={route.to}
-                        style={{
-                          viewTransitionName: route.to,
-                        }}
-                        search={
-                          route.to === "/profile"
-                            ? { tab: defaultProfileTab }
-                            : undefined
-                        }
-                      >
-                        {route.label}
-                      </Link>
+                      {route.label}
                     </Button>
                   ))
                 : authenticatedRoutes.navigation.map((route) => (
                     <Button
                       key={route.to}
                       variant={currentPath === route.to ? "outline" : "ghost"}
-                      asChild
+                      nativeButton={false}
+                      render={
+                        <Link
+                          key={route.to}
+                          to={route.to}
+                          style={{
+                            viewTransitionName: route.to,
+                          }}
+                          search={
+                            route.to === "/profile"
+                              ? { tab: "account" }
+                              : undefined
+                          }
+                        />
+                      }
                     >
+                      {route.label}
+                    </Button>
+                  ))
+              : publicRoutes.navigation.map((route) => (
+                  <Button
+                    key={route.to}
+                    variant={currentPath === route.to ? "outline" : "ghost"}
+                    nativeButton={false}
+                    render={
                       <Link
                         key={route.to}
                         to={route.to}
@@ -83,34 +105,13 @@ export const Header = () => {
                         }}
                         search={
                           route.to === "/profile"
-                            ? { tab: defaultProfileTab }
+                            ? { tab: "account" }
                             : undefined
                         }
-                      >
-                        {route.label}
-                      </Link>
-                    </Button>
-                  ))
-              : publicRoutes.navigation.map((route) => (
-                  <Button
-                    key={route.to}
-                    variant={currentPath === route.to ? "outline" : "ghost"}
-                    asChild
+                      />
+                    }
                   >
-                    <Link
-                      key={route.to}
-                      to={route.to}
-                      style={{
-                        viewTransitionName: route.to,
-                      }}
-                      search={
-                        route.to === "/profile"
-                          ? { tab: defaultProfileTab }
-                          : undefined
-                      }
-                    >
-                      {route.label}
-                    </Link>
+                    {route.label}
                   </Button>
                 ))}
           </div>
@@ -122,8 +123,8 @@ export const Header = () => {
               <Skeleton className="h-8 w-28" />
             ) : (
               !user && (
-                <Button asChild>
-                  <Link to="/login">Iniciar sesión</Link>
+                <Button nativeButton={false} render={<Link to="/login" />}>
+                  Iniciar sesión
                 </Button>
               )
             )}

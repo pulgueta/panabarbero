@@ -1,6 +1,7 @@
 import type { Barbershop } from "@convex/tables";
 import type { ClassValue } from "clsx";
 import { clsx } from "clsx";
+import { ConvexError } from "convex/values";
 import type { DetailedHTMLProps, MetaHTMLAttributes } from "react";
 import { twMerge } from "tailwind-merge";
 
@@ -74,4 +75,13 @@ export function formatCurrency(amount: number, currency = "COP"): string {
     currency,
     minimumFractionDigits: 0,
   }).format(amount);
+}
+
+export function isAuthError(error: unknown) {
+  const message =
+    (error instanceof ConvexError && error.data) ||
+    (error instanceof Error && error.message) ||
+    "";
+
+  return /auth/i.test(message);
 }

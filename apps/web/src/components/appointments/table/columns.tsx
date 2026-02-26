@@ -128,13 +128,15 @@ export function getAppointmentsTableColumns(opts: {
         return (
           <div className="text-center">
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <EllipsisVerticalIcon />
-                </Button>
-              </DropdownMenuTrigger>
+              <DropdownMenuTrigger
+                render={
+                  <Button variant="outline" size="icon">
+                    <EllipsisVerticalIcon />
+                  </Button>
+                }
+              />
 
-              <DropdownMenuContent align="end" className="max-w-64">
+              <DropdownMenuContent align="end" className="w-full max-w-56">
                 <Activity
                   mode={
                     !appointment.proposedDate && canRequestReschedule

@@ -83,29 +83,31 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
     <form id={formIds.form} onSubmit={onSubmit}>
       <div className="space-y-4">
         <div className="grid grid-cols-1 gap-4">
-          <Field className="col-span-2">
-            <FieldLabel
-              htmlFor={formIds.serviceId}
-              aria-required
-              className={cn({
-                hidden: disabledFields?.includes("serviceId") || !isBarber,
-              })}
-            >
-              Servicio
-            </FieldLabel>
-
-            <Suspense fallback={<Skeleton className="h-9 w-full" />}>
-              <Activity
-                mode={
-                  disabledFields?.includes("serviceId") || !isBarber
-                    ? "hidden"
-                    : "visible"
-                }
+          {(disabledFields?.includes("serviceId") || isBarber) && (
+            <Field className="col-span-2">
+              <FieldLabel
+                htmlFor={formIds.serviceId}
+                aria-required
+                className={cn({
+                  hidden: disabledFields?.includes("serviceId") || !isBarber,
+                })}
               >
-                <ServicesDropdown services={displayServices} />
-              </Activity>
-            </Suspense>
-          </Field>
+                Servicio
+              </FieldLabel>
+
+              <Suspense fallback={<Skeleton className="h-9 w-full" />}>
+                <Activity
+                  mode={
+                    disabledFields?.includes("serviceId") || !isBarber
+                      ? "hidden"
+                      : "visible"
+                  }
+                >
+                  <ServicesDropdown services={displayServices} />
+                </Activity>
+              </Suspense>
+            </Field>
+          )}
 
           {(isBarber || showPhoneField) && (
             <div className="grid grid-cols-2 gap-4">
@@ -279,33 +281,35 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor={formIds.date}>Fecha</FieldLabel>
                 <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-[240px] pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground",
-                      )}
-                    >
-                      {field.value ? (
-                        <span className="text-xs sm:text-sm">
-                          {new Date(field.value as number).toLocaleDateString(
-                            "es-CO",
-                            {
-                              day: "2-digit",
-                              month: isMobile ? "short" : "long",
-                              year: "numeric",
-                            },
-                          )}
-                        </span>
-                      ) : (
-                        <span className="text-xs sm:text-sm">
-                          Selecciona una fecha
-                        </span>
-                      )}
-                      <CalendarIcon className="hidden sm:ml-auto sm:block sm:size-3 sm:opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
+                  <PopoverTrigger
+                    render={
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-[240px] pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground",
+                        )}
+                      >
+                        {field.value ? (
+                          <span className="text-xs sm:text-sm">
+                            {new Date(field.value as number).toLocaleDateString(
+                              "es-CO",
+                              {
+                                day: "2-digit",
+                                month: isMobile ? "short" : "long",
+                                year: "numeric",
+                              },
+                            )}
+                          </span>
+                        ) : (
+                          <span className="text-xs sm:text-sm">
+                            Selecciona una fecha
+                          </span>
+                        )}
+                        <CalendarIcon className="hidden sm:ml-auto sm:block sm:size-3 sm:opacity-50" />
+                      </Button>
+                    }
+                  />
                   <PopoverContent className="w-auto p-0" align="center">
                     <Calendar
                       mode="single"

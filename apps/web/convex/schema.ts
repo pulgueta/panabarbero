@@ -80,6 +80,10 @@ export default defineSchema(
       .index("by_email", ["email"])
       .index("by_code", ["code"])
       .index("by_status", ["status"]),
+
+    smsUsage: defineTable({
+      ...tables.smsUsage,
+    }).index("by_barbershop_month", ["barbershopId", "month"]),
   },
   { schemaValidation: true },
 );

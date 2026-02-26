@@ -1,6 +1,6 @@
 import type { Barbershop, Service } from "@convex/tables";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { FC, ReactNode } from "react";
+import type { FC, ReactElement } from "react";
 import { useEffect, useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -26,7 +26,7 @@ interface ServiceDialogProps {
   barbershopId: Barbershop["_id"];
   initialValues?: ServiceFormData;
   serviceId?: Service["_id"];
-  trigger: ReactNode;
+  trigger: ReactElement;
 }
 
 export const ServiceDialog: FC<ServiceDialogProps> = ({
@@ -107,7 +107,7 @@ export const ServiceDialog: FC<ServiceDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogTrigger render={trigger} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{headLabel}</DialogTitle>

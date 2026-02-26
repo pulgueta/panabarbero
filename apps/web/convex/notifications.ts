@@ -1,6 +1,9 @@
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
 import { internalMutation } from "./_generated/server";
+import { assertSmsLimitNotExceeded, incrementSmsSent } from "./acl";
 import { errorMessages } from "./errors";
 import type { UserProfileData } from "./tables";
 import { getProfileByUserId } from "./userProfileData";
@@ -14,7 +17,7 @@ export const subjects = {
   appointment_confirmed: "Cita confirmada",
   appointment_rescheduled_accepted: "Reagendamiento aceptado",
   appointment_rescheduled_denied: "Reagendamiento rechazado",
-  appointment_created: "Nueva cita",
+  appointment_created: "Cita agendada",
   barber_appointment_created: "Nueva cita en tu barbería",
   barber_invited: "Invitación a unirte como barbero",
   past_appointment_reminder: "Recordatorio de cita pasada",
@@ -25,6 +28,33 @@ export function isNotificationEnabled(
   notificationsPreferences: UserProfileData["notificationsPreferences"],
 ) {
   return notificationsPreferences.some((n) => n.type === channel && n.enabled);
+}
+
+/**
+ * Schedule an SMS via Twilio while enforcing the barbershop's monthly SMS quota.
+ *
+ * If `barbershopId` is provided the limit is checked and the counter is
+ * incremented. When `barbershopId` is `undefined` (e.g. for notifications
+ * that are not scoped to a barbershop) the SMS is sent without quota checks.
+ */
+async function scheduleSmsWithQuota(
+  ctx: MutationCtx,
+  opts: {
+    to: string;
+    body: string;
+    barbershopId?: Id<"barbershops">;
+  },
+): Promise<void> {
+  if (opts.barbershopId) {
+    // Will throw ConvexError if the limit has been reached
+    await assertSmsLimitNotExceeded(ctx, opts.barbershopId);
+    await incrementSmsSent(ctx, opts.barbershopId);
+  }
+
+  await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
+    body: opts.body,
+    to: opts.to,
+  });
 }
 
 export const createAppointmentCancelled = internalMutation({
@@ -105,9 +135,10 @@ export const createAppointmentCancelled = internalMutation({
     ) {
       const phoneNumber =
         receiverProfile?.phoneNumber ?? appointment.contactPhone;
-      await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
+      await scheduleSmsWithQuota(ctx, {
         body: smsBody,
         to: phoneNumber,
+        barbershopId: appointment.barbershopId,
       });
     }
   },
@@ -190,9 +221,10 @@ export const createAppointmentRescheduleRequest = internalMutation({
       : receiverProfile?.phoneNumber;
 
     if (smsEnabled && phoneNumber) {
-      await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
+      await scheduleSmsWithQuota(ctx, {
         body: smsBody,
         to: phoneNumber,
+        barbershopId: appointment.barbershopId,
       });
     }
   },
@@ -214,6 +246,8 @@ export const createAppointmentRescheduleDecision = internalMutation({
     if (!receiverProfile) {
       throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
+
+    const appointment = await ctx.db.get(args.appointmentId);
 
     const acceptedBody = "Tu solicitud de reagendamiento ha sido aceptada.";
     const deniedBodyForCustomer = `Tu cita en ${args.barbershopName} ha sido cancelada.`;
@@ -269,11 +303,13 @@ export const createAppointmentRescheduleDecision = internalMutation({
       isNotificationEnabled("sms", receiverProfile.notificationsPreferences) ||
       receiverProfile.phoneNumber?.length
     ) {
-      await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
-        body: smsBody,
-        // biome-ignore lint/style/noNonNullAssertion: phoneNumber is guaranteed to be defined at this point
-        to: receiverProfile.phoneNumber!,
-      });
+      if (receiverProfile.phoneNumber) {
+        await scheduleSmsWithQuota(ctx, {
+          body: smsBody,
+          to: receiverProfile.phoneNumber,
+          barbershopId: appointment?.barbershopId,
+        });
+      }
     }
   },
 });
@@ -304,6 +340,8 @@ export const createAppointmentCreated = internalMutation({
     if (!barberProfile) {
       throw new ConvexError(errorMessages.notFound("perfil de barbero"));
     }
+
+    const appointment = await ctx.db.get(args.appointmentId);
 
     const body = {
       barber: "Un cliente ha reservado una cita.",
@@ -355,9 +393,10 @@ export const createAppointmentCreated = internalMutation({
       : isCustomer;
 
     if (smsEnabled && fallbackPhone) {
-      await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
+      await scheduleSmsWithQuota(ctx, {
         body: smsBody,
         to: fallbackPhone,
+        barbershopId: appointment?.barbershopId,
       });
     }
   },
@@ -368,6 +407,7 @@ export const createAppointmentReminder = internalMutation({
     to: v.optional(v.string()),
     customerUserId: v.string(),
     barbershopName: v.string(),
+    barbershopId: v.optional(v.id("barbershops")),
     receiverPhoneNumber: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -406,15 +446,16 @@ export const createAppointmentReminder = internalMutation({
     }
 
     const phoneNumber =
-      customerProfile?.phoneNumber ?? args.receiverPhoneNumber;
+      customerProfile?.phoneNumber || args.receiverPhoneNumber;
     const smsEnabled = customerProfile
       ? isNotificationEnabled("sms", customerProfile.notificationsPreferences)
       : !!phoneNumber;
 
     if (smsEnabled && phoneNumber) {
-      await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
+      await scheduleSmsWithQuota(ctx, {
         body: smsBody,
         to: phoneNumber,
+        barbershopId: args.barbershopId,
       });
     }
   },
@@ -485,9 +526,10 @@ export const createBarberInvited = internalMutation({
 
     const invitationUrl = `${process.env.SITE_URL}/invitations/${args.code}`;
 
-    await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
+    await scheduleSmsWithQuota(ctx, {
       to: args.phone,
       body: `Has sido invitado a unirte a ${barbershop.name} como barbero. Ver detalles: ${invitationUrl}`,
+      barbershopId: args.barbershopId,
     });
 
     await ctx.scheduler.runAfter(0, internal.emails.sendBarberInvitationEmail, {
@@ -519,6 +561,8 @@ export const createServiceDeletedCancellation = internalMutation({
     if (!customerProfile) {
       throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
+
+    const appointment = await ctx.db.get(args.appointmentId);
 
     const body = `Tu cita en ${args.barbershopName} ha sido cancelada porque el servicio "${args.serviceName}" ya no está disponible.`;
 
@@ -558,9 +602,10 @@ export const createServiceDeletedCancellation = internalMutation({
         : true; // Default to enabled for guests
 
       if (smsEnabled) {
-        await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
+        await scheduleSmsWithQuota(ctx, {
           body: smsBody,
           to: phoneNumber,
+          barbershopId: appointment?.barbershopId,
         });
       }
     }

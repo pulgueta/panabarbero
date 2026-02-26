@@ -1,5 +1,5 @@
 import type { Barbershop } from "@convex/tables";
-import type { FC, ReactNode } from "react";
+import type { FC, ReactElement } from "react";
 
 import {
   Dialog,
@@ -13,7 +13,7 @@ import { InviteBarberForm } from "./invite-barber-form";
 
 interface InviteBarberDialogProps {
   barbershopId: Barbershop["_id"];
-  trigger: ReactNode;
+  trigger: ReactElement;
 }
 
 export const InviteBarberDialog: FC<InviteBarberDialogProps> = ({
@@ -25,7 +25,7 @@ export const InviteBarberDialog: FC<InviteBarberDialogProps> = ({
 
   return (
     <Dialog>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogTrigger render={trigger} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{headLabel}</DialogTitle>

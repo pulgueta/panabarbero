@@ -35,12 +35,9 @@ export const Route = createFileRoute("/")({
   pendingComponent: LoadingComponent,
   component: RouteComponent,
   loader: async ({ context }) => {
-    let user = null;
+    const user = context.user;
 
     if (context.token) {
-      user = await context.queryClient.ensureQueryData(
-        getSessionQueryOptions(),
-      );
       await context.queryClient.ensureQueryData(getSessionQueryOptions());
     }
 
@@ -108,24 +105,32 @@ function RouteComponent() {
 
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               {isBarber ? (
-                <Button asChild className="group">
-                  <Link to="/profile/barbershops/appointments">
-                    Ver mis citas
-                    <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
-                  </Link>
+                <Button
+                  nativeButton={false}
+                  className="group"
+                  render={<Link to="/profile/barbershops/appointments" />}
+                >
+                  Ver mis citas
+                  <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
                 </Button>
               ) : (
-                <Button size="md" asChild className="group">
-                  <Link to="/appointments/create">
-                    Buscar barberías
-                    <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
-                  </Link>
+                <Button
+                  nativeButton={false}
+                  className="group"
+                  render={<Link to="/appointments/create" />}
+                >
+                  Buscar barberías
+                  <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
                 </Button>
               )}
 
               {!user && (
-                <Button variant="outline" size="md" asChild>
-                  <Link to="/login">Crear cuenta gratis</Link>
+                <Button
+                  nativeButton={false}
+                  variant="outline"
+                  render={<Link to="/login" />}
+                >
+                  Crear cuenta gratis
                 </Button>
               )}
             </div>
@@ -444,27 +449,37 @@ function RouteComponent() {
 
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               {isBarber ? (
-                <Button size="lg" asChild className="group">
-                  <Link to="/profile/barbershops/appointments">
-                    Ir a mi agenda
-                    <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
-                  </Link>
+                <Button
+                  nativeButton={false}
+                  className="group"
+                  render={<Link to="/profile/barbershops/appointments" />}
+                >
+                  Ir a mi agenda
+                  <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
                 </Button>
               ) : (
-                <Button size="md" asChild className="group">
-                  <Link
-                    to="/barbershops"
-                    search={{ city: undefined, state: undefined }}
-                  >
-                    Buscar barberías
-                    <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
-                  </Link>
+                <Button
+                  nativeButton={false}
+                  className="group"
+                  render={
+                    <Link
+                      to="/barbershops"
+                      search={{ city: undefined, state: undefined }}
+                    />
+                  }
+                >
+                  Buscar barberías
+                  <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
                 </Button>
               )}
 
               {!user && (
-                <Button variant="outline" size="md" asChild>
-                  <Link to="/login">Registrarme gratis</Link>
+                <Button
+                  variant="outline"
+                  nativeButton={false}
+                  render={<Link to="/login" />}
+                >
+                  Registrarme gratis
                 </Button>
               )}
             </div>

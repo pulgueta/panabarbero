@@ -1,5 +1,5 @@
 import type { Appointment } from "@convex/tables";
-import type { FC, ReactNode } from "react";
+import type { FC, ReactElement } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import { useAppointmentActions } from "@/hooks/use-appointments";
 
 interface DeleteAppointmentDialogProps {
   appointment: Appointment;
-  trigger: ReactNode;
+  trigger: ReactElement;
 }
 
 export const DeleteAppointmentDialog: FC<DeleteAppointmentDialogProps> = ({
@@ -44,7 +44,7 @@ export const DeleteAppointmentDialog: FC<DeleteAppointmentDialogProps> = ({
 
   return (
     <Dialog>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogTrigger render={trigger} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Eliminar cita</DialogTitle>

@@ -5,7 +5,6 @@ import { useBarbershopMemberRoles } from "@/hooks/barbershop/use-barbershop-memb
 import { useIsBarber } from "@/hooks/use-barbershop-members";
 import { useSession } from "@/hooks/use-session";
 import { cn } from "@/lib/utils";
-import { ThemeToggler } from "./theme-toggler";
 
 export const BottomBar = () => {
   const router = useRouterState();
@@ -15,8 +14,6 @@ export const BottomBar = () => {
   const { data: user } = useSession();
   const { data: isBarber } = useIsBarber(user?.userId ?? "");
   const { data: rolesData } = useBarbershopMemberRoles(user?.userId ?? "");
-
-  const defaultProfileTab = isBarber ? "account" : "appointments";
 
   const navigationRoutes = rolesData?.isOwner
     ? authenticatedRoutes.owner
@@ -47,9 +44,7 @@ export const BottomBar = () => {
                         viewTransitionName: item.to,
                       }}
                       search={
-                        item.to === "/profile"
-                          ? { tab: defaultProfileTab }
-                          : undefined
+                        item.to === "/profile" ? { tab: "account" } : undefined
                       }
                     >
                       <Icon className="size-5 shrink-0" />
@@ -77,9 +72,7 @@ export const BottomBar = () => {
                         viewTransitionName: item.to,
                       }}
                       search={
-                        item.to === "/profile"
-                          ? { tab: defaultProfileTab }
-                          : undefined
+                        item.to === "/profile" ? { tab: "account" } : undefined
                       }
                     >
                       <Icon className="size-5 shrink-0" />
@@ -107,9 +100,7 @@ export const BottomBar = () => {
                       viewTransitionName: item.to,
                     }}
                     search={
-                      item.to === "/profile"
-                        ? { tab: defaultProfileTab }
-                        : undefined
+                      item.to === "/profile" ? { tab: "account" } : undefined
                     }
                   >
                     <Icon className="size-5 shrink-0" />
@@ -119,8 +110,6 @@ export const BottomBar = () => {
                   </Link>
                 );
               })}
-
-          <ThemeToggler />
         </nav>
       </div>
     </div>

@@ -99,11 +99,14 @@ function ForgotPasswordPage() {
                   </button>
                 </p>
 
-                <Button asChild variant="outline" className="mt-4 w-full">
-                  <Link to="/login">
-                    <ArrowLeftIcon className="size-4" />
-                    Volver al inicio de sesión
-                  </Link>
+                <Button
+                  variant="outline"
+                  className="mt-4 w-full"
+                  nativeButton={false}
+                  render={<Link to="/login" />}
+                >
+                  <ArrowLeftIcon className="size-4" />
+                  Volver al inicio de sesión
                 </Button>
               </FieldGroup>
             </CardContent>

@@ -1,6 +1,5 @@
 import type { Barbershop, Service } from "@convex/tables";
-import { useStore } from "@tanstack/react-store";
-import { Store } from "@tanstack/store";
+import { Store, useStore } from "@tanstack/react-store";
 
 interface ServicesStore {
   service: Service;
@@ -25,7 +24,7 @@ export function setServiceStore({ service }: ServicesStore) {
 }
 
 export function useServicesStore() {
-  return useStore(servicesStore);
+  return useStore(servicesStore, (state) => state.service);
 }
 
 export function useServicesStoreActions() {
