@@ -13,6 +13,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { createServerFn } from "@tanstack/react-start";
+import { Analytics } from "@vercel/analytics/react";
 import type { ConvexReactClient } from "convex/react";
 
 import { BottomBar } from "@/components/layout/bottom-bar";
@@ -118,6 +119,8 @@ const RootDocument = ({ children }: { children: React.ReactNode }) => {
             initialToken={token}
           >
             <PostHogProvider>
+              {process.env.NODE_ENV === "production" && <Analytics />}
+
               <Toaster richColors position="top-center" />
 
               {!isMobile && <Header />}

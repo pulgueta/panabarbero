@@ -446,7 +446,7 @@ export const createAppointmentReminder = internalMutation({
     }
 
     const phoneNumber =
-      customerProfile?.phoneNumber ?? args.receiverPhoneNumber;
+      customerProfile?.phoneNumber || args.receiverPhoneNumber;
     const smsEnabled = customerProfile
       ? isNotificationEnabled("sms", customerProfile.notificationsPreferences)
       : !!phoneNumber;

@@ -775,7 +775,7 @@ export const notifyUpcoming = internalMutation({
       barbershopName: barbershop.name,
       barbershopId: args.barbershopId,
       customerUserId: userProfile?.userId ?? "user_does_not_exist",
-      to: userProfile?.email ?? appointment.contactEmail,
+      to: appointment.contactEmail,
       receiverPhoneNumber: appointment.contactPhone,
     });
   },
