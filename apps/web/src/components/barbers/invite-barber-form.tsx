@@ -86,8 +86,7 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
                 type="email"
               />
               <FieldDescription>
-                Se recomienda usar un correo electrónico para poder enviarle el
-                link de invitación al barbero.
+                Asegúrate de que el usuario tenga una cuenta en la aplicación.
               </FieldDescription>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>

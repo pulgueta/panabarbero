@@ -25,8 +25,9 @@ export function getRouter() {
       queries: {
         queryKeyHashFn: convexQueryClient.hashFn(),
         queryFn: convexQueryClient.queryFn(),
-        experimental_prefetchInRender: true,
         staleTime: 15 * 60 * 1000,
+        retry: 3,
+        retryDelay: (attemptIndex) => Math.min(300 * 2 ** attemptIndex, 5000),
       },
     },
   });

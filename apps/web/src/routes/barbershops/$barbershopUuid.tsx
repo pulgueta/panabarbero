@@ -84,7 +84,13 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
     const barbershop = match.context.seoBarbershop;
 
     return {
-      meta: barbershopSeo(barbershop!),
+      meta: barbershopSeo(barbershop),
+      links: [
+        {
+          rel: "canonical",
+          href: `https://panabarbero.com/barbershops/${barbershop?.uuid}`,
+        },
+      ],
     };
   },
 });
