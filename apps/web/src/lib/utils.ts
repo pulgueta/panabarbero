@@ -5,42 +5,44 @@ import { ConvexError } from "convex/values";
 import type { DetailedHTMLProps, MetaHTMLAttributes } from "react";
 import { twMerge } from "tailwind-merge";
 
+import { env } from "@/env";
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function barbershopSeo(
-  barbershop: Barbershop,
-): DetailedHTMLProps<MetaHTMLAttributes<HTMLMetaElement>, HTMLMetaElement>[] {
-  const isProduction = process.env.NODE_ENV === "production";
-  const baseUrl = isProduction
-    ? "https://panabarbero.com"
-    : "http://localhost:3000";
+const isProduction = process.env.NODE_ENV === "production";
+const baseUrl = isProduction
+  ? "https://panabarbero.com"
+  : "http://localhost:3000";
 
+export function barbershopSeo(
+  barbershop: Barbershop | null,
+): DetailedHTMLProps<MetaHTMLAttributes<HTMLMetaElement>, HTMLMetaElement>[] {
   return [
     {
       name: "title",
-      content: `${barbershop.name} - PanaBarbero`,
+      content: `Descubre ${barbershop?.name} en PanaBarbero`,
     },
     {
       name: "description",
-      content: `Visita ${barbershop.name} en PanaBarbero`,
+      content: `Visita ${barbershop?.name} en PanaBarbero y reserva tu cita ahora.`,
     },
     {
       name: "og:title",
-      content: `${barbershop.name} - PanaBarbero`,
+      content: `Descubre ${barbershop?.name} en PanaBarbero`,
     },
     {
       name: "og:description",
-      content: `Visita ${barbershop.name} en PanaBarbero`,
+      content: `Visita ${barbershop?.name} en PanaBarbero y reserva tu cita ahora.`,
     },
     {
       name: "og:image",
-      content: `https://storage.panabarbero.com/panabarbero-og.png`,
+      content: `${env.VITE_STORAGE_URL}/panabarbero-og.png`,
     },
     {
       name: "og:url",
-      content: `${baseUrl}/barbershops/${barbershop.uuid}`,
+      content: `${baseUrl}/barbershops/${barbershop?.uuid}`,
     },
     {
       name: "og:type",
@@ -61,11 +63,17 @@ export function seo({
     { name: "description", content: description },
     { name: "twitter:title", content: title },
     { name: "twitter:description", content: description },
-    { name: "twitter:creator", content: "@tannerlinsley" },
-    { name: "twitter:site", content: "@tannerlinsley" },
+    { name: "twitter:creator", content: "@panabarbero" },
+    { name: "twitter:site", content: "@panabarbero" },
+    { name: "twitter:url", content: baseUrl },
     { name: "og:type", content: "website" },
     { name: "og:title", content: title },
     { name: "og:description", content: description },
+    {
+      name: "og:image",
+      content: `${env.VITE_STORAGE_URL}/panabarbero-og.png`,
+    },
+    { name: "og:url", content: baseUrl },
   ];
 }
 

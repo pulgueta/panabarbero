@@ -27,6 +27,7 @@ import { getSessionQueryOptions } from "@/hooks/use-session";
 import { authClient } from "@/lib/auth-client";
 import { getToken } from "@/lib/auth-server";
 import { getThemeServerFn } from "@/lib/theme";
+import { seo } from "@/lib/utils";
 import { PostHogProvider } from "@/providers/posthog";
 import appCss from "@/styles.css?url";
 
@@ -42,26 +43,10 @@ const getAuth = createServerFn({ method: "GET" }).handler(async () => {
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   head: () => ({
-    meta: [
-      {
-        charSet: "utf-8",
-      },
-      {
-        name: "viewport",
-        content: "width=device-width, initial-scale=1",
-      },
-      {
-        title: "PanaBarbero - La solución para las barberías.",
-      },
-      {
-        name: "description",
-        content: "PanaBarbero - La solución para las barberías.",
-      },
-      {
-        name: "twitter:title",
-        content: "PanaBarbero - La solución para las barberías.",
-      },
-    ],
+    meta: seo({
+      title: "PanaBarbero - Descubre barberías.",
+      description: "La solución que impulsa las barberías en Colombia.",
+    }),
     links: [
       {
         rel: "stylesheet",
