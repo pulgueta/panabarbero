@@ -1,5 +1,5 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import {
   AlertDialog,
@@ -27,8 +27,6 @@ import {
 export const LocationGate = () => {
   const search = useSearch({ from: "/barbershops/" });
   const navigate = useNavigate({ from: "/barbershops/" });
-
-  const [open, setOpen] = useState<boolean>(false);
   const { state, city } = useLocationStore();
 
   const { states, citiesFromState } = useColombia();
@@ -42,21 +40,17 @@ export const LocationGate = () => {
     }
   }, [search.city, search.state, state, city]);
 
-  useEffect(() => {
-    setOpen(!(state && city));
-  }, [state, city]);
-
   const availableCities = state ? citiesFromState?.(state) : [];
+  const isLocationMissing = !search.state || !search.city;
 
   const confirm = () => {
     if (!state || !city) return;
 
     navigate({ to: ".", search: (prev) => ({ ...prev, state, city }) });
-    setOpen(false);
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
+    <AlertDialog open={isLocationMissing}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>¿Dónde te encuentras?</AlertDialogTitle>

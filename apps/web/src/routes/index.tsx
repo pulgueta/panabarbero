@@ -7,7 +7,6 @@ import {
   MessageSquare,
   Scissors,
   Smartphone,
-  Sparkles,
   Star,
   TrendingUp,
   Users,
@@ -82,14 +81,6 @@ function RouteComponent() {
 
         <div className="container relative mx-auto px-4 pt-16 pb-24 md:pt-24 md:pb-32">
           <div className="mx-auto max-w-4xl text-center">
-            <Badge
-              variant="outline"
-              className="mb-6 px-4 py-1.5 font-medium text-xs md:text-sm"
-            >
-              <Sparkles className="mr-2 size-4 text-primary" />
-              La plataforma #1 para barberías en Colombia
-            </Badge>
-
             <h1 className="mb-4 text-balance font-bold text-4xl tracking-tight md:text-5xl">
               Gestiona tu barbería.{" "}
               <span className="bg-linear-to-r from-primary to-primary/70 bg-clip-text text-transparent">
