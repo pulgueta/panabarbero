@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { Building2 } from "lucide-react";
 import { Activity, Suspense } from "react";
 
@@ -20,11 +20,21 @@ import {
   useActiveBarbershops,
 } from "@/hooks/barbershop/use-barbershop";
 import { useSession } from "@/hooks/use-session";
-import { useLocationStore } from "@/store/location";
 
 export type BarbershopSearch = {
   city?: string;
   state?: string;
+};
+
+const toCompleteLocation = (location?: BarbershopSearch) => {
+  if (!location?.city || !location?.state) {
+    return { city: undefined, state: undefined };
+  }
+
+  return {
+    city: location.city,
+    state: location.state,
+  };
 };
 
 export const Route = createFileRoute("/barbershops/")({
@@ -34,10 +44,7 @@ export const Route = createFileRoute("/barbershops/")({
       state: search?.state ?? undefined,
     };
   },
-  loaderDeps: ({ search }) => ({
-    city: search?.city ?? undefined,
-    state: search?.state ?? undefined,
-  }),
+  loaderDeps: ({ search }) => toCompleteLocation(search),
   loader: async (opts) => {
     const user = opts.context.user;
 
@@ -55,20 +62,20 @@ export const Route = createFileRoute("/barbershops/")({
 
 function BarbershopsPage() {
   const { data: user } = useSession();
-
-  const { state, city } = useLocationStore();
+  const search = useSearch({ from: "/barbershops/" });
+  const completeLocation = toCompleteLocation(search);
 
   const {
     data: barbershops,
     isLoading,
     isRefetching,
   } = useActiveBarbershops({
-    city,
-    state,
+    city: completeLocation.city,
+    state: completeLocation.state,
     userId: user?.userId ?? undefined,
   });
 
-  const showModal = !city && !state;
+  const showModal = !search.city || !search.state;
 
   return (
     <BorderContainer className="space-y-6">

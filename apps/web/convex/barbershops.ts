@@ -2,7 +2,6 @@
 
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { r2 } from ".";
 import { api, internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import { assertIsSubscribed } from "./acl";
@@ -136,18 +135,18 @@ export const getActive = query({
 
     await Promise.all(
       barbershops.map(async (barbershop) => {
-        if (barbershop.bannerUrl) {
-          const isAlreadyUrl = /^https?:\/\//i.test(barbershop.bannerUrl);
+        // if (barbershop.bannerUrl) {
+        //   const isAlreadyUrl = /^https?:\/\//i.test(barbershop.bannerUrl);
 
-          if (!isAlreadyUrl) {
-            try {
-              const url = await r2.getUrl(barbershop.bannerUrl);
-              barbershop.bannerUrl = url === null ? undefined : url;
-            } catch (error) {
-              console.error(error);
-            }
-          }
-        }
+        //   if (!isAlreadyUrl) {
+        //     try {
+        //       const url = await r2.getUrl(barbershop.bannerUrl);
+        //       barbershop.bannerUrl = url === null ? undefined : url;
+        //     } catch (error) {
+        //       console.error(error);
+        //     }
+        //   }
+        // }
 
         const services = await ctx.runQuery(api.barbershops.getServices, {
           barbershopId: barbershop._id,
