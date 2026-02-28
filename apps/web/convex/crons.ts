@@ -35,7 +35,7 @@ export const cleanupAppointments = internalMutation({
       .query("appointments")
       .withIndex("by_deletedAt", (q) => q.lte("deletedAt", now))
       .filter((q) =>
-        q.or(
+        q.and(
           q.and(
             q.not(q.eq(q.field("deletedAt"), undefined)),
             q.lte(q.field("deletedAt"), now),
