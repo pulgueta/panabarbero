@@ -18,19 +18,31 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useColombia } from "@/hooks/use-colombia";
-import {
-  setLocationCity,
-  setLocationState,
-  useLocationStore,
-} from "@/store/location";
+import { useLocationStore } from "@/store/barbershop-filters";
 
 export const LocationGate = () => {
   const search = useSearch({ from: "/barbershops/" });
   const navigate = useNavigate({ from: "/barbershops/" });
-  const { state, city } = useLocationStore();
+  const state = useLocationStore((s) => s.state);
+  const city = useLocationStore((s) => s.city);
+  const setLocationState = useLocationStore((s) => s.setState);
+  const setLocationCity = useLocationStore((s) => s.setCity);
 
   const { states, citiesFromState } = useColombia();
 
+  // If the URL is missing location but the store (localStorage) already has it,
+  // silently navigate to populate the URL — no dialog needed.
+  useEffect(() => {
+    if ((!search.state || !search.city) && state && city) {
+      navigate({
+        to: ".",
+        search: (prev) => ({ ...prev, state, city }),
+        replace: true,
+      });
+    }
+  }, [search.state, search.city, state, city, navigate]);
+
+  // Sync URL → store when URL changes externally (direct link, browser back/forward).
   useEffect(() => {
     if (search.state && search.state !== state) {
       setLocationState(search.state);
@@ -38,14 +50,23 @@ export const LocationGate = () => {
     if (search.city && search.city !== city) {
       setLocationCity(search.city);
     }
-  }, [search.city, search.state, state, city]);
+  }, [
+    search.city,
+    search.state,
+    state,
+    city,
+    setLocationState,
+    setLocationCity,
+  ]);
 
   const availableCities = state ? citiesFromState?.(state) : [];
-  const isLocationMissing = !search.state || !search.city;
+
+  // Only show dialog when both URL AND store lack a location.
+  const isLocationMissing =
+    (!search.state || !search.city) && (!state || !city);
 
   const confirm = () => {
     if (!state || !city) return;
-
     navigate({ to: ".", search: (prev) => ({ ...prev, state, city }) });
   };
 

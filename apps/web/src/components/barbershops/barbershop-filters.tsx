@@ -10,11 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useColombia } from "@/hooks/use-colombia";
-import {
-  setLocationCity,
-  setLocationState,
-  useLocationStore,
-} from "@/store/location";
+import { useLocationStore } from "@/store/barbershop-filters";
 
 export const BarbershopFilters: FC = () => {
   const search = useSearch({ from: "/barbershops/" });
@@ -22,7 +18,10 @@ export const BarbershopFilters: FC = () => {
 
   const { states, citiesFromState } = useColombia();
 
-  const { state, city } = useLocationStore();
+  const state = useLocationStore((s) => s.state);
+  const city = useLocationStore((s) => s.city);
+  const setLocationState = useLocationStore((s) => s.setState);
+  const setLocationCity = useLocationStore((s) => s.setCity);
   const prevSearchRef = useRef({ state: search.state, city: search.city });
 
   // Sync URL search params with store when URL changes (e.g., browser back/forward, direct link)
@@ -43,7 +42,14 @@ export const BarbershopFilters: FC = () => {
       // Update ref to current URL
       prevSearchRef.current = { state: search.state, city: search.city };
     }
-  }, [search.state, search.city, state, city]);
+  }, [
+    search.state,
+    search.city,
+    state,
+    city,
+    setLocationState,
+    setLocationCity,
+  ]);
 
   const availableCities = state ? citiesFromState?.(state) : [];
 

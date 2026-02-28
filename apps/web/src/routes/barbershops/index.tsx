@@ -20,6 +20,7 @@ import {
   useActiveBarbershops,
 } from "@/hooks/barbershop/use-barbershop";
 import { useSession } from "@/hooks/use-session";
+import { useLocationStore } from "@/store/barbershop-filters";
 
 export type BarbershopSearch = {
   city?: string;
@@ -39,9 +40,12 @@ const toCompleteLocation = (location?: BarbershopSearch) => {
 
 export const Route = createFileRoute("/barbershops/")({
   validateSearch: (search?: BarbershopSearch | undefined) => {
+    // Fall back to the persisted store values when URL params are absent
+    // so the loader always gets a complete location on return visits.
+    const persisted = useLocationStore.getState();
     return {
-      city: search?.city ?? undefined,
-      state: search?.state ?? undefined,
+      city: search?.city ?? persisted.city,
+      state: search?.state ?? persisted.state,
     };
   },
   loaderDeps: ({ search }) => toCompleteLocation(search),
@@ -75,7 +79,8 @@ function BarbershopsPage() {
     userId: user?.userId ?? undefined,
   });
 
-  const showModal = !search.city || !search.state;
+  const hasLocation = !!(search.city && search.state);
+  const showModal = !search.city && !search.state;
 
   return (
     <BorderContainer className="space-y-6">
@@ -121,7 +126,7 @@ function BarbershopsPage() {
         </Activity>
       </Suspense>
 
-      {barbershops.length < 1 && (
+      {hasLocation && barbershops.length < 1 && (
         <Empty className="bg-accent/20 dark:bg-accent/20">
           <EmptyHeader>
             <EmptyMedia variant="icon">

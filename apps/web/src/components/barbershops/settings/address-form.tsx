@@ -20,11 +20,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { useBarbershopActions } from "@/hooks/barbershop/use-barbershop";
 import { useColombia } from "@/hooks/use-colombia";
-import {
-  setLocationCity,
-  setLocationState,
-  useLocationStore,
-} from "@/store/location";
+import { useLocationStore } from "@/store/barbershop-filters";
 
 interface AddressFormProps {
   barbershop: Barbershop;
@@ -39,7 +35,10 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
     zip: useId(),
   };
   const { states, citiesFromState } = useColombia();
-  const { state, city } = useLocationStore();
+  const state = useLocationStore((s) => s.state);
+  const city = useLocationStore((s) => s.city);
+  const setLocationState = useLocationStore((s) => s.setState);
+  const setLocationCity = useLocationStore((s) => s.setCity);
 
   const [fullAddress, setFullAddress] = useState(
     barbershop.address.fullAddress,
@@ -59,7 +58,14 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
     if (barbershop.city && barbershop.city !== city) {
       setLocationCity(barbershop.city);
     }
-  }, [barbershop.state, barbershop.city, state, city]);
+  }, [
+    barbershop.state,
+    barbershop.city,
+    state,
+    city,
+    setLocationState,
+    setLocationCity,
+  ]);
 
   const {
     updateBarbershopMutation: {

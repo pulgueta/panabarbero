@@ -73,7 +73,12 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
 }) => {
   const isOpen = isCurrentlyOpen(barbershop);
   return (
-    <Card className="gap-4 transition-shadow hover:shadow-xs">
+    <Card
+      className="gap-4 transition-shadow hover:shadow-xs"
+      style={{
+        viewTransitionName: `barbershop-list-card-${barbershop.uuid}`,
+      }}
+    >
       <CardHeader className="border-b [.border-b]:pb-4">
         <div className="flex items-start justify-between">
           <div className="flex w-full items-start justify-between">
@@ -91,6 +96,9 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
                   <Badge
                     variant={isOpen ? "secondary" : "warning"}
                     className="text-xs"
+                    style={{
+                      viewTransitionName: `barbershop-${barbershop.uuid}-status`,
+                    }}
                   >
                     {isOpen ? "Abierto" : "Cerrado"}
                   </Badge>

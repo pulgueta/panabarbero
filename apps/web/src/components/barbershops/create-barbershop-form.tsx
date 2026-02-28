@@ -21,11 +21,7 @@ import {
 } from "@/components/ui/select";
 import { useColombia } from "@/hooks/use-colombia";
 import type { barbershopFormSchema } from "@/lib/schemas";
-import {
-  setLocationCity,
-  setLocationState,
-  useLocationStore,
-} from "@/store/location";
+import { useLocationStore } from "@/store/barbershop-filters";
 
 export type CreateBarbershopFormData = {
   name: string;
@@ -53,7 +49,10 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
 }) => {
   const { states, citiesFromState } = useColombia();
 
-  const { state, city } = useLocationStore();
+  const state = useLocationStore((s) => s.state);
+  const city = useLocationStore((s) => s.city);
+  const setLocationState = useLocationStore((s) => s.setState);
+  const setLocationCity = useLocationStore((s) => s.setCity);
   const availableCities = state ? citiesFromState(state) : [];
 
   useEffect(() => {
