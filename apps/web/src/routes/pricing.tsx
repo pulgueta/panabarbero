@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Suspense } from "react";
 
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/pricing")({
       context.queryClient.ensureQueryData(getSubscriptionQueryOptions()),
     ]);
   },
+  wrapInSuspense: true,
 });
 
 function PricingPage() {
@@ -37,7 +39,9 @@ function PricingPage() {
         </p>
       </header>
 
-      <PricingCards />
+      <Suspense fallback={<LoadingComponent />}>
+        <PricingCards />
+      </Suspense>
     </BorderContainer>
   );
 }
