@@ -28,24 +28,26 @@ export const Route = createFileRoute("/appointments/create")({
   pendingComponent: LoadingComponent,
   errorComponent: (props) => <div>{JSON.stringify(props.error.message)}</div>,
   loader: async (ctx) => {
-    let user = null;
-
-    if (ctx.context.token) {
-      user = await ctx.context.queryClient.ensureQueryData(
-        getSessionQueryOptions(),
-      );
-    }
+    const user = ctx.context.user;
 
     if (user?.userId) {
-      await ctx.context.queryClient.ensureQueryData(
-        userVisitedBarbershopsQueryOptions(user.userId),
-      );
+      await Promise.all([
+        ctx.context.queryClient.ensureQueryData(getSessionQueryOptions()),
+        ctx.context.queryClient.ensureQueryData(
+          userVisitedBarbershopsQueryOptions(user.userId),
+        ),
+      ]);
     }
 
     await ctx.context.queryClient.ensureQueryData(
       searchBarbershopsByNameQueryOptions(),
     );
+
+    return {
+      user,
+    };
   },
+  wrapInSuspense: true,
 });
 
 function RouteComponent() {
@@ -54,6 +56,7 @@ function RouteComponent() {
   const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
   const { data: user } = useSession();
+
   const { data: barbershops } = useVisitedBarbershops(
     user?.userId ?? undefined,
   );
@@ -68,7 +71,12 @@ function RouteComponent() {
   return (
     <BorderContainer className="space-y-4">
       <div className="flex flex-col gap-2">
-        <h1 className="text-balance font-bold text-xl tracking-tight">
+        <h1
+          className="text-balance font-bold text-xl tracking-tight"
+          style={{
+            viewTransitionName: "barbershops",
+          }}
+        >
           Agendamiento rápido:
         </h1>
 
@@ -92,12 +100,22 @@ function RouteComponent() {
         {user ? (
           barbershops &&
           barbershops.length === 0 && (
-            <p className="text-pretty text-muted-foreground text-sm">
+            <p
+              className="text-pretty text-muted-foreground text-sm"
+              style={{
+                viewTransitionName: "barbershops-desc",
+              }}
+            >
               No has visitado ninguna barbería
             </p>
           )
         ) : (
-          <p className="text-pretty text-muted-foreground text-sm">
+          <p
+            className="text-pretty text-muted-foreground text-sm"
+            style={{
+              viewTransitionName: "barbershops-desc",
+            }}
+          >
             <Link
               to="/login"
               className="underline underline-offset-4"

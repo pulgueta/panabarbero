@@ -29,6 +29,7 @@ import {
   useIsBarber,
 } from "@/hooks/use-barbershop-members";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { useLocationStore } from "@/store/barbershop-filters";
 
 export const Route = createFileRoute("/")({
   pendingComponent: LoadingComponent,
@@ -57,6 +58,8 @@ export const Route = createFileRoute("/")({
 
 function RouteComponent() {
   const navigate = Route.useNavigate();
+  const persistedState = useLocationStore((s) => s.state);
+  const persistedCity = useLocationStore((s) => s.city);
   const { data: user } = useSession();
 
   const { data: isBarber } = useIsBarber(user?.userId ?? "");
@@ -455,7 +458,7 @@ function RouteComponent() {
                   render={
                     <Link
                       to="/barbershops"
-                      search={{ city: undefined, state: undefined }}
+                      search={{ city: persistedCity, state: persistedState }}
                     />
                   }
                 >
@@ -496,7 +499,7 @@ function RouteComponent() {
             <div className="flex gap-6">
               <Link
                 to="/barbershops"
-                search={{ city: undefined, state: undefined }}
+                search={{ city: persistedCity, state: persistedState }}
                 className="text-muted-foreground text-sm transition-colors hover:text-foreground"
               >
                 Barberías

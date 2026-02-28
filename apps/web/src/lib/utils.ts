@@ -74,6 +74,13 @@ export function seo({
       content: `${env.VITE_STORAGE_URL}/panabarbero-og.png`,
     },
     { name: "og:url", content: baseUrl },
+    {
+      charSet: "utf-8",
+    },
+    {
+      name: "viewport",
+      content: "width=device-width, initial-scale=1",
+    },
   ];
 }
 

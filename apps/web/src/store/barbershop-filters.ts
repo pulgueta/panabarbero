@@ -1,20 +1,20 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-interface BarbershopFiltersState {
+interface LocationState {
   state: string | undefined;
   city: string | undefined;
 }
 
-interface BarbershopFiltersActions {
+interface LocationActions {
   setState: (state: string | undefined) => void;
   setCity: (city: string | undefined) => void;
   reset: () => void;
 }
 
-type BarbershopFiltersStore = BarbershopFiltersState & BarbershopFiltersActions;
+type LocationStore = LocationState & LocationActions;
 
-export const useBarbershopFiltersStore = create<BarbershopFiltersStore>()(
+export const useLocationStore = create<LocationStore>()(
   persist(
     (set) => ({
       state: undefined,
@@ -35,7 +35,7 @@ export const useBarbershopFiltersStore = create<BarbershopFiltersStore>()(
         }),
     }),
     {
-      name: "barbershop-filters",
+      name: "department-city-selection",
       storage: createJSONStorage(() => localStorage),
     },
   ),

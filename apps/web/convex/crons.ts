@@ -29,14 +29,16 @@ export const cleanupResend = internalMutation({
 export const cleanupAppointments = internalMutation({
   args: {},
   handler: async (ctx) => {
+    const now = Date.now();
+
     const appointments = await ctx.db
       .query("appointments")
-      .withIndex("by_deletedAt", (q) => q.lte("deletedAt", Date.now()))
+      .withIndex("by_deletedAt", (q) => q.lte("deletedAt", now))
       .filter((q) =>
         q.and(
           q.and(
             q.not(q.eq(q.field("deletedAt"), undefined)),
-            q.lte(q.field("deletedAt"), Date.now()),
+            q.lte(q.field("deletedAt"), now),
           ),
           q.eq(q.field("status"), "cancelled"),
         ),

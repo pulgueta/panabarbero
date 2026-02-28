@@ -560,13 +560,11 @@ export const getByName = query({
     name: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    if (!args.name) {
-      return [];
-    }
-
     const barbershops = await ctx.db
       .query("barbershops")
-      .withSearchIndex("by_name_search", (q) => q.search("name", args.name!))
+      .withSearchIndex("by_name_search", (q) =>
+        q.search("name", args.name ?? "barber"),
+      )
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
@@ -580,6 +578,6 @@ export const getByName = query({
       }),
     );
 
-    return barbershops.filter((barbershop) => barbershop.services?.length);
+    return barbershops;
   },
 });
