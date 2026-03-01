@@ -1,5 +1,5 @@
 import { convexQuery } from "@convex-dev/react-query";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 
 export function getSessionQueryOptions() {
@@ -7,5 +7,5 @@ export function getSessionQueryOptions() {
 }
 
 export function useSession() {
-  return useSuspenseQuery(getSessionQueryOptions());
+  return useQuery(getSessionQueryOptions());
 }

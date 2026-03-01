@@ -1,6 +1,6 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import type { Appointment, Barbershop } from "@convex/tables";
-import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 import { useBarbershopAvailability } from "./barbershop/use-barbershop";
 
@@ -48,11 +48,11 @@ export function appointmentsByBarbershopQueryOptions(
 export function useRescheduledAppointmentRequests(
   barbershopId: Barbershop["_id"],
 ) {
-  return useSuspenseQuery(requestRescheduleQueryOptions(barbershopId));
+  return useQuery(requestRescheduleQueryOptions(barbershopId));
 }
 
 export function useAppointmentById(id: Appointment["_id"]) {
-  return useSuspenseQuery(appointmentByIdQueryOptions(id));
+  return useQuery(appointmentByIdQueryOptions(id));
 }
 
 export function useAppointmentsByUser(userId: string, cursor: string | null) {
@@ -63,13 +63,11 @@ export function useAppointmentsByBarbershop(
   barbershopId: Barbershop["_id"],
   userId?: string,
 ) {
-  return useSuspenseQuery(
-    appointmentsByBarbershopQueryOptions(barbershopId, userId),
-  );
+  return useQuery(appointmentsByBarbershopQueryOptions(barbershopId, userId));
 }
 
 export function useVisitedBarbershops(userId: string | undefined) {
-  return useSuspenseQuery(userVisitedBarbershopsQueryOptions(userId));
+  return useQuery(userVisitedBarbershopsQueryOptions(userId));
 }
 
 export function appointmentFormMetadataQueryOptions(

@@ -1,4 +1,4 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import type { FC } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -16,7 +16,7 @@ import { linkSocial, listAccounts, unlinkAccount } from "@/lib/auth-client";
 import { GoogleIcon } from "@/routes/_auth/login";
 
 export const LinkedAccountsSection: FC = () => {
-  const { data: accounts, refetch } = useSuspenseQuery({
+  const { data: accounts, refetch } = useQuery({
     queryKey: ["linked-accounts"],
     queryFn: async () => listAccounts().then((res) => res.data),
   });

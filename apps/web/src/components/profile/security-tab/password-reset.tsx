@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { AlertCircleIcon, MailIcon } from "lucide-react";
 import type { FC } from "react";
 import { useState } from "react";
@@ -28,7 +28,7 @@ export const PasswordResetSection: FC = () => {
   const { data: session } = useSession();
   const [emailSent, setEmailSent] = useState(false);
 
-  const { data: accounts, isLoading: isLoadingAccounts } = useSuspenseQuery({
+  const { data: accounts, isLoading: isLoadingAccounts } = useQuery({
     queryKey: ["linked-accounts"],
     queryFn: async () => listAccounts().then((res) => res.data),
   });

@@ -1,5 +1,5 @@
 import { convexQuery } from "@convex-dev/react-query";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 
 export function reviewsByUserQueryOptions(userId: string) {
@@ -7,5 +7,5 @@ export function reviewsByUserQueryOptions(userId: string) {
 }
 
 export function useReviewsByUser(userId: string) {
-  return useSuspenseQuery(reviewsByUserQueryOptions(userId));
+  return useQuery(reviewsByUserQueryOptions(userId));
 }

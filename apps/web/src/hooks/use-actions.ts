@@ -1,5 +1,5 @@
 import { convexQuery } from "@convex-dev/react-query";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 
@@ -13,5 +13,5 @@ export function canReviewQueryOptions(payload: UseCanReviewPayload) {
 }
 
 export function useCanReview(payload: UseCanReviewPayload) {
-  return useSuspenseQuery(canReviewQueryOptions(payload)).data;
+  return useQuery(canReviewQueryOptions(payload)).data;
 }
