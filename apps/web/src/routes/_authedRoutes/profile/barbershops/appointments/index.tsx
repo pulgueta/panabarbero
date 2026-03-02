@@ -21,6 +21,8 @@ import {
   barbershopByMemberUserIdQueryOptions,
   useBarbershopByMemberUserId,
 } from "@/hooks/barbershop/use-barbershop";
+import { usePlan } from "@/hooks/billing/use-plan";
+import { getSubscriptionQueryOptions } from "@/hooks/billing/use-pricing";
 import {
   appointmentsByBarbershopQueryOptions,
   requestRescheduleQueryOptions,
@@ -51,6 +53,8 @@ export const Route = createFileRoute(
     );
 
     if (user?.userId) {
+      await context.queryClient.ensureQueryData(getSubscriptionQueryOptions());
+
       const barbershop = await context.queryClient.ensureQueryData(
         barbershopByMemberUserIdQueryOptions(user.userId),
       );
@@ -120,6 +124,7 @@ function RouteComponent() {
   } = useRescheduledAppointmentRequests(barbershop?._id!);
   const { data: appointments, isLoading: isLoadingAppointments } =
     useAppointmentsByBarbershop(barbershop?._id!, session?.userId!);
+  const { canCreateStaffAppointments } = usePlan();
 
   const isOwner = Boolean(
     session?.userId && barbershop?.ownerId === session.userId,
@@ -173,7 +178,7 @@ function RouteComponent() {
                 : "No hay día seleccionado"}
             </h2>
 
-            {barbershop?._id && (
+            {barbershop?._id && canCreateStaffAppointments && (
               <CreateAppointmentDialog
                 trigger={
                   <Button>

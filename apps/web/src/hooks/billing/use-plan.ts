@@ -1,6 +1,6 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { PLAN_LIMITS, type PlanLimits, type PlanTier } from "@convex/plans";
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 
 // ---------------------------------------------------------------------------
@@ -45,7 +45,9 @@ export interface UsePlanResult {
  * unauthenticated state without throwing.
  */
 export function usePlan(): UsePlanResult {
-  const { data: subscription, isLoading } = useQuery(getPlanQueryOptions());
+  const { data: subscription, isLoading } = useSuspenseQuery(
+    getPlanQueryOptions(),
+  );
 
   const planTier: PlanTier = subscription?.planTier ?? "free";
   const planLimits: PlanLimits = subscription?.planLimits ?? PLAN_LIMITS.free;

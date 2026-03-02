@@ -8,34 +8,27 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
+  invitationByCodeQueryOptions,
   useBarbershopMemberActions,
   useInvitationByCode,
 } from "@/hooks/use-barbershop-members";
-import { useSession } from "@/hooks/use-session";
+import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
 export const Route = createFileRoute("/_authedRoutes/invitations/$code")({
   pendingComponent: LoadingComponent,
   component: InvitationPage,
-  // loader: async ({ context, params }) => {
-  //   const user = await context.queryClient.ensureQueryData(
-  //     getSessionQueryOptions(),
-  //   );
+  loader: async ({ context, params }) => {
+    const user = await context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
 
-  //   if (user?.userId) {
-  //     const invitation = await context.queryClient.ensureQueryData(
-  //       invitationByCodeQueryOptions(params.code),
-  //     );
-
-  //     if (invitation?.invitation.email !== user.email) {
-  //       throw redirect({ to: "/profile", search: { tab: "account" } });
-  //     }
-  //   }
-
-  //   return {
-  //     user,
-  //   };
-  // },
+    if (user?.userId) {
+      await context.queryClient.ensureQueryData(
+        invitationByCodeQueryOptions(params.code),
+      );
+    }
+  },
 });
 
 function InvitationPage() {
