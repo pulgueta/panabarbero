@@ -23,7 +23,6 @@ import { NotFoundComponent } from "@/components/layout/not-found-component";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { getSessionQueryOptions } from "@/hooks/use-session";
 import { authClient } from "@/lib/auth-client";
 import { seo } from "@/lib/utils";
 import { PostHogProvider } from "@/providers/posthog";
@@ -41,15 +40,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       description: "La solución para las barberías.",
     }),
   }),
-  beforeLoad: async ({ context }) => {
-    const user = await context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
-
-    return {
-      user,
-    };
-  },
   component: RootComponent,
   errorComponent: (props) => <DefaultCatchBoundary {...props} />,
   notFoundComponent: () => <NotFoundComponent />,

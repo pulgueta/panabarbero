@@ -33,7 +33,9 @@ export const Route = createFileRoute("/appointments/create")({
   pendingComponent: LoadingComponent,
   errorComponent: (props) => <div>{JSON.stringify(props.error.message)}</div>,
   loader: async (ctx) => {
-    const user = ctx.context.user;
+    const user = await ctx.context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
 
     if (user?.userId) {
       await Promise.all([
@@ -47,10 +49,6 @@ export const Route = createFileRoute("/appointments/create")({
     await ctx.context.queryClient.ensureQueryData(
       searchBarbershopsByNameQueryOptions(),
     );
-
-    return {
-      user,
-    };
   },
   wrapInSuspense: true,
 });

@@ -144,10 +144,6 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
         );
       }
     }
-
-    return {
-      user: context.user,
-    };
   },
 });
 

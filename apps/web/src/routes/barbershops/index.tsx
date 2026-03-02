@@ -18,7 +18,7 @@ import {
   activeBarbershopsQueryOptions,
   useActiveBarbershops,
 } from "@/hooks/barbershop/use-barbershop";
-import { useSession } from "@/hooks/use-session";
+import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 import { useLocationStore } from "@/store/barbershop-filters";
 
 const BarbershopFilters = lazy(() =>
@@ -60,7 +60,9 @@ export const Route = createFileRoute("/barbershops/")({
   },
   loaderDeps: ({ search }) => toCompleteLocation(search),
   loader: async (opts) => {
-    const user = opts.context.user;
+    const user = await opts.context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
 
     await opts.context.queryClient.ensureQueryData(
       activeBarbershopsQueryOptions({
