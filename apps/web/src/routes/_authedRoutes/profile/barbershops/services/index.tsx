@@ -2,10 +2,8 @@
 
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
-import { Activity, Suspense, useState } from "react";
+import { Activity, lazy, Suspense, useState } from "react";
 
-import { DeleteServiceDialog } from "@/components/barbershops/services/delete-service-dialog";
-import { ServiceDialog } from "@/components/barbershops/services/service-dialog";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
@@ -24,6 +22,7 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   barbershopByMemberUserIdQueryOptions,
   useBarbershopByMemberUserId,
@@ -39,6 +38,19 @@ import {
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 import { formatCurrency } from "@/lib/utils";
+
+const DeleteServiceDialog = lazy(() =>
+  import("@/components/barbershops/services/delete-service-dialog").then(
+    (module) => ({
+      default: module.DeleteServiceDialog,
+    }),
+  ),
+);
+const ServiceDialog = lazy(() =>
+  import("@/components/barbershops/services/service-dialog").then((module) => ({
+    default: module.ServiceDialog,
+  })),
+);
 
 export const Route = createFileRoute(
   "/_authedRoutes/profile/barbershops/services/",
@@ -118,17 +130,19 @@ function RouteComponent() {
             </p>
           </div>
 
-          {barbershop?._id && !isLoadingBarbershop && rolesData?.isOwner && (
-            <ServiceDialog
-              barbershopId={barbershop._id}
-              trigger={
-                <Button variant="outline" disabled={!rolesData?.isOwner}>
-                  <PlusIcon className="size-3" />
-                  Agregar servicio
-                </Button>
-              }
-            />
-          )}
+          <Suspense fallback={<Skeleton className="h-9 w-48" />}>
+            {barbershop?._id && !isLoadingBarbershop && rolesData?.isOwner && (
+              <ServiceDialog
+                barbershopId={barbershop._id}
+                trigger={
+                  <Button variant="outline" disabled={!rolesData?.isOwner}>
+                    <PlusIcon className="size-3" />
+                    Agregar servicio
+                  </Button>
+                }
+              />
+            )}
+          </Suspense>
         </div>
 
         <Suspense fallback={<ProfileTabSkeleton />}>
@@ -151,32 +165,36 @@ function RouteComponent() {
 
                   {rolesData?.isOwner && (
                     <CardFooter className="justify-end gap-2">
-                      <ServiceDialog
-                        barbershopId={service.barbershopId}
-                        initialValues={service}
-                        serviceId={service._id}
-                        trigger={
-                          <Button
-                            variant="outline"
-                            disabled={!rolesData?.isOwner}
-                          >
-                            Editar
-                          </Button>
-                        }
-                      />
+                      <Suspense fallback={<Skeleton className="h-9 w-24" />}>
+                        <ServiceDialog
+                          barbershopId={service.barbershopId}
+                          initialValues={service}
+                          serviceId={service._id}
+                          trigger={
+                            <Button
+                              variant="outline"
+                              disabled={!rolesData?.isOwner}
+                            >
+                              Editar
+                            </Button>
+                          }
+                        />
+                      </Suspense>
 
-                      <DeleteServiceDialog
-                        serviceId={service._id}
-                        barbershopId={service.barbershopId}
-                        trigger={
-                          <Button
-                            variant="destructive"
-                            disabled={!rolesData?.isOwner}
-                          >
-                            Eliminar
-                          </Button>
-                        }
-                      />
+                      <Suspense fallback={<Skeleton className="h-9 w-24" />}>
+                        <DeleteServiceDialog
+                          serviceId={service._id}
+                          barbershopId={service.barbershopId}
+                          trigger={
+                            <Button
+                              variant="destructive"
+                              disabled={!rolesData?.isOwner}
+                            >
+                              Eliminar
+                            </Button>
+                          }
+                        />
+                      </Suspense>
                     </CardFooter>
                   )}
                 </Card>

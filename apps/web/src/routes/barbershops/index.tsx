@@ -1,9 +1,7 @@
 import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { Building2 } from "lucide-react";
-import { Activity, Suspense } from "react";
+import { lazy, Suspense } from "react";
 
-import { BarbershopFilters } from "@/components/barbershops/barbershop-filters";
-import { BarbershopGrid } from "@/components/barbershops/barbershop-grid";
 import { BarbershopLoadingGrid } from "@/components/barbershops/barbershop-loading-grid";
 import { LocationGate } from "@/components/barbershops/location-gate";
 import { BorderContainer } from "@/components/layout/border-container";
@@ -15,12 +13,24 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   activeBarbershopsQueryOptions,
   useActiveBarbershops,
 } from "@/hooks/barbershop/use-barbershop";
-import { useSession } from "@/hooks/use-session";
+import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 import { useLocationStore } from "@/store/barbershop-filters";
+
+const BarbershopFilters = lazy(() =>
+  import("@/components/barbershops/barbershop-filters").then((module) => ({
+    default: module.BarbershopFilters,
+  })),
+);
+const BarbershopGrid = lazy(() =>
+  import("@/components/barbershops/barbershop-grid").then((module) => ({
+    default: module.BarbershopGrid,
+  })),
+);
 
 export type BarbershopSearch = {
   city?: string;
@@ -50,7 +60,9 @@ export const Route = createFileRoute("/barbershops/")({
   },
   loaderDeps: ({ search }) => toCompleteLocation(search),
   loader: async (opts) => {
-    const user = opts.context.user;
+    const user = await opts.context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
 
     await opts.context.queryClient.ensureQueryData(
       activeBarbershopsQueryOptions({
@@ -69,11 +81,7 @@ function BarbershopsPage() {
   const search = useSearch({ from: "/barbershops/" });
   const completeLocation = toCompleteLocation(search);
 
-  const {
-    data: barbershops,
-    isLoading,
-    isRefetching,
-  } = useActiveBarbershops({
+  const { data: barbershops } = useActiveBarbershops({
     city: completeLocation.city,
     state: completeLocation.state,
     userId: user?.userId ?? undefined,
@@ -106,24 +114,18 @@ function BarbershopsPage() {
         </section>
       </header>
 
-      <div className="mx-auto w-full max-w-3xl rounded-xl border bg-accent/20 p-4">
-        <BarbershopFilters />
-      </div>
+      <Suspense
+        fallback={<Skeleton className="mx-auto h-14 w-full max-w-3xl" />}
+      >
+        <div className="mx-auto w-full max-w-3xl rounded-xl border bg-accent/20 p-4">
+          <BarbershopFilters />
+        </div>
+      </Suspense>
 
-      <Activity mode={showModal ? "visible" : "hidden"}>
-        <LocationGate />
-      </Activity>
+      {showModal && <LocationGate />}
 
       <Suspense fallback={<BarbershopLoadingGrid />}>
-        <Activity
-          mode={
-            isLoading || isRefetching || barbershops.length < 1
-              ? "hidden"
-              : "visible"
-          }
-        >
-          <BarbershopGrid barbershops={barbershops} />
-        </Activity>
+        <BarbershopGrid barbershops={barbershops} />
       </Suspense>
 
       {hasLocation && barbershops.length < 1 && (

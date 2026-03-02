@@ -1,7 +1,7 @@
 import type { Appointment, Barbershop, Service } from "@convex/tables";
 import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
-import { Activity } from "react";
+import { Activity, lazy } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,10 +14,27 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getAppointmentDataByStatus } from "@/lib/appointment-utils";
-import { CancelAppointmentDialog } from "./cancel-appointment-dialog";
-import { DeleteAppointmentDialog } from "./delete-appointment-dialog";
-import { RescheduleRequestDialog } from "./reschedule-request-dialog";
-import { RescheduleResponseDialog } from "./reschedule-response-dialog";
+
+const CancelAppointmentDialog = lazy(() =>
+  import("./cancel-appointment-dialog").then((module) => ({
+    default: module.CancelAppointmentDialog,
+  })),
+);
+const DeleteAppointmentDialog = lazy(() =>
+  import("./delete-appointment-dialog").then((module) => ({
+    default: module.DeleteAppointmentDialog,
+  })),
+);
+const RescheduleRequestDialog = lazy(() =>
+  import("./reschedule-request-dialog").then((module) => ({
+    default: module.RescheduleRequestDialog,
+  })),
+);
+const RescheduleResponseDialog = lazy(() =>
+  import("./reschedule-response-dialog").then((module) => ({
+    default: module.RescheduleResponseDialog,
+  })),
+);
 
 interface AppointmentCardProps {
   appointment: Appointment;

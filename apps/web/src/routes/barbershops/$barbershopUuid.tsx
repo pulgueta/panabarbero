@@ -1,10 +1,8 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: objects are guaranteed to be not null */
 
 import { createFileRoute } from "@tanstack/react-router";
-import { Activity, Suspense } from "react";
+import { Activity, lazy, Suspense } from "react";
 
-import { BarbershopHeader } from "@/components/barbershops/barbershop-header";
-import { ServicesGrid } from "@/components/barbershops/services/services-grid";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ServicesSkeleton } from "@/components/layout/skeleton/services-skeleton";
@@ -33,6 +31,18 @@ import {
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 import { barbershopSeo } from "@/lib/utils";
+
+const BarbershopHeader = lazy(() =>
+  import("@/components/barbershops/barbershop-header").then((module) => ({
+    default: module.BarbershopHeader,
+  })),
+);
+
+const ServicesGrid = lazy(() =>
+  import("@/components/barbershops/services/services-grid").then((module) => ({
+    default: module.ServicesGrid,
+  })),
+);
 
 export const Route = createFileRoute("/barbershops/$barbershopUuid")({
   component: RouteComponent,

@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { BorderContainer } from "@/components/layout/border-container";
+import { LoadingComponent } from "@/components/layout/loading-component";
 
 export const Route = createFileRoute("/privacy-policy")({
   component: RouteComponent,
+  pendingComponent: LoadingComponent,
 });
 
 function RouteComponent() {

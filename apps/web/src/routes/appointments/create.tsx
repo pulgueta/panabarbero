@@ -1,8 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SearchIcon } from "lucide-react";
-import { Activity, Suspense, useState } from "react";
+import { Activity, lazy, Suspense, useState } from "react";
 
-import { BarbershopListCard } from "@/components/barbershops/barbershop-list-card";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
@@ -23,12 +22,20 @@ import {
 import { useDebounce } from "@/hooks/use-debounce";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
+const BarbershopListCard = lazy(() =>
+  import("@/components/barbershops/barbershop-list-card").then((module) => ({
+    default: module.BarbershopListCard,
+  })),
+);
+
 export const Route = createFileRoute("/appointments/create")({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
   errorComponent: (props) => <div>{JSON.stringify(props.error.message)}</div>,
   loader: async (ctx) => {
-    const user = ctx.context.user;
+    const user = await ctx.context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
 
     if (user?.userId) {
       await Promise.all([
@@ -42,10 +49,6 @@ export const Route = createFileRoute("/appointments/create")({
     await ctx.context.queryClient.ensureQueryData(
       searchBarbershopsByNameQueryOptions(),
     );
-
-    return {
-      user,
-    };
   },
   wrapInSuspense: true,
 });

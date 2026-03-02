@@ -1,8 +1,19 @@
 import type { FC } from "react";
+import { lazy, Suspense } from "react";
 
-// import { TwoFactorSection } from "./2fa";
-import { LinkedAccountsSection } from "./linked-accounts";
-import { PasswordResetSection } from "./password-reset";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const LinkedAccountsSection = lazy(() =>
+  import("./linked-accounts").then((module) => ({
+    default: module.LinkedAccountsSection,
+  })),
+);
+
+const PasswordResetSection = lazy(() =>
+  import("./password-reset").then((module) => ({
+    default: module.PasswordResetSection,
+  })),
+);
 
 export const SecurityTab: FC = () => {
   return (
@@ -15,8 +26,12 @@ export const SecurityTab: FC = () => {
       </header>
 
       <section className="grid w-full gap-4 lg:grid-cols-2 xl:grid-cols-3">
-        <LinkedAccountsSection />
-        <PasswordResetSection />
+        <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+          <LinkedAccountsSection />
+        </Suspense>
+        <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+          <PasswordResetSection />
+        </Suspense>
         {/* <PasskeysSection /> */}
         {/* <TwoFactorSection /> */}
       </section>

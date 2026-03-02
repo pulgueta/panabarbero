@@ -1,14 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Suspense } from "react";
+import { lazy, Suspense } from "react";
 
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
-import { PricingCards } from "@/components/pricing/pricing-cards";
+import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
 import {
   getPricingPlansQueryOptions,
   getSubscriptionQueryOptions,
 } from "@/hooks/billing/use-pricing";
 import { getSessionQueryOptions } from "@/hooks/use-session";
+
+const PricingCards = lazy(() =>
+  import("@/components/pricing/pricing-cards").then((module) => ({
+    default: module.PricingCards,
+  })),
+);
 
 export const Route = createFileRoute("/pricing")({
   component: PricingPage,
@@ -37,7 +43,7 @@ function PricingPage() {
         </p>
       </header>
 
-      <Suspense fallback={<LoadingComponent />}>
+      <Suspense fallback={<ProfileTabSkeleton />}>
         <PricingCards />
       </Suspense>
     </BorderContainer>
