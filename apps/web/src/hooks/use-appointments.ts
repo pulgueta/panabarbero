@@ -2,6 +2,7 @@ import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import type { Appointment, Barbershop } from "@convex/tables";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
+
 import { useBarbershopAvailability } from "./barbershop/use-barbershop";
 
 export function appointmentByIdQueryOptions(appointmentId: Appointment["_id"]) {
@@ -39,10 +40,15 @@ export function appointmentsByBarbershopQueryOptions(
   barbershopId: Barbershop["_id"],
   userId?: string,
 ) {
-  return convexQuery(api.appointments.getByBarbershopId, {
-    barbershopId,
-    userId,
-  });
+  return convexQuery(
+    api.appointments.getByBarbershopId,
+    barbershopId
+      ? {
+          barbershopId,
+          userId,
+        }
+      : "skip",
+  );
 }
 
 export function useRescheduledAppointmentRequests(

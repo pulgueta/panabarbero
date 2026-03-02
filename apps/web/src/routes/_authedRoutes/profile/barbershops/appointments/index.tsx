@@ -3,9 +3,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { es } from "date-fns/locale";
 import { PlusIcon } from "lucide-react";
-import { Activity, Suspense, useState } from "react";
+import { Activity, lazy, Suspense, useState } from "react";
 
-import { CreateAppointmentDialog } from "@/components/appointments/create-appointment-dialog";
 import {
   getAppointmentsTableColumns,
   rescheduledAppointmentRequestsTableColumns,
@@ -41,6 +40,14 @@ import {
   useServicesByBarbershopId,
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+
+const CreateAppointmentDialog = lazy(() =>
+  import("@/components/appointments/create-appointment-dialog").then(
+    (module) => ({
+      default: module.CreateAppointmentDialog,
+    }),
+  ),
+);
 
 export const Route = createFileRoute(
   "/_authedRoutes/profile/barbershops/appointments/",
@@ -178,20 +185,22 @@ function RouteComponent() {
                 : "No hay día seleccionado"}
             </h2>
 
-            {barbershop?._id && canCreateStaffAppointments && (
-              <CreateAppointmentDialog
-                trigger={
-                  <Button>
-                    <PlusIcon className="size-3" />
-                    Crear cita
-                  </Button>
-                }
-                barbershopId={barbershop._id}
-                barbers={barbershopMembers}
-                services={services}
-                serviceId={undefined}
-              />
-            )}
+            <Suspense fallback={<Skeleton className="h-9 w-32" />}>
+              {barbershop?._id && canCreateStaffAppointments && (
+                <CreateAppointmentDialog
+                  trigger={
+                    <Button>
+                      <PlusIcon className="size-3" />
+                      Crear cita
+                    </Button>
+                  }
+                  barbershopId={barbershop._id}
+                  barbers={barbershopMembers}
+                  services={services}
+                  serviceId={undefined}
+                />
+              )}
+            </Suspense>
           </header>
 
           <Suspense fallback={<Skeleton className="h-96 w-full" />}>

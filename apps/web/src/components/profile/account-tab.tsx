@@ -3,9 +3,8 @@ import { api } from "@convex/_generated/api";
 import type { UserProfileData } from "@convex/tables";
 import { InfoIcon } from "lucide-react";
 import type { FC } from "react";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 
-import { CreateBarbershopDialog } from "@/components/barbershops/create-barbershop-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,10 +20,17 @@ import {
   Field as FieldRoot,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { usePlan } from "@/hooks/billing/use-plan";
 import { usePricingPlans } from "@/hooks/billing/use-pricing";
 import { useProfileActions } from "@/hooks/use-profile";
+
+const CreateBarbershopDialog = lazy(() =>
+  import("@/components/barbershops/create-barbershop-dialog").then((mod) => ({
+    default: mod.CreateBarbershopDialog,
+  })),
+);
 
 const BARBERSHOP_BANNER_HIDE_KEY = "barbershop-create-banner-hide-until";
 
@@ -115,27 +121,29 @@ export const AccountTab: FC<AccountTabProps> = ({
               Ocultar por 7 días
             </Button>
             <br />
-            <CreateBarbershopDialog
-              trigger={
-                isSubscribed ? (
-                  <Button variant="default" className="mt-1.5">
-                    Crear mi barbería
-                  </Button>
-                ) : freeProduct ? (
-                  <CheckoutLink
-                    polarApi={{
-                      generateCheckoutLink: api.polar.generateCheckoutLink,
-                    }}
-                    productIds={[freeProduct.id]}
-                    // biome-ignore lint/correctness/noChildrenProp: can do
-                    children={<Button>Adquirir plan</Button>}
-                  />
-                ) : (
-                  <Button disabled>Adquirir plan</Button>
-                )
-              }
-              userId={userId}
-            />
+            <Suspense fallback={<Skeleton className="h-9 w-32" />}>
+              <CreateBarbershopDialog
+                trigger={
+                  isSubscribed ? (
+                    <Button variant="default" className="mt-1.5">
+                      Crear mi barbería
+                    </Button>
+                  ) : freeProduct ? (
+                    <CheckoutLink
+                      polarApi={{
+                        generateCheckoutLink: api.polar.generateCheckoutLink,
+                      }}
+                      productIds={[freeProduct.id]}
+                      // biome-ignore lint/correctness/noChildrenProp: can do
+                      children={<Button>Adquirir plan</Button>}
+                    />
+                  ) : (
+                    <Button disabled>Adquirir plan</Button>
+                  )
+                }
+                userId={userId}
+              />
+            </Suspense>
           </AlertDescription>
         </Alert>
       )}

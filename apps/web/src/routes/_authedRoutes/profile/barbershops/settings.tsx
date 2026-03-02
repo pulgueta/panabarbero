@@ -1,19 +1,15 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: barbershop is guaranteed to be not null */
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { PlusIcon, Share } from "lucide-react";
+import { lazy, Suspense } from "react";
 import { toast } from "sonner";
 
-import { AvailabilityForm } from "@/components/barbershops/availability/availability-form";
-import { ServiceDialog } from "@/components/barbershops/services/service-dialog";
-import { AddressForm } from "@/components/barbershops/settings/address-form";
-import { GeneralInfoForm } from "@/components/barbershops/settings/general-info-form";
-import { PreferencesForm } from "@/components/barbershops/settings/preferences-form";
-import { SocialMediaForm } from "@/components/barbershops/settings/social-media-form";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   barbershopByOwnerIdQueryOptions,
   useBarbershopByOwnerId,
@@ -32,6 +28,39 @@ import {
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+
+const AvailabilityForm = lazy(() =>
+  import("@/components/barbershops/availability/availability-form").then(
+    (mod) => ({
+      default: mod.AvailabilityForm,
+    }),
+  ),
+);
+const ServiceDialog = lazy(() =>
+  import("@/components/barbershops/services/service-dialog").then((mod) => ({
+    default: mod.ServiceDialog,
+  })),
+);
+const AddressForm = lazy(() =>
+  import("@/components/barbershops/settings/address-form").then((mod) => ({
+    default: mod.AddressForm,
+  })),
+);
+const GeneralInfoForm = lazy(() =>
+  import("@/components/barbershops/settings/general-info-form").then((mod) => ({
+    default: mod.GeneralInfoForm,
+  })),
+);
+const PreferencesForm = lazy(() =>
+  import("@/components/barbershops/settings/preferences-form").then((mod) => ({
+    default: mod.PreferencesForm,
+  })),
+);
+const SocialMediaForm = lazy(() =>
+  import("@/components/barbershops/settings/social-media-form").then((mod) => ({
+    default: mod.SocialMediaForm,
+  })),
+);
 
 export const Route = createFileRoute(
   "/_authedRoutes/profile/barbershops/settings",
@@ -163,7 +192,9 @@ function SettingsPage() {
                 </p>
               </header>
 
-              <GeneralInfoForm barbershop={barbershop} />
+              <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+                <GeneralInfoForm barbershop={barbershop} />
+              </Suspense>
             </div>
 
             <div className="space-y-2">
@@ -174,7 +205,9 @@ function SettingsPage() {
                 </p>
               </header>
 
-              <AddressForm barbershop={barbershop} />
+              <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+                <AddressForm barbershop={barbershop} />
+              </Suspense>
             </div>
           </section>
 
@@ -235,7 +268,9 @@ function SettingsPage() {
                 </p>
               </div>
 
-              <PreferencesForm barbershop={barbershop} />
+              <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+                <PreferencesForm barbershop={barbershop} />
+              </Suspense>
             </section>
 
             <section className="flex min-h-44 w-full flex-col justify-between gap-4">
@@ -248,10 +283,12 @@ function SettingsPage() {
                 </p>
               </div>
 
-              <SocialMediaForm
-                barbershop={barbershop}
-                barbershopMetadata={barbershopMetadata!}
-              />
+              <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+                <SocialMediaForm
+                  barbershop={barbershop}
+                  barbershopMetadata={barbershopMetadata!}
+                />
+              </Suspense>
             </section>
           </section>
 
@@ -270,24 +307,26 @@ function SettingsPage() {
         </Alert>
       )}
 
-      {!hasService && barbershop && rolesData?.isOwner && (
-        <Alert>
-          <AlertTitle>Debes crear al menos un servicio</AlertTitle>
-          <AlertDescription>
-            Agrega tu primer servicio para que tus clientes puedan reservar.
-            <div className="mt-2">
-              <ServiceDialog
-                barbershopId={barbershop._id}
-                trigger={
-                  <Button variant="outline">
-                    <PlusIcon className="size-3" /> Agregar servicio
-                  </Button>
-                }
-              />
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
+      <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+        {!hasService && barbershop && rolesData?.isOwner && (
+          <Alert>
+            <AlertTitle>Debes crear al menos un servicio</AlertTitle>
+            <AlertDescription>
+              Agrega tu primer servicio para que tus clientes puedan reservar.
+              <div className="mt-2">
+                <ServiceDialog
+                  barbershopId={barbershop._id}
+                  trigger={
+                    <Button variant="outline">
+                      <PlusIcon className="size-3" /> Agregar servicio
+                    </Button>
+                  }
+                />
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+      </Suspense>
 
       {rolesData?.isOwner && (
         <section className="space-y-4">
@@ -298,14 +337,16 @@ function SettingsPage() {
             </p>
           </div>
 
-          {barbershop &&
-            rolesData?.isOwner &&
-            barbershop.availability.length > 0 && (
-              <AvailabilityForm
-                barbershopId={barbershop._id}
-                availability={barbershop?.availability}
-              />
-            )}
+          <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+            {barbershop &&
+              rolesData?.isOwner &&
+              barbershop.availability.length > 0 && (
+                <AvailabilityForm
+                  barbershopId={barbershop._id}
+                  availability={barbershop?.availability}
+                />
+              )}
+          </Suspense>
         </section>
       )}
     </BorderContainer>

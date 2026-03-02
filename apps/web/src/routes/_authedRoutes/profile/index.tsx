@@ -31,7 +31,7 @@ import {
 } from "@/hooks/use-barbershop-members";
 import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
 import { servicesByIdsQueryOptions } from "@/hooks/use-services";
-import { useSession } from "@/hooks/use-session";
+import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 import { signOut } from "@/lib/auth-client";
 
 const AccountTab = lazy(() =>
@@ -108,27 +108,29 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
     };
   },
   loader: async ({ context }) => {
-    if (context.user?.userId) {
+    const user = await context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
+
+    if (user?.userId) {
       const isBarber = await context.queryClient.ensureQueryData(
-        isBarberQueryOptions(context.user.userId),
+        isBarberQueryOptions(user.userId),
       );
 
       if (isBarber) {
         await context.queryClient.ensureQueryData(
-          barbershopMemberRolesQueryOptions(context.user.userId),
+          barbershopMemberRolesQueryOptions(user.userId),
         );
         await context.queryClient.ensureQueryData(
-          barbershopByOwnerIdQueryOptions(context.user.userId),
+          barbershopByOwnerIdQueryOptions(user.userId),
         );
       }
 
       const [appointments] = await Promise.all([
         context.queryClient.ensureQueryData(
-          appointmentsByUserQueryOptions(context.user.userId, null),
+          appointmentsByUserQueryOptions(user.userId, null),
         ),
-        context.queryClient.ensureQueryData(
-          profileQueryOptions(context.user.userId),
-        ),
+        context.queryClient.ensureQueryData(profileQueryOptions(user.userId)),
         context.queryClient.ensureQueryData(getPricingPlansQueryOptions()),
         context.queryClient.ensureQueryData(getSubscriptionQueryOptions()),
       ]);

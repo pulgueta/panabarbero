@@ -1,13 +1,20 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: not needed */
 
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 
 import { FormFooter } from "@/components/auth/form-footer";
-import { RegisterForm } from "@/components/auth/register-form";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FieldGroup } from "@/components/ui/field";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const RegisterForm = lazy(() =>
+  import("@/components/auth/register-form").then((module) => ({
+    default: module.RegisterForm,
+  })),
+);
 
 export const Route = createFileRoute("/_auth/register")({
   component: RegisterPage,
@@ -23,10 +30,14 @@ function RegisterPage() {
             <CardTitle className="text-xl tracking-tight">Regístrate</CardTitle>
           </CardHeader>
           <CardContent>
-            <FieldGroup className="gap-4">
-              <RegisterForm />
+            <FieldGroup className="gap-2">
+              <Suspense
+                fallback={<Skeleton className="h-96 w-full max-w-xl" />}
+              >
+                <RegisterForm />
+              </Suspense>
 
-              <p className="py-4 text-center text-muted-foreground text-sm">
+              <p className="pt-4 text-center text-muted-foreground text-sm">
                 ¿Ya tienes una cuenta?{" "}
                 <Link
                   to="/login"
@@ -36,10 +47,9 @@ function RegisterPage() {
                   Inicia sesión
                 </Link>
               </p>
-
-              <FormFooter />
             </FieldGroup>
           </CardContent>
+          <FormFooter />
         </Card>
       </div>
     </BorderContainer>

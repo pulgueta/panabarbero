@@ -1,13 +1,19 @@
 import type { Barbershop } from "@convex/tables";
 import { useNavigate } from "@tanstack/react-router";
 import type { FC } from "react";
+import { lazy } from "react";
 import { toast } from "sonner";
 
-import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useBarbershopActions } from "@/hooks/barbershop/use-barbershop";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
+
+const ConfirmationDialog = lazy(() =>
+  import("@/components/confirmation-dialog").then((module) => ({
+    default: module.ConfirmationDialog,
+  })),
+);
 
 interface DangerTabProps {
   barbershopId?: Barbershop["_id"];

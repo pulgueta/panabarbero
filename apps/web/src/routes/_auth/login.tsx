@@ -1,19 +1,26 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: not needed */
 
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 import { toast } from "sonner";
 
 import { FormHeader } from "@/components/auth/form-header";
-import { LoginForm } from "@/components/auth/login-form";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FieldGroup } from "@/components/ui/field";
+import { Skeleton } from "@/components/ui/skeleton";
 import { isBarberQueryOptions } from "@/hooks/use-barbershop-members";
 import { getSessionQueryOptions } from "@/hooks/use-session";
 import { signIn } from "@/lib/auth-client";
 import { translateBetterAuthError } from "@/lib/better-auth-errors";
+
+const LoginForm = lazy(() =>
+  import("@/components/auth/login-form").then((module) => ({
+    default: module.LoginForm,
+  })),
+);
 
 export const Route = createFileRoute("/_auth/login")({
   component: LoginPage,
@@ -100,7 +107,11 @@ function LoginPage() {
                 </Button> */}
               </div>
 
-              <LoginForm />
+              <Suspense
+                fallback={<Skeleton className="h-64 w-full max-w-xl" />}
+              >
+                <LoginForm />
+              </Suspense>
 
               <p className="py-4 text-center text-muted-foreground text-sm">
                 ¿No tienes una cuenta?{" "}

@@ -5,7 +5,12 @@ import type { ConvexQueryClient } from "@convex-dev/react-query";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
-import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
+import {
+  createRootRouteWithContext,
+  HeadContent,
+  Outlet,
+  Scripts,
+} from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { Analytics } from "@vercel/analytics/react";
 import type { ConvexReactClient } from "convex/react";
@@ -20,6 +25,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { getSessionQueryOptions } from "@/hooks/use-session";
 import { authClient } from "@/lib/auth-client";
+import { seo } from "@/lib/utils";
 import { PostHogProvider } from "@/providers/posthog";
 
 type RouterContext = {
@@ -29,6 +35,12 @@ type RouterContext = {
 };
 
 export const Route = createRootRouteWithContext<RouterContext>()({
+  head: () => ({
+    meta: seo({
+      title: "PanaBarbero - Descubre barberías",
+      description: "La solución para las barberías.",
+    }),
+  }),
   beforeLoad: async ({ context }) => {
     const user = await context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
@@ -57,7 +69,9 @@ function RootComponent() {
           <ThemeProvider>
             <Toaster richColors position="top-center" />
             {!isMobile && <Header />}
+            <HeadContent />
             <Outlet />
+            <Scripts />
             {isMobile && <BottomBar />}
           </ThemeProvider>
           {process.env.NODE_ENV === "development" && (

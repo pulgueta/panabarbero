@@ -2,14 +2,19 @@
 
 import type { Appointment } from "@convex/tables";
 import type { FC } from "react";
-import { Activity, Suspense } from "react";
+import { Activity, lazy, Suspense } from "react";
 
-import { AppointmentCard } from "@/components/appointments/appointment-card";
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty";
 import { useBarbershopsByIds } from "@/hooks/barbershop/use-barbershop";
 import { useServicesByIds } from "@/hooks/use-services";
+
+const AppointmentCard = lazy(() =>
+  import("@/components/appointments/appointment-card").then((module) => ({
+    default: module.AppointmentCard,
+  })),
+);
 
 interface AppointmentsTabProps {
   appointments: Appointment[];

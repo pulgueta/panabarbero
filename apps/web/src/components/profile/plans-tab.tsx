@@ -2,8 +2,8 @@ import { CustomerPortalLink } from "@convex-dev/polar/react";
 import { api } from "@convex/_generated/api";
 import { CheckCircle2 } from "lucide-react";
 import type { FC } from "react";
+import { lazy } from "react";
 
-import { PricingCards } from "@/components/pricing/pricing-cards";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -18,6 +18,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { usePlan } from "@/hooks/billing/use-plan";
 import { useSubscription } from "@/hooks/billing/use-pricing";
 import { cn } from "@/lib/utils";
+
+const PricingCards = lazy(() =>
+  import("@/components/pricing/pricing-cards").then((module) => ({
+    default: module.PricingCards,
+  })),
+);
 
 export const PlansTab: FC = () => {
   const { isSubscribed, isLoading } = usePlan();

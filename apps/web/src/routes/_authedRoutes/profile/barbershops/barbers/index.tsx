@@ -4,10 +4,9 @@ import type { BarbershopMemberWithName, Service } from "@convex/tables";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Check, UserPlus, X } from "lucide-react";
 import type { FC } from "react";
-import { Activity, Suspense, useId, useState } from "react";
+import { Activity, lazy, Suspense, useId, useState } from "react";
 import { toast } from "sonner";
 
-import { InviteBarberDialog } from "@/components/barbers/invite-barber-dialog";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
@@ -48,6 +47,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import {
   barbershopByMemberUserIdQueryOptions,
@@ -70,6 +70,12 @@ import {
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
+
+const InviteBarberDialog = lazy(() =>
+  import("@/components/barbers/invite-barber-dialog").then((module) => ({
+    default: module.InviteBarberDialog,
+  })),
+);
 
 export const Route = createFileRoute(
   "/_authedRoutes/profile/barbershops/barbers/",
@@ -143,17 +149,19 @@ function RouteComponent() {
             </p>
           </div>
 
-          {rolesData?.isOwner && (
-            <InviteBarberDialog
-              barbershopId={barbershop?._id!}
-              trigger={
-                <Button variant="outline" disabled={!rolesData?.isOwner}>
-                  <UserPlus className="size-3" />
-                  Invitar barbero
-                </Button>
-              }
-            />
-          )}
+          <Suspense fallback={<Skeleton className="h-9 w-48" />}>
+            {rolesData?.isOwner && (
+              <InviteBarberDialog
+                barbershopId={barbershop?._id!}
+                trigger={
+                  <Button variant="outline" disabled={!rolesData?.isOwner}>
+                    <UserPlus className="size-3" />
+                    Invitar barbero
+                  </Button>
+                }
+              />
+            )}
+          </Suspense>
         </div>
 
         <Activity
