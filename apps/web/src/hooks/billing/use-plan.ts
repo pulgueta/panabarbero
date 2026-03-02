@@ -41,7 +41,7 @@ export interface UsePlanResult {
  * Wraps `getUserSubscription` and derives typed feature flags from
  * `convex/plans.ts` — the same source of truth used on the server.
  *
- * Uses `useQuery` (not `useQuery`) so it gracefully handles the
+ * Uses `useQuery` (not `useSuspenseQuery`) so it gracefully handles the
  * unauthenticated state without throwing.
  */
 export function usePlan(): UsePlanResult {

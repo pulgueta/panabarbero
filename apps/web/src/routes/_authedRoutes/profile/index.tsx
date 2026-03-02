@@ -232,7 +232,7 @@ function ProfilePage() {
               <TabsContent value={tabs.account.value} className="pt-2">
                 <AccountTab
                   profile={profile}
-                  isBarber={isBarber ?? false}
+                  isBarber={isBarber}
                   userId={user?.userId!}
                   authProviderImage={user?.image}
                 />
@@ -318,7 +318,7 @@ function ProfilePage() {
                     }}
                     canGoPrevious={cursorStack.length > 0}
                     isFetching={isFetchingAppointments}
-                    isBarber={isBarber ?? false}
+                    isBarber={isBarber}
                   />
                 )}
               </TabsContent>

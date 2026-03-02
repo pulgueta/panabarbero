@@ -51,7 +51,7 @@ export function barbershopByMemberUserIdQueryOptions(userId: string) {
 }
 
 export function useBarbershopByUuid(uuid: string) {
-  return useQuery(barbershopByUuidQueryOptions(uuid));
+  return useSuspenseQuery(barbershopByUuidQueryOptions(uuid));
 }
 
 export function useActiveBarbershops(
@@ -61,7 +61,7 @@ export function useActiveBarbershops(
 }
 
 export function useBarbershopsByIds(barbershopIds: Barbershop["_id"][]) {
-  return useQuery(barbershopsByIdsQueryOptions(barbershopIds));
+  return useSuspenseQuery(barbershopsByIdsQueryOptions(barbershopIds));
 }
 
 export function useSearchBarbershopsByName(name: string) {
@@ -69,7 +69,7 @@ export function useSearchBarbershopsByName(name: string) {
 }
 
 export function useBarbershopByOwnerId(ownerId: string) {
-  return useQuery(barbershopByOwnerIdQueryOptions(ownerId));
+  return useSuspenseQuery(barbershopByOwnerIdQueryOptions(ownerId));
 }
 
 export function useBarbershopByMemberUserId(userId: string) {
@@ -77,7 +77,7 @@ export function useBarbershopByMemberUserId(userId: string) {
 }
 
 export function useBarbershopAvailability(barbershopId: Barbershop["_id"]) {
-  return useQuery(barbershopAvailabilityQueryOptions(barbershopId));
+  return useSuspenseQuery(barbershopAvailabilityQueryOptions(barbershopId));
 }
 
 export function useBarbershopActions() {
