@@ -38,13 +38,9 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
   beforeLoad: async ({ context, params }) => {
-    let user = null;
-
-    if (context.token) {
-      user = await context.queryClient.ensureQueryData(
-        getSessionQueryOptions(),
-      );
-    }
+    const user = await context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
 
     const barbershop = await context.queryClient.ensureQueryData(
       barbershopByUuidQueryOptions(params.barbershopUuid),

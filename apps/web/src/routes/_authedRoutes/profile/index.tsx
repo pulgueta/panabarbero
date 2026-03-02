@@ -2,16 +2,11 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
-import { Activity, Suspense, useMemo, useState } from "react";
+import { Activity, lazy, Suspense, useMemo, useState } from "react";
 
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
-import { AccountTab } from "@/components/profile/account-tab";
-import { AppointmentsTab } from "@/components/profile/appointments-tab";
-import { DangerTab } from "@/components/profile/danger-tab";
-import { PlansTab } from "@/components/profile/plans-tab";
-import { SecurityTab } from "@/components/profile/security-tab";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -38,6 +33,32 @@ import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
 import { servicesByIdsQueryOptions } from "@/hooks/use-services";
 import { useSession } from "@/hooks/use-session";
 import { signOut } from "@/lib/auth-client";
+
+const AccountTab = lazy(() =>
+  import("@/components/profile/account-tab").then((mod) => ({
+    default: mod.AccountTab,
+  })),
+);
+const AppointmentsTab = lazy(() =>
+  import("@/components/profile/appointments-tab").then((mod) => ({
+    default: mod.AppointmentsTab,
+  })),
+);
+const DangerTab = lazy(() =>
+  import("@/components/profile/danger-tab").then((mod) => ({
+    default: mod.DangerTab,
+  })),
+);
+const PlansTab = lazy(() =>
+  import("@/components/profile/plans-tab").then((mod) => ({
+    default: mod.PlansTab,
+  })),
+);
+const SecurityTab = lazy(() =>
+  import("@/components/profile/security-tab").then((mod) => ({
+    default: mod.SecurityTab,
+  })),
+);
 
 type ProfileTabValue =
   | "account"

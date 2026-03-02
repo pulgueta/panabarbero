@@ -19,22 +19,20 @@ export const Route = createFileRoute("/_auth/login")({
   component: LoginPage,
   pendingComponent: LoadingComponent,
   loader: async ({ context }) => {
-    if (context.token) {
-      const user = await context.queryClient.ensureQueryData(
-        getSessionQueryOptions(),
+    const user = await context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
+
+    if (user?.userId) {
+      const isBarber = await context.queryClient.ensureQueryData(
+        isBarberQueryOptions(user.userId),
       );
 
-      if (user?.userId) {
-        const isBarber = await context.queryClient.ensureQueryData(
-          isBarberQueryOptions(user.userId),
-        );
-
-        throw redirect({
-          to: isBarber ? "/profile/barbershops/appointments" : "/profile",
-          search: { tab: "account" },
-          replace: true,
-        });
-      }
+      throw redirect({
+        to: isBarber ? "/profile/barbershops/appointments" : "/profile",
+        search: { tab: "account" },
+        replace: true,
+      });
     }
   },
 });
