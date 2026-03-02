@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: objects are guaranteed to be not null */
 
 import { createFileRoute } from "@tanstack/react-router";
-import { Suspense } from "react";
+import { Activity, Suspense } from "react";
 
 import { BarbershopHeader } from "@/components/barbershops/barbershop-header";
 import { ServicesGrid } from "@/components/barbershops/services/services-grid";
@@ -38,13 +38,9 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
   beforeLoad: async ({ context, params }) => {
-    let user = null;
-
-    if (context.token) {
-      user = await context.queryClient.ensureQueryData(
-        getSessionQueryOptions(),
-      );
-    }
+    const user = await context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
 
     const barbershop = await context.queryClient.ensureQueryData(
       barbershopByUuidQueryOptions(params.barbershopUuid),
@@ -104,23 +100,28 @@ function RouteComponent() {
 
   const { data: barbershop, isLoading: isLoadingBarbershop } =
     useBarbershopByUuid(barbershopUuid);
-  const { data: services } = useServicesFromBarbershop(barbershop?._id!);
-  const { data: barbershopMembers } = useBarbershopMembersByBarbershopId(
-    barbershop?._id!,
-  );
+  const { data: services, isLoading: isLoadingServices } =
+    useServicesFromBarbershop(barbershop?._id!);
+  const { data: barbershopMembers, isLoading: isLoadingBarbershopMembers } =
+    useBarbershopMembersByBarbershopId(barbershop?._id!);
 
   return (
     <BorderContainer>
       <main>
         <header className="flex w-full flex-row justify-between gap-4">
-          {isLoadingBarbershop && <Skeleton className="h-48 w-full" />}
-          {barbershop && (
-            <BarbershopHeader
-              barbershop={barbershop}
-              userId={user?.userId!}
-              availability={barbershop?.availability!}
-            />
-          )}
+          <Activity mode={isLoadingBarbershop ? "hidden" : "visible"}>
+            <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+              <BarbershopHeader
+                barbershop={barbershop}
+                userId={user?.userId!}
+                availability={barbershop?.availability!}
+              />
+
+              {/* <section>
+                <BarbershopAvatar barbershop={barbershop} size="lg" />
+              </section> */}
+            </Suspense>
+          </Activity>
         </header>
 
         <Separator className="mt-8 mb-6" />
@@ -131,13 +132,21 @@ function RouteComponent() {
           </h2>
 
           <Suspense fallback={<ServicesSkeleton />}>
-            {services && barbershopMembers && barbershop && (
+            <Activity
+              mode={
+                isLoadingServices ||
+                isLoadingBarbershopMembers ||
+                !barbershop?._id
+                  ? "hidden"
+                  : "visible"
+              }
+            >
               <ServicesGrid
                 services={services}
                 barbers={barbershopMembers}
-                barbershopId={barbershop._id}
+                barbershopId={barbershop?._id!}
               />
-            )}
+            </Activity>
           </Suspense>
 
           {!services?.length && (

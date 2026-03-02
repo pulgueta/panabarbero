@@ -85,7 +85,7 @@ function RouteComponent() {
             mode={barbershops && barbershops.length > 0 ? "visible" : "hidden"}
           >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {barbershops?.map((barbershop) => (
+              {barbershops.map((barbershop) => (
                 <BarbershopListCard
                   key={barbershop?._id}
                   // biome-ignore lint/style/noNonNullAssertion: can be null
@@ -162,7 +162,7 @@ function RouteComponent() {
             }
           >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {searchResults?.map((barbershop) => (
+              {searchResults.map((barbershop) => (
                 <BarbershopListCard
                   key={barbershop?._id}
                   barbershop={barbershop}

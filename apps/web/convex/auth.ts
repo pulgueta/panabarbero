@@ -1,7 +1,7 @@
 import { passkey } from "@better-auth/passkey";
 import type { AuthFunctions, GenericCtx } from "@convex-dev/better-auth";
 import { createClient } from "@convex-dev/better-auth";
-import { convex } from "@convex-dev/better-auth/plugins";
+import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
 import { requireActionCtx } from "@convex-dev/better-auth/utils";
 import { betterAuth } from "better-auth";
 import { twoFactor } from "better-auth/plugins";
@@ -82,14 +82,13 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
 });
 
 export const { onCreate, onUpdate, onDelete } = authComponent.triggersApi();
-export const { getAuthUser } = authComponent.clientApi();
 
 const siteUrl = process.env.SITE_URL ?? "";
 
 export const createAuth = (ctx: GenericCtx<DataModel>) => {
   return betterAuth({
     appName: APP_NAME,
-    baseURL: siteUrl,
+    trustedOrigins: [siteUrl],
     database: authComponent.adapter(ctx),
     emailAndPassword: {
       enabled: true,
@@ -153,6 +152,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
     },
     plugins: [
       convex({ authConfig, jwks: process.env.JWKS }),
+      crossDomain({ siteUrl }),
       passkey(),
       twoFactor({
         issuer: APP_NAME,

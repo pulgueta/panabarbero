@@ -14,9 +14,7 @@ export const Route = createFileRoute("/pricing")({
   component: PricingPage,
   pendingComponent: LoadingComponent,
   loader: async ({ context }) => {
-    if (context.token) {
-      context.queryClient.ensureQueryData(getSessionQueryOptions());
-    }
+    await context.queryClient.ensureQueryData(getSessionQueryOptions());
 
     await Promise.all([
       context.queryClient.ensureQueryData(getPricingPlansQueryOptions()),

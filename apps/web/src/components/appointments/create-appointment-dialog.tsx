@@ -177,7 +177,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
           barbershopId,
           barbershopMemberId: formData.barbershopMemberId,
           serviceId: serviceId ?? service._id,
-          isBarber,
+          isBarber: isBarber ?? false,
         },
       });
 
@@ -214,7 +214,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
           <CreateAppointmentForm
             barbershopId={barbershopId}
             barbers={availableBarbers ?? barbers}
-            isBarber={isBarber}
+            isBarber={isBarber ?? false}
             services={services}
             barberServices={barberServices!}
             onBarberChange={setSelectedBarberId}

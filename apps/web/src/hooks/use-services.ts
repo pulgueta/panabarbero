@@ -1,6 +1,6 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import type { Appointment, Barbershop, Service } from "@convex/tables";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 
 export function createServiceOptions() {
@@ -54,7 +54,7 @@ export function servicesQueryOptions(barbershopId: Barbershop["_id"]) {
 }
 
 export function useServicesFromBarbershop(barbershopId: Barbershop["_id"]) {
-  return useQuery(servicesQueryOptions(barbershopId));
+  return useSuspenseQuery(servicesQueryOptions(barbershopId));
 }
 
 export function usePaginatedServicesFromBarbershop(
@@ -68,19 +68,19 @@ export function usePaginatedServicesFromBarbershop(
 }
 
 export function useServiceById(serviceId: Service["_id"]) {
-  return useQuery(serviceByIdQueryOptions(serviceId));
+  return useSuspenseQuery(serviceByIdQueryOptions(serviceId));
 }
 
 export function useServicesByIds(serviceIds: Service["_id"][]) {
-  return useQuery(servicesByIdsQueryOptions(serviceIds));
+  return useSuspenseQuery(servicesByIdsQueryOptions(serviceIds));
 }
 
 export function useServiceByAppointmentId(appointmentId: Appointment["_id"]) {
-  return useQuery(serviceByAppointmentIdQueryOptions(appointmentId));
+  return useSuspenseQuery(serviceByAppointmentIdQueryOptions(appointmentId));
 }
 
 export function useServicesByBarbershopId(barbershopId: Barbershop["_id"]) {
-  return useQuery(servicesByBarbershopIdQueryOptions(barbershopId));
+  return useSuspenseQuery(servicesByBarbershopIdQueryOptions(barbershopId));
 }
 
 export function useServiceActions() {

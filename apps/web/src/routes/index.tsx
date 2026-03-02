@@ -35,11 +35,9 @@ export const Route = createFileRoute("/")({
   pendingComponent: LoadingComponent,
   component: RouteComponent,
   loader: async ({ context }) => {
-    const user = context.user;
-
-    if (context.token) {
-      await context.queryClient.ensureQueryData(getSessionQueryOptions());
-    }
+    const user = await context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
 
     if (user?.userId) {
       const isBarber = await context.queryClient.ensureQueryData(
@@ -53,7 +51,6 @@ export const Route = createFileRoute("/")({
       }
     }
   },
-  ssr: true,
 });
 
 function RouteComponent() {

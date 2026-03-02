@@ -1,6 +1,6 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import type { Barbershop, BarbershopMember, Service } from "@convex/tables";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 
 export function barbershopMembersByBarbershopIdQueryOptions(
@@ -44,17 +44,19 @@ export function invitationByCodeQueryOptions(code: string) {
 }
 
 export function useInvitationByCode(code: string) {
-  return useQuery(invitationByCodeQueryOptions(code));
+  return useSuspenseQuery(invitationByCodeQueryOptions(code));
 }
 
 export function useBarbershopMembersByBarbershopId(
   barbershopId: Barbershop["_id"],
 ) {
-  return useQuery(barbershopMembersByBarbershopIdQueryOptions(barbershopId));
+  return useSuspenseQuery(
+    barbershopMembersByBarbershopIdQueryOptions(barbershopId),
+  );
 }
 
 export function useIsBarber(userId: string) {
-  return useQuery(isBarberQueryOptions(userId));
+  return useSuspenseQuery(isBarberQueryOptions(userId));
 }
 
 export function useServicesForBarber(
