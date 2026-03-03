@@ -25,7 +25,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { authClient } from "@/lib/auth-client";
 import { seo } from "@/lib/utils";
-import { PostHogProvider } from "@/providers/posthog";
 
 type RouterContext = {
   queryClient: QueryClient;
@@ -54,34 +53,33 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ConvexBetterAuthProvider client={convexClient} authClient={authClient}>
-        <PostHogProvider>
-          {process.env.NODE_ENV === "production" && <Analytics />}
-          <ThemeProvider>
-            <Toaster richColors position="top-center" />
-            {!isMobile && <Header />}
-            <HeadContent />
-            <Outlet />
-            <Scripts />
-            {isMobile && <BottomBar />}
-          </ThemeProvider>
-          {process.env.NODE_ENV === "development" && (
-            <TanStackDevtools
-              config={{
-                position: "bottom-left",
-              }}
-              plugins={[
-                {
-                  name: "Tanstack Router",
-                  render: <TanStackRouterDevtoolsPanel />,
-                },
-                {
-                  name: "TanStack Query",
-                  render: <ReactQueryDevtoolsPanel />,
-                },
-              ]}
-            />
-          )}
-        </PostHogProvider>
+        {process.env.NODE_ENV === "production" && <Analytics />}
+
+        <ThemeProvider>
+          <Toaster richColors position="top-center" />
+          {!isMobile && <Header />}
+          <HeadContent />
+          <Outlet />
+          <Scripts />
+          {isMobile && <BottomBar />}
+        </ThemeProvider>
+        {process.env.NODE_ENV === "development" && (
+          <TanStackDevtools
+            config={{
+              position: "bottom-left",
+            }}
+            plugins={[
+              {
+                name: "Tanstack Router",
+                render: <TanStackRouterDevtoolsPanel />,
+              },
+              {
+                name: "TanStack Query",
+                render: <ReactQueryDevtoolsPanel />,
+              },
+            ]}
+          />
+        )}
       </ConvexBetterAuthProvider>
     </QueryClientProvider>
   );
