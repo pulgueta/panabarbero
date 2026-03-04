@@ -1,73 +1,118 @@
+import { ScriptOnce } from "@tanstack/react-router";
 import { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "dark" | "light" | "system";
+export type UserTheme = "light" | "dark" | "system";
+export type AppTheme = "light" | "dark";
 
-type ThemeProviderProps = {
-  children: React.ReactNode;
-  defaultTheme?: Theme;
-  storageKey?: string;
-};
+const themeStorageKey = "ui-theme";
+const themes: UserTheme[] = ["light", "dark", "system"];
 
-type ThemeProviderState = {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
-};
+function getStoredUserTheme(): UserTheme {
+  if (typeof window === "undefined") return "system";
+  try {
+    const stored = localStorage.getItem(themeStorageKey);
+    return stored && themes.includes(stored as UserTheme)
+      ? (stored as UserTheme)
+      : "system";
+  } catch {
+    return "system";
+  }
+}
 
-const initialState: ThemeProviderState = {
-  theme: "system",
-  setTheme: () => null,
-};
+function setStoredTheme(theme: UserTheme): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(themeStorageKey, theme);
+  } catch {}
+}
 
-const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
+function getSystemTheme(): AppTheme {
+  if (typeof window === "undefined") return "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
 
-export function ThemeProvider({
-  children,
-  defaultTheme = "system",
-  storageKey = "vite-ui-theme",
-  ...props
-}: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme,
-  );
+function handleThemeChange(userTheme: UserTheme) {
+  const root = document.documentElement;
+  root.classList.remove("light", "dark", "system");
+  const resolved = userTheme === "system" ? getSystemTheme() : userTheme;
+  root.classList.add(resolved);
+  if (userTheme === "system") {
+    root.classList.add("system");
+  }
+}
 
-  useEffect(() => {
-    const root = window.document.documentElement;
-
-    root.classList.remove("light", "dark");
-
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
+const themeScript: string = (function () {
+  function themeFn() {
+    try {
+      const stored = localStorage.getItem("ui-theme") || "system";
+      const valid = ["light", "dark", "system"].includes(stored)
+        ? stored
+        : "system";
+      if (valid === "system") {
+        const sys = window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+        document.documentElement.classList.add(sys, "system");
+      } else {
+        document.documentElement.classList.add(valid);
+      }
+    } catch {
+      const sys = window.matchMedia("(prefers-color-scheme: dark)").matches
         ? "dark"
         : "light";
-
-      root.classList.add(systemTheme);
-      return;
+      document.documentElement.classList.add(sys, "system");
     }
+  }
+  return `(${themeFn.toString()})();`;
+})();
 
-    root.classList.add(theme);
-  }, [theme]);
+type ThemeContextValue = {
+  userTheme: UserTheme;
+  appTheme: AppTheme;
+  setTheme: (theme: UserTheme) => void;
+};
 
-  const value = {
-    theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme);
-      setTheme(theme);
-    },
+const ThemeContext = createContext<ThemeContextValue>({
+  userTheme: "system",
+  appTheme: "light",
+  setTheme: () => null,
+});
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [userTheme, setUserTheme] = useState<UserTheme>(getStoredUserTheme);
+
+  useEffect(() => {
+    if (userTheme !== "system") return;
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = () => handleThemeChange("system");
+    mediaQuery.addEventListener("change", handler);
+    return () => mediaQuery.removeEventListener("change", handler);
+  }, [userTheme]);
+
+  const appTheme = userTheme === "system" ? getSystemTheme() : userTheme;
+
+  const setTheme = (newTheme: UserTheme) => {
+    setUserTheme(newTheme);
+    setStoredTheme(newTheme);
+    handleThemeChange(newTheme);
   };
 
   return (
-    <ThemeProviderContext.Provider {...props} value={value}>
+    <ThemeContext.Provider value={{ userTheme, appTheme, setTheme }}>
+      <ScriptOnce>{themeScript}</ScriptOnce>
       {children}
-    </ThemeProviderContext.Provider>
+    </ThemeContext.Provider>
   );
 }
 
-export const useTheme = () => {
-  const context = useContext(ThemeProviderContext);
+export function useTheme() {
+  const context = useContext(ThemeContext);
 
   if (context === undefined)
     throw new Error("useTheme must be used within a ThemeProvider");
 
   return context;
-};
+}

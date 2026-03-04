@@ -31,7 +31,6 @@ const BarbershopListCard = lazy(() =>
 export const Route = createFileRoute("/appointments/create")({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
-  errorComponent: (props) => <div>{JSON.stringify(props.error.message)}</div>,
   loader: async (ctx) => {
     const user = await ctx.context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
@@ -50,7 +49,7 @@ export const Route = createFileRoute("/appointments/create")({
       searchBarbershopsByNameQueryOptions(),
     );
   },
-  wrapInSuspense: true,
+  ssr: false,
 });
 
 function RouteComponent() {

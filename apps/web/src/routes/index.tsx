@@ -51,6 +51,7 @@ export const Route = createFileRoute("/")({
       }
     }
   },
+  ssr: true,
 });
 
 function RouteComponent() {

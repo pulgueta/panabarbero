@@ -1,10 +1,12 @@
-import { LoadingComponent } from "@/components/layout/loading-component";
-import { isBarberQueryOptions } from "@/hooks/use-barbershop-members";
-import { getSessionQueryOptions } from "@/hooks/use-session";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { useEffect } from "react";
 
+import { LoadingComponent } from "@/components/layout/loading-component";
+import { isBarberQueryOptions } from "@/hooks/use-barbershop-members";
+import { getSessionQueryOptions } from "@/hooks/use-session";
+
 export const Route = createFileRoute("/_auth")({
+  ssr: "data-only",
   component: RouteComponent,
   pendingComponent: LoadingComponent,
   loader: async ({ context }) => {

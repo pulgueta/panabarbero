@@ -3,12 +3,17 @@ import type {
   BarbershopMemberWithName,
   Service,
 } from "@convex/tables";
-import { Clock } from "lucide-react";
 import type { FC } from "react";
 
 import { CreateAppointmentDialog } from "@/components/appointments/create-appointment-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 
 interface ServicesGridProps {
@@ -22,39 +27,45 @@ export const ServicesGrid: FC<ServicesGridProps> = ({
   barbers,
   barbershopId,
 }) => {
+  const viewTransitionName =
+    services.length > 0
+      ? `barbershop-${services[0].barbershopId}-services`
+      : undefined;
+
   return (
     <article
       className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
-      style={{
-        viewTransitionName: `barbershop-${services[0].barbershopId}-services`,
-      }}
+      style={{ viewTransitionName }}
     >
       {services.map((service) => (
-        <Card
-          key={service._id}
-          className="max-h-36 transition-transform duration-500"
-        >
-          <CardContent className="flex items-start justify-between gap-4 px-4">
-            <section className="space-y-2">
-              <p className="line-clamp-1 text-pretty font-semibold leading-4.5 tracking-tight">
-                {service.name}
-              </p>
-              <p className="text-muted-foreground text-sm tabular-nums tracking-tight">
+        <Card key={service._id}>
+          <CardHeader className="border-b">
+            <CardTitle>{service.name}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <p className="text-lg">
+              Valor:{" "}
+              <span className="font-semibold text-foreground tabular-nums">
                 {formatCurrency(service.price)}
-              </p>
-              <p className="mb-1 inline-flex items-center gap-1.5 text-muted-foreground text-xs tracking-tight">
-                <Clock className="size-3" /> {service.duration} minutos
-              </p>
-            </section>
-
+              </span>
+            </p>
+            <p className="text-muted-foreground text-sm">
+              Duración: {service.duration} min
+            </p>
+          </CardContent>
+          <CardFooter>
             <CreateAppointmentDialog
               barbershopId={barbershopId}
               services={services}
               barbers={barbers}
               serviceId={service._id}
-              trigger={<Button>Reservar</Button>}
+              trigger={
+                <Button className="w-full" variant="default">
+                  Reservar
+                </Button>
+              }
             />
-          </CardContent>
+          </CardFooter>
         </Card>
       ))}
     </article>

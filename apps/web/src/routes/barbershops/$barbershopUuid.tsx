@@ -99,6 +99,7 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
       ],
     };
   },
+  ssr: true,
 });
 
 function RouteComponent() {

@@ -12,7 +12,9 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { createServerFn } from "@tanstack/react-start";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import type { ConvexReactClient } from "convex/react";
 
 import { BottomBar } from "@/components/layout/bottom-bar";
@@ -24,7 +26,13 @@ import { ThemeProvider } from "@/components/layout/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { authClient } from "@/lib/auth-client";
+import { getToken } from "@/lib/auth-server";
 import { seo } from "@/lib/utils";
+import appCss from "@/styles.css?url";
+
+const getAuth = createServerFn({ method: "GET" }).handler(
+  async () => await getToken(),
+);
 
 type RouterContext = {
   queryClient: QueryClient;
@@ -38,49 +46,89 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       title: "PanaBarbero - Descubre barberías",
       description: "La solución para las barberías.",
     }),
+    links: [{ rel: "stylesheet", href: appCss }],
   }),
-  component: RootComponent,
-  errorComponent: (props) => <DefaultCatchBoundary {...props} />,
+  beforeLoad: async ({ context }) => {
+    const token = await getAuth();
+
+    if (token) {
+      context.convexQueryClient.serverHttpClient?.setAuth(token);
+    }
+
+    return {
+      token,
+    };
+  },
+  shellComponent: () => <RootComponent />,
+  errorComponent: (props) => (
+    <RootDocument>
+      <DefaultCatchBoundary {...props} />
+    </RootDocument>
+  ),
   notFoundComponent: () => <NotFoundComponent />,
   pendingComponent: () => <LoadingComponent />,
 });
 
 function RootComponent() {
-  const { convexClient, queryClient } = Route.useRouteContext();
+  return (
+    <RootDocument>
+      <Outlet />
+    </RootDocument>
+  );
+}
+
+const RootDocument = ({ children }: { children: React.ReactNode }) => {
+  const { convexQueryClient, queryClient, token } = Route.useRouteContext();
 
   const { isMobile } = useIsMobile();
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ConvexBetterAuthProvider client={convexClient} authClient={authClient}>
-        {process.env.NODE_ENV === "production" && <Analytics />}
-
-        <ThemeProvider>
-          <Toaster richColors position="top-center" />
-          {!isMobile && <Header />}
-          <HeadContent />
-          <Outlet />
-          <Scripts />
-          {isMobile && <BottomBar />}
-        </ThemeProvider>
-        {process.env.NODE_ENV === "development" && (
-          <TanStackDevtools
-            config={{
-              position: "bottom-left",
-            }}
-            plugins={[
-              {
-                name: "Tanstack Router",
-                render: <TanStackRouterDevtoolsPanel />,
-              },
-              {
-                name: "TanStack Query",
-                render: <ReactQueryDevtoolsPanel />,
-              },
-            ]}
-          />
+    <html lang="es" suppressHydrationWarning>
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        {process.env.NODE_ENV === "production" && (
+          <>
+            <Analytics />
+            <SpeedInsights />
+          </>
         )}
-      </ConvexBetterAuthProvider>
-    </QueryClientProvider>
+
+        <QueryClientProvider client={queryClient}>
+          <ConvexBetterAuthProvider
+            client={convexQueryClient.convexClient}
+            authClient={authClient}
+            initialToken={token}
+          >
+            <ThemeProvider>
+              <Toaster richColors position="top-center" />
+              {!isMobile && <Header />}
+              {children}
+              {isMobile && <BottomBar />}
+            </ThemeProvider>
+
+            {process.env.NODE_ENV === "development" && (
+              <TanStackDevtools
+                config={{
+                  position: "bottom-left",
+                }}
+                plugins={[
+                  {
+                    name: "Tanstack Router",
+                    render: <TanStackRouterDevtoolsPanel />,
+                  },
+                  {
+                    name: "TanStack Query",
+                    render: <ReactQueryDevtoolsPanel />,
+                  },
+                ]}
+              />
+            )}
+            <Scripts />
+          </ConvexBetterAuthProvider>
+        </QueryClientProvider>
+      </body>
+    </html>
   );
-}
+};

@@ -28,6 +28,7 @@ export const Route = createFileRoute("/pricing")({
     ]);
   },
   wrapInSuspense: true,
+  ssr: "data-only",
 });
 
 function PricingPage() {

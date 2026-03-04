@@ -7,6 +7,7 @@ import { authClient } from "@/lib/auth-client";
 import { isAuthError } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authedRoutes")({
+  ssr: false,
   component: RouteComponent,
   pendingComponent: LoadingComponent,
 });
