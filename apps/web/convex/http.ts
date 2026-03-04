@@ -7,12 +7,7 @@ import { twilio } from "./twilio";
 const http = httpRouter();
 
 twilio.registerRoutes(http);
-authComponent.registerRoutes(http, createAuth, {
-  cors: {
-    // biome-ignore lint/style/noNonNullAssertion: always is defined
-    allowedOrigins: [process.env.SITE_URL!],
-  },
-});
+authComponent.registerRoutes(http, createAuth);
 polar.registerRoutes(http);
 
 export default http;

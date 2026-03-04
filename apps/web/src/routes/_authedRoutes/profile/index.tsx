@@ -178,11 +178,7 @@ function ProfilePage() {
     await signOut({
       fetchOptions: {
         onSuccess: () => {
-          window.location.reload();
-          navigate({
-            to: "/login",
-            replace: true,
-          });
+          location.reload();
         },
       },
     });

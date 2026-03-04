@@ -1,4 +1,3 @@
-import { useNavigate } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,17 +20,11 @@ interface UserAvatarProps {
 }
 
 export function UserAvatar({ user }: UserAvatarProps) {
-  const navigate = useNavigate();
-
   const handleSignOut = async () => {
     await signOut({
       fetchOptions: {
         onSuccess: () => {
-          window.location.reload();
-          navigate({
-            to: "/login",
-            replace: true,
-          });
+          location.reload();
         },
       },
     });

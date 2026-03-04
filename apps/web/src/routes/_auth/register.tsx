@@ -29,27 +29,25 @@ function RegisterPage() {
           <CardHeader className="text-center">
             <CardTitle className="text-xl tracking-tight">Regístrate</CardTitle>
           </CardHeader>
-          <CardContent>
-            <FieldGroup className="gap-2">
-              <Suspense
-                fallback={<Skeleton className="h-96 w-full max-w-xl" />}
-              >
+          <Suspense fallback={<Skeleton className="h-96 w-full max-w-xl" />}>
+            <CardContent>
+              <FieldGroup className="gap-2">
                 <RegisterForm />
-              </Suspense>
 
-              <p className="pt-4 text-center text-muted-foreground text-sm">
-                ¿Ya tienes una cuenta?{" "}
-                <Link
-                  to="/login"
-                  viewTransition={{ types: ["warp-out"] }}
-                  className="text-primary underline-offset-4 hover:underline"
-                >
-                  Inicia sesión
-                </Link>
-              </p>
-            </FieldGroup>
-          </CardContent>
-          <FormFooter />
+                <p className="pt-4 text-center text-muted-foreground text-sm">
+                  ¿Ya tienes una cuenta?{" "}
+                  <Link
+                    to="/login"
+                    viewTransition={{ types: ["warp-out"] }}
+                    className="text-primary underline-offset-4 hover:underline"
+                  >
+                    Inicia sesión
+                  </Link>
+                </p>
+              </FieldGroup>
+            </CardContent>
+            <FormFooter />
+          </Suspense>
         </Card>
       </div>
     </BorderContainer>

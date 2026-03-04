@@ -74,6 +74,7 @@ export const Route = createFileRoute("/barbershops/")({
   },
   component: BarbershopsPage,
   pendingComponent: LoadingComponent,
+  ssr: false,
 });
 
 function BarbershopsPage() {
@@ -126,21 +127,21 @@ function BarbershopsPage() {
 
       <Suspense fallback={<BarbershopLoadingGrid />}>
         <BarbershopGrid barbershops={barbershops} />
-      </Suspense>
 
-      {hasLocation && barbershops.length < 1 && (
-        <Empty className="bg-accent/20 dark:bg-accent/20">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <Building2 className="size-6" />
-            </EmptyMedia>
-            <EmptyTitle>No hay barberías disponibles.</EmptyTitle>
-            <EmptyDescription>
-              Cuando se agregue una barbería, podrás verla aquí.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      )}
+        {hasLocation && barbershops.length < 1 && (
+          <Empty className="bg-accent/20 dark:bg-accent/20">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Building2 className="size-6" />
+              </EmptyMedia>
+              <EmptyTitle>No hay barberías disponibles.</EmptyTitle>
+              <EmptyDescription>
+                Cuando se agregue una barbería, podrás verla aquí.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        )}
+      </Suspense>
     </BorderContainer>
   );
 }

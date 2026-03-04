@@ -1,7 +1,7 @@
 import { ConvexQueryClient } from "@convex-dev/react-query";
-import { QueryClient } from "@tanstack/react-query";
+import { notifyManager, QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
-import { routerWithQueryClient } from "@tanstack/react-router-with-query";
+import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
 import { ConvexReactClient } from "convex/react";
 
 import { DefaultCatchBoundary } from "@/components/layout/error-component";
@@ -10,6 +10,10 @@ import reportWebVitals from "./reportWebVitals";
 import { routeTree } from "./routeTree.gen";
 
 export function getRouter() {
+  if (typeof document !== "undefined") {
+    notifyManager.setScheduler(window.requestAnimationFrame);
+  }
+
   const convex = new ConvexReactClient(env.VITE_CONVEX_URL, {
     verbose: true,
   });
@@ -31,21 +35,20 @@ export function getRouter() {
 
   convexQueryClient.connect(queryClient);
 
-  const router = routerWithQueryClient(
-    createRouter({
-      routeTree,
-      defaultPreload: "intent",
-      context: {
-        queryClient,
-        convexClient: convexQueryClient.convexClient,
-        convexQueryClient,
-      },
-      scrollRestoration: true,
-      defaultViewTransition: true,
-      defaultErrorComponent: DefaultCatchBoundary,
-    }),
-    queryClient,
-  );
+  const router = createRouter({
+    routeTree,
+    defaultPreload: "intent",
+    context: {
+      queryClient,
+      convexClient: convexQueryClient.convexClient,
+      convexQueryClient,
+    },
+    scrollRestoration: true,
+    defaultViewTransition: true,
+    defaultErrorComponent: DefaultCatchBoundary,
+  });
+
+  setupRouterSsrQueryIntegration({ router, queryClient });
 
   return router;
 }

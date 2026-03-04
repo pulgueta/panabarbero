@@ -1,4 +1,5 @@
-import { ClientOnly, Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -6,8 +7,17 @@ import { authenticatedRoutes, publicRoutes } from "@/config";
 import { useBarbershopMemberRoles } from "@/hooks/barbershop/use-barbershop-member";
 import { useIsBarber } from "@/hooks/use-barbershop-members";
 import { useSession } from "@/hooks/use-session";
-import { ThemeToggler } from "../theme-toggler";
-import { UserAvatar } from "../user-avatar";
+
+const ThemeToggler = lazy(() =>
+  import("@/components/layout/theme-toggler").then((mod) => ({
+    default: mod.ThemeToggler,
+  })),
+);
+const UserAvatar = lazy(() =>
+  import("@/components/layout/user-avatar").then((mod) => ({
+    default: mod.UserAvatar,
+  })),
+);
 
 export const Header = () => {
   const { data: user, isLoading } = useSession();
@@ -129,21 +139,23 @@ export const Header = () => {
               )
             )}
 
-            {user?.userId && (
-              <div className="hidden md:block">
-                <UserAvatar
-                  user={{
-                    userId: user.userId,
-                    email: user.email,
-                    name: user.name,
-                    image: user.image,
-                  }}
-                />
-              </div>
-            )}
-            <ClientOnly fallback={<Skeleton className="size-8" />}>
+            <Suspense fallback={<Skeleton className="size-8" />}>
+              {user?.userId && (
+                <div className="hidden md:block">
+                  <UserAvatar
+                    user={{
+                      userId: user.userId,
+                      email: user.email,
+                      name: user.name,
+                      image: user.image,
+                    }}
+                  />
+                </div>
+              )}
+            </Suspense>
+            <Suspense fallback={<Skeleton className="size-8" />}>
               <ThemeToggler />
-            </ClientOnly>
+            </Suspense>
           </div>
         </div>
       </div>
