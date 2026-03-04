@@ -9,13 +9,7 @@ import viteTsConfigPaths from "vite-tsconfig-paths";
 const config = defineConfig({
   plugins: [
     devtools(),
-    nitro({
-      vercel: {
-        functions: {
-          runtime: "bun1.x",
-        },
-      },
-    }),
+    nitro(),
     viteTsConfigPaths({
       projects: ["./tsconfig.json"],
     }),
