@@ -10,11 +10,7 @@ const config = defineConfig({
   plugins: [
     devtools(),
     nitro({
-      vercel: {
-        functions: {
-          runtime: "bun1.x",
-        },
-      },
+      preset: "bun",
     }),
     viteTsConfigPaths({
       projects: ["./tsconfig.json"],
