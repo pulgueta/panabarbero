@@ -3,6 +3,8 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
+import type { Doc } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
 import {
   internalMutation,
   internalQuery,
@@ -19,6 +21,25 @@ import { tables } from "./tables";
 import { getProfileByEmail, getProfileByUserId } from "./userProfileData";
 
 const MINUTE_MS = 60 * 1000;
+
+async function cancelScheduledNotifications(
+  ctx: MutationCtx,
+  appointment: Doc<"appointments">,
+) {
+  const ids = [
+    appointment.upcomingNotificationId,
+    appointment.pastReminderNotificationId,
+  ];
+
+  for (const id of ids) {
+    if (!id) continue;
+    try {
+      await ctx.scheduler.cancel(id);
+    } catch {
+      // Already completed, failed, or cancelled — safe to ignore
+    }
+  }
+}
 
 function parseTimeToMinutes(time: string): number {
   const [hh, mm] = time.split(":").map((n) => Number(n));
@@ -270,6 +291,7 @@ export const create = mutation({
         sendTo: "barber",
         barbershopName: barbershop.name,
         receiverPhoneNumber: appointment.contactPhone,
+        isBarberCreated: isBarberCreatingAppointment,
       });
     }
 
@@ -281,12 +303,13 @@ export const create = mutation({
       sendTo: "customer",
       barbershopName: barbershop.name,
       receiverPhoneNumber: appointment.contactPhone,
+      isBarberCreated: isBarberCreatingAppointment,
     });
 
     const thirtyMinutesBeforeAppointment = appointment.date - 30 * 60 * 1000;
     const thirtyMinutesAfterAppointment = appointment.date + 30 * 60 * 1000;
 
-    await ctx.scheduler.runAt(
+    const upcomingNotificationId = await ctx.scheduler.runAt(
       thirtyMinutesBeforeAppointment,
       internal.appointments.notifyUpcoming,
       {
@@ -296,13 +319,18 @@ export const create = mutation({
       },
     );
 
-    await ctx.scheduler.runAt(
+    const pastReminderNotificationId = await ctx.scheduler.runAt(
       thirtyMinutesAfterAppointment,
       internal.notifications.createPastAppointmentReminder,
       {
         barberUserId: barberProfile.userId,
       },
     );
+
+    await ctx.db.patch(appointmentId, {
+      upcomingNotificationId,
+      pastReminderNotificationId,
+    });
   },
 });
 
@@ -481,8 +509,11 @@ export const setStatus = mutation({
 
     switch (args.status) {
       case "completed":
+        await cancelScheduledNotifications(ctx, appt);
         updatedAppointment = await ctx.db.patch(args.appointmentId, {
           status: "completed",
+          upcomingNotificationId: undefined,
+          pastReminderNotificationId: undefined,
         });
 
         await ctx.runMutation(
@@ -494,13 +525,17 @@ export const setStatus = mutation({
         break;
 
       case "no-show":
+        await cancelScheduledNotifications(ctx, appt);
         updatedAppointment = await ctx.db.patch(args.appointmentId, {
           status: "no-show",
+          upcomingNotificationId: undefined,
+          pastReminderNotificationId: undefined,
         });
 
         break;
 
       case "cancelled":
+        await cancelScheduledNotifications(ctx, appt);
         await ctx.db.delete(args.appointmentId);
         break;
 
@@ -551,8 +586,12 @@ export const deleteAppointment = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
+    await cancelScheduledNotifications(ctx, appointment);
+
     await ctx.db.patch(appointmentId, {
       deletedAt: Date.now(),
+      upcomingNotificationId: undefined,
+      pastReminderNotificationId: undefined,
     });
   },
 });
@@ -580,6 +619,7 @@ export const removeAppointment = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
+    await cancelScheduledNotifications(ctx, appointment);
     await ctx.db.delete(args.appointmentId);
   },
 });
@@ -610,10 +650,14 @@ export const cancel = mutation({
       throw new ConvexError(errorMessages.notFound("cita"));
     }
 
+    await cancelScheduledNotifications(ctx, appt);
+
     await ctx.db.patch(args.appointmentId, {
       status: "cancelled",
       notes: args.reason,
       proposedDate: undefined,
+      upcomingNotificationId: undefined,
+      pastReminderNotificationId: undefined,
     });
 
     switch (args.cancelledBy) {
@@ -749,26 +793,25 @@ export const notifyUpcoming = internalMutation({
 
     const appointment = await ctx.db.get(args.appointmentId);
 
-    if (!appointment) {
-      throw new ConvexError(errorMessages.notFound("cita"));
+    if (!appointment || appointment.deletedAt) {
+      return;
     }
 
-    if (appointment.deletedAt) {
-      throw new ConvexError(errorMessages.notFound("cita"));
+    const activeStatuses = ["confirmed", "rescheduled", "pending"];
+    if (!activeStatuses.includes(appointment.status)) {
+      return;
     }
 
     const barbershopMember = await ctx.db.get(appointment.barbershopMemberId);
 
     if (!barbershopMember) {
-      throw new ConvexError(errorMessages.notFound("barbero"));
+      return;
     }
 
-    const barberProfile = await ctx.db.get(
-      barbershopMember?.userProfileDataId!,
-    );
+    const barberProfile = await ctx.db.get(barbershopMember.userProfileDataId);
 
     if (!barberProfile) {
-      throw new ConvexError(errorMessages.notFound("perfil de barbero"));
+      return;
     }
 
     await ctx.runMutation(internal.notifications.createAppointmentReminder, {
@@ -832,11 +875,50 @@ export const answerRescheduleRequest = mutation({
 
     const newStatus = args.accepted ? "rescheduled" : "denied";
 
+    await cancelScheduledNotifications(ctx, appt);
+
+    const newDate =
+      args.accepted && appt.proposedDate ? appt.proposedDate : appt.date;
+
+    let upcomingNotificationId: typeof appt.upcomingNotificationId;
+    let pastReminderNotificationId: typeof appt.pastReminderNotificationId;
+
+    if (args.accepted && appt.proposedDate) {
+      // Re-schedule notifications for the new date
+      const thirtyMinBefore = appt.proposedDate - 30 * 60 * 1000;
+      const thirtyMinAfter = appt.proposedDate + 30 * 60 * 1000;
+
+      upcomingNotificationId = await ctx.scheduler.runAt(
+        thirtyMinBefore,
+        internal.appointments.notifyUpcoming,
+        {
+          appointmentId: args.appointmentId,
+          barbershopId: appt.barbershopId,
+          userId: appt.userId,
+        },
+      );
+
+      const barberMember = await ctx.db.get(appt.barbershopMemberId);
+      const barberProf = barberMember
+        ? await ctx.db.get(barberMember.userProfileDataId)
+        : null;
+
+      if (barberProf) {
+        pastReminderNotificationId = await ctx.scheduler.runAt(
+          thirtyMinAfter,
+          internal.notifications.createPastAppointmentReminder,
+          { barberUserId: barberProf.userId },
+        );
+      }
+    }
+
     await ctx.db.patch(args.appointmentId, {
       status: newStatus,
-      date: args.accepted && appt.proposedDate ? appt.proposedDate : appt.date,
+      date: newDate,
       proposedDate: undefined,
       rescheduleRequestedByUserId: undefined,
+      upcomingNotificationId,
+      pastReminderNotificationId,
     });
 
     const barber = await ctx.db.get(appt.barbershopMemberId);

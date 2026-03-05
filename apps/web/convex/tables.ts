@@ -130,6 +130,8 @@ export const tables = {
     ),
     notes: v.optional(v.string()),
     deletedAt: v.optional(v.number()),
+    upcomingNotificationId: v.optional(v.id("_scheduled_functions")),
+    pastReminderNotificationId: v.optional(v.id("_scheduled_functions")),
   },
   barbershopMemberServices: {
     uuid: v.string(),
