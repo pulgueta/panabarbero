@@ -24,19 +24,18 @@ function TermsOfServicePage() {
         <section className="space-y-3">
           <h2 className="font-semibold text-xl">1. Introducción</h2>
           <p className="text-muted-foreground leading-relaxed">
-            Bienvenido a PanaBarbero. Estos Términos de Servicio (&quot;Términos&quot;)
-            regulan el acceso y uso de la plataforma PanaBarbero, operada por
-            Andrés Felipe Rodríguez Arias, con domicilio en Barrancabermeja,
-            Santander, Colombia. Al acceder o utilizar la plataforma, usted
-            acepta estos Términos en su totalidad. Si no está de acuerdo con
-            alguno de estos Términos, debe abstenerse de usar la plataforma.
+            Bienvenido a PanaBarbero. Estos Términos de Servicio
+            (&quot;Términos&quot;) regulan el acceso y uso de la plataforma
+            PanaBarbero, operada por Andrés Felipe Rodríguez Arias, con
+            domicilio en Barrancabermeja, Santander, Colombia. Al acceder o
+            utilizar la plataforma, usted acepta estos Términos en su totalidad.
+            Si no está de acuerdo con alguno de estos Términos, debe abstenerse
+            de usar la plataforma.
           </p>
         </section>
 
         <section className="space-y-3">
-          <h2 className="font-semibold text-xl">
-            2. Descripción del Servicio
-          </h2>
+          <h2 className="font-semibold text-xl">2. Descripción del Servicio</h2>
           <p className="text-muted-foreground leading-relaxed">
             PanaBarbero es un marketplace que conecta a usuarios con barberías
             locales, permitiendo a los usuarios buscar barberías y agendar
@@ -87,9 +86,7 @@ function TermsOfServicePage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="font-semibold text-xl">
-            6. Pagos y Suscripciones
-          </h2>
+          <h2 className="font-semibold text-xl">6. Pagos y Suscripciones</h2>
           <p className="text-muted-foreground leading-relaxed">
             PanaBarbero ofrece funcionalidades de pago para barberías a través
             de planes de suscripción. Los pagos son procesados por nuestro
@@ -135,7 +132,9 @@ function TermsOfServicePage() {
             Al usar PanaBarbero, usted se compromete a:
           </p>
           <ul className="list-disc space-y-2 pl-6 text-muted-foreground">
-            <li>No utilizar la plataforma para fines ilegales o no autorizados.</li>
+            <li>
+              No utilizar la plataforma para fines ilegales o no autorizados.
+            </li>
             <li>
               No intentar acceder a cuentas de otros usuarios sin autorización.
             </li>
@@ -157,9 +156,7 @@ function TermsOfServicePage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="font-semibold text-xl">
-            8. Contenido del Usuario
-          </h2>
+          <h2 className="font-semibold text-xl">8. Contenido del Usuario</h2>
           <p className="text-muted-foreground leading-relaxed">
             Los usuarios y barberías pueden publicar contenido en la plataforma
             (fotos, descripciones, reseñas, etc.). Usted conserva la propiedad
@@ -175,9 +172,7 @@ function TermsOfServicePage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="font-semibold text-xl">
-            9. Propiedad Intelectual
-          </h2>
+          <h2 className="font-semibold text-xl">9. Propiedad Intelectual</h2>
           <p className="text-muted-foreground leading-relaxed">
             La plataforma PanaBarbero, incluyendo su diseño, código, logotipos,
             marcas y todo el contenido original, es propiedad de Andrés Felipe

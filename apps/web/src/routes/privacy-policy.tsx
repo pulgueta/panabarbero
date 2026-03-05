@@ -51,9 +51,7 @@ function PrivacyPolicyPage() {
               autenticación (OAuth).
             </li>
             <li>
-              <strong className="text-foreground">
-                Correo electrónico:
-              </strong>{" "}
+              <strong className="text-foreground">Correo electrónico:</strong>{" "}
               Para la creación de cuenta, comunicaciones y notificaciones.
             </li>
             <li>
@@ -72,9 +70,7 @@ function PrivacyPolicyPage() {
           </h3>
           <ul className="list-disc space-y-2 pl-6 text-muted-foreground">
             <li>
-              <strong className="text-foreground">
-                Datos de ubicación:
-              </strong>{" "}
+              <strong className="text-foreground">Datos de ubicación:</strong>{" "}
               Utilizamos su ubicación para mostrarle barberías cercanas. Esta
               información se procesa en tiempo real y no se almacena de forma
               permanente.
@@ -92,9 +88,7 @@ function PrivacyPolicyPage() {
             </li>
           </ul>
 
-          <h3 className="font-medium text-lg">
-            2.3 Información de pago
-          </h3>
+          <h3 className="font-medium text-lg">2.3 Información de pago</h3>
           <p className="text-muted-foreground leading-relaxed">
             La información de pago (tarjetas de crédito, datos bancarios, etc.)
             es recopilada y procesada exclusivamente por{" "}
@@ -112,9 +106,7 @@ function PrivacyPolicyPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="font-semibold text-xl">
-            3. Uso de la Información
-          </h2>
+          <h2 className="font-semibold text-xl">3. Uso de la Información</h2>
           <p className="text-muted-foreground leading-relaxed">
             Utilizamos la información recopilada para:
           </p>
@@ -135,10 +127,10 @@ function PrivacyPolicyPage() {
             <li>
               Mejorar la plataforma mediante análisis de uso y comportamiento.
             </li>
-            <li>Prevenir fraudes y garantizar la seguridad de la plataforma.</li>
             <li>
-              Cumplir con obligaciones legales aplicables en Colombia.
+              Prevenir fraudes y garantizar la seguridad de la plataforma.
             </li>
+            <li>Cumplir con obligaciones legales aplicables en Colombia.</li>
           </ul>
         </section>
 
@@ -167,9 +159,7 @@ function PrivacyPolicyPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="font-semibold text-xl">
-            5. Almacenamiento de Datos
-          </h2>
+          <h2 className="font-semibold text-xl">5. Almacenamiento de Datos</h2>
           <p className="text-muted-foreground leading-relaxed">
             Los datos personales se almacenan en los servidores de{" "}
             <a
@@ -205,16 +195,12 @@ function PrivacyPolicyPage() {
               del servicio.
             </li>
             <li>
-              <strong className="text-foreground">
-                Información de citas:
-              </strong>{" "}
+              <strong className="text-foreground">Información de citas:</strong>{" "}
               Cuando agenda una cita, su nombre y datos de contacto se comparten
               con la barbería correspondiente para la prestación del servicio.
             </li>
             <li>
-              <strong className="text-foreground">
-                Obligaciones legales:
-              </strong>{" "}
+              <strong className="text-foreground">Obligaciones legales:</strong>{" "}
               Podemos divulgar información cuando sea requerido por ley,
               regulación, proceso legal o solicitud gubernamental aplicable en
               Colombia.
@@ -223,9 +209,7 @@ function PrivacyPolicyPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="font-semibold text-xl">
-            7. Derechos del Usuario
-          </h2>
+          <h2 className="font-semibold text-xl">7. Derechos del Usuario</h2>
           <p className="text-muted-foreground leading-relaxed">
             De acuerdo con la Ley 1581 de 2012 (Ley de Protección de Datos
             Personales de Colombia) y sus decretos reglamentarios, usted tiene
@@ -257,15 +241,13 @@ function PrivacyPolicyPage() {
           <p className="text-muted-foreground leading-relaxed">
             Para ejercer cualquiera de estos derechos, puede contactarnos a
             través del correo electrónico indicado en la sección de Contacto.
-            Responderemos a su solicitud dentro de los plazos establecidos por la
-            ley colombiana.
+            Responderemos a su solicitud dentro de los plazos establecidos por
+            la ley colombiana.
           </p>
         </section>
 
         <section className="space-y-3">
-          <h2 className="font-semibold text-xl">
-            8. Seguridad de los Datos
-          </h2>
+          <h2 className="font-semibold text-xl">8. Seguridad de los Datos</h2>
           <p className="text-muted-foreground leading-relaxed">
             Implementamos medidas de seguridad técnicas y organizativas para
             proteger su información personal contra acceso no autorizado,
@@ -274,9 +256,7 @@ function PrivacyPolicyPage() {
           <ul className="list-disc space-y-2 pl-6 text-muted-foreground">
             <li>Cifrado de datos en tránsito mediante HTTPS/TLS.</li>
             <li>Cifrado de datos en reposo en nuestra base de datos.</li>
-            <li>
-              Autenticación segura con soporte de proveedores OAuth.
-            </li>
+            <li>Autenticación segura con soporte de proveedores OAuth.</li>
             <li>Acceso restringido a datos personales por parte del equipo.</li>
           </ul>
           <p className="text-muted-foreground leading-relaxed">
@@ -287,9 +267,7 @@ function PrivacyPolicyPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="font-semibold text-xl">
-            9. Retención de Datos
-          </h2>
+          <h2 className="font-semibold text-xl">9. Retención de Datos</h2>
           <p className="text-muted-foreground leading-relaxed">
             Conservamos su información personal mientras su cuenta esté activa o
             mientras sea necesario para proporcionarle los servicios. Si elimina
@@ -300,9 +278,7 @@ function PrivacyPolicyPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="font-semibold text-xl">
-            10. Menores de Edad
-          </h2>
+          <h2 className="font-semibold text-xl">10. Menores de Edad</h2>
           <p className="text-muted-foreground leading-relaxed">
             PanaBarbero está dirigida a personas mayores de 13 años. Los menores
             entre 13 y 17 años deben contar con el consentimiento de su padre,
@@ -314,9 +290,7 @@ function PrivacyPolicyPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="font-semibold text-xl">
-            11. Cambios a esta Política
-          </h2>
+          <h2 className="font-semibold text-xl">11. Cambios a esta Política</h2>
           <p className="text-muted-foreground leading-relaxed">
             Nos reservamos el derecho de actualizar esta Política de Privacidad
             en cualquier momento. Los cambios serán notificados a través de la
@@ -328,15 +302,14 @@ function PrivacyPolicyPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="font-semibold text-xl">
-            12. Ley Aplicable
-          </h2>
+          <h2 className="font-semibold text-xl">12. Ley Aplicable</h2>
           <p className="text-muted-foreground leading-relaxed">
             Esta Política de Privacidad se rige por la Ley 1581 de 2012 (Ley de
             Protección de Datos Personales), el Decreto 1377 de 2013 y demás
             normativa aplicable en la República de Colombia. Para cualquier
-            disputa relacionada con el tratamiento de sus datos personales, serán
-            competentes los tribunales de Barrancabermeja, Santander, Colombia.
+            disputa relacionada con el tratamiento de sus datos personales,
+            serán competentes los tribunales de Barrancabermeja, Santander,
+            Colombia.
           </p>
         </section>
 
