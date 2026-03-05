@@ -1,5 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: needed */
 
+import type { Id } from "@convex/_generated/dataModel";
 import type { Appointment } from "@convex/tables";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
@@ -7,7 +8,8 @@ import {
   EllipsisVerticalIcon,
   TrashIcon,
 } from "lucide-react";
-import { Activity } from "react";
+import type { FC } from "react";
+import { lazy, useState } from "react";
 
 import { TableHeader } from "@/components/table/header";
 import { Badge } from "@/components/ui/badge";
@@ -26,11 +28,144 @@ import {
 import { useServiceByAppointmentId } from "@/hooks/use-services";
 import { useSession } from "@/hooks/use-session";
 import { getAppointmentDataByStatus } from "@/lib/appointment-utils";
-import { CancelAppointmentDialog } from "../cancel-appointment-dialog";
-import { DeleteAppointmentDialog } from "../delete-appointment-dialog";
-import { MarkAppointmentDialog } from "../mark-appointment-dialog";
-import { RescheduleRequestDialog } from "../reschedule-request-dialog";
-import { RescheduleResponseDialog } from "../reschedule-response-dialog";
+
+const CancelAppointmentDialog = lazy(() =>
+  import("../cancel-appointment-dialog").then((module) => ({
+    default: module.CancelAppointmentDialog,
+  })),
+);
+const DeleteAppointmentDialog = lazy(() =>
+  import("../delete-appointment-dialog").then((module) => ({
+    default: module.DeleteAppointmentDialog,
+  })),
+);
+const MarkAppointmentDialog = lazy(() =>
+  import("../mark-appointment-dialog").then((module) => ({
+    default: module.MarkAppointmentDialog,
+  })),
+);
+const RescheduleRequestDialog = lazy(() =>
+  import("../reschedule-request-dialog").then((module) => ({
+    default: module.RescheduleRequestDialog,
+  })),
+);
+const RescheduleResponseDialog = lazy(() =>
+  import("../reschedule-response-dialog").then((module) => ({
+    default: module.RescheduleResponseDialog,
+  })),
+);
+
+const AppointmentActionsCell: FC<Appointment> = (appointment) => {
+  const status = appointment.status;
+
+  const { data: session } = useSession();
+  const { data: isBarber } = useIsBarber(session?.userId ?? "");
+
+  const isPastDate = Date.now() > appointment.date;
+
+  const isCancelledOrDenied = status === "cancelled" || status === "denied";
+
+  const canRequestReschedule =
+    status !== "completed" &&
+    !isCancelledOrDenied &&
+    !isPastDate &&
+    status !== "no-show" &&
+    !appointment.proposedDate;
+
+  const showDeleteDialog =
+    isCancelledOrDenied ||
+    isPastDate ||
+    status === "no-show" ||
+    status === "completed";
+
+  const [openDialog, setOpenDialog] = useState<
+    "reschedule" | "delete" | "cancel" | null
+  >(null);
+
+  return (
+    <div className="text-center">
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button variant="outline" size="icon">
+              <EllipsisVerticalIcon />
+            </Button>
+          }
+        />
+
+        <DropdownMenuContent align="end" className="w-full max-w-56">
+          {canRequestReschedule && (
+            <DropdownMenuItem
+              className="inline-flex w-full items-center gap-x-2"
+              onClick={() => setOpenDialog("reschedule")}
+            >
+              <CalendarClockIcon className="size-3" />
+              Solicitar reagendamiento
+            </DropdownMenuItem>
+          )}
+
+          {showDeleteDialog ? (
+            <DropdownMenuItem
+              className="inline-flex w-full items-center gap-x-2"
+              onClick={() => setOpenDialog("delete")}
+            >
+              <TrashIcon className="size-3 text-destructive dark:text-destructive-foreground" />
+              Eliminar
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem
+              className="inline-flex w-full items-center gap-x-2"
+              onClick={() => setOpenDialog("cancel")}
+            >
+              <TrashIcon className="size-3 text-destructive dark:text-destructive-foreground" />
+              Cancelar
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <RescheduleRequestDialog
+        appointment={appointment}
+        to="customer"
+        open={openDialog === "reschedule"}
+        onOpenChange={(open) => !open && setOpenDialog(null)}
+        trigger={<span className="hidden" />}
+      />
+
+      {showDeleteDialog ? (
+        <DeleteAppointmentDialog
+          appointment={appointment}
+          open={openDialog === "delete"}
+          onOpenChange={(open) => !open && setOpenDialog(null)}
+          trigger={<span className="hidden" />}
+        />
+      ) : (
+        <CancelAppointmentDialog
+          appointment={appointment}
+          userId={appointment.userId}
+          isBarber={isBarber ?? false}
+          open={openDialog === "cancel"}
+          onOpenChange={(open) => !open && setOpenDialog(null)}
+          trigger={<span className="hidden" />}
+        />
+      )}
+    </div>
+  );
+};
+
+const BarberNameCell: FC<Appointment> = (appointment) => {
+  const { data: session } = useSession();
+  const { data: barbershop } = useBarbershopByMemberUserId(
+    session?.userId ?? "",
+  );
+  const { data: barbers } = useBarbershopMembersByBarbershopId(
+    barbershop?._id as Id<"barbershops">,
+  );
+
+  const barber = barbers?.find((b) => b._id === appointment.barbershopMemberId);
+
+  return <div className="text-center">{barber?.name || "N/A"}</div>;
+};
 
 export function getAppointmentsTableColumns(opts: {
   isOwner: boolean;
@@ -107,116 +242,14 @@ export function getAppointmentsTableColumns(opts: {
     {
       accessorKey: "actions",
       header: () => <div className="text-center">Acciones</div>,
-      cell: ({ row }) => {
-        const appointment = row.original;
-        const status = row.original.status;
-
-        const { data: session } = useSession();
-        const { data: isBarber } = useIsBarber(session?.userId!);
-
-        const isPastDate = Date.now() > appointment.date;
-
-        const isCancelledOrDenied =
-          status === "cancelled" || status === "denied";
-
-        const canRequestReschedule =
-          status !== "completed" &&
-          !isCancelledOrDenied &&
-          !isPastDate &&
-          status !== "no-show";
-
-        return (
-          <div className="text-center">
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button variant="outline" size="icon">
-                    <EllipsisVerticalIcon />
-                  </Button>
-                }
-              />
-
-              <DropdownMenuContent align="end" className="w-full max-w-56">
-                <Activity
-                  mode={
-                    !appointment.proposedDate && canRequestReschedule
-                      ? "visible"
-                      : "hidden"
-                  }
-                >
-                  <RescheduleRequestDialog
-                    appointment={appointment}
-                    to="customer"
-                    trigger={
-                      <DropdownMenuItem
-                        className="inline-flex w-full items-center gap-x-2"
-                        onSelect={(event) => event.preventDefault()}
-                      >
-                        <CalendarClockIcon className="size-3" />
-                        Solicitar reagendamiento
-                      </DropdownMenuItem>
-                    }
-                  />
-                </Activity>
-
-                {isCancelledOrDenied ||
-                isPastDate ||
-                status === "no-show" ||
-                status === "completed" ? (
-                  <DeleteAppointmentDialog
-                    appointment={appointment}
-                    trigger={
-                      <DropdownMenuItem
-                        className="inline-flex w-full items-center gap-x-2"
-                        onSelect={(event) => event.preventDefault()}
-                      >
-                        <TrashIcon className="size-3 text-destructive dark:text-destructive-foreground" />
-                        Eliminar
-                      </DropdownMenuItem>
-                    }
-                  />
-                ) : (
-                  <CancelAppointmentDialog
-                    appointment={appointment}
-                    userId={appointment.userId}
-                    isBarber={isBarber}
-                    trigger={
-                      <DropdownMenuItem
-                        className="inline-flex w-full items-center gap-x-2"
-                        onSelect={(event) => event.preventDefault()}
-                      >
-                        <TrashIcon className="size-3 text-destructive dark:text-destructive-foreground" />
-                        Cancelar
-                      </DropdownMenuItem>
-                    }
-                  />
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        );
-      },
+      cell: ({ row }) => <AppointmentActionsCell {...row.original} />,
     },
   ];
 
   const barberColumn: ColumnDef<Appointment> = {
     accessorKey: "barberName",
     header: ({ column }) => <TableHeader column={column} header="Barbero" />,
-    cell: ({ row }) => {
-      const { data: session } = useSession();
-      const { data: barbershop } = useBarbershopByMemberUserId(
-        session?.userId ?? "",
-      );
-      const { data: barbers } = useBarbershopMembersByBarbershopId(
-        barbershop?._id!,
-      );
-
-      const barber = barbers?.find(
-        (b) => b._id === row.original.barbershopMemberId,
-      );
-
-      return <div className="text-center">{barber?.name || "N/A"}</div>;
-    },
+    cell: ({ row }) => <BarberNameCell {...row.original} />,
   };
 
   if (!opts.isOwner) return baseColumns;

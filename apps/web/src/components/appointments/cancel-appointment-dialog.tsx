@@ -26,6 +26,8 @@ interface CancelAppointmentDialogProps {
   trigger: ReactElement;
   userId: string;
   isBarber: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
@@ -33,6 +35,8 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
   trigger,
   userId,
   isBarber,
+  open,
+  onOpenChange,
 }) => {
   const formIds = {
     notes: useId(),
@@ -83,8 +87,8 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
   });
 
   return (
-    <Dialog>
-      <DialogTrigger render={trigger} />
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTrigger nativeButton={false} render={trigger} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>

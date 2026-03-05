@@ -18,11 +18,15 @@ import { useAppointmentActions } from "@/hooks/use-appointments";
 interface DeleteAppointmentDialogProps {
   appointment: Appointment;
   trigger: ReactElement;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export const DeleteAppointmentDialog: FC<DeleteAppointmentDialogProps> = ({
   appointment,
   trigger,
+  open,
+  onOpenChange,
 }) => {
   const {
     deleteAppointmentMutation: {
@@ -43,8 +47,8 @@ export const DeleteAppointmentDialog: FC<DeleteAppointmentDialogProps> = ({
   };
 
   return (
-    <Dialog>
-      <DialogTrigger render={trigger} />
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTrigger nativeButton={false} render={trigger} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Eliminar cita</DialogTitle>

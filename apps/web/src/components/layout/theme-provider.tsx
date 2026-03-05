@@ -43,7 +43,7 @@ function handleThemeChange(userTheme: UserTheme) {
   }
 }
 
-const themeScript: string = (function () {
+const themeScript: string = (() => {
   function themeFn() {
     try {
       const stored = localStorage.getItem("ui-theme") || "system";

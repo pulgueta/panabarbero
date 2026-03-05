@@ -31,12 +31,16 @@ interface RescheduleRequestDialogProps {
   appointment: Appointment;
   trigger: ReactElement;
   to?: "barber" | "customer";
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
   appointment,
   trigger,
   to,
+  open,
+  onOpenChange,
 }) => {
   const formIds = {
     form: useId(),
@@ -116,7 +120,7 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
       await rescheduleRequest({
         appointmentId: appointment._id,
         proposedDate: timestamp,
-        requestedByUserId: session?.userId!,
+        requestedByUserId: session?.userId ?? "",
       });
     } catch (error) {
       toast.error(getConvexErrorMessage(error));
@@ -130,8 +134,8 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
   const sendButtonLabel = "Enviar solicitud";
 
   return (
-    <Dialog>
-      <DialogTrigger render={trigger} />
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTrigger nativeButton={false} render={trigger} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{headLabel}</DialogTitle>
@@ -142,15 +146,14 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
           // @ts-expect-error - zod's coerce method returns an unknown type
           form={form}
           formIds={formIds}
-          onSubmit={onSubmit}
           disableDay={disableDay}
           appointment={appointment}
         />
 
         <DialogFooter>
           <Button
-            type="submit"
-            form={formIds.form}
+            type="button"
+            onClick={onSubmit}
             disabled={isSendingRescheduleRequest}
           >
             {isSendingRescheduleRequest && <Spinner />}
