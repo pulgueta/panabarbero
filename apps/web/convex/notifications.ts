@@ -323,6 +323,7 @@ export const createAppointmentCreated = internalMutation({
     sendTo: v.union(v.literal("customer"), v.literal("barber")),
     barbershopName: v.optional(v.string()),
     receiverPhoneNumber: v.string(),
+    isBarberCreated: v.boolean(),
   },
   handler: async (ctx, args) => {
     let customerProfile: UserProfileData | null = null;
@@ -385,12 +386,27 @@ export const createAppointmentCreated = internalMutation({
 
     const fallbackPhone =
       receiverProfile?.phoneNumber ?? args.receiverPhoneNumber;
-    const smsEnabled = receiverProfile
-      ? isNotificationEnabled(
-          "sms",
-          receiverProfile.notificationsPreferences ?? [],
-        )
-      : isCustomer;
+
+    let smsEnabled = false;
+
+    if (isCustomer) {
+      smsEnabled =
+        args.isBarberCreated ||
+        !!args.receiverPhoneNumber ||
+        (receiverProfile
+          ? isNotificationEnabled(
+              "sms",
+              receiverProfile.notificationsPreferences ?? [],
+            )
+          : true);
+    } else {
+      smsEnabled = receiverProfile
+        ? isNotificationEnabled(
+            "sms",
+            receiverProfile.notificationsPreferences ?? [],
+          )
+        : false;
+    }
 
     if (smsEnabled && fallbackPhone) {
       await scheduleSmsWithQuota(ctx, {
