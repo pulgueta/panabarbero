@@ -392,7 +392,6 @@ export const createAppointmentCreated = internalMutation({
     if (isCustomer) {
       smsEnabled =
         args.isBarberCreated ||
-        !!args.receiverPhoneNumber ||
         (receiverProfile
           ? isNotificationEnabled(
               "sms",

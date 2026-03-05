@@ -875,20 +875,13 @@ export const answerRescheduleRequest = mutation({
 
     const newStatus = args.accepted ? "rescheduled" : "denied";
 
-    await cancelScheduledNotifications(ctx, appt);
-
-    const newDate =
-      args.accepted && appt.proposedDate ? appt.proposedDate : appt.date;
-
-    let upcomingNotificationId: typeof appt.upcomingNotificationId;
-    let pastReminderNotificationId: typeof appt.pastReminderNotificationId;
-
     if (args.accepted && appt.proposedDate) {
-      // Re-schedule notifications for the new date
+      await cancelScheduledNotifications(ctx, appt);
+
       const thirtyMinBefore = appt.proposedDate - 30 * 60 * 1000;
       const thirtyMinAfter = appt.proposedDate + 30 * 60 * 1000;
 
-      upcomingNotificationId = await ctx.scheduler.runAt(
+      const upcomingNotificationId = await ctx.scheduler.runAt(
         thirtyMinBefore,
         internal.appointments.notifyUpcoming,
         {
@@ -903,6 +896,8 @@ export const answerRescheduleRequest = mutation({
         ? await ctx.db.get(barberMember.userProfileDataId)
         : null;
 
+      let pastReminderNotificationId: typeof appt.pastReminderNotificationId;
+
       if (barberProf) {
         pastReminderNotificationId = await ctx.scheduler.runAt(
           thirtyMinAfter,
@@ -910,16 +905,22 @@ export const answerRescheduleRequest = mutation({
           { barberUserId: barberProf.userId },
         );
       }
-    }
 
-    await ctx.db.patch(args.appointmentId, {
-      status: newStatus,
-      date: newDate,
-      proposedDate: undefined,
-      rescheduleRequestedByUserId: undefined,
-      upcomingNotificationId,
-      pastReminderNotificationId,
-    });
+      await ctx.db.patch(args.appointmentId, {
+        status: newStatus,
+        date: appt.proposedDate,
+        proposedDate: undefined,
+        rescheduleRequestedByUserId: undefined,
+        upcomingNotificationId,
+        pastReminderNotificationId,
+      });
+    } else {
+      await ctx.db.patch(args.appointmentId, {
+        status: newStatus,
+        proposedDate: undefined,
+        rescheduleRequestedByUserId: undefined,
+      });
+    }
 
     const barber = await ctx.db.get(appt.barbershopMemberId);
 
