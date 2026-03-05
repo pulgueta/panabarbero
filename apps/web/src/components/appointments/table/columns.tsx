@@ -69,7 +69,8 @@ const AppointmentActionsCell: FC<Appointment> = (appointment) => {
     status !== "completed" &&
     !isCancelledOrDenied &&
     !isPastDate &&
-    status !== "no-show";
+    status !== "no-show" &&
+    !appointment.proposedDate;
 
   const showDeleteDialog =
     isCancelledOrDenied ||
