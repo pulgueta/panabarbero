@@ -2,7 +2,7 @@ import type { Appointment } from "@convex/tables";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarIcon, Clock8Icon } from "lucide-react";
-import type { BaseSyntheticEvent, FC } from "react";
+import type { FC } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { Controller } from "react-hook-form";
 import type { output } from "zod";
@@ -33,12 +33,10 @@ interface RescheduleRequestFormProps {
     date: string;
     time: string;
   };
-  onSubmit: (e?: BaseSyntheticEvent) => Promise<void>;
   appointment: Appointment;
 }
 
 export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
-  onSubmit,
   formIds,
   disableDay,
   form,
@@ -55,7 +53,11 @@ export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
   });
 
   return (
-    <form id={formIds.form} onSubmit={onSubmit} className="space-y-4">
+    <form
+      id={formIds.form}
+      onSubmit={(e) => e.preventDefault()}
+      className="space-y-4"
+    >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label>Fecha original</Label>
