@@ -26,7 +26,6 @@ import { LoadingComponent } from "@/components/layout/loading-component";
 import { NotFoundComponent } from "@/components/layout/not-found-component";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { getSessionQueryOptions } from "@/hooks/use-session";
 import { authClient } from "@/lib/auth-client";
 import { getToken } from "@/lib/auth-server";
 import { seo } from "@/lib/utils";
@@ -51,10 +50,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     links: [{ rel: "stylesheet", href: appCss }],
   }),
   beforeLoad: async ({ context }) => {
-    const [token, user] = await Promise.all([
-      getAuth(),
-      context.queryClient.ensureQueryData(getSessionQueryOptions()),
-    ]);
+    const token = await getAuth();
 
     if (token) {
       context.convexQueryClient.serverHttpClient?.setAuth(token);
@@ -62,7 +58,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
     return {
       token,
-      user,
     };
   },
   shellComponent: () => <RootComponent />,
@@ -108,8 +103,11 @@ const RootDocument = ({ children }: { children: React.ReactNode }) => {
             <ThemeProvider>
               <IconContext.Provider value={{ weight: "bold", size: 24 }}>
                 <Toaster richColors position="top-center" />
+
                 <Header />
+
                 {children}
+
                 <BottomBar />
               </IconContext.Provider>
             </ThemeProvider>

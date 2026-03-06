@@ -8,7 +8,6 @@ import {
   getPricingPlansQueryOptions,
   getSubscriptionQueryOptions,
 } from "@/hooks/billing/use-pricing";
-import { getSessionQueryOptions } from "@/hooks/use-session";
 
 const PricingCards = lazy(() =>
   import("@/components/pricing/pricing-cards").then((module) => ({
@@ -20,8 +19,6 @@ export const Route = createFileRoute("/pricing")({
   component: PricingPage,
   pendingComponent: LoadingComponent,
   loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(getSessionQueryOptions());
-
     await Promise.all([
       context.queryClient.ensureQueryData(getPricingPlansQueryOptions()),
       context.queryClient.ensureQueryData(getSubscriptionQueryOptions()),

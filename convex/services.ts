@@ -243,8 +243,6 @@ export const deleteService = mutation({
 
     // Finally delete the service
     await ctx.db.delete(serviceId);
-
-    return { deletedAppointments: impactedAppointments.length };
   },
 });
 

@@ -4,6 +4,7 @@ import { UserPlusIcon } from "@phosphor-icons/react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Activity, lazy, Suspense } from "react";
 
+import { DashboardHeader } from "@/components/barbershops/dashboard-header";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
@@ -105,16 +106,12 @@ function RouteComponent() {
     <BorderContainer className="space-y-4">
       <section className="flex w-full flex-col gap-4">
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <div className="space-y-1">
-            <h1 className="font-bold text-2xl tracking-tight">
-              Gestiona tus barberos
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              Asigna servicios a cada barbero de tu equipo.
-            </p>
-          </div>
+          <DashboardHeader
+            title="Barberos"
+            description="Gestiona tus barberos y asigna servicios a cada uno de ellos."
+          />
 
-          <Suspense fallback={<Skeleton className="h-9 w-48" />}>
+          <Suspense fallback={<Skeleton className="h-9 w-full md:w-40" />}>
             {rolesData?.isOwner && (
               <InviteBarberDialog
                 barbershopId={barbershop?._id!}

@@ -6,6 +6,7 @@ import { lazy, Suspense } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
+import { DashboardHeader } from "@/components/barbershops/dashboard-header";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -20,10 +21,6 @@ import {
   barbershopMemberRolesQueryOptions,
   useBarbershopMemberRoles,
 } from "@/hooks/barbershop/use-barbershop-member";
-import {
-  barbershopMetadataQueryOptions,
-  useBarbershopMetadata,
-} from "@/hooks/barbershop/use-barbershop-metadata";
 import { useClipboard } from "@/hooks/use-clipboard";
 import {
   servicesQueryOptions,
@@ -58,11 +55,11 @@ const PreferencesForm = lazy(() =>
     default: mod.PreferencesForm,
   })),
 );
-const SocialMediaForm = lazy(() =>
-  import("@/components/barbershops/settings/social-media-form").then((mod) => ({
-    default: mod.SocialMediaForm,
-  })),
-);
+// const SocialMediaForm = lazy(() =>
+//   import("@/components/barbershops/settings/social-media-form").then((mod) => ({
+//     default: mod.SocialMediaForm,
+//   })),
+// );
 
 export const Route = createFileRoute(
   "/_authedRoutes/profile/barbershops/settings",
@@ -93,9 +90,9 @@ export const Route = createFileRoute(
       }
 
       if (barbershop) {
-        await opts.context.queryClient.ensureQueryData(
-          barbershopMetadataQueryOptions(barbershop._id),
-        );
+        // await opts.context.queryClient.ensureQueryData(
+        //   barbershopMetadataQueryOptions(barbershop._id),
+        // );
         await opts.context.queryClient.ensureQueryData(
           servicesQueryOptions(barbershop._id),
         );
@@ -118,7 +115,6 @@ function SettingsPage() {
   const [copy] = useClipboard();
 
   const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
-  const { data: barbershopMetadata } = useBarbershopMetadata(barbershop?._id!);
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
   const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
 
@@ -145,15 +141,10 @@ function SettingsPage() {
 
   return (
     <BorderContainer className="space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-balance font-bold text-2xl tracking-tight">
-          Configuración de barbería
-        </h1>
-
-        <p className="text-pretty text-muted-foreground text-sm">
-          Actualiza la información de tu barbería con la más reciente.
-        </p>
-      </header>
+      <DashboardHeader
+        title="Configuración"
+        description="Configura tu barbería y personaliza tu experiencia."
+      />
 
       {barbershop && rolesData?.isOwner && (
         <>
@@ -279,7 +270,7 @@ function SettingsPage() {
               </Suspense>
             </section>
 
-            <section className="flex min-h-44 w-full flex-col justify-between gap-4">
+            {/* <section className="flex min-h-44 w-full flex-col justify-between gap-4">
               <div>
                 <h2 className="font-bold text-xl tracking-tight">
                   Redes sociales
@@ -295,7 +286,7 @@ function SettingsPage() {
                   barbershopMetadata={barbershopMetadata!}
                 />
               </Suspense>
-            </section>
+            </section> */}
           </section>
 
           <Separator />

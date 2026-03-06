@@ -64,35 +64,20 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
 
   const onDelete = async (force = false) => {
     try {
-      const result = await deleteService({
+      await deleteService({
         serviceId,
         barbershopId,
         force,
       });
 
-      // Success - service deleted
-      const deletedCount =
-        typeof result === "object" &&
-        result !== null &&
-        "deletedAppointments" in result
-          ? (result as { deletedAppointments: number }).deletedAppointments
-          : 0;
-
       haptic.trigger("success");
-      if (deletedCount > 0) {
-        toast.success(
-          `Servicio eliminado. ${deletedCount} cita(s) cancelada(s) y notificaciones enviadas.`,
-        );
-      } else {
-        toast.success("Servicio eliminado exitosamente");
-      }
+      toast.success("Servicio eliminado exitosamente");
       handleOpenChange(false);
     } catch (error) {
       const errorMessage = getConvexErrorMessage(error);
       const willCancelCount = parseWillCancelError(errorMessage);
 
       if (willCancelCount !== null && !force) {
-        // Show confirmation step with impacted appointment count
         setImpactedCount(willCancelCount);
         setConfirmationStep("confirm_cancellation");
       } else {

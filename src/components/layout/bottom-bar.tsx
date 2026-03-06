@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/drawer";
 import { useNavRoutes } from "@/hooks/use-nav-routes";
 import { signOut } from "@/lib/auth-client";
-import { cn } from "@/lib/utils";
 import { ThemeToggler } from "./theme-toggler";
 
 export const BottomBar = () => {
@@ -68,9 +67,7 @@ export const BottomBar = () => {
                     activeProps={{
                       className: "bg-primary/10 text-primary",
                     }}
-                    className={cn(
-                      "mx-auto flex w-32 flex-col items-center gap-4 rounded-xl py-4 font-medium text-muted-foreground text-sm",
-                    )}
+                    className="mx-auto flex w-32 flex-col items-center gap-4 rounded-xl py-4 font-medium text-muted-foreground text-sm"
                   >
                     <Icon weight="duotone" />
                     <span>{item.label}</span>
@@ -91,13 +88,15 @@ export const BottomBar = () => {
                 Cerrar sesión
               </Button>
             ) : (
-              <Button
-                className="flex-1 text-center"
-                render={<Link to="/login" />}
-                nativeButton={false}
-              >
-                Iniciar sesión
-              </Button>
+              <DrawerClose className="flex-1 text-center">
+                <Button
+                  className="w-full"
+                  render={<Link to="/login" />}
+                  nativeButton={false}
+                >
+                  Iniciar sesión
+                </Button>
+              </DrawerClose>
             )}
 
             <ThemeToggler size="sm" />

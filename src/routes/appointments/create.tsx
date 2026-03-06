@@ -38,7 +38,6 @@ export const Route = createFileRoute("/appointments/create")({
 
     if (user?.userId) {
       await Promise.all([
-        ctx.context.queryClient.ensureQueryData(getSessionQueryOptions()),
         ctx.context.queryClient.ensureQueryData(
           userVisitedBarbershopsQueryOptions(user.userId),
         ),

@@ -50,9 +50,8 @@ const toCompleteLocation = (location?: BarbershopSearch) => {
 
 export const Route = createFileRoute("/barbershops/")({
   validateSearch: (search?: BarbershopSearch | undefined) => {
-    // Fall back to the persisted store values when URL params are absent
-    // so the loader always gets a complete location on return visits.
     const persisted = useLocationStore.getState();
+
     return {
       city: search?.city ?? persisted.city,
       state: search?.state ?? persisted.state,

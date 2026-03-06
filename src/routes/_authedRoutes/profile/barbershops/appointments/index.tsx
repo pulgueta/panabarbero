@@ -9,6 +9,7 @@ import {
   getAppointmentsTableColumns,
   rescheduledAppointmentRequestsTableColumns,
 } from "@/components/appointments/table/columns";
+import { DashboardHeader } from "@/components/barbershops/dashboard-header";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Button } from "@/components/ui/button";
@@ -154,11 +155,10 @@ function RouteComponent() {
 
   return (
     <BorderContainer className="space-y-4">
-      <section className="flex w-full flex-col justify-between gap-4">
-        <div className="flex w-full items-center justify-between gap-4">
-          <h1 className="font-bold text-2xl tracking-tight">Citas</h1>
-        </div>
-      </section>
+      <DashboardHeader
+        title="Citas"
+        description="Administra tus citas y solicitudes de reagendamiento."
+      />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="space-y-2">
