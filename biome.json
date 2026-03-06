@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.2.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -9,31 +9,20 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "experimentalScannerIgnores": [
-      "apps/web/src/routeTree.gen.ts",
-      "apps/web/convex/_generated/**/*.ts"
+    "includes": [
+      "convex/**/*.ts",
+      "!convex/_generated",
+      "src/**/*.ts",
+      "src/**/*.tsx",
+      "!src/routeTree.gen.ts",
+      "vite.config.ts"
     ]
   },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
-    "indentWidth": 2,
-    "includes": ["apps/**/*.ts", "apps/**/*.tsx"]
+    "indentWidth": 2
   },
-  "overrides": [
-    {
-      "includes": [
-        "apps/web/src/routeTree.gen.ts",
-        "apps/web/convex/_generated/**/*.ts"
-      ],
-      "linter": {
-        "enabled": false
-      },
-      "formatter": {
-        "enabled": false
-      }
-    }
-  ],
   "linter": {
     "enabled": true,
     "rules": {
@@ -42,7 +31,12 @@
         "useImportType": "warn"
       },
       "suspicious": {
-        "noUnknownAtRules": "off"
+        "noUnknownAtRules": "off",
+        "noNonNullAssertedOptionalChain": "off",
+        "noArrayIndexKey": "off"
+      },
+      "correctness": {
+        "useHookAtTopLevel": "off"
       },
       "nursery": {
         "useSortedClasses": {
@@ -67,5 +61,8 @@
       "enabled": true,
       "indentWidth": 2
     }
+  },
+  "css": {
+    "parser": {}
   }
 }
