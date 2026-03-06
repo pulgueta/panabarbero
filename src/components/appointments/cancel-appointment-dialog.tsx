@@ -7,14 +7,14 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalTrigger,
+} from "@/components/ui/responsive-modal";
 import { Spinner } from "@/components/ui/spinner";
 import { useAppointmentActions } from "@/hooks/use-appointments";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
@@ -87,13 +87,15 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger nativeButton={false} render={trigger} />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{cancelDialogDescription}</DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalTrigger nativeButton={false} render={trigger} />
+      <ResponsiveModalContent>
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>{title}</ResponsiveModalTitle>
+          <ResponsiveModalDescription>
+            {cancelDialogDescription}
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
         <CancelAppointmentForm
           isBarber={isBarber}
@@ -103,7 +105,7 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
           disabled={isCancellingAppointment}
         />
 
-        <DialogFooter>
+        <ResponsiveModalFooter>
           <Button
             variant="destructive"
             disabled={isCancellingAppointment}
@@ -113,8 +115,8 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
             {isCancellingAppointment && <Spinner />}
             {cancelButtonLabel}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 };

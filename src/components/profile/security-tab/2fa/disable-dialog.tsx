@@ -1,12 +1,10 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { FC } from "react";
+import { startTransition } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Field,
   FieldError,
@@ -14,15 +12,18 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
 import { Spinner } from "@/components/ui/spinner";
 import { twoFactor } from "@/lib/auth-client";
 import { disableTwoFactorSchema } from "@/lib/auth-schemas";
 import { translateBetterAuthError } from "@/lib/better-auth-errors";
-import { zodResolver } from "@hookform/resolvers/zod";
-import type { FC } from "react";
-import { startTransition } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
 
 interface DisableDialogProps {
   open: boolean;
@@ -64,15 +65,15 @@ export const DisableDialog: FC<DisableDialogProps> = ({
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Desactivar 2FA</DialogTitle>
-          <DialogDescription>
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalContent>
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>Desactivar 2FA</ResponsiveModalTitle>
+          <ResponsiveModalDescription>
             ¿Estás seguro de que quieres desactivar la autenticación de dos
             factores? La seguridad de tu cuenta se verá afectada.
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
         <form onSubmit={handleSubmit}>
           <FieldGroup>
             <Controller
@@ -98,7 +99,7 @@ export const DisableDialog: FC<DisableDialogProps> = ({
               )}
             />
           </FieldGroup>
-          <DialogFooter className="pt-4">
+          <ResponsiveModalFooter className="pt-4">
             <Button
               type="button"
               variant="outline"
@@ -117,9 +118,9 @@ export const DisableDialog: FC<DisableDialogProps> = ({
               {form.formState.isSubmitting && <Spinner />}
               Desactivar 2FA
             </Button>
-          </DialogFooter>
+          </ResponsiveModalFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 };

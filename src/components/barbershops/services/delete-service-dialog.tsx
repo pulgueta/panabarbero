@@ -5,14 +5,14 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalTrigger,
+} from "@/components/ui/responsive-modal";
 import { Spinner } from "@/components/ui/spinner";
 import { useServiceActions } from "@/hooks/use-services";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
@@ -112,15 +112,17 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
     : `Eliminar y cancelar ${impactedCount} cita(s)`;
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={trigger} />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{dialogTitle}</DialogTitle>
-          <DialogDescription>{dialogDescription}</DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal open={open} onOpenChange={handleOpenChange}>
+      <ResponsiveModalTrigger render={trigger} />
+      <ResponsiveModalContent>
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>{dialogTitle}</ResponsiveModalTitle>
+          <ResponsiveModalDescription>
+            {dialogDescription}
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <ResponsiveModalFooter className="gap-2 sm:gap-0">
           {!isInitialStep && (
             <Button
               variant="outline"
@@ -138,8 +140,8 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
             {isDeleting && <Spinner />}
             {buttonLabel}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 };

@@ -1,4 +1,4 @@
-import { LogOut } from "lucide-react";
+import { SignOutIcon } from "@phosphor-icons/react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -78,7 +78,7 @@ export function UserAvatar({ user }: UserAvatarProps) {
           <Separator />
 
           <Button variant="destructive" onClick={handleSignOut}>
-            <LogOut className="size-4" />
+            <SignOutIcon className="size-4" />
             Cerrar sesión
           </Button>
         </div>

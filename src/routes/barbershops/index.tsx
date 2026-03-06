@@ -1,5 +1,5 @@
+import { BuildingsIcon } from "@phosphor-icons/react";
 import { createFileRoute, useSearch } from "@tanstack/react-router";
-import { Building2 } from "lucide-react";
 import { lazy, Suspense } from "react";
 
 import { BarbershopLoadingGrid } from "@/components/barbershops/barbershop-loading-grid";
@@ -132,7 +132,7 @@ function BarbershopsPage() {
           <Empty className="bg-accent/20 dark:bg-accent/20">
             <EmptyHeader>
               <EmptyMedia variant="icon">
-                <Building2 className="size-6" />
+                <BuildingsIcon className="size-6" />
               </EmptyMedia>
               <EmptyTitle>No hay barberías disponibles.</EmptyTitle>
               <EmptyDescription>

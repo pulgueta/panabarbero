@@ -1,8 +1,8 @@
 import type { Appointment, Barbershop, Review } from "@convex/tables";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { Search } from "lucide-react";
 import type { FC } from "react";
 import { useState } from "react";
 
@@ -85,7 +85,7 @@ export const ReviewsTab: FC<ReviewsTabProps> = ({ reviews, barbershops }) => {
           </p>
         </div>
         <div className="relative">
-          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <MagnifyingGlassIcon className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}

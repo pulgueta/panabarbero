@@ -1,4 +1,9 @@
-import { Laptop, Moon, Smartphone, Sun } from "lucide-react";
+import {
+  DeviceMobileIcon,
+  LaptopIcon,
+  MoonIcon,
+  SunIcon,
+} from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,14 +26,14 @@ export const ThemeToggler = () => {
           <Button variant="outline" size="icon">
             {userTheme === "system" ? (
               isMobile ? (
-                <Smartphone className="size-4" />
+                <DeviceMobileIcon className="size-4" />
               ) : (
-                <Laptop className="size-4" />
+                <LaptopIcon className="size-4" />
               )
             ) : userTheme === "dark" ? (
-              <Moon className="size-4" />
+              <MoonIcon className="size-4" />
             ) : (
-              <Sun className="size-4" />
+              <SunIcon className="size-4" />
             )}
 
             <span className="sr-only">Cambiar tema</span>

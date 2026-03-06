@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: We need to assert non-null values because the hooks return undefined if the data is not loaded */
 
+import { SignOutIcon } from "@phosphor-icons/react";
 import { createFileRoute } from "@tanstack/react-router";
-import { LogOut } from "lucide-react";
 import { Activity, lazy, Suspense, useMemo, useState } from "react";
 
 import { BorderContainer } from "@/components/layout/border-container";
@@ -212,7 +212,7 @@ function ProfilePage() {
           onClick={handleSignOut}
           className="mt-1 text-xs sm:text-sm"
         >
-          <LogOut className="size-3" />
+          <SignOutIcon className="size-3" />
           Cerrar sesión
         </Button>
       </header>

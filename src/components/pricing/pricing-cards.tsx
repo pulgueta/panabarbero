@@ -1,7 +1,7 @@
 import { CheckoutLink, CustomerPortalLink } from "@convex-dev/polar/react";
+import { CheckCircleIcon } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { api } from "convex/_generated/api";
-import { CheckCircle2 } from "lucide-react";
 import type { FC } from "react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -71,7 +71,7 @@ export const PricingCards: FC = () => {
                 <ul className="space-y-2 text-muted-foreground text-sm">
                   {product.benefits?.map((benefit) => (
                     <li key={benefit.id} className="flex items-start gap-2">
-                      <CheckCircle2 className="mt-0.5 size-4 text-primary" />
+                      <CheckCircleIcon className="mt-0.5 size-4 text-primary" />
                       <span>{benefit.description}</span>
                     </li>
                   ))}

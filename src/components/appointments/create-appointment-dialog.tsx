@@ -13,16 +13,16 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalTrigger,
+} from "@/components/ui/responsive-modal";
 import { Spinner } from "@/components/ui/spinner";
 import {
   useAppointmentActions,
@@ -198,17 +198,17 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   });
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={trigger} />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{headLabel}</DialogTitle>
-          <DialogDescription>
+    <ResponsiveModal open={open} onOpenChange={setOpen}>
+      <ResponsiveModalTrigger render={trigger} />
+      <ResponsiveModalContent>
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>{headLabel}</ResponsiveModalTitle>
+          <ResponsiveModalDescription>
             {user
               ? description
               : "Debes iniciar sesión para poder reservar un servicio"}
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
         <Activity mode={user ? "visible" : "hidden"}>
           <CreateAppointmentForm
@@ -233,7 +233,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
           />
         </Activity>
 
-        <DialogFooter>
+        <ResponsiveModalFooter>
           {user ? (
             <Field>
               <Button
@@ -250,8 +250,8 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
               Iniciar sesión
             </Button>
           )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 };

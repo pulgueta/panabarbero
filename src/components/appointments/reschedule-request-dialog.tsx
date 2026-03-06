@@ -9,14 +9,14 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalTrigger,
+} from "@/components/ui/responsive-modal";
 import { Spinner } from "@/components/ui/spinner";
 import {
   useAppointmentActions,
@@ -134,13 +134,13 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
   const sendButtonLabel = "Enviar solicitud";
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger nativeButton={false} render={trigger} />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{headLabel}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalTrigger nativeButton={false} render={trigger} />
+      <ResponsiveModalContent>
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>{headLabel}</ResponsiveModalTitle>
+          <ResponsiveModalDescription>{description}</ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
         <RescheduleRequestForm
           // @ts-expect-error - zod's coerce method returns an unknown type
@@ -149,8 +149,7 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
           disableDay={disableDay}
           appointment={appointment}
         />
-
-        <DialogFooter>
+        <ResponsiveModalFooter>
           <Button
             type="button"
             onClick={onSubmit}
@@ -159,8 +158,8 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
             {isSendingRescheduleRequest && <Spinner />}
             {sendButtonLabel}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 };

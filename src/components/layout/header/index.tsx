@@ -3,9 +3,8 @@ import { lazy, Suspense } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { authenticatedRoutes, publicRoutes } from "@/config";
-import { useBarbershopMemberRoles } from "@/hooks/barbershop/use-barbershop-member";
 import { useIsBarber } from "@/hooks/use-barbershop-members";
+import { useNavRoutes } from "@/hooks/use-nav-routes";
 import { useSession } from "@/hooks/use-session";
 
 const ThemeToggler = lazy(() =>
@@ -22,15 +21,10 @@ const UserAvatar = lazy(() =>
 export const Header = () => {
   const { data: user, isLoading } = useSession();
   const { data: isBarber } = useIsBarber(user?.userId ?? "");
-  const { data: rolesData } = useBarbershopMemberRoles(user?.userId ?? "");
+  const { routes } = useNavRoutes();
 
   const router = useRouterState();
-
   const currentPath = router.location.pathname;
-
-  const navigationRoutes = rolesData?.isOwner
-    ? authenticatedRoutes.owner
-    : authenticatedRoutes.barber;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/60 md:px-4">
@@ -53,77 +47,24 @@ export const Header = () => {
 
         <nav className="flex flex-1 items-center justify-center">
           <div className="flex items-center font-medium text-sm md:space-x-4 lg:space-x-8">
-            {user
-              ? isBarber
-                ? navigationRoutes.map((route) => (
-                    <Button
-                      key={route.to}
-                      variant={currentPath === route.to ? "outline" : "ghost"}
-                      nativeButton={false}
-                      render={
-                        <Link
-                          key={route.to}
-                          to={route.to}
-                          style={{
-                            viewTransitionName: route.to,
-                          }}
-                          search={
-                            route.to === "/profile"
-                              ? { tab: "account" }
-                              : undefined
-                          }
-                        />
-                      }
-                    >
-                      {route.label}
-                    </Button>
-                  ))
-                : authenticatedRoutes.navigation.map((route) => (
-                    <Button
-                      key={route.to}
-                      variant={currentPath === route.to ? "outline" : "ghost"}
-                      nativeButton={false}
-                      render={
-                        <Link
-                          key={route.to}
-                          to={route.to}
-                          style={{
-                            viewTransitionName: route.to,
-                          }}
-                          search={
-                            route.to === "/profile"
-                              ? { tab: "account" }
-                              : undefined
-                          }
-                        />
-                      }
-                    >
-                      {route.label}
-                    </Button>
-                  ))
-              : publicRoutes.navigation.map((route) => (
-                  <Button
-                    key={route.to}
-                    variant={currentPath === route.to ? "outline" : "ghost"}
-                    nativeButton={false}
-                    render={
-                      <Link
-                        key={route.to}
-                        to={route.to}
-                        style={{
-                          viewTransitionName: route.to,
-                        }}
-                        search={
-                          route.to === "/profile"
-                            ? { tab: "account" }
-                            : undefined
-                        }
-                      />
+            {routes.map((route) => (
+              <Button
+                key={route.to}
+                variant={currentPath === route.to ? "outline" : "ghost"}
+                nativeButton={false}
+                render={
+                  <Link
+                    to={route.to}
+                    style={{ viewTransitionName: route.to }}
+                    search={
+                      route.to === "/profile" ? { tab: "account" } : undefined
                     }
-                  >
-                    {route.label}
-                  </Button>
-                ))}
+                  />
+                }
+              >
+                {route.label}
+              </Button>
+            ))}
           </div>
         </nav>
 

@@ -1,5 +1,5 @@
+import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { SearchIcon } from "lucide-react";
 import { Activity, lazy, Suspense, useState } from "react";
 
 import { BorderContainer } from "@/components/layout/border-container";
@@ -141,7 +141,7 @@ function RouteComponent() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             <InputGroupAddon>
-              <SearchIcon />
+              <MagnifyingGlassIcon />
             </InputGroupAddon>
           </InputGroup>
         </div>

@@ -2,13 +2,13 @@ import type { Barbershop } from "@convex/tables";
 import type { FC, ReactElement } from "react";
 
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalTrigger,
+} from "@/components/ui/responsive-modal";
 import { InviteBarberForm } from "./invite-barber-form";
 
 interface InviteBarberDialogProps {
@@ -24,16 +24,16 @@ export const InviteBarberDialog: FC<InviteBarberDialogProps> = ({
   const description = "Proporciona los datos del barbero a invitar.";
 
   return (
-    <Dialog>
-      <DialogTrigger render={trigger} />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{headLabel}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal>
+      <ResponsiveModalTrigger render={trigger} />
+      <ResponsiveModalContent>
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>{headLabel}</ResponsiveModalTitle>
+          <ResponsiveModalDescription>{description}</ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
         <InviteBarberForm barbershopId={barbershopId} />
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 };

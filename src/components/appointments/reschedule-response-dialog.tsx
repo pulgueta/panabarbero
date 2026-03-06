@@ -5,14 +5,14 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalTrigger,
+} from "@/components/ui/responsive-modal";
 import { Spinner } from "@/components/ui/spinner";
 import { useAppointmentActions } from "@/hooks/use-appointments";
 import { useSession } from "@/hooks/use-session";
@@ -80,17 +80,19 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger nativeButton={false} render={trigger} />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Solicitud de reagendamiento</DialogTitle>
-          <DialogDescription>
+    <ResponsiveModal open={isOpen} onOpenChange={setIsOpen}>
+      <ResponsiveModalTrigger nativeButton={false} render={trigger} />
+      <ResponsiveModalContent>
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>
+            Solicitud de reagendamiento
+          </ResponsiveModalTitle>
+          <ResponsiveModalDescription>
             {isRequester
               ? "Estos son los detalles de tu solicitud."
               : "Revisa las fechas antes de responder."}
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
         <div className="space-y-2 text-sm">
           <div className="flex flex-col">
@@ -106,7 +108,7 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
         </div>
 
         {canRespond && (
-          <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <ResponsiveModalFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
             <Button
               type="button"
               variant="destructive"
@@ -124,9 +126,9 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
               {isAnswering && <Spinner />}
               Aceptar
             </Button>
-          </DialogFooter>
+          </ResponsiveModalFooter>
         )}
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 };

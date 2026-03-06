@@ -1,4 +1,4 @@
-import { TrashIcon, UserIcon } from "lucide-react";
+import { TrashIcon, UserIcon } from "@phosphor-icons/react";
 import type { FC } from "react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";

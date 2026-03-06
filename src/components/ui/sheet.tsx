@@ -1,9 +1,8 @@
-import type { ComponentProps } from "react";
 import { Dialog as SheetPrimitive } from "@base-ui/react/dialog";
-
-import { cn } from "@/lib/utils";
+import { XIcon } from "@phosphor-icons/react";
+import type { ComponentProps } from "react";
 import { Button } from "@/components/ui/button";
-import { XIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 function Sheet({ ...props }: SheetPrimitive.Root.Props) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />;

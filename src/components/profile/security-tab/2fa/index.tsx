@@ -1,3 +1,7 @@
+import { CheckCircleIcon, ShieldIcon } from "@phosphor-icons/react";
+import type { FC } from "react";
+import { useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -7,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   Empty,
   EmptyDescription,
@@ -15,10 +18,11 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+} from "@/components/ui/responsive-modal";
 import { useSession } from "@/lib/auth-client";
-import { CheckCircle2Icon, ShieldIcon } from "lucide-react";
-import type { FC } from "react";
-import { useState } from "react";
 import { DisableDialog } from "./disable-dialog";
 import { PasswordStep } from "./password-step";
 import { QrCodeStep } from "./qrcode-step";
@@ -81,9 +85,12 @@ export const TwoFactorSection: FC = () => {
             <EmptyHeader>
               <EmptyMedia variant="icon">
                 {isTwoFactorEnabled ? (
-                  <CheckCircle2Icon className="text-green-600" />
+                  <CheckCircleIcon
+                    weight="duotone"
+                    className="text-green-600"
+                  />
                 ) : (
-                  <ShieldIcon />
+                  <ShieldIcon weight="duotone" />
                 )}
               </EmptyMedia>
             </EmptyHeader>
@@ -111,9 +118,12 @@ export const TwoFactorSection: FC = () => {
         </CardFooter>
       </Card>
 
-      {/* Setup Dialog */}
-      <Dialog open={step !== "idle"} onOpenChange={() => handleCloseSetup()}>
-        <DialogContent>
+      {/* Setup Modal */}
+      <ResponsiveModal
+        open={step !== "idle"}
+        onOpenChange={() => handleCloseSetup()}
+      >
+        <ResponsiveModalContent>
           {step === "password" && (
             <PasswordStep
               onNext={handlePasswordSuccess}
@@ -139,10 +149,10 @@ export const TwoFactorSection: FC = () => {
           {step === "success" && (
             <SuccessStep backupCodes={backupCodes} onClose={handleCloseSetup} />
           )}
-        </DialogContent>
-      </Dialog>
+        </ResponsiveModalContent>
+      </ResponsiveModal>
 
-      {/* Disable 2FA Dialog */}
+      {/* Disable 2FA Modal */}
       <DisableDialog
         open={showDisableDialog}
         onOpenChange={setShowDisableDialog}

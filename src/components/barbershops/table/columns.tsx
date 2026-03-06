@@ -1,7 +1,7 @@
 import type { Barbershop } from "@convex/tables";
+import { PencilIcon } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
-import { PencilIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

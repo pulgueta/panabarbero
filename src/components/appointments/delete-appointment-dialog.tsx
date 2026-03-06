@@ -4,14 +4,14 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalTrigger,
+} from "@/components/ui/responsive-modal";
 import { Spinner } from "@/components/ui/spinner";
 import { useAppointmentActions } from "@/hooks/use-appointments";
 
@@ -47,15 +47,17 @@ export const DeleteAppointmentDialog: FC<DeleteAppointmentDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger nativeButton={false} render={trigger} />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Eliminar cita</DialogTitle>
-          <DialogDescription>{deleteDialogDescription}</DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalTrigger nativeButton={false} render={trigger} />
+      <ResponsiveModalContent>
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>Eliminar cita</ResponsiveModalTitle>
+          <ResponsiveModalDescription>
+            {deleteDialogDescription}
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
-        <DialogFooter>
+        <ResponsiveModalFooter>
           <Button
             variant="destructive"
             disabled={isDeletingAppointment}
@@ -64,8 +66,8 @@ export const DeleteAppointmentDialog: FC<DeleteAppointmentDialogProps> = ({
             {isDeletingAppointment && <Spinner />}
             {deleteButtonLabel}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 };

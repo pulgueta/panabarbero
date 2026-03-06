@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: needed */
 
+import { PlusIcon } from "@phosphor-icons/react";
 import { createFileRoute } from "@tanstack/react-router";
 import { es } from "date-fns/locale";
-import { PlusIcon } from "lucide-react";
 import { Activity, lazy, Suspense, useState } from "react";
 
 import {

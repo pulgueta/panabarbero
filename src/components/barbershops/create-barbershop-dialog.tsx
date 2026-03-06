@@ -6,16 +6,16 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalTrigger,
+} from "@/components/ui/responsive-modal";
 import { Spinner } from "@/components/ui/spinner";
 import { useBarbershopActions } from "@/hooks/barbershop/use-barbershop";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
@@ -114,13 +114,13 @@ export const CreateBarbershopDialog: FC<CreateBarbershopDialogProps> = ({
   const description = "Ingresa los datos generales tu barbería.";
 
   return (
-    <Dialog>
-      <DialogTrigger render={trigger} />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal>
+      <ResponsiveModalTrigger render={trigger} />
+      <ResponsiveModalContent>
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>{title}</ResponsiveModalTitle>
+          <ResponsiveModalDescription>{description}</ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
         <CreateBarbershopForm
           formIds={formIds}
@@ -129,7 +129,7 @@ export const CreateBarbershopDialog: FC<CreateBarbershopDialogProps> = ({
           onSubmit={onSubmit}
         />
 
-        <DialogFooter>
+        <ResponsiveModalFooter>
           <Field>
             <Button
               type="submit"
@@ -139,8 +139,8 @@ export const CreateBarbershopDialog: FC<CreateBarbershopDialogProps> = ({
               {isCreatingBarbershop && <Spinner />} Crear barbería
             </Button>
           </Field>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 };

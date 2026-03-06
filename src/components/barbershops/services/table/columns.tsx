@@ -1,6 +1,10 @@
 import type { Service } from "@convex/tables";
+import {
+  DotsThreeVerticalIcon,
+  PencilIcon,
+  TrashIcon,
+} from "@phosphor-icons/react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { EllipsisVerticalIcon, PencilIcon, TrashIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -73,7 +77,7 @@ export const servicesTableColumns: ColumnDef<Service>[] = [
               render={
                 <Button variant="outline" size="icon" disabled={isDeleting}>
                   <span className="sr-only">Abrir menú</span>
-                  <EllipsisVerticalIcon />
+                  <DotsThreeVerticalIcon />
                 </Button>
               }
             />

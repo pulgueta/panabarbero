@@ -1,5 +1,11 @@
 /** biome-ignore-all lint/correctness/noChildrenProp: Enforced by TanStack Form */
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { EyeIcon } from "@phosphor-icons/react";
+import { useRouter } from "@tanstack/react-router";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Field,
@@ -12,12 +18,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { signUp } from "@/lib/auth-client";
 import { registerFormSchema } from "@/lib/auth-schemas";
 import { translateBetterAuthError } from "@/lib/better-auth-errors";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "@tanstack/react-router";
-import { EyeIcon, EyeOffIcon } from "lucide-react";
-import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
 
 export const RegisterForm = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false);

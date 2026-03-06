@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: Needed */
 
+import { PlusIcon } from "@phosphor-icons/react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { PlusIcon } from "lucide-react";
 import { Activity, lazy, Suspense, useState } from "react";
 
 import { BorderContainer } from "@/components/layout/border-container";

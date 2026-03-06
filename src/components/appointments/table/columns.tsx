@@ -2,12 +2,12 @@
 
 import type { Id } from "@convex/_generated/dataModel";
 import type { Appointment } from "@convex/tables";
-import type { ColumnDef } from "@tanstack/react-table";
 import {
-  CalendarClockIcon,
-  EllipsisVerticalIcon,
+  CalendarCheckIcon,
+  DotsThreeVerticalIcon,
   TrashIcon,
-} from "lucide-react";
+} from "@phosphor-icons/react";
+import type { ColumnDef } from "@tanstack/react-table";
 import type { FC } from "react";
 import { lazy, useState } from "react";
 
@@ -88,7 +88,7 @@ const AppointmentActionsCell: FC<Appointment> = (appointment) => {
         <DropdownMenuTrigger
           render={
             <Button variant="outline" size="icon">
-              <EllipsisVerticalIcon />
+              <DotsThreeVerticalIcon />
             </Button>
           }
         />
@@ -99,7 +99,7 @@ const AppointmentActionsCell: FC<Appointment> = (appointment) => {
               className="inline-flex w-full items-center gap-x-2"
               onClick={() => setOpenDialog("reschedule")}
             >
-              <CalendarClockIcon className="size-3" />
+              <CalendarCheckIcon className="size-3" />
               Solicitar reagendamiento
             </DropdownMenuItem>
           )}

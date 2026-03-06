@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: Needed */
 
 import type { BarbershopMemberWithName, Service } from "@convex/tables";
+import { CheckIcon, UserPlusIcon, XIcon } from "@phosphor-icons/react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { Check, UserPlus, X } from "lucide-react";
 import type { FC } from "react";
 import { Activity, lazy, Suspense, useId, useState } from "react";
 import { toast } from "sonner";
@@ -155,7 +155,7 @@ function RouteComponent() {
                 barbershopId={barbershop?._id!}
                 trigger={
                   <Button variant="outline" disabled={!rolesData?.isOwner}>
-                    <UserPlus className="size-3" />
+                    <UserPlusIcon className="size-3" />
                     Invitar barbero
                   </Button>
                 }
@@ -434,11 +434,11 @@ function ManageServicesDialog({
         <div className="space-y-4 py-4">
           <div className="flex justify-between gap-2">
             <Button variant="outline" onClick={handleSelectAll}>
-              <Check className="size-3" />
+              <CheckIcon className="size-3" />
               Todos
             </Button>
             <Button variant="outline" onClick={handleClearAll}>
-              <X className="size-3" />
+              <XIcon className="size-3" />
               Ninguno
             </Button>
           </div>

@@ -1,7 +1,7 @@
 import type { Appointment } from "@convex/tables";
+import { CalendarIcon, ClockCounterClockwiseIcon } from "@phosphor-icons/react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon, Clock8Icon } from "lucide-react";
 import type { FC } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { Controller } from "react-hook-form";
@@ -145,7 +145,7 @@ export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
               <FieldLabel htmlFor={formIds.time}>Hora propuesta</FieldLabel>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center justify-center pl-3 text-muted-foreground peer-disabled:opacity-50">
-                  <Clock8Icon className="size-4" />
+                  <ClockCounterClockwiseIcon className="size-4" />
                   <span className="sr-only">Hora</span>
                 </div>
                 <Input

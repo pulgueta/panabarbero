@@ -1,17 +1,4 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import {
-  ArrowRight,
-  Bell,
-  Calendar,
-  CheckCircle2,
-  MessageSquare,
-  Scissors,
-  Smartphone,
-  Star,
-  TrendingUp,
-  Users,
-  Zap,
-} from "lucide-react";
 import { useLayoutEffect } from "react";
 
 import { LoadingComponent } from "@/components/layout/loading-component";

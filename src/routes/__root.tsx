@@ -2,6 +2,7 @@
 
 import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import type { ConvexQueryClient } from "@convex-dev/react-query";
+import { IconContext } from "@phosphor-icons/react";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
@@ -102,10 +103,12 @@ const RootDocument = ({ children }: { children: React.ReactNode }) => {
             initialToken={token}
           >
             <ThemeProvider>
-              <Toaster richColors position="top-center" />
-              {!isMobile && <Header />}
-              {children}
-              {isMobile && <BottomBar />}
+              <IconContext.Provider value={{ weight: "duotone", size: 24 }}>
+                <Toaster richColors position="top-center" />
+                {!isMobile && <Header />}
+                {children}
+                {isMobile && <BottomBar />}
+              </IconContext.Provider>
             </ThemeProvider>
 
             {process.env.NODE_ENV === "development" && (

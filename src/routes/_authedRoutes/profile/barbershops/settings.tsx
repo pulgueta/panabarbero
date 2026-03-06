@@ -1,6 +1,7 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: barbershop is guaranteed to be not null */
+
+import { PlusIcon, ShareNetworkIcon } from "@phosphor-icons/react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { PlusIcon, Share } from "lucide-react";
 import { lazy, Suspense } from "react";
 import { toast } from "sonner";
 
@@ -177,7 +178,7 @@ function SettingsPage() {
           </div> */}
 
           <Button onClick={onCopyLink}>
-            <Share className="size-3" />
+            <ShareNetworkIcon className="size-3" />
             Copia el link de tu barbería
           </Button>
 

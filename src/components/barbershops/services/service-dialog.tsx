@@ -6,16 +6,16 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalTrigger,
+} from "@/components/ui/responsive-modal";
 import { Spinner } from "@/components/ui/spinner";
 import { useServiceActions } from "@/hooks/use-services";
 import type { ServiceFormData } from "@/lib/schemas";
@@ -106,13 +106,13 @@ export const ServiceDialog: FC<ServiceDialogProps> = ({
   const description = `${initialValues ? "Actualiza los datos del servicio." : "Define los datos básicos del servicio."}`;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={trigger} />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{headLabel}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal open={open} onOpenChange={setOpen}>
+      <ResponsiveModalTrigger render={trigger} />
+      <ResponsiveModalContent>
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>{headLabel}</ResponsiveModalTitle>
+          <ResponsiveModalDescription>{description}</ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
         <ServiceForm
           // @ts-expect-error - zod's coerce method returns an unknown type
@@ -122,14 +122,14 @@ export const ServiceDialog: FC<ServiceDialogProps> = ({
           initialValues={initialValues}
         />
 
-        <DialogFooter>
+        <ResponsiveModalFooter>
           <Field>
             <Button type="submit" form={formIds.form} disabled={loading}>
               {loading ? <Spinner /> : "Guardar"}
             </Button>
           </Field>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 };

@@ -1,117 +1,89 @@
+import { PlusIcon, SignOutIcon } from "@phosphor-icons/react";
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useState } from "react";
 
-import { authenticatedRoutes, publicRoutes } from "@/config";
-import { useBarbershopMemberRoles } from "@/hooks/barbershop/use-barbershop-member";
-import { useIsBarber } from "@/hooks/use-barbershop-members";
-import { useSession } from "@/hooks/use-session";
+import { Button } from "@/components/ui/button";
+import { Drawer, DrawerContent, DrawerFooter } from "@/components/ui/drawer";
+import { useNavRoutes } from "@/hooks/use-nav-routes";
+import { signOut } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
 export const BottomBar = () => {
+  const [open, setOpen] = useState(false);
   const router = useRouterState();
-
   const currentPath = router.location.pathname;
+  const { routes, user } = useNavRoutes();
 
-  const { data: user } = useSession();
-  const { data: isBarber } = useIsBarber(user?.userId ?? "");
-  const { data: rolesData } = useBarbershopMemberRoles(user?.userId ?? "");
-
-  const navigationRoutes = rolesData?.isOwner
-    ? authenticatedRoutes.owner
-    : authenticatedRoutes.barber;
-
-  const routesWithoutHome = authenticatedRoutes.navigation.filter(
-    (route) => route.to !== "/",
-  );
+  const handleSignOut = async () => {
+    await signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          location.reload();
+        },
+      },
+    });
+  };
 
   return (
-    <div className="fixed right-0 bottom-0 left-0 z-50 mx-auto flex h-16 w-full items-center border-border border-t bg-background/80 backdrop-blur-sm">
-      <div className="container mx-auto">
-        <nav className="flex h-full items-center justify-around gap-x-2 px-2">
-          {user
-            ? isBarber
-              ? navigationRoutes.map((item) => {
-                  const Icon = item.icon;
-
-                  return (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      disabled={currentPath === item.to}
-                      className={cn(
-                        "flex max-w-24 flex-1 flex-col items-center justify-center gap-1.5 text-muted-foreground",
-                      )}
-                      style={{
-                        viewTransitionName: item.to,
-                      }}
-                      search={
-                        item.to === "/profile" ? { tab: "account" } : undefined
-                      }
-                    >
-                      <Icon className="size-5 shrink-0" />
-                      <span className="truncate font-medium text-xs leading-none">
-                        {item.label}
-                      </span>
-                    </Link>
-                  );
-                })
-              : routesWithoutHome.map((item) => {
-                  const Icon = item.icon;
-
-                  return (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      disabled={currentPath === item.to}
-                      activeProps={{
-                        className: "text-primary",
-                      }}
-                      className={cn(
-                        "flex max-w-24 flex-1 flex-col items-center justify-center gap-1.5 text-muted-foreground",
-                      )}
-                      style={{
-                        viewTransitionName: item.to,
-                      }}
-                      search={
-                        item.to === "/profile" ? { tab: "account" } : undefined
-                      }
-                    >
-                      <Icon className="size-5 shrink-0" />
-                      <span className="truncate font-medium text-xs leading-none">
-                        {item.label}
-                      </span>
-                    </Link>
-                  );
-                })
-            : publicRoutes.navigation.map((item) => {
-                const Icon = item.icon;
-
-                return (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    disabled={currentPath === item.to}
-                    activeProps={{
-                      className: "text-primary",
-                    }}
-                    className={cn(
-                      "flex w-full max-w-20 flex-col items-center justify-center gap-1.5 text-muted-foreground",
-                    )}
-                    style={{
-                      viewTransitionName: item.to,
-                    }}
-                    search={
-                      item.to === "/profile" ? { tab: "account" } : undefined
-                    }
-                  >
-                    <Icon className="size-5 shrink-0" />
-                    <span className="truncate font-medium text-xs leading-none">
-                      {item.label}
-                    </span>
-                  </Link>
-                );
-              })}
-        </nav>
+    <>
+      {/* Fixed bottom bar with single FAB */}
+      <div className="fixed right-0 bottom-0 left-0 z-50 flex h-16 w-full items-center justify-center border-border border-t bg-background/90 px-4 backdrop-blur-sm supports-[padding-bottom:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)]">
+        <Button
+          variant="default"
+          onClick={() => setOpen(true)}
+          className="h-10 w-full max-w-xs gap-2 rounded-full px-6 font-medium text-sm"
+          aria-label="Abrir menú de navegación"
+        >
+          <PlusIcon size={20} weight="duotone" />
+          Menú
+        </Button>
       </div>
-    </div>
+
+      {/* Navigation drawer — always a Drawer since BottomBar is mobile-only */}
+      <Drawer open={open} onOpenChange={setOpen} swipeDirection="down">
+        <DrawerContent>
+          <nav className="flex flex-col gap-1 px-3 pt-2 pb-2">
+            {routes.map((item) => {
+              const Icon = item.icon;
+              const isActive = currentPath === item.to;
+
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setOpen(false)}
+                  search={
+                    item.to === "/profile" ? { tab: "account" } : undefined
+                  }
+                  style={{ viewTransitionName: item.to }}
+                  className={cn(
+                    "flex w-full items-center gap-4 rounded-xl px-4 py-3.5 font-medium text-sm transition-colors",
+                    isActive
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                  )}
+                >
+                  <Icon size={16} weight="duotone" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {user && (
+            <DrawerFooter>
+              <Button
+                variant="outline"
+                onClick={handleSignOut}
+                className="w-full justify-start gap-3"
+              >
+                <SignOutIcon size={24} weight="duotone" />
+                Cerrar sesión
+              </Button>
+            </DrawerFooter>
+          )}
+        </DrawerContent>
+      </Drawer>
+    </>
   );
 };
