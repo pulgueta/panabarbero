@@ -4,7 +4,8 @@ import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import type { ConvexQueryClient } from "@convex-dev/react-query";
 import { IconContext } from "@phosphor-icons/react";
 import { TanStackDevtools } from "@tanstack/react-devtools";
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
 import {
   createRootRouteWithContext,
@@ -25,7 +26,7 @@ import { LoadingComponent } from "@/components/layout/loading-component";
 import { NotFoundComponent } from "@/components/layout/not-found-component";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { useIsMobile } from "@/hooks/use-is-mobile";
+import { getSessionQueryOptions } from "@/hooks/use-session";
 import { authClient } from "@/lib/auth-client";
 import { getToken } from "@/lib/auth-server";
 import { seo } from "@/lib/utils";
@@ -50,7 +51,10 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     links: [{ rel: "stylesheet", href: appCss }],
   }),
   beforeLoad: async ({ context }) => {
-    const token = await getAuth();
+    const [token, user] = await Promise.all([
+      getAuth(),
+      context.queryClient.ensureQueryData(getSessionQueryOptions()),
+    ]);
 
     if (token) {
       context.convexQueryClient.serverHttpClient?.setAuth(token);
@@ -58,6 +62,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
     return {
       token,
+      user,
     };
   },
   shellComponent: () => <RootComponent />,
@@ -81,8 +86,6 @@ function RootComponent() {
 const RootDocument = ({ children }: { children: React.ReactNode }) => {
   const { convexQueryClient, queryClient, token } = Route.useRouteContext();
 
-  const { isMobile } = useIsMobile();
-
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
@@ -103,11 +106,11 @@ const RootDocument = ({ children }: { children: React.ReactNode }) => {
             initialToken={token}
           >
             <ThemeProvider>
-              <IconContext.Provider value={{ weight: "duotone", size: 24 }}>
+              <IconContext.Provider value={{ weight: "bold", size: 24 }}>
                 <Toaster richColors position="top-center" />
-                {!isMobile && <Header />}
+                <Header />
                 {children}
-                {isMobile && <BottomBar />}
+                <BottomBar />
               </IconContext.Provider>
             </ThemeProvider>
 

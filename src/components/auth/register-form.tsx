@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/correctness/noChildrenProp: Enforced by TanStack Form */
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { EyeIcon } from "@phosphor-icons/react";
+import { EyeIcon, EyeSlashIcon } from "@phosphor-icons/react";
 import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -139,7 +139,7 @@ export const RegisterForm = () => {
                     }
                   >
                     {showPassword ? (
-                      <EyeOffIcon size={16} />
+                      <EyeSlashIcon size={16} />
                     ) : (
                       <EyeIcon size={16} />
                     )}
@@ -186,7 +186,7 @@ export const RegisterForm = () => {
                     }
                   >
                     {showConfirmPassword ? (
-                      <EyeOffIcon size={16} />
+                      <EyeSlashIcon size={16} />
                     ) : (
                       <EyeIcon size={16} />
                     )}

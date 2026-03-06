@@ -1,17 +1,25 @@
 import { PlusIcon, SignOutIcon } from "@phosphor-icons/react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
-import { Drawer, DrawerContent, DrawerFooter } from "@/components/ui/drawer";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerFooter,
+} from "@/components/ui/drawer";
 import { useNavRoutes } from "@/hooks/use-nav-routes";
 import { signOut } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
+import { ThemeToggler } from "./theme-toggler";
 
 export const BottomBar = () => {
   const [open, setOpen] = useState(false);
-  const router = useRouterState();
-  const currentPath = router.location.pathname;
+
+  const { trigger } = useWebHaptics();
+
   const { routes, user } = useNavRoutes();
 
   const handleSignOut = async () => {
@@ -26,62 +34,74 @@ export const BottomBar = () => {
 
   return (
     <>
-      {/* Fixed bottom bar with single FAB */}
-      <div className="fixed right-0 bottom-0 left-0 z-50 flex h-16 w-full items-center justify-center border-border border-t bg-background/90 px-4 backdrop-blur-sm supports-[padding-bottom:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)]">
+      <div className="fixed right-0 bottom-0 left-0 z-50 flex h-18 w-full items-center justify-center gap-4 border-border border-t bg-background/20 px-4 backdrop-blur-sm md:hidden dark:bg-secondary/40">
         <Button
-          variant="default"
-          onClick={() => setOpen(true)}
-          className="h-10 w-full max-w-xs gap-2 rounded-full px-6 font-medium text-sm"
-          aria-label="Abrir menú de navegación"
+          onClick={() => {
+            trigger();
+            setOpen(true);
+          }}
+          className="w-full max-w-16 rounded-full font-medium"
+          size="lg"
         >
-          <PlusIcon size={20} weight="duotone" />
-          Menú
+          <PlusIcon size={32} />
+          <span className="sr-only">Abrir menú de navegación</span>
         </Button>
       </div>
 
-      {/* Navigation drawer — always a Drawer since BottomBar is mobile-only */}
-      <Drawer open={open} onOpenChange={setOpen} swipeDirection="down">
-        <DrawerContent>
-          <nav className="flex flex-col gap-1 px-3 pt-2 pb-2">
+      <Drawer open={open} onOpenChange={setOpen}>
+        <DrawerContent className="px-4">
+          <nav className="mt-2 grid grid-cols-2 gap-1">
             {routes.map((item) => {
               const Icon = item.icon;
-              const isActive = currentPath === item.to;
 
               return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  onClick={() => setOpen(false)}
-                  search={
-                    item.to === "/profile" ? { tab: "account" } : undefined
-                  }
-                  style={{ viewTransitionName: item.to }}
-                  className={cn(
-                    "flex w-full items-center gap-4 rounded-xl px-4 py-3.5 font-medium text-sm transition-colors",
-                    isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                  )}
-                >
-                  <Icon size={16} weight="duotone" />
-                  <span>{item.label}</span>
-                </Link>
+                <DrawerClose key={item.to}>
+                  <Link
+                    to={item.to}
+                    onClick={() => {
+                      trigger();
+                    }}
+                    search={
+                      item.to === "/profile" ? { tab: "account" } : undefined
+                    }
+                    style={{ viewTransitionName: item.to }}
+                    activeProps={{
+                      className: "bg-primary/10 text-primary",
+                    }}
+                    className={cn(
+                      "mx-auto flex w-32 flex-col items-center gap-4 rounded-xl py-4 font-medium text-muted-foreground text-sm",
+                    )}
+                  >
+                    <Icon weight="duotone" />
+                    <span>{item.label}</span>
+                  </Link>
+                </DrawerClose>
               );
             })}
           </nav>
 
-          {user && (
-            <DrawerFooter>
+          <DrawerFooter className="flex-row items-center justify-between">
+            {user ? (
               <Button
-                variant="outline"
+                variant="destructive"
                 onClick={handleSignOut}
-                className="w-full justify-start gap-3"
+                className="flex-1"
               >
-                <SignOutIcon size={24} weight="duotone" />
+                <SignOutIcon />
                 Cerrar sesión
               </Button>
-            </DrawerFooter>
-          )}
+            ) : (
+              <Button
+                className="flex-1 text-center"
+                render={<Link to="/login" />}
+                nativeButton={false}
+              >
+                Iniciar sesión
+              </Button>
+            )}
+
+            <ThemeToggler size="sm" />
+          </DrawerFooter>
         </DrawerContent>
       </Drawer>
     </>

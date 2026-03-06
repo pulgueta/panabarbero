@@ -4,6 +4,7 @@ import type { FC, ReactElement } from "react";
 import { useEffect, useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
@@ -66,41 +67,49 @@ export const ServiceDialog: FC<ServiceDialogProps> = ({
     },
   } = useServiceActions();
 
+  const haptic = useWebHaptics();
   const loading = isCreatingService || isUpdatingService;
 
   const onSubmit = form.handleSubmit(async (data) => {
-    if (initialValues && serviceId) {
-      await updateService({
+    try {
+      if (initialValues && serviceId) {
+        await updateService({
+          service: {
+            ...data,
+          },
+          serviceId,
+        });
+        return;
+      }
+
+      await createService({
         service: {
           ...data,
+          uuid: crypto.randomUUID(),
+          barbershopId,
         },
-        serviceId,
       });
-      return;
+
+      form.reset();
+      setOpen(false);
+    } catch (_error) {
+      haptic.trigger("error");
+      toast.error("No se pudo guardar el servicio. Intenta de nuevo.");
     }
-
-    await createService({
-      service: {
-        ...data,
-        uuid: crypto.randomUUID(),
-        barbershopId,
-      },
-    });
-
-    form.reset();
-    setOpen(false);
   });
 
   useEffect(() => {
     if (isCreatedService) {
+      haptic.trigger("success");
       toast.success("Servicio creado exitosamente");
     }
 
     if (isUpdatedService) {
+      haptic.trigger("success");
       toast.success("Servicio actualizado exitosamente");
       setOpen(false);
     }
-  }, [isCreatedService, isUpdatedService]);
+  }, [isCreatedService, isUpdatedService, haptic]);
 
   const headLabel = `${initialValues ? "Editar" : "Agregar"} servicio`;
   const description = `${initialValues ? "Actualiza los datos del servicio." : "Define los datos básicos del servicio."}`;

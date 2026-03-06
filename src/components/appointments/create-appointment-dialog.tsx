@@ -11,6 +11,7 @@ import type { FC, ReactElement } from "react";
 import { Activity, useEffect, useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
@@ -88,6 +89,8 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
       ? barbersForService
       : barbers;
 
+  const haptic = useWebHaptics();
+
   const {
     createAppointment: {
       mutateAsync: createAppointment,
@@ -126,9 +129,10 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
 
   useEffect(() => {
     if (isCreatedAppointment) {
+      haptic.trigger("success");
       toast.success("Cita reservada exitosamente");
     }
-  }, [isCreatedAppointment]);
+  }, [isCreatedAppointment, haptic]);
 
   const headLabel = "Reservar cita";
   const description = isBarber
@@ -192,6 +196,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
         });
       }
     } catch (error) {
+      haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
       return;
     }

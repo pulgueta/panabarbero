@@ -2,6 +2,7 @@ import type { Appointment } from "@convex/tables";
 import type { FC, ReactElement } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -45,6 +46,8 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
+  const haptic = useWebHaptics();
+
   const { data: session } = useSession();
   const {
     answerRescheduleRequest: {
@@ -66,6 +69,7 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
         answeredBy: viewer,
       });
 
+      haptic.trigger("success");
       toast.success(
         accepted
           ? "Solicitud de reagendamiento aceptada."
@@ -73,6 +77,7 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
       );
       setIsOpen(false);
     } catch (error) {
+      haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
 
       return;

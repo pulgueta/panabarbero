@@ -55,10 +55,6 @@ import {
   DrawerTrigger,
 } from "./drawer";
 
-// ---------------------------------------------------------------------------
-// Context — communicates `isMobile` state to all sub-components
-// ---------------------------------------------------------------------------
-
 interface ResponsiveModalContextValue {
   isMobile: boolean;
 }
@@ -66,10 +62,6 @@ interface ResponsiveModalContextValue {
 const ResponsiveModalContext = createContext<ResponsiveModalContextValue>({
   isMobile: false,
 });
-
-// ---------------------------------------------------------------------------
-// Root
-// ---------------------------------------------------------------------------
 
 interface ResponsiveModalProps {
   /** Controlled open state. Omit to let base-ui manage state via the trigger. */
@@ -117,10 +109,6 @@ function ResponsiveModal({
     </ResponsiveModalContext.Provider>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Trigger
-// ---------------------------------------------------------------------------
 
 type ResponsiveModalTriggerProps = ComponentProps<typeof DialogTrigger> &
   ComponentProps<typeof DrawerTrigger>;
@@ -181,10 +169,6 @@ function ResponsiveModalContent({
     </DialogContent>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Header
-// ---------------------------------------------------------------------------
 
 function ResponsiveModalHeader({ className, ...props }: ComponentProps<"div">) {
   const { isMobile } = use(ResponsiveModalContext);
@@ -249,10 +233,6 @@ function ResponsiveModalFooter({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Title
-// ---------------------------------------------------------------------------
-
 function ResponsiveModalTitle({
   className,
   ...props
@@ -277,10 +257,6 @@ function ResponsiveModalTitle({
     />
   );
 }
-
-// ---------------------------------------------------------------------------
-// Description
-// ---------------------------------------------------------------------------
 
 function ResponsiveModalDescription({
   className,
@@ -307,10 +283,6 @@ function ResponsiveModalDescription({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Close
-// ---------------------------------------------------------------------------
-
 function ResponsiveModalClose({
   ...props
 }: ComponentProps<typeof DialogClose> & ComponentProps<typeof DrawerClose>) {
@@ -319,10 +291,6 @@ function ResponsiveModalClose({
     return <DrawerClose data-slot="responsive-modal-close" {...props} />;
   return <DialogClose data-slot="responsive-modal-close" {...props} />;
 }
-
-// ---------------------------------------------------------------------------
-// Exports
-// ---------------------------------------------------------------------------
 
 export {
   ResponsiveModal,

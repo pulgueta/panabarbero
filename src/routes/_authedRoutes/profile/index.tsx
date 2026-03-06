@@ -1,13 +1,11 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: We need to assert non-null values because the hooks return undefined if the data is not loaded */
 
-import { SignOutIcon } from "@phosphor-icons/react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Activity, lazy, Suspense, useMemo, useState } from "react";
 
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   barbershopByOwnerIdQueryOptions,
@@ -32,7 +30,6 @@ import {
 import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
 import { servicesByIdsQueryOptions } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
-import { signOut } from "@/lib/auth-client";
 
 const AccountTab = lazy(() =>
   import("@/components/profile/account-tab").then((mod) => ({
@@ -174,16 +171,6 @@ function ProfilePage() {
     });
   };
 
-  const handleSignOut = async () => {
-    await signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          location.reload();
-        },
-      },
-    });
-  };
-
   const tabsToRender = useMemo(() => {
     const base = [tabs.account, tabs.security];
 
@@ -199,22 +186,13 @@ function ProfilePage() {
 
   return (
     <BorderContainer className="space-y-4">
-      <header className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="font-bold text-2xl tracking-tight">Perfil</h1>
-          <p className="text-pretty text-muted-foreground text-sm">
-            Gestiona tu perfil {!isBarber && "y tus citas."}
-          </p>
-        </div>
-
-        <Button
-          variant="destructive"
-          onClick={handleSignOut}
-          className="mt-1 text-xs sm:text-sm"
-        >
-          <SignOutIcon className="size-3" />
-          Cerrar sesión
-        </Button>
+      <header className="space-y-2">
+        <h1 className="text-balance font-bold text-2xl tracking-tight">
+          Perfil
+        </h1>
+        <p className="text-pretty text-muted-foreground text-sm">
+          Gestiona tu perfil {!isBarber && "y tus citas."}
+        </p>
       </header>
 
       <div className="flex flex-col items-start justify-center gap-4">

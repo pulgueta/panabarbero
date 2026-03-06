@@ -1,7 +1,11 @@
 import type { BarbershopMember } from "@convex/tables";
+import {
+  DotsThreeVerticalIcon,
+  InfoIcon,
+  TrashIcon,
+} from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
-import { EllipsisVerticalIcon, Info, TrashIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -87,7 +91,7 @@ export const barbersTableColumns: ColumnDef<BarbershopMember>[] = [
               render={
                 <Button variant="outline" size="icon">
                   <span className="sr-only">Abrir menú</span>
-                  <EllipsisVerticalIcon />
+                  <DotsThreeVerticalIcon />
                 </Button>
               }
             />
@@ -101,7 +105,7 @@ export const barbersTableColumns: ColumnDef<BarbershopMember>[] = [
                     }}
                     className="inline-flex w-full items-center gap-x-2"
                   >
-                    <Info className="size-3" /> Mi perfil
+                    <InfoIcon className="size-3" /> Mi perfil
                   </Link>
                 </DropdownMenuItem>
               ) : (

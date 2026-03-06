@@ -6,6 +6,7 @@ import type { FC, ReactElement } from "react";
 import { useEffect, useId } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -63,6 +64,8 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
     timeStringToMinutes,
     minutesOfTimestamp,
   } = useAppointmentFormMetadata(appointment.barbershopId);
+  const haptic = useWebHaptics();
+
   const {
     requestRescheduleMutation: {
       mutateAsync: rescheduleRequest,
@@ -73,11 +76,12 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
 
   useEffect(() => {
     if (isSentRescheduleRequest) {
+      haptic.trigger("success");
       toast.success(
         `Solicitud enviada al ${to === "barber" ? "barbero" : "cliente"}.`,
       );
     }
-  }, [isSentRescheduleRequest, to]);
+  }, [isSentRescheduleRequest, to, haptic]);
 
   const onSubmit = form.handleSubmit(async (values) => {
     const timestamp = values.date;
@@ -123,6 +127,7 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
         requestedByUserId: session?.userId ?? "",
       });
     } catch (error) {
+      haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
       return;
     }

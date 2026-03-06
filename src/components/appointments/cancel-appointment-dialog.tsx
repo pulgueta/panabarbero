@@ -4,6 +4,7 @@ import type { FC, ReactElement } from "react";
 import { useEffect, useId } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -50,6 +51,8 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
     },
   });
 
+  const haptic = useWebHaptics();
+
   const {
     cancelAppointmentMutation: {
       mutateAsync: cancelAppointment,
@@ -60,9 +63,10 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
 
   useEffect(() => {
     if (isCancelAppointmentSuccess) {
+      haptic.trigger("success");
       toast.success("Cita cancelada correctamente.");
     }
-  }, [isCancelAppointmentSuccess]);
+  }, [isCancelAppointmentSuccess, haptic]);
 
   const title = "Cancelar cita";
   const cancelButtonLabel = "Si, cancelar";
@@ -81,6 +85,7 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
         cancelledBy: isBarber ? "barber" : "customer",
       });
     } catch (error) {
+      haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
       return;
     }

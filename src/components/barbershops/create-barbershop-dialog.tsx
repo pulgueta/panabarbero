@@ -4,6 +4,7 @@ import type { FC, ReactElement } from "react";
 import { useId } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
@@ -76,6 +77,8 @@ export const CreateBarbershopDialog: FC<CreateBarbershopDialogProps> = ({
     },
   });
 
+  const haptic = useWebHaptics();
+
   const {
     createBarbershopMutation: {
       mutateAsync: createBarbershop,
@@ -100,11 +103,13 @@ export const CreateBarbershopDialog: FC<CreateBarbershopDialogProps> = ({
       });
 
       if (barbershopId) {
+        haptic.trigger("success");
         navigate({
           to: "/profile/barbershops/settings",
         });
       }
     } catch (error) {
+      haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
       return;
     }

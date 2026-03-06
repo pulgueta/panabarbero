@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { EyeIcon } from "@phosphor-icons/react";
+import { EyeIcon, EyeSlashIcon } from "@phosphor-icons/react";
 import type { FC } from "react";
 import { startTransition, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -102,7 +102,7 @@ export const PasswordStep: FC<PasswordStepProps> = ({ onNext, onCancel }) => {
                     }
                   >
                     {showPassword ? (
-                      <EyeOffIcon size={16} />
+                      <EyeSlashIcon size={16} />
                     ) : (
                       <EyeIcon size={16} />
                     )}

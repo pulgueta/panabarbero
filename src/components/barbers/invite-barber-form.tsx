@@ -4,6 +4,7 @@ import type { FC } from "react";
 import { useId } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +45,8 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
     },
   });
 
+  const haptic = useWebHaptics();
+
   const {
     inviteBarberMutation: {
       isPending: isInvitingBarber,
@@ -59,9 +62,11 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
         email: formData.email.trim().toLowerCase(),
       });
 
+      haptic.trigger("success");
       toast.success("Invitación enviada correctamente");
       form.reset();
     } catch (error) {
+      haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
       return;
     }

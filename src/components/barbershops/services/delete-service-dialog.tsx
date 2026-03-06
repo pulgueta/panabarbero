@@ -2,6 +2,7 @@ import type { Barbershop, Service } from "@convex/tables";
 import type { FC, ReactElement } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +38,8 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
   serviceId,
   barbershopId,
 }) => {
+  const haptic = useWebHaptics();
+
   const [open, setOpen] = useState<boolean>(false);
   const [confirmationStep, setConfirmationStep] = useState<
     "initial" | "confirm_cancellation"
@@ -75,6 +78,7 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
           ? (result as { deletedAppointments: number }).deletedAppointments
           : 0;
 
+      haptic.trigger("success");
       if (deletedCount > 0) {
         toast.success(
           `Servicio eliminado. ${deletedCount} cita(s) cancelada(s) y notificaciones enviadas.`,
@@ -92,6 +96,7 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
         setImpactedCount(willCancelCount);
         setConfirmationStep("confirm_cancellation");
       } else {
+        haptic.trigger("error");
         toast.error(errorMessage);
       }
     }

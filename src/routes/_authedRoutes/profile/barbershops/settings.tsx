@@ -4,6 +4,7 @@ import { PlusIcon, ShareNetworkIcon } from "@phosphor-icons/react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
@@ -121,6 +122,8 @@ function SettingsPage() {
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
   const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
 
+  const { trigger } = useWebHaptics();
+
   const hasService = services?.length && services.length > 0;
   const hasAnyActiveDay = barbershop?.availability?.some(
     (a) => a.weekDay.isActive,
@@ -132,9 +135,11 @@ function SettingsPage() {
     copy(url)
       .then(() => {
         toast.success("Link copiado al portapapeles");
+        trigger("success");
       })
       .catch(() => {
         toast.error("Error al copiar el link");
+        trigger("error");
       });
   };
 

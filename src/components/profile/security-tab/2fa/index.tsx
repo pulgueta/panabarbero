@@ -85,12 +85,9 @@ export const TwoFactorSection: FC = () => {
             <EmptyHeader>
               <EmptyMedia variant="icon">
                 {isTwoFactorEnabled ? (
-                  <CheckCircleIcon
-                    weight="duotone"
-                    className="text-green-600"
-                  />
+                  <CheckCircleIcon className="text-green-600" />
                 ) : (
-                  <ShieldIcon weight="duotone" />
+                  <ShieldIcon />
                 )}
               </EmptyMedia>
             </EmptyHeader>

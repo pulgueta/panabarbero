@@ -27,7 +27,7 @@ export const Header = () => {
   const currentPath = router.location.pathname;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/60 md:px-4">
+    <header className="sticky top-0 z-50 hidden w-full border-b bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/60 md:block md:px-4">
       <div className="container mx-auto flex h-16 items-center border-x md:px-8 lg:px-10">
         <div className="mr-6 flex">
           <Link

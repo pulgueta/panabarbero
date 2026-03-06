@@ -95,7 +95,7 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
           {appointment.notes || "No hay notas"}
         </p>
       </CardContent>
-      <CardFooter className="flex w-full flex-col items-center gap-2 md:flex-row">
+      <CardFooter className="flex w-full items-center justify-end gap-2">
         <Activity
           mode={
             !appointment.proposedDate && !showDeleteButton
@@ -107,11 +107,7 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
             to={!isBarber ? "barber" : "customer"}
             appointment={appointment}
             trigger={
-              <Button
-                variant="secondary"
-                disabled={disableReschedule}
-                className="w-full md:w-auto"
-              >
+              <Button variant="secondary" disabled={disableReschedule}>
                 Reagendar
               </Button>
             }
@@ -126,7 +122,6 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
               <Button
                 variant="outline"
                 disabled={appointment.status === "completed"}
-                className="w-full md:w-auto"
               >
                 Ver solicitud
               </Button>
@@ -137,22 +132,14 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
         {showDeleteButton ? (
           <DeleteAppointmentDialog
             appointment={appointment}
-            trigger={
-              <Button variant="destructive" className="w-full md:w-auto">
-                Eliminar
-              </Button>
-            }
+            trigger={<Button variant="destructive">Eliminar</Button>}
           />
         ) : (
           <CancelAppointmentDialog
             appointment={appointment}
             userId={appointment.userId}
             isBarber={isBarber}
-            trigger={
-              <Button variant="destructive" className="w-full md:w-auto">
-                Cancelar
-              </Button>
-            }
+            trigger={<Button variant="destructive">Cancelar</Button>}
           />
         )}
       </CardFooter>

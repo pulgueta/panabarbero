@@ -7,6 +7,7 @@ import {
 import type { ColumnDef } from "@tanstack/react-table";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { ServiceDialog } from "@/components/barbershops/services/service-dialog";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
@@ -46,6 +47,7 @@ export const servicesTableColumns: ColumnDef<Service>[] = [
     header: () => <div className="text-center">Acciones</div>,
     cell: ({ row }) => {
       const service = row.original;
+      const haptic = useWebHaptics();
       const {
         deleteServiceMutation: {
           mutateAsync: deleteService,
@@ -56,18 +58,24 @@ export const servicesTableColumns: ColumnDef<Service>[] = [
       const [_, setOpen] = useState<boolean>(false);
 
       const handleDelete = async () => {
-        await deleteService({
-          serviceId: service._id,
-          barbershopId: service.barbershopId,
-        });
+        try {
+          await deleteService({
+            serviceId: service._id,
+            barbershopId: service.barbershopId,
+          });
+        } catch (_error) {
+          haptic.trigger("error");
+          toast.error("No se pudo eliminar el servicio. Intenta de nuevo.");
+        }
       };
 
       useEffect(() => {
         if (isDeleted) {
+          haptic.trigger("success");
           toast.success("Servicio eliminado exitosamente");
           setOpen(false);
         }
-      }, [isDeleted]);
+      }, [isDeleted, haptic]);
 
       return (
         <div className="text-center">

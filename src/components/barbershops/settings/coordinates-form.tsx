@@ -1,6 +1,8 @@
 import type { Barbershop } from "@convex/tables";
 import type { FC } from "react";
 import { useId, useState } from "react";
+import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -33,30 +35,40 @@ export const CoordinatesForm: FC<CoordinatesFormProps> = ({ barbershop }) => {
     updateBarbershopMutation: { mutateAsync: updateBarbershop, isPending },
   } = useBarbershopActions();
 
+  const haptic = useWebHaptics();
+
   const onSubmit = async () => {
     const x = lng ? Number(lng) : undefined;
     const y = lat ? Number(lat) : undefined;
 
-    await updateBarbershop({
-      barbershopId: barbershop._id,
-      barbershop: {
-        uuid: barbershop.uuid,
-        name: barbershop.name,
-        description: barbershop.description || undefined,
-        address: barbershop.address,
-        coordinates: x !== undefined && y !== undefined ? { x, y } : undefined,
-        services: barbershop.services ?? [],
-        contactPhone: barbershop.contactPhone || undefined,
-        isActive: barbershop.isActive,
-        gracePeriodMinutes: barbershop.gracePeriodMinutes ?? 5,
-        ownerId: barbershop.ownerId,
-        availability: barbershop.availability ?? [],
-        city: barbershop.city,
-        state: barbershop.state,
-        zipCode: barbershop.zipCode || undefined,
-        bannerUrl: barbershop.bannerUrl || undefined,
-      },
-    });
+    try {
+      await updateBarbershop({
+        barbershopId: barbershop._id,
+        barbershop: {
+          uuid: barbershop.uuid,
+          name: barbershop.name,
+          description: barbershop.description || undefined,
+          address: barbershop.address,
+          coordinates:
+            x !== undefined && y !== undefined ? { x, y } : undefined,
+          services: barbershop.services ?? [],
+          contactPhone: barbershop.contactPhone || undefined,
+          isActive: barbershop.isActive,
+          gracePeriodMinutes: barbershop.gracePeriodMinutes ?? 5,
+          ownerId: barbershop.ownerId,
+          availability: barbershop.availability ?? [],
+          city: barbershop.city,
+          state: barbershop.state,
+          zipCode: barbershop.zipCode || undefined,
+          bannerUrl: barbershop.bannerUrl || undefined,
+        },
+      });
+      haptic.trigger("success");
+      toast.success("Coordenadas actualizadas correctamente");
+    } catch {
+      haptic.trigger("error");
+      toast.error("No se pudo actualizar las coordenadas. Intenta de nuevo.");
+    }
   };
 
   const invalidLat = !!lat && Number.isNaN(Number(lat));

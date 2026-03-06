@@ -1,3 +1,16 @@
+import {
+  ArrowRightIcon,
+  BellIcon,
+  CalendarIcon,
+  ChatCircleIcon,
+  CheckCircleIcon,
+  DeviceMobileIcon,
+  LightningIcon,
+  ScissorsIcon,
+  StarIcon,
+  TrendUpIcon,
+  UsersIcon,
+} from "@phosphor-icons/react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useLayoutEffect } from "react";
 
@@ -90,7 +103,7 @@ function RouteComponent() {
                   render={<Link to="/profile/barbershops/appointments" />}
                 >
                   Ver mis citas
-                  <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
+                  <ArrowRightIcon className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
                 </Button>
               ) : (
                 <Button
@@ -99,7 +112,7 @@ function RouteComponent() {
                   render={<Link to="/appointments/create" />}
                 >
                   Buscar barberías
-                  <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
+                  <ArrowRightIcon className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
                 </Button>
               )}
 
@@ -117,15 +130,15 @@ function RouteComponent() {
             {/* Trust indicators */}
             <div className="mt-12 flex flex-wrap items-center justify-center gap-8 text-muted-foreground text-sm">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="size-4 text-primary" />
+                <CheckCircleIcon className="size-4 text-primary" />
                 <span>100% Gratis para empezar</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="size-4 text-primary" />
+                <CheckCircleIcon className="size-4 text-primary" />
                 <span>Sin tarjeta de crédito</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="size-4 text-primary" />
+                <CheckCircleIcon className="size-4 text-primary" />
                 <span>Configuración en minutos</span>
               </div>
             </div>
@@ -152,37 +165,37 @@ function RouteComponent() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {[
               {
-                icon: Calendar,
+                icon: CalendarIcon,
                 title: "Agenda inteligente",
                 description:
                   "Sistema de reservas 24/7. Tus clientes pueden agendar cuando quieran, tú solo te preocupas por cortar.",
               },
               {
-                icon: Bell,
+                icon: BellIcon,
                 title: "Recordatorios automáticos",
                 description:
                   "Notificaciones por email y SMS antes de cada cita. Reduce las ausencias hasta un 80%.",
               },
               {
-                icon: Smartphone,
+                icon: DeviceMobileIcon,
                 title: "Acceso desde cualquier lugar",
                 description:
                   "Gestiona tu agenda desde el móvil o escritorio. Siempre conectado con tu negocio.",
               },
               {
-                icon: Users,
+                icon: UsersIcon,
                 title: "Gestión de equipo",
                 description:
                   "Administra múltiples barberos, sus horarios y servicios desde un solo lugar.",
               },
               {
-                icon: TrendingUp,
+                icon: TrendUpIcon,
                 title: "Estadísticas y reportes",
                 description:
                   "Analiza el rendimiento de tu negocio con métricas claras y accionables.",
               },
               {
-                icon: MessageSquare,
+                icon: ChatCircleIcon,
                 title: "Comunicación directa",
                 description:
                   "Mantén contacto con tus clientes. Envía promociones y actualizaciones fácilmente.",
@@ -231,21 +244,21 @@ function RouteComponent() {
                 title: "Crea tu cuenta",
                 description:
                   "Regístrate gratis en menos de 2 minutos. Sin compromisos, sin tarjeta de crédito.",
-                icon: Zap,
+                icon: LightningIcon,
               },
               {
                 step: "02",
                 title: "Configura tu barbería",
                 description:
                   "Añade tus servicios, precios, horarios y los barberos de tu equipo.",
-                icon: Scissors,
+                icon: ScissorsIcon,
               },
               {
                 step: "03",
                 title: "¡Recibe reservas!",
                 description:
                   "Comparte tu perfil y empieza a recibir citas de clientes nuevos y recurrentes.",
-                icon: Star,
+                icon: StarIcon,
               },
             ].map((item, index) => (
               <div
@@ -293,7 +306,7 @@ function RouteComponent() {
               <CardHeader className="border-primary/10 border-b bg-primary/5 pt-6">
                 <div className="flex items-center gap-4">
                   <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                    <Scissors className="size-6" />
+                    <ScissorsIcon className="size-6" />
                   </div>
                   <div>
                     <CardTitle className="text-2xl">Para Barberos</CardTitle>
@@ -314,7 +327,7 @@ function RouteComponent() {
                     "Gestiona servicios y precios fácilmente",
                   ].map((benefit) => (
                     <li key={benefit} className="flex items-start gap-3">
-                      <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary" />
+                      <CheckCircleIcon className="mt-0.5 size-5 shrink-0 text-primary" />
                       <span>{benefit}</span>
                     </li>
                   ))}
@@ -327,7 +340,7 @@ function RouteComponent() {
               <CardHeader className="border-secondary/10 border-b bg-secondary/5 pt-6">
                 <div className="flex items-center gap-4">
                   <div className="flex size-12 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
-                    <Users className="size-6" />
+                    <UsersIcon className="size-6" />
                   </div>
                   <div>
                     <CardTitle className="text-2xl">Para Clientes</CardTitle>
@@ -348,7 +361,7 @@ function RouteComponent() {
                     "Historial de todas tus visitas",
                   ].map((benefit) => (
                     <li key={benefit} className="flex items-start gap-3">
-                      <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-secondary" />
+                      <CheckCircleIcon className="mt-0.5 size-5 shrink-0 text-secondary" />
                       <span>{benefit}</span>
                     </li>
                   ))}
@@ -434,7 +447,7 @@ function RouteComponent() {
                   render={<Link to="/profile/barbershops/appointments" />}
                 >
                   Ir a mi agenda
-                  <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
+                  <ArrowRightIcon className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
                 </Button>
               ) : (
                 <Button
@@ -448,7 +461,7 @@ function RouteComponent() {
                   }
                 >
                   Buscar barberías
-                  <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
+                  <ArrowRightIcon className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
                 </Button>
               )}
 

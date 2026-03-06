@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/correctness/noChildrenProp: Enforced by TanStack Form */
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { EyeIcon } from "@phosphor-icons/react";
+import { EyeIcon, EyeSlashIcon } from "@phosphor-icons/react";
 import { Link, useRouter } from "@tanstack/react-router";
 import { startTransition, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -144,7 +144,7 @@ export const LoginForm = () => {
                       }
                     >
                       {showPassword ? (
-                        <EyeOffIcon size={16} />
+                        <EyeSlashIcon size={16} />
                       ) : (
                         <EyeIcon size={16} />
                       )}

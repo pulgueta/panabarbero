@@ -2,6 +2,7 @@ import type { Appointment } from "@convex/tables";
 import type { FC, FormEvent, ReactElement } from "react";
 import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -60,6 +61,7 @@ const OptionsForm: FC<OptionsFormProps> = ({ appointmentId, onClose }) => {
     completed: useId(),
     noShow: useId(),
   };
+  const haptic = useWebHaptics();
   const {
     setStatusMutation: {
       mutateAsync: setStatus,
@@ -83,6 +85,7 @@ const OptionsForm: FC<OptionsFormProps> = ({ appointmentId, onClose }) => {
 
       return;
     } catch (error) {
+      haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
       return;
     }
@@ -90,10 +93,11 @@ const OptionsForm: FC<OptionsFormProps> = ({ appointmentId, onClose }) => {
 
   useEffect(() => {
     if (isSettingStatusSuccess) {
+      haptic.trigger("success");
       toast.success("Cita marcada correctamente.");
       onClose();
     }
-  }, [isSettingStatusSuccess, onClose]);
+  }, [isSettingStatusSuccess, onClose, haptic]);
 
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit}>
