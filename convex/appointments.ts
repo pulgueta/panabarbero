@@ -283,7 +283,6 @@ export const create = zMutation({
     const appointmentId = await ctx.db.insert("appointments", {
       ...withoutIsBarber,
       userId: appointmentUserId,
-      uuid: crypto.randomUUID(),
       status: "confirmed",
     });
 
@@ -454,24 +453,6 @@ export const getById = zQuery({
     const appointment = await ctx.db.get(args.appointmentId.id);
     if (!appointment || appointment.deletedAt !== undefined) return null;
     return appointment;
-  },
-});
-
-export const getByUuid = zQuery({
-  args: z.object({
-    uuid: z.string(),
-  }),
-  handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
-
-    if (!user) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-    return await ctx.db
-      .query("appointments")
-      .withIndex("by_uuid", (q) => q.eq("uuid", args.uuid))
-      .filter((q) => q.eq(q.field("deletedAt"), undefined))
-      .unique();
   },
 });
 

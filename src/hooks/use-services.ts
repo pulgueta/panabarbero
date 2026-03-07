@@ -1,5 +1,5 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
-import type { Appointment, Barbershop, Service } from "@convex/tables";
+import type { Appointment, Barbershop, Service } from "@convex/schema";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 
@@ -14,7 +14,7 @@ export function updateServiceMutationOptions() {
 export function servicesByBarbershopIdQueryOptions(
   barbershopId: Barbershop["_id"],
 ) {
-  return convexQuery(api.barbershops.getServices, { barbershopId });
+  return convexQuery(api.barbershops.getServices, { id: barbershopId });
 }
 
 export function servicesPaginatedByBarbershopIdQueryOptions(
@@ -23,7 +23,9 @@ export function servicesPaginatedByBarbershopIdQueryOptions(
   numItems = 6,
 ) {
   return convexQuery(api.barbershops.getServicesPaginated, {
-    barbershopId,
+    barbershop: {
+      id: barbershopId,
+    },
     paginationOpts: {
       cursor,
       numItems,
@@ -50,7 +52,7 @@ export function deleteServiceMutationOptions() {
 }
 
 export function servicesQueryOptions(barbershopId: Barbershop["_id"]) {
-  return convexQuery(api.barbershops.getServices, { barbershopId });
+  return convexQuery(api.barbershops.getServices, { id: barbershopId });
 }
 
 export function useServicesFromBarbershop(barbershopId: Barbershop["_id"]) {

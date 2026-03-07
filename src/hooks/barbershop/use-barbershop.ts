@@ -1,5 +1,5 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
-import type { Barbershop } from "@convex/tables";
+import type { Barbershop } from "@convex/schema";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 
@@ -27,14 +27,16 @@ export function barbershopByUuidQueryOptions(uuid: string) {
 export function barbershopsByIdsQueryOptions(
   barbershopIds: Barbershop["_id"][],
 ) {
-  return convexQuery(api.barbershops.getByIds, { barbershopIds });
+  return convexQuery(api.barbershops.getByIds, {
+    barbershopIds: barbershopIds.map((id) => ({ id })),
+  });
 }
 
 export function barbershopAvailabilityQueryOptions(
   barbershopId: Barbershop["_id"],
 ) {
   return convexQuery(api.barbershops.getAvailability, {
-    barbershopId,
+    id: barbershopId,
   });
 }
 

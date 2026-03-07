@@ -1,12 +1,16 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
-import type { Appointment, Barbershop } from "@convex/tables";
+import type { Appointment, Barbershop } from "@convex/schema";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 
 import { useBarbershopAvailability } from "./barbershop/use-barbershop";
 
 export function appointmentByIdQueryOptions(appointmentId: Appointment["_id"]) {
-  return convexQuery(api.appointments.getById, { appointmentId });
+  return convexQuery(api.appointments.getById, {
+    appointmentId: {
+      id: appointmentId,
+    },
+  });
 }
 
 export function createAppointmentMutationOptions() {
@@ -28,7 +32,9 @@ export function appointmentsByUserQueryOptions(
 
 export function requestRescheduleQueryOptions(barbershopId: Barbershop["_id"]) {
   return convexQuery(api.appointments.getRescheduledRequests, {
-    barbershopId,
+    barbershopId: {
+      id: barbershopId,
+    },
   });
 }
 
@@ -44,7 +50,9 @@ export function appointmentsByBarbershopQueryOptions(
     api.appointments.getByBarbershopId,
     barbershopId
       ? {
-          barbershopId,
+          barbershopId: {
+            id: barbershopId,
+          },
           userId,
         }
       : "skip",
@@ -82,7 +90,7 @@ export function appointmentFormMetadataQueryOptions(
   barbershopId: Barbershop["_id"],
 ) {
   return convexQuery(api.barbershops.getAvailability, {
-    barbershopId,
+    id: barbershopId,
   });
 }
 

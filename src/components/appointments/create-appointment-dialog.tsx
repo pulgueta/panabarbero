@@ -1,10 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: can be null */
 
-import type {
-  Barbershop,
-  BarbershopMemberWithName,
-  Service,
-} from "@convex/tables";
+import type { Barbershop, BarbershopMember, Service } from "@convex/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { FC, ReactElement } from "react";
@@ -44,7 +40,7 @@ import { CreateAppointmentForm } from "./create-appointment-form";
 interface CreateAppointmentDialogProps {
   services: Service[];
   serviceId?: Service["_id"];
-  barbers: BarbershopMemberWithName[];
+  barbers: BarbershopMember[];
   barbershopId: Barbershop["_id"];
   trigger: ReactElement;
 }
@@ -69,7 +65,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   };
   const [open, setOpen] = useState<boolean>(false);
   const [selectedBarberId, setSelectedBarberId] = useState<
-    BarbershopMemberWithName["_id"] | undefined
+    BarbershopMember["_id"] | undefined
   >(undefined);
 
   const navigate = useNavigate();
@@ -105,7 +101,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
 
   // Determine default barber: use availableBarbers when available
   const defaultBarberId =
-    availableBarbers?.length === 1 ? availableBarbers[0]._id : undefined;
+    availableBarbers?.length === 1 ? availableBarbers[0]?._id : undefined;
 
   const form = useForm({
     resolver: zodResolver(appointmentFormSchema),
@@ -122,8 +118,8 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   // Update form and state when available barbers change
   useEffect(() => {
     if (availableBarbers?.length === 1) {
-      setSelectedBarberId(availableBarbers[0]._id);
-      form.setValue("barbershopMemberId", availableBarbers[0]._id);
+      setSelectedBarberId(availableBarbers[0]?._id);
+      form.setValue("barbershopMemberId", availableBarbers[0]?._id);
     }
   }, [availableBarbers, form]);
 

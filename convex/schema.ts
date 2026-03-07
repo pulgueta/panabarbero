@@ -36,8 +36,8 @@ export const barbershops = zodTable("barbershops", (id) => ({
   isActive: z.boolean(),
   gracePeriodMinutes: z.number().optional().default(5),
   ownerId: z.string(),
-  availability: z.array(
-    z.object({
+  availability: z
+    .object({
       weekDay: z.object({
         day: z.enum([
           "monday",
@@ -54,8 +54,8 @@ export const barbershops = zodTable("barbershops", (id) => ({
       closeAt: z.string(),
       lunchStart: z.string().optional(),
       lunchEnd: z.string().optional(),
-    }),
-  ),
+    })
+    .array(),
   city: z.string(),
   state: z.string(),
   zipCode: z.string().optional(),
@@ -113,26 +113,44 @@ export const reviews = zodTable("reviews", (id) => ({
 }));
 
 export const appointments = zodTable("appointments", (id) => ({
-  uuid: z.uuidv4().default(crypto.randomUUID()),
   userId: z.string(),
   barbershopId: id("barbershops"),
   serviceId: id("services"),
   barbershopMemberId: id("barbershopMembers"),
-  date: z.number(),
+  date: z.coerce
+    .number({
+      error: "La fecha y hora son requeridas",
+    })
+    .min(
+      Date.now(),
+      "La fecha y hora deben ser mayor a la fecha y hora actual",
+    ),
   proposedDate: z.number().optional(),
   rescheduleRequestedByUserId: z.string().optional(),
-  customerName: z.string(),
-  contactPhone: z.string(),
+  customerName: z
+    .string({
+      error: "El nombre del cliente es requerido",
+    })
+    .min(3, "El nombre del cliente debe tener al menos 3 caracteres")
+    .max(255, "El nombre del cliente debe tener menos de 255 caracteres"),
+  contactPhone: z
+    .string({
+      error: "El teléfono de contacto es requerido",
+    })
+    .min(10, "El teléfono debe tener al menos 10 caracteres")
+    .max(10, "El teléfono debe tener menos de 10 caracteres"),
   contactEmail: z.string().optional(),
-  status: z.enum([
-    "pending",
-    "confirmed",
-    "cancelled",
-    "completed",
-    "no-show",
-    "rescheduled",
-    "denied",
-  ]),
+  status: z
+    .enum([
+      "pending",
+      "confirmed",
+      "cancelled",
+      "completed",
+      "no-show",
+      "rescheduled",
+      "denied",
+    ])
+    .default("confirmed"),
   notes: z.string().optional(),
   deletedAt: z.number().optional(),
   upcomingNotificationId: id("_scheduled_functions").optional(),
@@ -207,7 +225,6 @@ export default defineSchema({
 
   appointments: appointments
     .table()
-    .index("by_uuid", ["uuid"])
     .index("by_userId", ["userId"])
     .index("by_barbershopId", ["barbershopId"])
     .index("by_userIdAndBarbershopId", ["userId", "barbershopId"])

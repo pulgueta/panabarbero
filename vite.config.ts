@@ -25,7 +25,13 @@ const config = defineConfig({
       },
     }),
     tailwindcss(),
-    tanstackStart(),
+    tanstackStart({
+      sitemap: {
+        host: import.meta.env.PROD
+          ? "https://panabarbero.com"
+          : "http://localhost:3000",
+      },
+    }),
     viteReact(),
   ],
   server: {

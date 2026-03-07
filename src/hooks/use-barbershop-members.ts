@@ -1,5 +1,5 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
-import type { Barbershop, BarbershopMember, Service } from "@convex/tables";
+import type { Barbershop, BarbershopMember, Service } from "@convex/schema";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 
@@ -7,7 +7,7 @@ export function barbershopMembersByBarbershopIdQueryOptions(
   barbershopId: Barbershop["_id"],
 ) {
   return convexQuery(api.barbershopMembers.getByBarbershopId, {
-    barbershopId,
+    id: barbershopId,
   });
 }
 
@@ -15,13 +15,13 @@ export function servicesForBarberQueryOptions(
   barbershopMemberId: BarbershopMember["_id"],
 ) {
   return convexQuery(api.barbershopMemberServices.getServicesForBarber, {
-    barbershopMemberId,
+    id: barbershopMemberId,
   });
 }
 
 export function barbersForServiceQueryOptions(serviceId: Service["_id"]) {
   return convexQuery(api.barbershopMemberServices.getBarbersForService, {
-    serviceId,
+    id: serviceId,
   });
 }
 
@@ -85,28 +85,7 @@ export function useBarbershopMemberActions() {
   const setBarberServicesMutation = useMutation({
     mutationFn: useConvexMutation(
       api.barbershopMemberServices.setBarberServices,
-    ).withOptimisticUpdate((localStore, args) => {
-      const existingBarberServices = localStore.getQuery(
-        api.barbershopMemberServices.getServicesForBarber,
-        {
-          barbershopMemberId: args.barbershopMemberId,
-        },
-      );
-
-      if (existingBarberServices) {
-        const updatedBarberServices = existingBarberServices.map((service) =>
-          args.serviceIds.includes(service._id)
-            ? { ...service, isActive: true }
-            : { ...service, isActive: false },
-        );
-
-        localStore.setQuery(
-          api.barbershopMemberServices.getServicesForBarber,
-          { barbershopMemberId: args.barbershopMemberId },
-          updatedBarberServices,
-        );
-      }
-    }),
+    ),
   });
 
   const removeBarberMutation = useMutation({

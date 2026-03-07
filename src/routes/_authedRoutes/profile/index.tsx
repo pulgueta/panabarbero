@@ -1,5 +1,9 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: We need to assert non-null values because the hooks return undefined if the data is not loaded */
 
+import { createFileRoute } from "@tanstack/react-router";
+import { lazy, Suspense, useMemo, useState } from "react";
+import { useWebHaptics } from "web-haptics/react";
+
 import { DashboardHeader } from "@/components/barbershops/dashboard-header";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
@@ -28,9 +32,6 @@ import {
 import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
 import { servicesByIdsQueryOptions } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
-import { createFileRoute } from "@tanstack/react-router";
-import { lazy, Suspense, useMemo, useState } from "react";
-import { useWebHaptics } from "web-haptics/react";
 
 const AccountTab = lazy(() =>
   import("@/components/profile/account-tab").then((mod) => ({
