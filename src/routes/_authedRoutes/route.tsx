@@ -20,7 +20,7 @@ function RouteComponent() {
       isAuthError={isAuthError}
       authClient={authClient}
       onUnauth={() => navigate({ to: "/login" })}
-      getAuthUserFn={api.auth.getCurrentUser}
+      getAuthUserFn={api.auth.getAuthUser}
     >
       <Outlet />
     </AuthBoundary>

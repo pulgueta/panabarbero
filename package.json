@@ -54,6 +54,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "convex": "^1.32.0",
+    "convex-helpers": "^0.1.114",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
@@ -98,6 +99,8 @@
     "web-vitals": "^5.1.0"
   },
   "trustedDependencies": [
-    "cloudflared"
+    "cloudflared",
+    "esbuild",
+    "msw"
   ]
 }

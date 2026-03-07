@@ -1,20 +1,17 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: is always provided */
 
 import { ConvexError, v } from "convex/values";
+import { zMutation } from ".";
 import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
 import { assertCanManageServices, assertCanManageShop } from "./authz";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
-import { tables } from "./tables";
+import { services } from "./schema";
 
-export const create = mutation({
-  args: {
-    service: v.object({
-      ...tables.services,
-    }),
-  },
+export const create = zMutation({
+  args: services.tools.insert,
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
@@ -24,35 +21,32 @@ export const create = mutation({
 
     await rateLimitOrThrow(ctx, "createService", user._id);
 
-    const { service } = args;
-
     // Verify the user has permission to create services (owner or barber)
-    await assertCanManageServices(ctx, service.barbershopId, user.userId);
+    await assertCanManageServices(ctx, args.barbershopId, user.userId);
 
-    const barbershop = await ctx.db.get(service.barbershopId);
+    const barbershop = await ctx.db.get(args.barbershopId);
 
     if (!barbershop?.isActive) {
       const existingService = await ctx.db
         .query("services")
         .withIndex("by_barbershopId", (q) =>
-          q.eq("barbershopId", service.barbershopId),
+          q.eq("barbershopId", args.barbershopId),
         )
         .first();
 
       if (!existingService) {
-        await ctx.db.patch(service.barbershopId, {
+        await ctx.db.patch(args.barbershopId, {
           isActive: true,
         });
       }
     }
 
-    const serviceId = await ctx.db.insert("services", service);
+    const serviceId = await ctx.db.insert("services", args);
 
-    // Auto-assign service to the only barber if there's only one owner-barber member
     const members = await ctx.db
       .query("barbershopMembers")
       .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", service.barbershopId),
+        q.eq("barbershopId", args.barbershopId),
       )
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
@@ -64,10 +58,9 @@ export const create = mutation({
         onlyMember.roles.includes("barber");
 
       if (isOwnerAndBarber) {
-        // Auto-assign service to the only owner-barber
         await ctx.db.insert("barbershopMemberServices", {
           uuid: crypto.randomUUID(),
-          barbershopId: service.barbershopId,
+          barbershopId: args.barbershopId,
           barbershopMemberId: onlyMember._id,
           serviceId,
           isActive: true,

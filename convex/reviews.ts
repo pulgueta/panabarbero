@@ -1,136 +1,137 @@
-import { v } from "convex/values";
-import { internal } from "./_generated/api";
-import { mutation, query } from "./_generated/server";
-import { authComponent } from "./auth";
-import { rateLimitOrThrow } from "./ratelimit";
-import { tables } from "./tables";
+// import { v } from "convex/values";
 
-export const create = mutation({
-  args: {
-    review: v.object({
-      ...tables.reviews,
-    }),
-  },
-  handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+// import { internal } from "./_generated/api";
+// import { mutation, query } from "./_generated/server";
+// import { authComponent } from "./auth";
+// import { rateLimitOrThrow } from "./ratelimit";
+// import { zMutation } from ".";
 
-    if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
-    }
+// export const create = zMutation({
+//   args: {
+//     review: v.object({
+//       ...tables.reviews,
+//     }),
+//   },
+//   handler: async (ctx, args) => {
+//     const user = await authComponent.safeGetAuthUser(ctx);
 
-    await rateLimitOrThrow(ctx, "createReview", user._id);
+//     if (!user) {
+//       throw new Error("User not authenticated", {
+//         cause: user,
+//       });
+//     }
 
-    const reviewId = await ctx.db.insert("reviews", {
-      ...args.review,
-      userId: user.userId ?? "",
-    });
+//     await rateLimitOrThrow(ctx, "createReview", user._id);
 
-    await ctx.runMutation(
-      internal.barbershopMetadata.increaseBarbershopRating,
-      {
-        barbershopId: args.review.barbershopId,
-      },
-    );
+//     const reviewId = await ctx.db.insert("reviews", {
+//       ...args.review,
+//       userId: user.userId ?? "",
+//     });
 
-    return reviewId;
-  },
-});
+//     await ctx.runMutation(
+//       internal.barbershopMetadata.increaseBarbershopRating,
+//       {
+//         barbershopId: args.review.barbershopId,
+//       },
+//     );
 
-export const getByBarbershopId = query({
-  args: { barbershopId: v.id("barbershops") },
-  handler: async (ctx, args) => {
-    const reviews = await ctx.db
-      .query("reviews")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
-      )
-      .collect();
+//     return reviewId;
+//   },
+// });
 
-    return reviews;
-  },
-});
+// export const getByBarbershopId = query({
+//   args: { barbershopId: v.id("barbershops") },
+//   handler: async (ctx, args) => {
+//     const reviews = await ctx.db
+//       .query("reviews")
+//       .withIndex("by_barbershopId", (q) =>
+//         q.eq("barbershopId", args.barbershopId),
+//       )
+//       .collect();
 
-export const getByUserId = query({
-  args: { userId: v.string() },
-  handler: async (ctx, args) => {
-    const reviews = await ctx.db
-      .query("reviews")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .collect();
+//     return reviews;
+//   },
+// });
 
-    return reviews;
-  },
-});
+// export const getByUserId = query({
+//   args: { userId: v.string() },
+//   handler: async (ctx, args) => {
+//     const reviews = await ctx.db
+//       .query("reviews")
+//       .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+//       .collect();
 
-export const update = mutation({
-  args: {
-    reviewId: v.id("reviews"),
-    review: v.object({ ...tables.reviews }),
-  },
-  handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+//     return reviews;
+//   },
+// });
 
-    if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
-    }
+// export const update = mutation({
+//   args: {
+//     reviewId: v.id("reviews"),
+//     review: v.object({ ...tables.reviews }),
+//   },
+//   handler: async (ctx, args) => {
+//     const user = await authComponent.safeGetAuthUser(ctx);
 
-    await rateLimitOrThrow(ctx, "updateReview", user._id);
-    const updated = await ctx.db.patch(args.reviewId, args.review);
+//     if (!user) {
+//       throw new Error("User not authenticated", {
+//         cause: user,
+//       });
+//     }
 
-    return updated;
-  },
-});
+//     await rateLimitOrThrow(ctx, "updateReview", user._id);
+//     const updated = await ctx.db.patch(args.reviewId, args.review);
 
-export const deleteReview = mutation({
-  args: { reviewId: v.id("reviews") },
-  handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+//     return updated;
+//   },
+// });
 
-    if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
-    }
+// export const deleteReview = mutation({
+//   args: { reviewId: v.id("reviews") },
+//   handler: async (ctx, args) => {
+//     const user = await authComponent.safeGetAuthUser(ctx);
 
-    await rateLimitOrThrow(ctx, "deleteReview", user._id);
+//     if (!user) {
+//       throw new Error("User not authenticated", {
+//         cause: user,
+//       });
+//     }
 
-    await ctx.db.delete(args.reviewId);
-  },
-});
+//     await rateLimitOrThrow(ctx, "deleteReview", user._id);
 
-export const canReview = query({
-  args: {
-    userId: v.optional(v.string()),
-    barbershopId: v.id("barbershops"),
-  },
-  handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+//     await ctx.db.delete(args.reviewId);
+//   },
+// });
 
-    if (!user) {
-      return false;
-    }
+// export const canReview = query({
+//   args: {
+//     userId: v.optional(v.string()),
+//     barbershopId: v.id("barbershops"),
+//   },
+//   handler: async (ctx, args) => {
+//     const user = await authComponent.safeGetAuthUser(ctx);
 
-    if (args.userId !== user.userId) {
-      return false;
-    }
+//     if (!user) {
+//       return false;
+//     }
 
-    const userHasAttended = await ctx.db
-      .query("appointments")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
-      )
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("userId"), args.userId),
-          q.eq(q.field("status"), "completed"),
-        ),
-      )
-      .first();
+//     if (args.userId !== user.userId) {
+//       return false;
+//     }
 
-    return !!userHasAttended;
-  },
-});
+//     const userHasAttended = await ctx.db
+//       .query("appointments")
+//       .withIndex("by_barbershopId", (q) =>
+//         q.eq("barbershopId", args.barbershopId),
+//       )
+//       .filter((q) =>
+//         q.and(
+//           q.eq(q.field("userId"), args.userId),
+//           q.eq(q.field("status"), "completed"),
+//         ),
+//       )
+//       .first();
+
+//     return !!userHasAttended;
+//   },
+// });

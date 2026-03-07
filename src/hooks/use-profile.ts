@@ -16,9 +16,6 @@ export function useProfileActions() {
   const updateNameMutation = useMutation({
     mutationFn: useConvexMutation(api.userProfileData.updateName),
   });
-  const updateEmailMutation = useMutation({
-    mutationFn: useConvexMutation(api.userProfileData.updateEmail),
-  });
   const updatePhoneNumberMutation = useMutation({
     mutationFn: useConvexMutation(api.userProfileData.updatePhoneNumber),
   });
@@ -57,12 +54,11 @@ export function useProfileActions() {
     mutationFn: useConvexMutation(api.userProfileData.removeProfilePhoto),
   });
   const generateUploadUrlMutation = useMutation({
-    mutationFn: useConvexMutation(api.index.generateUploadUrl),
+    mutationFn: useConvexMutation(api.r2.generateUploadUrl),
   });
 
   return {
     updateNameMutation,
-    updateEmailMutation,
     updatePhoneNumberMutation,
     updateNotificationPreferenceMutation,
     setProfilePhotoKeyMutation,

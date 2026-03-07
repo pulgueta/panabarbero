@@ -46,7 +46,6 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
   deleteReview: { kind: "fixed window", rate: 5, period: MINUTE },
   deleteR2Object: { kind: "fixed window", rate: 5, period: MINUTE },
   updateName: { kind: "fixed window", rate: 5, period: MINUTE },
-  updateEmail: { kind: "fixed window", rate: 3, period: MINUTE },
   updatePhoneNumber: { kind: "fixed window", rate: 5, period: MINUTE },
   updateNotificationPreference: {
     kind: "fixed window",

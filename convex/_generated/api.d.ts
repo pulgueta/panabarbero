@@ -26,10 +26,9 @@ import type * as migrations from "../migrations.js";
 import type * as notifications from "../notifications.js";
 import type * as plans from "../plans.js";
 import type * as polar from "../polar.js";
+import type * as r2 from "../r2.js";
 import type * as ratelimit from "../ratelimit.js";
-import type * as reviews from "../reviews.js";
 import type * as services from "../services.js";
-import type * as tables from "../tables.js";
 import type * as twilio from "../twilio.js";
 import type * as userProfileData from "../userProfileData.js";
 
@@ -58,10 +57,9 @@ declare const fullApi: ApiFromModules<{
   notifications: typeof notifications;
   plans: typeof plans;
   polar: typeof polar;
+  r2: typeof r2;
   ratelimit: typeof ratelimit;
-  reviews: typeof reviews;
   services: typeof services;
-  tables: typeof tables;
   twilio: typeof twilio;
   userProfileData: typeof userProfileData;
 }>;

@@ -1,10 +1,9 @@
-/** Authorization helpers for role-based access control */
-
 import { ConvexError } from "convex/values";
+
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { errorMessages } from "./errors";
-import type { Appointment, BarbershopMember } from "./tables";
+import type { Appointment, BarbershopMember } from "./schema";
 
 export type Role = "owner" | "barber";
 

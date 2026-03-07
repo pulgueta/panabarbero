@@ -1,33 +1,26 @@
 /** Barbershop Member Services - Per-barber service assignment */
 
-import { ConvexError, v } from "convex/values";
-import { internalMutation, mutation, query } from "./_generated/server";
+import { ConvexError } from "convex/values";
+import { z } from "zod";
+
+import { zInternalMutation, zMutation, zQuery } from ".";
 import { authComponent } from "./auth";
 import { assertCanManageShop, getBarbershopMemberByUserId } from "./authz";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
-import type { Service } from "./tables";
+import { barbershopMembers, barbershops, services } from "./schema";
 
-/**
- * Get all barbers (members with barber role) for a barbershop
- */
-export const getBarbershopBarbers = query({
-  args: {
-    barbershopId: v.id("barbershops"),
-  },
+export const getBarbershopBarbers = zQuery({
+  args: barbershops.tools.id,
   handler: async (ctx, args) => {
     const members = await ctx.db
       .query("barbershopMembers")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
-      )
+      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
-    // Filter members who have the "barber" role
     const barbers = members.filter((member) => member.roles.includes("barber"));
 
-    // Get profile data for each barber
     const barbersWithProfile = await Promise.all(
       barbers.map(async (barber) => {
         const profile = await ctx.db.get(barber.userProfileDataId);
@@ -47,15 +40,13 @@ export const getBarbershopBarbers = query({
 /**
  * Get all services assigned to a specific barber
  */
-export const getServicesForBarber = query({
-  args: {
-    barbershopMemberId: v.id("barbershopMembers"),
-  },
+export const getServicesForBarber = zQuery({
+  args: barbershopMembers.tools.id,
   handler: async (ctx, args) => {
     const memberServices = await ctx.db
       .query("barbershopMemberServices")
       .withIndex("by_barbershopMemberId", (q) =>
-        q.eq("barbershopMemberId", args.barbershopMemberId),
+        q.eq("barbershopMemberId", args.id),
       )
       .filter((q) => q.neq(q.field("isActive"), false))
       .collect();
@@ -68,7 +59,7 @@ export const getServicesForBarber = query({
       }),
     );
 
-    return services.filter((s): s is Service => s !== null);
+    return services;
   },
 });
 
@@ -77,18 +68,15 @@ export const getServicesForBarber = query({
  * Only returns barbers who are explicitly assigned to this service.
  * No fallback to "all barbers" - assignments are mandatory.
  */
-export const getBarbersForService = query({
-  args: {
-    serviceId: v.id("services"),
-  },
+export const getBarbersForService = zQuery({
+  args: services.tools.id,
   handler: async (ctx, args) => {
     const assignments = await ctx.db
       .query("barbershopMemberServices")
-      .withIndex("by_serviceId", (q) => q.eq("serviceId", args.serviceId))
+      .withIndex("by_serviceId", (q) => q.eq("serviceId", args.id))
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
-    // No fallback - if no assignments, return empty array
     if (assignments.length === 0) {
       return [];
     }
@@ -110,9 +98,7 @@ export const getBarbersForService = query({
       }),
     );
 
-    return barbers.filter(
-      (b): b is NonNullable<typeof b> => !!b?.roles?.includes("barber"),
-    );
+    return barbers.filter((b) => b?.roles?.includes("barber"));
   },
 });
 
@@ -120,28 +106,19 @@ export const getBarbersForService = query({
  * Get all services for a barbershop that are assigned to any barber
  * along with their assignment information
  */
-export const getServicesWithBarberAssignments = query({
-  args: {
-    barbershopId: v.id("barbershops"),
-  },
+export const getServicesWithBarberAssignments = zQuery({
+  args: barbershops.tools.id,
   handler: async (ctx, args) => {
-    // Get all services for the barbershop
     const services = await ctx.db
       .query("services")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
-      )
+      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
       .collect();
 
-    // Get all service assignments for the barbershop
     const assignments = await ctx.db
       .query("barbershopMemberServices")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
-      )
+      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
       .collect();
 
-    // Map services with their assigned barbers
     return services.map((service) => {
       const serviceAssignments = assignments.filter(
         (a) => a.serviceId === service._id && a.isActive !== false,
@@ -158,11 +135,11 @@ export const getServicesWithBarberAssignments = query({
  * Set the services that a barber can perform
  * Only owners can assign services to barbers
  */
-export const setBarberServices = mutation({
-  args: {
-    barbershopMemberId: v.id("barbershopMembers"),
-    serviceIds: v.array(v.id("services")),
-  },
+export const setBarberServices = zMutation({
+  args: z.object({
+    barbershopMember: barbershopMembers.tools.id,
+    services: z.array(services.tools.id),
+  }),
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
@@ -172,85 +149,78 @@ export const setBarberServices = mutation({
 
     await rateLimitOrThrow(ctx, "setBarberServices", user._id);
 
-    // Get the barbershop member to find the barbershop
-    const member = await ctx.db.get(args.barbershopMemberId);
+    const member = await ctx.db.get(args.barbershopMember.id);
+
     if (!member) {
       throw new ConvexError(errorMessages.notFound("miembro de barbería"));
     }
 
-    // Verify the user is an owner of the barbershop
     await assertCanManageShop(ctx, member.barbershopId, user.userId);
 
-    // Verify the target member is a barber
     if (!member.roles.includes("barber")) {
       throw new ConvexError("El miembro seleccionado no es un barbero");
     }
 
-    // Validate that all serviceIds belong to the same barbershop
-    for (const serviceId of args.serviceIds) {
-      const service = await ctx.db.get(serviceId);
+    for (const { id } of args.services) {
+      const service = await ctx.db.get(id);
+
       if (!service) {
-        throw new ConvexError(errorMessages.notFound("servicio"));
+        return;
       }
       if (service.barbershopId !== member.barbershopId) {
         throw new ConvexError("El servicio no pertenece a esta barbería");
       }
     }
 
-    // Get existing service assignments for this barber
     const existingAssignments = await ctx.db
       .query("barbershopMemberServices")
       .withIndex("by_barbershopMemberId", (q) =>
-        q.eq("barbershopMemberId", args.barbershopMemberId),
+        q.eq("barbershopMemberId", args.barbershopMember.id),
       )
       .collect();
 
     const existingServiceIds = existingAssignments.map((a) => a.serviceId);
 
-    // Determine which services to add and which to remove/deactivate
-    const servicesToAdd = args.serviceIds.filter(
-      (id) => !existingServiceIds.includes(id),
-    );
-    const servicesToRemove = existingAssignments.filter(
-      (a) => !args.serviceIds.includes(a.serviceId),
-    );
-    const servicesToReactivate = existingAssignments.filter(
-      (a) => args.serviceIds.includes(a.serviceId) && a.isActive === false,
+    const servicesToAdd = args.services.filter(
+      (service) => !existingServiceIds.includes(service.id),
     );
 
-    // Add new service assignments
-    for (const serviceId of servicesToAdd) {
+    const servicesToRemove = existingAssignments.filter(
+      (a) => !args.services.some((s) => s.id === a.serviceId),
+    );
+    const servicesToReactivate = existingAssignments.filter(
+      (a) =>
+        args.services.some((s) => s.id === a.serviceId) && a.isActive === false,
+    );
+
+    for (const service of servicesToAdd) {
       await ctx.db.insert("barbershopMemberServices", {
         uuid: crypto.randomUUID(),
         barbershopId: member.barbershopId,
-        barbershopMemberId: args.barbershopMemberId,
-        serviceId,
+        barbershopMemberId: args.barbershopMember.id,
+        serviceId: service.id,
         isActive: true,
       });
     }
 
-    // Deactivate removed assignments
     for (const assignment of servicesToRemove) {
       await ctx.db.patch(assignment._id, { isActive: false });
     }
 
-    // Reactivate reactivated assignments
     for (const assignment of servicesToReactivate) {
       await ctx.db.patch(assignment._id, { isActive: true });
     }
-
-    return { success: true };
   },
 });
 
 /**
  * Add a service to a barber's available services
  */
-export const addServiceToBarber = mutation({
-  args: {
-    barbershopMemberId: v.id("barbershopMembers"),
-    serviceId: v.id("services"),
-  },
+export const addServiceToBarber = zMutation({
+  args: z.object({
+    barbershopMember: barbershopMembers.tools.id,
+    service: services.tools.id,
+  }),
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
@@ -260,16 +230,14 @@ export const addServiceToBarber = mutation({
 
     await rateLimitOrThrow(ctx, "addServiceToBarber", user._id);
 
-    const member = await ctx.db.get(args.barbershopMemberId);
+    const member = await ctx.db.get(args.barbershopMember.id);
     if (!member) {
       throw new ConvexError(errorMessages.notFound("miembro de barbería"));
     }
 
-    // Verify the user is an owner of the barbershop
     await assertCanManageShop(ctx, member.barbershopId, user.userId);
 
-    // Validate that the service belongs to the same barbershop
-    const service = await ctx.db.get(args.serviceId);
+    const service = await ctx.db.get(args.service.id);
     if (!service) {
       throw new ConvexError(errorMessages.notFound("servicio"));
     }
@@ -277,13 +245,12 @@ export const addServiceToBarber = mutation({
       throw new ConvexError("El servicio no pertenece a esta barbería");
     }
 
-    // Check if assignment already exists
     const existing = await ctx.db
       .query("barbershopMemberServices")
       .withIndex("by_barbershopMemberId", (q) =>
-        q.eq("barbershopMemberId", args.barbershopMemberId),
+        q.eq("barbershopMemberId", args.barbershopMember.id),
       )
-      .filter((q) => q.eq(q.field("serviceId"), args.serviceId))
+      .filter((q) => q.eq(q.field("serviceId"), args.service.id))
       .first();
 
     if (existing) {
@@ -296,8 +263,8 @@ export const addServiceToBarber = mutation({
     return await ctx.db.insert("barbershopMemberServices", {
       uuid: crypto.randomUUID(),
       barbershopId: member.barbershopId,
-      barbershopMemberId: args.barbershopMemberId,
-      serviceId: args.serviceId,
+      barbershopMemberId: args.barbershopMember.id,
+      serviceId: args.service.id,
       isActive: true,
     });
   },
@@ -306,11 +273,11 @@ export const addServiceToBarber = mutation({
 /**
  * Remove a service from a barber's available services
  */
-export const removeServiceFromBarber = mutation({
-  args: {
-    barbershopMemberId: v.id("barbershopMembers"),
-    serviceId: v.id("services"),
-  },
+export const removeServiceFromBarber = zMutation({
+  args: z.object({
+    barbershopMember: barbershopMembers.tools.id,
+    service: services.tools.id,
+  }),
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
@@ -320,16 +287,14 @@ export const removeServiceFromBarber = mutation({
 
     await rateLimitOrThrow(ctx, "removeServiceFromBarber", user._id);
 
-    const member = await ctx.db.get(args.barbershopMemberId);
+    const member = await ctx.db.get(args.barbershopMember.id);
     if (!member) {
       throw new ConvexError(errorMessages.notFound("miembro de barbería"));
     }
 
-    // Verify the user is an owner of the barbershop
     await assertCanManageShop(ctx, member.barbershopId, user.userId);
 
-    // Validate that the service belongs to the same barbershop
-    const service = await ctx.db.get(args.serviceId);
+    const service = await ctx.db.get(args.service.id);
     if (!service) {
       throw new ConvexError(errorMessages.notFound("servicio"));
     }
@@ -340,34 +305,25 @@ export const removeServiceFromBarber = mutation({
     const assignment = await ctx.db
       .query("barbershopMemberServices")
       .withIndex("by_barbershopMemberId", (q) =>
-        q.eq("barbershopMemberId", args.barbershopMemberId),
+        q.eq("barbershopMemberId", args.barbershopMember.id),
       )
-      .filter((q) => q.eq(q.field("serviceId"), args.serviceId))
+      .filter((q) => q.eq(q.field("serviceId"), args.service.id))
       .first();
 
     if (assignment) {
       await ctx.db.patch(assignment._id, { isActive: false });
     }
-
-    return { success: true };
   },
 });
 
-/**
- * Assign all services of a barbershop to a barber
- * Useful when adding a new barber who should have access to all services
- */
-export const assignAllServicesToBarber = internalMutation({
-  args: {
-    barbershopMemberId: v.id("barbershopMembers"),
-  },
+export const assignAllServicesToBarber = zInternalMutation({
+  args: barbershopMembers.tools.id,
   handler: async (ctx, args) => {
-    const member = await ctx.db.get(args.barbershopMemberId);
+    const member = await ctx.db.get(args.id);
     if (!member) {
       throw new ConvexError(errorMessages.notFound("miembro de barbería"));
     }
 
-    // Get all services for the barbershop
     const services = await ctx.db
       .query("services")
       .withIndex("by_barbershopId", (q) =>
@@ -375,11 +331,10 @@ export const assignAllServicesToBarber = internalMutation({
       )
       .collect();
 
-    // Get existing assignments
     const existingAssignments = await ctx.db
       .query("barbershopMemberServices")
       .withIndex("by_barbershopMemberId", (q) =>
-        q.eq("barbershopMemberId", args.barbershopMemberId),
+        q.eq("barbershopMemberId", args.id),
       )
       .collect();
 
@@ -387,55 +342,44 @@ export const assignAllServicesToBarber = internalMutation({
       existingAssignments.map((a) => a.serviceId),
     );
 
-    // Add assignments for services that don't have one
     for (const service of services) {
       if (!existingServiceIds.has(service._id)) {
         await ctx.db.insert("barbershopMemberServices", {
           uuid: crypto.randomUUID(),
           barbershopId: member.barbershopId,
-          barbershopMemberId: args.barbershopMemberId,
+          barbershopMemberId: args.id,
           serviceId: service._id,
           isActive: true,
         });
       }
     }
 
-    // Reactivate deactivated assignments
     for (const assignment of existingAssignments) {
       if (assignment.isActive === false) {
         await ctx.db.patch(assignment._id, { isActive: true });
       }
     }
-
-    return { success: true };
   },
 });
 
 /**
  * Get the current user's services if they are a barber
  */
-export const getMyServices = query({
-  args: {
-    barbershopId: v.id("barbershops"),
-  },
-  handler: async (ctx, args): Promise<Service[]> => {
+export const getMyServices = zQuery({
+  args: barbershops.tools.id,
+  handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user?.userId) {
       return [];
     }
 
-    const member = await getBarbershopMemberByUserId(
-      ctx,
-      args.barbershopId,
-      user.userId,
-    );
+    const member = await getBarbershopMemberByUserId(ctx, args.id, user.userId);
 
     if (!member || !member.roles.includes("barber")) {
       return [];
     }
 
-    // Get services assigned to this barber
     const memberServices = await ctx.db
       .query("barbershopMemberServices")
       .withIndex("by_barbershopMemberId", (q) =>
@@ -451,6 +395,6 @@ export const getMyServices = query({
       }),
     );
 
-    return services.filter((s): s is Service => s !== null);
+    return services;
   },
 });
