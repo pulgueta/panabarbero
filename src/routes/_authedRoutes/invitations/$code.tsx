@@ -107,7 +107,7 @@ function InvitationPage() {
 
   if (!user?.userId) {
     return (
-      <BorderContainer className="space-y-4">
+      <BorderContainer>
         <h1 className="font-semibold text-2xl">Inicia sesión</h1>
         <p className="text-muted-foreground text-sm">
           Necesitas iniciar sesión para gestionar esta invitación.

@@ -11,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
 
 const DeleteServiceDialog = lazy(() =>
@@ -45,7 +44,13 @@ export const ServiceCard: FC<ServiceCardProps> = ({ service, isOwner }) => {
 
       {isOwner && (
         <CardFooter className="justify-end gap-2">
-          <Suspense fallback={<Skeleton className="h-9 w-18" />}>
+          <Suspense
+            fallback={
+              <Button disabled variant="outline">
+                Editar
+              </Button>
+            }
+          >
             <ServiceDialog
               barbershopId={service.barbershopId}
               initialValues={service}
@@ -58,7 +63,13 @@ export const ServiceCard: FC<ServiceCardProps> = ({ service, isOwner }) => {
             />
           </Suspense>
 
-          <Suspense fallback={<Skeleton className="h-9 w-20" />}>
+          <Suspense
+            fallback={
+              <Button disabled variant="destructive">
+                Eliminar
+              </Button>
+            }
+          >
             <DeleteServiceDialog
               serviceId={service._id}
               barbershopId={service.barbershopId}

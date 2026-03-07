@@ -16,7 +16,6 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   barbershopByMemberUserIdQueryOptions,
   useBarbershopByMemberUserId,
@@ -109,13 +108,20 @@ function RouteComponent() {
             description="Crea, edita y elimina los servicios que ofreces."
           />
 
-          <Suspense fallback={<Skeleton className="h-9 w-full md:w-40" />}>
+          <Suspense
+            fallback={
+              <Button disabled variant="outline">
+                <PlusIcon />
+                Agregar servicio
+              </Button>
+            }
+          >
             {barbershop?._id && !isLoadingBarbershop && rolesData?.isOwner && (
               <ServiceDialog
                 barbershopId={barbershop._id}
                 trigger={
                   <Button variant="outline" disabled={!rolesData?.isOwner}>
-                    <PlusIcon className="size-3" />
+                    <PlusIcon />
                     Agregar servicio
                   </Button>
                 }

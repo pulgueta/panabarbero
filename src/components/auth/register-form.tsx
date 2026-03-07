@@ -6,6 +6,8 @@ import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
+
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Field,
@@ -25,6 +27,8 @@ export const RegisterForm = () => {
     useState<boolean>(false);
 
   const router = useRouter();
+
+  const haptic = useWebHaptics();
 
   const form = useForm({
     defaultValues: {
@@ -47,18 +51,22 @@ export const RegisterForm = () => {
 
       if (error?.code) {
         toast.error(translateBetterAuthError(error.code));
+        haptic.trigger("error");
         return;
       }
 
       if (data?.user) {
-        toast.success("¡Cuenta creada! Bienvenido a PanaBarbero.");
+        toast.success("¡Cuenta creada! Verifica tu correo electrónico.");
+        haptic.trigger("success");
+        form.reset();
         router.navigate({
           to: "/login",
           replace: true,
         });
-        form.reset();
       }
     } catch (error: unknown) {
+      haptic.trigger("error");
+
       if (error instanceof Error) {
         toast.error(error.message ?? "Error al crear la cuenta");
         return;

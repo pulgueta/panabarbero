@@ -1,7 +1,7 @@
 import type { Barbershop } from "@convex/tables";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { FC } from "react";
-import { useId } from "react";
+import { useEffect, useId } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
@@ -22,17 +22,25 @@ import { inviteBarberFormSchema } from "@/lib/schemas";
 
 interface InviteBarberFormProps {
   barbershopId: Barbershop["_id"];
+  /** When provided, form uses this id and does not render the submit button (caller puts it in a footer). */
+  formId?: string;
+  /** Called when invite submission loading state changes (for footer button disabled state). */
+  onLoadingChange?: (loading: boolean) => void;
 }
 
 export const InviteBarberForm: FC<InviteBarberFormProps> = ({
   barbershopId,
+  formId: formIdProp,
+  onLoadingChange,
 }) => {
+  const formIdGenerated = useId();
+  const formId = formIdProp ?? formIdGenerated;
   const formIds = {
     name: useId(),
     phone: useId(),
     email: useId(),
     roles: useId(),
-    form: useId(),
+    form: formId,
   };
 
   const form = useForm({
@@ -71,6 +79,12 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
       return;
     }
   });
+
+  const renderSubmitInForm = formIdProp == null;
+
+  useEffect(() => {
+    onLoadingChange?.(isInvitingBarber);
+  }, [isInvitingBarber, onLoadingChange]);
 
   return (
     <form id={formIds.form} onSubmit={onSubmit}>
@@ -118,9 +132,15 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
         />
       </FieldGroup>
 
-      <Button type="submit" disabled={isInvitingBarber} className="mt-4 w-full">
-        {isInvitingBarber && <Spinner />} Invitar
-      </Button>
+      {renderSubmitInForm && (
+        <Button
+          type="submit"
+          disabled={isInvitingBarber}
+          className="mt-4 w-full"
+        >
+          {isInvitingBarber && <Spinner />} Invitar
+        </Button>
+      )}
     </form>
   );
 };

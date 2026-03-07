@@ -15,7 +15,6 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   barbershopByMemberUserIdQueryOptions,
   useBarbershopByMemberUserId,
@@ -111,7 +110,14 @@ function RouteComponent() {
             description="Gestiona tus barberos y asigna servicios a cada uno de ellos."
           />
 
-          <Suspense fallback={<Skeleton className="h-9 w-full md:w-40" />}>
+          <Suspense
+            fallback={
+              <Button disabled variant="outline">
+                <UserPlusIcon className="size-3" />
+                Invitar barbero
+              </Button>
+            }
+          >
             {rolesData?.isOwner && (
               <InviteBarberDialog
                 barbershopId={barbershop?._id!}

@@ -22,7 +22,6 @@ import {
   ResponsiveModalHeader,
   ResponsiveModalTitle,
 } from "@/components/ui/responsive-modal";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import {
   useBarbershopMemberActions,
@@ -130,7 +129,13 @@ export const BarberCard: FC<BarberCardProps> = ({
 
       <CardFooter className="justify-end gap-2">
         {isOwner && (
-          <Suspense fallback={<Skeleton className="h-9 w-40" />}>
+          <Suspense
+            fallback={
+              <Button variant="outline" disabled>
+                Gestionar servicios
+              </Button>
+            }
+          >
             <ManageServicesDialog
               barbershopMember={barbershopMember}
               services={services}

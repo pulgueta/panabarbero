@@ -17,7 +17,6 @@ import {
   ResponsiveModalTitle,
   ResponsiveModalTrigger,
 } from "@/components/ui/responsive-modal";
-import { Spinner } from "@/components/ui/spinner";
 import { useBarbershopMemberActions } from "@/hooks/use-barbershop-members";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
@@ -37,6 +36,7 @@ export const ManageServicesDialog: FC<ManageServicesDialogProps> = ({
   onOpenChange,
 }) => {
   const dialogId = useId();
+
   const haptic = useWebHaptics();
 
   const [selectedServices, setSelectedServices] = useState<Set<Service["_id"]>>(
@@ -54,8 +54,10 @@ export const ManageServicesDialog: FC<ManageServicesDialogProps> = ({
     setSelectedServices((prev) => {
       const next = new Set(prev);
       if (next.has(serviceId)) {
+        haptic.trigger("selection");
         next.delete(serviceId);
       } else {
+        haptic.trigger("selection");
         next.add(serviceId);
       }
       return next;
@@ -63,10 +65,12 @@ export const ManageServicesDialog: FC<ManageServicesDialogProps> = ({
   };
 
   const handleSelectAll = () => {
+    haptic.trigger("selection");
     setSelectedServices(new Set(services.map((s) => s._id)));
   };
 
   const handleClearAll = () => {
+    haptic.trigger("selection");
     setSelectedServices(new Set());
   };
 
@@ -84,13 +88,14 @@ export const ManageServicesDialog: FC<ManageServicesDialogProps> = ({
     }
   };
 
-  // Reset selected services when dialog opens
   const handleOpenChange = (newOpen: boolean) => {
     if (newOpen) {
       setSelectedServices(new Set(currentServices?.map((s) => s._id)));
     }
     onOpenChange(newOpen);
   };
+
+  const isSameServices = selectedServices.size === currentServices.length;
 
   return (
     <ResponsiveModal open={open} onOpenChange={handleOpenChange}>
@@ -122,6 +127,7 @@ export const ManageServicesDialog: FC<ManageServicesDialogProps> = ({
           <div className="max-h-[300px] space-y-2 overflow-y-auto pr-2">
             {services.map((service) => {
               const checkboxId = `${dialogId}-service-${service._id}`;
+
               return (
                 <div
                   key={service._id}
@@ -130,7 +136,10 @@ export const ManageServicesDialog: FC<ManageServicesDialogProps> = ({
                   <Checkbox
                     id={checkboxId}
                     checked={selectedServices.has(service._id)}
-                    onCheckedChange={() => handleToggleService(service._id)}
+                    onCheckedChange={() => {
+                      haptic.trigger("light");
+                      handleToggleService(service._id);
+                    }}
                   />
                   <Label
                     htmlFor={checkboxId}
@@ -160,9 +169,8 @@ export const ManageServicesDialog: FC<ManageServicesDialogProps> = ({
           </Button>
           <Button
             onClick={handleSave}
-            disabled={isSettingBarberServices || services.length === 0}
+            disabled={isSettingBarberServices || isSameServices}
           >
-            {isSettingBarberServices && <Spinner />}
             Guardar cambios
           </Button>
         </ResponsiveModalFooter>

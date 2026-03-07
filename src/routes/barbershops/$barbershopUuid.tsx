@@ -2,7 +2,7 @@
 /** biome-ignore-all lint/suspicious/noNonNullAssertedOptionalChain: objects are guaranteed to be not null */
 
 import { createFileRoute } from "@tanstack/react-router";
-import { Activity, lazy, Suspense } from "react";
+import { lazy, Suspense } from "react";
 
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
@@ -110,31 +110,26 @@ function RouteComponent() {
 
   const [_, _setCarouselApi] = useCarouselApi();
 
-  const { data: barbershop, isLoading: isLoadingBarbershop } =
-    useBarbershopByUuid(barbershopUuid);
-  const { data: services, isLoading: isLoadingServices } =
-    useServicesFromBarbershop(barbershop?._id!);
-  const { data: barbershopMembers, isLoading: isLoadingBarbershopMembers } =
-    useBarbershopMembersByBarbershopId(barbershop?._id!);
+  const { data: barbershop } = useBarbershopByUuid(barbershopUuid);
+  const { data: services } = useServicesFromBarbershop(barbershop?._id!);
+  const { data: barbershopMembers } = useBarbershopMembersByBarbershopId(
+    barbershop?._id!,
+  );
 
   return (
     <BorderContainer>
       <main>
-        <header className="flex w-full flex-row justify-between gap-4">
-          <Activity mode={isLoadingBarbershop ? "hidden" : "visible"}>
-            <Suspense fallback={<Skeleton className="h-48 w-full" />}>
-              <BarbershopHeader
-                barbershop={barbershop}
-                userId={user?.userId!}
-                availability={barbershop?.availability!}
-              />
+        <Suspense fallback={<Skeleton className="h-32 w-full md:max-w-xs" />}>
+          <BarbershopHeader
+            barbershop={barbershop}
+            userId={user?.userId!}
+            availability={barbershop?.availability!}
+          />
 
-              {/* <section>
+          {/* <section>
                 <BarbershopAvatar barbershop={barbershop} size="lg" />
               </section> */}
-            </Suspense>
-          </Activity>
-        </header>
+        </Suspense>
 
         <Separator className="mt-8 mb-6" />
 
@@ -144,33 +139,23 @@ function RouteComponent() {
           </h2>
 
           <Suspense fallback={<ServicesSkeleton />}>
-            <Activity
-              mode={
-                isLoadingServices ||
-                isLoadingBarbershopMembers ||
-                !barbershop?._id
-                  ? "hidden"
-                  : "visible"
-              }
-            >
-              <ServicesGrid
-                services={services}
-                barbers={barbershopMembers}
-                barbershopId={barbershop?._id!}
-              />
-            </Activity>
-          </Suspense>
+            <ServicesGrid
+              services={services}
+              barbers={barbershopMembers}
+              barbershopId={barbershop?._id!}
+            />
 
-          {!services?.length && (
-            <Empty>
-              <EmptyHeader>
-                <EmptyTitle>No hay servicios disponibles.</EmptyTitle>
-                <EmptyDescription>
-                  Cuando se agregue un servicio, podrás verlo aquí.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          )}
+            {!services?.length && (
+              <Empty>
+                <EmptyHeader>
+                  <EmptyTitle>No hay servicios disponibles.</EmptyTitle>
+                  <EmptyDescription>
+                    Cuando se agregue un servicio, podrás verlo aquí.
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            )}
+          </Suspense>
 
           {/* {isLoadingServices || isLoadingAvailability ? (
             <Skeleton className="h-48 w-full" />

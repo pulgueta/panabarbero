@@ -240,11 +240,12 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
 
         <ResponsiveModalFooter>
           {user ? (
-            <Field>
+            <Field className="w-full">
               <Button
                 type="submit"
                 form={formIds.form}
                 disabled={isCreatingAppointment}
+                className="w-full"
               >
                 {isCreatingAppointment && <Spinner />}
                 Reservar

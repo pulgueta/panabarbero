@@ -10,7 +10,7 @@ export const Route = createFileRoute("/tos")({
 
 function TermsOfServicePage() {
   return (
-    <BorderContainer className="space-y-8">
+    <BorderContainer>
       <header className="flex flex-col items-center gap-1 text-center">
         <h1 className="text-balance font-bold text-3xl tracking-tight md:text-4xl">
           Términos de Servicio

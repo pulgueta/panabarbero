@@ -1,6 +1,6 @@
+import { CheckoutLink } from "@convex-dev/polar/react";
 import { api } from "@convex/_generated/api";
 import type { UserProfileData } from "@convex/tables";
-import { CheckoutLink } from "@convex-dev/polar/react";
 import { InfoIcon } from "@phosphor-icons/react";
 import type { FC } from "react";
 import { lazy, Suspense, useEffect, useState } from "react";
@@ -20,7 +20,6 @@ import {
   Field as FieldRoot,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { usePlan } from "@/hooks/billing/use-plan";
 import { usePricingPlans } from "@/hooks/billing/use-pricing";
@@ -121,13 +120,11 @@ export const AccountTab: FC<AccountTabProps> = ({
               Ocultar por 7 días
             </Button>
             <br />
-            <Suspense fallback={<Skeleton className="h-9 w-32" />}>
+            <Suspense fallback={<Button disabled>Crear mi barbería</Button>}>
               <CreateBarbershopDialog
                 trigger={
                   isSubscribed ? (
-                    <Button variant="default" className="mt-1.5">
-                      Crear mi barbería
-                    </Button>
+                    <Button className="mt-1.5">Crear mi barbería</Button>
                   ) : freeProduct ? (
                     <CheckoutLink
                       polarApi={{

@@ -140,7 +140,7 @@ function SettingsPage() {
   };
 
   return (
-    <BorderContainer className="space-y-6">
+    <BorderContainer>
       <DashboardHeader
         title="Configuración"
         description="Configura tu barbería y personaliza tu experiencia."

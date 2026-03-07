@@ -70,7 +70,7 @@ function RouteComponent() {
   const searching = isSearching || isSearchingAgain;
 
   return (
-    <BorderContainer className="space-y-4">
+    <BorderContainer>
       <div className="flex flex-col gap-2">
         <h1
           className="text-balance font-bold text-xl tracking-tight"

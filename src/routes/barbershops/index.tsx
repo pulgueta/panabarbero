@@ -91,7 +91,7 @@ function BarbershopsPage() {
   const showModal = !search.city && !search.state;
 
   return (
-    <BorderContainer className="space-y-6">
+    <BorderContainer>
       <header className="flex flex-col items-center justify-between gap-2.5 pt-4 pb-2">
         <section className="w-full space-y-4">
           <h1

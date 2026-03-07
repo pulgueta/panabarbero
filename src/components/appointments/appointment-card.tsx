@@ -1,7 +1,7 @@
 import type { Appointment, Barbershop, Service } from "@convex/tables";
 import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
-import { Activity, lazy } from "react";
+import { Activity, lazy, Suspense } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -96,51 +96,83 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
         </p>
       </CardContent>
       <CardFooter className="flex w-full items-center justify-end gap-2">
-        <Activity
-          mode={
-            !appointment.proposedDate && !showDeleteButton
-              ? "visible"
-              : "hidden"
+        <Suspense
+          fallback={
+            <Button disabled variant="secondary">
+              Reagendar
+            </Button>
           }
         >
-          <RescheduleRequestDialog
-            to={!isBarber ? "barber" : "customer"}
-            appointment={appointment}
-            trigger={
-              <Button variant="secondary" disabled={disableReschedule}>
-                Reagendar
-              </Button>
+          <Activity
+            mode={
+              !appointment.proposedDate && !showDeleteButton
+                ? "visible"
+                : "hidden"
             }
-          />
-        </Activity>
+          >
+            <RescheduleRequestDialog
+              to={!isBarber ? "barber" : "customer"}
+              appointment={appointment}
+              trigger={
+                <Button variant="secondary" disabled={disableReschedule}>
+                  Reagendar
+                </Button>
+              }
+            />
+          </Activity>
+        </Suspense>
 
-        {appointment.proposedDate && !isPastDate && (
-          <RescheduleResponseDialog
-            appointment={appointment}
-            viewer={isBarber ? "barber" : "customer"}
-            trigger={
-              <Button
-                variant="outline"
-                disabled={appointment.status === "completed"}
-              >
-                Ver solicitud
-              </Button>
-            }
-          />
-        )}
+        <Suspense
+          fallback={
+            <Button disabled variant="outline">
+              Ver solicitud
+            </Button>
+          }
+        >
+          {appointment.proposedDate && !isPastDate && (
+            <RescheduleResponseDialog
+              appointment={appointment}
+              viewer={isBarber ? "barber" : "customer"}
+              trigger={
+                <Button
+                  variant="outline"
+                  disabled={appointment.status === "completed"}
+                >
+                  Ver solicitud
+                </Button>
+              }
+            />
+          )}
+        </Suspense>
 
         {showDeleteButton ? (
-          <DeleteAppointmentDialog
-            appointment={appointment}
-            trigger={<Button variant="destructive">Eliminar</Button>}
-          />
+          <Suspense
+            fallback={
+              <Button disabled variant="destructive">
+                Eliminar
+              </Button>
+            }
+          >
+            <DeleteAppointmentDialog
+              appointment={appointment}
+              trigger={<Button variant="destructive">Eliminar</Button>}
+            />
+          </Suspense>
         ) : (
-          <CancelAppointmentDialog
-            appointment={appointment}
-            userId={appointment.userId}
-            isBarber={isBarber}
-            trigger={<Button variant="destructive">Cancelar</Button>}
-          />
+          <Suspense
+            fallback={
+              <Button disabled variant="destructive">
+                Cancelar
+              </Button>
+            }
+          >
+            <CancelAppointmentDialog
+              appointment={appointment}
+              userId={appointment.userId}
+              isBarber={isBarber}
+              trigger={<Button variant="destructive">Cancelar</Button>}
+            />
+          </Suspense>
         )}
       </CardFooter>
     </Card>

@@ -189,12 +189,19 @@ function RouteComponent() {
                 : "No hay día seleccionado"}
             </h2>
 
-            <Suspense fallback={<Skeleton className="h-9 w-32" />}>
-              {barbershop?._id && canCreateStaffAppointments && (
+            {barbershop?._id && (
+              <Suspense
+                fallback={
+                  <Button disabled>
+                    <PlusIcon />
+                    Crear cita
+                  </Button>
+                }
+              >
                 <CreateAppointmentDialog
                   trigger={
                     <Button>
-                      <PlusIcon className="size-3" />
+                      <PlusIcon />
                       Crear cita
                     </Button>
                   }
@@ -203,8 +210,8 @@ function RouteComponent() {
                   services={services}
                   serviceId={undefined}
                 />
-              )}
-            </Suspense>
+              </Suspense>
+            )}
           </header>
 
           <Suspense fallback={<Skeleton className="h-32 w-full md:h-64" />}>

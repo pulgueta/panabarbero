@@ -85,7 +85,28 @@ export function useBarbershopMemberActions() {
   const setBarberServicesMutation = useMutation({
     mutationFn: useConvexMutation(
       api.barbershopMemberServices.setBarberServices,
-    ),
+    ).withOptimisticUpdate((localStore, args) => {
+      const existingBarberServices = localStore.getQuery(
+        api.barbershopMemberServices.getServicesForBarber,
+        {
+          barbershopMemberId: args.barbershopMemberId,
+        },
+      );
+
+      if (existingBarberServices) {
+        const updatedBarberServices = existingBarberServices.map((service) =>
+          args.serviceIds.includes(service._id)
+            ? { ...service, isActive: true }
+            : { ...service, isActive: false },
+        );
+
+        localStore.setQuery(
+          api.barbershopMemberServices.getServicesForBarber,
+          { barbershopMemberId: args.barbershopMemberId },
+          updatedBarberServices,
+        );
+      }
+    }),
   });
 
   const removeBarberMutation = useMutation({
