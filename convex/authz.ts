@@ -94,7 +94,7 @@ export async function assertShopRole(
     : [requiredRoles];
 
   if (!memberHasAnyRole(member, rolesArray)) {
-    return;
+    throw new ConvexError(errorMessages.unauthorized);
   }
 
   return member;
