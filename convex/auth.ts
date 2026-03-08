@@ -3,9 +3,10 @@ import type { AuthFunctions, GenericCtx } from "@convex-dev/better-auth";
 import { createClient } from "@convex-dev/better-auth";
 import { convex } from "@convex-dev/better-auth/plugins";
 import { requireActionCtx } from "@convex-dev/better-auth/utils";
-import { betterAuth } from "better-auth";
+import { betterAuth } from "better-auth/minimal";
 import { twoFactor } from "better-auth/plugins";
 import { z } from "zod";
+
 import { zQuery } from ".";
 import { APP_NAME } from "../src/config";
 import { components, internal } from "./_generated/api";
