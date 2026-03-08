@@ -1,28 +1,25 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: can be null */
 
-import type {
-  Barbershop,
-  BarbershopMemberWithName,
-  Service,
-} from "@convex/tables";
+import type { Barbershop, BarbershopMember, Service } from "@convex/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { FC, ReactElement } from "react";
 import { Activity, useEffect, useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalTrigger,
+} from "@/components/ui/responsive-modal";
 import { Spinner } from "@/components/ui/spinner";
 import {
   useAppointmentActions,
@@ -43,7 +40,7 @@ import { CreateAppointmentForm } from "./create-appointment-form";
 interface CreateAppointmentDialogProps {
   services: Service[];
   serviceId?: Service["_id"];
-  barbers: BarbershopMemberWithName[];
+  barbers: BarbershopMember[];
   barbershopId: Barbershop["_id"];
   trigger: ReactElement;
 }
@@ -68,7 +65,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   };
   const [open, setOpen] = useState<boolean>(false);
   const [selectedBarberId, setSelectedBarberId] = useState<
-    BarbershopMemberWithName["_id"] | undefined
+    BarbershopMember["_id"] | undefined
   >(undefined);
 
   const navigate = useNavigate();
@@ -88,6 +85,8 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
       ? barbersForService
       : barbers;
 
+  const haptic = useWebHaptics();
+
   const {
     createAppointment: {
       mutateAsync: createAppointment,
@@ -102,7 +101,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
 
   // Determine default barber: use availableBarbers when available
   const defaultBarberId =
-    availableBarbers?.length === 1 ? availableBarbers[0]._id : undefined;
+    availableBarbers?.length === 1 ? availableBarbers[0]?._id : undefined;
 
   const form = useForm({
     resolver: zodResolver(appointmentFormSchema),
@@ -119,16 +118,17 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   // Update form and state when available barbers change
   useEffect(() => {
     if (availableBarbers?.length === 1) {
-      setSelectedBarberId(availableBarbers[0]._id);
-      form.setValue("barbershopMemberId", availableBarbers[0]._id);
+      setSelectedBarberId(availableBarbers[0]?._id);
+      form.setValue("barbershopMemberId", availableBarbers[0]?._id);
     }
   }, [availableBarbers, form]);
 
   useEffect(() => {
     if (isCreatedAppointment) {
+      haptic.trigger("success");
       toast.success("Cita reservada exitosamente");
     }
-  }, [isCreatedAppointment]);
+  }, [isCreatedAppointment, haptic]);
 
   const headLabel = "Reservar cita";
   const description = isBarber
@@ -192,23 +192,24 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
         });
       }
     } catch (error) {
+      haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
       return;
     }
   });
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={trigger} />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{headLabel}</DialogTitle>
-          <DialogDescription>
+    <ResponsiveModal open={open} onOpenChange={setOpen}>
+      <ResponsiveModalTrigger render={trigger} />
+      <ResponsiveModalContent>
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>{headLabel}</ResponsiveModalTitle>
+          <ResponsiveModalDescription>
             {user
               ? description
               : "Debes iniciar sesión para poder reservar un servicio"}
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
         <Activity mode={user ? "visible" : "hidden"}>
           <CreateAppointmentForm
@@ -233,13 +234,14 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
           />
         </Activity>
 
-        <DialogFooter>
+        <ResponsiveModalFooter>
           {user ? (
-            <Field>
+            <Field className="w-full">
               <Button
                 type="submit"
                 form={formIds.form}
                 disabled={isCreatingAppointment}
+                className="w-full"
               >
                 {isCreatingAppointment && <Spinner />}
                 Reservar
@@ -250,8 +252,8 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
               Iniciar sesión
             </Button>
           )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 };

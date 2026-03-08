@@ -1,8 +1,9 @@
-import type { Barbershop } from "@convex/tables";
+import type { Barbershop } from "@convex/schema";
 import { useNavigate } from "@tanstack/react-router";
 import type { FC } from "react";
 import { lazy } from "react";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -26,6 +27,8 @@ export const DangerTab: FC<DangerTabProps> = ({
 }) => {
   const navigate = useNavigate();
 
+  const haptic = useWebHaptics();
+
   const {
     deleteBarbershopMutation: {
       mutateAsync: deleteBarbershop,
@@ -37,13 +40,15 @@ export const DangerTab: FC<DangerTabProps> = ({
     if (!barbershopId) return;
 
     try {
-      await deleteBarbershop({ barbershopId });
+      await deleteBarbershop({ id: barbershopId });
+      haptic.trigger("success");
       navigate({
         to: "/barbershops",
         search: { city: undefined, state: undefined },
         replace: true,
       });
     } catch (error) {
+      haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
 
       return;

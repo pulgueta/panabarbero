@@ -1,5 +1,13 @@
 /** biome-ignore-all lint/correctness/noChildrenProp: Enforced by TanStack Form */
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { EyeIcon, EyeSlashIcon } from "@phosphor-icons/react";
+import { useRouter } from "@tanstack/react-router";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
+
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Field,
@@ -12,12 +20,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { signUp } from "@/lib/auth-client";
 import { registerFormSchema } from "@/lib/auth-schemas";
 import { translateBetterAuthError } from "@/lib/better-auth-errors";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "@tanstack/react-router";
-import { EyeIcon, EyeOffIcon } from "lucide-react";
-import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
 
 export const RegisterForm = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -25,6 +27,8 @@ export const RegisterForm = () => {
     useState<boolean>(false);
 
   const router = useRouter();
+
+  const haptic = useWebHaptics();
 
   const form = useForm({
     defaultValues: {
@@ -47,18 +51,22 @@ export const RegisterForm = () => {
 
       if (error?.code) {
         toast.error(translateBetterAuthError(error.code));
+        haptic.trigger("error");
         return;
       }
 
       if (data?.user) {
-        toast.success("¡Cuenta creada! Bienvenido a PanaBarbero.");
+        toast.success("¡Cuenta creada! Verifica tu correo electrónico.");
+        haptic.trigger("success");
+        form.reset();
         router.navigate({
           to: "/login",
           replace: true,
         });
-        form.reset();
       }
     } catch (error: unknown) {
+      haptic.trigger("error");
+
       if (error instanceof Error) {
         toast.error(error.message ?? "Error al crear la cuenta");
         return;
@@ -139,7 +147,7 @@ export const RegisterForm = () => {
                     }
                   >
                     {showPassword ? (
-                      <EyeOffIcon size={16} />
+                      <EyeSlashIcon size={16} />
                     ) : (
                       <EyeIcon size={16} />
                     )}
@@ -186,7 +194,7 @@ export const RegisterForm = () => {
                     }
                   >
                     {showConfirmPassword ? (
-                      <EyeOffIcon size={16} />
+                      <EyeSlashIcon size={16} />
                     ) : (
                       <EyeIcon size={16} />
                     )}

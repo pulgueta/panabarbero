@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { EnvelopeIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { AlertCircleIcon, MailIcon } from "lucide-react";
 import type { FC } from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -78,7 +78,7 @@ export const PasswordResetSection: FC = () => {
 
         {emailSent && (
           <div className="flex flex-col items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-4 text-center dark:border-green-900 dark:bg-green-950">
-            <MailIcon className="size-8 text-green-600 dark:text-green-400" />
+            <EnvelopeIcon className="size-8 text-green-600 dark:text-green-400" />
             <p className="font-medium text-green-800 text-sm dark:text-green-200">
               ¡Correo enviado!
             </p>
@@ -99,7 +99,7 @@ export const PasswordResetSection: FC = () => {
         {hasSocialAccount && (
           <Item variant="warning">
             <ItemTitle>
-              <AlertCircleIcon className="size-4 text-warning" />
+              <WarningCircleIcon className="size-4 text-warning" />
               Cuentas conectadas
             </ItemTitle>
             <ItemDescription className="text-warning">

@@ -3,10 +3,8 @@ import { useEffect } from "react";
 
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogContent,
   AlertDialogDescription,
-  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
@@ -65,11 +63,6 @@ export const LocationGate = () => {
   const isLocationMissing =
     (!search.state || !search.city) && (!state || !city);
 
-  const confirm = () => {
-    if (!state || !city) return;
-    navigate({ to: ".", search: (prev) => ({ ...prev, state, city }) });
-  };
-
   return (
     <AlertDialog open={isLocationMissing}>
       <AlertDialogContent>
@@ -117,12 +110,6 @@ export const LocationGate = () => {
             </SelectContent>
           </Select>
         </div>
-
-        <AlertDialogFooter>
-          <AlertDialogAction onClick={confirm} disabled={!state || !city}>
-            Confirmar
-          </AlertDialogAction>
-        </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );

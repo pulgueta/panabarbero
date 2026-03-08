@@ -1,4 +1,4 @@
-import type { Barbershop } from "@convex/tables";
+import type { Barbershop } from "@convex/schema";
 
 export function useSchedule(availability: Barbershop["availability"] | null) {
   const formatTimeLabel = (time?: string | null) => {

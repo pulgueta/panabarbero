@@ -1,23 +1,24 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 
+import { convexToZod } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
-import { ConvexError, v } from "convex/values";
+import { ConvexError } from "convex/values";
+import { z } from "zod";
+
+import { zMutation, zQuery } from ".";
 import { api, internal } from "./_generated/api";
-import { mutation, query } from "./_generated/server";
 import { assertIsSubscribed } from "./acl";
 import { authComponent } from "./auth";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
-import { tables } from "./tables";
+import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
 
-export const create = mutation({
-  args: {
-    barbershop: v.object({
-      ...tables.barbershops,
-    }),
-    ownerIsBarber: v.boolean(),
-  },
+export const create = zMutation({
+  args: z.object({
+    barbershop: barbershops.tools.insert,
+    ownerIsBarber: z.boolean(),
+  }),
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
@@ -25,7 +26,6 @@ export const create = mutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    // User must have at least the free plan (Independiente) to create a barbershop
     await assertIsSubscribed(ctx, user.userId);
 
     await rateLimitOrThrow(ctx, "createBarbershop", user._id);
@@ -36,13 +36,12 @@ export const create = mutation({
       ...barbershop,
       ownerId: user.userId ?? "",
       isActive: false,
-      gracePeriodMinutes: 5,
     });
 
     const metadataId = await ctx.runMutation(
       internal.barbershopMetadata.createInitial,
       {
-        barbershopId,
+        id: barbershopId,
       },
     );
 
@@ -64,27 +63,24 @@ export const create = mutation({
       : ["owner"];
 
     await ctx.runMutation(internal.barbershopMembers.create, {
-      barbershopMember: {
-        barbershopId,
-        userProfileDataId: userProfile._id,
-        uuid: crypto.randomUUID(),
-        isActive: true,
-        joinedAt: Date.now(),
-        roles,
-      },
+      barbershopId,
+      userProfileDataId: userProfile._id,
+      isActive: true,
+      joinedAt: Date.now(),
+      roles,
     });
 
     return barbershopId;
   },
 });
 
-export const get = query({
+export const get = zQuery({
   handler: async (ctx) => {
     const barbershops = await ctx.db.query("barbershops").collect();
 
     for (const barbershop of barbershops) {
       const services = await ctx.runQuery(api.barbershops.getServices, {
-        barbershopId: barbershop._id,
+        id: barbershop._id,
       });
 
       barbershop.services = services.map((service) => service._id);
@@ -94,12 +90,12 @@ export const get = query({
   },
 });
 
-export const getActive = query({
-  args: {
-    city: v.optional(v.string()),
-    state: v.optional(v.string()),
-    userId: v.optional(v.string()),
-  },
+export const getActive = zQuery({
+  args: z.object({
+    city: z.string().optional(),
+    state: z.string().optional(),
+    userId: z.string().optional(),
+  }),
   handler: async (ctx, args) => {
     const barbershops = await ctx.db
       .query("barbershops")
@@ -149,7 +145,7 @@ export const getActive = query({
         // }
 
         const services = await ctx.runQuery(api.barbershops.getServices, {
-          barbershopId: barbershop._id,
+          id: barbershop._id,
         });
 
         barbershop.services = services.map((service) => service._id);
@@ -160,20 +156,20 @@ export const getActive = query({
   },
 });
 
-export const getByUuid = query({
-  args: {
-    uuid: v.optional(tables.barbershops.uuid),
-  },
+export const getByUuid = zQuery({
+  args: z.object({
+    uuid: z.uuidv4(),
+  }),
   handler: async (ctx, args) => {
     const barbershop = await ctx.db
       .query("barbershops")
-      .withIndex("by_uuid", (q) => q.eq("uuid", args.uuid ?? ""))
+      .withIndex("by_uuid", (q) => q.eq("uuid", args.uuid))
       .unique();
 
     if (!barbershop) return null;
 
     const services = await ctx.runQuery(api.barbershops.getServices, {
-      barbershopId: barbershop?._id,
+      id: barbershop._id,
     });
 
     barbershop.services = services.map((service) => service._id);
@@ -182,42 +178,36 @@ export const getByUuid = query({
   },
 });
 
-export const getServices = query({
-  args: {
-    barbershopId: v.id("barbershops"),
-  },
+export const getServices = zQuery({
+  args: barbershops.tools.id,
   handler: async (ctx, args) => {
     const services = await ctx.db
       .query("services")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
-      )
+      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
       .collect();
 
     return services;
   },
 });
 
-export const getServicesPaginated = query({
-  args: {
-    barbershopId: v.id("barbershops"),
-    paginationOpts: paginationOptsValidator,
-  },
+export const getServicesPaginated = zQuery({
+  args: z.object({
+    barbershop: barbershops.tools.id,
+    paginationOpts: convexToZod(paginationOptsValidator),
+  }),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("services")
       .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
+        q.eq("barbershopId", args.barbershop.id),
       )
       .order("desc")
       .paginate(args.paginationOpts);
   },
 });
 
-export const deleteCascade = mutation({
-  args: {
-    barbershopId: v.id("barbershops"),
-  },
+export const deleteCascade = zMutation({
+  args: barbershops.tools.id,
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
@@ -227,7 +217,7 @@ export const deleteCascade = mutation({
 
     await rateLimitOrThrow(ctx, "deleteBarbershopCascade", user._id);
 
-    const barbershop = await ctx.db.get(args.barbershopId);
+    const barbershop = await ctx.db.get(args.id);
 
     if (!barbershop || barbershop.ownerId !== user.userId) {
       throw new ConvexError(errorMessages.unauthorized);
@@ -235,9 +225,7 @@ export const deleteCascade = mutation({
 
     const appointments = await ctx.db
       .query("appointments")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
-      )
+      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
       .collect();
 
     await Promise.all(
@@ -246,18 +234,14 @@ export const deleteCascade = mutation({
 
     const services = await ctx.db
       .query("services")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
-      )
+      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
       .collect();
 
     await Promise.all(services.map((service) => ctx.db.delete(service._id)));
 
     const assignments = await ctx.db
       .query("barbershopMemberServices")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
-      )
+      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
       .collect();
 
     await Promise.all(
@@ -266,58 +250,64 @@ export const deleteCascade = mutation({
 
     const members = await ctx.db
       .query("barbershopMembers")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
-      )
+      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
       .collect();
 
     await Promise.all(members.map((member) => ctx.db.delete(member._id)));
 
     const reviews = await ctx.db
       .query("reviews")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
-      )
+      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
       .collect();
 
     await Promise.all(reviews.map((review) => ctx.db.delete(review._id)));
 
     const metadata = await ctx.db
       .query("barbershopMetadata")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
-      )
+      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
       .unique();
 
     if (metadata?._id) {
       await ctx.db.delete(metadata._id);
     }
 
-    await ctx.db.delete(args.barbershopId);
+    const invitations = await ctx.db
+      .query("invitations")
+      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
+      .collect();
+
+    await Promise.all(
+      invitations.map((invitation) => ctx.db.delete(invitation._id)),
+    );
+
+    await ctx.db.delete(args.id);
   },
 });
 
-export const getAvailability = query({
-  args: {
-    barbershopId: v.id("barbershops"),
-  },
+export const getAvailability = zQuery({
+  args: barbershops.tools.id,
   handler: async (ctx, args) => {
-    const barbershop = await ctx.db.get(args.barbershopId);
+    const barbershop = await ctx.db.get(args.id);
 
-    if (!barbershop) throw new ConvexError(errorMessages.notFound("barbería"));
+    if (!barbershop) {
+      return [];
+    }
 
     return barbershop.availability;
   },
 });
 
-export const getAvailabilityForDate = query({
-  args: {
-    barbershopId: v.id("barbershops"),
-    date: v.number(),
-  },
+export const getAvailabilityForDate = zQuery({
+  args: z.object({
+    barbershop: barbershops.tools.id,
+    date: z.number(),
+  }),
   handler: async (ctx, args) => {
-    const shop = await ctx.db.get(args.barbershopId);
-    if (!shop) return null;
+    const barbershop = await ctx.db.get(args.barbershop.id);
+
+    if (!barbershop) {
+      return null;
+    }
 
     const dayIdx = new Date(args.date).getDay();
     const dayMap = [
@@ -331,7 +321,7 @@ export const getAvailabilityForDate = query({
     ] as const;
     const day = dayMap[dayIdx];
 
-    const dayAvailability = shop.availability.find(
+    const dayAvailability = barbershop.availability.find(
       (a) => a.weekDay.day === day,
     );
 
@@ -347,35 +337,40 @@ export const getAvailabilityForDate = query({
   },
 });
 
-export const updateDayAvailability = mutation({
-  args: {
-    barbershopId: v.id("barbershops"),
-    day: v.union(
-      v.literal("monday"),
-      v.literal("tuesday"),
-      v.literal("wednesday"),
-      v.literal("thursday"),
-      v.literal("friday"),
-      v.literal("saturday"),
-      v.literal("sunday"),
-    ),
-    isActive: v.boolean(),
-    openAt: v.optional(v.string()),
-    closeAt: v.optional(v.string()),
-    lunchStart: v.optional(v.string()),
-    lunchEnd: v.optional(v.string()),
-  },
+export const updateDayAvailabilitySchema = z.object({
+  barbershop: barbershops.tools.id,
+  day: z.enum([
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+  ]),
+  isActive: z.boolean(),
+  openAt: z.string().optional(),
+  closeAt: z.string().optional(),
+  lunchStart: z.string().optional(),
+  lunchEnd: z.string().optional(),
+});
+
+export const updateDayAvailability = zMutation({
+  args: updateDayAvailabilitySchema,
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
+
     await rateLimitOrThrow(ctx, "updateBarbershopDayAvailability", user._id);
-    const shop = await ctx.db.get(args.barbershopId);
-    if (!shop) throw new Error("Barbershop not found");
+
+    const shop = await ctx.db.get(args.barbershop.id);
+
+    if (!shop) {
+      return;
+    }
 
     const idx = shop.availability.findIndex((a) => a.weekDay.day === args.day);
 
@@ -397,7 +392,7 @@ export const updateDayAvailability = mutation({
       );
     }
 
-    const updated = await ctx.db.patch(args.barbershopId, {
+    const updated = await ctx.db.patch(args.barbershop.id, {
       availability: newAvailability,
     });
 
@@ -405,60 +400,51 @@ export const updateDayAvailability = mutation({
   },
 });
 
-export const updateAvailability = mutation({
-  args: {
-    barbershopId: v.id("barbershops"),
-    availability: tables.barbershops.availability,
-  },
+export const updateAvailability = zMutation({
+  args: z.object({
+    barbershop: barbershops.tools.id,
+    data: barbershops.insertSchema.pick({ availability: true }),
+  }),
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     await rateLimitOrThrow(ctx, "updateBarbershopAvailability", user._id);
 
-    const shop = await ctx.db.get(args.barbershopId);
-    if (!shop) {
-      throw new Error("Barbershop not found");
+    const barershop = await ctx.db.get(args.barbershop.id);
+
+    if (!barershop) {
+      return;
     }
 
-    await ctx.db.patch(args.barbershopId, {
-      availability: args.availability as typeof shop.availability,
+    await ctx.db.patch(args.barbershop.id, {
+      availability: args.data.availability,
     });
-
-    return null;
   },
 });
 
-export const update = mutation({
-  args: {
-    barbershopId: v.id("barbershops"),
-    storageId: v.optional(v.id("_storage")),
-    barbershop: v.object({
-      ...tables.barbershops,
-    }),
-  },
+export const update = zMutation({
+  args: barbershops.tools.update,
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
-    if (!user || user.userId !== args.barbershop.ownerId) {
+    if (!user || user.userId !== args.data.ownerId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 
     await rateLimitOrThrow(ctx, "updateBarbershop", user._id);
 
-    await ctx.db.patch(args.barbershopId, args.barbershop);
+    await ctx.db.patch(args.id, args.data);
   },
 });
 
-export const getUserVisitedBarbershops = query({
-  args: {
-    userId: v.optional(v.string()),
-  },
+export const getUserVisitedBarbershops = zQuery({
+  args: z.object({
+    userId: z.string().optional(),
+  }),
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
@@ -488,10 +474,10 @@ export const getUserVisitedBarbershops = query({
   },
 });
 
-export const getByOwnerId = query({
-  args: {
-    ownerId: v.string(),
-  },
+export const getByOwnerId = zQuery({
+  args: z.object({
+    ownerId: z.string().optional(),
+  }),
   handler: async (ctx, args) => {
     if (!args.ownerId) {
       return null;
@@ -499,12 +485,12 @@ export const getByOwnerId = query({
 
     const barbershop = await ctx.db
       .query("barbershops")
-      .withIndex("by_ownerId", (q) => q.eq("ownerId", args.ownerId))
+      .withIndex("by_ownerId", (q) => q.eq("ownerId", args.ownerId!))
       .unique();
 
     if (barbershop) {
       const services = await ctx.runQuery(api.barbershops.getServices, {
-        barbershopId: barbershop._id,
+        id: barbershop._id,
       });
 
       barbershop.services = services.map((service) => service._id);
@@ -514,10 +500,10 @@ export const getByOwnerId = query({
   },
 });
 
-export const getByMemberUserId = query({
-  args: {
-    userId: v.string(),
-  },
+export const getByMemberUserId = zQuery({
+  args: z.object({
+    userId: z.string(),
+  }),
   handler: async (ctx, args) => {
     const userProfile = await getProfileByUserId(ctx, args.userId);
 
@@ -540,14 +526,14 @@ export const getByMemberUserId = query({
   },
 });
 
-export const getByIds = query({
-  args: {
-    barbershopIds: v.array(v.id("barbershops")),
-  },
+export const getByIds = zQuery({
+  args: z.object({
+    barbershopIds: barbershops.tools.id.array(),
+  }),
   handler: async (ctx, args) => {
     const barbershops = await Promise.all(
       args.barbershopIds.map(
-        async (barbershopId) => await ctx.db.get(barbershopId),
+        async (barbershopId) => await ctx.db.get(barbershopId.id),
       ),
     );
 
@@ -555,10 +541,10 @@ export const getByIds = query({
   },
 });
 
-export const getByName = query({
-  args: {
-    name: v.optional(v.string()),
-  },
+export const getByName = zQuery({
+  args: z.object({
+    name: z.string().optional(),
+  }),
   handler: async (ctx, args) => {
     const barbershops = await ctx.db
       .query("barbershops")
@@ -571,7 +557,7 @@ export const getByName = query({
     await Promise.all(
       barbershops.map(async (barbershop) => {
         const services = await ctx.runQuery(api.barbershops.getServices, {
-          barbershopId: barbershop._id,
+          id: barbershop._id,
         });
 
         barbershop.services = services.map((service) => service._id);

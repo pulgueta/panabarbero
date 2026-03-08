@@ -11,9 +11,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { GoogleIcon } from "@/components/ui/google-icon";
 import { Spinner } from "@/components/ui/spinner";
 import { linkSocial, listAccounts, unlinkAccount } from "@/lib/auth-client";
-import { GoogleIcon } from "@/routes/_auth/login";
 
 export const LinkedAccountsSection: FC = () => {
   const { data: accounts, refetch } = useSuspenseQuery({

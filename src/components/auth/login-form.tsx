@@ -1,11 +1,12 @@
 /** biome-ignore-all lint/correctness/noChildrenProp: Enforced by TanStack Form */
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { EyeIcon, EyeSlashIcon } from "@phosphor-icons/react";
 import { Link, useRouter } from "@tanstack/react-router";
-import { EyeIcon, EyeOffIcon } from "lucide-react";
-import { startTransition, useState } from "react";
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -28,6 +29,8 @@ export const LoginForm = () => {
 
   const router = useRouter();
 
+  const haptic = useWebHaptics();
+
   const form = useForm({
     defaultValues: {
       email: "",
@@ -36,14 +39,6 @@ export const LoginForm = () => {
     },
     resolver: zodResolver(loginFormSchema),
   });
-
-  const handleSuccessfulLogin = () => {
-    router.navigate({
-      to: "/profile",
-      search: { tab: "account" },
-      replace: true,
-    });
-  };
 
   const onSubmit = form.handleSubmit(
     async ({ email, password, rememberMe }) => {
@@ -56,6 +51,7 @@ export const LoginForm = () => {
 
         if (error?.code) {
           toast.error(translateBetterAuthError(error.code));
+          haptic.trigger("error");
           return;
         }
 
@@ -65,11 +61,17 @@ export const LoginForm = () => {
         // }
 
         if (data) {
-          startTransition(() => {
-            handleSuccessfulLogin();
+          haptic.trigger("success");
+          form.reset();
+          router.navigate({
+            to: "/profile",
+            search: { tab: "account" },
+            replace: true,
           });
         }
       } catch (error: unknown) {
+        haptic.trigger("error");
+
         if (error instanceof Error) {
           toast.error(error.message ?? "Error al iniciar sesión");
           return;
@@ -144,7 +146,7 @@ export const LoginForm = () => {
                       }
                     >
                       {showPassword ? (
-                        <EyeOffIcon size={16} />
+                        <EyeSlashIcon size={16} />
                       ) : (
                         <EyeIcon size={16} />
                       )}

@@ -1,5 +1,11 @@
 /** biome-ignore-all lint/correctness/noChildrenProp: Enforced by TanStack Form */
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ArrowLeftIcon, CheckCircleIcon } from "@phosphor-icons/react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Button } from "@/components/ui/button";
@@ -22,12 +28,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { requestPasswordReset } from "@/lib/auth-client";
 import { forgotPasswordSchema } from "@/lib/auth-schemas";
 import { translateBetterAuthError } from "@/lib/better-auth-errors";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeftIcon, CheckCircleIcon } from "lucide-react";
-import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/_auth/forgot-password")({
   component: ForgotPasswordPage,

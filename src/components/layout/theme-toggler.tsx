@@ -1,5 +1,12 @@
-import { Laptop, Moon, Smartphone, Sun } from "lucide-react";
+import {
+  DeviceMobileIcon,
+  LaptopIcon,
+  MoonIcon,
+  SunIcon,
+} from "@phosphor-icons/react";
+import type { FC } from "react";
 
+import type { ButtonProps } from "@/components/ui/button";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -7,28 +14,41 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useTheme } from "./theme-provider";
 
-export const ThemeToggler = () => {
+interface ThemeTogglerProps {
+  size?: "sm" | "icon" | "lg";
+}
+
+export const ThemeToggler: FC<ThemeTogglerProps> = ({ size = "icon" }) => {
   const { userTheme, setTheme } = useTheme();
-  const { isMobile } = useIsMobile();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant="outline" size="icon">
+          <Button
+            variant="outline"
+            size={size as ButtonProps["size"]}
+            className="gap-2"
+          >
             {userTheme === "system" ? (
-              isMobile ? (
-                <Smartphone className="size-4" />
-              ) : (
-                <Laptop className="size-4" />
-              )
+              <>
+                <DeviceMobileIcon className="block md:hidden" />
+                <LaptopIcon className="hidden md:block" />
+
+                {size !== "icon" && "Sistema"}
+              </>
             ) : userTheme === "dark" ? (
-              <Moon className="size-4" />
+              <>
+                <MoonIcon className="size-4" />
+                {size !== "icon" && "Oscuro"}
+              </>
             ) : (
-              <Sun className="size-4" />
+              <>
+                <SunIcon className="size-4" />
+                {size !== "icon" && "Claro"}
+              </>
             )}
 
             <span className="sr-only">Cambiar tema</span>

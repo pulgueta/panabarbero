@@ -1,6 +1,6 @@
+import { ArrowCounterClockwiseIcon, WarningIcon } from "@phosphor-icons/react";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { Link, useRouter } from "@tanstack/react-router";
-import { AlertTriangle, RefreshCcwIcon } from "lucide-react";
 import type { FC } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ export const DefaultCatchBoundary: FC<ErrorComponentProps> = ({ error }) => {
       <Empty className="max-w-xl rounded-3xl bg-destructive/10">
         <EmptyHeader>
           <EmptyMedia variant="icon" className="bg-destructive/20">
-            <AlertTriangle className="size-6 text-destructive" />
+            <WarningIcon className="size-6 text-destructive" />
           </EmptyMedia>
           <EmptyTitle className="font-bold">Error</EmptyTitle>
           <EmptyDescription>
@@ -39,7 +39,7 @@ export const DefaultCatchBoundary: FC<ErrorComponentProps> = ({ error }) => {
               router.invalidate();
             }}
           >
-            <RefreshCcwIcon className="size-3" />
+            <ArrowCounterClockwiseIcon className="size-3" />
             Intentar nuevamente
           </Button>
 

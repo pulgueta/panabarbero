@@ -1,117 +1,108 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { PlusIcon, SignOutIcon } from "@phosphor-icons/react";
+import { Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { useWebHaptics } from "web-haptics/react";
 
-import { authenticatedRoutes, publicRoutes } from "@/config";
-import { useBarbershopMemberRoles } from "@/hooks/barbershop/use-barbershop-member";
-import { useIsBarber } from "@/hooks/use-barbershop-members";
-import { useSession } from "@/hooks/use-session";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerFooter,
+} from "@/components/ui/drawer";
+import { useNavRoutes } from "@/hooks/use-nav-routes";
+import { signOut } from "@/lib/auth-client";
+import { ThemeToggler } from "./theme-toggler";
 
 export const BottomBar = () => {
-  const router = useRouterState();
+  const [open, setOpen] = useState(false);
 
-  const currentPath = router.location.pathname;
+  const { trigger } = useWebHaptics();
 
-  const { data: user } = useSession();
-  const { data: isBarber } = useIsBarber(user?.userId ?? "");
-  const { data: rolesData } = useBarbershopMemberRoles(user?.userId ?? "");
+  const { routes, user } = useNavRoutes();
 
-  const navigationRoutes = rolesData?.isOwner
-    ? authenticatedRoutes.owner
-    : authenticatedRoutes.barber;
-
-  const routesWithoutHome = authenticatedRoutes.navigation.filter(
-    (route) => route.to !== "/",
-  );
+  const handleSignOut = async () => {
+    await signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          location.reload();
+        },
+      },
+    });
+  };
 
   return (
-    <div className="fixed right-0 bottom-0 left-0 z-50 mx-auto flex h-16 w-full items-center border-border border-t bg-background/80 backdrop-blur-sm">
-      <div className="container mx-auto">
-        <nav className="flex h-full items-center justify-around gap-x-2 px-2">
-          {user
-            ? isBarber
-              ? navigationRoutes.map((item) => {
-                  const Icon = item.icon;
+    <>
+      <div className="fixed right-0 bottom-0 left-0 z-50 flex h-18 w-full items-center justify-center gap-4 border-border border-t bg-background/20 px-4 backdrop-blur-sm md:hidden dark:bg-secondary/40">
+        <Button
+          onClick={() => {
+            trigger();
+            setOpen(true);
+          }}
+          className="w-full max-w-16 rounded-full font-medium"
+          size="lg"
+        >
+          <PlusIcon size={32} />
+          <span className="sr-only">Abrir menú de navegación</span>
+        </Button>
+      </div>
 
-                  return (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      disabled={currentPath === item.to}
-                      className={cn(
-                        "flex max-w-24 flex-1 flex-col items-center justify-center gap-1.5 text-muted-foreground",
-                      )}
-                      style={{
-                        viewTransitionName: item.to,
-                      }}
-                      search={
-                        item.to === "/profile" ? { tab: "account" } : undefined
-                      }
-                    >
-                      <Icon className="size-5 shrink-0" />
-                      <span className="truncate font-medium text-xs leading-none">
-                        {item.label}
-                      </span>
-                    </Link>
-                  );
-                })
-              : routesWithoutHome.map((item) => {
-                  const Icon = item.icon;
+      <Drawer open={open} onOpenChange={setOpen}>
+        <DrawerContent className="px-4">
+          <nav className="mt-2 grid grid-cols-2 gap-1">
+            {routes.map((item) => {
+              const Icon = item.icon;
 
-                  return (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      disabled={currentPath === item.to}
-                      activeProps={{
-                        className: "text-primary",
-                      }}
-                      className={cn(
-                        "flex max-w-24 flex-1 flex-col items-center justify-center gap-1.5 text-muted-foreground",
-                      )}
-                      style={{
-                        viewTransitionName: item.to,
-                      }}
-                      search={
-                        item.to === "/profile" ? { tab: "account" } : undefined
-                      }
-                    >
-                      <Icon className="size-5 shrink-0" />
-                      <span className="truncate font-medium text-xs leading-none">
-                        {item.label}
-                      </span>
-                    </Link>
-                  );
-                })
-            : publicRoutes.navigation.map((item) => {
-                const Icon = item.icon;
-
-                return (
+              return (
+                <DrawerClose key={item.to}>
                   <Link
-                    key={item.to}
                     to={item.to}
-                    disabled={currentPath === item.to}
-                    activeProps={{
-                      className: "text-primary",
-                    }}
-                    className={cn(
-                      "flex w-full max-w-20 flex-col items-center justify-center gap-1.5 text-muted-foreground",
-                    )}
-                    style={{
-                      viewTransitionName: item.to,
+                    onClick={() => {
+                      trigger();
                     }}
                     search={
                       item.to === "/profile" ? { tab: "account" } : undefined
                     }
+                    style={{ viewTransitionName: item.to }}
+                    activeProps={{
+                      className: "bg-primary/10 text-primary",
+                    }}
+                    className="mx-auto flex w-32 flex-col items-center gap-4 rounded-xl py-4 font-medium text-muted-foreground text-sm"
                   >
-                    <Icon className="size-5 shrink-0" />
-                    <span className="truncate font-medium text-xs leading-none">
-                      {item.label}
-                    </span>
+                    <Icon weight="duotone" />
+                    <span>{item.label}</span>
                   </Link>
-                );
-              })}
-        </nav>
-      </div>
-    </div>
+                </DrawerClose>
+              );
+            })}
+          </nav>
+
+          <DrawerFooter className="flex-row items-center justify-between">
+            {user ? (
+              <Button
+                variant="destructive"
+                onClick={handleSignOut}
+                className="flex-1"
+              >
+                <SignOutIcon />
+                Cerrar sesión
+              </Button>
+            ) : (
+              <DrawerClose className="flex-1 text-center">
+                <Button
+                  className="w-full"
+                  render={<Link to="/login" />}
+                  nativeButton={false}
+                >
+                  Iniciar sesión
+                </Button>
+              </DrawerClose>
+            )}
+
+            <ThemeToggler size="sm" />
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    </>
   );
 };

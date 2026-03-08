@@ -1,5 +1,5 @@
+import { BuildingsIcon } from "@phosphor-icons/react";
 import { createFileRoute, useSearch } from "@tanstack/react-router";
-import { Building2 } from "lucide-react";
 import { lazy, Suspense } from "react";
 
 import { BarbershopLoadingGrid } from "@/components/barbershops/barbershop-loading-grid";
@@ -50,9 +50,8 @@ const toCompleteLocation = (location?: BarbershopSearch) => {
 
 export const Route = createFileRoute("/barbershops/")({
   validateSearch: (search?: BarbershopSearch | undefined) => {
-    // Fall back to the persisted store values when URL params are absent
-    // so the loader always gets a complete location on return visits.
     const persisted = useLocationStore.getState();
+
     return {
       city: search?.city ?? persisted.city,
       state: search?.state ?? persisted.state,
@@ -92,7 +91,7 @@ function BarbershopsPage() {
   const showModal = !search.city && !search.state;
 
   return (
-    <BorderContainer className="space-y-6">
+    <BorderContainer>
       <header className="flex flex-col items-center justify-between gap-2.5 pt-4 pb-2">
         <section className="w-full space-y-4">
           <h1
@@ -132,7 +131,7 @@ function BarbershopsPage() {
           <Empty className="bg-accent/20 dark:bg-accent/20">
             <EmptyHeader>
               <EmptyMedia variant="icon">
-                <Building2 className="size-6" />
+                <BuildingsIcon className="size-6" />
               </EmptyMedia>
               <EmptyTitle>No hay barberías disponibles.</EmptyTitle>
               <EmptyDescription>

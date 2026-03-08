@@ -7,20 +7,20 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
 import { Spinner } from "@/components/ui/spinner";
 import { twoFactor } from "@/lib/auth-client";
 import { twoFactorFormSchema } from "@/lib/auth-schemas";
@@ -80,16 +80,17 @@ export const TwoFactorVerificationDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Verificación de dos factores</DialogTitle>
-
-          <DialogDescription>
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalContent>
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>
+            Verificación de dos factores
+          </ResponsiveModalTitle>
+          <ResponsiveModalDescription>
             Ingresa el código de 6 dígitos de tu aplicación de autenticación
             para continuar.
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
         <form onSubmit={onSubmit}>
           <div className="flex flex-col items-center gap-4 py-4">
@@ -142,7 +143,7 @@ export const TwoFactorVerificationDialog = ({
             />
           </div>
 
-          <DialogFooter>
+          <ResponsiveModalFooter>
             <Button
               type="button"
               variant="outline"
@@ -158,9 +159,9 @@ export const TwoFactorVerificationDialog = ({
               {form.formState.isSubmitting && <Spinner />}
               Verificar
             </Button>
-          </DialogFooter>
+          </ResponsiveModalFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 };

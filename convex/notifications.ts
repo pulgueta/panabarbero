@@ -5,7 +5,7 @@ import type { MutationCtx } from "./_generated/server";
 import { internalMutation } from "./_generated/server";
 import { assertSmsLimitNotExceeded, incrementSmsSent } from "./acl";
 import { errorMessages } from "./errors";
-import type { UserProfileData } from "./tables";
+import type { UserProfileData } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
 
 export const subjects = {
@@ -205,7 +205,6 @@ export const createAppointmentRescheduleRequest = internalMutation({
         0,
         internal.emails.sendAppointmentRescheduleRequestEmail,
         {
-          appointmentId: args.appointmentId,
           to: toEmail,
           body,
           sendTo: args.sendTo,

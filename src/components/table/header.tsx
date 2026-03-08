@@ -1,5 +1,5 @@
+import { ArrowsDownUpIcon } from "@phosphor-icons/react";
 import type { Column } from "@tanstack/react-table";
-import { ArrowUpDownIcon } from "lucide-react";
 import type { FC } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ export const TableHeader: FC<ColumnHeader<any>> = ({ column, header }) => (
       onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
     >
       {header}
-      <ArrowUpDownIcon className="ml-2 size-4" />
+      <ArrowsDownUpIcon className="ml-2 size-4" />
     </Button>
   </div>
 );

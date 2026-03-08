@@ -2,7 +2,7 @@ import type {
   Barbershop,
   BarbershopMemberWithName,
   Service,
-} from "@convex/tables";
+} from "@convex/schema";
 import type { FC } from "react";
 
 import { CreateAppointmentDialog } from "@/components/appointments/create-appointment-dialog";

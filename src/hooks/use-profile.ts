@@ -2,7 +2,7 @@ import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 
-export function profileQueryOptions(userId: string) {
+export function profileQueryOptions(userId?: string) {
   return convexQuery(api.userProfileData.getMyProfile, {
     userId,
   });
@@ -15,9 +15,6 @@ export function useProfile(userId: string) {
 export function useProfileActions() {
   const updateNameMutation = useMutation({
     mutationFn: useConvexMutation(api.userProfileData.updateName),
-  });
-  const updateEmailMutation = useMutation({
-    mutationFn: useConvexMutation(api.userProfileData.updateEmail),
   });
   const updatePhoneNumberMutation = useMutation({
     mutationFn: useConvexMutation(api.userProfileData.updatePhoneNumber),
@@ -57,12 +54,11 @@ export function useProfileActions() {
     mutationFn: useConvexMutation(api.userProfileData.removeProfilePhoto),
   });
   const generateUploadUrlMutation = useMutation({
-    mutationFn: useConvexMutation(api.index.generateUploadUrl),
+    mutationFn: useConvexMutation(api.r2.generateUploadUrl),
   });
 
   return {
     updateNameMutation,
-    updateEmailMutation,
     updatePhoneNumberMutation,
     updateNotificationPreferenceMutation,
     setProfilePhotoKeyMutation,

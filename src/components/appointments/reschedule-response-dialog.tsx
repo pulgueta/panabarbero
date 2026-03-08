@@ -1,18 +1,19 @@
-import type { Appointment } from "@convex/tables";
+import type { Appointment } from "@convex/schema";
 import type { FC, ReactElement } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalTrigger,
+} from "@/components/ui/responsive-modal";
 import { Spinner } from "@/components/ui/spinner";
 import { useAppointmentActions } from "@/hooks/use-appointments";
 import { useSession } from "@/hooks/use-session";
@@ -45,6 +46,8 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
+  const haptic = useWebHaptics();
+
   const { data: session } = useSession();
   const {
     answerRescheduleRequest: {
@@ -61,11 +64,12 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
   const handleAnswer = async (accepted: boolean) => {
     try {
       await answerReschedule({
-        appointmentId: appointment._id,
+        appointment: { id: appointment._id },
         accepted,
         answeredBy: viewer,
       });
 
+      haptic.trigger("success");
       toast.success(
         accepted
           ? "Solicitud de reagendamiento aceptada."
@@ -73,6 +77,7 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
       );
       setIsOpen(false);
     } catch (error) {
+      haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
 
       return;
@@ -80,17 +85,19 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger nativeButton={false} render={trigger} />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Solicitud de reagendamiento</DialogTitle>
-          <DialogDescription>
+    <ResponsiveModal open={isOpen} onOpenChange={setIsOpen}>
+      <ResponsiveModalTrigger nativeButton={false} render={trigger} />
+      <ResponsiveModalContent>
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>
+            Solicitud de reagendamiento
+          </ResponsiveModalTitle>
+          <ResponsiveModalDescription>
             {isRequester
               ? "Estos son los detalles de tu solicitud."
               : "Revisa las fechas antes de responder."}
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
         <div className="space-y-2 text-sm">
           <div className="flex flex-col">
@@ -106,7 +113,7 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
         </div>
 
         {canRespond && (
-          <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <ResponsiveModalFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
             <Button
               type="button"
               variant="destructive"
@@ -124,9 +131,9 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
               {isAnswering && <Spinner />}
               Aceptar
             </Button>
-          </DialogFooter>
+          </ResponsiveModalFooter>
         )}
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 };

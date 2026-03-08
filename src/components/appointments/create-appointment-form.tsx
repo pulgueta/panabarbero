@@ -2,10 +2,10 @@ import type {
   Barbershop,
   BarbershopMemberWithName,
   Service,
-} from "@convex/tables";
+} from "@convex/schema";
+import { CalendarIcon, ClockCounterClockwiseIcon } from "@phosphor-icons/react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon, Clock8Icon } from "lucide-react";
 import type { BaseSyntheticEvent, FC } from "react";
 import { Activity, Suspense } from "react";
 import type { UseFormReturn } from "react-hook-form";
@@ -84,7 +84,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
       <div className="space-y-4">
         <div className="grid grid-cols-1 gap-4">
           {(disabledFields?.includes("serviceId") || isBarber) && (
-            <Field className="col-span-2">
+            <Field>
               <FieldLabel
                 htmlFor={formIds.serviceId}
                 aria-required
@@ -110,7 +110,11 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
           )}
 
           {(isBarber || showPhoneField) && (
-            <div className="grid grid-cols-2 gap-4">
+            <div
+              className={cn("grid gap-4", {
+                "grid-cols-2": isBarber && showPhoneField,
+              })}
+            >
               {isBarber && (
                 <Controller
                   name="customerName"
@@ -166,7 +170,11 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div
+          className={cn("grid gap-4", {
+            "grid-cols-2": isBarber && showPhoneField,
+          })}
+        >
           <Controller
             name="contactEmail"
             control={form.control}
@@ -201,14 +209,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
               name="barbershopMemberId"
               control={form.control}
               render={({ field, fieldState }) => (
-                <Field
-                  data-invalid={fieldState.invalid}
-                  className={cn({
-                    "col-span-2":
-                      disabledFields?.includes("barbershopMemberId") ||
-                      !isBarber,
-                  })}
-                >
+                <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={formIds.barbershopMemberId}>
                     {barbers?.length > 1 ? "Seleccione un barbero" : "Barbero"}
                   </FieldLabel>
@@ -273,7 +274,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid w-full grid-cols-2 gap-4">
           <Controller
             name="date"
             control={form.control}
@@ -286,7 +287,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-[240px] pl-3 text-left font-normal",
+                          "w-full pl-3 text-left font-normal",
                           !field.value && "text-muted-foreground",
                         )}
                       >
@@ -359,9 +360,9 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor={formIds.startTime}>Hora</FieldLabel>
-                <div className="relative">
+                <div className="relative w-full">
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center justify-center pl-3 text-muted-foreground peer-disabled:opacity-50">
-                    <Clock8Icon className="size-4" />
+                    <ClockCounterClockwiseIcon className="size-4" />
                     <span className="sr-only">Hora</span>
                   </div>
                   <Input
@@ -385,7 +386,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                         field.onChange(updatedDate.getTime());
                       }
                     }}
-                    className="peer appearance-none bg-background pl-9 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                    className="peer w-full appearance-none bg-background pl-9 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                   />
                 </div>
               </Field>

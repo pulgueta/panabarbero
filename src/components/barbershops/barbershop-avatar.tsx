@@ -1,4 +1,4 @@
-import type { Barbershop } from "@convex/tables";
+import type { Barbershop } from "@convex/schema";
 import type { FC } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";

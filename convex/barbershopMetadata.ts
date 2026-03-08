@@ -1,16 +1,15 @@
-import { ConvexError, v } from "convex/values";
-import { api } from "./_generated/api";
-import { internalMutation, query } from "./_generated/server";
-import { errorMessages } from "./errors";
+import { ConvexError } from "convex/values";
 
-export const createInitial = internalMutation({
-  args: {
-    barbershopId: v.id("barbershops"),
-  },
+import { zInternalMutation, zQuery } from ".";
+import { errorMessages } from "./errors";
+import { barbershopMetadata, barbershops } from "./schema";
+
+export const createInitial = zInternalMutation({
+  args: barbershops.tools.id,
   handler: async (ctx, args) => {
     const metadataId = await ctx.db.insert("barbershopMetadata", {
       uuid: crypto.randomUUID(),
-      barbershopId: args.barbershopId,
+      barbershopId: args.id,
       completedAppointments: 0,
       reviews: 0,
       rating: 0,
@@ -20,58 +19,51 @@ export const createInitial = internalMutation({
   },
 });
 
-export const increaseBarbershopRating = internalMutation({
-  args: {
-    barbershopId: v.id("barbershops"),
-  },
+export const increaseBarbershopRating = zInternalMutation({
+  args: barbershops.tools.id,
   handler: async (ctx, args) => {
-    const reviews = await ctx.runQuery(api.reviews.getByBarbershopId, {
-      barbershopId: args.barbershopId,
-    });
-    const barbershop = await ctx.db.get(args.barbershopId);
+    // const reviews = await ctx.runQuery(api.reviews.getByBarbershopId, {
+    //   barbershopId: args.id,
+    // });
+
+    const barbershop = await ctx.db.get(args.id);
 
     if (!barbershop) {
       throw new ConvexError(errorMessages.notFound("barbershop"));
     }
 
-    const averageRating =
-      reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length;
+    // const averageRating =
+    //   reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length;
 
-    if (barbershop.metadataId) {
-      await ctx.db.patch(barbershop.metadataId, {
-        rating: averageRating,
-        reviews: reviews.length,
-      });
-    }
+    // if (barbershop.metadataId) {
+    //   await ctx.db.patch(barbershop.metadataId, {
+    //     rating: averageRating,
+    //     reviews: reviews.length,
+    //   });
+    // }
   },
 });
 
-export const get = query({
-  args: {
-    barbershopId: v.id("barbershops"),
-  },
+export const get = zQuery({
+  args: barbershops.tools.id,
   handler: async (ctx, args) => {
     return await ctx.db
       .query("barbershopMetadata")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
-      )
+      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
       .unique();
   },
 });
 
-export const incrementCompletedAppointments = internalMutation({
-  args: {
-    barbershopMetadataId: v.id("barbershopMetadata"),
-  },
+export const incrementCompletedAppointments = zInternalMutation({
+  args: barbershopMetadata.tools.id,
   handler: async (ctx, args) => {
-    const metadata = await ctx.db.get(args.barbershopMetadataId);
+    const metadata = await ctx.db.get(args.id);
 
     if (!metadata) {
       throw new ConvexError(errorMessages.notFound("metadata"));
     }
 
-    await ctx.db.patch(args.barbershopMetadataId, {
+    await ctx.db.patch(args.id, {
       completedAppointments: (metadata.completedAppointments ?? 0) + 1,
     });
   },

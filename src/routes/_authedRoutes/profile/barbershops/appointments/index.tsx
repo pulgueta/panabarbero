@@ -1,20 +1,19 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: needed */
 
+import { PlusIcon } from "@phosphor-icons/react";
 import { createFileRoute } from "@tanstack/react-router";
 import { es } from "date-fns/locale";
-import { PlusIcon } from "lucide-react";
-import { Activity, lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useState } from "react";
 
 import {
   getAppointmentsTableColumns,
   rescheduledAppointmentRequestsTableColumns,
 } from "@/components/appointments/table/columns";
+import { DashboardHeader } from "@/components/barbershops/dashboard-header";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
-import { DataTable } from "@/components/table/data-table";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   barbershopByMemberUserIdQueryOptions,
@@ -40,6 +39,12 @@ import {
   useServicesByBarbershopId,
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+
+const DataTable = lazy(() =>
+  import("@/components/table/data-table").then((module) => ({
+    default: module.DataTable,
+  })),
+) as typeof import("@/components/table/data-table").DataTable;
 
 const CreateAppointmentDialog = lazy(() =>
   import("@/components/appointments/create-appointment-dialog").then(
@@ -72,7 +77,7 @@ export const Route = createFileRoute(
 
       if (barbershop?._id) {
         const appointments = await context.queryClient.ensureQueryData(
-          appointmentsByBarbershopQueryOptions(barbershop._id, user.userId),
+          appointmentsByBarbershopQueryOptions(barbershop._id),
         );
         await context.queryClient.ensureQueryData(
           barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
@@ -125,12 +130,9 @@ function RouteComponent() {
     barbershop?._id!,
   );
   const { data: services } = useServicesByBarbershopId(barbershop?._id!);
-  const {
-    data: rescheduledAppointmentRequests,
-    isLoading: isLoadingRescheduledAppointmentRequests,
-  } = useRescheduledAppointmentRequests(barbershop?._id!);
-  const { data: appointments, isLoading: isLoadingAppointments } =
-    useAppointmentsByBarbershop(barbershop?._id!, session?.userId!);
+  const { data: rescheduledAppointmentRequests } =
+    useRescheduledAppointmentRequests(barbershop?._id!);
+  const { data: appointments } = useAppointmentsByBarbershop(barbershop?._id!);
   const { canCreateStaffAppointments } = usePlan();
 
   const isOwner = Boolean(
@@ -150,11 +152,10 @@ function RouteComponent() {
 
   return (
     <BorderContainer className="space-y-4">
-      <section className="flex w-full flex-col justify-between gap-4">
-        <div className="flex w-full items-center justify-between gap-4">
-          <h1 className="font-bold text-2xl tracking-tight">Citas</h1>
-        </div>
-      </section>
+      <DashboardHeader
+        title="Citas"
+        description="Administra tus citas y solicitudes de reagendamiento."
+      />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="space-y-2">
@@ -185,12 +186,19 @@ function RouteComponent() {
                 : "No hay día seleccionado"}
             </h2>
 
-            <Suspense fallback={<Skeleton className="h-9 w-32" />}>
-              {barbershop?._id && canCreateStaffAppointments && (
+            {barbershop?._id && canCreateStaffAppointments && (
+              <Suspense
+                fallback={
+                  <Button disabled>
+                    <PlusIcon />
+                    Crear cita
+                  </Button>
+                }
+              >
                 <CreateAppointmentDialog
                   trigger={
                     <Button>
-                      <PlusIcon className="size-3" />
+                      <PlusIcon />
                       Crear cita
                     </Button>
                   }
@@ -199,33 +207,16 @@ function RouteComponent() {
                   services={services}
                   serviceId={undefined}
                 />
-              )}
-            </Suspense>
+              </Suspense>
+            )}
           </header>
 
-          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-            <Activity
-              mode={
-                !isLoadingAppointments && appointmentsForSelectedDay.length > 0
-                  ? "visible"
-                  : "hidden"
-              }
-            >
-              <DataTable
-                columns={getAppointmentsTableColumns({ isOwner })}
-                data={appointmentsForSelectedDay}
-              />
-            </Activity>
+          <Suspense fallback={<Skeleton className="h-32 w-full md:h-64" />}>
+            <DataTable
+              columns={getAppointmentsTableColumns({ isOwner })}
+              data={appointmentsForSelectedDay}
+            />
           </Suspense>
-
-          {appointmentsForSelectedDay.length === 0 && (
-            <Empty>
-              <EmptyTitle>No hay citas para el día seleccionado.</EmptyTitle>
-              <EmptyDescription>
-                Selecciona un día para ver las citas agendadas para ese día.
-              </EmptyDescription>
-            </Empty>
-          )}
         </div>
       </div>
 
@@ -242,33 +233,12 @@ function RouteComponent() {
           </p>
         </header>
 
-        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <Activity
-            mode={
-              !isLoadingRescheduledAppointmentRequests &&
-              rescheduledAppointmentRequests.length > 0
-                ? "visible"
-                : "hidden"
-            }
-          >
-            <DataTable
-              columns={rescheduledAppointmentRequestsTableColumns}
-              data={rescheduledAppointmentRequests}
-            />
-          </Activity>
+        <Suspense fallback={<Skeleton className="h-32 w-full md:h-64" />}>
+          <DataTable
+            columns={rescheduledAppointmentRequestsTableColumns}
+            data={rescheduledAppointmentRequests}
+          />
         </Suspense>
-
-        {rescheduledAppointmentRequests.length === 0 && (
-          <Empty>
-            <EmptyTitle>
-              No hay solicitudes de reagendamiento pendientes.
-            </EmptyTitle>
-            <EmptyDescription>
-              Cuando un cliente solicita un reagendamiento, podrás gestionarlo
-              aquí.
-            </EmptyDescription>
-          </Empty>
-        )}
       </div>
     </BorderContainer>
   );

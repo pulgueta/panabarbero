@@ -9,7 +9,6 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
   createAppointment: { kind: "fixed window", rate: 3, period: MINUTE },
   setAppointmentStatus: { kind: "fixed window", rate: 10, period: MINUTE },
   deleteAppointment: { kind: "fixed window", rate: 5, period: MINUTE },
-  removeAppointment: { kind: "fixed window", rate: 5, period: MINUTE },
   cancelAppointment: { kind: "fixed window", rate: 5, period: MINUTE },
   answerRescheduleRequest: { kind: "fixed window", rate: 5, period: MINUTE },
   createBarbershop: { kind: "fixed window", rate: 2, period: 60 * MINUTE },
@@ -46,7 +45,6 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
   deleteReview: { kind: "fixed window", rate: 5, period: MINUTE },
   deleteR2Object: { kind: "fixed window", rate: 5, period: MINUTE },
   updateName: { kind: "fixed window", rate: 5, period: MINUTE },
-  updateEmail: { kind: "fixed window", rate: 3, period: MINUTE },
   updatePhoneNumber: { kind: "fixed window", rate: 5, period: MINUTE },
   updateNotificationPreference: {
     kind: "fixed window",

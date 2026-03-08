@@ -1,12 +1,14 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: always defined */
 import { Polar } from "@convex-dev/polar";
+import { z } from "zod";
+
+import { zInternalAction } from ".";
 import { api, components } from "./_generated/api";
-import { internalAction } from "./_generated/server";
 import { PLAN_PRODUCT_KEYS } from "./plans";
 
 export const polar = new Polar(components.polar, {
   getUserInfo: async (ctx) => {
-    const user = (await ctx.runQuery(api.auth.getCurrentUser)) as {
+    const user = (await ctx.runQuery(api.auth.getCurrentUser, {})) as {
       userId: string;
       email: string;
     };
@@ -39,8 +41,8 @@ export const {
   generateCustomerPortalUrl,
 } = polar.api();
 
-export const syncExistingProducts = internalAction({
-  args: {},
+export const syncExistingProducts = zInternalAction({
+  args: z.object({}),
   handler: async (ctx) => {
     await polar.syncProducts(ctx);
   },

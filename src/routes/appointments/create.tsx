@@ -1,5 +1,5 @@
+import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { SearchIcon } from "lucide-react";
 import { Activity, lazy, Suspense, useState } from "react";
 
 import { BorderContainer } from "@/components/layout/border-container";
@@ -38,7 +38,6 @@ export const Route = createFileRoute("/appointments/create")({
 
     if (user?.userId) {
       await Promise.all([
-        ctx.context.queryClient.ensureQueryData(getSessionQueryOptions()),
         ctx.context.queryClient.ensureQueryData(
           userVisitedBarbershopsQueryOptions(user.userId),
         ),
@@ -71,7 +70,7 @@ function RouteComponent() {
   const searching = isSearching || isSearchingAgain;
 
   return (
-    <BorderContainer className="space-y-4">
+    <BorderContainer>
       <div className="flex flex-col gap-2">
         <h1
           className="text-balance font-bold text-xl tracking-tight"
@@ -141,7 +140,7 @@ function RouteComponent() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             <InputGroupAddon>
-              <SearchIcon />
+              <MagnifyingGlassIcon />
             </InputGroupAddon>
           </InputGroup>
         </div>

@@ -1,13 +1,13 @@
 import {
-  Calendar,
-  CalendarPlus,
-  DollarSign,
-  Home,
-  Scissors,
-  Settings,
-  User,
-  Users,
-} from "lucide-react";
+  CalendarIcon,
+  CalendarPlusIcon,
+  CurrencyDollarIcon,
+  GearSixIcon,
+  HouseIcon,
+  ScissorsIcon,
+  UserIcon,
+  UsersIcon,
+} from "@phosphor-icons/react";
 
 export const APP_NAME = "PanaBarbero" as const;
 
@@ -16,22 +16,22 @@ export const publicRoutes = {
     {
       label: "Inicio",
       to: "/",
-      icon: Home,
+      icon: HouseIcon,
     },
     {
       label: "Barberías",
       to: "/barbershops",
-      icon: Scissors,
+      icon: ScissorsIcon,
     },
     {
       label: "Agendar",
       to: "/appointments/create",
-      icon: CalendarPlus,
+      icon: CalendarPlusIcon,
     },
     {
       label: "Precios",
       to: "/pricing",
-      icon: DollarSign,
+      icon: CurrencyDollarIcon,
     },
   ],
 };
@@ -42,46 +42,46 @@ export const authenticatedRoutes = {
     {
       label: "Perfil",
       to: "/profile",
-      icon: User,
+      icon: UserIcon,
     },
   ],
   barber: [
     {
       label: "Citas",
       to: "/profile/barbershops/appointments",
-      icon: Calendar,
+      icon: CalendarIcon,
     },
     {
       label: "Perfil",
       to: "/profile",
-      icon: User,
+      icon: UserIcon,
     },
   ],
   owner: [
     {
       label: "Citas",
       to: "/profile/barbershops/appointments",
-      icon: Calendar,
+      icon: CalendarIcon,
     },
     {
       label: "Servicios",
       to: "/profile/barbershops/services",
-      icon: Scissors,
+      icon: ScissorsIcon,
     },
     {
       label: "Barberos",
       to: "/profile/barbershops/barbers",
-      icon: Users,
+      icon: UsersIcon,
     },
     {
       label: "Ajustes",
       to: "/profile/barbershops/settings",
-      icon: Settings,
+      icon: GearSixIcon,
     },
     {
       label: "Perfil",
       to: "/profile",
-      icon: User,
+      icon: UserIcon,
     },
   ],
 };
@@ -91,22 +91,22 @@ export const routes = {
     {
       label: "Inicio",
       to: "/",
-      icon: Home,
+      icon: HouseIcon,
     },
     {
       label: "Barberías",
       to: "/barbershops",
-      icon: Scissors,
+      icon: ScissorsIcon,
     },
     {
       label: "Agendar",
       to: "/appointments/create",
-      icon: CalendarPlus,
+      icon: CalendarPlusIcon,
     },
     {
       label: "Perfil",
       to: "/profile",
-      icon: User,
+      icon: UserIcon,
     },
   ],
   barbershop: {

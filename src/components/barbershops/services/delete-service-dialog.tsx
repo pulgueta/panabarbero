@@ -1,18 +1,19 @@
-import type { Barbershop, Service } from "@convex/tables";
+import type { Barbershop, Service } from "@convex/schema";
 import type { FC, ReactElement } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalTrigger,
+} from "@/components/ui/responsive-modal";
 import { Spinner } from "@/components/ui/spinner";
 import { useServiceActions } from "@/hooks/use-services";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
@@ -37,6 +38,8 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
   serviceId,
   barbershopId,
 }) => {
+  const haptic = useWebHaptics();
+
   const [open, setOpen] = useState<boolean>(false);
   const [confirmationStep, setConfirmationStep] = useState<
     "initial" | "confirm_cancellation"
@@ -61,37 +64,24 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
 
   const onDelete = async (force = false) => {
     try {
-      const result = await deleteService({
-        serviceId,
-        barbershopId,
+      await deleteService({
+        service: { id: serviceId },
+        barbershop: { id: barbershopId },
         force,
       });
 
-      // Success - service deleted
-      const deletedCount =
-        typeof result === "object" &&
-        result !== null &&
-        "deletedAppointments" in result
-          ? (result as { deletedAppointments: number }).deletedAppointments
-          : 0;
-
-      if (deletedCount > 0) {
-        toast.success(
-          `Servicio eliminado. ${deletedCount} cita(s) cancelada(s) y notificaciones enviadas.`,
-        );
-      } else {
-        toast.success("Servicio eliminado exitosamente");
-      }
+      haptic.trigger("success");
+      toast.success("Servicio eliminado exitosamente");
       handleOpenChange(false);
     } catch (error) {
       const errorMessage = getConvexErrorMessage(error);
       const willCancelCount = parseWillCancelError(errorMessage);
 
       if (willCancelCount !== null && !force) {
-        // Show confirmation step with impacted appointment count
         setImpactedCount(willCancelCount);
         setConfirmationStep("confirm_cancellation");
       } else {
+        haptic.trigger("error");
         toast.error(errorMessage);
       }
     }
@@ -112,15 +102,17 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
     : `Eliminar y cancelar ${impactedCount} cita(s)`;
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={trigger} />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{dialogTitle}</DialogTitle>
-          <DialogDescription>{dialogDescription}</DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal open={open} onOpenChange={handleOpenChange}>
+      <ResponsiveModalTrigger render={trigger} />
+      <ResponsiveModalContent>
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>{dialogTitle}</ResponsiveModalTitle>
+          <ResponsiveModalDescription>
+            {dialogDescription}
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <ResponsiveModalFooter className="gap-2 sm:gap-0">
           {!isInitialStep && (
             <Button
               variant="outline"
@@ -138,8 +130,8 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
             {isDeleting && <Spinner />}
             {buttonLabel}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 };

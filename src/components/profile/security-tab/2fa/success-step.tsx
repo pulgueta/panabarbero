@@ -1,4 +1,4 @@
-import { CheckCircle2Icon, Info } from "lucide-react";
+import { CheckCircleIcon, InfoIcon } from "@phosphor-icons/react";
 import type { FC } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -25,7 +25,7 @@ export const SuccessStep: FC<SuccessStepProps> = ({ backupCodes, onClose }) => {
         </DialogDescription>
       </DialogHeader>
       <div className="flex flex-col items-center gap-4 py-4">
-        <CheckCircle2Icon className="size-8 text-green-600 dark:text-green-400" />
+        <CheckCircleIcon className="size-8 text-green-600 dark:text-green-400" />
 
         <p className="text-center text-muted-foreground text-sm">
           A partir de ahora, necesitarás ingresar un código de tu aplicación de
@@ -34,8 +34,8 @@ export const SuccessStep: FC<SuccessStepProps> = ({ backupCodes, onClose }) => {
 
         {backupCodes.length > 0 && (
           <>
-            <Alert variant="info">
-              <Info />
+            <Alert>
+              <InfoIcon />
               <AlertTitle>Atención</AlertTitle>
               <AlertDescription>
                 Asegúrate de guardar estos códigos en un lugar seguro. Los

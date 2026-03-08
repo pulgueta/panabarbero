@@ -1,5 +1,5 @@
+import { InfoIcon } from "@phosphor-icons/react";
 import { useRouter } from "@tanstack/react-router";
-import { Info } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,7 +18,7 @@ export const NotFoundComponent = () => {
     <Empty className="min-h-[calc(100dvh-65px)] bg-gradient-to-b from-30% from-muted/50 to-background">
       <EmptyHeader>
         <EmptyMedia variant="icon">
-          <Info />
+          <InfoIcon />
         </EmptyMedia>
         <EmptyTitle className="text-balance font-bold text-xl tracking-tight md:text-3xl">
           Página no encontrada

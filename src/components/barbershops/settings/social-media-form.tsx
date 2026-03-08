@@ -1,6 +1,8 @@
-import type { Barbershop, BarbershopMetadata } from "@convex/tables";
+import type { Barbershop, BarbershopMetadata } from "@convex/schema";
 import type { FC } from "react";
 import { useState } from "react";
+import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -38,29 +40,40 @@ export const SocialMediaForm: FC<SocialMediaFormProps> = ({
     },
   } = useBarbershopActions();
 
+  const haptic = useWebHaptics();
+
   const onSubmit = async () => {
-    await updateBarbershop({
-      barbershopId: barbershop._id,
-      barbershop: {
-        uuid: barbershop.uuid,
-        name: barbershop.name,
-        description: barbershop.description || undefined,
-        address: barbershop.address,
-        coordinates: barbershop.coordinates
-          ? { x: barbershop.coordinates.x, y: barbershop.coordinates.y }
-          : undefined,
-        services: barbershop.services ?? [],
-        contactPhone: barbershop.contactPhone || undefined,
-        isActive: barbershop.isActive,
-        gracePeriodMinutes: barbershop.gracePeriodMinutes ?? 5,
-        ownerId: barbershop.ownerId,
-        availability: barbershop.availability ?? [],
-        city: barbershop.city,
-        state: barbershop.state,
-        zipCode: barbershop.zipCode || undefined,
-        bannerUrl: barbershop.bannerUrl || undefined,
-      },
-    });
+    try {
+      await updateBarbershop({
+        id: barbershop._id,
+        data: {
+          uuid: barbershop.uuid,
+          name: barbershop.name,
+          description: barbershop.description || undefined,
+          address: barbershop.address,
+          coordinates: barbershop.coordinates
+            ? { x: barbershop.coordinates.x, y: barbershop.coordinates.y }
+            : undefined,
+          services: barbershop.services ?? [],
+          contactPhone: barbershop.contactPhone || undefined,
+          isActive: barbershop.isActive,
+          gracePeriodMinutes: barbershop.gracePeriodMinutes ?? 5,
+          ownerId: barbershop.ownerId,
+          availability: barbershop.availability ?? [],
+          city: barbershop.city,
+          state: barbershop.state,
+          zipCode: barbershop.zipCode || undefined,
+          bannerUrl: barbershop.bannerUrl || undefined,
+        },
+      });
+      haptic.trigger("success");
+      toast.success("Redes sociales actualizadas correctamente");
+    } catch {
+      haptic.trigger("error");
+      toast.error(
+        "No se pudo actualizar las redes sociales. Intenta de nuevo.",
+      );
+    }
   };
 
   const addRow = () =>

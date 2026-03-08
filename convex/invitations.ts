@@ -1,22 +1,25 @@
-import { ConvexError, v } from "convex/values";
+import { ConvexError } from "convex/values";
+import { z } from "zod";
+
+import { zMutation, zQuery } from ".";
 import { internal } from "./_generated/api";
-import { mutation, query } from "./_generated/server";
 import { assertBarberInviteAllowed } from "./acl";
 import { authComponent } from "./auth";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
+import { barbershops } from "./schema";
 import { getProfileByEmail, getProfileByUserId } from "./userProfileData";
 
 const INVITATION_EXPIRATION_MS = 1000 * 60 * 60 * 24 * 7;
 
-export const invite = mutation({
-  args: {
-    name: v.optional(v.string()),
-    phone: v.string(),
-    email: v.string(),
-    barbershopId: v.id("barbershops"),
-    roles: v.array(v.literal("barber")),
-  },
+export const invite = zMutation({
+  args: z.object({
+    name: z.string().optional(),
+    phone: z.string(),
+    email: z.string(),
+    barbershop: barbershops.tools.id,
+    roles: z.array(z.literal("barber")),
+  }),
   handler: async (ctx, args) => {
     const userInviting = await authComponent.safeGetAuthUser(ctx);
 
@@ -26,21 +29,19 @@ export const invite = mutation({
 
     await rateLimitOrThrow(ctx, "inviteBarbershopMember", userInviting._id);
 
-    const barbershop = await ctx.db.get(args.barbershopId);
+    const barbershop = await ctx.db.get(args.barbershop.id);
 
     if (!barbershop) {
       throw new ConvexError(errorMessages.notFound("barbería"));
     }
 
-    // Verify the user inviting is the owner of the barbershop
     if (barbershop.ownerId !== userInviting.userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    // Enforce plan-based barber invite limit
     await assertBarberInviteAllowed(
       ctx,
-      args.barbershopId,
+      args.barbershop.id,
       userInviting.userId,
     );
 
@@ -52,7 +53,7 @@ export const invite = mutation({
       const existingMember = await ctx.db
         .query("barbershopMembers")
         .withIndex("by_barbershopId", (q) =>
-          q.eq("barbershopId", args.barbershopId),
+          q.eq("barbershopId", args.barbershop.id),
         )
         .filter((q) => q.eq(q.field("userProfileDataId"), userProfile._id))
         .unique();
@@ -65,7 +66,7 @@ export const invite = mutation({
     const existingInvitation = await ctx.db
       .query("invitations")
       .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
+        q.eq("barbershopId", args.barbershop.id),
       )
       .filter((q) => q.eq(q.field("email"), email))
       .first();
@@ -90,7 +91,7 @@ export const invite = mutation({
     const expiresAt = now + INVITATION_EXPIRATION_MS;
 
     const invitationId = await ctx.db.insert("invitations", {
-      barbershopId: args.barbershopId,
+      barbershopId: args.barbershop.id,
       email,
       phone: args.phone,
       roles: args.roles,
@@ -105,7 +106,7 @@ export const invite = mutation({
       internal.notifications.createBarberInvited,
       {
         invitationId,
-        barbershopId: args.barbershopId,
+        barbershopId: args.barbershop.id,
         email,
         code,
         inviterUserId: userInviting.userId,
@@ -119,8 +120,8 @@ export const invite = mutation({
   },
 });
 
-export const getByCode = query({
-  args: { code: v.string() },
+export const getByCode = zQuery({
+  args: z.object({ code: z.string() }),
   handler: async (ctx, args) => {
     const invitation = await ctx.db
       .query("invitations")
@@ -146,8 +147,8 @@ export const getByCode = query({
   },
 });
 
-export const validate = mutation({
-  args: { code: v.string() },
+export const validate = zMutation({
+  args: z.object({ code: z.string() }),
   handler: async (ctx, args) => {
     const invitation = await ctx.db
       .query("invitations")
@@ -200,13 +201,13 @@ export const validate = mutation({
   },
 });
 
-export const answer = mutation({
-  args: {
-    code: v.string(),
-    answer: v.union(v.literal("accept"), v.literal("deny")),
-  },
+export const answer = zMutation({
+  args: z.object({
+    code: z.string(),
+    answer: z.enum(["accept", "deny"]),
+  }),
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user || !user.userId) {
       throw new ConvexError(errorMessages.unauthorized);
@@ -261,7 +262,6 @@ export const answer = mutation({
         }
 
         await ctx.db.insert("barbershopMembers", {
-          uuid: crypto.randomUUID(),
           barbershopId: invitation.barbershopId,
           userProfileDataId: profile._id,
           roles: invitation.roles,

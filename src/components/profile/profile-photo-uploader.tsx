@@ -1,7 +1,8 @@
-import { TrashIcon, UserIcon } from "lucide-react";
+import { TrashIcon, UserIcon } from "@phosphor-icons/react";
 import type { FC } from "react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
     },
   } = useProfileActions();
 
+  const haptic = useWebHaptics();
   const isPending = isUploading || isSavingKey || isRemoving;
 
   // Determine which image to show: preview > R2 photo > auth provider > fallback
@@ -106,9 +108,11 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
       // Save the key to the user's profile
       await setProfilePhotoKey({ key });
 
+      haptic.trigger("success");
       toast.success("Foto de perfil actualizada");
     } catch (error) {
       console.error("Error uploading profile photo:", error);
+      haptic.trigger("error");
       toast.error("Error al subir la imagen. Intenta de nuevo.");
       setPreviewUrl(null);
     } finally {
@@ -124,9 +128,11 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
     try {
       await removeProfilePhoto({});
       setPreviewUrl(null);
+      haptic.trigger("success");
       toast.success("Foto de perfil eliminada");
     } catch (error) {
       console.error("Error removing profile photo:", error);
+      haptic.trigger("error");
       toast.error("Error al eliminar la foto. Intenta de nuevo.");
     }
   };

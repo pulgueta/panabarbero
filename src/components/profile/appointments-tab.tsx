@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: needed */
 
-import type { Appointment } from "@convex/tables";
+import type { Appointment } from "@convex/schema";
 import type { FC } from "react";
-import { Activity, lazy, Suspense } from "react";
+import { lazy, Suspense } from "react";
 
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
 import { Button } from "@/components/ui/button";
@@ -49,38 +49,36 @@ export const AppointmentsTab: FC<AppointmentsTabProps> = ({
   return (
     <div className="space-y-4">
       <Suspense fallback={<ProfileTabSkeleton />}>
-        <Activity mode={appointments.length > 0 ? "visible" : "hidden"}>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {appointments.map((appointment) => {
-              const barbershop = barbershops?.find(
-                (barbershop) => barbershop?._id === appointment.barbershopId,
-              );
-              const service = services?.find(
-                (service) => service?._id === appointment.serviceId,
-              );
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {appointments.map((appointment) => {
+            const barbershop = barbershops?.find(
+              (barbershop) => barbershop?._id === appointment.barbershopId,
+            );
+            const service = services?.find(
+              (service) => service?._id === appointment.serviceId,
+            );
 
-              return (
-                <AppointmentCard
-                  key={appointment._id}
-                  appointment={appointment}
-                  barbershop={barbershop!}
-                  isBarber={isBarber}
-                  service={service!}
-                />
-              );
-            })}
-          </div>
-        </Activity>
+            return (
+              <AppointmentCard
+                key={appointment._id}
+                appointment={appointment}
+                barbershop={barbershop!}
+                isBarber={isBarber}
+                service={service!}
+              />
+            );
+          })}
+        </div>
+
+        {appointments.length === 0 && (
+          <Empty className="col-span-full">
+            <EmptyTitle>No hay citas para mostrar</EmptyTitle>
+            <EmptyDescription>
+              Cuando agendas una cita, podrás verla aquí.
+            </EmptyDescription>
+          </Empty>
+        )}
       </Suspense>
-
-      {appointments.length === 0 && (
-        <Empty className="col-span-full">
-          <EmptyTitle>No hay citas para mostrar</EmptyTitle>
-          <EmptyDescription>
-            Cuando agendas una cita, podrás verla aquí.
-          </EmptyDescription>
-        </Empty>
-      )}
 
       <div className="flex items-center justify-end gap-2">
         <Button

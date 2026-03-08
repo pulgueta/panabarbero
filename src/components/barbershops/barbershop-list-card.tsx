@@ -1,4 +1,4 @@
-import type { Barbershop } from "@convex/tables";
+import type { Barbershop } from "@convex/schema";
 import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
 

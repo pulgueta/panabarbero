@@ -5,11 +5,11 @@ import { convex } from "@convex-dev/better-auth/plugins";
 import { requireActionCtx } from "@convex-dev/better-auth/utils";
 import { betterAuth } from "better-auth";
 import { twoFactor } from "better-auth/plugins";
-
+import { z } from "zod";
+import { zQuery } from ".";
 import { APP_NAME } from "../src/config";
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
-import { internalQuery, query } from "./_generated/server";
 import authConfig from "./auth.config";
 import { from, resend } from "./emails";
 import { getLimitsForProductKey, getTierForProductKey } from "./plans";
@@ -34,34 +34,31 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
         });
 
         await ctx.runMutation(internal.userProfileData.create, {
-          data: {
-            name: doc.name,
-            userId: doc._id,
-            uuid: crypto.randomUUID(),
-            email: doc.email,
-            phoneNumber: doc.phoneNumber ?? undefined,
-            notificationsPreferences: [
-              {
-                type: "email",
-                enabled: true,
-              },
-              {
-                type: "sms",
-                enabled: false,
-              },
-            ],
-          },
+          email: doc.email,
+          userId: doc._id,
+          name: doc.name,
+          phoneNumber: undefined,
+          notificationsPreferences: [
+            {
+              type: "email",
+              enabled: true,
+            },
+          ],
         });
       },
       onDelete: async (ctx, doc) => {
-        const profile = await getProfileByUserId(ctx, doc.userId ?? "");
+        let profile = null;
+
+        if (doc.userId) {
+          profile = await getProfileByUserId(ctx, doc.userId);
+        }
 
         if (!profile) {
           return;
         }
 
         await ctx.runMutation(internal.userProfileData.deleteProfile, {
-          profileId: profile._id,
+          id: profile._id,
         });
       },
       onUpdate: async (ctx, doc) => {
@@ -161,37 +158,14 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
   });
 };
 
-export const getCurrentUser = query({
-  args: {},
+export const getCurrentUser = zQuery({
+  args: z.object({}),
   handler: async (ctx) => {
     return await authComponent.safeGetAuthUser(ctx);
   },
 });
 
-export const getPolarUser = internalQuery({
-  args: {},
-  handler: async (ctx) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
-
-    if (!user?.userId) {
-      return null;
-    }
-
-    const profile = await getProfileByUserId(ctx, user.userId);
-
-    if (!profile) {
-      return null;
-    }
-
-    return {
-      userId: user._id,
-      email: profile.email,
-    };
-  },
-});
-
-export const getUserSubscription = query({
-  args: {},
+export const getUserSubscription = zQuery({
   handler: async (ctx) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 

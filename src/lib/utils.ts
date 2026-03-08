@@ -1,4 +1,4 @@
-import type { Barbershop } from "@convex/tables";
+import type { Barbershop } from "@convex/schema";
 import type { ClassValue } from "clsx";
 import { clsx } from "clsx";
 import { ConvexError } from "convex/values";

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
@@ -39,6 +40,8 @@ function InvitationPage() {
     useInvitationByCode(code);
   const { data: user } = useSession();
 
+  const haptic = useWebHaptics();
+
   const {
     answerInvitationMutation: {
       isPending: isAnsweringInvitation,
@@ -62,12 +65,19 @@ function InvitationPage() {
             refetchInvitation();
           },
           onError: (error) => {
+            haptic.trigger("error");
             toast.error(getConvexErrorMessage(error));
           },
         },
       );
     }
-  }, [code, invitationData?.isExpired, refetchInvitation, validateInvitation]);
+  }, [
+    code,
+    invitationData?.isExpired,
+    refetchInvitation,
+    validateInvitation,
+    haptic,
+  ]);
 
   const statusLabel = useMemo(() => {
     if (!invitationData?.invitation) return "not_found";
@@ -84,18 +94,20 @@ function InvitationPage() {
   const handleAnswer = async (answer: "accept" | "deny") => {
     try {
       await answerInvitation({ code, answer });
+      haptic.trigger("success");
       toast.success(
         `Invitación ${answer === "accept" ? "aceptada" : "rechazada"}.`,
       );
       navigate({ to: "/profile", search: { tab: "account" } });
     } catch (error) {
+      haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
     }
   };
 
   if (!user?.userId) {
     return (
-      <BorderContainer className="space-y-4">
+      <BorderContainer>
         <h1 className="font-semibold text-2xl">Inicia sesión</h1>
         <p className="text-muted-foreground text-sm">
           Necesitas iniciar sesión para gestionar esta invitación.

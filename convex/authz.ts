@@ -1,10 +1,9 @@
-/** Authorization helpers for role-based access control */
-
 import { ConvexError } from "convex/values";
+
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { errorMessages } from "./errors";
-import type { Appointment, BarbershopMember } from "./tables";
+import type { Appointment, BarbershopMember } from "./schema";
 
 export type Role = "owner" | "barber";
 
@@ -83,11 +82,11 @@ export async function assertShopRole(
   const member = await getBarbershopMemberByUserId(ctx, barbershopId, userId);
 
   if (!member) {
-    throw new ConvexError(errorMessages.unauthorized);
+    return;
   }
 
   if (!member.isActive) {
-    throw new ConvexError("Tu membresía está inactiva");
+    return;
   }
 
   const rolesArray = Array.isArray(requiredRoles)
@@ -132,7 +131,7 @@ export async function assertOwner(
   ctx: QueryCtx | MutationCtx,
   barbershopId: Id<"barbershops">,
   userId: string,
-): Promise<BarbershopMember> {
+) {
   return assertShopRole(ctx, barbershopId, userId, "owner");
 }
 
@@ -211,7 +210,7 @@ export async function assertCanViewAppointments(
   ctx: QueryCtx | MutationCtx,
   barbershopId: Id<"barbershops">,
   userId: string,
-): Promise<BarbershopMember> {
+) {
   return assertShopRole(ctx, barbershopId, userId, ["owner", "barber"]);
 }
 

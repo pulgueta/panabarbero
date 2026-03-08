@@ -7,7 +7,7 @@ import { authClient } from "@/lib/auth-client";
 import { isAuthError } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authedRoutes")({
-  ssr: false,
+  ssr: "data-only",
   component: RouteComponent,
   pendingComponent: LoadingComponent,
 });
@@ -20,7 +20,7 @@ function RouteComponent() {
       isAuthError={isAuthError}
       authClient={authClient}
       onUnauth={() => navigate({ to: "/login" })}
-      getAuthUserFn={api.auth.getCurrentUser}
+      getAuthUserFn={api.auth.getAuthUser}
     >
       <Outlet />
     </AuthBoundary>

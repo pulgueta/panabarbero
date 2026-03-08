@@ -1,5 +1,5 @@
-import type { Service } from "@convex/tables";
-import { Check, ChevronsUpDown } from "lucide-react";
+import type { Service } from "@convex/schema";
+import { CaretUpDownIcon, CheckIcon } from "@phosphor-icons/react";
 import type { FC } from "react";
 import { useState } from "react";
 
@@ -44,7 +44,7 @@ export const ServicesDropdown: FC<ServicesDropdownProps> = ({ services }) => {
             {services && value
               ? services.find((service) => service._id === value)?.name
               : "Seleccionar servicio..."}
-            <ChevronsUpDown className="opacity-50" />
+            <CaretUpDownIcon className="opacity-50" />
           </Button>
         }
       />
@@ -69,7 +69,7 @@ export const ServicesDropdown: FC<ServicesDropdownProps> = ({ services }) => {
                   }}
                 >
                   {service.name}
-                  <Check
+                  <CheckIcon
                     className={cn(
                       "ml-auto size-3",
                       value === service._id ? "opacity-100" : "opacity-0",

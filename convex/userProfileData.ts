@@ -1,11 +1,12 @@
-import { ConvexError, v } from "convex/values";
+import { ConvexError } from "convex/values";
+import { z } from "zod";
 
+import { zInternalMutation, zMutation, zQuery } from ".";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { internalMutation, mutation, query } from "./_generated/server";
 import { authComponent, createAuth } from "./auth";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
-import { tables } from "./tables";
+import { userProfileData } from "./schema";
 
 export const getProfileByUserId = async (
   ctx: QueryCtx | MutationCtx,
@@ -27,11 +28,13 @@ export const getProfileByEmail = async (
     .unique();
 };
 
-export const getMyProfile = query({
-  args: {
-    userId: v.optional(v.string()),
-  },
+export const getMyProfile = zQuery({
+  args: userProfileData.schema.pick({ userId: true }).partial(),
   handler: async (ctx, args) => {
+    if (!args.userId) {
+      return null;
+    }
+
     const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) return null;
@@ -40,7 +43,7 @@ export const getMyProfile = query({
       return null;
     }
 
-    const profile = await getProfileByUserId(ctx, args.userId ?? "");
+    const profile = await getProfileByUserId(ctx, user.userId);
 
     if (!profile) {
       return null;
@@ -50,10 +53,10 @@ export const getMyProfile = query({
   },
 });
 
-export const updateName = mutation({
-  args: { name: v.string() },
+export const updateName = zMutation({
+  args: userProfileData.schema.pick({ name: true }),
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
       throw new ConvexError(errorMessages.unauthorized);
@@ -69,51 +72,23 @@ export const updateName = mutation({
 
     const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
 
+    const name = args.name?.trim();
+
     await auth.api.updateUser({
       body: {
-        name: args.name.trim(),
+        name,
       },
       headers,
     });
 
-    await ctx.db.patch(profile._id, { name: args.name.trim() });
+    await ctx.db.patch(profile._id, { name });
   },
 });
 
-export const updateEmail = mutation({
-  args: { email: v.string() },
+export const updatePhoneNumber = zMutation({
+  args: userProfileData.schema.pick({ phoneNumber: true }),
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
-
-    if (!user) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    await rateLimitOrThrow(ctx, "updateEmail", user._id);
-
-    const profile = await getProfileByUserId(ctx, user.userId ?? "");
-
-    if (!profile) {
-      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
-    }
-
-    const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
-
-    await auth.api.changeEmail({
-      body: {
-        newEmail: args.email.trim(),
-      },
-      headers,
-    });
-
-    await ctx.db.patch(profile._id, { email: args.email.trim() });
-  },
-});
-
-export const updatePhoneNumber = mutation({
-  args: { phoneNumber: v.string() },
-  handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
       throw new ConvexError(errorMessages.unauthorized);
@@ -123,23 +98,26 @@ export const updatePhoneNumber = mutation({
 
     const profile = await getProfileByUserId(ctx, user.userId ?? "");
 
-    if (!profile)
-      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
+    if (!profile) {
+      return;
+    }
+
+    const phoneNumber = args.phoneNumber?.trim();
 
     await ctx.db.patch(profile._id, {
-      phoneNumber: args.phoneNumber.trim(),
+      phoneNumber,
     });
   },
 });
 
-export const updateNotificationPreference = mutation({
-  args: {
-    type: v.union(v.literal("email"), v.literal("sms")),
-    enabled: v.boolean(),
-    userId: v.string(),
-  },
+export const updateNotificationPreference = zMutation({
+  args: z.object({
+    type: z.enum(["email", "sms"]),
+    enabled: z.boolean(),
+    userId: z.string(),
+  }),
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
       throw new ConvexError(errorMessages.unauthorized);
@@ -162,12 +140,12 @@ export const updateNotificationPreference = mutation({
   },
 });
 
-export const setProfilePhotoKey = mutation({
-  args: {
-    key: v.string(),
-  },
+export const setProfilePhotoKey = zMutation({
+  args: z.object({
+    key: z.string(),
+  }),
   handler: async (ctx, _args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
       throw new ConvexError(errorMessages.unauthorized);
@@ -194,10 +172,9 @@ export const setProfilePhotoKey = mutation({
   },
 });
 
-export const removeProfilePhoto = mutation({
-  args: {},
+export const removeProfilePhoto = zMutation({
   handler: async (ctx) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
       throw new ConvexError(errorMessages.unauthorized);
@@ -226,53 +203,38 @@ export const removeProfilePhoto = mutation({
   },
 });
 
-export const create = internalMutation({
-  args: {
-    data: v.object({
-      ...tables.userProfileData,
-      userId: v.optional(v.string()),
-    }),
-  },
+export const create = zInternalMutation({
+  args: userProfileData.tools.insert,
   handler: async (ctx, args) => {
-    const profile = await ctx.db.insert("userProfileData", {
-      ...args.data,
-      userId: args.data.userId ?? "",
-      uuid: crypto.randomUUID(),
-    });
+    const profile = await ctx.db.insert("userProfileData", args);
 
     return profile;
   },
 });
 
-export const update = internalMutation({
-  args: {
-    profileId: v.id("userProfileData"),
-    data: tables.userProfileData.notificationsPreferences,
-  },
+export const update = zInternalMutation({
+  args: userProfileData.tools.update,
   handler: async (ctx, args) => {
-    const user = await authComponent.getAuthUser(ctx);
+    const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    await ctx.db.patch(args.profileId, {
-      notificationsPreferences: args.data,
+    await ctx.db.patch(args.id, {
+      notificationsPreferences: args.data.notificationsPreferences,
     });
   },
 });
 
-export const deleteProfile = internalMutation({
-  args: {
-    profileId: v.id("userProfileData"),
-  },
+export const deleteProfile = zInternalMutation({
+  args: userProfileData.tools.id,
   handler: async (ctx, args) => {
-    await ctx.db.delete(args.profileId);
+    await ctx.db.delete(args.id);
   },
 });
 
-export const deleteUserProfiles = internalMutation({
-  args: {},
+export const deleteUserProfiles = zInternalMutation({
   handler: async (ctx) => {
     const users = await ctx.db
       .query("userProfileData")

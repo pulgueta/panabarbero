@@ -1,28 +1,21 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: Needed */
 
+import { PlusIcon } from "@phosphor-icons/react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { PlusIcon } from "lucide-react";
-import { Activity, lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useState } from "react";
 
+import { DashboardHeader } from "@/components/barbershops/dashboard-header";
+import { ServiceCard } from "@/components/barbershops/services/service-card";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Empty,
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   barbershopByMemberUserIdQueryOptions,
   useBarbershopByMemberUserId,
@@ -37,15 +30,7 @@ import {
   usePaginatedServicesFromBarbershop,
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
-import { formatCurrency } from "@/lib/utils";
 
-const DeleteServiceDialog = lazy(() =>
-  import("@/components/barbershops/services/delete-service-dialog").then(
-    (module) => ({
-      default: module.DeleteServiceDialog,
-    }),
-  ),
-);
 const ServiceDialog = lazy(() =>
   import("@/components/barbershops/services/service-dialog").then((module) => ({
     default: module.ServiceDialog,
@@ -103,11 +88,8 @@ function RouteComponent() {
   const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
   const { data: barbershop, isLoading: isLoadingBarbershop } =
     useBarbershopByMemberUserId(user?.userId!);
-  const {
-    data: servicesResult,
-    isLoading: isLoadingServices,
-    isFetching: isFetchingServices,
-  } = usePaginatedServicesFromBarbershop(barbershop?._id!, cursor, pageSize);
+  const { data: servicesResult, isFetching: isFetchingServices } =
+    usePaginatedServicesFromBarbershop(barbershop?._id!, cursor, pageSize);
 
   const services = servicesResult?.page;
   const hasNextPage =
@@ -121,22 +103,25 @@ function RouteComponent() {
     <BorderContainer className="space-y-4">
       <section className="flex w-full flex-col gap-4">
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <div className="space-y-1">
-            <h1 className="font-bold text-2xl tracking-tight">
-              Gestiona tus servicios
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              Consulta, crea y edita los servicios que ofreces en tu barbería.
-            </p>
-          </div>
+          <DashboardHeader
+            title="Servicios"
+            description="Crea, edita y elimina los servicios que ofreces."
+          />
 
-          <Suspense fallback={<Skeleton className="h-9 w-48" />}>
+          <Suspense
+            fallback={
+              <Button disabled variant="outline">
+                <PlusIcon />
+                Agregar servicio
+              </Button>
+            }
+          >
             {barbershop?._id && !isLoadingBarbershop && rolesData?.isOwner && (
               <ServiceDialog
                 barbershopId={barbershop._id}
                 trigger={
                   <Button variant="outline" disabled={!rolesData?.isOwner}>
-                    <PlusIcon className="size-3" />
+                    <PlusIcon />
                     Agregar servicio
                   </Button>
                 }
@@ -146,75 +131,29 @@ function RouteComponent() {
         </div>
 
         <Suspense fallback={<ProfileTabSkeleton />}>
-          <Activity
-            mode={!isLoadingServices && services?.length ? "visible" : "hidden"}
-          >
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {services?.map((service) => (
-                <Card key={service._id} className="h-full">
-                  <CardHeader>
-                    <CardTitle>{service.name}</CardTitle>
-                    <CardDescription>
-                      {service.duration} minutos
-                    </CardDescription>
-                  </CardHeader>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {services?.map((service) => (
+              <ServiceCard
+                key={service._id}
+                service={service}
+                isOwner={rolesData?.isOwner!}
+              />
+            ))}
+          </div>
 
-                  <CardContent>
-                    <p className="font-bold">{formatCurrency(service.price)}</p>
-                  </CardContent>
-
-                  {rolesData?.isOwner && (
-                    <CardFooter className="justify-end gap-2">
-                      <Suspense fallback={<Skeleton className="h-9 w-24" />}>
-                        <ServiceDialog
-                          barbershopId={service.barbershopId}
-                          initialValues={service}
-                          serviceId={service._id}
-                          trigger={
-                            <Button
-                              variant="outline"
-                              disabled={!rolesData?.isOwner}
-                            >
-                              Editar
-                            </Button>
-                          }
-                        />
-                      </Suspense>
-
-                      <Suspense fallback={<Skeleton className="h-9 w-24" />}>
-                        <DeleteServiceDialog
-                          serviceId={service._id}
-                          barbershopId={service.barbershopId}
-                          trigger={
-                            <Button
-                              variant="destructive"
-                              disabled={!rolesData?.isOwner}
-                            >
-                              Eliminar
-                            </Button>
-                          }
-                        />
-                      </Suspense>
-                    </CardFooter>
-                  )}
-                </Card>
-              ))}
-            </div>
-          </Activity>
+          {services?.length === 0 && (
+            <Empty>
+              <EmptyHeader>
+                <EmptyTitle>
+                  No hay servicios disponibles para esta barbería.
+                </EmptyTitle>
+                <EmptyDescription>
+                  Cuando agregues un servicio, podrás verlo aquí.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          )}
         </Suspense>
-
-        {services?.length === 0 && (
-          <Empty>
-            <EmptyHeader>
-              <EmptyTitle>
-                No hay servicios disponibles para esta barbería.
-              </EmptyTitle>
-              <EmptyDescription>
-                Cuando agregues un servicio, podrás verlo aquí.
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        )}
 
         <div className="flex items-center justify-end gap-2">
           <Button

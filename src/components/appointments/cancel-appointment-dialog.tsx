@@ -1,20 +1,21 @@
-import type { Appointment } from "@convex/tables";
+import type { Appointment } from "@convex/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { FC, ReactElement } from "react";
 import { useEffect, useId } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalTrigger,
+} from "@/components/ui/responsive-modal";
 import { Spinner } from "@/components/ui/spinner";
 import { useAppointmentActions } from "@/hooks/use-appointments";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
@@ -50,6 +51,8 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
     },
   });
 
+  const haptic = useWebHaptics();
+
   const {
     cancelAppointmentMutation: {
       mutateAsync: cancelAppointment,
@@ -60,9 +63,10 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
 
   useEffect(() => {
     if (isCancelAppointmentSuccess) {
+      haptic.trigger("success");
       toast.success("Cita cancelada correctamente.");
     }
-  }, [isCancelAppointmentSuccess]);
+  }, [isCancelAppointmentSuccess, haptic]);
 
   const title = "Cancelar cita";
   const cancelButtonLabel = "Si, cancelar";
@@ -75,25 +79,28 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
 
     try {
       await cancelAppointment({
-        appointmentId: appointment._id,
+        appointmentId: { id: appointment._id },
         reason: values.notes,
         cancelledByUserId: userId,
         cancelledBy: isBarber ? "barber" : "customer",
       });
     } catch (error) {
+      haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
       return;
     }
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger nativeButton={false} render={trigger} />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{cancelDialogDescription}</DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalTrigger nativeButton={false} render={trigger} />
+      <ResponsiveModalContent>
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>{title}</ResponsiveModalTitle>
+          <ResponsiveModalDescription>
+            {cancelDialogDescription}
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
         <CancelAppointmentForm
           isBarber={isBarber}
@@ -103,7 +110,7 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
           disabled={isCancellingAppointment}
         />
 
-        <DialogFooter>
+        <ResponsiveModalFooter>
           <Button
             variant="destructive"
             disabled={isCancellingAppointment}
@@ -113,8 +120,8 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
             {isCancellingAppointment && <Spinner />}
             {cancelButtonLabel}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 };

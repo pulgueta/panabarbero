@@ -1,19 +1,20 @@
-import type { Appointment } from "@convex/tables";
-import type { FC, FormEvent, ReactElement } from "react";
-import { useEffect, useId, useState } from "react";
+import type { Appointment } from "@convex/schema";
+import type { FC, ReactElement, SubmitEvent } from "react";
+import { useId, useState } from "react";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalTrigger,
+} from "@/components/ui/responsive-modal";
 import { Spinner } from "@/components/ui/spinner";
 import { useAppointmentActions } from "@/hooks/use-appointments";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
@@ -33,20 +34,20 @@ export const MarkAppointmentDialog: FC<MarkAppointmentDialogProps> = ({
   const description = "Asigna el estado final de la cita.";
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={trigger} />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal open={open} onOpenChange={setOpen}>
+      <ResponsiveModalTrigger render={trigger} />
+      <ResponsiveModalContent>
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>{title}</ResponsiveModalTitle>
+          <ResponsiveModalDescription>{description}</ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
         <OptionsForm
           appointmentId={appointmentId}
           onClose={() => setOpen(false)}
         />
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 };
 
@@ -60,15 +61,13 @@ const OptionsForm: FC<OptionsFormProps> = ({ appointmentId, onClose }) => {
     completed: useId(),
     noShow: useId(),
   };
+  const haptic = useWebHaptics();
+
   const {
-    setStatusMutation: {
-      mutateAsync: setStatus,
-      isPending: isSettingStatus,
-      isSuccess: isSettingStatusSuccess,
-    },
+    setStatusMutation: { mutateAsync: setStatus, isPending: isSettingStatus },
   } = useAppointmentActions();
 
-  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -77,23 +76,21 @@ const OptionsForm: FC<OptionsFormProps> = ({ appointmentId, onClose }) => {
 
     try {
       await setStatus({
-        appointmentId,
+        appointment: { id: appointmentId },
         status,
       });
 
+      haptic.trigger("success");
+      toast.success("Cita marcada correctamente.");
+      onClose();
+
       return;
     } catch (error) {
+      haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
       return;
     }
   };
-
-  useEffect(() => {
-    if (isSettingStatusSuccess) {
-      toast.success("Cita marcada correctamente.");
-      onClose();
-    }
-  }, [isSettingStatusSuccess, onClose]);
 
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit}>

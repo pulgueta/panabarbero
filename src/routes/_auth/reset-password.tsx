@@ -1,5 +1,13 @@
 /** biome-ignore-all lint/correctness/noChildrenProp: Enforced by TanStack Form */
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { EyeIcon, EyeSlashIcon } from "@phosphor-icons/react";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
+
 import { FormHeader } from "@/components/auth/form-header";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
@@ -22,12 +30,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { resetPassword } from "@/lib/auth-client";
 import { resetPasswordSchema } from "@/lib/auth-schemas";
 import { translateBetterAuthError } from "@/lib/better-auth-errors";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { EyeIcon, EyeOffIcon } from "lucide-react";
-import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/_auth/reset-password")({
   component: ResetPasswordPage,
@@ -55,6 +57,8 @@ function ResetPasswordPage() {
   const [showConfirmPassword, setShowConfirmPassword] =
     useState<boolean>(false);
 
+  const haptic = useWebHaptics();
+
   const form = useForm({
     defaultValues: {
       password: "",
@@ -67,6 +71,7 @@ function ResetPasswordPage() {
   const onSubmit = form.handleSubmit(async ({ password }) => {
     if (!token) {
       toast.error("Token de restablecimiento inválido");
+      haptic.trigger("error");
       return;
     }
 
@@ -78,15 +83,22 @@ function ResetPasswordPage() {
 
       if (error?.code) {
         toast.error(translateBetterAuthError(error.code));
+        haptic.trigger("error");
         return;
       }
 
       if (data) {
-        toast.success("¡Contraseña restablecida! Bienvenido a PanaBarbero.");
-        navigate({ to: "/login" });
+        toast.success(
+          "¡Contraseña restablecida! Inicia sesión para continuar.",
+        );
+        haptic.trigger("success");
+        form.reset();
+        navigate({ to: "/login", replace: true });
         return;
       }
     } catch (error: unknown) {
+      haptic.trigger("error");
+
       if (error instanceof Error) {
         toast.error(error.message ?? "Error al restablecer la contraseña");
         return;
@@ -144,7 +156,7 @@ function ResetPasswordPage() {
                           }
                         >
                           {showPassword ? (
-                            <EyeOffIcon size={16} />
+                            <EyeSlashIcon size={16} />
                           ) : (
                             <EyeIcon size={16} />
                           )}
@@ -191,7 +203,7 @@ function ResetPasswordPage() {
                           }
                         >
                           {showConfirmPassword ? (
-                            <EyeOffIcon size={16} />
+                            <EyeSlashIcon size={16} />
                           ) : (
                             <EyeIcon size={16} />
                           )}
