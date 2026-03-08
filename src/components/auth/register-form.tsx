@@ -1,218 +1,126 @@
 /** biome-ignore-all lint/correctness/noChildrenProp: Enforced by TanStack Form */
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { EyeIcon, EyeSlashIcon } from "@phosphor-icons/react";
+import { revalidateLogic } from "@tanstack/react-form";
 import { useRouter } from "@tanstack/react-router";
-import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
-import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/spinner";
+import { useAppForm } from "@/components/form/use-form";
+import { FieldGroup } from "@/components/ui/field";
 import { signUp } from "@/lib/auth-client";
 import { registerFormSchema } from "@/lib/auth-schemas";
 import { translateBetterAuthError } from "@/lib/better-auth-errors";
 
 export const RegisterForm = () => {
-  const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [showConfirmPassword, setShowConfirmPassword] =
-    useState<boolean>(false);
-
   const router = useRouter();
-
   const haptic = useWebHaptics();
 
-  const form = useForm({
+  const form = useAppForm({
+    onSubmitInvalid: () => {
+      haptic.trigger("error");
+    },
+    validationLogic: revalidateLogic({
+      mode: "submit",
+      modeAfterSubmission: "change",
+    }),
+    validators: {
+      onSubmit: registerFormSchema,
+    },
     defaultValues: {
       name: "",
       email: "",
       password: "",
       confirmPassword: "",
     },
-    resolver: zodResolver(registerFormSchema),
-  });
-
-  const onSubmit = form.handleSubmit(async ({ name, email, password }) => {
-    try {
-      const { data, error } = await signUp.email({
-        email,
-        password,
-        name,
-        callbackURL: "/login",
-      });
-
-      if (error?.code) {
-        toast.error(translateBetterAuthError(error.code));
-        haptic.trigger("error");
-        return;
-      }
-
-      if (data?.user) {
-        toast.success("¡Cuenta creada! Verifica tu correo electrónico.");
-        haptic.trigger("success");
-        form.reset();
-        router.navigate({
-          to: "/login",
-          replace: true,
+    onSubmit: async ({ value }) => {
+      try {
+        const { data, error } = await signUp.email({
+          email: value.email,
+          password: value.password,
+          name: value.name,
+          callbackURL: "/login",
         });
-      }
-    } catch (error: unknown) {
-      haptic.trigger("error");
 
-      if (error instanceof Error) {
-        toast.error(error.message ?? "Error al crear la cuenta");
-        return;
+        if (error?.code) {
+          toast.error(translateBetterAuthError(error.code));
+          haptic.trigger("error");
+          return;
+        }
+
+        if (data?.user) {
+          toast.success("¡Cuenta creada! Verifica tu correo electrónico.");
+          haptic.trigger("success");
+          form.reset();
+          router.navigate({
+            to: "/login",
+            replace: true,
+          });
+        }
+      } catch (error: unknown) {
+        haptic.trigger("error");
+        if (error instanceof Error) {
+          toast.error(error.message ?? "Error al crear la cuenta");
+          return;
+        }
+        toast.error("Error al crear la cuenta");
       }
-      toast.error("Error al crear la cuenta");
-    }
+    },
   });
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4">
-      <FieldGroup className="gap-4">
-        <Controller
-          name="name"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Nombre y apellido</FieldLabel>
-              <Input
-                {...field}
-                id={field.name}
-                aria-invalid={fieldState.invalid}
-                placeholder="Juan Pérez"
-                autoComplete="name"
-                maxLength={255}
-              />
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        form.handleSubmit();
+      }}
+      className="flex flex-col gap-4"
+    >
+      <FieldGroup className="grid grid-cols-1 gap-4">
+        <form.AppField name="name">
+          {(field) => (
+            <field.TextField
+              label="Nombre y apellido"
+              placeholder="Juan Pérez"
+              autoComplete="name"
+            />
           )}
-        />
+        </form.AppField>
 
-        <Controller
-          name="email"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Correo electrónico</FieldLabel>
-              <Input
-                {...field}
-                id={field.name}
-                aria-invalid={fieldState.invalid}
-                placeholder="tu@correo.com"
-                autoComplete="email"
-                maxLength={255}
-              />
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
+        <form.AppField name="email">
+          {(field) => (
+            <field.TextField
+              label="Correo electrónico"
+              placeholder="tu@correo.com"
+              autoComplete="email"
+            />
           )}
-        />
+        </form.AppField>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Controller
-            name="password"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>Contraseña</FieldLabel>
-                <div className="relative w-full">
-                  <Input
-                    {...field}
-                    id={field.name}
-                    aria-invalid={fieldState.invalid}
-                    placeholder="********"
-                    autoComplete="new-password"
-                    maxLength={64}
-                    max={64}
-                    type={showPassword ? "text" : "password"}
-                  />
-                  <button
-                    type="button"
-                    className={buttonVariants({
-                      className: "absolute top-0.5 right-0.5",
-                      size: "icon",
-                      variant: "ghost",
-                    })}
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label={
-                      showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
-                    }
-                  >
-                    {showPassword ? (
-                      <EyeSlashIcon size={16} />
-                    ) : (
-                      <EyeIcon size={16} />
-                    )}
-                  </button>
-                </div>
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
+          <form.AppField name="password">
+            {(field) => (
+              <field.PasswordField
+                label="Contraseña"
+                autoComplete="new-password"
+              />
             )}
-          />
+          </form.AppField>
 
-          <Controller
-            name="confirmPassword"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>
-                  Confirmar contraseña
-                </FieldLabel>
-                <div className="relative w-full">
-                  <Input
-                    {...field}
-                    id={field.name}
-                    aria-invalid={fieldState.invalid}
-                    placeholder="********"
-                    autoComplete="new-password"
-                    maxLength={64}
-                    max={64}
-                    type={showConfirmPassword ? "text" : "password"}
-                  />
-                  <button
-                    type="button"
-                    className={buttonVariants({
-                      className: "absolute top-0.5 right-0.5",
-                      size: "icon",
-                      variant: "ghost",
-                    })}
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    aria-label={
-                      showConfirmPassword
-                        ? "Ocultar contraseña"
-                        : "Mostrar contraseña"
-                    }
-                  >
-                    {showConfirmPassword ? (
-                      <EyeSlashIcon size={16} />
-                    ) : (
-                      <EyeIcon size={16} />
-                    )}
-                  </button>
-                </div>
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
+          <form.AppField name="confirmPassword">
+            {(field) => (
+              <field.PasswordField
+                label="Confirmar contraseña"
+                autoComplete="new-password"
+              />
             )}
-          />
+          </form.AppField>
         </div>
       </FieldGroup>
 
-      <Button type="submit" disabled={form.formState.isSubmitting}>
-        {form.formState.isSubmitting && <Spinner />}
-        Crear cuenta
-      </Button>
+      <form.AppForm>
+        <form.SubmitButton label="Crear cuenta" className="w-full" />
+      </form.AppForm>
     </form>
   );
 };

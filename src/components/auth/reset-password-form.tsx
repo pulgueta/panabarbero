@@ -1,18 +1,22 @@
 /** biome-ignore-all lint/correctness/noChildrenProp: Enforced by TanStack Form */
 
 import { revalidateLogic } from "@tanstack/react-form";
-import { Link, useRouter } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
 import { useAppForm } from "@/components/form/use-form";
 import { FieldGroup } from "@/components/ui/field";
-import { signIn } from "@/lib/auth-client";
-import { loginFormSchema } from "@/lib/auth-schemas";
+import { resetPassword } from "@/lib/auth-client";
+import { resetPasswordSchema } from "@/lib/auth-schemas";
 import { translateBetterAuthError } from "@/lib/better-auth-errors";
 
-export const LoginForm = () => {
-  const router = useRouter();
+interface ResetPasswordFormProps {
+  token: string;
+}
+
+export const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
+  const navigate = useNavigate();
   const haptic = useWebHaptics();
 
   const form = useAppForm({
@@ -24,16 +28,25 @@ export const LoginForm = () => {
       modeAfterSubmission: "change",
     }),
     validators: {
-      onSubmit: loginFormSchema,
+      onSubmit: resetPasswordSchema,
     },
     defaultValues: {
-      email: "",
       password: "",
-      rememberMe: true,
+      confirmPassword: "",
+      token,
     },
     onSubmit: async ({ value }) => {
+      if (!token) {
+        toast.error("Token de restablecimiento inválido");
+        haptic.trigger("error");
+        return;
+      }
+
       try {
-        const { data, error } = await signIn.email(value);
+        const { error, data } = await resetPassword({
+          newPassword: value.password,
+          token,
+        });
 
         if (error?.code) {
           toast.error(translateBetterAuthError(error.code));
@@ -42,21 +55,20 @@ export const LoginForm = () => {
         }
 
         if (data) {
+          toast.success(
+            "¡Contraseña restablecida! Inicia sesión para continuar.",
+          );
           haptic.trigger("success");
           form.reset();
-          router.navigate({
-            to: "/profile",
-            search: { tab: "account" },
-            replace: true,
-          });
+          navigate({ to: "/login", replace: true });
         }
       } catch (error: unknown) {
         haptic.trigger("error");
         if (error instanceof Error) {
-          toast.error(error.message ?? "Error al iniciar sesión");
+          toast.error(error.message ?? "Error al restablecer la contraseña");
           return;
         }
-        toast.error("Error al iniciar sesión");
+        toast.error("Error al restablecer la contraseña");
       }
     },
   });
@@ -71,39 +83,27 @@ export const LoginForm = () => {
       className="flex flex-col gap-4"
     >
       <FieldGroup className="grid grid-cols-1 gap-4">
-        <form.AppField name="email">
-          {(field) => (
-            <field.TextField
-              label="Correo electrónico"
-              placeholder="tu@correo.com"
-              autoComplete="email"
-            />
-          )}
-        </form.AppField>
-
         <form.AppField name="password">
           {(field) => (
             <field.PasswordField
-              label="Contraseña"
-              labelSuffix={
-                <Link
-                  to="/forgot-password"
-                  className="ml-auto font-light text-muted-foreground text-xs underline-offset-4 hover:underline"
-                >
-                  ¿Olvidaste tu contraseña?
-                </Link>
-              }
+              label="Nueva contraseña"
+              autoComplete="new-password"
             />
           )}
         </form.AppField>
 
-        <form.AppField name="rememberMe">
-          {(field) => <field.CheckboxField label="Recordarme" />}
+        <form.AppField name="confirmPassword">
+          {(field) => (
+            <field.PasswordField
+              label="Confirmar contraseña"
+              autoComplete="new-password"
+            />
+          )}
         </form.AppField>
       </FieldGroup>
 
       <form.AppForm>
-        <form.SubmitButton label="Iniciar sesión" className="w-full" />
+        <form.SubmitButton label="Restablecer contraseña" className="w-full" />
       </form.AppForm>
     </form>
   );

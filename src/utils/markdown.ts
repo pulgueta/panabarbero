@@ -6,13 +6,13 @@ import rehypeStringify from "rehype-stringify";
 import { unified } from "unified";
 
 export async function renderMarkdown(content: string): Promise<string> {
-	const result = await unified()
-		.use(remarkParse)
-		.use(remarkGfm)
-		.use(remarkRehype)
-		.use(rehypeSlug)
-		.use(rehypeStringify)
-		.process(content);
+  const result = await unified()
+    .use(remarkParse)
+    .use(remarkGfm)
+    .use(remarkRehype)
+    .use(rehypeSlug)
+    .use(rehypeStringify)
+    .process(content);
 
-	return String(result);
+  return String(result);
 }
