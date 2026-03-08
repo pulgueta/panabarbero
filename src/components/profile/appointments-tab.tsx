@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: needed */
 
-import type { Appointment } from "@convex/tables";
+import type { Appointment } from "@convex/schema";
 import type { FC } from "react";
 import { lazy, Suspense } from "react";
 

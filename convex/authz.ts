@@ -82,11 +82,11 @@ export async function assertShopRole(
   const member = await getBarbershopMemberByUserId(ctx, barbershopId, userId);
 
   if (!member) {
-    throw new ConvexError(errorMessages.unauthorized);
+    return;
   }
 
   if (!member.isActive) {
-    throw new ConvexError("Tu membresía está inactiva");
+    return;
   }
 
   const rolesArray = Array.isArray(requiredRoles)
@@ -94,7 +94,7 @@ export async function assertShopRole(
     : [requiredRoles];
 
   if (!memberHasAnyRole(member, rolesArray)) {
-    throw new ConvexError(errorMessages.unauthorized);
+    return;
   }
 
   return member;
@@ -131,7 +131,7 @@ export async function assertOwner(
   ctx: QueryCtx | MutationCtx,
   barbershopId: Id<"barbershops">,
   userId: string,
-): Promise<BarbershopMember> {
+) {
   return assertShopRole(ctx, barbershopId, userId, "owner");
 }
 
@@ -210,7 +210,7 @@ export async function assertCanViewAppointments(
   ctx: QueryCtx | MutationCtx,
   barbershopId: Id<"barbershops">,
   userId: string,
-): Promise<BarbershopMember> {
+) {
   return assertShopRole(ctx, barbershopId, userId, ["owner", "barber"]);
 }
 

@@ -315,7 +315,7 @@ function SettingsPage() {
                   barbershopId={barbershop._id}
                   trigger={
                     <Button variant="outline">
-                      <PlusIcon className="size-3" /> Agregar servicio
+                      <PlusIcon /> Agregar servicio
                     </Button>
                   }
                 />

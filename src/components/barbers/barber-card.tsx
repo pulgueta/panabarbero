@@ -1,4 +1,5 @@
-import type { BarbershopMemberWithName, Service } from "@convex/tables";
+/** biome-ignore-all lint/style/noNonNullAssertion: for now */
+import type { BarbershopMemberWithName, Service } from "@convex/schema";
 import type { FC } from "react";
 import { lazy, Suspense, useState } from "react";
 import { toast } from "sonner";
@@ -68,7 +69,7 @@ export const BarberCard: FC<BarberCardProps> = ({
 
   const handleRemoveBarber = async () => {
     try {
-      await removeBarber({ barbershopMemberId: barbershopMember._id });
+      await removeBarber({ id: barbershopMember._id });
       haptic.trigger("success");
       toast.success(`${barbershopMember.name} fue eliminado de la barbería`);
     } catch (error) {
@@ -128,7 +129,7 @@ export const BarberCard: FC<BarberCardProps> = ({
       </CardContent>
 
       <CardFooter className="justify-end gap-2">
-        {isOwner && (
+        {isOwner && barberServices && (
           <Suspense
             fallback={
               <Button variant="outline" disabled>
@@ -139,7 +140,7 @@ export const BarberCard: FC<BarberCardProps> = ({
             <ManageServicesDialog
               barbershopMember={barbershopMember}
               services={services}
-              currentServices={barberServices ?? []}
+              currentServices={barberServices.map((s) => s!)}
               open={manageOpen}
               onOpenChange={setManageOpen}
             />

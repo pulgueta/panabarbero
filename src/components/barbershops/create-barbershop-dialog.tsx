@@ -98,6 +98,7 @@ export const CreateBarbershopDialog: FC<CreateBarbershopDialogProps> = ({
           ...barbershopData,
           ownerId: userId,
           uuid,
+          services: [],
         },
         ownerIsBarber,
       });

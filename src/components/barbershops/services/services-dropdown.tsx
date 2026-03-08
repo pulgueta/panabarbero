@@ -1,4 +1,4 @@
-import type { Service } from "@convex/tables";
+import type { Service } from "@convex/schema";
 import { CaretUpDownIcon, CheckIcon } from "@phosphor-icons/react";
 import type { FC } from "react";
 import { useState } from "react";

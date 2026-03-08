@@ -29,10 +29,12 @@ export const getProfileByEmail = async (
 };
 
 export const getMyProfile = zQuery({
-  args: z.object({
-    userId: z.string(),
-  }),
+  args: userProfileData.schema.pick({ userId: true }).partial(),
   handler: async (ctx, args) => {
+    if (!args.userId) {
+      return null;
+    }
+
     const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) return null;
@@ -52,7 +54,7 @@ export const getMyProfile = zQuery({
 });
 
 export const updateName = zMutation({
-  args: z.object({ name: z.string() }),
+  args: userProfileData.schema.pick({ name: true }),
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
@@ -70,7 +72,7 @@ export const updateName = zMutation({
 
     const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
 
-    const name = args.name.trim();
+    const name = args.name?.trim();
 
     await auth.api.updateUser({
       body: {
@@ -84,7 +86,7 @@ export const updateName = zMutation({
 });
 
 export const updatePhoneNumber = zMutation({
-  args: z.object({ phoneNumber: z.string() }),
+  args: userProfileData.schema.pick({ phoneNumber: true }),
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
@@ -100,7 +102,7 @@ export const updatePhoneNumber = zMutation({
       return;
     }
 
-    const phoneNumber = args.phoneNumber.trim();
+    const phoneNumber = args.phoneNumber?.trim();
 
     await ctx.db.patch(profile._id, {
       phoneNumber,

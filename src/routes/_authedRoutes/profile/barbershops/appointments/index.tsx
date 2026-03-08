@@ -77,7 +77,7 @@ export const Route = createFileRoute(
 
       if (barbershop?._id) {
         const appointments = await context.queryClient.ensureQueryData(
-          appointmentsByBarbershopQueryOptions(barbershop._id, user.userId),
+          appointmentsByBarbershopQueryOptions(barbershop._id),
         );
         await context.queryClient.ensureQueryData(
           barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
@@ -132,10 +132,7 @@ function RouteComponent() {
   const { data: services } = useServicesByBarbershopId(barbershop?._id!);
   const { data: rescheduledAppointmentRequests } =
     useRescheduledAppointmentRequests(barbershop?._id!);
-  const { data: appointments } = useAppointmentsByBarbershop(
-    barbershop?._id!,
-    session?.userId!,
-  );
+  const { data: appointments } = useAppointmentsByBarbershop(barbershop?._id!);
   const { canCreateStaffAppointments } = usePlan();
 
   const isOwner = Boolean(
@@ -189,7 +186,7 @@ function RouteComponent() {
                 : "No hay día seleccionado"}
             </h2>
 
-            {barbershop?._id && (
+            {barbershop?._id && canCreateStaffAppointments && (
               <Suspense
                 fallback={
                   <Button disabled>

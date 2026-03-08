@@ -6,7 +6,7 @@
     "bun": ">=1.3.10"
   },
   "scripts": {
-    "dev": "bun run --parallel dev:web dev:convex",
+    "dev": "bun concurrently \"bun dev:web\" \"bun dev:convex\"",
     "dev:web": "bun --bun vite dev --host",
     "dev:convex": "convex dev",
     "build": "bun --bun vite build",
@@ -38,6 +38,7 @@
     "@tailwindcss/vite": "^4.2.1",
     "@tanstack/react-devtools": "^0.9.10",
     "@tanstack/react-form": "^1.28.4",
+    "@tanstack/react-hotkeys": "^0.4.0",
     "@tanstack/react-query": "^5.90.21",
     "@tanstack/react-router": "^1.166.2",
     "@tanstack/react-router-devtools": "^1.166.2",
@@ -90,6 +91,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",
     "baseline-browser-mapping": "^2.10.0",
+    "concurrently": "^9.2.1",
     "jsdom": "^28.1.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",

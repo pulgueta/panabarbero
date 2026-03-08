@@ -1,4 +1,4 @@
-import type { Appointment } from "@convex/tables";
+import type { Appointment } from "@convex/schema";
 import type { FC, ReactElement } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
@@ -45,7 +45,7 @@ export const DeleteAppointmentDialog: FC<DeleteAppointmentDialogProps> = ({
   const onDelete = async () => {
     try {
       await deleteAppointment({
-        appointmentId: appointment._id,
+        appointmentId: { id: appointment._id },
       });
       haptic.trigger("success");
       toast.success("Cita eliminada correctamente.");

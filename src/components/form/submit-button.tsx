@@ -30,7 +30,7 @@ export const SubmitButton: FC<SubmitButtonProps> = ({
       {([canSubmit, isSubmitting, isPristine]) => (
         <Button
           type="submit"
-          disabled={!canSubmit || isPristine}
+          disabled={!canSubmit || isPristine || isSubmitting}
           className={cn(className)}
           {...props}
         >

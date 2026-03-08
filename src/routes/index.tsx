@@ -12,6 +12,7 @@ import {
   UsersIcon,
 } from "@phosphor-icons/react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { useLayoutEffect } from "react";
 
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Badge } from "@/components/ui/badge";
@@ -33,7 +34,7 @@ import { useLocationStore } from "@/store/barbershop-filters";
 export const Route = createFileRoute("/")({
   pendingComponent: LoadingComponent,
   component: RouteComponent,
-  beforeLoad: async ({ context }) => {
+  loader: async ({ context }) => {
     const user = await context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
     );
@@ -61,11 +62,22 @@ export const Route = createFileRoute("/")({
 });
 
 function RouteComponent() {
+  const navigate = Route.useNavigate();
   const persistedState = useLocationStore((s) => s.state);
   const persistedCity = useLocationStore((s) => s.city);
   const { data: user } = useSession();
 
   const { data: isBarber } = useIsBarber(user?.userId ?? "");
+
+  useLayoutEffect(() => {
+    if (user?.userId) {
+      navigate({
+        to: isBarber ? "/profile/barbershops/appointments" : "/profile",
+        search: { tab: "account" },
+        replace: true,
+      });
+    }
+  }, [user?.userId, isBarber, navigate]);
 
   return (
     <div className="min-h-screen bg-background">

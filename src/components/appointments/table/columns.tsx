@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: needed */
 
 import type { Id } from "@convex/_generated/dataModel";
-import type { Appointment } from "@convex/tables";
+import type { Appointment } from "@convex/schema";
 import {
   CalendarCheckIcon,
   DotsThreeVerticalIcon,

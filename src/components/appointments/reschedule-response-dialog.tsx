@@ -1,4 +1,4 @@
-import type { Appointment } from "@convex/tables";
+import type { Appointment } from "@convex/schema";
 import type { FC, ReactElement } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -64,7 +64,7 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
   const handleAnswer = async (accepted: boolean) => {
     try {
       await answerReschedule({
-        appointmentId: appointment._id,
+        appointment: { id: appointment._id },
         accepted,
         answeredBy: viewer,
       });

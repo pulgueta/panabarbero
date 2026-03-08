@@ -1,4 +1,4 @@
-import type { BarbershopMemberWithName, Service } from "@convex/tables";
+import type { BarbershopMemberWithName, Service } from "@convex/schema";
 import { CheckIcon, XIcon } from "@phosphor-icons/react";
 import type { FC } from "react";
 import { useId, useState } from "react";
@@ -77,8 +77,8 @@ export const ManageServicesDialog: FC<ManageServicesDialogProps> = ({
   const handleSave = async () => {
     try {
       await setBarberServices({
-        barbershopMemberId: barbershopMember._id,
-        serviceIds: Array.from(selectedServices),
+        barbershopMember: { id: barbershopMember._id },
+        services: Array.from(selectedServices).map((id) => ({ id })),
       });
       haptic.trigger("success");
       toast.success("Servicios actualizados correctamente");

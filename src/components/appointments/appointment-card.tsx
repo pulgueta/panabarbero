@@ -1,4 +1,4 @@
-import type { Appointment, Barbershop, Service } from "@convex/tables";
+import type { Appointment, Barbershop, Service } from "@convex/schema";
 import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
 import { Activity, lazy, Suspense } from "react";

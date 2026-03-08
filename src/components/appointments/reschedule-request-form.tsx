@@ -1,4 +1,4 @@
-import type { Appointment } from "@convex/tables";
+import type { Appointment } from "@convex/schema";
 import { CalendarIcon, ClockCounterClockwiseIcon } from "@phosphor-icons/react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";

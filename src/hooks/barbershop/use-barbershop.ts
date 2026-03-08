@@ -45,10 +45,7 @@ export function searchBarbershopsByNameQueryOptions(name?: string) {
 }
 
 export function barbershopByOwnerIdQueryOptions(ownerId: string) {
-  return convexQuery(
-    api.barbershops.getByOwnerId,
-    ownerId ? { ownerId } : "skip",
-  );
+  return convexQuery(api.barbershops.getByOwnerId, { ownerId });
 }
 
 export function barbershopByMemberUserIdQueryOptions(userId: string) {

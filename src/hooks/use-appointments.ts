@@ -7,9 +7,7 @@ import { useBarbershopAvailability } from "./barbershop/use-barbershop";
 
 export function appointmentByIdQueryOptions(appointmentId: Appointment["_id"]) {
   return convexQuery(api.appointments.getById, {
-    appointmentId: {
-      id: appointmentId,
-    },
+    id: appointmentId,
   });
 }
 
@@ -32,9 +30,7 @@ export function appointmentsByUserQueryOptions(
 
 export function requestRescheduleQueryOptions(barbershopId: Barbershop["_id"]) {
   return convexQuery(api.appointments.getRescheduledRequests, {
-    barbershopId: {
-      id: barbershopId,
-    },
+    id: barbershopId,
   });
 }
 
@@ -44,19 +40,8 @@ export function userVisitedBarbershopsQueryOptions(userId: string | undefined) {
 
 export function appointmentsByBarbershopQueryOptions(
   barbershopId: Barbershop["_id"],
-  userId?: string,
 ) {
-  return convexQuery(
-    api.appointments.getByBarbershopId,
-    barbershopId
-      ? {
-          barbershopId: {
-            id: barbershopId,
-          },
-          userId,
-        }
-      : "skip",
-  );
+  return convexQuery(api.appointments.getByBarbershopId, { id: barbershopId });
 }
 
 export function useRescheduledAppointmentRequests(
@@ -69,17 +54,15 @@ export function useAppointmentById(id: Appointment["_id"]) {
   return useSuspenseQuery(appointmentByIdQueryOptions(id));
 }
 
-export function useAppointmentsByUser(userId: string, cursor: string | null) {
+export function useAppointmentsByUser(
+  userId: string,
+  cursor: string | null = null,
+) {
   return useSuspenseQuery(appointmentsByUserQueryOptions(userId, cursor));
 }
 
-export function useAppointmentsByBarbershop(
-  barbershopId: Barbershop["_id"],
-  userId?: string,
-) {
-  return useSuspenseQuery(
-    appointmentsByBarbershopQueryOptions(barbershopId, userId),
-  );
+export function useAppointmentsByBarbershop(barbershopId: Barbershop["_id"]) {
+  return useSuspenseQuery(appointmentsByBarbershopQueryOptions(barbershopId));
 }
 
 export function useVisitedBarbershops(userId: string | undefined) {

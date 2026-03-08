@@ -6,7 +6,6 @@ import { requireActionCtx } from "@convex-dev/better-auth/utils";
 import { betterAuth } from "better-auth";
 import { twoFactor } from "better-auth/plugins";
 import { z } from "zod";
-
 import { zQuery } from ".";
 import { APP_NAME } from "../src/config";
 import { components, internal } from "./_generated/api";
@@ -38,7 +37,7 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
           email: doc.email,
           userId: doc._id,
           name: doc.name,
-          phoneNumber: doc.phoneNumber ?? undefined,
+          phoneNumber: undefined,
           notificationsPreferences: [
             {
               type: "email",
@@ -48,7 +47,11 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
         });
       },
       onDelete: async (ctx, doc) => {
-        const profile = await getProfileByUserId(ctx, doc.userId ?? "");
+        let profile = null;
+
+        if (doc.userId) {
+          profile = await getProfileByUserId(ctx, doc.userId);
+        }
 
         if (!profile) {
           return;
@@ -163,7 +166,6 @@ export const getCurrentUser = zQuery({
 });
 
 export const getUserSubscription = zQuery({
-  args: z.object({}),
   handler: async (ctx) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 

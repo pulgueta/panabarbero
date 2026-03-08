@@ -1,4 +1,4 @@
-import type { Barbershop } from "@convex/tables";
+import type { Barbershop } from "@convex/schema";
 import { Store, useStore } from "@tanstack/react-store";
 import type { Id } from "convex/_generated/dataModel";
 

@@ -1,7 +1,6 @@
 import { defineSchema } from "convex/server";
 import type { output } from "zod";
 import { z } from "zod";
-
 import { zodTable } from ".";
 
 export const userProfileData = zodTable("userProfileData", () => ({
@@ -97,10 +96,14 @@ export const barbershopMembers = zodTable("barbershopMembers", (id) => ({
 }));
 
 export const services = zodTable("services", (id) => ({
-  uuid: z.uuidv4().default(crypto.randomUUID()),
-  name: z.string(),
-  price: z.number(),
-  duration: z.number(),
+  name: z.string({ error: "El nombre es requerido" }),
+  price: z.coerce
+    .number({ error: "El precio es requerido" })
+    .min(1000, { error: "El precio debe ser mayor a $1.000" }),
+  duration: z.coerce
+    .number({ error: "La duración es requerida" })
+    .min(5, { error: "La duración debe ser mayor a 5 minutos" })
+    .max(480, { error: "La duración debe ser menor a 8 horas" }),
   barbershopId: id("barbershops"),
 }));
 
@@ -215,8 +218,7 @@ export default defineSchema({
   services: services
     .table()
     .index("by_barbershopId", ["barbershopId"])
-    .searchIndex("by_name_search_idx", { searchField: "name" })
-    .index("by_uuid", ["uuid"]),
+    .searchIndex("by_name_search_idx", { searchField: "name" }),
 
   reviews: reviews
     .table()
@@ -257,6 +259,9 @@ export type UserProfileData = output<typeof userProfileData.schema>;
 export type Barbershop = output<typeof barbershops.schema>;
 export type BarbershopMetadata = output<typeof barbershopMetadata.schema>;
 export type BarbershopMember = output<typeof barbershopMembers.schema>;
+export type BarbershopMemberWithName = BarbershopMember & {
+  name: string;
+};
 export type Service = output<typeof services.schema>;
 export type Review = output<typeof reviews.schema>;
 export type Appointment = output<typeof appointments.schema>;

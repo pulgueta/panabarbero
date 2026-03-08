@@ -1,4 +1,4 @@
-import type { Barbershop } from "@convex/tables";
+import type { Barbershop } from "@convex/schema";
 import { useNavigate } from "@tanstack/react-router";
 import type { FC } from "react";
 import { lazy } from "react";
@@ -40,7 +40,7 @@ export const DangerTab: FC<DangerTabProps> = ({
     if (!barbershopId) return;
 
     try {
-      await deleteBarbershop({ barbershopId });
+      await deleteBarbershop({ id: barbershopId });
       haptic.trigger("success");
       navigate({
         to: "/barbershops",

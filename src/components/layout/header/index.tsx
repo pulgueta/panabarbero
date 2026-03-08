@@ -3,6 +3,7 @@ import { lazy, Suspense } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { APP_NAME } from "@/config";
 import { useIsBarber } from "@/hooks/use-barbershop-members";
 import { useNavRoutes } from "@/hooks/use-nav-routes";
 import { useSession } from "@/hooks/use-session";
@@ -19,7 +20,7 @@ const UserAvatar = lazy(() =>
 );
 
 export const Header = () => {
-  const { data: user, isLoading } = useSession();
+  const { data: user } = useSession();
   const { data: isBarber } = useIsBarber(user?.userId ?? "");
   const { routes } = useNavRoutes();
 
@@ -41,7 +42,7 @@ export const Header = () => {
             search={user ? { tab: "account" } : undefined}
             className="font-bold text-2xl tracking-tighter lg:text-3xl"
           >
-            PanaBarbero
+            {APP_NAME}
           </Link>
         </div>
 
@@ -70,18 +71,8 @@ export const Header = () => {
 
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
-            {isLoading ? (
-              <Skeleton className="h-8 w-28" />
-            ) : (
-              !user && (
-                <Button nativeButton={false} render={<Link to="/login" />}>
-                  Iniciar sesión
-                </Button>
-              )
-            )}
-
             <Suspense fallback={<Skeleton className="size-8" />}>
-              {user?.userId && (
+              {user?.userId ? (
                 <div className="hidden md:block">
                   <UserAvatar
                     user={{
@@ -92,6 +83,10 @@ export const Header = () => {
                     }}
                   />
                 </div>
+              ) : (
+                <Button nativeButton={false} render={<Link to="/login" />}>
+                  Iniciar sesión
+                </Button>
               )}
             </Suspense>
             <Suspense fallback={<Skeleton className="size-8" />}>

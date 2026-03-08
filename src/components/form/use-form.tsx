@@ -44,7 +44,7 @@ const SubmitButton = lazy(() =>
   })),
 );
 
-export const { useAppForm } = createFormHook({
+export const { useAppForm, withForm } = createFormHook({
   fieldComponents: {
     TextField,
     TextAreaField,

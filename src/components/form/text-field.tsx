@@ -1,16 +1,26 @@
 import { useStore } from "@tanstack/react-form";
 import type { ComponentProps, FC } from "react";
 
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useFieldContext } from "./form-context";
 
 interface TextFieldProps extends ComponentProps<typeof Input> {
   label: string;
+  description?: string;
 }
 
-export const TextField: FC<TextFieldProps> = ({ label, ...props }) => {
+export const TextField: FC<TextFieldProps> = ({
+  label,
+  description,
+  ...props
+}) => {
   const field = useFieldContext<string>();
 
   const errors = useStore(field.store, (state) => state.meta.errors);
@@ -30,6 +40,7 @@ export const TextField: FC<TextFieldProps> = ({ label, ...props }) => {
         {...props}
       />
 
+      {description && <FieldDescription>{description}</FieldDescription>}
       {isInvalid && <FieldError errors={errors} />}
     </Field>
   );
@@ -37,9 +48,14 @@ export const TextField: FC<TextFieldProps> = ({ label, ...props }) => {
 
 interface TextAreaFieldProps extends ComponentProps<typeof Textarea> {
   label: string;
+  description?: string;
 }
 
-export const TextAreaField: FC<TextAreaFieldProps> = ({ label, ...props }) => {
+export const TextAreaField: FC<TextAreaFieldProps> = ({
+  label,
+  description,
+  ...props
+}) => {
   const field = useFieldContext<string>();
 
   const errors = useStore(field.store, (state) => state.meta.errors);
@@ -59,6 +75,7 @@ export const TextAreaField: FC<TextAreaFieldProps> = ({ label, ...props }) => {
         {...props}
       />
 
+      {description && <FieldDescription>{description}</FieldDescription>}
       {isInvalid && <FieldError errors={errors} />}
     </Field>
   );

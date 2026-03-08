@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: needed */
 
-import type { Appointment } from "@convex/tables";
+import type { Appointment } from "@convex/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { FC, ReactElement } from "react";
 import { useEffect, useId } from "react";
@@ -122,7 +122,7 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
 
     try {
       await rescheduleRequest({
-        appointmentId: appointment._id,
+        appointmentId: { id: appointment._id },
         proposedDate: timestamp,
         requestedByUserId: session?.userId ?? "",
       });

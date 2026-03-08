@@ -151,7 +151,7 @@ function ResponsiveModalContent({
       <DrawerContent
         data-slot="responsive-modal-content"
         className={cn("px-4", className)}
-        {...(props as ComponentProps<typeof DrawerContent>)}
+        {...props}
       >
         {children}
       </DrawerContent>

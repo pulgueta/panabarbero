@@ -1,115 +1,148 @@
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-  InputGroupText,
-} from "@/components/ui/input-group";
-import type { ServiceFormData, serviceFormSchema } from "@/lib/schemas";
-import type { BaseSyntheticEvent, FC } from "react";
-import type { UseFormReturn } from "react-hook-form";
-import { Controller } from "react-hook-form";
-import type { output } from "zod";
+import type { Barbershop, Service } from "@convex/schema";
+import { services } from "@convex/schema";
+import { revalidateLogic } from "@tanstack/react-form";
+import { useHotkey } from "@tanstack/react-hotkeys";
+import type { FC } from "react";
+import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
+
+import { useAppForm } from "@/components/form/use-form";
+import { FieldGroup } from "@/components/ui/field";
+import { useServiceActions } from "@/hooks/use-services";
+import { getConvexErrorMessage } from "@/lib/convex-errors";
+import type { ServiceFormData } from "@/lib/schemas";
 
 interface ServiceFormProps {
   initialValues?: ServiceFormData;
-  form: UseFormReturn<output<typeof serviceFormSchema>>;
-  onSubmit: (e: BaseSyntheticEvent) => void;
-  formIds: {
-    form: string;
-    name: string;
-    price: string;
-    duration: string;
-  };
+  barbershopId: Barbershop["_id"];
+  serviceId?: Service["_id"];
+  onSuccess?: () => void;
 }
 
 export const ServiceForm: FC<ServiceFormProps> = ({
-  form,
-  onSubmit,
-  formIds,
+  initialValues,
+  barbershopId,
+  serviceId,
+  onSuccess,
 }) => {
+  const haptic = useWebHaptics();
+
+  const {
+    createServiceMutation: { mutateAsync: createService },
+    updateServiceMutation: { mutateAsync: updateService },
+  } = useServiceActions();
+
+  const form = useAppForm({
+    onSubmitInvalid: () => {
+      haptic.trigger("error");
+    },
+    validationLogic: revalidateLogic({
+      mode: "submit",
+      modeAfterSubmission: "change",
+    }),
+    validators: {
+      // @ts-expect-error - convex id schema is not supported by tanstack form
+      onSubmit: initialValues ? services.updateSchema : services.insertSchema,
+    },
+    defaultValues: initialValues
+      ? initialValues
+      : {
+          name: "",
+          price: 1000,
+          duration: 5,
+          barbershopId: barbershopId,
+        },
+    onSubmit: async ({ value }) => {
+      try {
+        if (serviceId) {
+          await updateService({
+            id: serviceId,
+            data: {
+              name: value.name,
+              price: Number(value.price),
+              duration: Number(value.duration),
+              barbershopId: barbershopId,
+            },
+          });
+
+          haptic.trigger("success");
+          toast.success("Servicio actualizado exitosamente");
+
+          onSuccess?.();
+        } else {
+          await createService({
+            name: value.name,
+            price: Number(value.price),
+            duration: Number(value.duration),
+            barbershopId: barbershopId,
+          });
+
+          haptic.trigger("success");
+          toast.success("Servicio creado exitosamente");
+
+          onSuccess?.();
+        }
+      } catch (error) {
+        haptic.trigger("error");
+        toast.error(getConvexErrorMessage(error));
+        return;
+      }
+    },
+  });
+
+  useHotkey("Control+Enter", () => form.handleSubmit(), {
+    preventDefault: true,
+    stopPropagation: true,
+  });
+
   return (
-    <form id={formIds.form} onSubmit={onSubmit} className="space-y-4">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        form.handleSubmit();
+      }}
+      className="w-full space-y-4"
+    >
       <FieldGroup>
-        <Controller
-          name="name"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={formIds.name}>
-                Nombre del servicio
-              </FieldLabel>
-              <Input
-                {...field}
-                id={formIds.name}
-                aria-invalid={fieldState.invalid}
-                placeholder="Corte de pelo"
-              />
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
+        <form.AppField name="name">
+          {(field) => (
+            <field.TextField
+              label="Nombre del servicio"
+              placeholder="Corte de pelo"
+            />
           )}
-        />
+        </form.AppField>
 
         <div className="grid grid-cols-2 gap-4">
-          <Controller
-            name="duration"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={formIds.duration}>
-                  Duración (en minutos)
-                </FieldLabel>
-                <Input
-                  {...field}
-                  id={formIds.duration}
-                  aria-invalid={fieldState.invalid}
-                  type="number"
-                  placeholder="30"
-                  className="w-full tabular-nums"
-                />
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
+          <form.AppField name="duration">
+            {(field) => (
+              <field.TextField
+                label="Duración"
+                description="En minutos"
+                placeholder="30"
+                type="number"
+                className="w-full tabular-nums"
+              />
             )}
-          />
+          </form.AppField>
 
-          <Controller
-            name="price"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={formIds.price}>Precio</FieldLabel>
-                <InputGroup>
-                  <InputGroupAddon>
-                    <InputGroupText>$</InputGroupText>
-                  </InputGroupAddon>
-                  <InputGroupInput
-                    {...field}
-                    id={formIds.price}
-                    aria-invalid={fieldState.invalid}
-                    type="number"
-                    placeholder="30000"
-                    className="w-full tabular-nums"
-                  />
-                  <InputGroupAddon align="inline-end">
-                    <InputGroupText>COP</InputGroupText>
-                  </InputGroupAddon>
-                </InputGroup>
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
+          <form.AppField name="price">
+            {(field) => (
+              <field.TextField
+                label="Precio"
+                placeholder="30000"
+                type="number"
+                className="w-full tabular-nums"
+              />
             )}
-          />
+          </form.AppField>
         </div>
       </FieldGroup>
+
+      <form.AppForm>
+        <form.SubmitButton label="Guardar" className="w-full" />
+      </form.AppForm>
     </form>
   );
 };

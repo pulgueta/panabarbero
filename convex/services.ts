@@ -1,14 +1,15 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: is always provided */
 
-import { ConvexError, v } from "convex/values";
-import { zMutation } from ".";
+import { ConvexError } from "convex/values";
+import { z } from "zod";
+
+import { zMutation, zQuery } from ".";
 import { internal } from "./_generated/api";
-import { mutation, query } from "./_generated/server";
 import { authComponent } from "./auth";
 import { assertCanManageServices, assertCanManageShop } from "./authz";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
-import { services } from "./schema";
+import { appointments, barbershops, services } from "./schema";
 
 export const create = zMutation({
   args: services.tools.insert,
@@ -72,50 +73,26 @@ export const create = zMutation({
   },
 });
 
-export const getByUuid = query({
-  args: {
-    uuid: v.string(),
-  },
+export const getById = zQuery({
+  args: services.tools.id,
   handler: async (ctx, args) => {
-    const service = await ctx.db
-      .query("services")
-      .withIndex("by_uuid", (q) => q.eq("uuid", args.uuid))
-      .unique();
-
-    return service;
+    return await ctx.db.get(args.id);
   },
 });
 
-export const getById = query({
-  args: {
-    serviceId: v.id("services"),
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db.get(args.serviceId);
-  },
-});
-
-export const getByIds = query({
-  args: {
-    serviceIds: v.array(v.id("services")),
-  },
+export const getByIds = zQuery({
+  args: z.object({
+    serviceIds: services.tools.id.array(),
+  }),
   handler: async (ctx, args) => {
     return await Promise.all(
-      args.serviceIds.map(async (serviceId) => await ctx.db.get(serviceId)),
+      args.serviceIds.map(async (serviceId) => await ctx.db.get(serviceId.id)),
     );
   },
 });
 
-export const update = mutation({
-  args: {
-    service: v.object({
-      name: v.string(),
-      price: v.number(),
-      duration: v.number(),
-      barbershopId: v.id("barbershops"),
-    }),
-    serviceId: v.id("services"),
-  },
+export const update = zMutation({
+  args: services.tools.update,
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
@@ -125,15 +102,13 @@ export const update = mutation({
 
     await rateLimitOrThrow(ctx, "updateService", user._id);
 
-    const { service, serviceId } = args;
+    if (!args.data.barbershopId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
 
-    // Only owners can update services
-    await assertCanManageShop(ctx, service.barbershopId, user.userId);
+    await assertCanManageShop(ctx, args.data.barbershopId, user.userId);
 
-    await ctx.db.patch(serviceId, {
-      ...service,
-      uuid: crypto.randomUUID(),
-    });
+    await ctx.db.patch(args.id, args.data);
   },
 });
 
@@ -144,12 +119,12 @@ export const update = mutation({
  *   throws ConvexError with message "WILL_CANCEL:N" where N is count of impacted appointments.
  * - If `force` is true: cancels/soft-deletes all impacted appointments, notifies customers, then deletes service.
  */
-export const deleteService = mutation({
-  args: {
-    barbershopId: v.id("barbershops"),
-    serviceId: v.id("services"),
-    force: v.optional(v.boolean()),
-  },
+export const deleteService = zMutation({
+  args: z.object({
+    barbershop: barbershops.tools.id,
+    service: services.tools.id,
+    force: z.boolean().optional(),
+  }),
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
@@ -159,17 +134,15 @@ export const deleteService = mutation({
 
     await rateLimitOrThrow(ctx, "deleteService", user._id);
 
-    const { serviceId, barbershopId, force } = args;
-
     // Only owners can delete services
-    await assertCanManageShop(ctx, barbershopId, user.userId);
+    await assertCanManageShop(ctx, args.barbershop.id, user.userId);
 
-    const service = await ctx.db.get(serviceId);
+    const service = await ctx.db.get(args.service.id);
     if (!service) {
       throw new ConvexError(errorMessages.notFound("servicio"));
     }
 
-    if (service.barbershopId !== barbershopId) {
+    if (service.barbershopId !== args.barbershop.id) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 
@@ -178,7 +151,7 @@ export const deleteService = mutation({
     // Find impacted appointments: future/upcoming, not deleted, not cancelled/completed/no-show
     const impactedAppointments = await ctx.db
       .query("appointments")
-      .withIndex("by_serviceId", (q) => q.eq("serviceId", serviceId))
+      .withIndex("by_serviceId", (q) => q.eq("serviceId", args.service.id))
       .filter((q) =>
         q.and(
           q.eq(q.field("deletedAt"), undefined),
@@ -193,12 +166,12 @@ export const deleteService = mutation({
       .collect();
 
     // 2-step confirmation: if not force and impacted > 0, throw error with count
-    if (!force && impactedAppointments.length > 0) {
+    if (!args.force && impactedAppointments.length > 0) {
       throw new ConvexError(`WILL_CANCEL:${impactedAppointments.length}`);
     }
 
     // If force or no impacted appointments, proceed with deletion
-    const barbershop = await ctx.db.get(barbershopId);
+    const barbershop = await ctx.db.get(args.barbershop.id);
 
     // Cancel and soft-delete impacted appointments, notify customers
     for (const appt of impactedAppointments) {
@@ -227,7 +200,7 @@ export const deleteService = mutation({
     // Delete all barber-service assignments for this service
     const assignments = await ctx.db
       .query("barbershopMemberServices")
-      .withIndex("by_serviceId", (q) => q.eq("serviceId", serviceId))
+      .withIndex("by_serviceId", (q) => q.eq("serviceId", args.service.id))
       .collect();
 
     for (const assignment of assignments) {
@@ -235,16 +208,14 @@ export const deleteService = mutation({
     }
 
     // Finally delete the service
-    await ctx.db.delete(serviceId);
+    await ctx.db.delete(args.service.id);
   },
 });
 
-export const getByAppointmentId = query({
-  args: {
-    appointmentId: v.id("appointments"),
-  },
+export const getByAppointmentId = zQuery({
+  args: appointments.tools.id,
   handler: async (ctx, args) => {
-    const appointment = await ctx.db.get(args.appointmentId);
+    const appointment = await ctx.db.get(args.id);
 
     if (!appointment) {
       return null;

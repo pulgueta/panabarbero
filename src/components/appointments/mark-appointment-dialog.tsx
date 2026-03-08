@@ -1,6 +1,6 @@
-import type { Appointment } from "@convex/tables";
-import type { FC, FormEvent, ReactElement } from "react";
-import { useEffect, useId, useState } from "react";
+import type { Appointment } from "@convex/schema";
+import type { FC, ReactElement, SubmitEvent } from "react";
+import { useId, useState } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
@@ -62,15 +62,12 @@ const OptionsForm: FC<OptionsFormProps> = ({ appointmentId, onClose }) => {
     noShow: useId(),
   };
   const haptic = useWebHaptics();
+
   const {
-    setStatusMutation: {
-      mutateAsync: setStatus,
-      isPending: isSettingStatus,
-      isSuccess: isSettingStatusSuccess,
-    },
+    setStatusMutation: { mutateAsync: setStatus, isPending: isSettingStatus },
   } = useAppointmentActions();
 
-  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -79,9 +76,13 @@ const OptionsForm: FC<OptionsFormProps> = ({ appointmentId, onClose }) => {
 
     try {
       await setStatus({
-        appointmentId,
+        appointment: { id: appointmentId },
         status,
       });
+
+      haptic.trigger("success");
+      toast.success("Cita marcada correctamente.");
+      onClose();
 
       return;
     } catch (error) {
@@ -90,14 +91,6 @@ const OptionsForm: FC<OptionsFormProps> = ({ appointmentId, onClose }) => {
       return;
     }
   };
-
-  useEffect(() => {
-    if (isSettingStatusSuccess) {
-      haptic.trigger("success");
-      toast.success("Cita marcada correctamente.");
-      onClose();
-    }
-  }, [isSettingStatusSuccess, onClose, haptic]);
 
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit}>

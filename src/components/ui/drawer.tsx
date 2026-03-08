@@ -96,7 +96,7 @@ export const DrawerFooter: FC<ComponentProps<"div">> = ({
     <div
       data-slot="drawer-footer"
       className={cn(
-        "mt-auto flex flex-col gap-4 p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]",
+        "mt-auto flex flex-col gap-4 p-2 pb-[max(1.5rem,env(safe-area-inset-bottom))]",
         className,
       )}
       {...props}

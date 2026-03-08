@@ -1,4 +1,4 @@
-import type { Appointment, Barbershop, Review } from "@convex/tables";
+import type { Appointment, Barbershop, Review } from "@convex/schema";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
@@ -37,6 +37,7 @@ export const ReviewsTab: FC<ReviewsTabProps> = ({ reviews, barbershops }) => {
             </p>
           </div>
           {reviews && reviews.length > 0 && (
+            // @ts-expect-error - reviews will be defined later
             <Button render={<Link to="/reviews" />}>Crear nueva reseña</Button>
           )}
         </div>

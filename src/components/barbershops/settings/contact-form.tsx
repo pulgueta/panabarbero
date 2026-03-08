@@ -1,4 +1,4 @@
-import type { Barbershop, BarbershopMetadata } from "@convex/tables";
+import type { Barbershop, BarbershopMetadata } from "@convex/schema";
 import type { FC } from "react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
@@ -43,8 +43,8 @@ export const ContactForm: FC<ContactFormProps> = ({
   const onSubmit = async () => {
     try {
       await updateBarbershop({
-        barbershopId: barbershop._id,
-        barbershop: {
+        id: barbershop._id,
+        data: {
           uuid: barbershop.uuid,
           name: barbershop.name,
           description: barbershop.description || undefined,

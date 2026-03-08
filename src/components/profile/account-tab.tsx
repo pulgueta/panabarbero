@@ -1,6 +1,6 @@
 import { CheckoutLink } from "@convex-dev/polar/react";
 import { api } from "@convex/_generated/api";
-import type { UserProfileData } from "@convex/tables";
+import type { UserProfileData } from "@convex/schema";
 import { InfoIcon } from "@phosphor-icons/react";
 import type { FC } from "react";
 import { lazy, Suspense, useEffect, useState } from "react";
@@ -34,7 +34,7 @@ const CreateBarbershopDialog = lazy(() =>
 const BARBERSHOP_BANNER_HIDE_KEY = "barbershop-create-banner-hide-until";
 
 interface AccountTabProps {
-  profile: (UserProfileData & { profilePhotoUrl?: string | null }) | null;
+  profile: UserProfileData;
   isBarber: boolean;
   userId: string;
   /** Auth provider image URL (Google profile picture, etc.) */

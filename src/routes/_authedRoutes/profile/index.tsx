@@ -127,7 +127,7 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
 
       const [appointments] = await Promise.all([
         context.queryClient.ensureQueryData(
-          appointmentsByUserQueryOptions(user.userId, null),
+          appointmentsByUserQueryOptions(user.userId),
         ),
         context.queryClient.ensureQueryData(profileQueryOptions(user.userId)),
         context.queryClient.ensureQueryData(getPricingPlansQueryOptions()),
@@ -213,7 +213,7 @@ function ProfilePage() {
           <Suspense fallback={<ProfileTabSkeleton />}>
             <TabsContent value={tabs.account.value} className="pt-2">
               <AccountTab
-                profile={profile}
+                profile={profile!}
                 isBarber={isBarber}
                 userId={user?.userId!}
                 authProviderImage={user?.image}

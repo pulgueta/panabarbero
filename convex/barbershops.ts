@@ -476,7 +476,7 @@ export const getUserVisitedBarbershops = zQuery({
 
 export const getByOwnerId = zQuery({
   args: z.object({
-    ownerId: z.string(),
+    ownerId: z.string().optional(),
   }),
   handler: async (ctx, args) => {
     if (!args.ownerId) {
@@ -485,7 +485,7 @@ export const getByOwnerId = zQuery({
 
     const barbershop = await ctx.db
       .query("barbershops")
-      .withIndex("by_ownerId", (q) => q.eq("ownerId", args.ownerId))
+      .withIndex("by_ownerId", (q) => q.eq("ownerId", args.ownerId!))
       .unique();
 
     if (barbershop) {

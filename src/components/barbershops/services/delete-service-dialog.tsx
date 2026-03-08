@@ -1,4 +1,4 @@
-import type { Barbershop, Service } from "@convex/tables";
+import type { Barbershop, Service } from "@convex/schema";
 import type { FC, ReactElement } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -65,8 +65,8 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
   const onDelete = async (force = false) => {
     try {
       await deleteService({
-        serviceId,
-        barbershopId,
+        service: { id: serviceId },
+        barbershop: { id: barbershopId },
         force,
       });
 

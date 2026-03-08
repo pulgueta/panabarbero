@@ -1,4 +1,4 @@
-import type { Barbershop } from "@convex/tables";
+import type { Barbershop } from "@convex/schema";
 import type { FC, ReactElement } from "react";
 import { useId, useState } from "react";
 

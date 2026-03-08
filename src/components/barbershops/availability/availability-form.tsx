@@ -1,4 +1,4 @@
-import type { Barbershop } from "@convex/tables";
+import type { Barbershop } from "@convex/schema";
 import type { FC } from "react";
 import {
   Activity,
@@ -323,8 +323,8 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
       const validatedRows = rows.map((entry) => validateEntry(entry));
 
       await updateBarbershopAvailability({
-        barbershopId,
-        availability: validatedRows,
+        barbershop: { id: barbershopId },
+        data: { availability: validatedRows },
       });
 
       haptic.trigger("success");

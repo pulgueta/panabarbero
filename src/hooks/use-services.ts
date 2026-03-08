@@ -34,17 +34,19 @@ export function servicesPaginatedByBarbershopIdQueryOptions(
 }
 
 export function serviceByIdQueryOptions(serviceId: Service["_id"]) {
-  return convexQuery(api.services.getById, { serviceId });
+  return convexQuery(api.services.getById, { id: serviceId });
 }
 
 export function servicesByIdsQueryOptions(serviceIds: Service["_id"][]) {
-  return convexQuery(api.services.getByIds, { serviceIds });
+  return convexQuery(api.services.getByIds, {
+    serviceIds: serviceIds.map((id) => ({ id })),
+  });
 }
 
 export function serviceByAppointmentIdQueryOptions(
   appointmentId: Appointment["_id"],
 ) {
-  return convexQuery(api.services.getByAppointmentId, { appointmentId });
+  return convexQuery(api.services.getByAppointmentId, { id: appointmentId });
 }
 
 export function deleteServiceMutationOptions() {

@@ -1,4 +1,4 @@
-import type { Barbershop } from "@convex/tables";
+import type { Barbershop } from "@convex/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { FC } from "react";
 import { useEffect, useId } from "react";
@@ -68,6 +68,9 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
         ...formData,
         phone: formData.phone.trim(),
         email: formData.email.trim().toLowerCase(),
+        barbershop: {
+          id: barbershopId,
+        },
       });
 
       haptic.trigger("success");

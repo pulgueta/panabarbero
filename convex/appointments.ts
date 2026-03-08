@@ -11,7 +11,7 @@ import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { assertCanCreateStaffAppointment } from "./acl";
 import { authComponent } from "./auth";
-import { assertBarber } from "./authz";
+import { assertBarber, getBarbershopMemberByUserId } from "./authz";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
 import type { UserProfileData } from "./schema";
@@ -339,21 +339,17 @@ export const create = zMutation({
 });
 
 export const getRescheduledRequests = zQuery({
-  args: z.object({
-    barbershopId: barbershops.tools.id,
-  }),
+  args: barbershops.tools.id,
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
-      throw new ConvexError(errorMessages.unauthorized);
+      return [];
     }
 
     const appointments = await ctx.db
       .query("appointments")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId.id),
-      )
+      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
       .filter((q) =>
         q.and(
           q.eq(q.field("status"), "pending"),
@@ -379,7 +375,7 @@ export const getByUserId = zQuery({
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
-    if (!user?.userId || user.userId !== args.userId) {
+    if (!user?.userId || args.userId !== user.userId) {
       return [];
     }
 
@@ -397,10 +393,7 @@ export const getByUserId = zQuery({
 });
 
 export const getByBarbershopId = zQuery({
-  args: z.object({
-    barbershopId: barbershops.tools.id,
-    userId: z.string().optional(),
-  }),
+  args: barbershops.tools.id,
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
@@ -410,27 +403,19 @@ export const getByBarbershopId = zQuery({
 
     const appointments = await ctx.db
       .query("appointments")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId.id),
-      )
+      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
       .filter((q) => q.eq(q.field("deletedAt"), undefined))
       .collect();
 
-    // If userId is provided, check if user is a barber (not owner)
-    if (args.userId) {
-      const userId = args.userId;
-      const userProfile = await ctx.db
-        .query("userProfileData")
-        .withIndex("by_userId", (q) => q.eq("userId", userId))
-        .unique();
+    if (user.userId) {
+      const userProfile = await getProfileByUserId(ctx, user.userId);
 
       if (userProfile) {
-        const barbershopMember = await ctx.db
-          .query("barbershopMembers")
-          .withIndex("by_userProfileDataId", (q) =>
-            q.eq("userProfileDataId", userProfile._id),
-          )
-          .first();
+        const barbershopMember = await getBarbershopMemberByUserId(
+          ctx,
+          args.id,
+          user.userId,
+        );
 
         // If user is a barber (not owner), filter appointments for this barber only
         if (barbershopMember && !barbershopMember.roles.includes("owner")) {
@@ -446,23 +431,19 @@ export const getByBarbershopId = zQuery({
 });
 
 export const getById = zQuery({
-  args: z.object({
-    appointmentId: appointments.tools.id,
-  }),
+  args: appointments.tools.id,
   handler: async (ctx, args) => {
-    const appointment = await ctx.db.get(args.appointmentId.id);
-    if (!appointment || appointment.deletedAt !== undefined) return null;
-    return appointment;
+    return await ctx.db.get(args.id);
   },
 });
 
-const setStatusArgs = z.object({
-  appointmentId: appointments.tools.id,
+export const setStatusSchema = z.object({
+  appointment: appointments.tools.id,
   status: z.enum(["completed", "no-show", "cancelled"]),
 });
 
 export const setStatus = zMutation({
-  args: setStatusArgs,
+  args: setStatusSchema,
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
@@ -472,7 +453,8 @@ export const setStatus = zMutation({
 
     await rateLimitOrThrow(ctx, "setAppointmentStatus", user._id);
 
-    const appointmentId = args.appointmentId.id;
+    const appointmentId = args.appointment.id;
+
     const appt = await ctx.db.get(appointmentId);
 
     if (!appt) {
@@ -579,35 +561,6 @@ export const deleteAppointment = zMutation({
       upcomingNotificationId: undefined,
       pastReminderNotificationId: undefined,
     });
-  },
-});
-
-export const removeAppointment = zMutation({
-  args: z.object({
-    appointmentId: appointments.tools.id,
-  }),
-  handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
-
-    if (!user) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    await rateLimitOrThrow(ctx, "removeAppointment", user._id);
-
-    const appointmentId = args.appointmentId.id;
-    const appointment = await ctx.db.get(appointmentId);
-
-    if (!appointment) {
-      throw new ConvexError(errorMessages.notFound("cita"));
-    }
-
-    if (user.userId === appointment.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    await cancelScheduledNotifications(ctx, appointment);
-    await ctx.db.delete(appointmentId);
   },
 });
 

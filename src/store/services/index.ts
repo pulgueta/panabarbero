@@ -1,4 +1,4 @@
-import type { Barbershop, Service } from "@convex/tables";
+import type { Barbershop, Service } from "@convex/schema";
 import { Store, useStore } from "@tanstack/react-store";
 
 interface ServicesStore {

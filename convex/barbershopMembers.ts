@@ -141,22 +141,22 @@ export const removeBarberFromBarbershop = zMutation({
 
 export const isBarber = zQuery({
   args: z.object({
-    userId: z.string(),
+    userId: z.string().optional(),
   }),
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
-    if (!user?.userId || user.userId !== args.userId) {
+    if (!user?.userId || !args.userId || user.userId !== args.userId) {
       return false;
     }
 
-    const userProfile = await getProfileByUserId(ctx, args.userId);
+    const userProfile = await getProfileByUserId(ctx, args.userId!);
 
     if (!userProfile) {
       return false;
     }
 
-    const barbershopMember = await getByUserIdFn(ctx, args);
+    const barbershopMember = await getByUserIdFn(ctx, { userId: args.userId });
 
     return barbershopMember?.roles.includes("barber") ?? false;
   },
@@ -181,10 +181,17 @@ export const getByUserId = zQuery({
 
 export const getRolesByUserId = zQuery({
   args: z.object({
-    userId: z.string(),
+    userId: z.string().optional(),
   }),
   handler: async (ctx, args) => {
-    const barbershopMember = await getByUserIdFn(ctx, args);
+    if (!args.userId) {
+      return {
+        roles: [],
+        isOwner: false,
+      };
+    }
+
+    const barbershopMember = await getByUserIdFn(ctx, { userId: args.userId });
 
     return {
       roles: barbershopMember?.roles,

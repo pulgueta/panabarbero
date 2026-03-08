@@ -2,7 +2,7 @@ import type {
   Barbershop,
   BarbershopMemberWithName,
   Service,
-} from "@convex/tables";
+} from "@convex/schema";
 import { CalendarIcon, ClockCounterClockwiseIcon } from "@phosphor-icons/react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -170,7 +170,11 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
           )}
         </div>
 
-        <div className={"grid grid-cols-2 gap-4"}>
+        <div
+          className={cn("grid gap-4", {
+            "grid-cols-2": isBarber && showPhoneField,
+          })}
+        >
           <Controller
             name="contactEmail"
             control={form.control}

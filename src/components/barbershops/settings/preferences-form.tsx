@@ -1,4 +1,4 @@
-import type { Barbershop } from "@convex/tables";
+import type { Barbershop } from "@convex/schema";
 import type { FC } from "react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
@@ -40,8 +40,8 @@ export const PreferencesForm: FC<PreferencesFormProps> = ({ barbershop }) => {
 
     try {
       await updateBarbershop({
-        barbershopId: barbershop._id,
-        barbershop: {
+        id: barbershop._id,
+        data: {
           uuid: barbershop.uuid,
           name: barbershop.name,
           description: barbershop.description || undefined,

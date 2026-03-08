@@ -1,4 +1,4 @@
-import type { Service } from "@convex/tables";
+import type { Service } from "@convex/schema";
 import {
   DotsThreeVerticalIcon,
   PencilIcon,
@@ -60,8 +60,8 @@ export const servicesTableColumns: ColumnDef<Service>[] = [
       const handleDelete = async () => {
         try {
           await deleteService({
-            serviceId: service._id,
-            barbershopId: service.barbershopId,
+            service: { id: service._id },
+            barbershop: { id: service.barbershopId },
           });
         } catch (_error) {
           haptic.trigger("error");
