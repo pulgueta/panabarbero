@@ -572,10 +572,6 @@ export const createServiceDeletedCancellation = internalMutation({
   handler: async (ctx, args) => {
     const customerProfile = await getProfileByUserId(ctx, args.customerUserId);
 
-    if (!customerProfile) {
-      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
-    }
-
     const appointment = await ctx.db.get(args.appointmentId);
 
     const body = `Tu cita en ${args.barbershopName} ha sido cancelada porque el servicio "${args.serviceName}" ya no está disponible.`;
@@ -585,43 +581,35 @@ export const createServiceDeletedCancellation = internalMutation({
 
     const toEmail = customerProfile?.email ?? args.contactEmail;
 
-    // Send email if available and enabled
-    if (toEmail) {
-      const emailEnabled = customerProfile
-        ? isNotificationEnabled(
-            "email",
-            customerProfile.notificationsPreferences,
-          )
-        : true; // Default to enabled for guests
+    const emailEnabled = customerProfile
+      ? isNotificationEnabled("email", customerProfile.notificationsPreferences)
+      : true; // Default to enabled for guests
 
-      if (emailEnabled) {
-        await ctx.scheduler.runAfter(
-          0,
-          internal.emails.sendAppointmentCancelled,
-          {
-            notes: `Servicio "${args.serviceName}" eliminado`,
-            sendTo: "customer",
-            to: toEmail,
-            body,
-          },
-        );
-      }
+    if (emailEnabled && toEmail) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.emails.sendAppointmentCancelled,
+        {
+          notes: `Servicio "${args.serviceName}" eliminado`,
+          sendTo: "customer",
+          to: toEmail,
+          body,
+        },
+      );
     }
 
-    // Send SMS if phone number is available
     const phoneNumber = customerProfile?.phoneNumber ?? args.contactPhone;
-    if (phoneNumber) {
-      const smsEnabled = customerProfile
-        ? isNotificationEnabled("sms", customerProfile.notificationsPreferences)
-        : true; // Default to enabled for guests
 
-      if (smsEnabled) {
-        await scheduleSmsWithQuota(ctx, {
-          body: smsBody,
-          to: phoneNumber,
-          barbershopId: appointment?.barbershopId,
-        });
-      }
+    const smsEnabled = customerProfile
+      ? isNotificationEnabled("sms", customerProfile.notificationsPreferences)
+      : true; // Default to enabled for guests
+
+    if (smsEnabled) {
+      await scheduleSmsWithQuota(ctx, {
+        body: smsBody,
+        to: phoneNumber,
+        barbershopId: appointment?.barbershopId,
+      });
     }
   },
 });

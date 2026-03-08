@@ -30,7 +30,7 @@ export const registerFormSchema = loginFormSchema
 export const resetPasswordSchema = object({
   token: string({ message: "El token es requerido" })
     .min(1, "El token es requerido")
-    .default(""),
+    .max(255, "El token no puede tener más de 255 caracteres"),
   password: string({ message: "La contraseña es requerida" })
     .min(4, "La contraseña es requerida")
     .max(255, "La contraseña no puede tener más de 255 caracteres"),

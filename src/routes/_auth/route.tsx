@@ -1,5 +1,4 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { useEffect } from "react";
 
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { isBarberQueryOptions } from "@/hooks/use-barbershop-members";
@@ -32,26 +31,9 @@ export const Route = createFileRoute("/_auth")({
         });
       }
     }
-
-    return {
-      user,
-    };
   },
 });
 
 function RouteComponent() {
-  const { user } = Route.useLoaderData();
-  const navigate = Route.useNavigate();
-
-  useEffect(() => {
-    if (user) {
-      navigate({
-        to: "/profile",
-        search: { tab: "account" },
-        replace: true,
-      });
-    }
-  }, [user, navigate]);
-
   return <Outlet />;
 }

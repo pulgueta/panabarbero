@@ -21,17 +21,19 @@ export const CheckboxField: FC<CheckboxFieldProps> = ({ label }) => {
 
   return (
     <Field data-invalid={isInvalid}>
-      <Checkbox
-        id={field.name}
-        name={field.name}
-        aria-invalid={isInvalid}
-        checked={field.state.value}
-        onCheckedChange={(checked) => {
-          haptic.trigger("selection");
-          field.handleChange(checked);
-        }}
-      />
-      <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id={field.name}
+          name={field.name}
+          aria-invalid={isInvalid}
+          checked={field.state.value}
+          onCheckedChange={(checked) => {
+            haptic.trigger("selection");
+            field.handleChange(checked);
+          }}
+        />
+        <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+      </div>
 
       {isInvalid && <FieldError errors={errors} />}
     </Field>

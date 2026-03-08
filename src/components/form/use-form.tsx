@@ -13,6 +13,11 @@ const TextAreaField = lazy(() =>
     default: module.TextAreaField,
   })),
 );
+const PasswordField = lazy(() =>
+  import("./text-field").then((module) => ({
+    default: module.PasswordField,
+  })),
+);
 const SelectField = lazy(() =>
   import("./select-field").then((module) => ({
     default: module.SelectField,
@@ -48,6 +53,7 @@ export const { useAppForm, withForm } = createFormHook({
   fieldComponents: {
     TextField,
     TextAreaField,
+    PasswordField,
     SelectField,
     SwitchField,
     CheckboxField,

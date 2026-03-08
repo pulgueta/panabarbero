@@ -95,7 +95,7 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
 
   const dialogDescription = isInitialStep
     ? "¿Estás seguro que deseas eliminar este servicio? Esta acción no se puede deshacer."
-    : `Este servicio tiene ${impactedCount} cita(s) pendiente(s) que serán canceladas. Los clientes recibirán una notificación por email y SMS.`;
+    : `Este servicio tiene ${impactedCount} cita(s) pendiente(s) que serán canceladas. Los clientes serán notificados.`;
 
   const buttonLabel = isInitialStep
     ? "Sí, eliminar"
@@ -112,7 +112,7 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
           </ResponsiveModalDescription>
         </ResponsiveModalHeader>
 
-        <ResponsiveModalFooter className="gap-2 sm:gap-0">
+        <ResponsiveModalFooter className="gap-2">
           {!isInitialStep && (
             <Button
               variant="outline"

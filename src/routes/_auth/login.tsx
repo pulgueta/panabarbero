@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: not needed */
 
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 import { toast } from "sonner";
 
@@ -8,12 +8,16 @@ import { FormHeader } from "@/components/auth/form-header";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { FieldGroup } from "@/components/ui/field";
 import { GoogleIcon } from "@/components/ui/google-icon";
 import { Skeleton } from "@/components/ui/skeleton";
-import { isBarberQueryOptions } from "@/hooks/use-barbershop-members";
-import { getSessionQueryOptions } from "@/hooks/use-session";
 import { signIn } from "@/lib/auth-client";
 import { translateBetterAuthError } from "@/lib/better-auth-errors";
 
@@ -26,23 +30,6 @@ const LoginForm = lazy(() =>
 export const Route = createFileRoute("/_auth/login")({
   component: LoginPage,
   pendingComponent: LoadingComponent,
-  loader: async ({ context }) => {
-    const user = await context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
-
-    if (user?.userId) {
-      const isBarber = await context.queryClient.ensureQueryData(
-        isBarberQueryOptions(user.userId),
-      );
-
-      throw redirect({
-        to: isBarber ? "/profile/barbershops/appointments" : "/profile",
-        search: { tab: "account" },
-        replace: true,
-      });
-    }
-  },
 });
 
 type Provider = "google" | "apple" | "passkey" | "facebook";
@@ -113,19 +100,20 @@ function LoginPage() {
               >
                 <LoginForm />
               </Suspense>
-
-              <p className="py-4 text-center text-muted-foreground text-sm">
-                ¿No tienes una cuenta?{" "}
-                <Link
-                  to="/register"
-                  viewTransition={{ types: ["warp-in"] }}
-                  className="text-primary underline-offset-4 hover:underline"
-                >
-                  Regístrate
-                </Link>
-              </p>
             </FieldGroup>
           </CardContent>
+          <CardFooter className="justify-center py-4">
+            <p className="text-center text-muted-foreground text-sm">
+              ¿No tienes una cuenta?{" "}
+              <Link
+                to="/register"
+                viewTransition={{ types: ["warp-in"] }}
+                className="text-primary underline-offset-4 hover:underline"
+              >
+                Regístrate
+              </Link>
+            </p>
+          </CardFooter>
         </Card>
       </div>
     </BorderContainer>
