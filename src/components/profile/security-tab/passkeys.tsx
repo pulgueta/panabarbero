@@ -1,6 +1,7 @@
 import { FingerprintIcon } from "@phosphor-icons/react";
 import type { ActivityProps } from "react";
 import { Activity } from "react";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
