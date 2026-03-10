@@ -1,6 +1,10 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: can be null */
 
-import type { Barbershop, BarbershopMember, Service } from "@convex/schema";
+import type {
+  Barbershop,
+  BarbershopMemberWithName,
+  Service,
+} from "@convex/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { FC, ReactElement } from "react";
@@ -26,6 +30,7 @@ import {
   useAppointmentFormMetadata,
 } from "@/hooks/use-appointments";
 import {
+  useBarberByUserId,
   useBarbersForService,
   useIsBarber,
   useServicesForBarber,
@@ -40,7 +45,7 @@ import { CreateAppointmentForm } from "./create-appointment-form";
 interface CreateAppointmentDialogProps {
   services: Service[];
   serviceId?: Service["_id"];
-  barbers: BarbershopMember[];
+  barbers: BarbershopMemberWithName[];
   barbershopId: Barbershop["_id"];
   trigger: ReactElement;
 }
@@ -64,8 +69,8 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
     serviceId: useId(),
   };
   const [open, setOpen] = useState<boolean>(false);
-  const [selectedBarberId, setSelectedBarberId] = useState<
-    BarbershopMember["_id"] | undefined
+  const [selectedBarber, setSelectedBarber] = useState<
+    BarbershopMemberWithName | undefined
   >(undefined);
 
   const navigate = useNavigate();
@@ -73,7 +78,8 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   const { data: user } = useSession();
   const { data: userProfile } = useProfile(user?.userId!);
   const { data: isBarber } = useIsBarber(user?.userId!);
-  const { data: barberServices } = useServicesForBarber(selectedBarberId!);
+  const { data: currentBarberMember } = useBarberByUserId(user?.userId!);
+  const { data: barberServices } = useServicesForBarber(selectedBarber?._id!);
   const { data: barbersForService } = useBarbersForService(serviceId!);
 
   const showPhoneField = isBarber || (!isBarber && !userProfile?.phoneNumber);
@@ -90,7 +96,6 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   const {
     createAppointment: {
       mutateAsync: createAppointment,
-      isSuccess: isCreatedAppointment,
       isPending: isCreatingAppointment,
     },
   } = useAppointmentActions();
@@ -99,9 +104,12 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
 
   const service = useServicesStore();
 
-  // Determine default barber: use availableBarbers when available
-  const defaultBarberId =
-    availableBarbers?.length === 1 ? availableBarbers[0]?._id : undefined;
+  // When a barber creates an appointment, default to themselves
+  const defaultBarberId = isBarber
+    ? currentBarberMember?._id
+    : availableBarbers?.length === 1
+      ? availableBarbers[0]?._id
+      : undefined;
 
   const form = useForm({
     resolver: zodResolver(appointmentFormSchema),
@@ -111,24 +119,28 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
       contactPhone: isBarber ? undefined : userProfile?.phoneNumber,
       contactEmail: isBarber ? undefined : userProfile?.email,
       notes: "",
-      barbershopMemberId: defaultBarberId ?? selectedBarberId,
+      barbershopMemberId: defaultBarberId ?? selectedBarber?._id,
     },
   });
 
-  // Update form and state when available barbers change
+  // When a barber is creating, auto-select themselves
   useEffect(() => {
-    if (availableBarbers?.length === 1) {
-      setSelectedBarberId(availableBarbers[0]?._id);
+    if (isBarber && currentBarberMember) {
+      const self = barbers.find((b) => b._id === currentBarberMember._id);
+      if (self) {
+        setSelectedBarber(self);
+        form.setValue("barbershopMemberId", self._id);
+      }
+    }
+  }, [isBarber, currentBarberMember, barbers, form]);
+
+  // Update form and state when available barbers change (customer flow)
+  useEffect(() => {
+    if (!isBarber && availableBarbers?.length === 1) {
+      setSelectedBarber(availableBarbers[0]!);
       form.setValue("barbershopMemberId", availableBarbers[0]?._id);
     }
-  }, [availableBarbers, form]);
-
-  useEffect(() => {
-    if (isCreatedAppointment) {
-      haptic.trigger("success");
-      toast.success("Cita reservada exitosamente");
-    }
-  }, [isCreatedAppointment, haptic]);
+  }, [isBarber, availableBarbers, form]);
 
   const headLabel = "Reservar cita";
   const description = isBarber
@@ -177,13 +189,15 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
           barbershopId,
           barbershopMemberId: formData.barbershopMemberId,
           serviceId: serviceId ?? service._id,
-          isBarber: isBarber ?? false,
+          isBarber,
         },
       });
 
       setOpen(false);
 
       form.reset();
+      haptic.trigger("success");
+      toast.success("Cita reservada exitosamente");
 
       if (!isBarber) {
         navigate({
@@ -214,11 +228,15 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
         <Activity mode={user ? "visible" : "hidden"}>
           <CreateAppointmentForm
             barbershopId={barbershopId}
-            barbers={availableBarbers ?? barbers}
+            barbers={
+              availableBarbers?.filter((barber) => barber !== null) ?? barbers
+            }
             isBarber={isBarber ?? false}
             services={services}
-            barberServices={barberServices!}
-            onBarberChange={setSelectedBarberId}
+            barberServices={barberServices?.filter(
+              (service) => service !== null,
+            )}
+            onBarberChange={setSelectedBarber}
             // @ts-expect-error - zod's coerce method returns an unknown type
             form={form}
             showPhoneField={showPhoneField}

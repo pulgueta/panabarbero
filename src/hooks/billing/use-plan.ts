@@ -1,6 +1,8 @@
 import { convexQuery } from "@convex-dev/react-query";
-import { PLAN_LIMITS, type PlanLimits, type PlanTier } from "@convex/plans";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import type { PlanLimits, PlanTier } from "@convex/plans";
+import { PLAN_LIMITS } from "@convex/plans";
+import type { Barbershop } from "@convex/schema";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 
 // ---------------------------------------------------------------------------
@@ -9,6 +11,12 @@ import { api } from "convex/_generated/api";
 
 export function getPlanQueryOptions() {
   return convexQuery(api.auth.getUserSubscription, {});
+}
+
+export function getBarbershopPlanQueryOptions(barbershopId: Barbershop["_id"]) {
+  return convexQuery(api.auth.getBarbershopOwnerSubscription, {
+    id: barbershopId,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -45,9 +53,7 @@ export interface UsePlanResult {
  * unauthenticated state without throwing.
  */
 export function usePlan(): UsePlanResult {
-  const { data: subscription, isLoading } = useSuspenseQuery(
-    getPlanQueryOptions(),
-  );
+  const { data: subscription, isLoading } = useQuery(getPlanQueryOptions());
 
   const planTier: PlanTier = subscription?.planTier ?? "free";
   const planLimits: PlanLimits = subscription?.planLimits ?? PLAN_LIMITS.free;
@@ -70,6 +76,43 @@ export function usePlan(): UsePlanResult {
     maxSmsPerMonth: planLimits.maxSmsPerMonth,
 
     // Tier booleans
+    isFree: planTier === "free",
+    isPro: planTier === "pro",
+    isPremium: planTier === "premium",
+  };
+}
+
+/**
+ * Returns plan info for a barbershop based on the **owner's** subscription.
+ * Use this instead of `usePlan` when the current user is a staff member
+ * and you need to check what the barbershop's plan allows.
+ */
+export function useBarbershopPlan(
+  barbershopId: Barbershop["_id"],
+): UsePlanResult {
+  const { data: subscription, isLoading } = useQuery(
+    getBarbershopPlanQueryOptions(barbershopId),
+  );
+
+  const planTier: PlanTier = subscription?.planTier ?? "free";
+  const planLimits: PlanLimits = subscription?.planLimits ?? PLAN_LIMITS.free;
+  const isSubscribed =
+    subscription?.isSubscribed ||
+    subscription?.status === "active" ||
+    subscription?.status === "trialing";
+
+  return {
+    planTier,
+    planLimits,
+    isSubscribed,
+    isLoading,
+
+    canInviteBarbers:
+      planLimits.maxInvitedBarbers !== null && planLimits.maxInvitedBarbers > 0,
+    canCreateStaffAppointments: planLimits.staffCanCreateAppointments,
+    maxInvitedBarbers: planLimits.maxInvitedBarbers,
+    maxSmsPerMonth: planLimits.maxSmsPerMonth,
+
     isFree: planTier === "free",
     isPro: planTier === "pro",
     isPremium: planTier === "premium",

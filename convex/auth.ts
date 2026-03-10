@@ -6,15 +6,16 @@ import { requireActionCtx } from "@convex-dev/better-auth/utils";
 import { betterAuth } from "better-auth/minimal";
 import { twoFactor } from "better-auth/plugins";
 import { z } from "zod";
-
-import { zQuery } from ".";
+import { zInternalAction, zQuery } from ".";
 import { APP_NAME } from "../src/config";
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import authConfig from "./auth.config";
+import { assertShopRole } from "./authz";
 import { from, resend } from "./emails";
 import { getLimitsForProductKey, getTierForProductKey } from "./plans";
 import { polar } from "./polar";
+import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
 
 const authFunctions: AuthFunctions = internal.auth;
@@ -194,5 +195,62 @@ export const getUserSubscription = zQuery({
       isPro: planTier === "pro",
       isPremium: planTier === "premium",
     };
+  },
+});
+
+/**
+ * Returns the subscription/plan info for the **owner** of a barbershop.
+ * Used by staff members to derive plan-based feature flags (e.g. whether
+ * they can create appointments on behalf of clients).
+ */
+export const getBarbershopOwnerSubscription = zQuery({
+  args: barbershops.tools.id,
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      return null;
+    }
+
+    const barbershop = await ctx.db.get(args.id);
+
+    if (!barbershop) {
+      return null;
+    }
+
+    await assertShopRole(ctx, args.id, user.userId, "barber");
+
+    const subscription = await polar.getCurrentSubscription(ctx, {
+      userId: barbershop.ownerId,
+    });
+
+    const planTier = getTierForProductKey(subscription?.productKey);
+    const planLimits = getLimitsForProductKey(subscription?.productKey);
+
+    return {
+      ...subscription,
+      isSubscribed:
+        subscription?.status === "active" ||
+        subscription?.status === "trialing",
+      productPlanId: subscription?.productId,
+      planTier,
+      planLimits,
+      isFree: planTier === "free",
+      isPro: planTier === "pro",
+      isPremium: planTier === "premium",
+    };
+  },
+});
+
+function toConvexSafeValue(value: unknown) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+export const getLatestJwks = zInternalAction({
+  args: {},
+  handler: async (ctx) => {
+    const auth = createAuth(ctx);
+
+    return toConvexSafeValue(await auth.api.getLatestJwks());
   },
 });

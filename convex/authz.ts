@@ -82,11 +82,11 @@ export async function assertShopRole(
   const member = await getBarbershopMemberByUserId(ctx, barbershopId, userId);
 
   if (!member) {
-    return;
+    throw new ConvexError(errorMessages.unauthorized);
   }
 
   if (!member.isActive) {
-    return;
+    throw new ConvexError(errorMessages.unauthorized);
   }
 
   const rolesArray = Array.isArray(requiredRoles)

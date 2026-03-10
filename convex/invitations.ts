@@ -7,43 +7,42 @@ import { assertBarberInviteAllowed } from "./acl";
 import { authComponent } from "./auth";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
-import { barbershops } from "./schema";
 import { getProfileByEmail, getProfileByUserId } from "./userProfileData";
 
 const INVITATION_EXPIRATION_MS = 1000 * 60 * 60 * 24 * 7;
 
-export const invite = zMutation({
-  args: z.object({
-    name: z.string().optional(),
-    phone: z.string(),
-    email: z.string(),
-    barbershop: barbershops.tools.id,
-    roles: z.array(z.literal("barber")),
-  }),
-  handler: async (ctx, args) => {
-    const userInviting = await authComponent.safeGetAuthUser(ctx);
+export const inviteBarberSchema = z.object({
+  phone: z.string(),
+  email: z.string(),
+  roles: z.array(z.literal("barber")),
+});
 
-    if (!userInviting || !userInviting.userId) {
+export const invite = zMutation({
+  args: inviteBarberSchema,
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user || !user.userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    await rateLimitOrThrow(ctx, "inviteBarbershopMember", userInviting._id);
+    await rateLimitOrThrow(ctx, "inviteBarbershopMember", user._id);
 
-    const barbershop = await ctx.db.get(args.barbershop.id);
+    const barbershop = await ctx.db
+      .query("barbershops")
+      // biome-ignore lint/style/noNonNullAssertion: already checked
+      .withIndex("by_ownerId", (q) => q.eq("ownerId", user.userId!))
+      .first();
 
     if (!barbershop) {
       throw new ConvexError(errorMessages.notFound("barbería"));
     }
 
-    if (barbershop.ownerId !== userInviting.userId) {
+    if (barbershop.ownerId !== user.userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    await assertBarberInviteAllowed(
-      ctx,
-      args.barbershop.id,
-      userInviting.userId,
-    );
+    await assertBarberInviteAllowed(ctx, barbershop._id, user.userId);
 
     const email = args.email.toLowerCase().trim();
 
@@ -53,7 +52,7 @@ export const invite = zMutation({
       const existingMember = await ctx.db
         .query("barbershopMembers")
         .withIndex("by_barbershopId", (q) =>
-          q.eq("barbershopId", args.barbershop.id),
+          q.eq("barbershopId", barbershop._id),
         )
         .filter((q) => q.eq(q.field("userProfileDataId"), userProfile._id))
         .unique();
@@ -65,9 +64,7 @@ export const invite = zMutation({
 
     const existingInvitation = await ctx.db
       .query("invitations")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershop.id),
-      )
+      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", barbershop._id))
       .filter((q) => q.eq(q.field("email"), email))
       .first();
 
@@ -91,14 +88,14 @@ export const invite = zMutation({
     const expiresAt = now + INVITATION_EXPIRATION_MS;
 
     const invitationId = await ctx.db.insert("invitations", {
-      barbershopId: args.barbershop.id,
+      barbershopId: barbershop._id,
       email,
       phone: args.phone,
       roles: args.roles,
       code,
       status: "pending",
       expiresAt,
-      inviterUserId: userInviting.userId,
+      inviterUserId: user.userId,
     });
 
     await ctx.scheduler.runAfter(
@@ -106,10 +103,10 @@ export const invite = zMutation({
       internal.notifications.createBarberInvited,
       {
         invitationId,
-        barbershopId: args.barbershop.id,
+        barbershopId: barbershop._id,
         email,
         code,
-        inviterUserId: userInviting.userId,
+        inviterUserId: user.userId,
         roles: args.roles,
         expiresAt,
         phone: args.phone,

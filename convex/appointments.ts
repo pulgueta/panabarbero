@@ -11,7 +11,11 @@ import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { assertCanCreateStaffAppointment } from "./acl";
 import { authComponent } from "./auth";
-import { assertBarber, getBarbershopMemberByUserId } from "./authz";
+import {
+  assertBarber,
+  getBarbershopMemberByUserId,
+  memberHasAnyRole,
+} from "./authz";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
 import type { UserProfileData } from "./schema";
@@ -148,7 +152,7 @@ export const create = zMutation({
       await assertBarber(ctx, appointment.barbershopId, user.userId);
       // Only paid plans (pro / premium) allow staff to create appointments
       // on behalf of clients.
-      await assertCanCreateStaffAppointment(ctx, user.userId);
+      await assertCanCreateStaffAppointment(ctx, appointment.barbershopId);
     }
 
     const [service, barber] = await Promise.all([
@@ -472,6 +476,20 @@ export const setStatus = zMutation({
     }
 
     if (user.userId === appt.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    const member = await getBarbershopMemberByUserId(
+      ctx,
+      appt.barbershopId,
+      user.userId!,
+    );
+
+    if (
+      !member ||
+      !member.isActive ||
+      !memberHasAnyRole(member, ["owner", "barber"])
+    ) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 

@@ -1,7 +1,7 @@
 import type { Appointment } from "@convex/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { FC, ReactElement } from "react";
-import { useEffect, useId } from "react";
+import { useId } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
@@ -57,16 +57,8 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
     cancelAppointmentMutation: {
       mutateAsync: cancelAppointment,
       isPending: isCancellingAppointment,
-      isSuccess: isCancelAppointmentSuccess,
     },
   } = useAppointmentActions();
-
-  useEffect(() => {
-    if (isCancelAppointmentSuccess) {
-      haptic.trigger("success");
-      toast.success("Cita cancelada correctamente.");
-    }
-  }, [isCancelAppointmentSuccess, haptic]);
 
   const title = "Cancelar cita";
   const cancelButtonLabel = "Si, cancelar";
@@ -84,6 +76,9 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
         cancelledByUserId: userId,
         cancelledBy: isBarber ? "barber" : "customer",
       });
+
+      haptic.trigger("success");
+      toast.success("Cita cancelada correctamente.");
     } catch (error) {
       haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
