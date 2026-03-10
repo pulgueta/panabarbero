@@ -445,16 +445,20 @@ export const toggleBarberRole = zMutation({
 
 export const getByUserId = zQuery({
   args: z.object({
-    userId: z.string(),
+    userId: z.string().optional(),
   }),
   handler: async (ctx, args) => {
+    if (!args.userId) {
+      return null;
+    }
+
     const userProfile = await getProfileByUserId(ctx, args.userId);
 
     if (!userProfile?._id) {
       return null;
     }
 
-    const barbershopMember = await getByUserIdFn(ctx, args);
+    const barbershopMember = await getByUserIdFn(ctx, { userId: args.userId });
 
     return barbershopMember;
   },
