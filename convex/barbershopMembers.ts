@@ -272,7 +272,7 @@ export const isMember = zQuery({
 
     const barbershopMember = await getByUserIdFn(ctx, { userId: args.userId });
 
-    return barbershopMember?.isActive;
+    return barbershopMember?.isActive ?? false;
   },
 });
 
@@ -386,6 +386,10 @@ export const toggleBarberRole = zMutation({
         );
 
         if (!appointment) continue;
+
+        const targetMemberId =
+          reassignment.targetBarbershopMemberId as Id<"barbershopMembers">;
+        const targetMember = await ctx.db.get(targetMemberId);
 
         if (
           !targetMember ||
