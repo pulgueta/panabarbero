@@ -5,8 +5,13 @@ import { useSession } from "@/hooks/use-session";
 
 /**
  * Centralized navigation route resolver.
- * Returns the correct set of routes based on auth state and user role,
- * eliminating the duplicated triple-conditional logic from Header and BottomBar.
+ * Returns the correct set of routes based on auth state and user role.
+ *
+ * Route resolution:
+ *   - Owner (barber or not)  → owner routes (full dashboard)
+ *   - Barber (non-owner)     → barber routes (appointments + profile)
+ *   - Customer               → authenticated navigation (no dashboard)
+ *   - Unauthenticated        → public routes
  */
 export function useNavRoutes() {
   const { data: user } = useSession();
@@ -16,12 +21,12 @@ export function useNavRoutes() {
   const isOwner = rolesData?.isOwner ?? false;
 
   const routes = user
-    ? isBarber
-      ? isOwner
-        ? authenticatedRoutes.owner
-        : authenticatedRoutes.barber
-      : authenticatedRoutes.navigation.filter((r) => r.to !== "/")
+    ? isOwner
+      ? authenticatedRoutes.owner
+      : isBarber
+        ? authenticatedRoutes.barber
+        : authenticatedRoutes.navigation.filter((r) => r.to !== "/")
     : publicRoutes.navigation;
 
-  return { routes, user, isBarber: isBarber ?? false, isOwner };
+  return { routes, user, isBarber, isOwner };
 }

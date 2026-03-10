@@ -12,6 +12,8 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -110,25 +112,6 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
           />
         </div>
 
-        <Controller
-          name="address.details"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={formIds.addressDetails}>
-                Detalles (opcional)
-              </FieldLabel>
-              <Input
-                {...field}
-                id={formIds.addressDetails}
-                aria-invalid={fieldState.invalid}
-                placeholder="Barrio, referencia, etc."
-              />
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
-
         <div className="grid grid-cols-2 gap-4">
           <Controller
             name="state"
@@ -197,18 +180,20 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
         </div>
 
         <div className="grid grid-cols-1 gap-4">
-          {/* <Controller
+          <Controller
             name="ownerIsBarber"
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={formIds.ownerIsBarber}>Eres:</FieldLabel>
+                <FieldLabel htmlFor={formIds.ownerIsBarber}>
+                  Tu rol en la barbería
+                </FieldLabel>
                 <RadioGroup
                   value={field.value ? "owner-barber" : "owner-only"}
                   onValueChange={(value) =>
                     field.onChange(value === "owner-barber")
                   }
-                  className="grid grid-cols-1 gap-2"
+                  className="grid grid-cols-2 gap-2"
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem
@@ -219,7 +204,7 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
                       htmlFor={formIds.ownerBarber}
                       className="cursor-pointer"
                     >
-                      Dueño y barbero (atiendo clientes)
+                      Dueño y barbero
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -228,7 +213,7 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
                       htmlFor={formIds.ownerOnly}
                       className="cursor-pointer"
                     >
-                      Dueño (no atiendo clientes)
+                      Solo dueño
                     </Label>
                   </div>
                 </RadioGroup>
@@ -237,7 +222,7 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
                 )}
               </Field>
             )}
-          /> */}
+          />
 
           <Controller
             name="gracePeriodMinutes"

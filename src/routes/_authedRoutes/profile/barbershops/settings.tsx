@@ -21,6 +21,11 @@ import {
   barbershopMemberRolesQueryOptions,
   useBarbershopMemberRoles,
 } from "@/hooks/barbershop/use-barbershop-member";
+import {
+  barbershopMembersByBarbershopIdQueryOptions,
+  isBarberQueryOptions,
+  useIsBarber,
+} from "@/hooks/use-barbershop-members";
 import { useClipboard } from "@/hooks/use-clipboard";
 import {
   servicesQueryOptions,
@@ -53,6 +58,11 @@ const GeneralInfoForm = lazy(() =>
 const PreferencesForm = lazy(() =>
   import("@/components/barbershops/settings/preferences-form").then((mod) => ({
     default: mod.PreferencesForm,
+  })),
+);
+const OwnerRoleToggle = lazy(() =>
+  import("@/components/barbershops/settings/owner-role-toggle").then((mod) => ({
+    default: mod.OwnerRoleToggle,
   })),
 );
 // const SocialMediaForm = lazy(() =>
@@ -89,13 +99,19 @@ export const Route = createFileRoute(
         throw redirect({ to: "/profile/barbershops/appointments" });
       }
 
+      await opts.context.queryClient.ensureQueryData(
+        isBarberQueryOptions(user.userId),
+      );
+
       if (barbershop) {
-        // await opts.context.queryClient.ensureQueryData(
-        //   barbershopMetadataQueryOptions(barbershop._id),
-        // );
-        await opts.context.queryClient.ensureQueryData(
-          servicesQueryOptions(barbershop._id),
-        );
+        await Promise.all([
+          opts.context.queryClient.ensureQueryData(
+            servicesQueryOptions(barbershop._id),
+          ),
+          opts.context.queryClient.ensureQueryData(
+            barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+          ),
+        ]);
       }
     }
   },
@@ -117,6 +133,7 @@ function SettingsPage() {
   const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
   const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
+  const { data: isBarber } = useIsBarber(user?.userId!);
 
   const { trigger } = useWebHaptics();
 
@@ -254,7 +271,7 @@ function SettingsPage() {
 
           <Separator />
 
-          <section className="flex w-full flex-col gap-4 sm:items-start sm:justify-start md:flex-row">
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <section className="min-h-44 w-full space-y-4">
               <div>
                 <h2 className="font-bold text-xl tracking-tight">
@@ -267,6 +284,23 @@ function SettingsPage() {
 
               <Suspense fallback={<Skeleton className="h-48 w-full" />}>
                 <PreferencesForm barbershop={barbershop} />
+              </Suspense>
+            </section>
+
+            <section className="space-y-4">
+              <div>
+                <h2 className="font-bold text-xl tracking-tight">Tu rol</h2>
+                <p className="text-muted-foreground text-sm">
+                  Decide si atiendes clientes como barbero o solo administras la
+                  barbería.
+                </p>
+              </div>
+
+              <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+                <OwnerRoleToggle
+                  barbershopId={barbershop._id}
+                  isCurrentlyBarber={isBarber}
+                />
               </Suspense>
             </section>
 
