@@ -35,7 +35,9 @@ import {
   barbersForServiceQueryOptions,
   barbershopMembersByBarbershopIdQueryOptions,
   isBarberQueryOptions,
+  servicesForBarberQueryOptions,
   useBarbershopMembersByBarbershopId,
+  useIsBarber,
 } from "@/hooks/use-barbershop-members";
 import {
   serviceByAppointmentIdQueryOptions,
@@ -85,9 +87,20 @@ export const Route = createFileRoute(
         const appointments = await context.queryClient.ensureQueryData(
           appointmentsByBarbershopQueryOptions(barbershop._id),
         );
-        await context.queryClient.ensureQueryData(
+        const barbershopMembers = await context.queryClient.ensureQueryData(
           barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
         );
+
+        if (barbershopMembers.length) {
+          await Promise.all(
+            barbershopMembers.map((barbershopMember) =>
+              context.queryClient.ensureQueryData(
+                servicesForBarberQueryOptions(barbershopMember._id),
+              ),
+            ),
+          );
+        }
+
         await context.queryClient.ensureQueryData(
           barberByUserIdQueryOptions(user.userId),
         );
@@ -104,10 +117,14 @@ export const Route = createFileRoute(
           );
 
           if (services) {
+            const servicesForBarbers = services.filter(
+              (service) => service !== null,
+            );
+
             await Promise.all(
-              services.map((service) =>
+              servicesForBarbers.map((service) =>
                 context.queryClient.ensureQueryData(
-                  barbersForServiceQueryOptions(service?._id!),
+                  barbersForServiceQueryOptions(service._id),
                 ),
               ),
             );
@@ -143,6 +160,7 @@ function RouteComponent() {
     useRescheduledAppointmentRequests(barbershop?._id!);
   const { data: appointments } = useAppointmentsByBarbershop(barbershop?._id!);
   const { canCreateStaffAppointments } = useBarbershopPlan(barbershop?._id!);
+  const { data: isBarber } = useIsBarber(session?.userId!);
 
   const isOwner = Boolean(
     session?.userId && barbershop?.ownerId === session.userId,
@@ -195,7 +213,7 @@ function RouteComponent() {
                 : "No hay día seleccionado"}
             </h2>
 
-            {barbershop?._id && canCreateStaffAppointments && (
+            {barbershop?._id && canCreateStaffAppointments && isBarber && (
               <Suspense
                 fallback={
                   <Button disabled>

@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { zInternalMutation, zMutation, zQuery } from ".";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { authComponent } from "./auth";
 import { assertCanManageShop } from "./authz";
@@ -29,7 +30,7 @@ export const create = zInternalMutation({
 });
 
 export const getByBarbershopId = zQuery({
-  args: barbershops.tools.id,
+  args: barbershops.tools.id.shape,
   handler: async (ctx, args) => {
     const members = await ctx.db
       .query("barbershopMembers")
@@ -48,7 +49,7 @@ export const getByBarbershopId = zQuery({
       }),
     );
 
-    return membersWithName;
+    return membersWithName.filter((member) => member.roles.includes("barber"));
   },
 });
 
@@ -218,6 +219,227 @@ export const isBarber = zQuery({
     const barbershopMember = await getByUserIdFn(ctx, { userId: args.userId });
 
     return barbershopMember?.roles.includes("barber") ?? false;
+  },
+});
+
+/**
+ * Check if the user is an owner of any barbershop.
+ * Returns true if the user has the "owner" role regardless of barber status.
+ */
+export const isOwner = zQuery({
+  args: z.object({
+    userId: z.string().optional(),
+  }),
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId || !args.userId || user.userId !== args.userId) {
+      return false;
+    }
+
+    const userProfile = await getProfileByUserId(ctx, args.userId!);
+
+    if (!userProfile) {
+      return false;
+    }
+
+    const barbershopMember = await getByUserIdFn(ctx, { userId: args.userId });
+
+    return barbershopMember?.roles.includes("owner") ?? false;
+  },
+});
+
+/**
+ * Check if the user is a member of any barbershop (any role).
+ * Used to determine if the user should see the barbershop dashboard.
+ */
+export const isMember = zQuery({
+  args: z.object({
+    userId: z.string().optional(),
+  }),
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId || !args.userId || user.userId !== args.userId) {
+      return false;
+    }
+
+    const userProfile = await getProfileByUserId(ctx, args.userId!);
+
+    if (!userProfile) {
+      return false;
+    }
+
+    const barbershopMember = await getByUserIdFn(ctx, { userId: args.userId });
+
+    return barbershopMember?.isActive ?? false;
+  },
+});
+
+/**
+ * Toggle the "barber" role on the owner's membership record.
+ *
+ * - Adding barber role: simply appends "barber" to the roles array.
+ * - Removing barber role: cancels all future appointments assigned to the owner,
+ *   removes their service assignments, and strips "barber" from roles.
+ *
+ * Accepts an optional `reassignments` map to move future appointments to
+ * another barber before removing the role.
+ */
+export const toggleBarberRole = zMutation({
+  args: z.object({
+    barbershopId: barbershops.tools.id.shape.id,
+    addBarberRole: z.boolean(),
+    reassignments: z
+      .array(
+        z.object({
+          appointmentId: z.string(),
+          targetBarbershopMemberId: z.string(),
+        }),
+      )
+      .optional(),
+  }),
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    await rateLimitOrThrow(ctx, "toggleBarberRole", user._id);
+
+    const member = await getByUserIdFn(ctx, {
+      userId: user.userId,
+    });
+
+    if (!member) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    if (!member.roles.includes("owner")) {
+      throw new ConvexError("Solo el dueño puede cambiar su rol de barbero");
+    }
+
+    if (member.barbershopId !== args.barbershopId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    const isCurrentlyBarber = member.roles.includes("barber");
+
+    if (args.addBarberRole) {
+      if (isCurrentlyBarber) {
+        return { status: "no-change" as const };
+      }
+
+      await ctx.db.patch(member._id, {
+        roles: [...member.roles, "barber"],
+      });
+
+      return { status: "added" as const };
+    }
+
+    // Removing barber role
+    if (!isCurrentlyBarber) {
+      return { status: "no-change" as const };
+    }
+
+    const now = Date.now();
+
+    // Find future appointments assigned to this owner-barber
+    const futureAppointments = await ctx.db
+      .query("appointments")
+      .withIndex("by_barbershopMemberId", (q) =>
+        q.eq("barbershopMemberId", member._id),
+      )
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("deletedAt"), undefined),
+          q.gte(q.field("date"), now),
+          q.or(
+            q.eq(q.field("status"), "pending"),
+            q.eq(q.field("status"), "confirmed"),
+            q.eq(q.field("status"), "rescheduled"),
+          ),
+        ),
+      )
+      .collect();
+
+    // If there are future appointments and no reassignments provided, return count for UI
+    if (futureAppointments.length > 0 && !args.reassignments) {
+      return {
+        status: "needs-reassignment" as const,
+        appointmentCount: futureAppointments.length,
+        appointments: futureAppointments.map((a) => ({
+          _id: a._id,
+          customerName: a.customerName,
+          date: a.date,
+          serviceId: a.serviceId,
+        })),
+      };
+    }
+
+    // Process reassignments if provided
+    if (args.reassignments && args.reassignments.length > 0) {
+      for (const reassignment of args.reassignments) {
+        const appointment = futureAppointments.find(
+          (a) => String(a._id) === reassignment.appointmentId,
+        );
+
+        if (!appointment) continue;
+
+        const targetMemberId =
+          reassignment.targetBarbershopMemberId as Id<"barbershopMembers">;
+        const targetMember = await ctx.db.get(targetMemberId);
+
+        if (
+          !targetMember ||
+          !targetMember.isActive ||
+          !targetMember.roles.includes("barber") ||
+          targetMember.barbershopId !== member.barbershopId
+        ) {
+          throw new ConvexError(
+            `El barbero seleccionado para la cita de ${appointment.customerName} no es válido`,
+          );
+        }
+      }
+    }
+
+    // Cancel any future appointments that weren't reassigned
+    const reassignmentIds = new Set(
+      args.reassignments?.map((r) => r.appointmentId) ?? [],
+    );
+    const unreassignedAppointments = futureAppointments.filter(
+      (a) => !reassignmentIds.has(String(a._id)),
+    );
+
+    for (const appt of unreassignedAppointments) {
+      await ctx.db.patch(appt._id, {
+        deletedAt: now,
+        status: "cancelled",
+        notes: "Cita cancelada porque el dueño dejó de atender como barbero.",
+        proposedDate: undefined,
+        rescheduleRequestedByUserId: undefined,
+      });
+    }
+
+    // Remove service assignments
+    const assignments = await ctx.db
+      .query("barbershopMemberServices")
+      .withIndex("by_barbershopMemberId", (q) =>
+        q.eq("barbershopMemberId", member._id),
+      )
+      .collect();
+
+    await Promise.all(
+      assignments.map((assignment) => ctx.db.delete(assignment._id)),
+    );
+
+    // Update roles
+    await ctx.db.patch(member._id, {
+      roles: member.roles.filter((r) => r !== "barber"),
+    });
+
+    return { status: "removed" as const };
   },
 });
 

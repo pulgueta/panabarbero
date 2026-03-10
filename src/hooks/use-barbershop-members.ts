@@ -29,6 +29,14 @@ export function isBarberQueryOptions(userId: string) {
   return convexQuery(api.barbershopMembers.isBarber, { userId });
 }
 
+export function isOwnerQueryOptions(userId: string) {
+  return convexQuery(api.barbershopMembers.isOwner, { userId });
+}
+
+export function isMemberQueryOptions(userId: string) {
+  return convexQuery(api.barbershopMembers.isMember, { userId });
+}
+
 export function barberByUserIdQueryOptions(userId: string) {
   return convexQuery(api.barbershopMembers.getByUserId, {
     userId,
@@ -61,6 +69,14 @@ export function useBarbershopMembersByBarbershopId(
 
 export function useIsBarber(userId: string) {
   return useSuspenseQuery(isBarberQueryOptions(userId));
+}
+
+export function useIsOwner(userId: string) {
+  return useSuspenseQuery(isOwnerQueryOptions(userId));
+}
+
+export function useIsMember(userId: string) {
+  return useSuspenseQuery(isMemberQueryOptions(userId));
 }
 
 export function useServicesForBarber(
@@ -98,11 +114,16 @@ export function useBarbershopMemberActions() {
     ),
   });
 
+  const toggleBarberRoleMutation = useMutation({
+    mutationFn: useConvexMutation(api.barbershopMembers.toggleBarberRole),
+  });
+
   return {
     inviteBarberMutation,
     validateInvitationMutation,
     answerInvitationMutation,
     setBarberServicesMutation,
     removeBarberMutation,
+    toggleBarberRoleMutation,
   };
 }

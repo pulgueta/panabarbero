@@ -27,7 +27,9 @@ import {
 } from "@/hooks/use-appointments";
 import {
   isBarberQueryOptions,
+  isOwnerQueryOptions,
   useIsBarber,
+  useIsOwner,
 } from "@/hooks/use-barbershop-members";
 import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
 import { servicesByIdsQueryOptions } from "@/hooks/use-services";
@@ -112,11 +114,12 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
     );
 
     if (user?.userId) {
-      const isBarber = await context.queryClient.ensureQueryData(
-        isBarberQueryOptions(user.userId),
-      );
+      const [isBarber, isOwner] = await Promise.all([
+        context.queryClient.ensureQueryData(isBarberQueryOptions(user.userId)),
+        context.queryClient.ensureQueryData(isOwnerQueryOptions(user.userId)),
+      ]);
 
-      if (isBarber) {
+      if (isBarber || isOwner) {
         await context.queryClient.ensureQueryData(
           barbershopMemberRolesQueryOptions(user.userId),
         );
@@ -157,6 +160,7 @@ function ProfilePage() {
 
   const { data: user } = useSession();
   const { data: isBarber } = useIsBarber(user?.userId!);
+  const { data: isOwner } = useIsOwner(user?.userId!);
   const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
   const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
   const { data: appointments, isFetching: isFetchingAppointments } =
@@ -174,21 +178,25 @@ function ProfilePage() {
   const tabsToRender = useMemo(() => {
     const base = [tabs.account, tabs.security];
 
-    if (isBarber && rolesData?.isOwner) {
+    // Owners (whether or not they're barbers) see Plans and Danger tabs
+    if (rolesData?.isOwner) {
       base.push(tabs.danger);
       base.push(tabs.plans);
-    } else if (!isBarber) {
+    }
+
+    // Non-barber, non-owner users (customers) see their appointment history
+    if (!isBarber && !isOwner) {
       base.push(tabs.appointments);
     }
 
     return base;
-  }, [isBarber, rolesData?.isOwner]);
+  }, [isBarber, isOwner, rolesData?.isOwner]);
 
   return (
     <BorderContainer>
       <DashboardHeader
         title="Perfil"
-        description={`Gestiona tu perfil ${!isBarber ? "y tus citas." : ""}`}
+        description={`Gestiona tu perfil ${!isBarber && !isOwner ? "y tus citas." : ""}`}
       />
 
       <div className="flex flex-col items-start justify-center gap-4">
@@ -214,7 +222,7 @@ function ProfilePage() {
             <TabsContent value={tabs.account.value} className="pt-2">
               <AccountTab
                 profile={profile!}
-                isBarber={isBarber}
+                isBarber={isBarber || isOwner}
                 userId={user?.userId!}
                 authProviderImage={user?.image}
               />
@@ -227,7 +235,7 @@ function ProfilePage() {
             </TabsContent>
           </Suspense>
 
-          {isBarber && rolesData?.isOwner && (
+          {rolesData?.isOwner && (
             <Suspense fallback={<ProfileTabSkeleton />}>
               <TabsContent value={tabs.danger.value} className="pt-2">
                 <DangerTab barbershopId={barbershop?._id} />
@@ -235,7 +243,7 @@ function ProfilePage() {
             </Suspense>
           )}
 
-          {isBarber && rolesData?.isOwner && (
+          {rolesData?.isOwner && (
             <Suspense fallback={<ProfileTabSkeleton />}>
               <TabsContent value={tabs.plans.value} className="pt-2">
                 <PlansTab />

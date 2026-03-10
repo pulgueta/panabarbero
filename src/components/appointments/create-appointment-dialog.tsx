@@ -84,12 +84,15 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
 
   const showPhoneField = isBarber || (!isBarber && !userProfile?.phoneNumber);
 
-  // When customer is booking a specific service, filter barbers to those who offer it
-  // When a barber is creating an appointment, use all barbers
+  // Barbers available depends on context:
+  // - Barber creating appointment: show all barbers (caller already filters)
+  // - Customer with service selected: only show barbers who offer that service
+  //   (if empty, the form will show "no barbers available" message)
+  // - Customer without service selected: show all barbers
   const availableBarbers =
-    !isBarber && serviceId && barbersForService?.length
-      ? barbersForService
-      : barbers;
+    isBarber || !serviceId
+      ? barbers?.filter((b) => b?.roles?.includes("barber"))
+      : barbersForService;
 
   const haptic = useWebHaptics();
 
@@ -258,7 +261,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
               <Button
                 type="submit"
                 form={formIds.form}
-                disabled={isCreatingAppointment}
+                disabled={isCreatingAppointment || !availableBarbers?.length}
                 className="w-full"
               >
                 {isCreatingAppointment && <Spinner />}

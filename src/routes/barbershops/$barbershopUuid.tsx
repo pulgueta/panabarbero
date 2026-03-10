@@ -150,7 +150,7 @@ function RouteComponent() {
               barbershopId={barbershop?._id!}
             />
 
-            {!services?.length && (
+            {services?.length < 1 && (
               <Empty>
                 <EmptyHeader>
                   <EmptyTitle>No hay servicios disponibles.</EmptyTitle>
@@ -161,21 +161,6 @@ function RouteComponent() {
               </Empty>
             )}
           </Suspense>
-
-          {/* {isLoadingServices || isLoadingAvailability ? (
-            <Skeleton className="h-48 w-full" />
-          ) : services && services.length > 0 && availability ? (
-            <ServicesCarousel services={services} />
-          ) : (
-            <p
-              className="text-pretty text-center text-muted-foreground"
-              style={{
-                viewTransitionName: "barbershop-services",
-              }}
-            >
-              No hay servicios disponibles.
-            </p>
-          )} */}
         </section>
       </main>
     </BorderContainer>

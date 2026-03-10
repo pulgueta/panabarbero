@@ -248,7 +248,8 @@ export default defineSchema({
     .index("by_barbershopId", ["barbershopId"])
     .index("by_email", ["email"])
     .index("by_code", ["code"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_expiresAt", ["expiresAt"]),
 
   smsUsage: smsUsage
     .table()
