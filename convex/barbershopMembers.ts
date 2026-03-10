@@ -387,24 +387,16 @@ export const toggleBarberRole = zMutation({
 
         if (!appointment) continue;
 
-        // Validate the target barber exists and has the barber role
-        const targetMemberId =
-          reassignment.targetBarbershopMemberId as Id<"barbershopMembers">;
-        const targetMember = await ctx.db.get(targetMemberId);
-
         if (
           !targetMember ||
           !targetMember.isActive ||
-          !targetMember.roles.includes("barber")
+          !targetMember.roles.includes("barber") ||
+          targetMember.barbershopId !== member.barbershopId
         ) {
           throw new ConvexError(
             `El barbero seleccionado para la cita de ${appointment.customerName} no es válido`,
           );
         }
-
-        await ctx.db.patch(appointment._id, {
-          barbershopMemberId: targetMember._id,
-        });
       }
     }
 
