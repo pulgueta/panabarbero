@@ -7,6 +7,7 @@ import type {
 } from "@convex/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import type { FC, ReactElement } from "react";
 import { Activity, useEffect, useId, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -30,6 +31,7 @@ import {
   useAppointmentFormMetadata,
 } from "@/hooks/use-appointments";
 import {
+  barberByUserIdQueryOptions,
   useBarbersForService,
   useIsBarber,
   useServicesForBarber,
@@ -77,6 +79,9 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   const { data: user } = useSession();
   const { data: userProfile } = useProfile(user?.userId!);
   const { data: isBarber } = useIsBarber(user?.userId!);
+  const { data: currentBarberMember } = useTanstackQuery(
+    barberByUserIdQueryOptions(user?.userId!),
+  );
   const { data: barberServices } = useServicesForBarber(selectedBarber?._id!);
   const { data: barbersForService } = useBarbersForService(serviceId!);
 
@@ -102,9 +107,12 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
 
   const service = useServicesStore();
 
-  // Determine default barber: use availableBarbers when available
-  const defaultBarberId =
-    availableBarbers?.length === 1 ? availableBarbers[0]?._id : undefined;
+  // When a barber creates an appointment, default to themselves
+  const defaultBarberId = isBarber
+    ? currentBarberMember?._id
+    : availableBarbers?.length === 1
+      ? availableBarbers[0]?._id
+      : undefined;
 
   const form = useForm({
     resolver: zodResolver(appointmentFormSchema),
@@ -118,13 +126,24 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
     },
   });
 
-  // Update form and state when available barbers change
+  // When a barber is creating, auto-select themselves
   useEffect(() => {
-    if (availableBarbers?.length === 1) {
+    if (isBarber && currentBarberMember) {
+      const self = barbers.find((b) => b._id === currentBarberMember._id);
+      if (self) {
+        setSelectedBarber(self);
+        form.setValue("barbershopMemberId", self._id);
+      }
+    }
+  }, [isBarber, currentBarberMember, barbers, form]);
+
+  // Update form and state when available barbers change (customer flow)
+  useEffect(() => {
+    if (!isBarber && availableBarbers?.length === 1) {
       setSelectedBarber(availableBarbers[0]!);
       form.setValue("barbershopMemberId", availableBarbers[0]?._id);
     }
-  }, [availableBarbers, form]);
+  }, [isBarber, availableBarbers, form]);
 
   const headLabel = "Reservar cita";
   const description = isBarber

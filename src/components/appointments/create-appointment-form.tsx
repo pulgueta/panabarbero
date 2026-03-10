@@ -183,6 +183,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                 data-invalid={fieldState.invalid}
                 className={cn({
                   hidden: disabledFields?.includes("contactEmail") || !isBarber,
+                  "col-span-2": isBarber,
                 })}
               >
                 <FieldLabel htmlFor={formIds.contactEmail}>
@@ -204,7 +205,13 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
             )}
           />
 
-          {barbers?.length ? (
+          {isBarber ? (
+            <Controller
+              name="barbershopMemberId"
+              control={form.control}
+              render={({ field }) => <Input {...field} type="hidden" />}
+            />
+          ) : barbers?.length ? (
             <Controller
               name="barbershopMemberId"
               control={form.control}
