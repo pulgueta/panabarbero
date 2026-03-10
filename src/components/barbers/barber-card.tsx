@@ -23,12 +23,18 @@ import {
   ResponsiveModalHeader,
   ResponsiveModalTitle,
 } from "@/components/ui/responsive-modal";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import {
   useBarbershopMemberActions,
   useServicesForBarber,
 } from "@/hooks/use-barbershop-members";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
+
+function parseWillCancelError(errorMessage: string): number | null {
+  const match = errorMessage.match(/WILL_CANCEL:(\d+)/);
+  return match ? Number.parseInt(match[1], 10) : null;
+}
 
 const ManageServicesDialog = lazy(() =>
   import("./manage-services-dialog").then((module) => ({
@@ -49,6 +55,10 @@ export const BarberCard: FC<BarberCardProps> = ({
 }) => {
   const [manageOpen, setManageOpen] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
+  const [confirmationStep, setConfirmationStep] = useState<
+    "initial" | "confirm_cancellation"
+  >("initial");
+  const [impactedCount, setImpactedCount] = useState(0);
 
   const haptic = useWebHaptics();
 
@@ -67,16 +77,31 @@ export const BarberCard: FC<BarberCardProps> = ({
     barbershopMember.roles.includes("barber") &&
     !barbershopMember.roles.includes("owner");
 
-  const handleRemoveBarber = async () => {
+  const handleRemoveOpenChange = (open: boolean) => {
+    setRemoveOpen(open);
+    if (!open) {
+      setConfirmationStep("initial");
+      setImpactedCount(0);
+    }
+  };
+
+  const handleRemoveBarber = async (force = false) => {
     try {
-      await removeBarber({ id: barbershopMember._id });
+      await removeBarber({ id: barbershopMember._id, force });
       haptic.trigger("success");
       toast.success(`${barbershopMember.name} fue eliminado de la barbería`);
+      handleRemoveOpenChange(false);
     } catch (error) {
-      haptic.trigger("error");
-      toast.error(getConvexErrorMessage(error));
-    } finally {
-      setRemoveOpen(false);
+      const errorMessage = getConvexErrorMessage(error);
+      const willCancelCount = parseWillCancelError(errorMessage);
+
+      if (willCancelCount !== null && !force) {
+        setImpactedCount(willCancelCount);
+        setConfirmationStep("confirm_cancellation");
+      } else {
+        haptic.trigger("error");
+        toast.error(errorMessage);
+      }
     }
   };
 
@@ -106,7 +131,7 @@ export const BarberCard: FC<BarberCardProps> = ({
             Servicios asignados:
           </p>
           {isLoadingBarberServices ? (
-            <Spinner className="size-4" />
+            <Skeleton className="h-4 w-full" />
           ) : barberServices && barberServices.length > 0 ? (
             <div className="flex flex-wrap gap-1">
               {barberServices.slice(0, 3).map((service) => (
@@ -158,32 +183,44 @@ export const BarberCard: FC<BarberCardProps> = ({
               Eliminar
             </Button>
 
-            <ResponsiveModal open={removeOpen} onOpenChange={setRemoveOpen}>
+            <ResponsiveModal
+              open={removeOpen}
+              onOpenChange={handleRemoveOpenChange}
+            >
               <ResponsiveModalContent>
                 <ResponsiveModalHeader>
                   <ResponsiveModalTitle>
-                    Eliminar a {barbershopMember.name}
+                    {confirmationStep === "initial"
+                      ? `Eliminar a ${barbershopMember.name}`
+                      : "Confirmar cancelación de citas"}
                   </ResponsiveModalTitle>
                   <ResponsiveModalDescription>
-                    Esta acción removerá a este barbero de tu barbería y perderá
-                    el acceso a los servicios asignados.
+                    {confirmationStep === "initial"
+                      ? "Esta acción removerá a este barbero de tu barbería y perderá el acceso a los servicios asignados."
+                      : `Este barbero tiene ${impactedCount} cita(s) pendiente(s) que serán canceladas. Los clientes serán notificados.`}
                   </ResponsiveModalDescription>
                 </ResponsiveModalHeader>
                 <ResponsiveModalFooter>
                   <Button
                     variant="outline"
-                    onClick={() => setRemoveOpen(false)}
+                    onClick={() => handleRemoveOpenChange(false)}
                     disabled={isRemovingBarber}
                   >
                     Cancelar
                   </Button>
                   <Button
                     variant="destructive"
-                    onClick={handleRemoveBarber}
+                    onClick={() =>
+                      handleRemoveBarber(
+                        confirmationStep === "confirm_cancellation",
+                      )
+                    }
                     disabled={isRemovingBarber}
                   >
                     {isRemovingBarber && <Spinner />}
-                    Eliminar barbero
+                    {confirmationStep === "initial"
+                      ? "Sí, eliminar"
+                      : `Eliminar y cancelar ${impactedCount} cita(s)`}
                   </Button>
                 </ResponsiveModalFooter>
               </ResponsiveModalContent>

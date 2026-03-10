@@ -557,6 +557,64 @@ export const createBarberInvited = internalMutation({
 });
 
 /**
+ * Notification when an appointment is cancelled because a barber was removed
+ * from the barbershop. Sends to the customer via email and SMS.
+ */
+export const createBarberRemovedCancellation = internalMutation({
+  args: {
+    appointmentId: v.id("appointments"),
+    customerUserId: v.string(),
+    barberName: v.string(),
+    barbershopName: v.string(),
+    contactPhone: v.string(),
+    contactEmail: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const customerProfile = await getProfileByUserId(ctx, args.customerUserId);
+
+    const appointment = await ctx.db.get(args.appointmentId);
+
+    const body = `Tu cita en ${args.barbershopName} ha sido cancelada porque el barbero ${args.barberName} ya no pertenece a la barbería.`;
+
+    const appointmentsUrl = `${process.env.SITE_URL}/profile?tab=appointments`;
+    const smsBody = `${body} Ver detalles: ${appointmentsUrl}`;
+
+    const toEmail = customerProfile?.email ?? args.contactEmail;
+
+    const emailEnabled = customerProfile
+      ? isNotificationEnabled("email", customerProfile.notificationsPreferences)
+      : true; // Default to enabled for guests
+
+    if (emailEnabled && toEmail) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.emails.sendAppointmentCancelled,
+        {
+          notes: `Barbero ${args.barberName} eliminado de la barbería`,
+          sendTo: "customer",
+          to: toEmail,
+          body,
+        },
+      );
+    }
+
+    const phoneNumber = customerProfile?.phoneNumber ?? args.contactPhone;
+
+    const smsEnabled = customerProfile
+      ? isNotificationEnabled("sms", customerProfile.notificationsPreferences)
+      : true; // Default to enabled for guests
+
+    if (smsEnabled) {
+      await scheduleSmsWithQuota(ctx, {
+        body: smsBody,
+        to: phoneNumber,
+        barbershopId: appointment?.barbershopId,
+      });
+    }
+  },
+});
+
+/**
  * Notification when an appointment is cancelled due to service deletion.
  * Sends to customer via both email and SMS if contact info is available.
  */

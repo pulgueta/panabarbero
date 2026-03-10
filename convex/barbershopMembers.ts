@@ -4,6 +4,7 @@ import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zInternalMutation, zMutation, zQuery } from ".";
+import { internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { authComponent } from "./auth";
 import { assertCanManageShop } from "./authz";
@@ -84,7 +85,10 @@ export const deleteMember = zInternalMutation({
 });
 
 export const removeBarberFromBarbershop = zMutation({
-  args: barbershopMembers.tools.id,
+  args: z.object({
+    ...barbershopMembers.tools.id.shape,
+    force: z.boolean().optional(),
+  }),
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
@@ -106,34 +110,89 @@ export const removeBarberFromBarbershop = zMutation({
       throw new ConvexError("No puedes eliminar al dueño de la barbería");
     }
 
-    const assignments = await ctx.db
-      .query("barbershopMemberServices")
-      .withIndex("by_barbershopMemberId", (q) =>
-        q.eq("barbershopMemberId", args.id),
-      )
-      .collect();
+    const now = Date.now();
 
-    const appointments = await ctx.db
+    // Find impacted appointments: future/upcoming, not deleted, not cancelled/completed/no-show
+    const impactedAppointments = await ctx.db
       .query("appointments")
       .withIndex("by_barbershopMemberId", (q) =>
         q.eq("barbershopMemberId", args.id),
       )
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("deletedAt"), undefined),
+          q.gte(q.field("date"), now),
+          q.or(
+            q.eq(q.field("status"), "pending"),
+            q.eq(q.field("status"), "confirmed"),
+            q.eq(q.field("status"), "rescheduled"),
+          ),
+        ),
+      )
       .collect();
+
+    // 2-step confirmation: if not force and impacted > 0, throw error with count
+    if (!args.force && impactedAppointments.length > 0) {
+      throw new ConvexError(`WILL_CANCEL:${impactedAppointments.length}`);
+    }
+
+    const [barbershop, barberProfile, assignments] = await Promise.all([
+      ctx.db.get(member.barbershopId),
+      ctx.db.get(member.userProfileDataId),
+      ctx.db
+        .query("barbershopMemberServices")
+        .withIndex("by_barbershopMemberId", (q) =>
+          q.eq("barbershopMemberId", args.id),
+        )
+        .collect(),
+    ]);
 
     await Promise.all(
       assignments.map((assignment) => ctx.db.delete(assignment._id)),
     );
 
-    await Promise.all(
-      appointments.map((appt) =>
-        ctx.db.patch(appt._id, {
-          deletedAt: Date.now(),
-          status: "cancelled",
-          notes:
-            "Cita cancelada porque el barbero ya no pertenece a la barbería",
-        }),
-      ),
-    );
+    // Cancel all active appointments for this barber (past and future)
+    const activeAppointments = await ctx.db
+      .query("appointments")
+      .withIndex("by_barbershopMemberId", (q) =>
+        q.eq("barbershopMemberId", args.id),
+      )
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("deletedAt"), undefined),
+          q.or(
+            q.eq(q.field("status"), "pending"),
+            q.eq(q.field("status"), "confirmed"),
+            q.eq(q.field("status"), "rescheduled"),
+          ),
+        ),
+      )
+      .collect();
+
+    const barberName = barberProfile?.name ?? "el barbero";
+    const barbershopName = barbershop?.name ?? "la barbería";
+
+    for (const appt of activeAppointments) {
+      await ctx.db.patch(appt._id, {
+        deletedAt: Date.now(),
+        status: "cancelled",
+        notes: "Cita cancelada porque el barbero ya no pertenece a la barbería",
+        proposedDate: undefined,
+        rescheduleRequestedByUserId: undefined,
+      });
+
+      await ctx.runMutation(
+        internal.notifications.createBarberRemovedCancellation,
+        {
+          appointmentId: appt._id,
+          customerUserId: appt.userId,
+          barberName,
+          barbershopName,
+          contactPhone: appt.contactPhone,
+          contactEmail: appt.contactEmail,
+        },
+      );
+    }
 
     await ctx.db.delete(args.id);
   },
