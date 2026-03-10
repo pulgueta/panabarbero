@@ -2,7 +2,7 @@
 
 import { UserPlusIcon } from "@phosphor-icons/react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { Activity, lazy, Suspense } from "react";
+import { lazy, Suspense } from "react";
 
 import { DashboardHeader } from "@/components/barbershops/dashboard-header";
 import { BorderContainer } from "@/components/layout/border-container";
@@ -97,8 +97,9 @@ function RouteComponent() {
   const { data: user } = useSession();
   const { data: barbershop } = useBarbershopByMemberUserId(user?.userId!);
   const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
-  const { data: barbershopMembers, isLoading: isLoadingBarbershopMembers } =
-    useBarbershopMembersByBarbershopId(barbershop?._id!);
+  const { data: barbershopMembers } = useBarbershopMembersByBarbershopId(
+    barbershop?._id!,
+  );
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
 
   return (
@@ -131,38 +132,30 @@ function RouteComponent() {
           </Suspense>
         </div>
 
-        <Activity
-          mode={
-            !isLoadingBarbershopMembers && barbershopMembers?.length
-              ? "visible"
-              : "hidden"
-          }
-        >
-          <Suspense fallback={<ProfileTabSkeleton />}>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {services &&
-                barbershopMembers.map((barbershopMember) => (
-                  <BarberCard
-                    key={barbershopMember._id}
-                    barbershopMember={barbershopMember}
-                    services={services}
-                    isOwner={rolesData?.isOwner!}
-                  />
-                ))}
-            </div>
+        <Suspense fallback={<ProfileTabSkeleton />}>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {services &&
+              barbershopMembers?.map((barbershopMember) => (
+                <BarberCard
+                  key={barbershopMember._id}
+                  barbershopMember={barbershopMember}
+                  services={services}
+                  isOwner={rolesData?.isOwner ?? false}
+                />
+              ))}
+          </div>
 
-            {barbershopMembers?.length === 0 && (
-              <Empty>
-                <EmptyHeader>
-                  <EmptyTitle>No hay barberos registrados.</EmptyTitle>
-                  <EmptyDescription>
-                    Cuando agregues barberos a tu equipo, podrás verlos aquí.
-                  </EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            )}
-          </Suspense>
-        </Activity>
+          {barbershopMembers?.length < 1 && (
+            <Empty>
+              <EmptyHeader>
+                <EmptyTitle>No hay barberos registrados.</EmptyTitle>
+                <EmptyDescription>
+                  Cuando agregues barberos a tu equipo, podrás verlos aquí.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          )}
+        </Suspense>
       </section>
     </BorderContainer>
   );

@@ -21,6 +21,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { useBarbershopActions } from "@/hooks/barbershop/use-barbershop";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 import { barbershopFormSchema } from "@/lib/schemas";
+import { useLocationStore } from "@/store/barbershop-filters";
 import { CreateBarbershopForm } from "./create-barbershop-form";
 
 interface CreateBarbershopDialogProps {
@@ -50,6 +51,8 @@ export const CreateBarbershopDialog: FC<CreateBarbershopDialogProps> = ({
 
   const navigate = useNavigate();
 
+  const { city, state } = useLocationStore();
+
   const form = useForm({
     resolver: zodResolver(barbershopFormSchema),
     defaultValues: {
@@ -57,8 +60,8 @@ export const CreateBarbershopDialog: FC<CreateBarbershopDialogProps> = ({
         fullAddress: "",
         details: undefined,
       },
-      city: "",
-      state: "",
+      city,
+      state,
       zipCode: "",
       contactPhone: "",
       isActive: false,
