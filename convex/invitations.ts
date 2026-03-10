@@ -12,14 +12,16 @@ import { getProfileByEmail, getProfileByUserId } from "./userProfileData";
 
 const INVITATION_EXPIRATION_MS = 1000 * 60 * 60 * 24 * 7;
 
+export const inviteBarberSchema = z.object({
+  name: z.string().optional(),
+  phone: z.string(),
+  email: z.string(),
+  barbershop: barbershops.tools.id,
+  roles: z.array(z.literal("barber")),
+});
+
 export const invite = zMutation({
-  args: z.object({
-    name: z.string().optional(),
-    phone: z.string(),
-    email: z.string(),
-    barbershop: barbershops.tools.id,
-    roles: z.array(z.literal("barber")),
-  }),
+  args: inviteBarberSchema,
   handler: async (ctx, args) => {
     const userInviting = await authComponent.safeGetAuthUser(ctx);
 
