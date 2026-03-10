@@ -1,4 +1,3 @@
-import type { Barbershop } from "@convex/schema";
 import type { FC, ReactElement } from "react";
 
 import {
@@ -13,12 +12,10 @@ import {
 import { InviteBarberForm } from "./invite-barber-form";
 
 interface InviteBarberDialogProps {
-  barbershopId: Barbershop["_id"];
   trigger: ReactElement;
 }
 
 export const InviteBarberDialog: FC<InviteBarberDialogProps> = ({
-  barbershopId,
   trigger,
 }) => {
   return (
@@ -33,7 +30,7 @@ export const InviteBarberDialog: FC<InviteBarberDialogProps> = ({
         </ResponsiveModalHeader>
 
         <ResponsiveModalFooter>
-          <InviteBarberForm barbershopId={barbershopId} />
+          <InviteBarberForm />
         </ResponsiveModalFooter>
       </ResponsiveModalContent>
     </ResponsiveModal>

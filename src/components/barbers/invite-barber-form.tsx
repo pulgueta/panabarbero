@@ -1,5 +1,4 @@
 import { inviteBarberSchema } from "@convex/invitations";
-import type { Barbershop } from "@convex/schema";
 import { revalidateLogic } from "@tanstack/react-form";
 import type { FC } from "react";
 import { toast } from "sonner";
@@ -10,13 +9,7 @@ import { FieldGroup } from "@/components/ui/field";
 import { useBarbershopMemberActions } from "@/hooks/use-barbershop-members";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
-interface InviteBarberFormProps {
-  barbershopId: Barbershop["_id"];
-}
-
-export const InviteBarberForm: FC<InviteBarberFormProps> = ({
-  barbershopId,
-}) => {
+export const InviteBarberForm: FC = () => {
   const haptic = useWebHaptics();
 
   const {
@@ -38,9 +31,7 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
     defaultValues: {
       email: "",
       phone: "",
-      barbershop: { id: barbershopId },
       roles: ["barber"] as ["barber"],
-      name: "",
     },
     onSubmit: async ({ value }) => {
       try {
@@ -48,7 +39,6 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
           ...value,
           phone: value.phone.trim(),
           email: value.email.trim().toLowerCase(),
-          barbershop: { id: barbershopId },
         });
 
         haptic.trigger("success");

@@ -120,7 +120,6 @@ function RouteComponent() {
           >
             {rolesData?.isOwner && (
               <InviteBarberDialog
-                barbershopId={barbershop?._id!}
                 trigger={
                   <Button variant="outline" disabled={!rolesData?.isOwner}>
                     <UserPlusIcon className="size-3" />
