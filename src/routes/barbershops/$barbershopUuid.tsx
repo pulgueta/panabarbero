@@ -21,6 +21,7 @@ import {
   useBarbershopByUuid,
 } from "@/hooks/barbershop/use-barbershop";
 import {
+  barberByUserIdQueryOptions,
   barbershopMembersByBarbershopIdQueryOptions,
   servicesForBarberQueryOptions,
   useBarbershopMembersByBarbershopId,
@@ -60,6 +61,10 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
     if (user?.userId) {
       await context.queryClient.ensureQueryData(
         profileQueryOptions(user.userId),
+      );
+
+      await context.queryClient.ensureQueryData(
+        barberByUserIdQueryOptions(user.userId),
       );
     }
 

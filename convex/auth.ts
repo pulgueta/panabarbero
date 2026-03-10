@@ -6,15 +6,16 @@ import { requireActionCtx } from "@convex-dev/better-auth/utils";
 import { betterAuth } from "better-auth/minimal";
 import { twoFactor } from "better-auth/plugins";
 import { z } from "zod";
-
 import { zInternalAction, zQuery } from ".";
 import { APP_NAME } from "../src/config";
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import authConfig from "./auth.config";
+import { assertShopRole } from "./authz";
 import { from, resend } from "./emails";
 import { getLimitsForProductKey, getTierForProductKey } from "./plans";
 import { polar } from "./polar";
+import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
 
 const authFunctions: AuthFunctions = internal.auth;
@@ -203,21 +204,21 @@ export const getUserSubscription = zQuery({
  * they can create appointments on behalf of clients).
  */
 export const getBarbershopOwnerSubscription = zQuery({
-  args: { barbershopId: z.string() },
-  handler: async (ctx, { barbershopId }) => {
+  args: barbershops.tools.id,
+  handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user?.userId) {
       return null;
     }
 
-    const barbershop = await ctx.db.get(
-      barbershopId as import("./_generated/dataModel").Id<"barbershops">,
-    );
+    const barbershop = await ctx.db.get(args.id);
 
     if (!barbershop) {
       return null;
     }
+
+    await assertShopRole(ctx, args.id, user.userId, "barber");
 
     const subscription = await polar.getCurrentSubscription(ctx, {
       userId: barbershop.ownerId,

@@ -7,7 +7,6 @@ import type {
 } from "@convex/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import type { FC, ReactElement } from "react";
 import { Activity, useEffect, useId, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -31,7 +30,7 @@ import {
   useAppointmentFormMetadata,
 } from "@/hooks/use-appointments";
 import {
-  barberByUserIdQueryOptions,
+  useBarberByUserId,
   useBarbersForService,
   useIsBarber,
   useServicesForBarber,
@@ -79,9 +78,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   const { data: user } = useSession();
   const { data: userProfile } = useProfile(user?.userId!);
   const { data: isBarber } = useIsBarber(user?.userId!);
-  const { data: currentBarberMember } = useTanstackQuery(
-    barberByUserIdQueryOptions(user?.userId!),
-  );
+  const { data: currentBarberMember } = useBarberByUserId(user?.userId!);
   const { data: barberServices } = useServicesForBarber(selectedBarber?._id!);
   const { data: barbersForService } = useBarbersForService(serviceId!);
 

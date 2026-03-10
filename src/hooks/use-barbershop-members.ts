@@ -35,6 +35,10 @@ export function barberByUserIdQueryOptions(userId: string) {
   });
 }
 
+export function useBarberByUserId(userId: string) {
+  return useSuspenseQuery(barberByUserIdQueryOptions(userId));
+}
+
 export function inviteBarberMutationOptions() {
   return useConvexMutation(api.invitations.invite);
 }

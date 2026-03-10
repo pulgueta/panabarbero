@@ -1,5 +1,7 @@
 import { convexQuery } from "@convex-dev/react-query";
-import { PLAN_LIMITS, type PlanLimits, type PlanTier } from "@convex/plans";
+import type { PlanLimits, PlanTier } from "@convex/plans";
+import { PLAN_LIMITS } from "@convex/plans";
+import type { Barbershop } from "@convex/schema";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 
@@ -11,9 +13,9 @@ export function getPlanQueryOptions() {
   return convexQuery(api.auth.getUserSubscription, {});
 }
 
-export function getBarbershopPlanQueryOptions(barbershopId: string) {
+export function getBarbershopPlanQueryOptions(barbershopId: Barbershop["_id"]) {
   return convexQuery(api.auth.getBarbershopOwnerSubscription, {
-    barbershopId,
+    id: barbershopId,
   });
 }
 
@@ -87,7 +89,9 @@ export function usePlan(): UsePlanResult {
  * Use this instead of `usePlan` when the current user is a staff member
  * and you need to check what the barbershop's plan allows.
  */
-export function useBarbershopPlan(barbershopId: string): UsePlanResult {
+export function useBarbershopPlan(
+  barbershopId: Barbershop["_id"],
+): UsePlanResult {
   const { data: subscription, isLoading } = useSuspenseQuery(
     getBarbershopPlanQueryOptions(barbershopId),
   );

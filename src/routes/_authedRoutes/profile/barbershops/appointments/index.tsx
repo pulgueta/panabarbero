@@ -31,6 +31,7 @@ import {
   useRescheduledAppointmentRequests,
 } from "@/hooks/use-appointments";
 import {
+  barberByUserIdQueryOptions,
   barbersForServiceQueryOptions,
   barbershopMembersByBarbershopIdQueryOptions,
   isBarberQueryOptions,
@@ -86,6 +87,9 @@ export const Route = createFileRoute(
         );
         await context.queryClient.ensureQueryData(
           barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+        );
+        await context.queryClient.ensureQueryData(
+          barberByUserIdQueryOptions(user.userId),
         );
 
         await context.queryClient.ensureQueryData(
