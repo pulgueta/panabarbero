@@ -1,11 +1,10 @@
-import { passkey } from "@better-auth/passkey";
 import type { AuthFunctions, GenericCtx } from "@convex-dev/better-auth";
 import { createClient } from "@convex-dev/better-auth";
 import { convex } from "@convex-dev/better-auth/plugins";
 import { requireActionCtx } from "@convex-dev/better-auth/utils";
 import { betterAuth } from "better-auth/minimal";
-import { twoFactor } from "better-auth/plugins";
 import { z } from "zod";
+
 import { zInternalAction, zQuery } from ".";
 import { APP_NAME } from "../src/config";
 import { components, internal } from "./_generated/api";
@@ -150,13 +149,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
         enabled: true,
       },
     },
-    plugins: [
-      convex({ authConfig, jwks: process.env.JWKS }),
-      passkey(),
-      twoFactor({
-        issuer: APP_NAME,
-      }),
-    ],
+    plugins: [convex({ authConfig, jwks: process.env.JWKS })],
   });
 };
 

@@ -6,7 +6,7 @@
     "module": "esnext",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
 
-    "types": ["vite/client", "vite-plugin-cloudflare-tunnel/virtual"],
+    "types": ["vite/client"],
 
     /* Bundler mode */
     "moduleResolution": "bundler",
