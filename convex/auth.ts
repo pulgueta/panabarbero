@@ -7,7 +7,7 @@ import { betterAuth } from "better-auth/minimal";
 import { twoFactor } from "better-auth/plugins";
 import { z } from "zod";
 
-import { zQuery } from ".";
+import { zInternalAction, zQuery } from ".";
 import { APP_NAME } from "../src/config";
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
@@ -194,5 +194,18 @@ export const getUserSubscription = zQuery({
       isPro: planTier === "pro",
       isPremium: planTier === "premium",
     };
+  },
+});
+
+function toConvexSafeValue(value: unknown) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+export const getLatestJwks = zInternalAction({
+  args: {},
+  handler: async (ctx) => {
+    const auth = createAuth(ctx);
+
+    return toConvexSafeValue(await auth.api.getLatestJwks());
   },
 });
