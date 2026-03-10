@@ -2,7 +2,7 @@ import { convexQuery } from "@convex-dev/react-query";
 import type { PlanLimits, PlanTier } from "@convex/plans";
 import { PLAN_LIMITS } from "@convex/plans";
 import type { Barbershop } from "@convex/schema";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 
 // ---------------------------------------------------------------------------
@@ -53,9 +53,7 @@ export interface UsePlanResult {
  * unauthenticated state without throwing.
  */
 export function usePlan(): UsePlanResult {
-  const { data: subscription, isLoading } = useSuspenseQuery(
-    getPlanQueryOptions(),
-  );
+  const { data: subscription, isLoading } = useQuery(getPlanQueryOptions());
 
   const planTier: PlanTier = subscription?.planTier ?? "free";
   const planLimits: PlanLimits = subscription?.planLimits ?? PLAN_LIMITS.free;
@@ -92,7 +90,7 @@ export function usePlan(): UsePlanResult {
 export function useBarbershopPlan(
   barbershopId: Barbershop["_id"],
 ): UsePlanResult {
-  const { data: subscription, isLoading } = useSuspenseQuery(
+  const { data: subscription, isLoading } = useQuery(
     getBarbershopPlanQueryOptions(barbershopId),
   );
 
