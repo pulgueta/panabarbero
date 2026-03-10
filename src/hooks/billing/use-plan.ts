@@ -11,6 +11,12 @@ export function getPlanQueryOptions() {
   return convexQuery(api.auth.getUserSubscription, {});
 }
 
+export function getBarbershopPlanQueryOptions(barbershopId: string) {
+  return convexQuery(api.auth.getBarbershopOwnerSubscription, {
+    barbershopId,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
@@ -70,6 +76,41 @@ export function usePlan(): UsePlanResult {
     maxSmsPerMonth: planLimits.maxSmsPerMonth,
 
     // Tier booleans
+    isFree: planTier === "free",
+    isPro: planTier === "pro",
+    isPremium: planTier === "premium",
+  };
+}
+
+/**
+ * Returns plan info for a barbershop based on the **owner's** subscription.
+ * Use this instead of `usePlan` when the current user is a staff member
+ * and you need to check what the barbershop's plan allows.
+ */
+export function useBarbershopPlan(barbershopId: string): UsePlanResult {
+  const { data: subscription, isLoading } = useSuspenseQuery(
+    getBarbershopPlanQueryOptions(barbershopId),
+  );
+
+  const planTier: PlanTier = subscription?.planTier ?? "free";
+  const planLimits: PlanLimits = subscription?.planLimits ?? PLAN_LIMITS.free;
+  const isSubscribed =
+    subscription?.isSubscribed ||
+    subscription?.status === "active" ||
+    subscription?.status === "trialing";
+
+  return {
+    planTier,
+    planLimits,
+    isSubscribed,
+    isLoading,
+
+    canInviteBarbers:
+      planLimits.maxInvitedBarbers !== null && planLimits.maxInvitedBarbers > 0,
+    canCreateStaffAppointments: planLimits.staffCanCreateAppointments,
+    maxInvitedBarbers: planLimits.maxInvitedBarbers,
+    maxSmsPerMonth: planLimits.maxSmsPerMonth,
+
     isFree: planTier === "free",
     isPro: planTier === "pro",
     isPremium: planTier === "premium",

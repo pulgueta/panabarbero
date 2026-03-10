@@ -67,14 +67,23 @@ export async function assertIsSubscribed(
 }
 
 /**
- * Assert the user's plan allows staff members to create appointments
+ * Assert the barbershop's plan allows staff members to create appointments
  * on behalf of clients (pro / premium only).
+ *
+ * The check is always against the **owner's** subscription, since staff
+ * members don't hold their own plan.
  */
 export async function assertCanCreateStaffAppointment(
   ctx: QueryCtx | MutationCtx,
-  userId: string,
+  barbershopId: Id<"barbershops">,
 ): Promise<void> {
-  const limits = await getUserPlanLimits(ctx, userId);
+  const barbershop = await ctx.db.get(barbershopId);
+
+  if (!barbershop) {
+    throw new ConvexError(errorMessages.notFound("barbería"));
+  }
+
+  const limits = await getUserPlanLimits(ctx, barbershop.ownerId);
 
   if (!limits.staffCanCreateAppointments) {
     throw new ConvexError(

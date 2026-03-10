@@ -49,7 +49,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     staffCanCreateAppointments: true,
   },
   premium: {
-    maxInvitedBarbers: 8,
+    maxInvitedBarbers: 9,
     maxSmsPerMonth: null,
     staffCanCreateAppointments: true,
   },

@@ -19,8 +19,11 @@ import {
   barbershopByMemberUserIdQueryOptions,
   useBarbershopByMemberUserId,
 } from "@/hooks/barbershop/use-barbershop";
-import { usePlan } from "@/hooks/billing/use-plan";
-import { getSubscriptionQueryOptions } from "@/hooks/billing/use-pricing";
+import {
+  getBarbershopPlanQueryOptions,
+  useBarbershopPlan,
+} from "@/hooks/billing/use-plan";
+
 import {
   appointmentsByBarbershopQueryOptions,
   requestRescheduleQueryOptions,
@@ -65,8 +68,6 @@ export const Route = createFileRoute(
     );
 
     if (user?.userId) {
-      await context.queryClient.ensureQueryData(getSubscriptionQueryOptions());
-
       const barbershop = await context.queryClient.ensureQueryData(
         barbershopByMemberUserIdQueryOptions(user.userId),
       );
@@ -76,6 +77,10 @@ export const Route = createFileRoute(
       );
 
       if (barbershop?._id) {
+        await context.queryClient.ensureQueryData(
+          getBarbershopPlanQueryOptions(barbershop._id),
+        );
+
         const appointments = await context.queryClient.ensureQueryData(
           appointmentsByBarbershopQueryOptions(barbershop._id),
         );
@@ -133,7 +138,7 @@ function RouteComponent() {
   const { data: rescheduledAppointmentRequests } =
     useRescheduledAppointmentRequests(barbershop?._id!);
   const { data: appointments } = useAppointmentsByBarbershop(barbershop?._id!);
-  const { canCreateStaffAppointments } = usePlan();
+  const { canCreateStaffAppointments } = useBarbershopPlan(barbershop?._id!);
 
   const isOwner = Boolean(
     session?.userId && barbershop?.ownerId === session.userId,

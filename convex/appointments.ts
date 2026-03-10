@@ -148,7 +148,7 @@ export const create = zMutation({
       await assertBarber(ctx, appointment.barbershopId, user.userId);
       // Only paid plans (pro / premium) allow staff to create appointments
       // on behalf of clients.
-      await assertCanCreateStaffAppointment(ctx, user.userId);
+      await assertCanCreateStaffAppointment(ctx, appointment.barbershopId);
     }
 
     const [service, barber] = await Promise.all([

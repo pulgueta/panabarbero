@@ -197,6 +197,50 @@ export const getUserSubscription = zQuery({
   },
 });
 
+/**
+ * Returns the subscription/plan info for the **owner** of a barbershop.
+ * Used by staff members to derive plan-based feature flags (e.g. whether
+ * they can create appointments on behalf of clients).
+ */
+export const getBarbershopOwnerSubscription = zQuery({
+  args: { barbershopId: z.string() },
+  handler: async (ctx, { barbershopId }) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      return null;
+    }
+
+    const barbershop = await ctx.db.get(
+      barbershopId as import("./_generated/dataModel").Id<"barbershops">,
+    );
+
+    if (!barbershop) {
+      return null;
+    }
+
+    const subscription = await polar.getCurrentSubscription(ctx, {
+      userId: barbershop.ownerId,
+    });
+
+    const planTier = getTierForProductKey(subscription?.productKey);
+    const planLimits = getLimitsForProductKey(subscription?.productKey);
+
+    return {
+      ...subscription,
+      isSubscribed:
+        subscription?.status === "active" ||
+        subscription?.status === "trialing",
+      productPlanId: subscription?.productId,
+      planTier,
+      planLimits,
+      isFree: planTier === "free",
+      isPro: planTier === "pro",
+      isPremium: planTier === "premium",
+    };
+  },
+});
+
 function toConvexSafeValue(value: unknown) {
   return JSON.parse(JSON.stringify(value));
 }
