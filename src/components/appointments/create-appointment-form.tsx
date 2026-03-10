@@ -44,7 +44,7 @@ interface CreateAppointmentFormProps {
   onSubmit: (e: BaseSyntheticEvent) => void;
   services: Service[];
   barberServices?: Service[] | null;
-  onBarberChange?: (barberId: BarbershopMemberWithName["_id"]) => void;
+  onBarberChange?: (barber: BarbershopMemberWithName) => void;
   form: UseFormReturn<output<typeof appointmentFormSchema>>;
   showPhoneField?: boolean;
   formIds: {
@@ -217,12 +217,17 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                   <Suspense fallback={<Skeleton className="h-9 w-full" />}>
                     <Activity mode={barbers?.length > 1 ? "visible" : "hidden"}>
                       <Select
-                        value={field.value}
+                        value={field.value?.name}
                         onValueChange={(value) => {
-                          field.onChange(value);
-                          onBarberChange?.(
-                            value as BarbershopMemberWithName["_id"],
+                          const selectedBarber = barbers.find(
+                            (barber) => barber.name === value,
                           );
+
+                          // Always a barber will be selected, this is for type safety
+                          if (selectedBarber) {
+                            field.onChange(selectedBarber._id);
+                            onBarberChange?.(selectedBarber);
+                          }
                         }}
                         aria-invalid={fieldState.invalid}
                       >
@@ -231,7 +236,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                         </SelectTrigger>
                         <SelectContent>
                           {barbers.map((barber) => (
-                            <SelectItem key={barber._id} value={barber._id}>
+                            <SelectItem key={barber._id} value={barber.name}>
                               {barber.name}
                             </SelectItem>
                           ))}
