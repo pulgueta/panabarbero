@@ -3,7 +3,12 @@ import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { internalMutation } from "./_generated/server";
-import { assertSmsLimitNotExceeded, incrementSmsSent } from "./acl";
+import {
+  incrementEmailSent,
+  incrementSmsSent,
+  isEmailLimitNotExceeded,
+  isSmsLimitNotExceeded,
+} from "./acl";
 import { errorMessages } from "./errors";
 import type { UserProfileData } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
@@ -34,8 +39,10 @@ export function isNotificationEnabled(
  * Schedule an SMS via Twilio while enforcing the barbershop's monthly SMS quota.
  *
  * If `barbershopId` is provided the limit is checked and the counter is
- * incremented. When `barbershopId` is `undefined` (e.g. for notifications
- * that are not scoped to a barbershop) the SMS is sent without quota checks.
+ * incremented. When the quota has been reached the SMS is silently skipped —
+ * this function never throws on limit violations.
+ * When `barbershopId` is `undefined` (e.g. for notifications that are not
+ * scoped to a barbershop) the SMS is sent without quota checks.
  */
 async function scheduleSmsWithQuota(
   ctx: MutationCtx,
@@ -46,8 +53,12 @@ async function scheduleSmsWithQuota(
   },
 ): Promise<void> {
   if (opts.barbershopId) {
-    // Will throw ConvexError if the limit has been reached
-    await assertSmsLimitNotExceeded(ctx, opts.barbershopId);
+    const canSend = await isSmsLimitNotExceeded(ctx, opts.barbershopId);
+
+    if (!canSend) {
+      return;
+    }
+
     await incrementSmsSent(ctx, opts.barbershopId);
   }
 
@@ -55,6 +66,36 @@ async function scheduleSmsWithQuota(
     body: opts.body,
     to: opts.to,
   });
+}
+
+/**
+ * Schedule an email while enforcing the barbershop's monthly email quota.
+ *
+ * If `barbershopId` is provided the limit is checked and the counter is
+ * incremented. When the quota has been reached the email is silently skipped —
+ * this function never throws on limit violations.
+ * When `barbershopId` is `undefined` (e.g. for notifications that are not
+ * scoped to a barbershop) the email is sent without quota checks.
+ *
+ * @param send - A thunk that performs the actual `ctx.scheduler.runAfter` call.
+ *               Only invoked when the quota allows it.
+ */
+async function scheduleEmailWithQuota(
+  ctx: MutationCtx,
+  barbershopId: Id<"barbershops"> | undefined,
+  send: () => Promise<unknown>,
+): Promise<void> {
+  if (barbershopId) {
+    const canSend = await isEmailLimitNotExceeded(ctx, barbershopId);
+
+    if (!canSend) {
+      return;
+    }
+
+    await incrementEmailSent(ctx, barbershopId);
+  }
+
+  await send();
 }
 
 export const createAppointmentCancelled = internalMutation({
@@ -109,20 +150,20 @@ export const createAppointmentCancelled = internalMutation({
 
     if (
       receiverProfile &&
-      isNotificationEnabled("email", receiverProfile.notificationsPreferences)
+      isNotificationEnabled(
+        "email",
+        receiverProfile.notificationsPreferences,
+      ) &&
+      toEmail
     ) {
-      if (toEmail) {
-        await ctx.scheduler.runAfter(
-          0,
-          internal.emails.sendAppointmentCancelled,
-          {
-            notes: args.notes,
-            sendTo: args.sendTo,
-            to: toEmail,
-            body,
-          },
-        );
-      }
+      await scheduleEmailWithQuota(ctx, appointment.barbershopId, () =>
+        ctx.scheduler.runAfter(0, internal.emails.sendAppointmentCancelled, {
+          notes: args.notes,
+          sendTo: args.sendTo,
+          to: toEmail,
+          body,
+        }),
+      );
     }
 
     const smsEnabled = receiverProfile
@@ -201,14 +242,12 @@ export const createAppointmentRescheduleRequest = internalMutation({
       ) &&
       toEmail
     ) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.emails.sendAppointmentRescheduleRequestEmail,
-        {
-          to: toEmail,
-          body,
-          sendTo: args.sendTo,
-        },
+      await scheduleEmailWithQuota(ctx, appointment.barbershopId, () =>
+        ctx.scheduler.runAfter(
+          0,
+          internal.emails.sendAppointmentRescheduleRequestEmail,
+          { to: toEmail, body, sendTo: args.sendTo },
+        ),
       );
     }
 
@@ -271,28 +310,34 @@ export const createAppointmentRescheduleDecision = internalMutation({
       isNotificationEnabled("email", receiverProfile.notificationsPreferences)
     ) {
       if (args.accepted) {
-        await ctx.scheduler.runAfter(
-          0,
-          internal.emails.sendAppointmentRescheduledAcceptedEmail,
-          { to: args.to, body },
+        await scheduleEmailWithQuota(ctx, appointment?.barbershopId, () =>
+          ctx.scheduler.runAfter(
+            0,
+            internal.emails.sendAppointmentRescheduledAcceptedEmail,
+            { to: args.to, body },
+          ),
         );
       } else {
         if (isCustomer) {
-          await ctx.scheduler.runAfter(
-            0,
-            internal.emails.sendAppointmentCancelled,
-            {
-              sendTo: "customer",
-              notes: args.notes ?? "Sin motivo especificado.",
-              to: args.to,
-              body,
-            },
+          await scheduleEmailWithQuota(ctx, appointment?.barbershopId, () =>
+            ctx.scheduler.runAfter(
+              0,
+              internal.emails.sendAppointmentCancelled,
+              {
+                sendTo: "customer",
+                notes: args.notes ?? "Sin motivo especificado.",
+                to: args.to,
+                body,
+              },
+            ),
           );
         } else {
-          await ctx.scheduler.runAfter(
-            0,
-            internal.emails.sendAppointmentRescheduledDeniedEmail,
-            { to: args.to, body },
+          await scheduleEmailWithQuota(ctx, appointment?.barbershopId, () =>
+            ctx.scheduler.runAfter(
+              0,
+              internal.emails.sendAppointmentRescheduledDeniedEmail,
+              { to: args.to, body },
+            ),
           );
         }
       }
@@ -362,24 +407,23 @@ export const createAppointmentCreated = internalMutation({
 
     const smsBody = `${receiverBody} Ver detalles: ${appointmentLink}`;
 
+    const to = args.to ?? receiverProfile?.email;
+
     if (
       isNotificationEnabled(
         "email",
         receiverProfile?.notificationsPreferences ?? [],
       ) &&
-      receiverProfile?.email &&
-      args.to
+      to
     ) {
-      await ctx.scheduler.runAfter(
-        0,
-        isCustomer
-          ? internal.emails.sendAppointmentCreatedToUserEmail
-          : internal.emails.sendAppointmentCreatedToBarberEmail,
-        {
-          to: args.to,
-          body: receiverBody,
-          subject,
-        },
+      await scheduleEmailWithQuota(ctx, appointment?.barbershopId, () =>
+        ctx.scheduler.runAfter(
+          0,
+          isCustomer
+            ? internal.emails.sendAppointmentCreatedToUserEmail
+            : internal.emails.sendAppointmentCreatedToBarberEmail,
+          { to, body: receiverBody, subject },
+        ),
       );
     }
 
@@ -441,21 +485,25 @@ export const createAppointmentReminder = internalMutation({
     const appointmentLink = `${process.env.SITE_URL}/profile?tab=appointments`;
     const smsBody = `${body} Ver detalles: ${appointmentLink}`;
 
+    const to = args.to ?? customerProfile?.email;
+
     if (
       customerProfile &&
       isNotificationEnabled(
         "email",
         customerProfile.notificationsPreferences,
       ) &&
-      args.to
+      to
     ) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.emails.sendAppointmentReminderEmail,
-        {
-          to: args.to,
-          body,
-        },
+      await scheduleEmailWithQuota(ctx, args.barbershopId, () =>
+        ctx.scheduler.runAfter(
+          0,
+          internal.emails.sendAppointmentReminderEmail,
+          {
+            to,
+            body,
+          },
+        ),
       );
     }
 
@@ -495,12 +543,12 @@ export const createPastAppointmentReminder = internalMutation({
     if (
       isNotificationEnabled("email", barberProfile.notificationsPreferences)
     ) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.emails.sendPastAppointmentReminderEmail,
-        {
-          to: barberProfile.email,
-        },
+      await scheduleEmailWithQuota(ctx, undefined, () =>
+        ctx.scheduler.runAfter(
+          0,
+          internal.emails.sendPastAppointmentReminderEmail,
+          { to: barberProfile.email },
+        ),
       );
     }
 
@@ -540,10 +588,9 @@ export const createBarberInvited = internalMutation({
 
     const invitationUrl = `${process.env.SITE_URL}/invitations/${args.code}`;
 
-    await scheduleSmsWithQuota(ctx, {
-      to: args.phone,
+    await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
       body: `Has sido invitado a unirte a ${barbershop.name} como barbero. Ver detalles: ${invitationUrl}`,
-      barbershopId: args.barbershopId,
+      to: args.phone,
     });
 
     await ctx.scheduler.runAfter(0, internal.emails.sendBarberInvitationEmail, {
@@ -586,15 +633,13 @@ export const createBarberRemovedCancellation = internalMutation({
       : true; // Default to enabled for guests
 
     if (emailEnabled && toEmail) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.emails.sendAppointmentCancelled,
-        {
+      await scheduleEmailWithQuota(ctx, appointment?.barbershopId, () =>
+        ctx.scheduler.runAfter(0, internal.emails.sendAppointmentCancelled, {
           notes: `Barbero ${args.barberName} eliminado de la barbería`,
           sendTo: "customer",
           to: toEmail,
           body,
-        },
+        }),
       );
     }
 
@@ -644,15 +689,13 @@ export const createServiceDeletedCancellation = internalMutation({
       : true; // Default to enabled for guests
 
     if (emailEnabled && toEmail) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.emails.sendAppointmentCancelled,
-        {
+      await scheduleEmailWithQuota(ctx, appointment?.barbershopId, () =>
+        ctx.scheduler.runAfter(0, internal.emails.sendAppointmentCancelled, {
           notes: `Servicio "${args.serviceName}" eliminado`,
           sendTo: "customer",
           to: toEmail,
           body,
-        },
+        }),
       );
     }
 

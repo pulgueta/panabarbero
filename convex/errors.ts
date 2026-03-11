@@ -20,4 +20,5 @@ export const errorMessages = {
   barberLimitExceeded:
     "Has alcanzado el límite de barberos para tu plan actual.",
   smsLimitExceeded: "Has alcanzado el límite de SMS para este mes.",
+  emailLimitExceeded: "Has alcanzado el límite de correos para este mes.",
 } as const;

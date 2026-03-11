@@ -19,6 +19,7 @@ import {
   useActiveBarbershops,
 } from "@/hooks/barbershop/use-barbershop";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { breadcrumbStructuredData, getCanonicalUrl, seo } from "@/lib/utils";
 import { useLocationStore } from "@/store/barbershop-filters";
 
 const BarbershopFilters = lazy(() =>
@@ -58,6 +59,29 @@ export const Route = createFileRoute("/barbershops/")({
     };
   },
   loaderDeps: ({ search }) => toCompleteLocation(search),
+  head: () => {
+    const persisted = useLocationStore.getState();
+
+    const city = persisted.city;
+    const state = persisted.state;
+
+    const location = city && state ? `en ${city}, ${state}` : "";
+
+    return {
+      meta: seo({
+        title: `Barberías ${location} - PanaBarbero`,
+        description: `Descubre barberías ${location} en PanaBarbero. Reserva citas con tus barberos de confianza.`,
+        canonical: getCanonicalUrl("/barbershops"),
+      }),
+      links: [{ rel: "canonical", href: getCanonicalUrl("/barbershops") }],
+      scripts: [
+        breadcrumbStructuredData([
+          { name: "Inicio", url: getCanonicalUrl("/") },
+          { name: "Barberías", url: getCanonicalUrl("/barbershops") },
+        ]),
+      ],
+    };
+  },
   loader: async (opts) => {
     const user = await opts.context.queryClient.ensureQueryData(
       getSessionQueryOptions(),

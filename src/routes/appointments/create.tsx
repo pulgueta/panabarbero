@@ -21,6 +21,7 @@ import {
 } from "@/hooks/use-appointments";
 import { useDebounce } from "@/hooks/use-debounce";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { getCanonicalUrl, seo } from "@/lib/utils";
 
 const BarbershopListCard = lazy(() =>
   import("@/components/barbershops/barbershop-list-card").then((module) => ({
@@ -31,6 +32,17 @@ const BarbershopListCard = lazy(() =>
 export const Route = createFileRoute("/appointments/create")({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
+  head: () => ({
+    meta: seo({
+      title: "Agendar Cita - PanaBarbero",
+      description:
+        "Busca y agenda citas con las mejores barberías cerca de ti. Reserva tu turno ahora mismo.",
+      canonical: getCanonicalUrl("/appointments/create"),
+    }),
+    links: [
+      { rel: "canonical", href: getCanonicalUrl("/appointments/create") },
+    ],
+  }),
   loader: async (ctx) => {
     const user = await ctx.context.queryClient.ensureQueryData(
       getSessionQueryOptions(),

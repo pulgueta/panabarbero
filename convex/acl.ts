@@ -9,6 +9,7 @@ import { ConvexError } from "convex/values";
 
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { usageTriggers } from "./aggregates";
 import { errorMessages } from "./errors";
 import {
   getCurrentYearMonth,
@@ -130,74 +131,129 @@ export async function assertBarberInviteAllowed(
   }
 }
 
-// ---------------------------------------------------------------------------
-// SMS quota helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Assert a barbershop can still send SMS this month.
- *
- * Resolves the owner's plan to determine the monthly limit and checks the
- * `smsUsage` counter for the current `YYYY-MM`.
- */
-export async function assertSmsLimitNotExceeded(
+async function getUsageRow(
   ctx: QueryCtx | MutationCtx,
   barbershopId: Id<"barbershops">,
-): Promise<void> {
-  const barbershop = await ctx.db.get(barbershopId);
-
-  if (!barbershop) {
-    // Barbershop deleted — silently bail; nothing to enforce.
-    return;
-  }
-
-  const limits = await getUserPlanLimits(ctx, barbershop.ownerId);
-
-  // `null` means unlimited
-  if (limits.maxSmsPerMonth === null) {
-    return;
-  }
-
-  const month = getCurrentYearMonth();
-
-  const usage = await ctx.db
-    .query("smsUsage")
+  month: string,
+) {
+  return ctx.db
+    .query("usage")
     .withIndex("by_barbershop_month", (q) =>
       q.eq("barbershopId", barbershopId).eq("month", month),
     )
     .unique();
+}
 
-  if ((usage?.smsSent ?? 0) >= limits.maxSmsPerMonth) {
-    throw new ConvexError(errorMessages.smsLimitExceeded);
+/**
+ * Returns `true` when the barbershop can still send SMS this month,
+ * `false` when the monthly quota has been reached.
+ * Never throws — safe to use in fire-and-forget notification paths.
+ */
+export async function isSmsLimitNotExceeded(
+  ctx: QueryCtx | MutationCtx,
+  barbershopId: Id<"barbershops">,
+): Promise<boolean> {
+  const barbershop = await ctx.db.get(barbershopId);
+
+  if (!barbershop) {
+    return true;
   }
+
+  const limits = await getUserPlanLimits(ctx, barbershop.ownerId);
+
+  if (limits.maxSmsPerMonth === null) {
+    return true;
+  }
+
+  const row = await getUsageRow(ctx, barbershopId, getCurrentYearMonth());
+
+  if (!row) {
+    return true;
+  }
+
+  return row.smsSent < limits.maxSmsPerMonth;
+}
+
+/**
+ * Returns `true` when the barbershop can still send emails this month,
+ * `false` when the monthly quota has been reached.
+ * Never throws — safe to use in fire-and-forget notification paths.
+ */
+export async function isEmailLimitNotExceeded(
+  ctx: QueryCtx | MutationCtx,
+  barbershopId: Id<"barbershops">,
+): Promise<boolean> {
+  const barbershop = await ctx.db.get(barbershopId);
+
+  if (!barbershop) {
+    return true;
+  }
+
+  const limits = await getUserPlanLimits(ctx, barbershop.ownerId);
+
+  if (limits.maxEmailPerMonth === null) {
+    return true;
+  }
+
+  const row = await getUsageRow(ctx, barbershopId, getCurrentYearMonth());
+
+  if (!row) {
+    return true;
+  }
+
+  return row.emailsSent < limits.maxEmailPerMonth;
 }
 
 /**
  * Increment the SMS counter for a barbershop in the current month.
- * Creates the `smsUsage` row if it doesn't exist yet (upsert pattern).
+ * Creates the `usage` row if it doesn't exist yet (upsert pattern).
  *
- * Must be called from a mutation context (needs write access).
+ * Writes go through `usageTriggers.wrapDB` so that `smsUsageAggregate` and
+ * `emailUsageAggregate` are updated automatically — no manual sync needed.
  */
 export async function incrementSmsSent(
   ctx: MutationCtx,
   barbershopId: Id<"barbershops">,
 ): Promise<void> {
   const month = getCurrentYearMonth();
-
-  const existing = await ctx.db
-    .query("smsUsage")
-    .withIndex("by_barbershop_month", (q) =>
-      q.eq("barbershopId", barbershopId).eq("month", month),
-    )
-    .unique();
+  const existing = await getUsageRow(ctx, barbershopId, month);
+  const db = usageTriggers.wrapDB(ctx).db;
 
   if (existing) {
-    await ctx.db.patch(existing._id, { smsSent: existing.smsSent + 1 });
+    await db.patch(existing._id, { smsSent: existing.smsSent + 1 });
   } else {
-    await ctx.db.insert("smsUsage", {
+    await db.insert("usage", {
       barbershopId,
       month,
       smsSent: 1,
+      emailsSent: 0,
+    });
+  }
+}
+
+/**
+ * Increment the email counter for a barbershop in the current month.
+ * Creates the `usage` row if it doesn't exist yet (upsert pattern).
+ *
+ * Writes go through `usageTriggers.wrapDB` so that `emailUsageAggregate` is
+ * updated automatically — no manual sync needed.
+ */
+export async function incrementEmailSent(
+  ctx: MutationCtx,
+  barbershopId: Id<"barbershops">,
+): Promise<void> {
+  const month = getCurrentYearMonth();
+  const existing = await getUsageRow(ctx, barbershopId, month);
+  const db = usageTriggers.wrapDB(ctx).db;
+
+  if (existing) {
+    await db.patch(existing._id, { emailsSent: existing.emailsSent + 1 });
+  } else {
+    await db.insert("usage", {
+      barbershopId,
+      month,
+      smsSent: 0,
+      emailsSent: 1,
     });
   }
 }

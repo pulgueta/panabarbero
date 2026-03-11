@@ -13,6 +13,7 @@ import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
 import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
+import { formatPhoneNumber } from "./utils";
 
 export const create = zMutation({
   args: z.object({
@@ -437,7 +438,14 @@ export const update = zMutation({
 
     await rateLimitOrThrow(ctx, "updateBarbershop", user._id);
 
-    await ctx.db.patch(args.id, args.data);
+    const dataToUpdate = {
+      ...args.data,
+      ...(args.data.contactPhone && {
+        contactPhone: formatPhoneNumber(args.data.contactPhone),
+      }),
+    };
+
+    await ctx.db.patch(args.id, dataToUpdate);
   },
 });
 

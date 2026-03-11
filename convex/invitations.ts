@@ -8,6 +8,7 @@ import { authComponent } from "./auth";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
 import { getProfileByEmail, getProfileByUserId } from "./userProfileData";
+import { formatPhoneNumber } from "./utils";
 
 const INVITATION_EXPIRATION_MS = 1000 * 60 * 60 * 24 * 7;
 
@@ -90,7 +91,7 @@ export const invite = zMutation({
     const invitationId = await ctx.db.insert("invitations", {
       barbershopId: barbershop._id,
       email,
-      phone: args.phone,
+      phone: formatPhoneNumber(args.phone),
       roles: args.roles,
       code,
       status: "pending",

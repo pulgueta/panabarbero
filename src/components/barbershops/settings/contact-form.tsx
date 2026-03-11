@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { useBarbershopActions } from "@/hooks/barbershop/use-barbershop";
+import { formatPhoneNumber } from "@/lib/utils";
 
 interface ContactFormProps {
   barbershop: Barbershop;
@@ -49,11 +50,8 @@ export const ContactForm: FC<ContactFormProps> = ({
           name: barbershop.name,
           description: barbershop.description || undefined,
           address: barbershop.address,
-          coordinates: barbershop.coordinates
-            ? { x: barbershop.coordinates.x, y: barbershop.coordinates.y }
-            : undefined,
           services: barbershop.services ?? [],
-          contactPhone: phone || undefined,
+          contactPhone: phone ? formatPhoneNumber(phone) : undefined,
           isActive: barbershop.isActive,
           gracePeriodMinutes: barbershop.gracePeriodMinutes ?? 5,
           ownerId: barbershop.ownerId,
@@ -61,7 +59,6 @@ export const ContactForm: FC<ContactFormProps> = ({
           city: barbershop.city,
           state: barbershop.state,
           zipCode: barbershop.zipCode || undefined,
-          bannerUrl: barbershop.bannerUrl || undefined,
         },
       });
       haptic.trigger("success");

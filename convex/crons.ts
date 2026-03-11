@@ -37,12 +37,14 @@ export const cleanupAppointments = zInternalMutation({
       .query("appointments")
       .withIndex("by_deletedAt", (q) => q.lte("deletedAt", now))
       .filter((q) =>
-        q.and(
+        q.or(
           q.and(
             q.not(q.eq(q.field("deletedAt"), undefined)),
             q.lte(q.field("deletedAt"), now),
           ),
           q.eq(q.field("status"), "cancelled"),
+          q.eq(q.field("status"), "no-show"),
+          q.eq(q.field("status"), "denied"),
         ),
       )
       .collect();

@@ -29,11 +29,58 @@ import {
   useIsBarber,
 } from "@/hooks/use-barbershop-members";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import {
+  breadcrumbStructuredData,
+  faqStructuredData,
+  getCanonicalUrl,
+  seo,
+} from "@/lib/utils";
 import { useLocationStore } from "@/store/barbershop-filters";
+
+const HOME_FAQS = [
+  {
+    question: "¿PanaBarbero es gratis?",
+    answer:
+      "Sí, puedes empezar a usar PanaBarbero completamente gratis. Ofrecemos un plan básico sin costo que incluye todas las funcionalidades esenciales para gestionar tu barbería.",
+  },
+  {
+    question: "¿Cómo reciben los clientes los recordatorios?",
+    answer:
+      "Los clientes reciben recordatorios automáticos por email antes de su cita programada. Esto ayuda a reducir significativamente las ausencias.",
+  },
+  {
+    question: "¿Puedo gestionar varios barberos?",
+    answer:
+      "¡Por supuesto! PanaBarbero permite agregar múltiples barberos a tu equipo, cada uno con su propia agenda, servicios y disponibilidad.",
+  },
+  {
+    question: "¿Los clientes necesitan crear una cuenta?",
+    answer:
+      "Los clientes pueden crear una cuenta gratuita para poder agendar citas y recibir recordatorios. El proceso toma menos de un minuto.",
+  },
+  {
+    question: "¿Puedo personalizar mis servicios y precios?",
+    answer:
+      "Totalmente. Puedes crear servicios personalizados con nombre, descripción, duración y precio. Tus clientes verán toda esta información al momento de reservar.",
+  },
+];
 
 export const Route = createFileRoute("/")({
   pendingComponent: LoadingComponent,
   component: RouteComponent,
+  head: () => ({
+    meta: seo({
+      title: "PanaBarbero - Descubre barberías y reserva citas",
+      description:
+        "Encuentra barberías, reserva citas y gestiona tu barbería con PanaBarbero. La solución completa para barberías.",
+      canonical: getCanonicalUrl("/"),
+    }),
+    links: [{ rel: "canonical", href: getCanonicalUrl("/") }],
+    scripts: [
+      faqStructuredData(HOME_FAQS),
+      breadcrumbStructuredData([{ name: "Inicio", url: getCanonicalUrl("/") }]),
+    ],
+  }),
   loader: async ({ context }) => {
     const user = await context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
@@ -393,33 +440,7 @@ function RouteComponent() {
 
           <div className="mx-auto max-w-3xl">
             <div className="grid gap-4">
-              {[
-                {
-                  question: "¿PanaBarbero es gratis?",
-                  answer:
-                    "Sí, puedes empezar a usar PanaBarbero completamente gratis. Ofrecemos un plan básico sin costo que incluye todas las funcionalidades esenciales para gestionar tu barbería.",
-                },
-                {
-                  question: "¿Cómo reciben los clientes los recordatorios?",
-                  answer:
-                    "Los clientes reciben recordatorios automáticos por email antes de su cita programada. Esto ayuda a reducir significativamente las ausencias.",
-                },
-                {
-                  question: "¿Puedo gestionar varios barberos?",
-                  answer:
-                    "¡Por supuesto! PanaBarbero permite agregar múltiples barberos a tu equipo, cada uno con su propia agenda, servicios y disponibilidad.",
-                },
-                {
-                  question: "¿Los clientes necesitan crear una cuenta?",
-                  answer:
-                    "Los clientes pueden crear una cuenta gratuita para poder agendar citas y recibir recordatorios. El proceso toma menos de un minuto.",
-                },
-                {
-                  question: "¿Puedo personalizar mis servicios y precios?",
-                  answer:
-                    "Totalmente. Puedes crear servicios personalizados con nombre, descripción, duración y precio. Tus clientes verán toda esta información al momento de reservar.",
-                },
-              ].map((faq) => (
+              {HOME_FAQS.map((faq) => (
                 <Card key={faq.question} className="border-border/50">
                   <CardHeader>
                     <CardTitle className="text-lg">{faq.question}</CardTitle>

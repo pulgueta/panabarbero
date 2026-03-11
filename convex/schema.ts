@@ -24,12 +24,6 @@ export const barbershops = zodTable("barbershops", (id) => ({
     fullAddress: z.string(),
     details: z.string().optional(),
   }),
-  coordinates: z
-    .object({
-      x: z.number(),
-      y: z.number(),
-    })
-    .optional(),
   services: id("services").array(),
   contactPhone: z.string().optional(),
   isActive: z.boolean(),
@@ -58,18 +52,14 @@ export const barbershops = zodTable("barbershops", (id) => ({
   city: z.string(),
   state: z.string(),
   zipCode: z.string().optional(),
-  bannerUrl: z.string().optional(),
   metadataId: id("barbershopMetadata").optional(),
 }));
 
 export const barbershopMetadata = zodTable("barbershopMetadata", (id) => ({
   barbershopId: id("barbershops"),
-  uuid: z.uuidv4().default(crypto.randomUUID()),
   websiteUrl: z.string().optional(),
   contactEmail: z.string().optional(),
-  completedAppointments: z.number().optional(),
-  reviews: z.number().optional(),
-  rating: z.number().optional(),
+  bannerUrl: z.string().optional(),
   socialMedia: z
     .array(
       z.object({
@@ -91,7 +81,6 @@ export const barbershopMembers = zodTable("barbershopMembers", (id) => ({
   barbershopId: id("barbershops"),
   joinedAt: z.number(),
   isActive: z.boolean(),
-  completedAppointments: z.number().optional(),
   roles: z.enum(["owner", "barber"]).array(),
 }));
 
@@ -182,10 +171,11 @@ export const invitations = zodTable("invitations", (id) => ({
   inviterUserId: z.string(),
 }));
 
-export const smsUsage = zodTable("smsUsage", (id) => ({
+export const usage = zodTable("usage", (id) => ({
   barbershopId: id("barbershops"),
   month: z.string(),
   smsSent: z.number(),
+  emailsSent: z.number(),
 }));
 
 export default defineSchema({
@@ -251,9 +241,7 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_expiresAt", ["expiresAt"]),
 
-  smsUsage: smsUsage
-    .table()
-    .index("by_barbershop_month", ["barbershopId", "month"]),
+  usage: usage.table().index("by_barbershop_month", ["barbershopId", "month"]),
 });
 
 export type UserProfileData = output<typeof userProfileData.schema>;
@@ -263,6 +251,9 @@ export type BarbershopMember = output<typeof barbershopMembers.schema>;
 export type BarbershopMemberWithName = BarbershopMember & {
   name: string;
 };
+export type BarbershopMetadataWithCount = BarbershopMetadata & {
+  completedAppointments: number;
+};
 export type Service = output<typeof services.schema>;
 export type Review = output<typeof reviews.schema>;
 export type Appointment = output<typeof appointments.schema>;
@@ -270,4 +261,4 @@ export type BarbershopMemberServices = output<
   typeof barbershopMemberServices.schema
 >;
 export type Invitation = output<typeof invitations.schema>;
-export type SmsUsage = output<typeof smsUsage.schema>;
+export type Usage = output<typeof usage.schema>;

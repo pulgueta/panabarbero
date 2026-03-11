@@ -7,6 +7,7 @@ import { authComponent, createAuth } from "./auth";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
 import { userProfileData } from "./schema";
+import { formatPhoneNumber } from "./utils";
 
 export const getProfileByUserId = async (
   ctx: QueryCtx | MutationCtx,
@@ -102,7 +103,9 @@ export const updatePhoneNumber = zMutation({
       return;
     }
 
-    const phoneNumber = args.phoneNumber?.trim();
+    const phoneNumber = args.phoneNumber
+      ? formatPhoneNumber(args.phoneNumber)
+      : undefined;
 
     await ctx.db.patch(profile._id, {
       phoneNumber,

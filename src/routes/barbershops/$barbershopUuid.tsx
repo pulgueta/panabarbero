@@ -32,7 +32,12 @@ import {
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
-import { barbershopSeo } from "@/lib/utils";
+import {
+  barbershopSeo,
+  barbershopStructuredData,
+  breadcrumbStructuredData,
+  getCanonicalUrl,
+} from "@/lib/utils";
 
 const BarbershopHeader = lazy(() =>
   import("@/components/barbershops/barbershop-header").then((module) => ({
@@ -100,8 +105,23 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
       links: [
         {
           rel: "canonical",
-          href: `https://panabarbero.com/barbershops/${barbershop?.uuid}`,
+          href: getCanonicalUrl(`/barbershops/${barbershop?.uuid}`),
         },
+      ],
+      scripts: [
+        ...(barbershop
+          ? [
+              barbershopStructuredData(barbershop),
+              breadcrumbStructuredData([
+                { name: "Inicio", url: getCanonicalUrl("/") },
+                { name: "Barberías", url: getCanonicalUrl("/barbershops") },
+                {
+                  name: barbershop.name,
+                  url: getCanonicalUrl(`/barbershops/${barbershop.uuid}`),
+                },
+              ]),
+            ]
+          : []),
       ],
     };
   },

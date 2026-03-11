@@ -10,8 +10,11 @@
 
 import { Route as rootRouteImport } from "./routes/__root"
 import { Route as TosRouteImport } from "./routes/tos"
+import { Route as SitemapDotxmlRouteImport } from "./routes/sitemap[.]xml"
+import { Route as RobotsDottxtRouteImport } from "./routes/robots[.]txt"
 import { Route as PrivacyPolicyRouteImport } from "./routes/privacy-policy"
 import { Route as PricingRouteImport } from "./routes/pricing"
+import { Route as LlmsDottxtRouteImport } from "./routes/llms[.]txt"
 import { Route as AuthedRoutesRouteRouteImport } from "./routes/_authedRoutes/route"
 import { Route as AuthRouteRouteImport } from "./routes/_auth/route"
 import { Route as IndexRouteImport } from "./routes/index"
@@ -36,6 +39,16 @@ const TosRoute = TosRouteImport.update({
   path: "/tos",
   getParentRoute: () => rootRouteImport,
 } as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: "/sitemap.xml",
+  path: "/sitemap.xml",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: "/robots.txt",
+  path: "/robots.txt",
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
   id: "/privacy-policy",
   path: "/privacy-policy",
@@ -44,6 +57,11 @@ const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
 const PricingRoute = PricingRouteImport.update({
   id: "/pricing",
   path: "/pricing",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
+  id: "/llms.txt",
+  path: "/llms.txt",
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthedRoutesRouteRoute = AuthedRoutesRouteRouteImport.update({
@@ -144,8 +162,11 @@ const AuthedRoutesProfileBarbershopsAppointmentsIndexRoute =
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
+  "/llms.txt": typeof LlmsDottxtRoute
   "/pricing": typeof PricingRoute
   "/privacy-policy": typeof PrivacyPolicyRoute
+  "/robots.txt": typeof RobotsDottxtRoute
+  "/sitemap.xml": typeof SitemapDotxmlRoute
   "/tos": typeof TosRoute
   "/forgot-password": typeof AuthForgotPasswordRoute
   "/login": typeof AuthLoginRoute
@@ -165,8 +186,11 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
+  "/llms.txt": typeof LlmsDottxtRoute
   "/pricing": typeof PricingRoute
   "/privacy-policy": typeof PrivacyPolicyRoute
+  "/robots.txt": typeof RobotsDottxtRoute
+  "/sitemap.xml": typeof SitemapDotxmlRoute
   "/tos": typeof TosRoute
   "/forgot-password": typeof AuthForgotPasswordRoute
   "/login": typeof AuthLoginRoute
@@ -189,8 +213,11 @@ export interface FileRoutesById {
   "/": typeof IndexRoute
   "/_auth": typeof AuthRouteRouteWithChildren
   "/_authedRoutes": typeof AuthedRoutesRouteRouteWithChildren
+  "/llms.txt": typeof LlmsDottxtRoute
   "/pricing": typeof PricingRoute
   "/privacy-policy": typeof PrivacyPolicyRoute
+  "/robots.txt": typeof RobotsDottxtRoute
+  "/sitemap.xml": typeof SitemapDotxmlRoute
   "/tos": typeof TosRoute
   "/_auth/forgot-password": typeof AuthForgotPasswordRoute
   "/_auth/login": typeof AuthLoginRoute
@@ -212,8 +239,11 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | "/"
+    | "/llms.txt"
     | "/pricing"
     | "/privacy-policy"
+    | "/robots.txt"
+    | "/sitemap.xml"
     | "/tos"
     | "/forgot-password"
     | "/login"
@@ -233,8 +263,11 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | "/"
+    | "/llms.txt"
     | "/pricing"
     | "/privacy-policy"
+    | "/robots.txt"
+    | "/sitemap.xml"
     | "/tos"
     | "/forgot-password"
     | "/login"
@@ -256,8 +289,11 @@ export interface FileRouteTypes {
     | "/"
     | "/_auth"
     | "/_authedRoutes"
+    | "/llms.txt"
     | "/pricing"
     | "/privacy-policy"
+    | "/robots.txt"
+    | "/sitemap.xml"
     | "/tos"
     | "/_auth/forgot-password"
     | "/_auth/login"
@@ -280,8 +316,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRouteRoute: typeof AuthRouteRouteWithChildren
   AuthedRoutesRouteRoute: typeof AuthedRoutesRouteRouteWithChildren
+  LlmsDottxtRoute: typeof LlmsDottxtRoute
   PricingRoute: typeof PricingRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TosRoute: typeof TosRoute
   AppointmentsCreateRoute: typeof AppointmentsCreateRoute
   BarbershopsBarbershopUuidRoute: typeof BarbershopsBarbershopUuidRoute
@@ -298,6 +337,20 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof TosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    "/sitemap.xml": {
+      id: "/sitemap.xml"
+      path: "/sitemap.xml"
+      fullPath: "/sitemap.xml"
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/robots.txt": {
+      id: "/robots.txt"
+      path: "/robots.txt"
+      fullPath: "/robots.txt"
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     "/privacy-policy": {
       id: "/privacy-policy"
       path: "/privacy-policy"
@@ -310,6 +363,13 @@ declare module "@tanstack/react-router" {
       path: "/pricing"
       fullPath: "/pricing"
       preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/llms.txt": {
+      id: "/llms.txt"
+      path: "/llms.txt"
+      fullPath: "/llms.txt"
+      preLoaderRoute: typeof LlmsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/_authedRoutes": {
@@ -490,8 +550,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRouteRoute: AuthRouteRouteWithChildren,
   AuthedRoutesRouteRoute: AuthedRoutesRouteRouteWithChildren,
+  LlmsDottxtRoute: LlmsDottxtRoute,
   PricingRoute: PricingRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   TosRoute: TosRoute,
   AppointmentsCreateRoute: AppointmentsCreateRoute,
   BarbershopsBarbershopUuidRoute: BarbershopsBarbershopUuidRoute,

@@ -51,9 +51,6 @@ export const SocialMediaForm: FC<SocialMediaFormProps> = ({
           name: barbershop.name,
           description: barbershop.description || undefined,
           address: barbershop.address,
-          coordinates: barbershop.coordinates
-            ? { x: barbershop.coordinates.x, y: barbershop.coordinates.y }
-            : undefined,
           services: barbershop.services ?? [],
           contactPhone: barbershop.contactPhone || undefined,
           isActive: barbershop.isActive,
@@ -63,7 +60,6 @@ export const SocialMediaForm: FC<SocialMediaFormProps> = ({
           city: barbershop.city,
           state: barbershop.state,
           zipCode: barbershop.zipCode || undefined,
-          bannerUrl: barbershop.bannerUrl || undefined,
         },
       });
       haptic.trigger("success");

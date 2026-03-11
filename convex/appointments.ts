@@ -26,6 +26,7 @@ import {
   services,
 } from "./schema";
 import { getProfileByEmail, getProfileByUserId } from "./userProfileData";
+import { formatPhoneNumber } from "./utils";
 
 const MINUTE_MS = 60 * 1000;
 
@@ -286,6 +287,7 @@ export const create = zMutation({
 
     const appointmentId = await ctx.db.insert("appointments", {
       ...withoutIsBarber,
+      contactPhone: formatPhoneNumber(withoutIsBarber.contactPhone),
       userId: appointmentUserId,
       status: "confirmed",
     });
@@ -506,7 +508,10 @@ export const setStatus = zMutation({
 
         await ctx.runMutation(
           internal.barbershopMetadata.incrementCompletedAppointments,
-          { id: barbershop.metadataId },
+          {
+            barbershopId: appt.barbershopId,
+            appointmentId: appointmentId,
+          },
         );
         break;
 
@@ -522,6 +527,18 @@ export const setStatus = zMutation({
 
       case "cancelled":
         await cancelScheduledNotifications(ctx, appt);
+
+        if (appt.status === "completed") {
+          await ctx.runMutation(
+            internal.barbershopMetadata.decrementCompletedAppointments,
+            {
+              barbershopId: appt.barbershopId,
+              appointmentId,
+              appointmentDate: appt.date,
+            },
+          );
+        }
+
         await ctx.db.delete(appointmentId);
         break;
 
