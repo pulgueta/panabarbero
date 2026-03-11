@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from "./routes/__root"
 import { Route as TosRouteImport } from "./routes/tos"
+import { Route as SitemapDotxmlRouteImport } from "./routes/sitemap[.]xml"
+import { Route as RobotsDottxtRouteImport } from "./routes/robots[.]txt"
 import { Route as PrivacyPolicyRouteImport } from "./routes/privacy-policy"
 import { Route as PricingRouteImport } from "./routes/pricing"
 import { Route as AuthedRoutesRouteRouteImport } from "./routes/_authedRoutes/route"
@@ -34,6 +36,16 @@ import { Route as AuthedRoutesProfileBarbershopsAppointmentsIndexRouteImport } f
 const TosRoute = TosRouteImport.update({
   id: "/tos",
   path: "/tos",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: "/sitemap.xml",
+  path: "/sitemap.xml",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: "/robots.txt",
+  path: "/robots.txt",
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
@@ -146,6 +158,8 @@ export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
   "/pricing": typeof PricingRoute
   "/privacy-policy": typeof PrivacyPolicyRoute
+  "/robots.txt": typeof RobotsDottxtRoute
+  "/sitemap.xml": typeof SitemapDotxmlRoute
   "/tos": typeof TosRoute
   "/forgot-password": typeof AuthForgotPasswordRoute
   "/login": typeof AuthLoginRoute
@@ -167,6 +181,8 @@ export interface FileRoutesByTo {
   "/": typeof IndexRoute
   "/pricing": typeof PricingRoute
   "/privacy-policy": typeof PrivacyPolicyRoute
+  "/robots.txt": typeof RobotsDottxtRoute
+  "/sitemap.xml": typeof SitemapDotxmlRoute
   "/tos": typeof TosRoute
   "/forgot-password": typeof AuthForgotPasswordRoute
   "/login": typeof AuthLoginRoute
@@ -191,6 +207,8 @@ export interface FileRoutesById {
   "/_authedRoutes": typeof AuthedRoutesRouteRouteWithChildren
   "/pricing": typeof PricingRoute
   "/privacy-policy": typeof PrivacyPolicyRoute
+  "/robots.txt": typeof RobotsDottxtRoute
+  "/sitemap.xml": typeof SitemapDotxmlRoute
   "/tos": typeof TosRoute
   "/_auth/forgot-password": typeof AuthForgotPasswordRoute
   "/_auth/login": typeof AuthLoginRoute
@@ -214,6 +232,8 @@ export interface FileRouteTypes {
     | "/"
     | "/pricing"
     | "/privacy-policy"
+    | "/robots.txt"
+    | "/sitemap.xml"
     | "/tos"
     | "/forgot-password"
     | "/login"
@@ -235,6 +255,8 @@ export interface FileRouteTypes {
     | "/"
     | "/pricing"
     | "/privacy-policy"
+    | "/robots.txt"
+    | "/sitemap.xml"
     | "/tos"
     | "/forgot-password"
     | "/login"
@@ -258,6 +280,8 @@ export interface FileRouteTypes {
     | "/_authedRoutes"
     | "/pricing"
     | "/privacy-policy"
+    | "/robots.txt"
+    | "/sitemap.xml"
     | "/tos"
     | "/_auth/forgot-password"
     | "/_auth/login"
@@ -282,6 +306,8 @@ export interface RootRouteChildren {
   AuthedRoutesRouteRoute: typeof AuthedRoutesRouteRouteWithChildren
   PricingRoute: typeof PricingRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TosRoute: typeof TosRoute
   AppointmentsCreateRoute: typeof AppointmentsCreateRoute
   BarbershopsBarbershopUuidRoute: typeof BarbershopsBarbershopUuidRoute
@@ -296,6 +322,20 @@ declare module "@tanstack/react-router" {
       path: "/tos"
       fullPath: "/tos"
       preLoaderRoute: typeof TosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/sitemap.xml": {
+      id: "/sitemap.xml"
+      path: "/sitemap.xml"
+      fullPath: "/sitemap.xml"
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/robots.txt": {
+      id: "/robots.txt"
+      path: "/robots.txt"
+      fullPath: "/robots.txt"
+      preLoaderRoute: typeof RobotsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/privacy-policy": {
@@ -492,6 +532,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthedRoutesRouteRoute: AuthedRoutesRouteRouteWithChildren,
   PricingRoute: PricingRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   TosRoute: TosRoute,
   AppointmentsCreateRoute: AppointmentsCreateRoute,
   BarbershopsBarbershopUuidRoute: BarbershopsBarbershopUuidRoute,

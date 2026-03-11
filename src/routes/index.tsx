@@ -30,10 +30,24 @@ import {
 } from "@/hooks/use-barbershop-members";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 import { useLocationStore } from "@/store/barbershop-filters";
+import {
+  getCanonicalUrl,
+  organizationStructuredData,
+  seo,
+} from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
   pendingComponent: LoadingComponent,
   component: RouteComponent,
+  head: () => ({
+    meta: seo({
+      title: "PanaBarbero - Descubre barberías y reserva citas",
+      description: "Encuentra barberías, reserva citas y gestiona tu barbería con PanaBarbero. La solución completa para barberías.",
+      canonical: getCanonicalUrl("/"),
+    }),
+    links: [{ rel: "canonical", href: getCanonicalUrl("/") }],
+    scripts: [organizationStructuredData()],
+  }),
   loader: async ({ context }) => {
     const user = await context.queryClient.ensureQueryData(
       getSessionQueryOptions(),

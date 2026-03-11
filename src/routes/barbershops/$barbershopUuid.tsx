@@ -1,6 +1,7 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: objects are guaranteed to be not null */
 /** biome-ignore-all lint/suspicious/noNonNullAssertedOptionalChain: objects are guaranteed to be not null */
 
+import type { BarbershopMetadata, Review } from "@convex/schema";
 import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 
@@ -32,7 +33,11 @@ import {
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
-import { barbershopSeo } from "@/lib/utils";
+import {
+  barbershopSeo,
+  barbershopStructuredData,
+  getCanonicalUrl,
+} from "@/lib/utils";
 
 const BarbershopHeader = lazy(() =>
   import("@/components/barbershops/barbershop-header").then((module) => ({
@@ -68,6 +73,9 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
       );
     }
 
+    const metadata: BarbershopMetadata | null = null;
+    const reviews: Review[] = [];
+
     if (barbershop?._id) {
       await context.queryClient.ensureQueryData(
         servicesQueryOptions(barbershop._id),
@@ -90,19 +98,26 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
 
     return {
       seoBarbershop: barbershop,
+      seoMetadata: metadata,
+      seoReviews: reviews,
     };
   },
   head: ({ match }) => {
     const barbershop = match.context.seoBarbershop;
+    const metadata = match.context.seoMetadata;
+    const reviews = match.context.seoReviews;
 
     return {
-      meta: barbershopSeo(barbershop),
+      meta: barbershopSeo(barbershop, metadata),
       links: [
         {
           rel: "canonical",
-          href: `https://panabarbero.com/barbershops/${barbershop?.uuid}`,
+          href: getCanonicalUrl(`/barbershops/${barbershop?.uuid}`),
         },
       ],
+      ...(barbershop && {
+        scripts: [barbershopStructuredData(barbershop, metadata, reviews)],
+      }),
     };
   },
   ssr: true,

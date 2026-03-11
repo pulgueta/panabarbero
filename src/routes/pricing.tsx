@@ -8,6 +8,7 @@ import {
   getPricingPlansQueryOptions,
   getSubscriptionQueryOptions,
 } from "@/hooks/billing/use-pricing";
+import { getCanonicalUrl, seo } from "@/lib/utils";
 
 const PricingCards = lazy(() =>
   import("@/components/pricing/pricing-cards").then((module) => ({
@@ -18,6 +19,14 @@ const PricingCards = lazy(() =>
 export const Route = createFileRoute("/pricing")({
   component: PricingPage,
   pendingComponent: LoadingComponent,
+  head: () => ({
+    meta: seo({
+      title: "Planes de PanaBarbero - Precios y características",
+      description: "Descubre nuestros planes flexibles para barberías. Plan Gratuito, Pro y Premium con todas las herramientas que necesitas.",
+      canonical: getCanonicalUrl("/pricing"),
+    }),
+    links: [{ rel: "canonical", href: getCanonicalUrl("/pricing") }],
+  }),
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(getPricingPlansQueryOptions()),

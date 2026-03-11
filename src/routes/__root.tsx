@@ -46,8 +46,13 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     meta: seo({
       title: "PanaBarbero - Descubre barberías",
       description: "La solución para las barberías.",
+      canonical: "https://panabarbero.com",
     }),
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "canonical", href: "https://panabarbero.com" },
+      { rel: "sitemap", href: "/sitemap.xml" },
+    ],
   }),
   beforeLoad: async ({ context }) => {
     const token = await getAuth();
