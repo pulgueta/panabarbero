@@ -91,13 +91,6 @@ export function seo({
     { name: "twitter:image", content: image },
     { name: "twitter:creator", content: "@panabarbero" },
     { name: "twitter:site", content: "@panabarbero" },
-    {
-      charSet: "utf-8",
-    },
-    {
-      name: "viewport",
-      content: "width=device-width, initial-scale=1",
-    },
   ];
 }
 
@@ -226,31 +219,64 @@ export function barbershopStructuredData(
 }
 
 /**
- * Organization structured data (JSON-LD) for homepage
+ * WebSite + Organization structured data (JSON-LD) for the root layout.
+ * Provides site-wide context for both search engines and AI systems (LLMO).
  */
-export function organizationStructuredData(): ScriptHTMLAttributes<HTMLScriptElement> & {
+export function websiteStructuredData(): ScriptHTMLAttributes<HTMLScriptElement> & {
   children: string;
 } {
   return {
     type: "application/ld+json",
     children: JSON.stringify({
       "@context": "https://schema.org",
-      "@type": "Organization",
+      "@type": "WebSite",
       name: "PanaBarbero",
       url: baseUrl,
-      logo: `${env.VITE_STORAGE_URL}/panabarbero-logo.png`,
       description:
         "La solución para las barberías - Gestiona citas y clientes fácilmente",
-      sameAs: [
-        "https://twitter.com/panabarbero",
-        "https://instagram.com/panabarbero",
-        "https://facebook.com/panabarbero",
-      ],
-      contactPoint: {
-        "@type": "ContactPoint",
-        contactType: "Customer Support",
-        email: "support@panabarbero.com",
+      publisher: {
+        "@type": "Organization",
+        name: "PanaBarbero",
+        url: baseUrl,
+        logo: {
+          "@type": "ImageObject",
+          url: `${env.VITE_STORAGE_URL}/panabarbero-logo.png`,
+        },
+        sameAs: [
+          "https://twitter.com/panabarbero",
+          "https://instagram.com/panabarbero",
+          "https://facebook.com/panabarbero",
+        ],
+        contactPoint: {
+          "@type": "ContactPoint",
+          contactType: "Customer Support",
+          email: "support@panabarbero.com",
+        },
       },
+    }),
+  };
+}
+
+/**
+ * FAQPage structured data (JSON-LD).
+ * Particularly effective for LLMO — AI systems extract Q&A pairs directly.
+ */
+export function faqStructuredData(
+  faqs: Array<{ question: string; answer: string }>,
+): ScriptHTMLAttributes<HTMLScriptElement> & { children: string } {
+  return {
+    type: "application/ld+json",
+    children: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: faqs.map((faq) => ({
+        "@type": "Question",
+        name: faq.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: faq.answer,
+        },
+      })),
     }),
   };
 }

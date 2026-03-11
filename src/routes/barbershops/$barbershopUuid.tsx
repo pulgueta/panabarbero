@@ -36,6 +36,7 @@ import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 import {
   barbershopSeo,
   barbershopStructuredData,
+  breadcrumbStructuredData,
   getCanonicalUrl,
 } from "@/lib/utils";
 
@@ -115,9 +116,21 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
           href: getCanonicalUrl(`/barbershops/${barbershop?.uuid}`),
         },
       ],
-      ...(barbershop && {
-        scripts: [barbershopStructuredData(barbershop, metadata, reviews)],
-      }),
+      scripts: [
+        ...(barbershop
+          ? [
+              barbershopStructuredData(barbershop, metadata, reviews),
+              breadcrumbStructuredData([
+                { name: "Inicio", url: getCanonicalUrl("/") },
+                { name: "Barberías", url: getCanonicalUrl("/barbershops") },
+                {
+                  name: barbershop.name,
+                  url: getCanonicalUrl(`/barbershops/${barbershop.uuid}`),
+                },
+              ]),
+            ]
+          : []),
+      ],
     };
   },
   ssr: true,

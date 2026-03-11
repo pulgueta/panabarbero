@@ -19,7 +19,7 @@ import {
   useActiveBarbershops,
 } from "@/hooks/barbershop/use-barbershop";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
-import { getCanonicalUrl, seo } from "@/lib/utils";
+import { breadcrumbStructuredData, getCanonicalUrl, seo } from "@/lib/utils";
 import { useLocationStore } from "@/store/barbershop-filters";
 
 const BarbershopFilters = lazy(() =>
@@ -74,6 +74,12 @@ export const Route = createFileRoute("/barbershops/")({
         canonical: getCanonicalUrl("/barbershops"),
       }),
       links: [{ rel: "canonical", href: getCanonicalUrl("/barbershops") }],
+      scripts: [
+        breadcrumbStructuredData([
+          { name: "Inicio", url: getCanonicalUrl("/") },
+          { name: "Barberías", url: getCanonicalUrl("/barbershops") },
+        ]),
+      ],
     };
   },
   loader: async (opts) => {

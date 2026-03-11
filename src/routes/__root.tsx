@@ -28,7 +28,7 @@ import { ThemeProvider } from "@/components/layout/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { authClient } from "@/lib/auth-client";
 import { getToken } from "@/lib/auth-server";
-import { seo } from "@/lib/utils";
+import { seo, websiteStructuredData } from "@/lib/utils";
 import appCss from "@/styles.css?url";
 
 const getAuth = createServerFn({ method: "GET" }).handler(
@@ -43,16 +43,23 @@ type RouterContext = {
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   head: () => ({
-    meta: seo({
-      title: "PanaBarbero - Descubre barberías",
-      description: "La solución para las barberías.",
-      canonical: "https://panabarbero.com",
-    }),
+    meta: [
+      { charSet: "utf-8" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { property: "og:site_name", content: "PanaBarbero" },
+      { property: "og:locale", content: "es_CO" },
+      ...seo({
+        title: "PanaBarbero - Descubre barberías",
+        description: "La solución para las barberías.",
+        canonical: "https://panabarbero.com",
+      }),
+    ],
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "canonical", href: "https://panabarbero.com" },
       { rel: "sitemap", href: "/sitemap.xml" },
     ],
+    scripts: [websiteStructuredData()],
   }),
   beforeLoad: async ({ context }) => {
     const token = await getAuth();

@@ -14,6 +14,7 @@ import { Route as SitemapDotxmlRouteImport } from "./routes/sitemap[.]xml"
 import { Route as RobotsDottxtRouteImport } from "./routes/robots[.]txt"
 import { Route as PrivacyPolicyRouteImport } from "./routes/privacy-policy"
 import { Route as PricingRouteImport } from "./routes/pricing"
+import { Route as LlmsDottxtRouteImport } from "./routes/llms[.]txt"
 import { Route as AuthedRoutesRouteRouteImport } from "./routes/_authedRoutes/route"
 import { Route as AuthRouteRouteImport } from "./routes/_auth/route"
 import { Route as IndexRouteImport } from "./routes/index"
@@ -56,6 +57,11 @@ const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
 const PricingRoute = PricingRouteImport.update({
   id: "/pricing",
   path: "/pricing",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
+  id: "/llms.txt",
+  path: "/llms.txt",
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthedRoutesRouteRoute = AuthedRoutesRouteRouteImport.update({
@@ -156,6 +162,7 @@ const AuthedRoutesProfileBarbershopsAppointmentsIndexRoute =
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
+  "/llms.txt": typeof LlmsDottxtRoute
   "/pricing": typeof PricingRoute
   "/privacy-policy": typeof PrivacyPolicyRoute
   "/robots.txt": typeof RobotsDottxtRoute
@@ -179,6 +186,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
+  "/llms.txt": typeof LlmsDottxtRoute
   "/pricing": typeof PricingRoute
   "/privacy-policy": typeof PrivacyPolicyRoute
   "/robots.txt": typeof RobotsDottxtRoute
@@ -205,6 +213,7 @@ export interface FileRoutesById {
   "/": typeof IndexRoute
   "/_auth": typeof AuthRouteRouteWithChildren
   "/_authedRoutes": typeof AuthedRoutesRouteRouteWithChildren
+  "/llms.txt": typeof LlmsDottxtRoute
   "/pricing": typeof PricingRoute
   "/privacy-policy": typeof PrivacyPolicyRoute
   "/robots.txt": typeof RobotsDottxtRoute
@@ -230,6 +239,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | "/"
+    | "/llms.txt"
     | "/pricing"
     | "/privacy-policy"
     | "/robots.txt"
@@ -253,6 +263,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | "/"
+    | "/llms.txt"
     | "/pricing"
     | "/privacy-policy"
     | "/robots.txt"
@@ -278,6 +289,7 @@ export interface FileRouteTypes {
     | "/"
     | "/_auth"
     | "/_authedRoutes"
+    | "/llms.txt"
     | "/pricing"
     | "/privacy-policy"
     | "/robots.txt"
@@ -304,6 +316,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRouteRoute: typeof AuthRouteRouteWithChildren
   AuthedRoutesRouteRoute: typeof AuthedRoutesRouteRouteWithChildren
+  LlmsDottxtRoute: typeof LlmsDottxtRoute
   PricingRoute: typeof PricingRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
@@ -350,6 +363,13 @@ declare module "@tanstack/react-router" {
       path: "/pricing"
       fullPath: "/pricing"
       preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/llms.txt": {
+      id: "/llms.txt"
+      path: "/llms.txt"
+      fullPath: "/llms.txt"
+      preLoaderRoute: typeof LlmsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/_authedRoutes": {
@@ -530,6 +550,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRouteRoute: AuthRouteRouteWithChildren,
   AuthedRoutesRouteRoute: AuthedRoutesRouteRouteWithChildren,
+  LlmsDottxtRoute: LlmsDottxtRoute,
   PricingRoute: PricingRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
