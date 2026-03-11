@@ -8,6 +8,7 @@ import { useAppForm } from "@/components/form/use-form";
 import { FieldGroup } from "@/components/ui/field";
 import { useBarbershopMemberActions } from "@/hooks/use-barbershop-members";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
+import { formatPhoneNumber } from "@/lib/utils";
 
 export const InviteBarberForm: FC = () => {
   const haptic = useWebHaptics();
@@ -37,7 +38,7 @@ export const InviteBarberForm: FC = () => {
       try {
         await inviteBarber({
           ...value,
-          phone: value.phone.trim(),
+          phone: formatPhoneNumber(value.phone),
           email: value.email.trim().toLowerCase(),
         });
 

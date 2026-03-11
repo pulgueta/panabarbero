@@ -2,6 +2,7 @@ import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zInternalMutation, zMutation, zQuery } from ".";
+import { formatPhoneNumber } from "../src/lib/utils";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { authComponent, createAuth } from "./auth";
 import { errorMessages } from "./errors";
@@ -102,7 +103,9 @@ export const updatePhoneNumber = zMutation({
       return;
     }
 
-    const phoneNumber = args.phoneNumber?.trim();
+    const phoneNumber = args.phoneNumber
+      ? formatPhoneNumber(args.phoneNumber)
+      : undefined;
 
     await ctx.db.patch(profile._id, {
       phoneNumber,

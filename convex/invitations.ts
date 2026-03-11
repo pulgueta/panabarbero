@@ -2,6 +2,7 @@ import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zMutation, zQuery } from ".";
+import { formatPhoneNumber } from "../src/lib/utils";
 import { internal } from "./_generated/api";
 import { assertBarberInviteAllowed } from "./acl";
 import { authComponent } from "./auth";
@@ -90,7 +91,7 @@ export const invite = zMutation({
     const invitationId = await ctx.db.insert("invitations", {
       barbershopId: barbershop._id,
       email,
-      phone: args.phone,
+      phone: formatPhoneNumber(args.phone),
       roles: args.roles,
       code,
       status: "pending",

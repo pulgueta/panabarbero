@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { useBarbershopActions } from "@/hooks/barbershop/use-barbershop";
+import { formatPhoneNumber } from "@/lib/utils";
 
 interface ContactFormProps {
   barbershop: Barbershop;
@@ -53,7 +54,7 @@ export const ContactForm: FC<ContactFormProps> = ({
             ? { x: barbershop.coordinates.x, y: barbershop.coordinates.y }
             : undefined,
           services: barbershop.services ?? [],
-          contactPhone: phone || undefined,
+          contactPhone: phone ? formatPhoneNumber(phone) : undefined,
           isActive: barbershop.isActive,
           gracePeriodMinutes: barbershop.gracePeriodMinutes ?? 5,
           ownerId: barbershop.ownerId,

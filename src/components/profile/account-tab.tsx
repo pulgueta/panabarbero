@@ -24,6 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { usePlan } from "@/hooks/billing/use-plan";
 import { usePricingPlans } from "@/hooks/billing/use-pricing";
 import { useProfileActions } from "@/hooks/use-profile";
+import { formatPhoneNumber } from "@/lib/utils";
 
 const CreateBarbershopDialog = lazy(() =>
   import("@/components/barbershops/create-barbershop-dialog").then((mod) => ({
@@ -225,7 +226,9 @@ export const AccountTab: FC<AccountTabProps> = ({
                   />
                   <Button
                     onClick={() =>
-                      updatePhoneNumber({ phoneNumber: phone ?? "" })
+                      updatePhoneNumber({
+                        phoneNumber: phone ? formatPhoneNumber(phone) : "",
+                      })
                     }
                     disabled={isUpdatingPhoneNumber}
                   >

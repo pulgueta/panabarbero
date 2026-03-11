@@ -6,6 +6,7 @@ import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zInternalMutation, zInternalQuery, zMutation, zQuery } from ".";
+import { formatPhoneNumber } from "../src/lib/utils";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
@@ -286,6 +287,7 @@ export const create = zMutation({
 
     const appointmentId = await ctx.db.insert("appointments", {
       ...withoutIsBarber,
+      contactPhone: formatPhoneNumber(withoutIsBarber.contactPhone),
       userId: appointmentUserId,
       status: "confirmed",
     });

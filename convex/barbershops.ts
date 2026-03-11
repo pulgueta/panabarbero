@@ -6,6 +6,7 @@ import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zMutation, zQuery } from ".";
+import { formatPhoneNumber } from "../src/lib/utils";
 import { api, internal } from "./_generated/api";
 import { assertIsSubscribed } from "./acl";
 import { authComponent } from "./auth";
@@ -437,7 +438,14 @@ export const update = zMutation({
 
     await rateLimitOrThrow(ctx, "updateBarbershop", user._id);
 
-    await ctx.db.patch(args.id, args.data);
+    const dataToUpdate = {
+      ...args.data,
+      ...(args.data.contactPhone && {
+        contactPhone: formatPhoneNumber(args.data.contactPhone),
+      }),
+    };
+
+    await ctx.db.patch(args.id, dataToUpdate);
   },
 });
 

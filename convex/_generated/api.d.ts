@@ -32,6 +32,7 @@ import type * as ratelimit from "../ratelimit.js";
 import type * as services from "../services.js";
 import type * as twilio from "../twilio.js";
 import type * as userProfileData from "../userProfileData.js";
+import type * as utils from "../utils.js";
 
 import type {
   ApiFromModules,
@@ -64,6 +65,7 @@ declare const fullApi: ApiFromModules<{
   services: typeof services;
   twilio: typeof twilio;
   userProfileData: typeof userProfileData;
+  utils: typeof utils;
 }>;
 
 /**
