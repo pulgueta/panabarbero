@@ -1,7 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: objects are guaranteed to be not null */
 /** biome-ignore-all lint/suspicious/noNonNullAssertedOptionalChain: objects are guaranteed to be not null */
 
-import type { BarbershopMetadata, Review } from "@convex/schema";
 import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 
@@ -74,9 +73,6 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
       );
     }
 
-    const metadata: BarbershopMetadata | null = null;
-    const reviews: Review[] = [];
-
     if (barbershop?._id) {
       await context.queryClient.ensureQueryData(
         servicesQueryOptions(barbershop._id),
@@ -99,17 +95,13 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
 
     return {
       seoBarbershop: barbershop,
-      seoMetadata: metadata,
-      seoReviews: reviews,
     };
   },
   head: ({ match }) => {
     const barbershop = match.context.seoBarbershop;
-    const metadata = match.context.seoMetadata;
-    const reviews = match.context.seoReviews;
 
     return {
-      meta: barbershopSeo(barbershop, metadata),
+      meta: barbershopSeo(barbershop),
       links: [
         {
           rel: "canonical",
@@ -119,7 +111,7 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
       scripts: [
         ...(barbershop
           ? [
-              barbershopStructuredData(barbershop, metadata, reviews),
+              barbershopStructuredData(barbershop),
               breadcrumbStructuredData([
                 { name: "Inicio", url: getCanonicalUrl("/") },
                 { name: "Barberías", url: getCanonicalUrl("/barbershops") },

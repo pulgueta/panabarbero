@@ -111,7 +111,7 @@ export function barbershopSeo(
     `Visita ${barbershop.name} en PanaBarbero y reserva tu cita ahora.`;
   const rating = metadata?.rating ? `${metadata.rating.toFixed(1)}⭐` : "";
   const ratingText = rating
-    ? ` - ${rating} (${metadata?.reviews || 0} reseñas)`
+    ? ` - ${rating} (${metadata?.reviews} reseñas)`
     : "";
   const title = `${barbershop.name} en PanaBarbero${ratingText}`;
 
