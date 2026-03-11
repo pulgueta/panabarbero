@@ -9,7 +9,7 @@ import { ConvexError } from "convex/values";
 
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { emailUsageAggregate, smsUsageAggregate } from "./aggregates";
+import { usageTriggers } from "./aggregates";
 import { errorMessages } from "./errors";
 import {
   getCurrentYearMonth,
@@ -207,12 +207,9 @@ export async function isEmailLimitNotExceeded(
 /**
  * Increment the SMS counter for a barbershop in the current month.
  * Creates the `usage` row if it doesn't exist yet (upsert pattern).
- * Syncs the `smsUsageAggregate` TableAggregate.
  *
- * IMPORTANT: `smsUsageAggregate` and `emailUsageAggregate` are maintained
- * manually (not via `.trigger()`). Any future mutation that deletes a `usage`
- * row MUST also call `.delete()` on both aggregates, otherwise the sums will
- * drift permanently.
+ * Writes go through `usageTriggers.wrapDB` so that `smsUsageAggregate` and
+ * `emailUsageAggregate` are updated automatically — no manual sync needed.
  */
 export async function incrementSmsSent(
   ctx: MutationCtx,
@@ -220,35 +217,26 @@ export async function incrementSmsSent(
 ): Promise<void> {
   const month = getCurrentYearMonth();
   const existing = await getUsageRow(ctx, barbershopId, month);
+  const db = usageTriggers.wrapDB(ctx).db;
 
   if (existing) {
-    await ctx.db.patch(existing._id, { smsSent: existing.smsSent + 1 });
-
-    const updated = await ctx.db.get(existing._id);
-
-    if (updated) {
-      await smsUsageAggregate.replace(ctx, existing, updated);
-    }
+    await db.patch(existing._id, { smsSent: existing.smsSent + 1 });
   } else {
-    const id = await ctx.db.insert("usage", {
+    await db.insert("usage", {
       barbershopId,
       month,
       smsSent: 1,
       emailsSent: 0,
     });
-    const doc = await ctx.db.get(id);
-
-    if (doc) {
-      await smsUsageAggregate.insert(ctx, doc);
-      await emailUsageAggregate.insert(ctx, doc);
-    }
   }
 }
 
 /**
  * Increment the email counter for a barbershop in the current month.
  * Creates the `usage` row if it doesn't exist yet (upsert pattern).
- * Syncs the `emailUsageAggregate` TableAggregate.
+ *
+ * Writes go through `usageTriggers.wrapDB` so that `emailUsageAggregate` is
+ * updated automatically — no manual sync needed.
  */
 export async function incrementEmailSent(
   ctx: MutationCtx,
@@ -256,28 +244,16 @@ export async function incrementEmailSent(
 ): Promise<void> {
   const month = getCurrentYearMonth();
   const existing = await getUsageRow(ctx, barbershopId, month);
+  const db = usageTriggers.wrapDB(ctx).db;
 
   if (existing) {
-    await ctx.db.patch(existing._id, { emailsSent: existing.emailsSent + 1 });
-
-    const updated = await ctx.db.get(existing._id);
-
-    if (updated) {
-      await emailUsageAggregate.replace(ctx, existing, updated);
-    }
+    await db.patch(existing._id, { emailsSent: existing.emailsSent + 1 });
   } else {
-    const id = await ctx.db.insert("usage", {
+    await db.insert("usage", {
       barbershopId,
       month,
       smsSent: 0,
       emailsSent: 1,
     });
-
-    const doc = await ctx.db.get(id);
-
-    if (doc) {
-      await smsUsageAggregate.insert(ctx, doc);
-      await emailUsageAggregate.insert(ctx, doc);
-    }
   }
 }

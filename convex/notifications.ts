@@ -588,21 +588,18 @@ export const createBarberInvited = internalMutation({
 
     const invitationUrl = `${process.env.SITE_URL}/invitations/${args.code}`;
 
-    await scheduleSmsWithQuota(ctx, {
-      to: args.phone,
+    await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
       body: `Has sido invitado a unirte a ${barbershop.name} como barbero. Ver detalles: ${invitationUrl}`,
-      barbershopId: args.barbershopId,
+      to: args.phone,
     });
 
-    await scheduleEmailWithQuota(ctx, args.barbershopId, () =>
-      ctx.scheduler.runAfter(0, internal.emails.sendBarberInvitationEmail, {
-        to: args.email,
-        barbershopName: barbershop.name,
-        invitationLink: invitationUrl,
-        inviterName: inviterProfile?.name ?? undefined,
-        expiresLabel: new Date(args.expiresAt).toLocaleDateString("es-ES"),
-      }),
-    );
+    await ctx.scheduler.runAfter(0, internal.emails.sendBarberInvitationEmail, {
+      to: args.email,
+      barbershopName: barbershop.name,
+      invitationLink: invitationUrl,
+      inviterName: inviterProfile?.name ?? undefined,
+      expiresLabel: new Date(args.expiresAt).toLocaleDateString("es-ES"),
+    });
   },
 });
 
