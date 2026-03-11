@@ -509,7 +509,6 @@ export const setStatus = zMutation({
         await ctx.runMutation(
           internal.barbershopMetadata.incrementCompletedAppointments,
           {
-            barbershopMetadataId: barbershop.metadataId,
             barbershopId: appt.barbershopId,
             appointmentId: appointmentId,
           },
@@ -528,6 +527,18 @@ export const setStatus = zMutation({
 
       case "cancelled":
         await cancelScheduledNotifications(ctx, appt);
+
+        if (appt.status === "completed") {
+          await ctx.runMutation(
+            internal.barbershopMetadata.decrementCompletedAppointments,
+            {
+              barbershopId: appt.barbershopId,
+              appointmentId,
+              appointmentDate: appt.date,
+            },
+          );
+        }
+
         await ctx.db.delete(appointmentId);
         break;
 

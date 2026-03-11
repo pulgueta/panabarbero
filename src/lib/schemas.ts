@@ -144,7 +144,6 @@ export const barbershopFormSchemaV2 = object({
   metadata: object({
     websiteUrl: url().optional(),
     contactEmail: email().optional(),
-    completedAppointments: coerce.number().optional(),
     reviews: coerce.number().optional(),
     rating: coerce.number().optional(),
     socialMedia: array(socialMediaSchema).optional(),

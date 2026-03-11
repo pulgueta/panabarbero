@@ -4,7 +4,7 @@ import { z } from "zod";
 import { zInternalMutation, zQuery } from ".";
 import { completedAppointmentsAggregate } from "./aggregates";
 import { errorMessages } from "./errors";
-import { appointments, barbershopMetadata, barbershops } from "./schema";
+import { appointments, barbershops } from "./schema";
 
 export const createInitial = zInternalMutation({
   args: barbershops.tools.id,
@@ -12,7 +12,6 @@ export const createInitial = zInternalMutation({
     const metadataId = await ctx.db.insert("barbershopMetadata", {
       uuid: crypto.randomUUID(),
       barbershopId: args.id,
-      completedAppointments: 0,
       reviews: 0,
       rating: 0,
     });
@@ -46,36 +45,55 @@ export const increaseBarbershopRating = zInternalMutation({
   },
 });
 
+export const decrementCompletedAppointments = zInternalMutation({
+  args: z.object({
+    barbershopId: barbershops.tools.id.shape.id,
+    appointmentId: appointments.tools.id.shape.id,
+    appointmentDate: z.number(),
+  }),
+  handler: async (ctx, args) => {
+    await completedAppointmentsAggregate.delete(ctx, {
+      namespace: args.barbershopId,
+      key: args.appointmentDate,
+      id: args.appointmentId,
+    });
+  },
+});
+
 export const get = zQuery({
   args: barbershops.tools.id,
   handler: async (ctx, args) => {
-    return await ctx.db
+    const metadata = await ctx.db
       .query("barbershopMetadata")
       .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
       .unique();
+
+    if (!metadata) return null;
+
+    const completedAppointments = await completedAppointmentsAggregate.count(
+      ctx,
+      { namespace: args.id },
+    );
+
+    return { ...metadata, completedAppointments };
   },
 });
 
 export const incrementCompletedAppointments = zInternalMutation({
   args: z.object({
-    barbershopMetadataId: barbershopMetadata.tools.id.shape.id,
     barbershopId: barbershops.tools.id.shape.id,
     appointmentId: appointments.tools.id.shape.id,
   }),
   handler: async (ctx, args) => {
-    const metadata = await ctx.db.get(args.barbershopMetadataId);
+    const appointment = await ctx.db.get(args.appointmentId);
 
-    if (!metadata) {
-      throw new ConvexError(errorMessages.notFound("metadata"));
+    if (!appointment) {
+      throw new ConvexError(errorMessages.notFound("cita"));
     }
-
-    await ctx.db.patch(args.barbershopMetadataId, {
-      completedAppointments: (metadata.completedAppointments ?? 0) + 1,
-    });
 
     await completedAppointmentsAggregate.insert(ctx, {
       namespace: args.barbershopId,
-      key: Date.now(),
+      key: appointment.date,
       id: args.appointmentId,
     });
   },

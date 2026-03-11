@@ -207,7 +207,12 @@ export async function isEmailLimitNotExceeded(
 /**
  * Increment the SMS counter for a barbershop in the current month.
  * Creates the `usage` row if it doesn't exist yet (upsert pattern).
- * Syncs the `smsUsageAggregate` and `emailUsageAggregate` TableAggregates.
+ * Syncs the `smsUsageAggregate` TableAggregate.
+ *
+ * IMPORTANT: `smsUsageAggregate` and `emailUsageAggregate` are maintained
+ * manually (not via `.trigger()`). Any future mutation that deletes a `usage`
+ * row MUST also call `.delete()` on both aggregates, otherwise the sums will
+ * drift permanently.
  */
 export async function incrementSmsSent(
   ctx: MutationCtx,
@@ -223,7 +228,6 @@ export async function incrementSmsSent(
 
     if (updated) {
       await smsUsageAggregate.replace(ctx, existing, updated);
-      await emailUsageAggregate.replace(ctx, existing, updated);
     }
   } else {
     const id = await ctx.db.insert("usage", {
@@ -244,7 +248,7 @@ export async function incrementSmsSent(
 /**
  * Increment the email counter for a barbershop in the current month.
  * Creates the `usage` row if it doesn't exist yet (upsert pattern).
- * Syncs the `smsUsageAggregate` and `emailUsageAggregate` TableAggregates.
+ * Syncs the `emailUsageAggregate` TableAggregate.
  */
 export async function incrementEmailSent(
   ctx: MutationCtx,
@@ -259,7 +263,6 @@ export async function incrementEmailSent(
     const updated = await ctx.db.get(existing._id);
 
     if (updated) {
-      await smsUsageAggregate.replace(ctx, existing, updated);
       await emailUsageAggregate.replace(ctx, existing, updated);
     }
   } else {

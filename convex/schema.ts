@@ -67,7 +67,6 @@ export const barbershopMetadata = zodTable("barbershopMetadata", (id) => ({
   uuid: z.uuidv4().default(crypto.randomUUID()),
   websiteUrl: z.string().optional(),
   contactEmail: z.string().optional(),
-  completedAppointments: z.number().optional(),
   reviews: z.number().optional(),
   rating: z.number().optional(),
   socialMedia: z
@@ -261,6 +260,9 @@ export type BarbershopMetadata = output<typeof barbershopMetadata.schema>;
 export type BarbershopMember = output<typeof barbershopMembers.schema>;
 export type BarbershopMemberWithName = BarbershopMember & {
   name: string;
+};
+export type BarbershopMetadataWithCount = BarbershopMetadata & {
+  completedAppointments: number;
 };
 export type Service = output<typeof services.schema>;
 export type Review = output<typeof reviews.schema>;
