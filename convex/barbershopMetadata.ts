@@ -10,10 +10,7 @@ export const createInitial = zInternalMutation({
   args: barbershops.tools.id,
   handler: async (ctx, args) => {
     const metadataId = await ctx.db.insert("barbershopMetadata", {
-      uuid: crypto.randomUUID(),
       barbershopId: args.id,
-      reviews: 0,
-      rating: 0,
     });
 
     return metadataId;
@@ -23,25 +20,13 @@ export const createInitial = zInternalMutation({
 export const increaseBarbershopRating = zInternalMutation({
   args: barbershops.tools.id,
   handler: async (ctx, args) => {
-    // const reviews = await ctx.runQuery(api.reviews.getByBarbershopId, {
-    //   barbershopId: args.id,
-    // });
+    // TODO: Implement aggregate component for rating
 
     const barbershop = await ctx.db.get(args.id);
 
     if (!barbershop) {
       throw new ConvexError(errorMessages.notFound("barbershop"));
     }
-
-    // const averageRating =
-    //   reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length;
-
-    // if (barbershop.metadataId) {
-    //   await ctx.db.patch(barbershop.metadataId, {
-    //     rating: averageRating,
-    //     reviews: reviews.length,
-    //   });
-    // }
   },
 });
 

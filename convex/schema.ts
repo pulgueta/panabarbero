@@ -24,12 +24,6 @@ export const barbershops = zodTable("barbershops", (id) => ({
     fullAddress: z.string(),
     details: z.string().optional(),
   }),
-  coordinates: z
-    .object({
-      x: z.number(),
-      y: z.number(),
-    })
-    .optional(),
   services: id("services").array(),
   contactPhone: z.string().optional(),
   isActive: z.boolean(),
@@ -58,17 +52,14 @@ export const barbershops = zodTable("barbershops", (id) => ({
   city: z.string(),
   state: z.string(),
   zipCode: z.string().optional(),
-  bannerUrl: z.string().optional(),
   metadataId: id("barbershopMetadata").optional(),
 }));
 
 export const barbershopMetadata = zodTable("barbershopMetadata", (id) => ({
   barbershopId: id("barbershops"),
-  uuid: z.uuidv4().default(crypto.randomUUID()),
   websiteUrl: z.string().optional(),
   contactEmail: z.string().optional(),
-  reviews: z.number().optional(),
-  rating: z.number().optional(),
+  bannerUrl: z.string().optional(),
   socialMedia: z
     .array(
       z.object({
@@ -90,7 +81,6 @@ export const barbershopMembers = zodTable("barbershopMembers", (id) => ({
   barbershopId: id("barbershops"),
   joinedAt: z.number(),
   isActive: z.boolean(),
-  completedAppointments: z.number().optional(),
   roles: z.enum(["owner", "barber"]).array(),
 }));
 

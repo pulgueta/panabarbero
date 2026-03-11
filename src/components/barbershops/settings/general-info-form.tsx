@@ -45,9 +45,6 @@ export const GeneralInfoForm: FC<GeneralInfoFormProps> = ({ barbershop }) => {
           name,
           description: description || undefined,
           address: barbershop.address,
-          coordinates: barbershop.coordinates
-            ? { x: barbershop.coordinates.x, y: barbershop.coordinates.y }
-            : undefined,
           services: barbershop.services ?? [],
           contactPhone: barbershop.contactPhone || undefined,
           isActive: barbershop.isActive,
@@ -57,7 +54,6 @@ export const GeneralInfoForm: FC<GeneralInfoFormProps> = ({ barbershop }) => {
           city: barbershop.city,
           state: barbershop.state,
           zipCode: barbershop.zipCode || undefined,
-          bannerUrl: barbershop.bannerUrl || undefined,
         },
       });
       haptic.trigger("success");
