@@ -2,13 +2,13 @@ import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zMutation, zQuery } from ".";
-import { formatPhoneNumber } from "../src/lib/utils";
 import { internal } from "./_generated/api";
 import { assertBarberInviteAllowed } from "./acl";
 import { authComponent } from "./auth";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
 import { getProfileByEmail, getProfileByUserId } from "./userProfileData";
+import { formatPhoneNumber } from "./utils";
 
 const INVITATION_EXPIRATION_MS = 1000 * 60 * 60 * 24 * 7;
 

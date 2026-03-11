@@ -2,12 +2,12 @@ import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zInternalMutation, zMutation, zQuery } from ".";
-import { formatPhoneNumber } from "../src/lib/utils";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { authComponent, createAuth } from "./auth";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
 import { userProfileData } from "./schema";
+import { formatPhoneNumber } from "./utils";
 
 export const getProfileByUserId = async (
   ctx: QueryCtx | MutationCtx,

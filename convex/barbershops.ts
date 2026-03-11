@@ -6,7 +6,6 @@ import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zMutation, zQuery } from ".";
-import { formatPhoneNumber } from "../src/lib/utils";
 import { api, internal } from "./_generated/api";
 import { assertIsSubscribed } from "./acl";
 import { authComponent } from "./auth";
@@ -14,6 +13,7 @@ import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
 import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
+import { formatPhoneNumber } from "./utils";
 
 export const create = zMutation({
   args: z.object({

@@ -6,7 +6,6 @@ import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zInternalMutation, zInternalQuery, zMutation, zQuery } from ".";
-import { formatPhoneNumber } from "../src/lib/utils";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
@@ -27,6 +26,7 @@ import {
   services,
 } from "./schema";
 import { getProfileByEmail, getProfileByUserId } from "./userProfileData";
+import { formatPhoneNumber } from "./utils";
 
 const MINUTE_MS = 60 * 1000;
 
