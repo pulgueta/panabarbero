@@ -52,7 +52,7 @@ export const decrementCompletedAppointments = zInternalMutation({
     appointmentDate: z.number(),
   }),
   handler: async (ctx, args) => {
-    await completedAppointmentsAggregate.delete(ctx, {
+    await completedAppointmentsAggregate.deleteIfExists(ctx, {
       namespace: args.barbershopId,
       key: args.appointmentDate,
       id: args.appointmentId,
