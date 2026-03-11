@@ -33,6 +33,8 @@ export interface PlanLimits {
   maxInvitedBarbers: number | null;
   /** Max SMS the barbershop can send per calendar month. `null` means unlimited. */
   maxSmsPerMonth: number | null;
+  /** Max emails the barbershop can send per calendar month. `null` means unlimited. */
+  maxEmailPerMonth: number | null;
   /** Whether staff (owner/barber) can create appointments on behalf of clients. */
   staffCanCreateAppointments: boolean;
 }
@@ -40,17 +42,20 @@ export interface PlanLimits {
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
   free: {
     maxInvitedBarbers: 0,
-    maxSmsPerMonth: 500,
+    maxSmsPerMonth: 200,
+    maxEmailPerMonth: 50,
     staffCanCreateAppointments: false,
   },
   pro: {
-    maxInvitedBarbers: 4,
-    maxSmsPerMonth: 2500,
+    maxInvitedBarbers: 5,
+    maxSmsPerMonth: 1000,
+    maxEmailPerMonth: 500,
     staffCanCreateAppointments: true,
   },
   premium: {
-    maxInvitedBarbers: 9,
+    maxInvitedBarbers: 10,
     maxSmsPerMonth: null,
+    maxEmailPerMonth: null,
     staffCanCreateAppointments: true,
   },
 };

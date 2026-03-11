@@ -506,7 +506,11 @@ export const setStatus = zMutation({
 
         await ctx.runMutation(
           internal.barbershopMetadata.incrementCompletedAppointments,
-          { id: barbershop.metadataId },
+          {
+            barbershopMetadataId: barbershop.metadataId,
+            barbershopId: appt.barbershopId,
+            appointmentId: appointmentId,
+          },
         );
         break;
 

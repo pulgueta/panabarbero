@@ -182,10 +182,11 @@ export const invitations = zodTable("invitations", (id) => ({
   inviterUserId: z.string(),
 }));
 
-export const smsUsage = zodTable("smsUsage", (id) => ({
+export const usage = zodTable("usage", (id) => ({
   barbershopId: id("barbershops"),
   month: z.string(),
   smsSent: z.number(),
+  emailsSent: z.number(),
 }));
 
 export default defineSchema({
@@ -251,9 +252,7 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_expiresAt", ["expiresAt"]),
 
-  smsUsage: smsUsage
-    .table()
-    .index("by_barbershop_month", ["barbershopId", "month"]),
+  usage: usage.table().index("by_barbershop_month", ["barbershopId", "month"]),
 });
 
 export type UserProfileData = output<typeof userProfileData.schema>;
@@ -270,4 +269,4 @@ export type BarbershopMemberServices = output<
   typeof barbershopMemberServices.schema
 >;
 export type Invitation = output<typeof invitations.schema>;
-export type SmsUsage = output<typeof smsUsage.schema>;
+export type Usage = output<typeof usage.schema>;

@@ -1,8 +1,10 @@
 import { ConvexError } from "convex/values";
+import { z } from "zod";
 
 import { zInternalMutation, zQuery } from ".";
+import { completedAppointmentsAggregate } from "./aggregates";
 import { errorMessages } from "./errors";
-import { barbershopMetadata, barbershops } from "./schema";
+import { appointments, barbershopMetadata, barbershops } from "./schema";
 
 export const createInitial = zInternalMutation({
   args: barbershops.tools.id,
@@ -55,16 +57,26 @@ export const get = zQuery({
 });
 
 export const incrementCompletedAppointments = zInternalMutation({
-  args: barbershopMetadata.tools.id,
+  args: z.object({
+    barbershopMetadataId: barbershopMetadata.tools.id.shape.id,
+    barbershopId: barbershops.tools.id.shape.id,
+    appointmentId: appointments.tools.id.shape.id,
+  }),
   handler: async (ctx, args) => {
-    const metadata = await ctx.db.get(args.id);
+    const metadata = await ctx.db.get(args.barbershopMetadataId);
 
     if (!metadata) {
       throw new ConvexError(errorMessages.notFound("metadata"));
     }
 
-    await ctx.db.patch(args.id, {
+    await ctx.db.patch(args.barbershopMetadataId, {
       completedAppointments: (metadata.completedAppointments ?? 0) + 1,
+    });
+
+    await completedAppointmentsAggregate.insert(ctx, {
+      namespace: args.barbershopId,
+      key: Date.now(),
+      id: args.appointmentId,
     });
   },
 });
