@@ -35,10 +35,13 @@ export const Route = createFileRoute("/appointments/create")({
   head: () => ({
     meta: seo({
       title: "Agendar Cita - PanaBarbero",
-      description: "Busca y agenda citas con las mejores barberías cerca de ti. Reserva tu turno ahora mismo.",
+      description:
+        "Busca y agenda citas con las mejores barberías cerca de ti. Reserva tu turno ahora mismo.",
       canonical: getCanonicalUrl("/appointments/create"),
     }),
-    links: [{ rel: "canonical", href: getCanonicalUrl("/appointments/create") }],
+    links: [
+      { rel: "canonical", href: getCanonicalUrl("/appointments/create") },
+    ],
   }),
   loader: async (ctx) => {
     const user = await ctx.context.queryClient.ensureQueryData(

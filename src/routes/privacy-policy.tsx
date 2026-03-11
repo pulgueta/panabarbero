@@ -11,7 +11,8 @@ export const Route = createFileRoute("/privacy-policy")({
   head: () => ({
     meta: seo({
       title: "Política de Privacidad - PanaBarbero",
-      description: "Lee nuestra política de privacidad para entender cómo protegemos tus datos.",
+      description:
+        "Lee nuestra política de privacidad para entender cómo protegemos tus datos.",
       canonical: getCanonicalUrl("/privacy-policy"),
     }),
     links: [{ rel: "canonical", href: getCanonicalUrl("/privacy-policy") }],

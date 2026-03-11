@@ -407,13 +407,14 @@ export const createAppointmentCreated = internalMutation({
 
     const smsBody = `${receiverBody} Ver detalles: ${appointmentLink}`;
 
+    const to = args.to ?? receiverProfile?.email;
+
     if (
       isNotificationEnabled(
         "email",
         receiverProfile?.notificationsPreferences ?? [],
       ) &&
-      receiverProfile?.email &&
-      args.to
+      to
     ) {
       await scheduleEmailWithQuota(ctx, appointment?.barbershopId, () =>
         ctx.scheduler.runAfter(
@@ -421,7 +422,7 @@ export const createAppointmentCreated = internalMutation({
           isCustomer
             ? internal.emails.sendAppointmentCreatedToUserEmail
             : internal.emails.sendAppointmentCreatedToBarberEmail,
-          { to: args.to!, body: receiverBody, subject },
+          { to, body: receiverBody, subject },
         ),
       );
     }
@@ -484,20 +485,22 @@ export const createAppointmentReminder = internalMutation({
     const appointmentLink = `${process.env.SITE_URL}/profile?tab=appointments`;
     const smsBody = `${body} Ver detalles: ${appointmentLink}`;
 
+    const to = args.to ?? customerProfile?.email;
+
     if (
       customerProfile &&
       isNotificationEnabled(
         "email",
         customerProfile.notificationsPreferences,
       ) &&
-      args.to
+      to
     ) {
       await scheduleEmailWithQuota(ctx, args.barbershopId, () =>
         ctx.scheduler.runAfter(
           0,
           internal.emails.sendAppointmentReminderEmail,
           {
-            to: args.to!,
+            to,
             body,
           },
         ),

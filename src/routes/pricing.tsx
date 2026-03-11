@@ -22,7 +22,8 @@ export const Route = createFileRoute("/pricing")({
   head: () => ({
     meta: seo({
       title: "Planes de PanaBarbero - Precios y características",
-      description: "Descubre nuestros planes flexibles para barberías. Plan Gratuito, Pro y Premium con todas las herramientas que necesitas.",
+      description:
+        "Descubre nuestros planes flexibles para barberías. Plan Gratuito, Pro y Premium con todas las herramientas que necesitas.",
       canonical: getCanonicalUrl("/pricing"),
     }),
     links: [{ rel: "canonical", href: getCanonicalUrl("/pricing") }],
