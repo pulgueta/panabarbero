@@ -1,3 +1,7 @@
+import type { Barbershop } from "@convex/schema";
+import { Link } from "@tanstack/react-router";
+import type { FC } from "react";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,11 +13,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getLogoUrl } from "@/hooks/barbershop/use-barbershop-logo-actions";
 import { useBarbershopMetadata } from "@/hooks/barbershop/use-barbershop-metadata";
-import type { Barbershop } from "@convex/schema";
-import { Link } from "@tanstack/react-router";
-import type { FC } from "react";
+import { getLogoUrl } from "@/hooks/use-upload";
 
 interface BarbershopListCardProps {
   barbershop: Barbershop;
@@ -89,46 +90,43 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
       <CardHeader className="border-b [.border-b]:pb-4">
         <div className="flex items-start justify-between">
           <div className="flex w-full items-start justify-between">
-            <div className="flex items-start gap-2.5">
-              <div>
-                <div className="mb-1 flex items-start gap-2">
-                  <Avatar size="2xl">
-                    <AvatarImage src={logoUrl ?? "/default-logo.png"} />
-                    <AvatarFallback>
-                      {barbershop.name.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="space-y-1">
-                    <CardTitle
-                      className="line-clamp-1 truncate text-balance font-bold text-xl leading-5 tracking-tight"
-                      style={{
-                        viewTransitionName: `barbershop-${barbershop.uuid}`,
-                      }}
-                    >
-                      {barbershop.name}
-                    </CardTitle>
+            <div className="mb-1 flex w-full items-start justify-between gap-4">
+              <div className="w-full max-w-72 space-y-1">
+                <CardTitle
+                  className="line-clamp-2 truncate font-bold leading-5"
+                  style={{
+                    viewTransitionName: `barbershop-${barbershop.uuid}`,
+                  }}
+                >
+                  {barbershop.name}
+                </CardTitle>
 
-                    <p
-                      className="text-muted-foreground text-xs"
-                      style={{
-                        viewTransitionName: `barbershop-${barbershop.uuid}-city-state`,
-                      }}
-                    >
-                      {barbershop.city}, {barbershop.state}
-                    </p>
+                <p
+                  className="text-muted-foreground text-xs"
+                  style={{
+                    viewTransitionName: `barbershop-${barbershop.uuid}-city-state`,
+                  }}
+                >
+                  {barbershop.city}, {barbershop.state}
+                </p>
 
-                    <Badge
-                      variant={isOpen ? "secondary" : "warning"}
-                      className="text-xs"
-                      style={{
-                        viewTransitionName: `barbershop-${barbershop.uuid}-status`,
-                      }}
-                    >
-                      {isOpen ? "Abierto" : "Cerrado"}
-                    </Badge>
-                  </div>
-                </div>
+                <Badge
+                  variant={isOpen ? "secondary" : "warning"}
+                  className="text-xs"
+                  style={{
+                    viewTransitionName: `barbershop-${barbershop.uuid}-status`,
+                  }}
+                >
+                  {isOpen ? "Abierto" : "Cerrado"}
+                </Badge>
               </div>
+
+              <Avatar size="xl" className="shrink-0">
+                <AvatarImage src={logoUrl ?? "/default-logo.png"} />
+                <AvatarFallback>
+                  {barbershop.name.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
             </div>
           </div>
         </div>
