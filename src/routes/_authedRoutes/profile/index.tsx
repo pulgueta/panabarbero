@@ -3,8 +3,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense, useMemo, useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
+import { z } from "zod";
 
-import { DashboardHeader } from "@/components/barbershops/dashboard-header";
+import { DashboardHeaderSkeleton } from "@/components/barbershops/dashboard-header.skeleton";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
@@ -35,6 +36,11 @@ import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
 import { servicesByIdsQueryOptions } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
+const DashboardHeader = lazy(() =>
+  import("@/components/barbershops/dashboard-header").then((module) => ({
+    default: module.DashboardHeader,
+  })),
+);
 const AccountTab = lazy(() =>
   import("@/components/profile/account-tab").then((mod) => ({
     default: mod.AccountTab,
@@ -69,10 +75,6 @@ type ProfileTabValue =
   | "danger"
   | "plans";
 
-type ProfileSearch = {
-  tab: ProfileTabValue;
-};
-
 const tabs = {
   account: {
     label: "Perfil",
@@ -100,14 +102,21 @@ const tabs = {
   },
 };
 
+const searchSchema = z.object({
+  tab: z.enum([
+    "account",
+    "security",
+    "appointments",
+    "reviews",
+    "plans",
+    "danger",
+  ]),
+});
+
 export const Route = createFileRoute("/_authedRoutes/profile/")({
   component: ProfilePage,
   pendingComponent: LoadingComponent,
-  validateSearch: (search: Record<string, ProfileTabValue>): ProfileSearch => {
-    return {
-      tab: search.tab,
-    };
-  },
+  validateSearch: searchSchema,
   loader: async ({ context }) => {
     const user = await context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
@@ -194,10 +203,12 @@ function ProfilePage() {
 
   return (
     <BorderContainer>
-      <DashboardHeader
-        title="Perfil"
-        description={`Gestiona tu perfil ${!isBarber && !isOwner ? "y tus citas." : ""}`}
-      />
+      <Suspense fallback={<DashboardHeaderSkeleton />}>
+        <DashboardHeader
+          title="Perfil"
+          description={`Gestiona tu perfil ${!isBarber && !isOwner ? "y tus citas." : ""}`}
+        />
+      </Suspense>
 
       <div className="flex flex-col items-start justify-center gap-4">
         <Tabs
@@ -224,7 +235,6 @@ function ProfilePage() {
                 profile={profile!}
                 isBarber={isBarber || isOwner}
                 userId={user?.userId!}
-                authProviderImage={user?.image}
               />
             </TabsContent>
           </Suspense>
