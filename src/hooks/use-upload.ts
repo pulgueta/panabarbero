@@ -2,7 +2,6 @@ import { env } from "@/env";
 import { useConvexMutation } from "@convex-dev/react-query";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
-import { useAction } from "convex/react";
 import { useState } from "react";
 
 export function extractR2Key(url: string | null | undefined): string | null {
@@ -28,10 +27,6 @@ export function getLogoUrl(logoKey: string | null | undefined): string | null {
 export function useUpload(opts: { type: "profile-photo" | "barbershop-logo" }) {
   const [uploading, setUploading] = useState<boolean>(false);
 
-  const uploadFileMutation = useMutation({
-    mutationFn: useAction(api.r2.upload),
-  });
-
   const deleteFileMutation = useMutation({
     mutationFn: useConvexMutation(api.r2.deleteR2Object),
   });
@@ -39,25 +34,33 @@ export function useUpload(opts: { type: "profile-photo" | "barbershop-logo" }) {
   const uploadFile = async (image: File) => {
     setUploading(true);
 
-    const convexImageUploadUrl = new URL(`${env.VITE_CONVEX_SITE_URL}/upload`);
+    try {
+      const convexImageUploadUrl = new URL(
+        `${env.VITE_CONVEX_SITE_URL}/upload`,
+      );
 
-    convexImageUploadUrl.searchParams.set("type", opts.type);
+      convexImageUploadUrl.searchParams.set("type", opts.type);
 
-    const response = await fetch(convexImageUploadUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": image.type,
-      },
-      body: image,
-    });
+      const response = await fetch(convexImageUploadUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": image.type,
+        },
+        body: image,
+      });
 
-    setUploading(false);
+      setUploading(false);
 
-    return (await response.json()) as Promise<string>;
+      return (await response.json()) as Promise<string>;
+    } catch (error) {
+      console.error(error);
+      throw new Error("Error al subir el archivo");
+    } finally {
+      setUploading(false);
+    }
   };
 
   return {
-    uploadFileMutation,
     deleteFileMutation,
     uploadFile: {
       isUploading: uploading,
