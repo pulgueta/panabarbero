@@ -162,7 +162,7 @@ export const setProfilePhotoKey = zMutation({
       try {
         await r2.deleteObject(ctx, args.previousKey);
       } catch {
-        throw new ConvexError(errorMessages.notFound("foto de perfil"));
+        // Non-fatal: old object may already be gone
       }
     }
 

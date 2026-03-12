@@ -13,6 +13,14 @@ import { useWebHaptics } from "web-haptics/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
+import {
   FileUpload,
   FileUploadDropzone,
   FileUploadItem,
@@ -54,6 +62,8 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
 }) => {
   const [queuedFiles, setQueuedFiles] = useState<File[]>([]);
   const [fileToCrop, setFileToCrop] = useState<File | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteFinalConfirmOpen, setDeleteFinalConfirmOpen] = useState(false);
 
   const { trigger } = useWebHaptics();
   const { mutateAsync: uploadProfilePhoto, isPending: isUploading } =
@@ -119,7 +129,17 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
     }
   };
 
+  const handleRemoveClick = () => {
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleFirstConfirm = () => {
+    setDeleteConfirmOpen(false);
+    setDeleteFinalConfirmOpen(true);
+  };
+
   const handleRemove = async () => {
+    setDeleteFinalConfirmOpen(false);
     try {
       await removeProfilePhoto({ previousImageUrl: currentPhotoUrl });
       toast.success("Foto de perfil eliminada");
@@ -140,6 +160,66 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
         aspectRatio={1}
         shape="rectangle"
       />
+
+      {/* First confirmation modal */}
+      <ResponsiveModal open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <ResponsiveModalContent>
+          <ResponsiveModalHeader>
+            <ResponsiveModalTitle>¿Estás seguro?</ResponsiveModalTitle>
+            <ResponsiveModalDescription>
+              ¿Deseas eliminar tu foto de perfil?
+            </ResponsiveModalDescription>
+          </ResponsiveModalHeader>
+          <ResponsiveModalFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleFirstConfirm}>
+              Confirmar
+            </Button>
+          </ResponsiveModalFooter>
+        </ResponsiveModalContent>
+      </ResponsiveModal>
+
+      {/* Second confirmation modal */}
+      <ResponsiveModal
+        open={deleteFinalConfirmOpen}
+        onOpenChange={setDeleteFinalConfirmOpen}
+      >
+        <ResponsiveModalContent>
+          <ResponsiveModalHeader>
+            <ResponsiveModalTitle>Confirmar eliminación</ResponsiveModalTitle>
+            <ResponsiveModalDescription>
+              Esta acción es irreversible. ¿Confirmas que deseas eliminar tu foto de perfil?
+            </ResponsiveModalDescription>
+          </ResponsiveModalHeader>
+          <ResponsiveModalFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteFinalConfirmOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleRemove}
+              variant="destructive"
+              disabled={isRemoving}
+            >
+              {isRemoving ? (
+                <>
+                  <SpinnerGapIcon
+                    className="size-3.5 animate-spin"
+                    weight="bold"
+                  />
+                  Eliminando...
+                </>
+              ) : (
+                "Sí, eliminar"
+              )}
+            </Button>
+          </ResponsiveModalFooter>
+        </ResponsiveModalContent>
+      </ResponsiveModal>
 
       <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
         {/* Avatar preview */}
@@ -261,7 +341,7 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
                 type="button"
                 variant="destructive"
                 disabled={isBusy}
-                onClick={handleRemove}
+                onClick={handleRemoveClick}
                 className="w-full"
               >
                 {isRemoving ? <Spinner /> : <TrashIcon />}

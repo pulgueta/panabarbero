@@ -114,7 +114,7 @@ function RouteComponent() {
           <Suspense
             fallback={
               <Button disabled variant="outline">
-                <UserPlusIcon className="size-3" />
+                <UserPlusIcon />
                 Invitar barbero
               </Button>
             }
@@ -123,7 +123,7 @@ function RouteComponent() {
               <InviteBarberDialog
                 trigger={
                   <Button variant="outline" disabled={!rolesData?.isOwner}>
-                    <UserPlusIcon className="size-3" />
+                    <UserPlusIcon />
                     Invitar barbero
                   </Button>
                 }

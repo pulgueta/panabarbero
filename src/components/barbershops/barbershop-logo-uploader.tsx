@@ -12,6 +12,14 @@ import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
 import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
+import {
   FileUpload,
   FileUploadDropzone,
   FileUploadItem,
@@ -45,6 +53,8 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
 }) => {
   const [queuedFiles, setQueuedFiles] = useState<File[]>([]);
   const [fileToCrop, setFileToCrop] = useState<File | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteFinalConfirmOpen, setDeleteFinalConfirmOpen] = useState(false);
 
   const { trigger } = useWebHaptics();
 
@@ -114,7 +124,17 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
     }
   };
 
+  const handleRemoveClick = () => {
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleFirstConfirm = () => {
+    setDeleteConfirmOpen(false);
+    setDeleteFinalConfirmOpen(true);
+  };
+
   const onRemoveLogo = async () => {
+    setDeleteFinalConfirmOpen(false);
     try {
       await removeBarbershopLogo({ barbershopId });
 
@@ -136,6 +156,66 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
         aspectRatio={1}
         shape="rectangle"
       />
+
+      {/* First confirmation modal */}
+      <ResponsiveModal open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <ResponsiveModalContent>
+          <ResponsiveModalHeader>
+            <ResponsiveModalTitle>¿Estás seguro?</ResponsiveModalTitle>
+            <ResponsiveModalDescription>
+              ¿Deseas eliminar el logo de tu barbería?
+            </ResponsiveModalDescription>
+          </ResponsiveModalHeader>
+          <ResponsiveModalFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleFirstConfirm}>
+              Confirmar
+            </Button>
+          </ResponsiveModalFooter>
+        </ResponsiveModalContent>
+      </ResponsiveModal>
+
+      {/* Second confirmation modal */}
+      <ResponsiveModal
+        open={deleteFinalConfirmOpen}
+        onOpenChange={setDeleteFinalConfirmOpen}
+      >
+        <ResponsiveModalContent>
+          <ResponsiveModalHeader>
+            <ResponsiveModalTitle>Confirmar eliminación</ResponsiveModalTitle>
+            <ResponsiveModalDescription>
+              Esta acción es irreversible. ¿Confirmas que deseas eliminar el logo de tu barbería?
+            </ResponsiveModalDescription>
+          </ResponsiveModalHeader>
+          <ResponsiveModalFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteFinalConfirmOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={onRemoveLogo}
+              variant="destructive"
+              disabled={isRemoving}
+            >
+              {isRemoving ? (
+                <>
+                  <SpinnerGapIcon
+                    className="size-3.5 animate-spin"
+                    weight="bold"
+                  />
+                  Eliminando...
+                </>
+              ) : (
+                "Sí, eliminar"
+              )}
+            </Button>
+          </ResponsiveModalFooter>
+        </ResponsiveModalContent>
+      </ResponsiveModal>
 
       <div className="space-y-3">
         <FileUpload
@@ -261,7 +341,7 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
               type="button"
               variant="destructive"
               disabled={isBusy}
-              onClick={onRemoveLogo}
+              onClick={handleRemoveClick}
               className="w-full"
             >
               {isRemoving ? <Spinner /> : <TrashIcon />}
