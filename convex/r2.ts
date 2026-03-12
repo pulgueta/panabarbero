@@ -7,8 +7,14 @@ import { rateLimitOrThrow } from "./ratelimit";
 
 export const r2 = new R2(components.r2);
 
-export const { generateUploadUrl, listMetadata, deleteObject, getMetadata } =
-  r2.clientApi();
+export const {
+  generateUploadUrl,
+  listMetadata,
+  deleteObject,
+  getMetadata,
+  syncMetadata,
+  onSyncMetadata,
+} = r2.clientApi();
 
 export const deleteR2Object = zMutation({
   args: z.object({
