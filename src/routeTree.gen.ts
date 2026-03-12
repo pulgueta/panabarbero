@@ -29,7 +29,7 @@ import { Route as AuthForgotPasswordRouteImport } from "./routes/_auth/forgot-pa
 import { Route as AuthedRoutesProfileIndexRouteImport } from "./routes/_authedRoutes/profile/index"
 import { Route as ApiAuthSplatRouteImport } from "./routes/api/auth/$"
 import { Route as AuthedRoutesInvitationsCodeRouteImport } from "./routes/_authedRoutes/invitations/$code"
-import { Route as AuthedRoutesProfileBarbershopsSettingsRouteImport } from "./routes/_authedRoutes/profile/barbershops/settings"
+import { Route as AuthedRoutesProfileBarbershopsSettingsIndexRouteImport } from "./routes/_authedRoutes/profile/barbershops/settings/index"
 import { Route as AuthedRoutesProfileBarbershopsServicesIndexRouteImport } from "./routes/_authedRoutes/profile/barbershops/services/index"
 import { Route as AuthedRoutesProfileBarbershopsBarbersIndexRouteImport } from "./routes/_authedRoutes/profile/barbershops/barbers/index"
 import { Route as AuthedRoutesProfileBarbershopsAppointmentsIndexRouteImport } from "./routes/_authedRoutes/profile/barbershops/appointments/index"
@@ -135,10 +135,10 @@ const AuthedRoutesInvitationsCodeRoute =
     path: "/invitations/$code",
     getParentRoute: () => AuthedRoutesRouteRoute,
   } as any)
-const AuthedRoutesProfileBarbershopsSettingsRoute =
-  AuthedRoutesProfileBarbershopsSettingsRouteImport.update({
-    id: "/profile/barbershops/settings",
-    path: "/profile/barbershops/settings",
+const AuthedRoutesProfileBarbershopsSettingsIndexRoute =
+  AuthedRoutesProfileBarbershopsSettingsIndexRouteImport.update({
+    id: "/profile/barbershops/settings/",
+    path: "/profile/barbershops/settings/",
     getParentRoute: () => AuthedRoutesRouteRoute,
   } as any)
 const AuthedRoutesProfileBarbershopsServicesIndexRoute =
@@ -179,10 +179,10 @@ export interface FileRoutesByFullPath {
   "/invitations/$code": typeof AuthedRoutesInvitationsCodeRoute
   "/api/auth/$": typeof ApiAuthSplatRoute
   "/profile/": typeof AuthedRoutesProfileIndexRoute
-  "/profile/barbershops/settings": typeof AuthedRoutesProfileBarbershopsSettingsRoute
   "/profile/barbershops/appointments/": typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
   "/profile/barbershops/barbers/": typeof AuthedRoutesProfileBarbershopsBarbersIndexRoute
   "/profile/barbershops/services/": typeof AuthedRoutesProfileBarbershopsServicesIndexRoute
+  "/profile/barbershops/settings/": typeof AuthedRoutesProfileBarbershopsSettingsIndexRoute
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
@@ -203,10 +203,10 @@ export interface FileRoutesByTo {
   "/invitations/$code": typeof AuthedRoutesInvitationsCodeRoute
   "/api/auth/$": typeof ApiAuthSplatRoute
   "/profile": typeof AuthedRoutesProfileIndexRoute
-  "/profile/barbershops/settings": typeof AuthedRoutesProfileBarbershopsSettingsRoute
   "/profile/barbershops/appointments": typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
   "/profile/barbershops/barbers": typeof AuthedRoutesProfileBarbershopsBarbersIndexRoute
   "/profile/barbershops/services": typeof AuthedRoutesProfileBarbershopsServicesIndexRoute
+  "/profile/barbershops/settings": typeof AuthedRoutesProfileBarbershopsSettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -230,10 +230,10 @@ export interface FileRoutesById {
   "/_authedRoutes/invitations/$code": typeof AuthedRoutesInvitationsCodeRoute
   "/api/auth/$": typeof ApiAuthSplatRoute
   "/_authedRoutes/profile/": typeof AuthedRoutesProfileIndexRoute
-  "/_authedRoutes/profile/barbershops/settings": typeof AuthedRoutesProfileBarbershopsSettingsRoute
   "/_authedRoutes/profile/barbershops/appointments/": typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
   "/_authedRoutes/profile/barbershops/barbers/": typeof AuthedRoutesProfileBarbershopsBarbersIndexRoute
   "/_authedRoutes/profile/barbershops/services/": typeof AuthedRoutesProfileBarbershopsServicesIndexRoute
+  "/_authedRoutes/profile/barbershops/settings/": typeof AuthedRoutesProfileBarbershopsSettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -256,10 +256,10 @@ export interface FileRouteTypes {
     | "/invitations/$code"
     | "/api/auth/$"
     | "/profile/"
-    | "/profile/barbershops/settings"
     | "/profile/barbershops/appointments/"
     | "/profile/barbershops/barbers/"
     | "/profile/barbershops/services/"
+    | "/profile/barbershops/settings/"
   fileRoutesByTo: FileRoutesByTo
   to:
     | "/"
@@ -280,10 +280,10 @@ export interface FileRouteTypes {
     | "/invitations/$code"
     | "/api/auth/$"
     | "/profile"
-    | "/profile/barbershops/settings"
     | "/profile/barbershops/appointments"
     | "/profile/barbershops/barbers"
     | "/profile/barbershops/services"
+    | "/profile/barbershops/settings"
   id:
     | "__root__"
     | "/"
@@ -306,10 +306,10 @@ export interface FileRouteTypes {
     | "/_authedRoutes/invitations/$code"
     | "/api/auth/$"
     | "/_authedRoutes/profile/"
-    | "/_authedRoutes/profile/barbershops/settings"
     | "/_authedRoutes/profile/barbershops/appointments/"
     | "/_authedRoutes/profile/barbershops/barbers/"
     | "/_authedRoutes/profile/barbershops/services/"
+    | "/_authedRoutes/profile/barbershops/settings/"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -470,11 +470,11 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthedRoutesInvitationsCodeRouteImport
       parentRoute: typeof AuthedRoutesRouteRoute
     }
-    "/_authedRoutes/profile/barbershops/settings": {
-      id: "/_authedRoutes/profile/barbershops/settings"
+    "/_authedRoutes/profile/barbershops/settings/": {
+      id: "/_authedRoutes/profile/barbershops/settings/"
       path: "/profile/barbershops/settings"
-      fullPath: "/profile/barbershops/settings"
-      preLoaderRoute: typeof AuthedRoutesProfileBarbershopsSettingsRouteImport
+      fullPath: "/profile/barbershops/settings/"
+      preLoaderRoute: typeof AuthedRoutesProfileBarbershopsSettingsIndexRouteImport
       parentRoute: typeof AuthedRoutesRouteRoute
     }
     "/_authedRoutes/profile/barbershops/services/": {
@@ -524,23 +524,23 @@ const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
 interface AuthedRoutesRouteRouteChildren {
   AuthedRoutesInvitationsCodeRoute: typeof AuthedRoutesInvitationsCodeRoute
   AuthedRoutesProfileIndexRoute: typeof AuthedRoutesProfileIndexRoute
-  AuthedRoutesProfileBarbershopsSettingsRoute: typeof AuthedRoutesProfileBarbershopsSettingsRoute
   AuthedRoutesProfileBarbershopsAppointmentsIndexRoute: typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
   AuthedRoutesProfileBarbershopsBarbersIndexRoute: typeof AuthedRoutesProfileBarbershopsBarbersIndexRoute
   AuthedRoutesProfileBarbershopsServicesIndexRoute: typeof AuthedRoutesProfileBarbershopsServicesIndexRoute
+  AuthedRoutesProfileBarbershopsSettingsIndexRoute: typeof AuthedRoutesProfileBarbershopsSettingsIndexRoute
 }
 
 const AuthedRoutesRouteRouteChildren: AuthedRoutesRouteRouteChildren = {
   AuthedRoutesInvitationsCodeRoute: AuthedRoutesInvitationsCodeRoute,
   AuthedRoutesProfileIndexRoute: AuthedRoutesProfileIndexRoute,
-  AuthedRoutesProfileBarbershopsSettingsRoute:
-    AuthedRoutesProfileBarbershopsSettingsRoute,
   AuthedRoutesProfileBarbershopsAppointmentsIndexRoute:
     AuthedRoutesProfileBarbershopsAppointmentsIndexRoute,
   AuthedRoutesProfileBarbershopsBarbersIndexRoute:
     AuthedRoutesProfileBarbershopsBarbersIndexRoute,
   AuthedRoutesProfileBarbershopsServicesIndexRoute:
     AuthedRoutesProfileBarbershopsServicesIndexRoute,
+  AuthedRoutesProfileBarbershopsSettingsIndexRoute:
+    AuthedRoutesProfileBarbershopsSettingsIndexRoute,
 }
 
 const AuthedRoutesRouteRouteWithChildren =
