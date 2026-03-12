@@ -30,7 +30,7 @@
  */
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { DrawerPreview as DrawerPrimitive } from "@base-ui/react/drawer";
+import { Drawer as DrawerPrimitive } from "@base-ui/react/drawer";
 import type { ComponentProps, ReactNode } from "react";
 import { createContext, use } from "react";
 

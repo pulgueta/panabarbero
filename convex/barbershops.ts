@@ -552,6 +552,8 @@ export const getByIds = zQuery({
 export const getByName = zQuery({
   args: z.object({
     name: z.string().optional(),
+    state: z.string().optional(),
+    city: z.string().optional(),
   }),
   handler: async (ctx, args) => {
     const barbershops = await ctx.db
@@ -559,7 +561,15 @@ export const getByName = zQuery({
       .withSearchIndex("by_name_search", (q) =>
         q.search("name", args.name ?? "barber"),
       )
-      .filter((q) => q.eq(q.field("isActive"), true))
+      .filter((q) =>
+        args.state && args.city
+          ? q.and(
+              q.eq(q.field("state"), args.state),
+              q.eq(q.field("city"), args.city),
+              q.eq(q.field("isActive"), true),
+            )
+          : q.eq(q.field("isActive"), true),
+      )
       .collect();
 
     await Promise.all(

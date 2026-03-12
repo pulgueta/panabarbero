@@ -1,8 +1,11 @@
-import { ConvexError, v } from "convex/values";
+import { ConvexError } from "convex/values";
+import { zid } from "convex-helpers/server/zod4";
+import { z } from "zod";
+
+import { zInternalMutation } from ".";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
-import { internalMutation } from "./_generated/server";
 import {
   incrementEmailSent,
   incrementSmsSent,
@@ -98,13 +101,13 @@ async function scheduleEmailWithQuota(
   await send();
 }
 
-export const createAppointmentCancelled = internalMutation({
-  args: {
-    customerUserId: v.string(),
-    notes: v.string(),
-    appointmentId: v.id("appointments"),
-    sendTo: v.union(v.literal("customer"), v.literal("barber")),
-  },
+export const createAppointmentCancelled = zInternalMutation({
+  args: z.object({
+    customerUserId: z.string(),
+    notes: z.string(),
+    appointmentId: zid("appointments"),
+    sendTo: z.enum(["customer", "barber"]),
+  }),
   handler: async (ctx, args) => {
     const appointment = await ctx.db.get(args.appointmentId);
 
@@ -185,11 +188,11 @@ export const createAppointmentCancelled = internalMutation({
   },
 });
 
-export const createAppointmentRescheduleRequest = internalMutation({
-  args: {
-    appointmentId: v.id("appointments"),
-    sendTo: v.union(v.literal("customer"), v.literal("barber")),
-  },
+export const createAppointmentRescheduleRequest = zInternalMutation({
+  args: z.object({
+    appointmentId: zid("appointments"),
+    sendTo: z.enum(["customer", "barber"]),
+  }),
   handler: async (ctx, args) => {
     const appointment = await ctx.db.get(args.appointmentId);
 
@@ -268,16 +271,16 @@ export const createAppointmentRescheduleRequest = internalMutation({
   },
 });
 
-export const createAppointmentRescheduleDecision = internalMutation({
-  args: {
-    appointmentId: v.id("appointments"),
-    to: v.string(),
-    receiverUserId: v.string(),
-    accepted: v.boolean(),
-    notes: v.optional(v.string()),
-    barbershopName: v.optional(v.string()),
-    role: v.union(v.literal("barber"), v.literal("customer")),
-  },
+export const createAppointmentRescheduleDecision = zInternalMutation({
+  args: z.object({
+    appointmentId: zid("appointments"),
+    to: z.string(),
+    receiverUserId: z.string(),
+    accepted: z.boolean(),
+    notes: z.string().optional(),
+    barbershopName: z.string().optional(),
+    role: z.enum(["barber", "customer"]),
+  }),
   handler: async (ctx, args) => {
     const receiverProfile = await getProfileByUserId(ctx, args.receiverUserId);
 
@@ -358,17 +361,17 @@ export const createAppointmentRescheduleDecision = internalMutation({
   },
 });
 
-export const createAppointmentCreated = internalMutation({
-  args: {
-    appointmentId: v.id("appointments"),
-    to: v.optional(v.string()),
-    customerUserId: v.string(),
-    barberUserId: v.string(),
-    sendTo: v.union(v.literal("customer"), v.literal("barber")),
-    barbershopName: v.optional(v.string()),
-    receiverPhoneNumber: v.string(),
-    isBarberCreated: v.boolean(),
-  },
+export const createAppointmentCreated = zInternalMutation({
+  args: z.object({
+    appointmentId: zid("appointments"),
+    to: z.string().optional(),
+    customerUserId: z.string(),
+    barberUserId: z.string(),
+    sendTo: z.enum(["customer", "barber"]),
+    barbershopName: z.string().optional(),
+    receiverPhoneNumber: z.string(),
+    isBarberCreated: z.boolean(),
+  }),
   handler: async (ctx, args) => {
     let customerProfile: UserProfileData | null = null;
 
@@ -460,14 +463,14 @@ export const createAppointmentCreated = internalMutation({
   },
 });
 
-export const createAppointmentReminder = internalMutation({
-  args: {
-    to: v.optional(v.string()),
-    customerUserId: v.string(),
-    barbershopName: v.string(),
-    barbershopId: v.optional(v.id("barbershops")),
-    receiverPhoneNumber: v.optional(v.string()),
-  },
+export const createAppointmentReminder = zInternalMutation({
+  args: z.object({
+    to: z.string().optional(),
+    customerUserId: z.string(),
+    barbershopName: z.string(),
+    barbershopId: zid("barbershops").optional(),
+    receiverPhoneNumber: z.string().optional(),
+  }),
   handler: async (ctx, args) => {
     let customerProfile: UserProfileData | null = null;
 
@@ -523,10 +526,10 @@ export const createAppointmentReminder = internalMutation({
   },
 });
 
-export const createPastAppointmentReminder = internalMutation({
-  args: {
-    barberUserId: v.string(),
-  },
+export const createPastAppointmentReminder = zInternalMutation({
+  args: z.object({
+    barberUserId: z.string(),
+  }),
   handler: async (ctx, args) => {
     const barberProfile = await getProfileByUserId(ctx, args.barberUserId);
 
@@ -564,19 +567,17 @@ export const createPastAppointmentReminder = internalMutation({
   },
 });
 
-export const createBarberInvited = internalMutation({
-  args: {
-    invitationId: v.id("invitations"),
-    barbershopId: v.id("barbershops"),
-    email: v.string(),
-    code: v.string(),
-    inviterUserId: v.string(),
-    roles: v.array(
-      v.union(v.literal("owner"), v.literal("barber"), v.literal("staff")),
-    ),
-    expiresAt: v.number(),
-    phone: v.string(),
-  },
+export const createBarberInvited = zInternalMutation({
+  args: z.object({
+    invitationId: zid("invitations"),
+    barbershopId: zid("barbershops"),
+    email: z.string(),
+    code: z.string(),
+    inviterUserId: z.string(),
+    roles: z.array(z.enum(["owner", "barber", "staff"])),
+    expiresAt: z.number(),
+    phone: z.string(),
+  }),
   handler: async (ctx, args) => {
     const barbershop = await ctx.db.get(args.barbershopId);
 
@@ -607,15 +608,15 @@ export const createBarberInvited = internalMutation({
  * Notification when an appointment is cancelled because a barber was removed
  * from the barbershop. Sends to the customer via email and SMS.
  */
-export const createBarberRemovedCancellation = internalMutation({
-  args: {
-    appointmentId: v.id("appointments"),
-    customerUserId: v.string(),
-    barberName: v.string(),
-    barbershopName: v.string(),
-    contactPhone: v.string(),
-    contactEmail: v.optional(v.string()),
-  },
+export const createBarberRemovedCancellation = zInternalMutation({
+  args: z.object({
+    appointmentId: zid("appointments"),
+    customerUserId: z.string(),
+    barberName: z.string(),
+    barbershopName: z.string(),
+    contactPhone: z.string(),
+    contactEmail: z.string().optional(),
+  }),
   handler: async (ctx, args) => {
     const customerProfile = await getProfileByUserId(ctx, args.customerUserId);
 
@@ -663,15 +664,15 @@ export const createBarberRemovedCancellation = internalMutation({
  * Notification when an appointment is cancelled due to service deletion.
  * Sends to customer via both email and SMS if contact info is available.
  */
-export const createServiceDeletedCancellation = internalMutation({
-  args: {
-    appointmentId: v.id("appointments"),
-    customerUserId: v.string(),
-    serviceName: v.string(),
-    barbershopName: v.string(),
-    contactPhone: v.string(),
-    contactEmail: v.optional(v.string()),
-  },
+export const createServiceDeletedCancellation = zInternalMutation({
+  args: z.object({
+    appointmentId: zid("appointments"),
+    customerUserId: z.string(),
+    serviceName: z.string(),
+    barbershopName: z.string(),
+    contactPhone: z.string(),
+    contactEmail: z.string().optional(),
+  }),
   handler: async (ctx, args) => {
     const customerProfile = await getProfileByUserId(ctx, args.customerUserId);
 

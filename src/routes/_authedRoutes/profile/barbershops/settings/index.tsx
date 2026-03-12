@@ -6,6 +6,7 @@ import { lazy, Suspense } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
+import { DashboardHeaderSkeleton } from "@/components/barbershops/dashboard-header.skeleton";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -85,7 +86,7 @@ const BarbershopLogoUploader = lazy(() =>
 // );
 
 export const Route = createFileRoute(
-  "/_authedRoutes/profile/barbershops/settings",
+  "/_authedRoutes/profile/barbershops/settings/",
 )({
   component: SettingsPage,
   pendingComponent: LoadingComponent,
@@ -175,7 +176,7 @@ function SettingsPage() {
 
   return (
     <BorderContainer>
-      <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+      <Suspense fallback={<DashboardHeaderSkeleton />}>
         <DashboardHeader
           title="Configuración"
           description="Configura tu barbería y personaliza tu experiencia."
@@ -228,7 +229,6 @@ function SettingsPage() {
               <Suspense fallback={<Skeleton className="h-80 w-full" />}>
                 <BarbershopLogoUploader
                   barbershopId={barbershop._id}
-                  userId={user?.userId!}
                   logoKey={metadata?.logoKey}
                 />
               </Suspense>

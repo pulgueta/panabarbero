@@ -38,10 +38,11 @@ export function userVisitedBarbershopsQueryOptions(userId: string | undefined) {
   return convexQuery(api.barbershops.getUserVisitedBarbershops, { userId });
 }
 
-export function appointmentsByBarbershopQueryOptions(
-  barbershopId: Barbershop["_id"],
-) {
-  return convexQuery(api.appointments.getByBarbershopId, { id: barbershopId });
+export function appointmentsByBarbershopQueryOptions(opts: {
+  id: Barbershop["_id"];
+  date: number | undefined;
+}) {
+  return convexQuery(api.appointments.getByBarbershopId, opts);
 }
 
 export function useRescheduledAppointmentRequests(
@@ -61,8 +62,11 @@ export function useAppointmentsByUser(
   return useSuspenseQuery(appointmentsByUserQueryOptions(userId, cursor));
 }
 
-export function useAppointmentsByBarbershop(barbershopId: Barbershop["_id"]) {
-  return useSuspenseQuery(appointmentsByBarbershopQueryOptions(barbershopId));
+export function useAppointmentsByBarbershop(opts: {
+  id: Barbershop["_id"];
+  date: number | undefined;
+}) {
+  return useSuspenseQuery(appointmentsByBarbershopQueryOptions(opts));
 }
 
 export function useVisitedBarbershops(userId: string | undefined) {
@@ -163,7 +167,24 @@ export function useAppointmentActions() {
     mutationFn: createAppointmentMutationOptions(),
   });
   const setStatusMutation = useMutation({
-    mutationFn: useConvexMutation(api.appointments.setStatus),
+    mutationFn: useConvexMutation(
+      api.appointments.setStatus,
+    ).withOptimisticUpdate((localStore, args) => {
+      const existingAppointment = localStore.getQuery(
+        api.appointments.getById,
+        {
+          id: args.appointment.id,
+        },
+      );
+
+      if (existingAppointment) {
+        localStore.setQuery(
+          api.appointments.getById,
+          { id: args.appointment.id },
+          { ...existingAppointment, status: args.status },
+        );
+      }
+    }),
   });
   const deleteAppointmentMutation = useMutation({
     mutationFn: useConvexMutation(api.appointments.deleteAppointment),

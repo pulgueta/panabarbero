@@ -1,6 +1,7 @@
 import { BuildingsIcon } from "@phosphor-icons/react";
 import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
+import { z } from "zod";
 
 import { BarbershopLoadingGrid } from "@/components/barbershops/barbershop-loading-grid";
 import { LocationGate } from "@/components/barbershops/location-gate";
@@ -50,15 +51,13 @@ const toCompleteLocation = (location?: BarbershopSearch) => {
   };
 };
 
-export const Route = createFileRoute("/barbershops/")({
-  validateSearch: (search?: BarbershopSearch | undefined) => {
-    const persisted = useLocationStore.getState();
+const searchSchema = z.object({
+  city: z.string().optional(),
+  state: z.string().optional(),
+});
 
-    return {
-      city: search?.city ?? persisted.city,
-      state: search?.state ?? persisted.state,
-    };
-  },
+export const Route = createFileRoute("/barbershops/")({
+  validateSearch: searchSchema,
   loaderDeps: ({ search }) => toCompleteLocation(search),
   head: () => {
     const persisted = useLocationStore.getState();

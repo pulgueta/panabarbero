@@ -18,6 +18,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useBarbershopByMemberUserId } from "@/hooks/barbershop/use-barbershop";
@@ -73,10 +74,9 @@ const AppointmentActionsCell: FC<Appointment> = (appointment) => {
     !appointment.proposedDate;
 
   const showDeleteDialog =
-    isCancelledOrDenied ||
-    isPastDate ||
-    status === "no-show" ||
-    status === "completed";
+    isCancelledOrDenied || isPastDate || status === "no-show";
+
+  const hasSetStatus = status === "completed" || status === "no-show";
 
   const [openDialog, setOpenDialog] = useState<
     "reschedule" | "delete" | "cancel" | null
@@ -84,45 +84,63 @@ const AppointmentActionsCell: FC<Appointment> = (appointment) => {
 
   return (
     <div className="text-center">
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <Button variant="outline" size="icon">
-              <DotsThreeVerticalIcon />
-            </Button>
-          }
-        />
+      {status === "completed" ? (
+        <p className="text-muted-foreground leading-7">Sin acciones</p>
+      ) : (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button variant="outline" size="icon">
+                <DotsThreeVerticalIcon />
+              </Button>
+            }
+          />
 
-        <DropdownMenuContent align="end" className="w-full max-w-56">
-          {canRequestReschedule && (
-            <DropdownMenuItem
-              className="inline-flex w-full items-center gap-x-2"
-              onClick={() => setOpenDialog("reschedule")}
-            >
-              <CalendarCheckIcon className="size-3" />
-              Solicitar reagendamiento
-            </DropdownMenuItem>
-          )}
+          <DropdownMenuContent align="end" className="w-full max-w-56">
+            {canRequestReschedule && (
+              <DropdownMenuItem
+                onClick={() => setOpenDialog("reschedule")}
+                render={
+                  <Button variant="outline" className="w-full">
+                    <CalendarCheckIcon />
+                    Solicitar reagendamiento
+                  </Button>
+                }
+              />
+            )}
 
-          {showDeleteDialog ? (
-            <DropdownMenuItem
-              className="inline-flex w-full items-center gap-x-2"
-              onClick={() => setOpenDialog("delete")}
-            >
-              <TrashIcon className="size-3 text-destructive dark:text-destructive-foreground" />
-              Eliminar
-            </DropdownMenuItem>
-          ) : (
-            <DropdownMenuItem
-              className="inline-flex w-full items-center gap-x-2"
-              onClick={() => setOpenDialog("cancel")}
-            >
-              <TrashIcon className="size-3 text-destructive dark:text-destructive-foreground" />
-              Cancelar
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+            {canRequestReschedule && <DropdownMenuSeparator />}
+
+            {showDeleteDialog ? (
+              isPastDate && !hasSetStatus ? (
+                <DropdownMenuItem>
+                  Debes marcar la cita para poder eliminarla
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem
+                  onClick={() => setOpenDialog("delete")}
+                  render={
+                    <Button variant="destructive" className="w-full">
+                      <TrashIcon />
+                      Eliminar
+                    </Button>
+                  }
+                />
+              )
+            ) : (
+              <DropdownMenuItem
+                onClick={() => setOpenDialog("cancel")}
+                render={
+                  <Button variant="destructive" className="w-full">
+                    <TrashIcon />
+                    Cancelar
+                  </Button>
+                }
+              />
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
 
       <RescheduleRequestDialog
         appointment={appointment}

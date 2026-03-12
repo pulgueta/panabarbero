@@ -5,17 +5,18 @@ import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   ResponsiveModal,
   ResponsiveModalContent,
   ResponsiveModalDescription,
+  ResponsiveModalFooter,
   ResponsiveModalHeader,
   ResponsiveModalTitle,
   ResponsiveModalTrigger,
 } from "@/components/ui/responsive-modal";
-import { Spinner } from "@/components/ui/spinner";
 import { useAppointmentActions } from "@/hooks/use-appointments";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
@@ -29,6 +30,7 @@ export const MarkAppointmentDialog: FC<MarkAppointmentDialogProps> = ({
   appointmentId,
 }) => {
   const [open, setOpen] = useState<boolean>(false);
+  const formId = useId();
 
   const title = "Marcar cita";
   const description = "Asigna el estado final de la cita.";
@@ -36,7 +38,7 @@ export const MarkAppointmentDialog: FC<MarkAppointmentDialogProps> = ({
   return (
     <ResponsiveModal open={open} onOpenChange={setOpen}>
       <ResponsiveModalTrigger render={trigger} />
-      <ResponsiveModalContent>
+      <ResponsiveModalContent className="pb-4">
         <ResponsiveModalHeader>
           <ResponsiveModalTitle>{title}</ResponsiveModalTitle>
           <ResponsiveModalDescription>{description}</ResponsiveModalDescription>
@@ -44,8 +46,17 @@ export const MarkAppointmentDialog: FC<MarkAppointmentDialogProps> = ({
 
         <OptionsForm
           appointmentId={appointmentId}
+          formId={formId}
           onClose={() => setOpen(false)}
         />
+
+        <ResponsiveModalFooter>
+          <Field>
+            <Button type="submit" form={formId}>
+              Marcar
+            </Button>
+          </Field>
+        </ResponsiveModalFooter>
       </ResponsiveModalContent>
     </ResponsiveModal>
   );
@@ -53,10 +64,15 @@ export const MarkAppointmentDialog: FC<MarkAppointmentDialogProps> = ({
 
 interface OptionsFormProps {
   appointmentId: Appointment["_id"];
+  formId: string;
   onClose: () => void;
 }
 
-const OptionsForm: FC<OptionsFormProps> = ({ appointmentId, onClose }) => {
+const OptionsForm: FC<OptionsFormProps> = ({
+  appointmentId,
+  formId,
+  onClose,
+}) => {
   const formIds = {
     completed: useId(),
     noShow: useId(),
@@ -64,7 +80,7 @@ const OptionsForm: FC<OptionsFormProps> = ({ appointmentId, onClose }) => {
   const haptic = useWebHaptics();
 
   const {
-    setStatusMutation: { mutateAsync: setStatus, isPending: isSettingStatus },
+    setStatusMutation: { mutateAsync: setStatus },
   } = useAppointmentActions();
 
   const onSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
@@ -75,6 +91,8 @@ const OptionsForm: FC<OptionsFormProps> = ({ appointmentId, onClose }) => {
     const status = formData.get("status") as "completed" | "no-show";
 
     try {
+      onClose();
+
       await setStatus({
         appointment: { id: appointmentId },
         status,
@@ -82,7 +100,6 @@ const OptionsForm: FC<OptionsFormProps> = ({ appointmentId, onClose }) => {
 
       haptic.trigger("success");
       toast.success("Cita marcada correctamente.");
-      onClose();
 
       return;
     } catch (error) {
@@ -93,7 +110,7 @@ const OptionsForm: FC<OptionsFormProps> = ({ appointmentId, onClose }) => {
   };
 
   return (
-    <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+    <form id={formId} className="flex gap-4" onSubmit={onSubmit}>
       <RadioGroup defaultValue="completed" name="status">
         <div className="flex items-center gap-3">
           <RadioGroupItem value="completed" id={formIds.completed} />
@@ -104,11 +121,6 @@ const OptionsForm: FC<OptionsFormProps> = ({ appointmentId, onClose }) => {
           <Label htmlFor={formIds.noShow}>No asistió</Label>
         </div>
       </RadioGroup>
-
-      <Button type="submit" disabled={isSettingStatus}>
-        {isSettingStatus && <Spinner />}
-        Marcar
-      </Button>
     </form>
   );
 };

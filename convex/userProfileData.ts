@@ -2,10 +2,10 @@ import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zInternalMutation, zMutation, zQuery } from ".";
+import { api } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { authComponent, createAuth } from "./auth";
 import { errorMessages } from "./errors";
-import { r2 } from "./r2";
 import { rateLimitOrThrow } from "./ratelimit";
 import { userProfileData } from "./schema";
 import { formatPhoneNumber } from "./utils";
@@ -160,7 +160,9 @@ export const setProfilePhotoKey = zMutation({
 
     if (args.previousKey) {
       try {
-        await r2.deleteObject(ctx, args.previousKey);
+        await ctx.runMutation(api.r2.deleteR2Object, {
+          key: args.previousKey,
+        });
       } catch {
         // Non-fatal: old object may already be gone
       }
@@ -170,9 +172,7 @@ export const setProfilePhotoKey = zMutation({
 
     await auth.api.updateUser({
       body: {
-        image: args.imageUrl.endsWith("/")
-          ? args.imageUrl.slice(0, -1)
-          : args.imageUrl,
+        image: args.imageUrl,
       },
       headers,
     });
@@ -194,7 +194,9 @@ export const removeProfilePhoto = zMutation({
 
     if (args.previousKey) {
       try {
-        await r2.deleteObject(ctx, args.previousKey);
+        await ctx.runMutation(api.r2.deleteR2Object, {
+          key: args.previousKey,
+        });
       } catch {
         // Non-fatal: old object may already be gone
       }

@@ -12,14 +12,6 @@ import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
 import {
-  ResponsiveModal,
-  ResponsiveModalContent,
-  ResponsiveModalDescription,
-  ResponsiveModalFooter,
-  ResponsiveModalHeader,
-  ResponsiveModalTitle,
-} from "@/components/ui/responsive-modal";
-import {
   FileUpload,
   FileUploadDropzone,
   FileUploadItem,
@@ -30,12 +22,17 @@ import {
   type FileUploadProps,
 } from "@/components/ui/file-upload";
 import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
-import { Spinner } from "@/components/ui/spinner";
 import {
-  getLogoUrl,
-  useRemoveBarbershopLogo,
-  useUploadBarbershopLogo,
-} from "@/hooks/barbershop/use-barbershop-logo-actions";
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
+import { Spinner } from "@/components/ui/spinner";
+import { useBarbershopMetadataActions } from "@/hooks/barbershop/use-barbershop-metadata";
+import { getLogoUrl, useUpload } from "@/hooks/use-upload";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 import { cn } from "@/lib/utils";
 
@@ -58,10 +55,16 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
 
   const { trigger } = useWebHaptics();
 
-  const { mutateAsync: uploadBarbershopLogo, isPending: isUploading } =
-    useUploadBarbershopLogo();
-  const { mutateAsync: removeBarbershopLogo, isPending: isRemoving } =
-    useRemoveBarbershopLogo();
+  const {
+    uploadFile: { isUploading, uploadFile },
+  } = useUpload({
+    type: "barbershop-logo",
+  });
+
+  const {
+    setLogoKeyMutation: { mutateAsync: setLogoKey },
+    removeLogoKeyMutation: { mutateAsync: removeLogoKey, isPending: isRemoving },
+  } = useBarbershopMetadataActions();
 
   const onFileReject = useCallback<
     NonNullable<FileUploadProps["onFileReject"]>
@@ -109,15 +112,18 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
     const file = queuedFiles[0];
 
     try {
-      await uploadBarbershopLogo({
-        file,
+      const key = await uploadFile(file);
+
+      await setLogoKey({
         barbershopId,
+        logoKey: key,
       });
 
       toast.success("Logo actualizado correctamente");
       trigger("success");
       setQueuedFiles([]);
     } catch (error) {
+      console.log(error);
       toast.error(getConvexErrorMessage(error));
       trigger("error");
       return;
@@ -135,15 +141,15 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
 
   const onRemoveLogo = async () => {
     setDeleteFinalConfirmOpen(false);
+
     try {
-      await removeBarbershopLogo({ barbershopId });
+      await removeLogoKey({ barbershopId });
 
       toast.success("Logo eliminado");
       trigger("success");
     } catch (error) {
       toast.error(getConvexErrorMessage(error));
       trigger("error");
-      return;
     }
   };
 
@@ -158,7 +164,10 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
       />
 
       {/* First confirmation modal */}
-      <ResponsiveModal open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+      <ResponsiveModal
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+      >
         <ResponsiveModalContent>
           <ResponsiveModalHeader>
             <ResponsiveModalTitle>¿Estás seguro?</ResponsiveModalTitle>
@@ -167,12 +176,13 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
             </ResponsiveModalDescription>
           </ResponsiveModalHeader>
           <ResponsiveModalFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteConfirmOpen(false)}
+            >
               Cancelar
             </Button>
-            <Button onClick={handleFirstConfirm}>
-              Confirmar
-            </Button>
+            <Button onClick={handleFirstConfirm}>Confirmar</Button>
           </ResponsiveModalFooter>
         </ResponsiveModalContent>
       </ResponsiveModal>
@@ -186,7 +196,8 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
           <ResponsiveModalHeader>
             <ResponsiveModalTitle>Confirmar eliminación</ResponsiveModalTitle>
             <ResponsiveModalDescription>
-              Esta acción es irreversible. ¿Confirmas que deseas eliminar el logo de tu barbería?
+              Esta acción es irreversible. ¿Confirmas que deseas eliminar el
+              logo de tu barbería?
             </ResponsiveModalDescription>
           </ResponsiveModalHeader>
           <ResponsiveModalFooter>
@@ -239,13 +250,13 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
           <FileUploadDropzone
             className={cn(
               "group relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-6 transition-all",
-              "hover:border-primary/40 hover:bg-accent/20",
+              "hover:bg-accent/20",
               isBusy && "pointer-events-none opacity-60",
             )}
           >
             {/* Preview / placeholder */}
             <div className="relative flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted/40">
-              {logoUrl && !hasQueuedFiles ? (
+              {logoUrl ? (
                 <img
                   src={logoUrl}
                   alt="Logo actual de la barbería"
@@ -302,8 +313,13 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
                 />
                 <FileUploadItemMetadata size="sm" />
                 <FileUploadItemDelete asChild>
-                  <Button type="button" variant="destructive" size="icon">
-                    <TrashIcon />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    disabled={isRemoving}
+                  >
+                    {isRemoving ? <Spinner /> : <TrashIcon />}
                   </Button>
                 </FileUploadItemDelete>
               </FileUploadItem>
@@ -312,27 +328,20 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
         </FileUpload>
 
         {/* Action buttons */}
-        <div className="flex gap-2">
+        <div
+          className={cn("grid gap-4", {
+            "grid-cols-1": !hasQueuedFiles,
+            "grid-cols-2": hasQueuedFiles && logoUrl,
+          })}
+        >
           {hasQueuedFiles && (
             <Button
               onClick={handleUpload}
               disabled={isUploading}
-              className="flex-1"
+              className="w-full"
             >
-              {isUploading ? (
-                <>
-                  <SpinnerGapIcon
-                    className="size-3.5 animate-spin"
-                    weight="bold"
-                  />
-                  Subiendo...
-                </>
-              ) : (
-                <>
-                  <UploadIcon className="size-3.5" />
-                  Subir logo
-                </>
-              )}
+              {isUploading ? <Spinner /> : <UploadIcon />}
+              Subir logo
             </Button>
           )}
 

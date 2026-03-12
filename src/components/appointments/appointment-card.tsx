@@ -145,34 +145,49 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
           )}
         </Suspense>
 
-        {showDeleteButton ? (
-          <Suspense
-            fallback={
-              <Button disabled variant="destructive">
-                Eliminar
-              </Button>
-            }
-          >
-            <DeleteAppointmentDialog
-              appointment={appointment}
-              trigger={<Button variant="destructive">Eliminar</Button>}
-            />
-          </Suspense>
+        {appointment.status !== "completed" ? (
+          showDeleteButton ? (
+            <Suspense
+              fallback={
+                <Button disabled variant="destructive">
+                  Eliminar
+                </Button>
+              }
+            >
+              <DeleteAppointmentDialog
+                appointment={appointment}
+                trigger={<Button variant="destructive">Eliminar</Button>}
+              />
+            </Suspense>
+          ) : (
+            <Suspense
+              fallback={
+                <Button disabled variant="destructive">
+                  Cancelar
+                </Button>
+              }
+            >
+              <CancelAppointmentDialog
+                appointment={appointment}
+                userId={appointment.userId}
+                isBarber={isBarber}
+                trigger={<Button variant="destructive">Cancelar</Button>}
+              />
+            </Suspense>
+          )
         ) : (
-          <Suspense
-            fallback={
-              <Button disabled variant="destructive">
-                Cancelar
-              </Button>
+          <Button
+            render={
+              <Link
+                to="/barbershops/$barbershopUuid"
+                params={{ barbershopUuid: barbershop.uuid }}
+              />
             }
+            variant="outline"
+            className="w-full"
           >
-            <CancelAppointmentDialog
-              appointment={appointment}
-              userId={appointment.userId}
-              isBarber={isBarber}
-              trigger={<Button variant="destructive">Cancelar</Button>}
-            />
-          </Suspense>
+            Agendar nuevamente
+          </Button>
         )}
       </CardFooter>
     </Card>

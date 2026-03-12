@@ -1,12 +1,14 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: objects are guaranteed to be not null */
 /** biome-ignore-all lint/suspicious/noNonNullAssertedOptionalChain: objects are guaranteed to be not null */
 
-import { createFileRoute } from "@tanstack/react-router";
+import { ArrowLeftIcon } from "@phosphor-icons/react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ServicesSkeleton } from "@/components/layout/skeleton/services-skeleton";
+import { Button } from "@/components/ui/button";
 import { useCarouselApi } from "@/components/ui/carousel";
 import {
   Empty,
@@ -152,7 +154,17 @@ function RouteComponent() {
 
   return (
     <BorderContainer>
-      <main className="space-y-0">
+      <main className="space-y-4 md:space-y-2">
+        <Button
+          nativeButton={false}
+          render={<Link to="/barbershops" />}
+          variant="link"
+          className="text-muted-foreground"
+        >
+          <ArrowLeftIcon />
+          Volver a la lista
+        </Button>
+
         <Suspense
           fallback={
             <div className="space-y-4">
