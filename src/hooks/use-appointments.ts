@@ -163,7 +163,24 @@ export function useAppointmentActions() {
     mutationFn: createAppointmentMutationOptions(),
   });
   const setStatusMutation = useMutation({
-    mutationFn: useConvexMutation(api.appointments.setStatus),
+    mutationFn: useConvexMutation(
+      api.appointments.setStatus,
+    ).withOptimisticUpdate((localStore, args) => {
+      const existingAppointment = localStore.getQuery(
+        api.appointments.getById,
+        {
+          id: args.appointment.id,
+        },
+      );
+
+      if (existingAppointment) {
+        localStore.setQuery(
+          api.appointments.getById,
+          { id: args.appointment.id },
+          { ...existingAppointment, status: args.status },
+        );
+      }
+    }),
   });
   const deleteAppointmentMutation = useMutation({
     mutationFn: useConvexMutation(api.appointments.deleteAppointment),

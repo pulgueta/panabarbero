@@ -39,15 +39,12 @@ interface AccountTabProps {
   profile: UserProfileData;
   isBarber: boolean;
   userId: string;
-  /** Auth provider image URL (Google profile picture, etc.) */
-  authProviderImage?: string | null;
 }
 
 export const AccountTab: FC<AccountTabProps> = ({
   profile,
   isBarber,
   userId,
-  authProviderImage,
 }) => {
   const {
     updateNameMutation: { mutateAsync: updateName, isPending: isUpdatingName },
@@ -156,10 +153,7 @@ export const AccountTab: FC<AccountTabProps> = ({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ProfilePhotoUploader
-            currentPhotoUrl={authProviderImage ?? null}
-            userName={profile?.name}
-          />
+          <ProfilePhotoUploader userName={profile?.name} />
         </CardContent>
       </Card>
 
