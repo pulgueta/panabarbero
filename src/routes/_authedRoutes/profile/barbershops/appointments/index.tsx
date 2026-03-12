@@ -3,7 +3,8 @@
 import { PlusIcon } from "@phosphor-icons/react";
 import { createFileRoute } from "@tanstack/react-router";
 import { es } from "date-fns/locale";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense } from "react";
+import { z } from "zod";
 
 import {
   getAppointmentsTableColumns,
@@ -65,12 +66,29 @@ const CreateAppointmentDialog = lazy(() =>
   ),
 );
 
+const dateSchema = z.object({
+  date: z
+    .number()
+    .optional()
+    .default(Date.now())
+    .transform((val) => {
+      const startOfDay = new Date(val);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(startOfDay);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      return startOfDay.getTime();
+    }),
+});
+
 export const Route = createFileRoute(
   "/_authedRoutes/profile/barbershops/appointments/",
 )({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
-  loader: async ({ context }) => {
+  validateSearch: dateSchema,
+  loaderDeps: ({ search }) => search,
+  loader: async ({ context, deps }) => {
     const user = await context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
     );
@@ -90,7 +108,10 @@ export const Route = createFileRoute(
         );
 
         const appointments = await context.queryClient.ensureQueryData(
-          appointmentsByBarbershopQueryOptions(barbershop._id),
+          appointmentsByBarbershopQueryOptions({
+            id: barbershop._id,
+            date: deps.date,
+          }),
         );
         const barbershopMembers = await context.queryClient.ensureQueryData(
           barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
@@ -149,9 +170,8 @@ export const Route = createFileRoute(
 });
 
 function RouteComponent() {
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-    new Date(),
-  );
+  const navigate = Route.useNavigate();
+  const { date } = Route.useSearch();
 
   const { data: session } = useSession();
   const { data: barbershop } = useBarbershopByMemberUserId(
@@ -163,24 +183,16 @@ function RouteComponent() {
   const { data: services } = useServicesByBarbershopId(barbershop?._id!);
   const { data: rescheduledAppointmentRequests } =
     useRescheduledAppointmentRequests(barbershop?._id!);
-  const { data: appointments } = useAppointmentsByBarbershop(barbershop?._id!);
+  const { data: appointments } = useAppointmentsByBarbershop({
+    id: barbershop?._id!,
+    date,
+  });
   const { canCreateStaffAppointments } = useBarbershopPlan(barbershop?._id!);
   const { data: isBarber } = useIsBarber(session?.userId!);
 
-  const isOwner = Boolean(
-    session?.userId && barbershop?.ownerId === session.userId,
-  );
-
-  const appointmentsForSelectedDay = appointments
-    .filter((appointment) => {
-      const appointmentDate = new Date(appointment.date);
-      return (
-        appointmentDate.getFullYear() === selectedDate?.getFullYear() &&
-        appointmentDate.getMonth() === selectedDate?.getMonth() &&
-        appointmentDate.getDate() === selectedDate?.getDate()
-      );
-    })
-    .sort((a, b) => a.date - b.date);
+  const isOwner = session?.userId
+    ? barbershop?.ownerId === session.userId
+    : false;
 
   return (
     <BorderContainer className="space-y-4">
@@ -196,8 +208,19 @@ function RouteComponent() {
           <h2 className="font-semibold text-lg">Selecciona un día</h2>
           <Calendar
             mode="single"
-            selected={selectedDate}
-            onSelect={setSelectedDate}
+            selected={date ? new Date(date) : new Date()}
+            onSelect={(date) => {
+              if (!date) return;
+
+              const startOfDay = new Date(date);
+              startOfDay.setHours(0, 0, 0, 0);
+              const endOfDay = new Date(startOfDay);
+              endOfDay.setHours(23, 59, 59, 999);
+
+              navigate({
+                search: { date: startOfDay.getTime() },
+              });
+            }}
             locale={es}
             className="mx-auto rounded-lg border border-border [--cell-size:--spacing(11)] md:col-span-1 md:ml-auto md:[--cell-size:--spacing(7)] lg:[--cell-size:--spacing(9)] xl:[--cell-size:--spacing(12)]"
           />
@@ -206,14 +229,13 @@ function RouteComponent() {
         <div className="md:col-span-2">
           <header className="mb-2 flex items-center justify-between gap-1">
             <h2 className="font-semibold text-lg">
-              {selectedDate
-                ? `${appointmentsForSelectedDay.length} cita${appointmentsForSelectedDay.length > 1 || appointmentsForSelectedDay.length === 0 ? "s" : ""} (${selectedDate.toLocaleDateString(
-                    "es-CO",
-                    {
-                      month: "long",
-                      day: "numeric",
-                    },
-                  )})`
+              {date
+                ? `${appointments.length} cita${appointments.length > 1 || appointments.length === 0 ? "s" : ""} (${new Date(
+                    date,
+                  ).toLocaleDateString("es-CO", {
+                    month: "long",
+                    day: "numeric",
+                  })})`
                 : "No hay día seleccionado"}
             </h2>
 
@@ -245,7 +267,7 @@ function RouteComponent() {
           <Suspense fallback={<Skeleton className="h-32 w-full md:h-64" />}>
             <DataTable
               columns={getAppointmentsTableColumns({ isOwner })}
-              data={appointmentsForSelectedDay}
+              data={appointments}
             />
           </Suspense>
         </div>

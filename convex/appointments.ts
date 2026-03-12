@@ -399,7 +399,10 @@ export const getByUserId = zQuery({
 });
 
 export const getByBarbershopId = zQuery({
-  args: barbershops.tools.id,
+  args: z.object({
+    ...barbershops.tools.id.shape,
+    date: z.number().optional(),
+  }),
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
@@ -407,10 +410,19 @@ export const getByBarbershopId = zQuery({
       return [];
     }
 
+    const startOfDay = args.date ?? Date.now();
+    const endOfDay = startOfDay + 24 * 60 * 60 * 1000 - 1;
+
     const appointments = await ctx.db
       .query("appointments")
       .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("deletedAt"), undefined),
+          q.gte(q.field("date"), startOfDay),
+          q.lte(q.field("date"), endOfDay),
+        ),
+      )
       .collect();
 
     if (user.userId) {
