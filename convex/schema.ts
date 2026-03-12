@@ -191,7 +191,7 @@ export default defineSchema({
     .index("by_isActive", ["isActive"])
     .searchIndex("by_name_search", {
       searchField: "name",
-      filterFields: ["isActive"],
+      filterFields: ["isActive", "state", "city"],
     })
     .index("by_uuid", ["uuid"]),
 

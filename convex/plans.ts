@@ -54,8 +54,8 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
   },
   premium: {
     maxInvitedBarbers: 10,
-    maxSmsPerMonth: null,
-    maxEmailPerMonth: null,
+    maxSmsPerMonth: 3000,
+    maxEmailPerMonth: 1500,
     staffCanCreateAppointments: true,
   },
 };
