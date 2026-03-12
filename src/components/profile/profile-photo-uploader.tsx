@@ -1,204 +1,276 @@
-import { TrashIcon, UserIcon } from "@phosphor-icons/react";
+import {
+  CameraIcon,
+  SpinnerGapIcon,
+  TrashIcon,
+  UploadIcon,
+  UserIcon,
+} from "@phosphor-icons/react";
 import type { FC } from "react";
-import { useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  FileUpload,
+  FileUploadDropzone,
+  FileUploadItem,
+  FileUploadItemDelete,
+  FileUploadItemMetadata,
+  FileUploadItemPreview,
+  FileUploadList,
+  type FileUploadProps,
+} from "@/components/ui/file-upload";
+import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
 import { Spinner } from "@/components/ui/spinner";
-import { useProfileActions } from "@/hooks/use-profile";
+import {
+  useRemoveProfilePhoto,
+  useUploadProfilePhoto,
+} from "@/hooks/use-profile-photo-actions";
+import { getConvexErrorMessage } from "@/lib/convex-errors";
+import { cn } from "@/lib/utils";
+
+const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5 MB
+const ACCEPTED_TYPES = "image/png,image/jpeg,image/webp,image/avif";
+
+function getInitials(name?: string | null) {
+  if (!name) return null;
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
 
 interface ProfilePhotoUploaderProps {
-  /** The current profile photo URL resolved from R2 */
-  currentPhotoUrl: string | null;
-  /** Fallback photo URL from auth provider (Google, etc.) */
-  authProviderImage?: string | null;
-  /** User's name for avatar fallback */
+  /** Current photo URL from Better Auth user.image (R2 or OAuth provider) */
+  currentPhotoUrl?: string | null;
+  /** User's name for avatar initials fallback */
   userName?: string | null;
 }
 
 export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
   currentPhotoUrl,
-  authProviderImage,
   userName,
 }) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [queuedFiles, setQueuedFiles] = useState<File[]>([]);
+  const [fileToCrop, setFileToCrop] = useState<File | null>(null);
 
-  const {
-    generateUploadUrlMutation: { mutateAsync: generateUploadUrl },
-    setProfilePhotoKeyMutation: {
-      mutateAsync: setProfilePhotoKey,
-      isPending: isSavingKey,
+  const { trigger } = useWebHaptics();
+  const { mutateAsync: uploadProfilePhoto, isPending: isUploading } =
+    useUploadProfilePhoto();
+  const { mutateAsync: removeProfilePhoto, isPending: isRemoving } =
+    useRemoveProfilePhoto();
+
+  const isBusy = isUploading || isRemoving;
+  const hasQueuedFiles = queuedFiles.length > 0;
+
+  const initials = getInitials(userName);
+
+  const onFileReject = useCallback<
+    NonNullable<FileUploadProps["onFileReject"]>
+  >(
+    (_file, message) => {
+      toast.error(message);
+      trigger("warning");
     },
-    removeProfilePhotoMutation: {
-      mutateAsync: removeProfilePhoto,
-      isPending: isRemoving,
+    [trigger],
+  );
+
+  // Intercept newly added files and send them to the crop dialog instead
+  const handleValueChange = useCallback(
+    (files: File[]) => {
+      const currentSet = new Set(queuedFiles);
+      const newFile = files.find((f) => !currentSet.has(f));
+
+      if (newFile) {
+        setFileToCrop(newFile);
+        // Don't add to queue yet — wait for crop confirmation
+      } else {
+        setQueuedFiles(files);
+      }
     },
-  } = useProfileActions();
+    [queuedFiles],
+  );
 
-  const haptic = useWebHaptics();
-  const isPending = isUploading || isSavingKey || isRemoving;
+  const handleCropConfirm = useCallback((croppedFile: File) => {
+    setFileToCrop(null);
+    setQueuedFiles([croppedFile]);
+  }, []);
 
-  // Determine which image to show: preview > R2 photo > auth provider > fallback
-  const displayPhotoUrl = previewUrl ?? currentPhotoUrl ?? authProviderImage;
+  const handleCropCancel = useCallback(() => {
+    setFileToCrop(null);
+    setQueuedFiles([]);
+  }, []);
 
-  const getInitials = (name?: string | null) => {
-    if (!name) return "U";
-    const parts = name.trim().split(/\s+/);
-    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-    return (
-      parts[0].charAt(0) + parts[parts.length - 1].charAt(0)
-    ).toUpperCase();
-  };
+  const handleUpload = async () => {
+    if (!hasQueuedFiles) return;
 
-  const handleSelectFile = () => {
-    inputRef.current?.click();
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      toast.error("Por favor selecciona un archivo de imagen válido.");
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      toast.error("La imagen debe ser menor a 5MB.");
-      return;
-    }
-
-    // Create preview
-    const objectUrl = URL.createObjectURL(file);
-    setPreviewUrl(objectUrl);
+    const file = queuedFiles[0];
 
     try {
-      setIsUploading(true);
-
-      // Generate upload URL from Convex R2 component
-      const { url, key } = await generateUploadUrl({});
-
-      // Upload the file directly to R2
-      const uploadResponse = await fetch(url, {
-        method: "PUT",
-        body: file,
-        headers: {
-          "Content-Type": file.type,
-        },
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error("Error al subir la imagen");
-      }
-
-      // Save the key to the user's profile
-      await setProfilePhotoKey({ key });
-
-      haptic.trigger("success");
+      await uploadProfilePhoto({ file, previousImageUrl: currentPhotoUrl });
       toast.success("Foto de perfil actualizada");
+      trigger("success");
+      setQueuedFiles([]);
     } catch (error) {
-      console.error("Error uploading profile photo:", error);
-      haptic.trigger("error");
-      toast.error("Error al subir la imagen. Intenta de nuevo.");
-      setPreviewUrl(null);
-    } finally {
-      setIsUploading(false);
-      // Clear the input so the same file can be selected again
-      if (inputRef.current) {
-        inputRef.current.value = "";
-      }
+      toast.error(getConvexErrorMessage(error));
+      trigger("error");
+      return;
     }
   };
 
-  const handleRemovePhoto = async () => {
+  const handleRemove = async () => {
     try {
-      await removeProfilePhoto({});
-      setPreviewUrl(null);
-      haptic.trigger("success");
+      await removeProfilePhoto({ previousImageUrl: currentPhotoUrl });
       toast.success("Foto de perfil eliminada");
+      trigger("success");
     } catch (error) {
-      console.error("Error removing profile photo:", error);
-      haptic.trigger("error");
-      toast.error("Error al eliminar la foto. Intenta de nuevo.");
+      toast.error(getConvexErrorMessage(error));
+      trigger("error");
+      return;
     }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Foto de perfil</CardTitle>
-        <CardDescription>
-          Sube una foto para personalizar tu perfil. Máximo 5MB.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <Avatar className="size-16">
-              <AvatarImage
-                src={displayPhotoUrl ?? undefined}
-                alt="Foto de perfil"
-              />
-              <AvatarFallback className="text-xl">
-                {userName ? (
-                  getInitials(userName)
-                ) : (
-                  <UserIcon className="size-8" />
-                )}
-              </AvatarFallback>
-            </Avatar>
-            {isPending && (
-              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50">
-                <Spinner className="size-6 text-white" />
-              </div>
-            )}
-          </div>
+    <>
+      <ImageCropDialog
+        file={fileToCrop}
+        onConfirm={handleCropConfirm}
+        onCancel={handleCropCancel}
+        aspectRatio={1}
+        shape="rectangle"
+      />
 
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <input
-              ref={inputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileChange}
-              disabled={isPending}
+      <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
+        {/* Avatar preview */}
+        <div className="relative shrink-0">
+          <Avatar className="size-43 border border-border">
+            <AvatarImage
+              src={currentPhotoUrl ?? undefined}
+              alt="Foto de perfil"
             />
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleSelectFile}
-              disabled={isPending}
+            <AvatarFallback className="text-2xl">
+              {initials ?? <UserIcon className="size-9" weight="thin" />}
+            </AvatarFallback>
+          </Avatar>
+          {isBusy && (
+            <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50">
+              <SpinnerGapIcon
+                className="size-5 animate-spin text-white"
+                weight="bold"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Upload area */}
+        <div className="w-full min-w-0 space-y-4">
+          <FileUpload
+            value={queuedFiles}
+            onValueChange={handleValueChange}
+            maxFiles={1}
+            maxSize={MAX_PHOTO_SIZE}
+            accept={ACCEPTED_TYPES}
+            disabled={isBusy}
+            onFileReject={onFileReject}
+            onFileValidate={(file) => {
+              if (file.size > MAX_PHOTO_SIZE) {
+                return "El archivo no debe superar 5 MB";
+              }
+              if (!ACCEPTED_TYPES.split(",").includes(file.type)) {
+                return "Solo se permiten imágenes PNG, JPG, WebP o AVIF";
+              }
+              return null;
+            }}
+          >
+            <FileUploadDropzone
+              className={cn(
+                "group flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-4 transition-all",
+                "hover:border-primary/40 hover:bg-accent/20",
+                isBusy && "pointer-events-none opacity-60",
+              )}
             >
-              {currentPhotoUrl ? "Cambiar foto" : "Subir foto"}
-            </Button>
-            {currentPhotoUrl && (
+              <CameraIcon
+                className="size-6 text-muted-foreground/60"
+                weight="thin"
+              />
+              <div className="text-center">
+                <p className="font-medium text-sm">
+                  {currentPhotoUrl
+                    ? "Arrastra una imagen para reemplazar tu foto"
+                    : "Arrastra o selecciona tu foto de perfil"}
+                </p>
+                <p className="mt-0.5 text-muted-foreground text-xs">
+                  PNG, JPG, WebP o AVIF — máx. 5 MB
+                </p>
+              </div>
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleRemovePhoto}
-                disabled={isPending}
+                size="sm"
+                disabled={isBusy}
+                className="pointer-events-none"
               >
-                <TrashIcon className="mr-1.5 size-4" />
-                Eliminar
+                <UploadIcon className="size-3.5" />
+                {currentPhotoUrl ? "Cambiar foto" : "Subir foto"}
+              </Button>
+            </FileUploadDropzone>
+
+            <FileUploadList>
+              {queuedFiles.map((file) => (
+                <FileUploadItem key={file.name + file.size} value={file}>
+                  <FileUploadItemPreview />
+                  <FileUploadItemMetadata size="sm" />
+                  <FileUploadItemDelete asChild>
+                    <Button type="button" variant="destructive" size="icon">
+                      <TrashIcon weight="bold" />
+                    </Button>
+                  </FileUploadItemDelete>
+                </FileUploadItem>
+              ))}
+            </FileUploadList>
+          </FileUpload>
+
+          {/* Action buttons */}
+          <div className="flex gap-2">
+            {hasQueuedFiles && (
+              <Button
+                onClick={handleUpload}
+                disabled={isUploading}
+                className="flex-1"
+              >
+                {isUploading ? (
+                  <>
+                    <SpinnerGapIcon
+                      className="size-3.5 animate-spin"
+                      weight="bold"
+                    />
+                    Subiendo...
+                  </>
+                ) : (
+                  <>
+                    <UploadIcon className="size-3.5" />
+                    Guardar foto
+                  </>
+                )}
+              </Button>
+            )}
+
+            {currentPhotoUrl && !hasQueuedFiles && (
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={isBusy}
+                onClick={handleRemove}
+                className="w-full"
+              >
+                {isRemoving ? <Spinner /> : <TrashIcon />}
+                Eliminar foto
               </Button>
             )}
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </>
   );
 };

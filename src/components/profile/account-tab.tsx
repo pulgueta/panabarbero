@@ -5,6 +5,7 @@ import { InfoIcon } from "@phosphor-icons/react";
 import type { FC } from "react";
 import { lazy, Suspense, useEffect, useState } from "react";
 
+import { ProfilePhotoUploader } from "@/components/profile/profile-photo-uploader";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,6 +47,7 @@ export const AccountTab: FC<AccountTabProps> = ({
   profile,
   isBarber,
   userId,
+  authProviderImage,
 }) => {
   const {
     updateNameMutation: { mutateAsync: updateName, isPending: isUpdatingName },
@@ -146,12 +148,22 @@ export const AccountTab: FC<AccountTabProps> = ({
         </Alert>
       )}
 
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Foto de perfil</CardTitle>
+          <CardDescription>
+            Sube una foto para personalizar tu perfil. Máximo 5 MB.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ProfilePhotoUploader
+            currentPhotoUrl={authProviderImage ?? null}
+            userName={profile?.name}
+          />
+        </CardContent>
+      </Card>
+
       <div className="grid w-full gap-4 md:grid-cols-2 [&_p]:text-xs">
-        {/* <ProfilePhotoUploader
-          currentPhotoUrl={profile?.profilePhotoUrl ?? null}
-          authProviderImage={authProviderImage}
-          userName={profile?.name}
-        /> */}
         <Card>
           <CardHeader>
             <CardTitle>Nombre completo</CardTitle>

@@ -1,7 +1,4 @@
-import type { Barbershop } from "@convex/schema";
-import { Link } from "@tanstack/react-router";
-import type { FC } from "react";
-
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +9,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getLogoUrl } from "@/hooks/barbershop/use-barbershop-logo-actions";
+import { useBarbershopMetadata } from "@/hooks/barbershop/use-barbershop-metadata";
+import type { Barbershop } from "@convex/schema";
+import { Link } from "@tanstack/react-router";
+import type { FC } from "react";
 
 interface BarbershopListCardProps {
   barbershop: Barbershop;
@@ -71,7 +73,12 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
   barbershop,
   showAddress = true,
 }) => {
+  const { data: metadata } = useBarbershopMetadata(barbershop._id);
+
   const isOpen = isCurrentlyOpen(barbershop);
+
+  const logoUrl = getLogoUrl(metadata?.logoKey);
+
   return (
     <Card
       className="gap-4 transition-shadow hover:shadow-xs"
@@ -84,37 +91,45 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
           <div className="flex w-full items-start justify-between">
             <div className="flex items-start gap-2.5">
               <div>
-                <div className="mb-1 flex items-center gap-2">
-                  <CardTitle
-                    className="text-balance font-bold text-xl tracking-tight"
-                    style={{
-                      viewTransitionName: `barbershop-${barbershop.uuid}`,
-                    }}
-                  >
-                    {barbershop.name}
-                  </CardTitle>
-                  <Badge
-                    variant={isOpen ? "secondary" : "warning"}
-                    className="text-xs"
-                    style={{
-                      viewTransitionName: `barbershop-${barbershop.uuid}-status`,
-                    }}
-                  >
-                    {isOpen ? "Abierto" : "Cerrado"}
-                  </Badge>
+                <div className="mb-1 flex items-start gap-2">
+                  <Avatar size="2xl">
+                    <AvatarImage src={logoUrl ?? "/default-logo.png"} />
+                    <AvatarFallback>
+                      {barbershop.name.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-1">
+                    <CardTitle
+                      className="line-clamp-1 truncate text-balance font-bold text-xl leading-5 tracking-tight"
+                      style={{
+                        viewTransitionName: `barbershop-${barbershop.uuid}`,
+                      }}
+                    >
+                      {barbershop.name}
+                    </CardTitle>
+
+                    <p
+                      className="text-muted-foreground text-xs"
+                      style={{
+                        viewTransitionName: `barbershop-${barbershop.uuid}-city-state`,
+                      }}
+                    >
+                      {barbershop.city}, {barbershop.state}
+                    </p>
+
+                    <Badge
+                      variant={isOpen ? "secondary" : "warning"}
+                      className="text-xs"
+                      style={{
+                        viewTransitionName: `barbershop-${barbershop.uuid}-status`,
+                      }}
+                    >
+                      {isOpen ? "Abierto" : "Cerrado"}
+                    </Badge>
+                  </div>
                 </div>
-                <p
-                  className="text-muted-foreground text-xs"
-                  style={{
-                    viewTransitionName: `barbershop-${barbershop.uuid}-city-state`,
-                  }}
-                >
-                  {barbershop.city}, {barbershop.state}
-                </p>
               </div>
             </div>
-
-            {/* <BarbershopAvatar barbershop={barbershop} /> */}
           </div>
         </div>
       </CardHeader>

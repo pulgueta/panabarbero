@@ -72,7 +72,9 @@ export function useRemoveProfilePhoto() {
   return useMutation({
     mutationFn: async ({
       previousImageUrl,
-    }: { previousImageUrl?: string | null } = {}) => {
+    }: {
+      previousImageUrl?: string | null;
+    } = {}) => {
       const previousKey = extractR2Key(previousImageUrl) ?? undefined;
       await removePhoto({ previousKey });
     },

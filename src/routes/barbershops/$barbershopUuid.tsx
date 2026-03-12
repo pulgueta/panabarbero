@@ -21,6 +21,10 @@ import {
   useBarbershopByUuid,
 } from "@/hooks/barbershop/use-barbershop";
 import {
+  barbershopMetadataQueryOptions,
+  useBarbershopMetadata,
+} from "@/hooks/barbershop/use-barbershop-metadata";
+import {
   barberByUserIdQueryOptions,
   barbershopMembersByBarbershopIdQueryOptions,
   servicesForBarberQueryOptions,
@@ -74,9 +78,14 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
     }
 
     if (barbershop?._id) {
-      await context.queryClient.ensureQueryData(
-        servicesQueryOptions(barbershop._id),
-      );
+      await Promise.all([
+        context.queryClient.ensureQueryData(
+          barbershopMetadataQueryOptions(barbershop._id),
+        ),
+        context.queryClient.ensureQueryData(
+          servicesQueryOptions(barbershop._id),
+        ),
+      ]);
 
       const barbershopMembers = await context.queryClient.ensureQueryData(
         barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
@@ -132,10 +141,10 @@ function RouteComponent() {
   const { barbershopUuid } = Route.useParams();
 
   const { data: user } = useSession();
-
   const [_, _setCarouselApi] = useCarouselApi();
 
   const { data: barbershop } = useBarbershopByUuid(barbershopUuid);
+  const { data: metadata } = useBarbershopMetadata(barbershop?._id!);
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
   const { data: barbershopMembers } = useBarbershopMembersByBarbershopId(
     barbershop?._id!,
@@ -143,24 +152,37 @@ function RouteComponent() {
 
   return (
     <BorderContainer>
-      <main>
-        <Suspense fallback={<Skeleton className="h-32 w-full md:max-w-xs" />}>
+      <main className="space-y-0">
+        <Suspense
+          fallback={
+            <div className="space-y-4">
+              <div className="flex gap-4">
+                <Skeleton className="size-28 rounded-2xl sm:size-32" />
+                <div className="flex flex-1 flex-col gap-2 pt-1">
+                  <Skeleton className="h-7 w-48" />
+                  <Skeleton className="h-4 w-full max-w-xs" />
+                  <Skeleton className="h-5 w-24" />
+                </div>
+              </div>
+
+              <Skeleton className="h-4 w-56" />
+              <Skeleton className="h-9 w-44" />
+            </div>
+          }
+        >
           <BarbershopHeader
             barbershop={barbershop}
             userId={user?.userId!}
             availability={barbershop?.availability!}
+            logoKey={metadata?.logoKey}
           />
-
-          {/* <section>
-                <BarbershopAvatar barbershop={barbershop} size="lg" />
-              </section> */}
         </Suspense>
 
-        <Separator className="mt-8 mb-6" />
+        <Separator className="my-6" />
 
         <section className="space-y-4">
-          <h2 className="my-6 text-balance text-center font-semibold text-xl tracking-tight">
-            Servicios ofrecidos:
+          <h2 className="text-balance font-semibold text-xl tracking-tight">
+            Servicios ofrecidos
           </h2>
 
           <Suspense fallback={<ServicesSkeleton />}>

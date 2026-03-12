@@ -6,7 +6,6 @@ import { lazy, Suspense } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
-import { DashboardHeader } from "@/components/barbershops/dashboard-header";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -22,6 +21,10 @@ import {
   useBarbershopMemberRoles,
 } from "@/hooks/barbershop/use-barbershop-member";
 import {
+  barbershopMetadataQueryOptions,
+  useBarbershopMetadata,
+} from "@/hooks/barbershop/use-barbershop-metadata";
+import {
   barbershopMembersByBarbershopIdQueryOptions,
   isBarberQueryOptions,
   useIsBarber,
@@ -33,6 +36,11 @@ import {
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
+const DashboardHeader = lazy(() =>
+  import("@/components/barbershops/dashboard-header").then((mod) => ({
+    default: mod.DashboardHeader,
+  })),
+);
 const AvailabilityForm = lazy(() =>
   import("@/components/barbershops/availability/availability-form").then(
     (mod) => ({
@@ -63,6 +71,11 @@ const PreferencesForm = lazy(() =>
 const OwnerRoleToggle = lazy(() =>
   import("@/components/barbershops/settings/owner-role-toggle").then((mod) => ({
     default: mod.OwnerRoleToggle,
+  })),
+);
+const BarbershopLogoUploader = lazy(() =>
+  import("@/components/barbershops/barbershop-logo-uploader").then((mod) => ({
+    default: mod.BarbershopLogoUploader,
   })),
 );
 // const SocialMediaForm = lazy(() =>
@@ -111,6 +124,9 @@ export const Route = createFileRoute(
           opts.context.queryClient.ensureQueryData(
             barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
           ),
+          opts.context.queryClient.ensureQueryData(
+            barbershopMetadataQueryOptions(barbershop._id),
+          ),
         ]);
       }
     }
@@ -134,6 +150,7 @@ function SettingsPage() {
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
   const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
   const { data: isBarber } = useIsBarber(user?.userId!);
+  const { data: metadata } = useBarbershopMetadata(barbershop?._id!);
 
   const { trigger } = useWebHaptics();
 
@@ -158,10 +175,12 @@ function SettingsPage() {
 
   return (
     <BorderContainer>
-      <DashboardHeader
-        title="Configuración"
-        description="Configura tu barbería y personaliza tu experiencia."
-      />
+      <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+        <DashboardHeader
+          title="Configuración"
+          description="Configura tu barbería y personaliza tu experiencia."
+        />
+      </Suspense>
 
       {barbershop && rolesData?.isOwner && (
         <>
@@ -194,6 +213,46 @@ function SettingsPage() {
             <ShareNetworkIcon className="size-3" />
             Copia el link de tu barbería
           </Button>
+
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <section className="space-y-2">
+              <header>
+                <h2 className="font-bold text-xl tracking-tight">
+                  Logo de la barbería
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  Imagen que identifica tu barbería en la plataforma.
+                </p>
+              </header>
+
+              <Suspense fallback={<Skeleton className="h-80 w-full" />}>
+                <BarbershopLogoUploader
+                  barbershopId={barbershop._id}
+                  userId={user?.userId!}
+                  logoKey={metadata?.logoKey}
+                />
+              </Suspense>
+            </section>
+
+            <section className="space-y-4">
+              <div>
+                <h2 className="font-bold text-xl tracking-tight">Tu rol</h2>
+                <p className="text-muted-foreground text-sm">
+                  Decide si atiendes clientes como barbero o solo administras la
+                  barbería.
+                </p>
+              </div>
+
+              <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+                <OwnerRoleToggle
+                  barbershopId={barbershop._id}
+                  isCurrentlyBarber={isBarber}
+                />
+              </Suspense>
+            </section>
+          </section>
+
+          <Separator />
 
           <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
@@ -284,23 +343,6 @@ function SettingsPage() {
 
               <Suspense fallback={<Skeleton className="h-48 w-full" />}>
                 <PreferencesForm barbershop={barbershop} />
-              </Suspense>
-            </section>
-
-            <section className="space-y-4">
-              <div>
-                <h2 className="font-bold text-xl tracking-tight">Tu rol</h2>
-                <p className="text-muted-foreground text-sm">
-                  Decide si atiendes clientes como barbero o solo administras la
-                  barbería.
-                </p>
-              </div>
-
-              <Suspense fallback={<Skeleton className="h-48 w-full" />}>
-                <OwnerRoleToggle
-                  barbershopId={barbershop._id}
-                  isCurrentlyBarber={isBarber}
-                />
               </Suspense>
             </section>
 

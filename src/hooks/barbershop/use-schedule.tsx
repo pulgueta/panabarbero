@@ -36,7 +36,11 @@ export function useSchedule(availability: Barbershop["availability"] | null) {
 
   const AvailabilityLabel = () => {
     if (!todaySchedule || !todaySchedule.weekDay.isActive) {
-      return "Hoy no hay atención al público.";
+      return (
+        <span className="text-muted-foreground text-sm">
+          Hoy no hay atención al público.
+        </span>
+      );
     }
 
     const openAt = formatTimeLabel(todaySchedule.openAt);
@@ -44,7 +48,12 @@ export function useSchedule(availability: Barbershop["availability"] | null) {
     const lunchStart = formatTimeLabel(todaySchedule.lunchStart);
     const lunchEnd = formatTimeLabel(todaySchedule.lunchEnd);
 
-    if (!openAt || !closeAt) return "Horario de atención no configurado.";
+    if (!openAt || !closeAt)
+      return (
+        <span className="text-muted-foreground text-sm">
+          Horario de atención no configurado.
+        </span>
+      );
 
     const lunchLabel =
       lunchStart && lunchEnd
