@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { zInternalMutation, zMutation, zQuery } from ".";
 import { completedAppointmentsAggregate } from "./aggregates";
+import { authComponent } from "./auth";
 import { assertOwner } from "./authz";
 import { errorMessages } from "./errors";
 import { r2 } from "./r2";
@@ -91,11 +92,16 @@ export const setLogoKey = zMutation({
   args: z.object({
     barbershopId: barbershops.tools.id.shape.id,
     logoKey: z.string(),
-    userId: z.string(),
   }),
   handler: async (ctx, args) => {
-    await assertOwner(ctx, args.barbershopId, args.userId);
-    await rateLimitOrThrow(ctx, "uploadBarbershopLogo", args.userId);
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    await assertOwner(ctx, args.barbershopId, user.userId);
+    await rateLimitOrThrow(ctx, "uploadBarbershopLogo", user.userId);
 
     const metadata = await ctx.db
       .query("barbershopMetadata")
@@ -119,11 +125,16 @@ export const setLogoKey = zMutation({
 export const removeLogoKey = zMutation({
   args: z.object({
     barbershopId: barbershops.tools.id.shape.id,
-    userId: z.string(),
   }),
   handler: async (ctx, args) => {
-    await assertOwner(ctx, args.barbershopId, args.userId);
-    await rateLimitOrThrow(ctx, "removeBarbershopLogo", args.userId);
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    await assertOwner(ctx, args.barbershopId, user.userId);
+    await rateLimitOrThrow(ctx, "removeBarbershopLogo", user.userId);
 
     const metadata = await ctx.db
       .query("barbershopMetadata")

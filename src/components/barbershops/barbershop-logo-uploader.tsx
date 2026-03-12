@@ -36,16 +36,13 @@ const ACCEPTED_TYPES = "image/png,image/jpeg,image/webp,image/avif";
 
 type BarbershopLogoUploaderProps = {
   barbershopId: Id<"barbershops">;
-  userId: string;
   logoKey?: string | null;
 };
 
 export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
   barbershopId,
-  userId,
   logoKey,
 }) => {
-  const logoUrl = getLogoUrl(logoKey);
   const [queuedFiles, setQueuedFiles] = useState<File[]>([]);
   const [fileToCrop, setFileToCrop] = useState<File | null>(null);
 
@@ -55,9 +52,6 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
     useUploadBarbershopLogo();
   const { mutateAsync: removeBarbershopLogo, isPending: isRemoving } =
     useRemoveBarbershopLogo();
-
-  const isBusy = isUploading || isRemoving;
-  const hasQueuedFiles = queuedFiles.length > 0;
 
   const onFileReject = useCallback<
     NonNullable<FileUploadProps["onFileReject"]>
@@ -69,7 +63,11 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
     [trigger],
   );
 
-  // Intercept newly added files and send them to the crop dialog instead
+  const isBusy = isUploading || isRemoving;
+  const hasQueuedFiles = queuedFiles.length > 0;
+
+  const logoUrl = getLogoUrl(logoKey);
+
   const handleValueChange = useCallback(
     (files: File[]) => {
       const currentSet = new Set(queuedFiles);
@@ -104,7 +102,6 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
       await uploadBarbershopLogo({
         file,
         barbershopId,
-        userId,
       });
 
       toast.success("Logo actualizado correctamente");
@@ -119,7 +116,7 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
 
   const onRemoveLogo = async () => {
     try {
-      await removeBarbershopLogo({ barbershopId, userId });
+      await removeBarbershopLogo({ barbershopId });
 
       toast.success("Logo eliminado");
       trigger("success");

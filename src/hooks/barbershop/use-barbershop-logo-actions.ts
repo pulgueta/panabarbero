@@ -28,12 +28,10 @@ export function useUploadBarbershopLogo() {
     mutationFn: async ({
       file,
       barbershopId,
-      userId,
       onProgress,
     }: {
       file: File;
       barbershopId: Id<"barbershops">;
-      userId: string;
       onProgress?: (progress: { loaded: number; total: number }) => void;
     }) => {
       const key = await uploadFile(file, { onProgress });
@@ -41,7 +39,6 @@ export function useUploadBarbershopLogo() {
       return await setLogoKey({
         barbershopId,
         logoKey: key,
-        userId,
       });
     },
   });
@@ -51,20 +48,7 @@ export function useUploadBarbershopLogo() {
  * Hook to remove the barbershop logo from R2 and clear the key in metadata.
  */
 export function useRemoveBarbershopLogo() {
-  const removeLogoKey = useConvexMutation(api.barbershopMetadata.removeLogoKey);
-
   return useMutation({
-    mutationFn: async ({
-      barbershopId,
-      userId,
-    }: {
-      barbershopId: Id<"barbershops">;
-      userId: string;
-    }) => {
-      await removeLogoKey({
-        barbershopId,
-        userId,
-      });
-    },
+    mutationFn: useConvexMutation(api.barbershopMetadata.removeLogoKey),
   });
 }
