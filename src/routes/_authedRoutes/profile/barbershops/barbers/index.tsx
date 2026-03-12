@@ -1,5 +1,10 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: Needed */
 
+if (typeof window !== "undefined") {
+  // biome-ignore lint/suspicious/noExplicitAny: Needed
+  (window as any).__convexAllowFunctionsInBrowser = true;
+}
+
 import { UserPlusIcon } from "@phosphor-icons/react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
