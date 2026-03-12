@@ -84,59 +84,63 @@ const AppointmentActionsCell: FC<Appointment> = (appointment) => {
 
   return (
     <div className="text-center">
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <Button variant="outline" size="icon">
-              <DotsThreeVerticalIcon />
-            </Button>
-          }
-        />
+      {status === "completed" ? (
+        <p className="text-muted-foreground leading-7">Sin acciones</p>
+      ) : (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button variant="outline" size="icon">
+                <DotsThreeVerticalIcon />
+              </Button>
+            }
+          />
 
-        <DropdownMenuContent align="end" className="w-full max-w-56">
-          {canRequestReschedule && (
-            <DropdownMenuItem
-              onClick={() => setOpenDialog("reschedule")}
-              render={
-                <Button variant="outline" className="w-full">
-                  <CalendarCheckIcon />
-                  Solicitar reagendamiento
-                </Button>
-              }
-            />
-          )}
-
-          {canRequestReschedule && <DropdownMenuSeparator />}
-
-          {showDeleteDialog ? (
-            isPastDate && !hasSetStatus ? (
-              <DropdownMenuItem>
-                Debes marcar la cita para poder eliminarla
-              </DropdownMenuItem>
-            ) : (
+          <DropdownMenuContent align="end" className="w-full max-w-56">
+            {canRequestReschedule && (
               <DropdownMenuItem
-                onClick={() => setOpenDialog("delete")}
+                onClick={() => setOpenDialog("reschedule")}
                 render={
-                  <Button variant="destructive" className="w-full">
-                    <TrashIcon />
-                    Eliminar
+                  <Button variant="outline" className="w-full">
+                    <CalendarCheckIcon />
+                    Solicitar reagendamiento
                   </Button>
                 }
               />
-            )
-          ) : (
-            <DropdownMenuItem
-              onClick={() => setOpenDialog("cancel")}
-              render={
-                <Button variant="destructive" className="w-full">
-                  <TrashIcon />
-                  Cancelar
-                </Button>
-              }
-            />
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+            )}
+
+            {canRequestReschedule && <DropdownMenuSeparator />}
+
+            {showDeleteDialog ? (
+              isPastDate && !hasSetStatus ? (
+                <DropdownMenuItem>
+                  Debes marcar la cita para poder eliminarla
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem
+                  onClick={() => setOpenDialog("delete")}
+                  render={
+                    <Button variant="destructive" className="w-full">
+                      <TrashIcon />
+                      Eliminar
+                    </Button>
+                  }
+                />
+              )
+            ) : (
+              <DropdownMenuItem
+                onClick={() => setOpenDialog("cancel")}
+                render={
+                  <Button variant="destructive" className="w-full">
+                    <TrashIcon />
+                    Cancelar
+                  </Button>
+                }
+              />
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
 
       <RescheduleRequestDialog
         appointment={appointment}
