@@ -14,7 +14,7 @@ export function getProfilePhotoUrl(
 ): string | null {
   if (!photoKey) return null;
 
-  return `${env.VITE_STORAGE_URL}/${photoKey}/`;
+  return `${env.VITE_STORAGE_URL}/${photoKey}`;
 }
 
 /**
@@ -52,7 +52,7 @@ export function useUploadProfilePhoto() {
       onProgress?: (progress: { loaded: number; total: number }) => void;
     }) => {
       const key = await uploadFile(file, { onProgress });
-      const imageUrl = `${env.VITE_STORAGE_URL}/${key}/`;
+      const imageUrl = `${env.VITE_STORAGE_URL}/${key}`;
       const previousKey = extractR2Key(previousImageUrl) ?? undefined;
 
       await setProfilePhotoKey({ imageUrl, previousKey });
@@ -62,21 +62,16 @@ export function useUploadProfilePhoto() {
   });
 }
 
-/**
- * Hook to remove the profile photo and clear the image in Better Auth's user.image.
- * Automatically deletes the photo from R2 if it was an R2 URL.
- */
-export function useRemoveProfilePhoto() {
-  const removePhoto = useConvexMutation(api.userProfileData.removeProfilePhoto);
-
-  return useMutation({
-    mutationFn: async ({
-      previousImageUrl,
-    }: {
-      previousImageUrl?: string | null;
-    } = {}) => {
-      const previousKey = extractR2Key(previousImageUrl) ?? undefined;
-      await removePhoto({ previousKey });
-    },
+export function useProfilePhotoActions() {
+  const removeProfilePhotoMutation = useMutation({
+    mutationFn: useConvexMutation(api.userProfileData.removeProfilePhoto),
   });
+  const setProfilePhotoKeyMutation = useMutation({
+    mutationFn: useConvexMutation(api.userProfileData.setProfilePhotoKey),
+  });
+
+  return {
+    removeProfilePhotoMutation,
+    setProfilePhotoKeyMutation,
+  } as const;
 }
