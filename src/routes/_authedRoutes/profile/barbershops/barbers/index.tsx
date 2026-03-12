@@ -4,7 +4,7 @@ import { UserPlusIcon } from "@phosphor-icons/react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 
-import { DashboardHeader } from "@/components/barbershops/dashboard-header";
+import { DashboardHeaderSkeleton } from "@/components/barbershops/dashboard-header.skeleton";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
@@ -33,6 +33,12 @@ import {
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+
+const DashboardHeader = lazy(() =>
+  import("@/components/barbershops/dashboard-header").then((module) => ({
+    default: module.DashboardHeader,
+  })),
+);
 
 const BarberCard = lazy(() =>
   import("@/components/barbers/barber-card").then((module) => ({
@@ -106,10 +112,12 @@ function RouteComponent() {
     <BorderContainer className="space-y-4">
       <section className="flex w-full flex-col gap-4">
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <DashboardHeader
-            title="Barberos"
-            description="Gestiona tus barberos y asigna servicios a cada uno de ellos."
-          />
+          <Suspense fallback={<DashboardHeaderSkeleton />}>
+            <DashboardHeader
+              title="Barberos"
+              description="Gestiona tus barberos y asigna servicios a cada uno de ellos."
+            />
+          </Suspense>
 
           <Suspense
             fallback={

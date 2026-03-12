@@ -9,7 +9,7 @@ import {
   getAppointmentsTableColumns,
   rescheduledAppointmentRequestsTableColumns,
 } from "@/components/appointments/table/columns";
-import { DashboardHeader } from "@/components/barbershops/dashboard-header";
+import { DashboardHeaderSkeleton } from "@/components/barbershops/dashboard-header.skeleton";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,6 @@ import {
   getBarbershopPlanQueryOptions,
   useBarbershopPlan,
 } from "@/hooks/billing/use-plan";
-
 import {
   appointmentsByBarbershopQueryOptions,
   requestRescheduleQueryOptions,
@@ -45,6 +44,12 @@ import {
   useServicesByBarbershopId,
 } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+
+const DashboardHeader = lazy(() =>
+  import("@/components/barbershops/dashboard-header").then((module) => ({
+    default: module.DashboardHeader,
+  })),
+);
 
 const DataTable = lazy(() =>
   import("@/components/table/data-table").then((module) => ({
@@ -179,10 +184,12 @@ function RouteComponent() {
 
   return (
     <BorderContainer className="space-y-4">
-      <DashboardHeader
-        title="Citas"
-        description="Administra tus citas y solicitudes de reagendamiento."
-      />
+      <Suspense fallback={<DashboardHeaderSkeleton />}>
+        <DashboardHeader
+          title="Citas"
+          description="Administra tus citas y solicitudes de reagendamiento."
+        />
+      </Suspense>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="space-y-2">
@@ -192,9 +199,6 @@ function RouteComponent() {
             selected={selectedDate}
             onSelect={setSelectedDate}
             locale={es}
-            disabled={(date) =>
-              date.getTime() < new Date().setHours(0, 0, 0, 0)
-            }
             className="mx-auto rounded-lg border border-border [--cell-size:--spacing(11)] md:col-span-1 md:ml-auto md:[--cell-size:--spacing(7)] lg:[--cell-size:--spacing(9)] xl:[--cell-size:--spacing(12)]"
           />
         </div>
