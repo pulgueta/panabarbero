@@ -13,14 +13,6 @@ import { useWebHaptics } from "web-haptics/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
-  ResponsiveModal,
-  ResponsiveModalContent,
-  ResponsiveModalDescription,
-  ResponsiveModalFooter,
-  ResponsiveModalHeader,
-  ResponsiveModalTitle,
-} from "@/components/ui/responsive-modal";
-import {
   FileUpload,
   FileUploadDropzone,
   FileUploadItem,
@@ -31,11 +23,19 @@ import {
   type FileUploadProps,
 } from "@/components/ui/file-upload";
 import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
-import { Spinner } from "@/components/ui/spinner";
 import {
-  useRemoveProfilePhoto,
-  useUploadProfilePhoto,
-} from "@/hooks/use-profile-photo-actions";
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
+import { Spinner } from "@/components/ui/spinner";
+import { env } from "@/env";
+import { useProfilePhotoActions } from "@/hooks/use-profile-photo-actions";
+import { useSession } from "@/hooks/use-session";
+import { extractR2Key, useUpload } from "@/hooks/use-upload";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 import { cn } from "@/lib/utils";
 
@@ -50,14 +50,11 @@ function getInitials(name?: string | null) {
 }
 
 interface ProfilePhotoUploaderProps {
-  /** Current photo URL from Better Auth user.image (R2 or OAuth provider) */
-  currentPhotoUrl?: string | null;
   /** User's name for avatar initials fallback */
   userName?: string | null;
 }
 
 export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
-  currentPhotoUrl,
   userName,
 }) => {
   const [queuedFiles, setQueuedFiles] = useState<File[]>([]);
@@ -66,13 +63,27 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
   const [deleteFinalConfirmOpen, setDeleteFinalConfirmOpen] = useState(false);
 
   const { trigger } = useWebHaptics();
-  const { mutateAsync: uploadProfilePhoto, isPending: isUploading } =
-    useUploadProfilePhoto();
-  const { mutateAsync: removeProfilePhoto, isPending: isRemoving } =
-    useRemoveProfilePhoto();
 
+  const { data: session } = useSession();
+
+  const {
+    uploadFile: { uploadFile, isUploading },
+    deleteFileMutation: { mutateAsync: deleteFile, isPending: isDeletingOld },
+  } = useUpload({
+    type: "profile-photo",
+  });
+  const {
+    setProfilePhotoKeyMutation: { mutateAsync: setProfilePhotoKey },
+    removeProfilePhotoMutation: {
+      mutateAsync: removeProfilePhoto,
+      isPending: isRemovingPhoto,
+    },
+  } = useProfilePhotoActions();
+
+  const isRemoving = isDeletingOld || isRemovingPhoto;
   const isBusy = isUploading || isRemoving;
   const hasQueuedFiles = queuedFiles.length > 0;
+  const currentPhotoUrl = session?.image;
 
   const initials = getInitials(userName);
 
@@ -115,14 +126,26 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
   const handleUpload = async () => {
     if (!hasQueuedFiles) return;
 
+    const previousKey = extractR2Key(currentPhotoUrl);
+
     const file = queuedFiles[0];
 
     try {
-      await uploadProfilePhoto({ file, previousImageUrl: currentPhotoUrl });
+      const key = await uploadFile(file);
+
+      if (previousKey) {
+        await deleteFile({ key: previousKey });
+      }
+
+      await setProfilePhotoKey({
+        imageUrl: `${env.VITE_STORAGE_URL}/${key}`,
+      });
+
       toast.success("Foto de perfil actualizada");
       trigger("success");
       setQueuedFiles([]);
     } catch (error) {
+      console.log(error);
       toast.error(getConvexErrorMessage(error));
       trigger("error");
       return;
@@ -140,14 +163,18 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
 
   const handleRemove = async () => {
     setDeleteFinalConfirmOpen(false);
+
     try {
-      await removeProfilePhoto({ previousImageUrl: currentPhotoUrl });
+      const previousKey = extractR2Key(currentPhotoUrl) ?? undefined;
+
+      await removeProfilePhoto({ previousKey });
+
       toast.success("Foto de perfil eliminada");
       trigger("success");
     } catch (error) {
+      console.log(error);
       toast.error(getConvexErrorMessage(error));
       trigger("error");
-      return;
     }
   };
 
@@ -162,7 +189,10 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
       />
 
       {/* First confirmation modal */}
-      <ResponsiveModal open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+      <ResponsiveModal
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+      >
         <ResponsiveModalContent>
           <ResponsiveModalHeader>
             <ResponsiveModalTitle>¿Estás seguro?</ResponsiveModalTitle>
@@ -171,12 +201,13 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
             </ResponsiveModalDescription>
           </ResponsiveModalHeader>
           <ResponsiveModalFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteConfirmOpen(false)}
+            >
               Cancelar
             </Button>
-            <Button onClick={handleFirstConfirm}>
-              Confirmar
-            </Button>
+            <Button onClick={handleFirstConfirm}>Confirmar</Button>
           </ResponsiveModalFooter>
         </ResponsiveModalContent>
       </ResponsiveModal>
@@ -190,7 +221,8 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
           <ResponsiveModalHeader>
             <ResponsiveModalTitle>Confirmar eliminación</ResponsiveModalTitle>
             <ResponsiveModalDescription>
-              Esta acción es irreversible. ¿Confirmas que deseas eliminar tu foto de perfil?
+              Esta acción es irreversible. ¿Confirmas que deseas eliminar tu
+              foto de perfil?
             </ResponsiveModalDescription>
           </ResponsiveModalHeader>
           <ResponsiveModalFooter>
@@ -266,7 +298,7 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
             <FileUploadDropzone
               className={cn(
                 "group flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-4 transition-all",
-                "hover:border-primary/40 hover:bg-accent/20",
+                "hover:bg-accent/20",
                 isBusy && "pointer-events-none opacity-60",
               )}
             >
@@ -312,31 +344,24 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
           </FileUpload>
 
           {/* Action buttons */}
-          <div className="flex gap-2">
+          <div
+            className={cn("grid gap-4", {
+              "grid-cols-1": !hasQueuedFiles,
+              "grid-cols-2": hasQueuedFiles && currentPhotoUrl,
+            })}
+          >
             {hasQueuedFiles && (
               <Button
                 onClick={handleUpload}
-                disabled={isUploading}
-                className="flex-1"
+                disabled={isBusy}
+                className="w-full"
               >
-                {isUploading ? (
-                  <>
-                    <SpinnerGapIcon
-                      className="size-3.5 animate-spin"
-                      weight="bold"
-                    />
-                    Subiendo...
-                  </>
-                ) : (
-                  <>
-                    <UploadIcon className="size-3.5" />
-                    Guardar foto
-                  </>
-                )}
+                {isUploading ? <Spinner /> : <UploadIcon />}
+                Subir foto
               </Button>
             )}
 
-            {currentPhotoUrl && !hasQueuedFiles && (
+            {currentPhotoUrl && (
               <Button
                 type="button"
                 variant="destructive"
