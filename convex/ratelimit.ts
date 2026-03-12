@@ -162,6 +162,13 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     capacity: 5,
   },
   toggleBarberRole: { kind: "fixed window", rate: 3, period: 10 * MINUTE },
+  uploadBarbershopLogo: { kind: "fixed window", rate: 5, period: 60 * MINUTE },
+  removeBarbershopLogo: {
+    kind: "token bucket",
+    rate: 5,
+    period: MINUTE,
+    capacity: 5,
+  },
 });
 
 type RateLimitName = keyof NonNullable<typeof rateLimiter.limits>;

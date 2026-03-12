@@ -59,7 +59,7 @@ export const barbershopMetadata = zodTable("barbershopMetadata", (id) => ({
   barbershopId: id("barbershops"),
   websiteUrl: z.string().optional(),
   contactEmail: z.string().optional(),
-  bannerUrl: z.string().optional(),
+  logoKey: z.string().optional(),
   socialMedia: z
     .array(
       z.object({
@@ -253,6 +253,8 @@ export type BarbershopMemberWithName = BarbershopMember & {
 };
 export type BarbershopMetadataWithCount = BarbershopMetadata & {
   completedAppointments: number;
+  /** Resolved CDN URL for the logo, constructed from logoKey + VITE_STORAGE_URL on the client */
+  logoUrl?: string;
 };
 export type Service = output<typeof services.schema>;
 export type Review = output<typeof reviews.schema>;

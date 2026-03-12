@@ -5,6 +5,7 @@ import { zInternalMutation, zMutation, zQuery } from ".";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { authComponent, createAuth } from "./auth";
 import { errorMessages } from "./errors";
+import { r2 } from "./r2";
 import { rateLimitOrThrow } from "./ratelimit";
 import { userProfileData } from "./schema";
 import { formatPhoneNumber } from "./utils";
@@ -145,38 +146,10 @@ export const updateNotificationPreference = zMutation({
 
 export const setProfilePhotoKey = zMutation({
   args: z.object({
-    key: z.string(),
+    imageUrl: z.string(),
+    previousKey: z.string().optional(),
   }),
-  handler: async (ctx, _args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
-
-    if (!user) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    await rateLimitOrThrow(ctx, "updateNotificationPreference", user._id);
-
-    const profile = await getProfileByUserId(ctx, user.userId ?? "");
-
-    if (!profile) {
-      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
-    }
-
-    // Delete the old profile photo from R2 if it exists
-    // if (profile.profilePhotoKey && profile.profilePhotoKey !== args.key) {
-    //   try {
-    //     await r2.deleteObject(ctx, profile.profilePhotoKey);
-    //   } catch (error) {
-    //     console.error("Failed to delete old profile photo:", error);
-    //   }
-    // }
-
-    // await ctx.db.patch(profile._id, { profilePhotoKey: args.key });
-  },
-});
-
-export const removeProfilePhoto = zMutation({
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
@@ -185,24 +158,54 @@ export const removeProfilePhoto = zMutation({
 
     await rateLimitOrThrow(ctx, "setProfilePhotoKey", user._id);
 
-    await rateLimitOrThrow(ctx, "removeProfilePhoto", user._id);
-
-    const profile = await getProfileByUserId(ctx, user.userId ?? "");
-
-    if (!profile) {
-      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
+    if (args.previousKey) {
+      try {
+        await r2.deleteObject(ctx, args.previousKey);
+      } catch {
+        throw new ConvexError(errorMessages.notFound("foto de perfil"));
+      }
     }
 
-    // Delete the profile photo from R2 if it exists
-    // if (profile.profilePhotoKey) {
-    //   try {
-    //     await r2.deleteObject(ctx, profile.profilePhotoKey);
-    //   } catch (error) {
-    //     console.error("Failed to delete profile photo:", error);
-    //   }
-    // }
+    const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
 
-    // await ctx.db.patch(profile._id, { profilePhotoKey: undefined });
+    await auth.api.updateUser({
+      body: {
+        image: args.imageUrl.endsWith("/")
+          ? args.imageUrl.slice(0, -1)
+          : args.imageUrl,
+      },
+      headers,
+    });
+  },
+});
+
+export const removeProfilePhoto = zMutation({
+  args: z.object({
+    previousKey: z.string().optional(),
+  }),
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    await rateLimitOrThrow(ctx, "removeProfilePhoto", user._id);
+
+    if (args.previousKey) {
+      try {
+        await r2.deleteObject(ctx, args.previousKey);
+      } catch {
+        // Non-fatal: old object may already be gone
+      }
+    }
+
+    const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
+
+    await auth.api.updateUser({
+      body: { image: "" },
+      headers,
+    });
   },
 });
 

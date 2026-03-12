@@ -47,22 +47,9 @@ export function useProfileActions() {
       }
     }),
   });
-  const setProfilePhotoKeyMutation = useMutation({
-    mutationFn: useConvexMutation(api.userProfileData.setProfilePhotoKey),
-  });
-  const removeProfilePhotoMutation = useMutation({
-    mutationFn: useConvexMutation(api.userProfileData.removeProfilePhoto),
-  });
-  const generateUploadUrlMutation = useMutation({
-    mutationFn: useConvexMutation(api.r2.generateUploadUrl),
-  });
-
   return {
     updateNameMutation,
     updatePhoneNumberMutation,
     updateNotificationPreferenceMutation,
-    setProfilePhotoKeyMutation,
-    removeProfilePhotoMutation,
-    generateUploadUrlMutation,
   };
 }
