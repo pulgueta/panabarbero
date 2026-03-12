@@ -2,11 +2,11 @@ import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zInternalMutation, zMutation, zQuery } from ".";
+import { api } from "./_generated/api";
 import { completedAppointmentsAggregate } from "./aggregates";
 import { authComponent } from "./auth";
 import { assertOwner } from "./authz";
 import { errorMessages } from "./errors";
-import { r2 } from "./r2";
 import { rateLimitOrThrow } from "./ratelimit";
 import { appointments, barbershops } from "./schema";
 
@@ -115,7 +115,13 @@ export const setLogoKey = zMutation({
     }
 
     if (metadata.logoKey) {
-      await r2.deleteObject(ctx, metadata.logoKey);
+      try {
+        await ctx.runMutation(api.r2.deleteR2Object, {
+          key: metadata.logoKey,
+        });
+      } catch {
+        // Non-fatal: old object may already be gone
+      }
     }
 
     await ctx.db.patch(metadata._id, { logoKey: args.logoKey });
@@ -148,7 +154,13 @@ export const removeLogoKey = zMutation({
     }
 
     if (metadata.logoKey) {
-      await r2.deleteObject(ctx, metadata.logoKey);
+      try {
+        await ctx.runMutation(api.r2.deleteR2Object, {
+          key: metadata.logoKey,
+        });
+      } catch {
+        // Non-fatal: old object may already be gone
+      }
     }
 
     await ctx.db.patch(metadata._id, { logoKey: undefined });
