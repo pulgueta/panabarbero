@@ -65,6 +65,7 @@
     "nitro": "latest",
     "postcss": "8.5.8",
     "qr-code-styling": "1.9.2",
+    "radix-ui": "^1.4.3",
     "react": "19.2.4",
     "react-day-picker": "9.14.0",
     "react-dom": "19.2.4",
