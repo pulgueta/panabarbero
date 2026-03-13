@@ -87,23 +87,21 @@ function RouteComponent() {
           Agendamiento rápido:
         </h1>
 
-        {barbershops.length && (
-          <Suspense fallback={<ProfileTabSkeleton />}>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {barbershops.map((barbershop) => (
-                <BarbershopListCard
-                  key={barbershop?._id}
-                  // biome-ignore lint/style/noNonNullAssertion: won't be null
-                  barbershop={barbershop!}
-                  showAddress={false}
-                />
-              ))}
-            </div>
-          </Suspense>
-        )}
-
         {user ? (
-          barbershops.length === 0 && (
+          barbershops.length ? (
+            <Suspense fallback={<ProfileTabSkeleton />}>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {barbershops.map((barbershop) => (
+                  <BarbershopListCard
+                    key={barbershop?._id}
+                    // biome-ignore lint/style/noNonNullAssertion: won't be null
+                    barbershop={barbershop!}
+                    showAddress={false}
+                  />
+                ))}
+              </div>
+            </Suspense>
+          ) : (
             <p
               className="text-pretty text-muted-foreground text-sm"
               style={{
