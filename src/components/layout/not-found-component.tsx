@@ -15,7 +15,7 @@ export const NotFoundComponent = () => {
   const router = useRouter();
 
   return (
-    <Empty className="min-h-[calc(100dvh-65px)] bg-gradient-to-b from-30% from-muted/50 to-background">
+    <Empty className="min-h-[calc(100dvh-65px)] bg-linear-to-b from-30% from-muted/50 to-background">
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <InfoIcon />

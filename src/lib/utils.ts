@@ -309,10 +309,10 @@ export function breadcrumbStructuredData(
   };
 }
 
-export function formatCurrency(amount: number): string {
+export function formatCurrency(amount: number, currency = "COP"): string {
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
-    currency: "COP",
+    currency,
     minimumFractionDigits: 0,
     currencyDisplay: "code",
   }).format(amount);
