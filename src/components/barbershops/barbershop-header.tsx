@@ -84,7 +84,7 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
         </div>
       </div>
 
-      <div className="mx-auto grid w-max gap-1 text-sm md:w-full">
+      <div className="mx-auto grid w-max gap-1 text-sm md:w-full md:max-w-3xs">
         <div className="flex items-start gap-2 text-muted-foreground md:justify-end">
           <div
             className="flex w-full flex-col items-center gap-2 md:items-end"

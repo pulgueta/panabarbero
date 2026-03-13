@@ -13,7 +13,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useBarbershopMetadata } from "@/hooks/barbershop/use-barbershop-metadata";
 import { getLogoUrl } from "@/hooks/use-upload";
 
 interface BarbershopListCardProps {
@@ -74,11 +73,9 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
   barbershop,
   showAddress = true,
 }) => {
-  const { data: metadata } = useBarbershopMetadata(barbershop._id);
-
   const isOpen = isCurrentlyOpen(barbershop);
 
-  const logoUrl = getLogoUrl(metadata?.logoKey);
+  const logoUrl = getLogoUrl(barbershop.logoKey);
 
   return (
     <Card
@@ -87,78 +84,70 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
         viewTransitionName: `barbershop-list-card-${barbershop.uuid}`,
       }}
     >
-      <CardHeader className="border-b [.border-b]:pb-4">
-        <div className="flex items-start justify-between">
-          <div className="flex w-full items-start justify-between">
-            <div className="mb-1 flex w-full items-start justify-between gap-4">
-              <div className="w-full max-w-72 space-y-1">
-                <CardTitle
-                  className="line-clamp-2 truncate font-bold leading-5"
-                  style={{
-                    viewTransitionName: `barbershop-${barbershop.uuid}`,
-                  }}
-                >
-                  {barbershop.name}
-                </CardTitle>
+      <CardHeader className="flex items-start justify-between gap-2">
+        <div className="w-full max-w-72 space-y-1">
+          <CardTitle
+            className="line-clamp-2 truncate font-bold leading-5"
+            style={{
+              viewTransitionName: `barbershop-${barbershop.uuid}`,
+            }}
+          >
+            {barbershop.name}
+          </CardTitle>
 
-                <p
-                  className="text-muted-foreground text-xs"
-                  style={{
-                    viewTransitionName: `barbershop-${barbershop.uuid}-city-state`,
-                  }}
-                >
-                  {barbershop.city}, {barbershop.state}
-                </p>
+          <p
+            className="text-muted-foreground text-xs"
+            style={{
+              viewTransitionName: `barbershop-${barbershop.uuid}-city-state`,
+            }}
+          >
+            {barbershop.city}, {barbershop.state}
+          </p>
 
-                <Badge
-                  variant={isOpen ? "secondary" : "warning"}
-                  className="text-xs"
-                  style={{
-                    viewTransitionName: `barbershop-${barbershop.uuid}-status`,
-                  }}
-                >
-                  {isOpen ? "Abierto" : "Cerrado"}
-                </Badge>
-              </div>
-
-              <Avatar size="xl" className="shrink-0">
-                <AvatarImage src={logoUrl ?? "/default-logo.png"} />
-                <AvatarFallback>
-                  {barbershop.name.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            </div>
-          </div>
+          <Badge
+            variant={isOpen ? "secondary" : "warning"}
+            className="text-xs"
+            style={{
+              viewTransitionName: `barbershop-${barbershop.uuid}-status`,
+            }}
+          >
+            {isOpen ? "Abierto" : "Cerrado"}
+          </Badge>
         </div>
+
+        <Avatar size="xl" className="shrink-0">
+          <AvatarImage src={logoUrl ?? "/default-logo.png"} />
+          <AvatarFallback>
+            {barbershop.name.slice(0, 2).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
       </CardHeader>
-      <CardContent>
-        {showAddress && (
-          <>
-            <CardDescription
-              className="mb-2"
+      {showAddress && (
+        <CardContent>
+          <CardDescription
+            className="mb-2"
+            style={{
+              viewTransitionName: `barbershop-${barbershop.uuid}-address`,
+            }}
+          >
+            Ubicación: {barbershop.address.fullAddress}
+          </CardDescription>
+
+          <div className="mb-4 flex items-center justify-between">
+            <p
+              className="text-muted-foreground text-sm"
               style={{
-                viewTransitionName: `barbershop-${barbershop.uuid}-address`,
+                viewTransitionName: `barbershop-${barbershop._id}-services`,
               }}
             >
-              Ubicación: {barbershop.address.fullAddress}
-            </CardDescription>
-
-            <div className="mb-4 flex items-center justify-between">
-              <p
-                className="text-muted-foreground text-sm"
-                style={{
-                  viewTransitionName: `barbershop-${barbershop._id}-services`,
-                }}
-              >
-                {barbershop.services?.length ? barbershop.services?.length : 0}{" "}
-                {barbershop.services?.length === 1
-                  ? "servicio disponible."
-                  : "servicios disponibles."}
-              </p>
-            </div>
-          </>
-        )}
-      </CardContent>
+              {barbershop.services?.length ? barbershop.services?.length : 0}{" "}
+              {barbershop.services?.length === 1
+                ? "servicio disponible."
+                : "servicios disponibles."}
+            </p>
+          </div>
+        </CardContent>
+      )}
       <CardFooter className="justify-between">
         <Button
           nativeButton={false}

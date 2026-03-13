@@ -22,10 +22,6 @@ import {
   useBarbershopMemberRoles,
 } from "@/hooks/barbershop/use-barbershop-member";
 import {
-  barbershopMetadataQueryOptions,
-  useBarbershopMetadata,
-} from "@/hooks/barbershop/use-barbershop-metadata";
-import {
   barbershopMembersByBarbershopIdQueryOptions,
   isBarberQueryOptions,
   useIsBarber,
@@ -125,9 +121,6 @@ export const Route = createFileRoute(
           opts.context.queryClient.ensureQueryData(
             barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
           ),
-          opts.context.queryClient.ensureQueryData(
-            barbershopMetadataQueryOptions(barbershop._id),
-          ),
         ]);
       }
     }
@@ -151,7 +144,6 @@ function SettingsPage() {
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
   const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
   const { data: isBarber } = useIsBarber(user?.userId!);
-  const { data: metadata } = useBarbershopMetadata(barbershop?._id!);
 
   const { trigger } = useWebHaptics();
 
@@ -229,7 +221,7 @@ function SettingsPage() {
               <Suspense fallback={<Skeleton className="h-80 w-full" />}>
                 <BarbershopLogoUploader
                   barbershopId={barbershop._id}
-                  logoKey={metadata?.logoKey}
+                  logoKey={barbershop.logoKey}
                 />
               </Suspense>
             </section>

@@ -8,7 +8,7 @@ import { lazy, Suspense } from "react";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ServicesSkeleton } from "@/components/layout/skeleton/services-skeleton";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { useCarouselApi } from "@/components/ui/carousel";
 import {
   Empty,
@@ -22,10 +22,6 @@ import {
   barbershopByUuidQueryOptions,
   useBarbershopByUuid,
 } from "@/hooks/barbershop/use-barbershop";
-import {
-  barbershopMetadataQueryOptions,
-  useBarbershopMetadata,
-} from "@/hooks/barbershop/use-barbershop-metadata";
 import {
   barberByUserIdQueryOptions,
   barbershopMembersByBarbershopIdQueryOptions,
@@ -42,6 +38,7 @@ import {
   barbershopSeo,
   barbershopStructuredData,
   breadcrumbStructuredData,
+  cn,
   getCanonicalUrl,
 } from "@/lib/utils";
 
@@ -60,7 +57,7 @@ const ServicesGrid = lazy(() =>
 export const Route = createFileRoute("/barbershops/$barbershopUuid")({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
-  beforeLoad: async ({ context, params }) => {
+  loader: async ({ context, params }) => {
     const user = await context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
     );
@@ -80,14 +77,9 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
     }
 
     if (barbershop?._id) {
-      await Promise.all([
-        context.queryClient.ensureQueryData(
-          barbershopMetadataQueryOptions(barbershop._id),
-        ),
-        context.queryClient.ensureQueryData(
-          servicesQueryOptions(barbershop._id),
-        ),
-      ]);
+      await context.queryClient.ensureQueryData(
+        servicesQueryOptions(barbershop._id),
+      );
 
       const barbershopMembers = await context.queryClient.ensureQueryData(
         barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
@@ -108,11 +100,11 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
       seoBarbershop: barbershop,
     };
   },
-  head: ({ match }) => {
-    const barbershop = match.context.seoBarbershop;
+  head: ({ loaderData }) => {
+    const barbershop = loaderData?.seoBarbershop;
 
     return {
-      meta: barbershopSeo(barbershop),
+      meta: barbershopSeo(barbershop!),
       links: [
         {
           rel: "canonical",
@@ -146,7 +138,6 @@ function RouteComponent() {
   const [_, _setCarouselApi] = useCarouselApi();
 
   const { data: barbershop } = useBarbershopByUuid(barbershopUuid);
-  const { data: metadata } = useBarbershopMetadata(barbershop?._id!);
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
   const { data: barbershopMembers } = useBarbershopMembersByBarbershopId(
     barbershop?._id!,
@@ -155,15 +146,18 @@ function RouteComponent() {
   return (
     <BorderContainer>
       <main className="space-y-4 md:space-y-2">
-        <Button
-          nativeButton={false}
-          render={<Link to="/barbershops" />}
-          variant="link"
-          className="text-muted-foreground"
+        <Link
+          to="/barbershops"
+          className={cn(
+            buttonVariants({
+              variant: "link",
+            }),
+            "text-muted-foreground",
+          )}
         >
           <ArrowLeftIcon />
           Volver a la lista
-        </Button>
+        </Link>
 
         <Suspense
           fallback={
@@ -186,7 +180,7 @@ function RouteComponent() {
             barbershop={barbershop}
             userId={user?.userId!}
             availability={barbershop?.availability!}
-            logoKey={metadata?.logoKey}
+            logoKey={barbershop?.logoKey}
           />
         </Suspense>
 

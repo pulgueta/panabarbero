@@ -1,6 +1,6 @@
 import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Activity, lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useState } from "react";
 
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
@@ -10,7 +10,6 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   searchBarbershopsByNameQueryOptions,
   useSearchBarbershopsByName,
@@ -73,13 +72,8 @@ function RouteComponent() {
   const { data: barbershops } = useVisitedBarbershops(
     user?.userId ?? undefined,
   );
-  const {
-    data: searchResults,
-    isLoading: isSearching,
-    isRefetching: isSearchingAgain,
-  } = useSearchBarbershopsByName(debouncedSearchQuery);
-
-  const searching = isSearching || isSearchingAgain;
+  const { data: searchResults } =
+    useSearchBarbershopsByName(debouncedSearchQuery);
 
   return (
     <BorderContainer>
@@ -93,25 +87,22 @@ function RouteComponent() {
           Agendamiento rápido:
         </h1>
 
-        <Suspense fallback={<ProfileTabSkeleton />}>
-          <Activity
-            mode={barbershops && barbershops.length > 0 ? "visible" : "hidden"}
-          >
+        {barbershops.length && (
+          <Suspense fallback={<ProfileTabSkeleton />}>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {barbershops.map((barbershop) => (
                 <BarbershopListCard
                   key={barbershop?._id}
-                  // biome-ignore lint/style/noNonNullAssertion: can be null
+                  // biome-ignore lint/style/noNonNullAssertion: won't be null
                   barbershop={barbershop!}
                   showAddress={false}
                 />
               ))}
             </div>
-          </Activity>
-        </Suspense>
+          </Suspense>
+        )}
 
         {user ? (
-          barbershops &&
           barbershops.length === 0 && (
             <p
               className="text-pretty text-muted-foreground text-sm"
@@ -157,38 +148,22 @@ function RouteComponent() {
           </InputGroup>
         </div>
 
-        <Activity
-          mode={searching && searchQuery.length > 0 ? "visible" : "hidden"}
-        >
+        <Suspense fallback={<ProfileTabSkeleton />}>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <Skeleton key={index} className="h-48 w-full rounded-lg" />
+            {searchResults.map((barbershop) => (
+              <BarbershopListCard
+                key={barbershop?._id}
+                barbershop={barbershop}
+              />
             ))}
           </div>
-        </Activity>
 
-        <Suspense fallback={<ProfileTabSkeleton />}>
-          <Activity
-            mode={
-              searchResults && searchResults.length > 0 ? "visible" : "hidden"
-            }
-          >
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {searchResults.map((barbershop) => (
-                <BarbershopListCard
-                  key={barbershop?._id}
-                  barbershop={barbershop}
-                />
-              ))}
-            </div>
-          </Activity>
+          {searchResults?.length === 0 && (
+            <p className="text-pretty text-muted-foreground text-sm">
+              No hay barberías disponibles.
+            </p>
+          )}
         </Suspense>
-
-        {searchResults?.length === 0 && (
-          <p className="text-pretty text-muted-foreground text-sm">
-            No hay barberías disponibles.
-          </p>
-        )}
       </div>
     </BorderContainer>
   );
