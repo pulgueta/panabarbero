@@ -52,6 +52,7 @@ export const barbershops = zodTable("barbershops", (id) => ({
   city: z.string(),
   state: z.string(),
   zipCode: z.string().optional(),
+  logoKey: z.string().optional(),
   metadataId: id("barbershopMetadata").optional(),
 }));
 
@@ -59,7 +60,6 @@ export const barbershopMetadata = zodTable("barbershopMetadata", (id) => ({
   barbershopId: id("barbershops"),
   websiteUrl: z.string().optional(),
   contactEmail: z.string().optional(),
-  logoKey: z.string().optional(),
   socialMedia: z
     .array(
       z.object({

@@ -1,13 +1,9 @@
 import { ConvexError } from "convex/values";
 import { z } from "zod";
 
-import { zInternalMutation, zMutation, zQuery } from ".";
-import { api } from "./_generated/api";
+import { zInternalMutation, zQuery } from ".";
 import { completedAppointmentsAggregate } from "./aggregates";
-import { authComponent } from "./auth";
-import { assertOwner } from "./authz";
 import { errorMessages } from "./errors";
-import { rateLimitOrThrow } from "./ratelimit";
 import { appointments, barbershops } from "./schema";
 
 export const createInitial = zInternalMutation({
@@ -85,84 +81,5 @@ export const incrementCompletedAppointments = zInternalMutation({
       key: appointment.date,
       id: args.appointmentId,
     });
-  },
-});
-
-export const setLogoKey = zMutation({
-  args: z.object({
-    barbershopId: barbershops.tools.id.shape.id,
-    logoKey: z.string(),
-  }),
-  handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
-
-    if (!user?.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    await assertOwner(ctx, args.barbershopId, user.userId);
-    await rateLimitOrThrow(ctx, "uploadBarbershopLogo", user.userId);
-
-    const metadata = await ctx.db
-      .query("barbershopMetadata")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
-      )
-      .unique();
-
-    if (!metadata) {
-      throw new ConvexError(errorMessages.notFound("metadata de barbería"));
-    }
-
-    if (metadata.logoKey) {
-      try {
-        await ctx.runMutation(api.r2.deleteR2Object, {
-          key: metadata.logoKey,
-        });
-      } catch {
-        // Non-fatal: old object may already be gone
-      }
-    }
-
-    await ctx.db.patch(metadata._id, { logoKey: args.logoKey });
-  },
-});
-
-export const removeLogoKey = zMutation({
-  args: z.object({
-    barbershopId: barbershops.tools.id.shape.id,
-  }),
-  handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
-
-    if (!user?.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    await assertOwner(ctx, args.barbershopId, user.userId);
-    await rateLimitOrThrow(ctx, "removeBarbershopLogo", user.userId);
-
-    const metadata = await ctx.db
-      .query("barbershopMetadata")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
-      )
-      .unique();
-
-    if (!metadata) {
-      throw new ConvexError(errorMessages.notFound("metadata de barbería"));
-    }
-
-    if (metadata.logoKey) {
-      try {
-        await ctx.runMutation(api.r2.deleteR2Object, {
-          key: metadata.logoKey,
-        });
-      } catch {
-        // Non-fatal: old object may already be gone
-      }
-    }
-
-    await ctx.db.patch(metadata._id, { logoKey: undefined });
   },
 });

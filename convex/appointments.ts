@@ -391,10 +391,7 @@ export const getByUserId = zQuery({
       .order("desc")
       .paginate(args.paginationOpts);
 
-    return {
-      ...result,
-      page: result.page.filter((appt) => !appt.deletedAt),
-    };
+    return result;
   },
 });
 

@@ -131,16 +131,11 @@ export const getByCode = zQuery({
     }
 
     const barbershop = await ctx.db.get(invitation.barbershopId);
-    const inviterProfile = await getProfileByUserId(
-      ctx,
-      invitation.inviterUserId,
-    );
 
     return {
-      invitation,
-      barbershopName: barbershop?.name ?? "",
-      inviterName: inviterProfile?.name ?? null,
+      ...invitation,
       isExpired: Date.now() > invitation.expiresAt,
+      barbershopName: barbershop?.name,
     };
   },
 });

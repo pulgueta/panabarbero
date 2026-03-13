@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
@@ -13,7 +13,7 @@ import {
   useBarbershopMemberActions,
   useInvitationByCode,
 } from "@/hooks/use-barbershop-members";
-import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { getSessionQueryOptions } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
 export const Route = createFileRoute("/_authedRoutes/invitations/$code")({
@@ -25,9 +25,21 @@ export const Route = createFileRoute("/_authedRoutes/invitations/$code")({
     );
 
     if (user?.userId) {
-      await context.queryClient.ensureQueryData(
+      const invitation = await context.queryClient.ensureQueryData(
         invitationByCodeQueryOptions(params.code),
       );
+
+      if (invitation && invitation.email !== user.email) {
+        throw redirect({
+          to: "/profile",
+          search: { tab: "account" },
+          replace: true,
+        });
+      }
+    } else {
+      throw redirect({
+        to: "/login",
+      });
     }
   },
 });
@@ -38,7 +50,6 @@ function InvitationPage() {
 
   const { data: invitationData, refetch: refetchInvitation } =
     useInvitationByCode(code);
-  const { data: user } = useSession();
 
   const haptic = useWebHaptics();
 
@@ -80,10 +91,10 @@ function InvitationPage() {
   ]);
 
   const statusLabel = useMemo(() => {
-    if (!invitationData?.invitation) return "not_found";
+    if (!invitationData) return "not_found";
 
-    if (invitationData.invitation.status !== "pending") {
-      return invitationData.invitation.status;
+    if (invitationData.status !== "pending") {
+      return invitationData.status;
     }
 
     if (invitationData.isExpired) return "expired";
@@ -104,32 +115,6 @@ function InvitationPage() {
       toast.error(getConvexErrorMessage(error));
     }
   };
-
-  if (!user?.userId) {
-    return (
-      <BorderContainer>
-        <h1 className="font-semibold text-2xl">Inicia sesión</h1>
-        <p className="text-muted-foreground text-sm">
-          Necesitas iniciar sesión para gestionar esta invitación.
-        </p>
-        <div className="flex gap-2">
-          <Button
-            onClick={() =>
-              navigate({
-                to: "/login",
-                search: { redirect: `/invitations/${code}` },
-              })
-            }
-          >
-            Iniciar sesión
-          </Button>
-          <Button variant="ghost" onClick={() => navigate({ to: "/" })}>
-            Volver
-          </Button>
-        </div>
-      </BorderContainer>
-    );
-  }
 
   const isDisabled = statusLabel !== "pending" || isAnsweringInvitation;
 
@@ -152,10 +137,8 @@ function InvitationPage() {
             </Badge>
           </header>
           <p className="text-muted-foreground text-xs sm:text-sm">
-            {invitationData?.inviterName ?? "Un administrador"} te invitó a
-            unirte a{" "}
-            <strong>{invitationData?.barbershopName ?? "un barbershop"}</strong>
-            .
+            Has sido invitado a unirte a{" "}
+            <strong>{invitationData?.barbershopName}</strong>.
           </p>
         </div>
 

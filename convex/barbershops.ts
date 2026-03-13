@@ -9,6 +9,7 @@ import { zMutation, zQuery } from ".";
 import { api, internal } from "./_generated/api";
 import { assertIsSubscribed } from "./acl";
 import { authComponent } from "./auth";
+import { assertOwner } from "./authz";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
 import { barbershops } from "./schema";
@@ -559,18 +560,15 @@ export const getByName = zQuery({
     const barbershops = await ctx.db
       .query("barbershops")
       .withSearchIndex("by_name_search", (q) =>
-        q.search("name", args.name ?? "barber"),
-      )
-      .filter((q) =>
         args.state && args.city
-          ? q.and(
-              q.eq(q.field("state"), args.state),
-              q.eq(q.field("city"), args.city),
-              q.eq(q.field("isActive"), true),
-            )
-          : q.eq(q.field("isActive"), true),
+          ? q
+              .search("name", args.name ?? "barber")
+              .eq("state", args.state)
+              .eq("city", args.city)
+              .eq("isActive", true)
+          : q.search("name", args.name ?? "barber").eq("isActive", true),
       )
-      .collect();
+      .take(50);
 
     await Promise.all(
       barbershops.map(async (barbershop) => {
@@ -583,5 +581,74 @@ export const getByName = zQuery({
     );
 
     return barbershops;
+  },
+});
+
+export const setLogoKey = zMutation({
+  args: z.object({
+    barbershopId: barbershops.tools.id.shape.id,
+    logoKey: z.string(),
+  }),
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    await assertOwner(ctx, args.barbershopId, user.userId);
+    await rateLimitOrThrow(ctx, "uploadBarbershopLogo", user.userId);
+
+    const barbershop = await ctx.db.get("barbershops", args.barbershopId);
+
+    if (!barbershop) {
+      throw new ConvexError(errorMessages.notFound("barbería"));
+    }
+
+    if (barbershop.logoKey) {
+      try {
+        await ctx.runMutation(api.r2.deleteR2Object, {
+          key: barbershop.logoKey,
+        });
+      } catch {
+        // Non-fatal: old object may already be gone
+      }
+    }
+
+    await ctx.db.patch(args.barbershopId, { logoKey: args.logoKey });
+  },
+});
+
+export const removeLogoKey = zMutation({
+  args: z.object({
+    barbershopId: barbershops.tools.id.shape.id,
+  }),
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    await assertOwner(ctx, args.barbershopId, user.userId);
+    await rateLimitOrThrow(ctx, "removeBarbershopLogo", user.userId);
+
+    const barbershop = await ctx.db.get("barbershops", args.barbershopId);
+
+    if (!barbershop) {
+      throw new ConvexError(errorMessages.notFound("barbería"));
+    }
+
+    if (barbershop.logoKey) {
+      try {
+        await ctx.runMutation(api.r2.deleteR2Object, {
+          key: barbershop.logoKey,
+        });
+      } catch {
+        // Non-fatal: old object may already be gone
+      }
+    }
+
+    await ctx.db.patch(args.barbershopId, { logoKey: undefined });
   },
 });
