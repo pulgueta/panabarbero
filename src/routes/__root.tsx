@@ -15,8 +15,6 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { createServerFn } from "@tanstack/react-start";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/react";
 import type { ConvexReactClient } from "convex/react";
 
 import { BottomBar } from "@/components/layout/bottom-bar";
@@ -99,13 +97,6 @@ const RootDocument = ({ children }: { children: React.ReactNode }) => {
         <HeadContent />
       </head>
       <body>
-        {process.env.NODE_ENV === "production" && (
-          <>
-            <Analytics />
-            <SpeedInsights />
-          </>
-        )}
-
         <QueryClientProvider client={queryClient}>
           <ConvexBetterAuthProvider
             client={convexQueryClient.convexClient}

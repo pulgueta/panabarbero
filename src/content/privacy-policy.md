@@ -1,6 +1,6 @@
 # Política de Privacidad
 
-_Última actualización: 2 de marzo de 2026_
+_Última actualización: 12 de marzo de 2026_
 
 ## 1. Introducción
 
@@ -42,9 +42,7 @@ Utilizamos la información recopilada para:
 
 ## 4. Herramientas de Analítica
 
-Utilizamos las siguientes herramientas de analítica para mejorar la experiencia del usuario:
-
-- **Vercel Analytics:** Para medir el rendimiento de la plataforma y obtener métricas de uso agregadas. Vercel Analytics recopila datos de forma anónima y no utiliza cookies.
+Utilizamos únicamente **Cloudflare Web Analytics** para medir el rendimiento de la plataforma y obtener métricas de uso agregadas. Cloudflare Web Analytics recopila datos de forma anónima, no utiliza cookies ni identificadores de seguimiento basados en terceros y está diseñada para respetar la privacidad de los usuarios.
 
 ## 5. Almacenamiento de Datos
 
