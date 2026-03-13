@@ -39,7 +39,7 @@ export const DefaultCatchBoundary: FC<ErrorComponentProps> = ({ error }) => {
               router.invalidate();
             }}
           >
-            <ArrowCounterClockwiseIcon className="size-3" />
+            <ArrowCounterClockwiseIcon />
             Intentar nuevamente
           </Button>
 
@@ -50,15 +50,7 @@ export const DefaultCatchBoundary: FC<ErrorComponentProps> = ({ error }) => {
             <Button
               variant="secondary"
               nativeButton={false}
-              render={
-                <Link
-                  to="/"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.history.back();
-                  }}
-                />
-              }
+              render={<Link to=".." />}
             >
               Volver
             </Button>

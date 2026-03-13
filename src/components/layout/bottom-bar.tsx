@@ -21,6 +21,12 @@ export const BottomBar = () => {
 
   const { routes, user } = useNavRoutes();
 
+  const today = Date.now();
+  const startOfDay = new Date(today);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(startOfDay);
+  endOfDay.setHours(23, 59, 59, 999);
+
   const handleSignOut = async () => {
     await signOut({
       fetchOptions: {
@@ -61,7 +67,11 @@ export const BottomBar = () => {
                       trigger();
                     }}
                     search={
-                      item.to === "/profile" ? { tab: "account" } : undefined
+                      item.to === "/profile"
+                        ? { tab: "account" }
+                        : item.to === "/profile/barbershops/appointments"
+                          ? { date: startOfDay.getTime() }
+                          : undefined
                     }
                     style={{ viewTransitionName: item.to }}
                     activeProps={{

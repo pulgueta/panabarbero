@@ -10,6 +10,7 @@ import type {
 import { twMerge } from "tailwind-merge";
 
 import { env } from "@/env";
+import { getLogoUrl } from "@/hooks/use-upload";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -53,8 +54,8 @@ export function getCanonicalUrl(path: string): string {
 /**
  * Generate OG image URL
  */
-export function getOgImageUrl(customImage?: string): string {
-  return customImage || `${env.VITE_STORAGE_URL}/panabarbero-og.png`;
+export function getOgImageUrl(customImage?: string | null): string {
+  return customImage ?? `${env.VITE_STORAGE_URL}/panabarbero-og.png`;
 }
 
 /**
@@ -99,7 +100,7 @@ export function seo({
  */
 export function barbershopSeo(
   barbershop: Barbershop | null,
-  metadata?: BarbershopMetadata | null,
+  // metadata?: BarbershopMetadata | null,
 ): DetailedHTMLProps<MetaHTMLAttributes<HTMLMetaElement>, HTMLMetaElement>[] {
   if (!barbershop) {
     return [];
@@ -109,11 +110,11 @@ export function barbershopSeo(
   const description =
     barbershop.description ||
     `Visita ${barbershop.name} en PanaBarbero y reserva tu cita ahora.`;
-  const rating = metadata?.rating ? `${metadata.rating.toFixed(1)}⭐` : "";
-  const ratingText = rating
-    ? ` - ${rating} (${metadata?.reviews} reseñas)`
-    : "";
-  const title = `${barbershop.name} en PanaBarbero${ratingText}`;
+  // const rating = metadata?.rating ? `${metadata.rating.toFixed(1)}⭐` : "";
+  // const ratingText = rating
+  //   ? ` - ${rating} (${metadata?.reviews} reseñas)`
+  //   : "";
+  const title = `${barbershop.name} en PanaBarbero`;
 
   return [
     { title },
@@ -125,7 +126,10 @@ export function barbershopSeo(
     { property: "og:type", content: "business.business" },
     { property: "og:title", content: title },
     { property: "og:description", content: description },
-    { property: "og:image", content: getOgImageUrl(barbershop.bannerUrl) },
+    {
+      property: "og:image",
+      content: getOgImageUrl(getLogoUrl(barbershop.logoKey)),
+    },
     { property: "og:url", content: canonical },
     { property: "og:locality", content: barbershop.city },
     { property: "og:region", content: barbershop.state },
@@ -133,7 +137,10 @@ export function barbershopSeo(
     { name: "twitter:card", content: "summary_large_image" },
     { name: "twitter:title", content: title },
     { name: "twitter:description", content: description },
-    { name: "twitter:image", content: getOgImageUrl(barbershop.bannerUrl) },
+    {
+      name: "twitter:image",
+      content: getOgImageUrl(getLogoUrl(barbershop.logoKey)),
+    },
     // SEO
     { name: "robots", content: "index, follow" },
   ];
@@ -166,15 +173,15 @@ export function barbershopStructuredData(
   }));
 
   // Aggregate rating
-  const aggregateRating = metadata?.rating
-    ? {
-        "@type": "AggregateRating",
-        ratingValue: metadata.rating.toFixed(1),
-        reviewCount: metadata.reviews || 0,
-        bestRating: "5",
-        worstRating: "1",
-      }
-    : null;
+  // const aggregateRating = metadata?.rating
+  //   ? {
+  //       "@type": "AggregateRating",
+  //       ratingValue: metadata.rating.toFixed(1),
+  //       reviewCount: metadata.reviews || 0,
+  //       bestRating: "5",
+  //       worstRating: "1",
+  //     }
+  //   : null;
 
   // Reviews array (limit to 10)
   const reviewsArray = (reviews || []).slice(0, 10).map((review) => ({
@@ -201,7 +208,7 @@ export function barbershopStructuredData(
     telephone: barbershop.contactPhone || "",
     address,
     openingHoursSpecification,
-    ...(aggregateRating && { aggregateRating }),
+    // ...(aggregateRating && { aggregateRating }),
     ...(reviewsArray.length > 0 && { review: reviewsArray }),
     ...(metadata?.contactEmail && { email: metadata.contactEmail }),
     ...(metadata?.websiteUrl && { sameAs: metadata.websiteUrl }),
@@ -302,11 +309,12 @@ export function breadcrumbStructuredData(
   };
 }
 
-export function formatCurrency(amount: number, currency = "COP"): string {
+export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
-    currency,
+    currency: "COP",
     minimumFractionDigits: 0,
+    currencyDisplay: "code",
   }).format(amount);
 }
 

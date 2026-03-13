@@ -6,7 +6,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { APP_NAME } from "@/config";
 import { useIsBarber } from "@/hooks/use-barbershop-members";
 import { useNavRoutes } from "@/hooks/use-nav-routes";
-import { useSession } from "@/hooks/use-session";
 
 const ThemeToggler = lazy(() =>
   import("@/components/layout/theme-toggler").then((mod) => ({
@@ -20,12 +19,17 @@ const UserAvatar = lazy(() =>
 );
 
 export const Header = () => {
-  const { data: user } = useSession();
+  const { routes, user } = useNavRoutes();
   const { data: isBarber } = useIsBarber(user?.userId ?? "");
-  const { routes } = useNavRoutes();
 
   const router = useRouterState();
   const currentPath = router.location.pathname;
+
+  const today = Date.now();
+  const startOfDay = new Date(today);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(startOfDay);
+  endOfDay.setHours(23, 59, 59, 999);
 
   return (
     <header className="sticky top-0 z-50 hidden w-full border-b bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/60 md:block md:px-4">
@@ -58,7 +62,11 @@ export const Header = () => {
                     to={route.to}
                     style={{ viewTransitionName: route.to }}
                     search={
-                      route.to === "/profile" ? { tab: "account" } : undefined
+                      route.to === "/profile"
+                        ? { tab: "account" }
+                        : route.to === "/profile/barbershops/appointments"
+                          ? { date: startOfDay.getTime() }
+                          : undefined
                     }
                   />
                 }

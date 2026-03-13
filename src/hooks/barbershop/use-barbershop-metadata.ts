@@ -17,10 +17,10 @@ export function useBarbershopMetadata(barbershopId: Barbershop["_id"]) {
 
 export function useBarbershopMetadataActions() {
   const setLogoKeyMutation = useMutation({
-    mutationFn: useConvexMutation(api.barbershopMetadata.setLogoKey),
+    mutationFn: useConvexMutation(api.barbershops.setLogoKey),
   });
   const removeLogoKeyMutation = useMutation({
-    mutationFn: useConvexMutation(api.barbershopMetadata.removeLogoKey),
+    mutationFn: useConvexMutation(api.barbershops.removeLogoKey),
   });
 
   return {

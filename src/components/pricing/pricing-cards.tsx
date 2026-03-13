@@ -22,9 +22,9 @@ export const PricingCards: FC = () => {
   const { data: session } = useSession();
   const { data: subscription } = useSubscription();
 
-  const yearlyProducts = products.filter(
-    (product) => product.recurringInterval === "year",
-  );
+  // const yearlyProducts = products.filter(
+  //   (product) => product.recurringInterval === "year",
+  // );
 
   const monthlyProducts = products.filter(
     (product) => product.recurringInterval === "month",
@@ -35,12 +35,15 @@ export const PricingCards: FC = () => {
       <div className="grid gap-6 lg:grid-cols-3">
         {monthlyProducts.map((product) => {
           const isSubscribed = subscription?.productId === product.id;
-          const yearlyProduct = yearlyProducts.find(
-            (p) => p.name === product.name,
+          const copPrices = product.prices.find(
+            (price) => price.priceCurrency === "cop",
           );
-          const checkoutProductIds = yearlyProduct
-            ? [product.id, yearlyProduct.id]
-            : [product.id];
+          // const yearlyProduct = yearlyProducts.find(
+          //   (p) => p.name === product.name,
+          // );
+          // const checkoutProductIds = yearlyProduct
+          //   ? [product.id, yearlyProduct.id]
+          //   : [product.id];
 
           return (
             <Card key={product.id} className="flex h-full flex-col">
@@ -55,14 +58,11 @@ export const PricingCards: FC = () => {
               <CardContent className="flex flex-1 flex-col gap-4">
                 <div className="flex items-end gap-2">
                   <span className="font-semibold text-3xl">
-                    {formatCurrency(
-                      (product.prices[0]?.priceAmount ?? 0) / 100,
-                      "USD",
-                    )}
+                    {formatCurrency((copPrices?.priceAmount ?? 0) / 100)}
                   </span>
                   {product.isRecurring &&
-                    product.prices[0].priceAmount &&
-                    product.prices[0].priceAmount > 0 && (
+                    copPrices?.priceAmount &&
+                    copPrices.priceAmount > 0 && (
                       <span className="text-muted-foreground text-sm">
                         Mensual
                       </span>
@@ -95,7 +95,7 @@ export const PricingCards: FC = () => {
                       polarApi={{
                         generateCheckoutLink: api.polar.generateCheckoutLink,
                       }}
-                      productIds={checkoutProductIds}
+                      productIds={[product.id]}
                       className={cn(buttonVariants({ className: "w-full" }), {
                         "has-data-data-polar*:cursor-not-allowed has-data-data-polar*:opacity-50":
                           subscription?.isSubscribed,
