@@ -1,0 +1,48 @@
+name: Deploy to Convex Cloud
+
+on:
+  push:
+    branches:
+      - preview
+      - production
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-preview:
+    if: github.ref == 'refs/heads/preview'
+    runs-on: ubuntu-latest
+    env:
+      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup
+        uses: ./.github/setup
+
+      - name: Deploy
+        run: bunx convex deploy
+
+  deploy-production:
+    if: github.ref == 'refs/heads/production'
+    runs-on: ubuntu-latest
+    env:
+      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PRODUCTION_DEPLOY_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup
+        uses: ./.github/setup
+
+      - name: Deploy
+        run: bunx convex deploy
