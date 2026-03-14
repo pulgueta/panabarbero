@@ -5,17 +5,19 @@ on:
     branches:
       - preview
       - production
+    paths:
+      - "convex/**"
+      - ".github/workflows/convex.yaml"
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: deploy-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  deploy-preview:
-    if: github.ref == 'refs/heads/preview'
+  deploy:
     runs-on: ubuntu-latest
     env:
-      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
+      CONVEX_DEPLOY_KEY: ${{ github.ref == 'refs/heads/production' && secrets.CONVEX_PRODUCTION_DEPLOY_KEY || secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
 
     steps:
       - name: Checkout
@@ -28,21 +30,14 @@ jobs:
 
       - name: Deploy
         run: bunx convex deploy
-
-  deploy-production:
-    if: github.ref == 'refs/heads/production'
+  clear-cache:
     runs-on: ubuntu-latest
-    env:
-      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PRODUCTION_DEPLOY_KEY }}
-
+    if: ${{ success() }}
+    needs: [deploy]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Setup
-        uses: ./.github/setup
-
-      - name: Deploy
-        run: bunx convex deploy
+      - name: Purge Cloudflare Cache
+        run: |
+          curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+          --data '{"purge_everything":true}'
