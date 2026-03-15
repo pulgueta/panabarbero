@@ -12,5 +12,5 @@ export const {
 } = convexBetterAuthReactStart({
   convexUrl: env.VITE_CONVEX_URL,
   convexSiteUrl: env.VITE_CONVEX_SITE_URL,
-  jwtCache: { enabled: true, isAuthError },
+  jwtCache: { enabled: false, isAuthError },
 });

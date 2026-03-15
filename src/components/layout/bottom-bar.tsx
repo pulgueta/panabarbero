@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Drawer,
   DrawerClose,
@@ -16,6 +17,7 @@ import { ThemeToggler } from "./theme-toggler";
 
 export const BottomBar = () => {
   const [open, setOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const { trigger } = useWebHaptics();
 
@@ -28,13 +30,18 @@ export const BottomBar = () => {
   endOfDay.setHours(23, 59, 59, 999);
 
   const handleSignOut = async () => {
-    await signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          location.reload();
+    setIsSigningOut(true);
+    try {
+      await signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            location.reload();
+          },
         },
-      },
-    });
+      });
+    } finally {
+      setIsSigningOut(false);
+    }
   };
 
   return (
@@ -91,10 +98,11 @@ export const BottomBar = () => {
             {user ? (
               <Button
                 variant="destructive"
+                disabled={isSigningOut}
                 onClick={handleSignOut}
                 className="flex-1"
               >
-                <SignOutIcon />
+                {isSigningOut ? <Spinner /> : <SignOutIcon />}
                 Cerrar sesión
               </Button>
             ) : (

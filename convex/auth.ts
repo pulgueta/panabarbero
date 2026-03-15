@@ -149,7 +149,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
         enabled: true,
       },
     },
-    plugins: [convex({ authConfig, jwks: process.env.JWKS })],
+    plugins: [convex({ authConfig })],
   });
 };
 

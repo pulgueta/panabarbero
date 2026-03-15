@@ -1,13 +1,14 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: not needed */
 
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import { toast } from "sonner";
 
 import { FormHeader } from "@/components/auth/form-header";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Card,
   CardContent,
@@ -35,6 +36,8 @@ export const Route = createFileRoute("/_auth/login")({
 type Provider = "google" | "apple" | "passkey" | "facebook";
 
 function LoginPage() {
+  const [isSigningIn, setIsSigningIn] = useState(false);
+
   const oauthProviderLabel = (provider: Provider) => {
     const baseLabel = "Iniciar sesión con";
 
@@ -52,13 +55,18 @@ function LoginPage() {
         autoFill: true,
       });
     } else {
-      const { error } = await signIn.social({
-        provider,
-      });
+      setIsSigningIn(true);
+      try {
+        const { error } = await signIn.social({
+          provider,
+        });
 
-      if (error?.code) {
-        toast.error(translateBetterAuthError(error.code));
-        return;
+        if (error?.code) {
+          toast.error(translateBetterAuthError(error.code));
+          return;
+        }
+      } finally {
+        setIsSigningIn(false);
       }
     }
   };
@@ -80,9 +88,14 @@ function LoginPage() {
                 <Button
                   variant="outline"
                   type="button"
+                  disabled={isSigningIn}
                   onClick={() => handleSignIn("google")}
                 >
-                  <GoogleIcon />
+                  {isSigningIn ? (
+                    <Spinner />
+                  ) : (
+                    <GoogleIcon />
+                  )}
                   {oauthProviderLabel("google")}
                 </Button>
                 {/* <Button

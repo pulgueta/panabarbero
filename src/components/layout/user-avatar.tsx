@@ -1,4 +1,5 @@
 import { SignOutIcon } from "@phosphor-icons/react";
+import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
+import { Spinner } from "@/components/ui/spinner";
 import { signOut } from "@/lib/auth-client";
 
 interface UserAvatarProps {
@@ -20,14 +22,21 @@ interface UserAvatarProps {
 }
 
 export function UserAvatar({ user }: UserAvatarProps) {
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
   const handleSignOut = async () => {
-    await signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          location.reload();
+    setIsSigningOut(true);
+    try {
+      await signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            location.reload();
+          },
         },
-      },
-    });
+      });
+    } finally {
+      setIsSigningOut(false);
+    }
   };
 
   const initials = user.name
@@ -77,8 +86,12 @@ export function UserAvatar({ user }: UserAvatarProps) {
 
           <Separator />
 
-          <Button variant="destructive" onClick={handleSignOut}>
-            <SignOutIcon className="size-4" />
+          <Button
+            variant="destructive"
+            disabled={isSigningOut}
+            onClick={handleSignOut}
+          >
+            {isSigningOut ? <Spinner /> : <SignOutIcon className="size-4" />}
             Cerrar sesión
           </Button>
         </div>
