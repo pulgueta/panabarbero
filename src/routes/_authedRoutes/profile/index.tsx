@@ -156,6 +156,7 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
       }
     }
   },
+  ssr: "data-only",
 });
 
 function ProfilePage() {

@@ -1,5 +1,5 @@
-import { ConvexError } from "convex/values";
 import { zid } from "convex-helpers/server/zod4";
+import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zInternalMutation } from ".";
@@ -121,7 +121,11 @@ export const createAppointmentCancelled = zInternalMutation({
       throw new ConvexError(errorMessages.notFound("barbero"));
     }
 
-    const customerProfile = await getProfileByUserId(ctx, appointment.userId);
+    let customerProfile: UserProfileData | null = null;
+
+    if (appointment.userId !== "user_does_not_exist") {
+      customerProfile = await getProfileByUserId(ctx, appointment.userId);
+    }
 
     const barberProfile = await ctx.db.get(barbershopMember.userProfileDataId);
 
@@ -151,14 +155,14 @@ export const createAppointmentCancelled = zInternalMutation({
     let smsBody = args.notes ? `${body} Motivo: ${args.notes}` : body;
     smsBody = `${smsBody} Ver detalles: ${appointmentLink}`;
 
-    if (
-      receiverProfile &&
-      isNotificationEnabled(
-        "email",
-        receiverProfile.notificationsPreferences,
-      ) &&
-      toEmail
-    ) {
+    const emailEnabled = receiverProfile
+      ? isNotificationEnabled(
+          "email",
+          receiverProfile.notificationsPreferences,
+        )
+      : isCustomer; // Default to enabled for guest customers
+
+    if (emailEnabled && toEmail) {
       await scheduleEmailWithQuota(ctx, appointment.barbershopId, () =>
         ctx.scheduler.runAfter(0, internal.emails.sendAppointmentCancelled, {
           notes: args.notes,
@@ -171,14 +175,12 @@ export const createAppointmentCancelled = zInternalMutation({
 
     const smsEnabled = receiverProfile
       ? isNotificationEnabled("sms", receiverProfile.notificationsPreferences)
-      : isCustomer;
+      : isCustomer; // Default to enabled for guest customers
 
-    if (
-      smsEnabled &&
-      (receiverProfile?.phoneNumber || appointment.contactPhone)
-    ) {
-      const phoneNumber =
-        receiverProfile?.phoneNumber ?? appointment.contactPhone;
+    const phoneNumber =
+      receiverProfile?.phoneNumber ?? appointment.contactPhone;
+
+    if (smsEnabled && phoneNumber) {
       await scheduleSmsWithQuota(ctx, {
         body: smsBody,
         to: phoneNumber,
@@ -282,9 +284,13 @@ export const createAppointmentRescheduleDecision = zInternalMutation({
     role: z.enum(["barber", "customer"]),
   }),
   handler: async (ctx, args) => {
-    const receiverProfile = await getProfileByUserId(ctx, args.receiverUserId);
+    let receiverProfile = null;
 
-    if (!receiverProfile) {
+    if (args.receiverUserId !== "user_does_not_exist") {
+      receiverProfile = await getProfileByUserId(ctx, args.receiverUserId);
+    }
+
+    if (args.receiverUserId !== "user_does_not_exist" && !receiverProfile) {
       throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
 
@@ -309,9 +315,11 @@ export const createAppointmentRescheduleDecision = zInternalMutation({
 
     const smsBody = `${body} Ver detalles: ${appointmentLink}`;
 
-    if (
-      isNotificationEnabled("email", receiverProfile.notificationsPreferences)
-    ) {
+    const emailEnabled = receiverProfile
+      ? isNotificationEnabled("email", receiverProfile.notificationsPreferences)
+      : isCustomer; // Default to enabled for guest customers
+
+    if (emailEnabled && args.to) {
       if (args.accepted) {
         await scheduleEmailWithQuota(ctx, appointment?.barbershopId, () =>
           ctx.scheduler.runAfter(
@@ -346,17 +354,19 @@ export const createAppointmentRescheduleDecision = zInternalMutation({
       }
     }
 
-    if (
-      isNotificationEnabled("sms", receiverProfile.notificationsPreferences) ||
-      receiverProfile.phoneNumber?.length
-    ) {
-      if (receiverProfile.phoneNumber) {
-        await scheduleSmsWithQuota(ctx, {
-          body: smsBody,
-          to: receiverProfile.phoneNumber,
-          barbershopId: appointment?.barbershopId,
-        });
-      }
+    const smsEnabled = receiverProfile
+      ? isNotificationEnabled("sms", receiverProfile.notificationsPreferences)
+      : isCustomer; // Default to enabled for guest customers
+
+    const phoneNumber =
+      receiverProfile?.phoneNumber ?? appointment?.contactPhone;
+
+    if (smsEnabled && phoneNumber) {
+      await scheduleSmsWithQuota(ctx, {
+        body: smsBody,
+        to: phoneNumber,
+        barbershopId: appointment?.barbershopId,
+      });
     }
   },
 });

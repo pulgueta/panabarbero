@@ -4,7 +4,6 @@ import { convex } from "@convex-dev/better-auth/plugins";
 import { requireActionCtx } from "@convex-dev/better-auth/utils";
 import { betterAuth } from "better-auth/minimal";
 import { z } from "zod";
-
 import { zInternalAction, zQuery } from ".";
 import { APP_NAME } from "../src/config";
 import { components, internal } from "./_generated/api";
@@ -24,28 +23,29 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
   triggers: {
     user: {
       onCreate: async (ctx, doc) => {
-        await ctx.runMutation(components.betterAuth.adapter.updateOne, {
-          input: {
-            model: "user",
-            update: {
-              userId: doc._id,
+        await Promise.all([
+          ctx.runMutation(components.betterAuth.adapter.updateOne, {
+            input: {
+              model: "user",
+              update: {
+                userId: doc._id,
+              },
+              where: [{ field: "_id", operator: "eq", value: doc._id }],
             },
-            where: [{ field: "_id", operator: "eq", value: doc._id }],
-          },
-        });
-
-        await ctx.runMutation(internal.userProfileData.create, {
-          email: doc.email,
-          userId: doc._id,
-          name: doc.name,
-          phoneNumber: undefined,
-          notificationsPreferences: [
-            {
-              type: "email",
-              enabled: true,
-            },
-          ],
-        });
+          }),
+          ctx.runMutation(internal.userProfileData.create, {
+            email: doc.email,
+            userId: doc._id,
+            name: doc.name,
+            phoneNumber: undefined,
+            notificationsPreferences: [
+              {
+                type: "email",
+                enabled: true,
+              },
+            ],
+          }),
+        ]);
       },
       onDelete: async (ctx, doc) => {
         let profile = null;
@@ -149,7 +149,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
         enabled: true,
       },
     },
-    plugins: [convex({ authConfig })],
+    plugins: [convex({ authConfig, jwks: process.env.JWKS })],
   });
 };
 

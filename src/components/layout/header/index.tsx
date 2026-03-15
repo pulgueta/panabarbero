@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { APP_NAME } from "@/config";
 import { useIsBarber } from "@/hooks/use-barbershop-members";
 import { useNavRoutes } from "@/hooks/use-nav-routes";
+import { useLocationStore } from "@/store/barbershop-filters";
 
 const ThemeToggler = lazy(() =>
   import("@/components/layout/theme-toggler").then((mod) => ({
@@ -21,6 +22,8 @@ const UserAvatar = lazy(() =>
 export const Header = () => {
   const { routes, user } = useNavRoutes();
   const { data: isBarber } = useIsBarber(user?.userId ?? "");
+  const persistedState = useLocationStore((s) => s.state);
+  const persistedCity = useLocationStore((s) => s.city);
 
   const router = useRouterState();
   const currentPath = router.location.pathname;
@@ -66,7 +69,9 @@ export const Header = () => {
                         ? { tab: "account" }
                         : route.to === "/profile/barbershops/appointments"
                           ? { date: startOfDay.getTime() }
-                          : undefined
+                          : route.to === "/barbershops"
+                            ? { city: persistedCity, state: persistedState }
+                            : undefined
                     }
                   />
                 }

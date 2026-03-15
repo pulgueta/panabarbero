@@ -4,15 +4,16 @@ import { useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
 import {
   Drawer,
   DrawerClose,
   DrawerContent,
   DrawerFooter,
 } from "@/components/ui/drawer";
+import { Spinner } from "@/components/ui/spinner";
 import { useNavRoutes } from "@/hooks/use-nav-routes";
 import { signOut } from "@/lib/auth-client";
+import { useLocationStore } from "@/store/barbershop-filters";
 import { ThemeToggler } from "./theme-toggler";
 
 export const BottomBar = () => {
@@ -22,6 +23,9 @@ export const BottomBar = () => {
   const { trigger } = useWebHaptics();
 
   const { routes, user } = useNavRoutes();
+
+  const persistedState = useLocationStore((s) => s.state);
+  const persistedCity = useLocationStore((s) => s.city);
 
   const today = Date.now();
   const startOfDay = new Date(today);
@@ -78,7 +82,9 @@ export const BottomBar = () => {
                         ? { tab: "account" }
                         : item.to === "/profile/barbershops/appointments"
                           ? { date: startOfDay.getTime() }
-                          : undefined
+                          : item.to === "/barbershops"
+                            ? { city: persistedCity, state: persistedState }
+                            : undefined
                     }
                     style={{ viewTransitionName: item.to }}
                     activeProps={{

@@ -102,6 +102,7 @@ export const Route = createFileRoute(
       }
     }
   },
+  ssr: "data-only",
 });
 
 function RouteComponent() {

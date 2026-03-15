@@ -107,7 +107,7 @@ export const Route = createFileRoute("/barbershops/")({
   },
   component: BarbershopsPage,
   pendingComponent: LoadingComponent,
-  ssr: false,
+  ssr: "data-only",
 });
 
 function BarbershopsPage() {

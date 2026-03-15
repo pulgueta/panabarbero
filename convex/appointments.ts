@@ -734,13 +734,14 @@ export const requestReschedule = zMutation({
       throw new ConvexError(errorMessages.notFound("barbería"));
     }
 
-    const customerProfile = await getProfileByUserId(ctx, appt.userId);
+    let customerProfile = null;
 
-    if (!customerProfile) {
-      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
+    if (appt.userId !== "user_does_not_exist") {
+      customerProfile = await getProfileByUserId(ctx, appt.userId);
     }
 
-    const isCustomerRequest = appt.userId === requesterProfile.userId;
+    const isCustomerRequest =
+      customerProfile?.userId === requesterProfile.userId;
 
     await ctx.runMutation(
       internal.notifications.createAppointmentRescheduleRequest,
@@ -924,10 +925,10 @@ export const answerRescheduleRequest = zMutation({
       throw new ConvexError(errorMessages.notFound("perfil de barbero"));
     }
 
-    const customerProfile = await getProfileByUserId(ctx, appt.userId);
+    let customerProfile = null;
 
-    if (!customerProfile) {
-      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
+    if (appt.userId !== "user_does_not_exist") {
+      customerProfile = await getProfileByUserId(ctx, appt.userId);
     }
 
     const barbershop = await ctx.db.get(appt.barbershopId);
@@ -941,7 +942,7 @@ export const answerRescheduleRequest = zMutation({
       ? barberProfile
       : customerProfile;
     const receiverRole = isCustomerAccepting ? "barber" : "customer";
-    const receiverUserId = receiverProfile.userId;
+    const receiverUserId = receiverProfile?.userId ?? "user_does_not_exist";
 
     const formattedDate = new Intl.DateTimeFormat("es-CO", {
       day: "numeric",
@@ -955,11 +956,16 @@ export const answerRescheduleRequest = zMutation({
       ? `Tu cita ha sido confirmada con la nueva fecha: ${formattedDate}.`
       : "La solicitud fue rechazada y la cita fue cancelada.";
 
+    const receiverEmail =
+      receiverProfile?.email ??
+      (receiverRole === "customer" ? appt.contactEmail : undefined) ??
+      "";
+
     await ctx.runMutation(
       internal.notifications.createAppointmentRescheduleDecision,
       {
         receiverUserId,
-        to: receiverProfile.email,
+        to: receiverEmail,
         appointmentId: args.appointment.id,
         accepted: args.accepted,
         notes: args.accepted ? undefined : body,

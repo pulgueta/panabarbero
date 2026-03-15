@@ -13,7 +13,7 @@ import {
   useBarbershopMemberActions,
   useInvitationByCode,
 } from "@/hooks/use-barbershop-members";
-import { getSessionQueryOptions } from "@/hooks/use-session";
+import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
 export const Route = createFileRoute("/_authedRoutes/invitations/$code")({
@@ -36,22 +36,21 @@ export const Route = createFileRoute("/_authedRoutes/invitations/$code")({
           replace: true,
         });
       }
-    } else {
-      throw redirect({
-        to: "/login",
-      });
     }
   },
+  ssr: "data-only",
 });
 
 function InvitationPage() {
   const { code } = Route.useParams();
   const navigate = Route.useNavigate();
 
+  const haptic = useWebHaptics();
+
+  const { data: user } = useSession();
+
   const { data: invitationData, refetch: refetchInvitation } =
     useInvitationByCode(code);
-
-  const haptic = useWebHaptics();
 
   const {
     answerInvitationMutation: {
@@ -104,6 +103,12 @@ function InvitationPage() {
 
   const handleAnswer = async (answer: "accept" | "deny") => {
     try {
+      if (!user) {
+        toast.error("Debes iniciar sesión para responder a la invitación.");
+        haptic.trigger("error");
+        return;
+      }
+
       await answerInvitation({ code, answer });
       haptic.trigger("success");
       toast.success(
