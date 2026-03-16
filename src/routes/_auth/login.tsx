@@ -91,11 +91,7 @@ function LoginPage() {
                   disabled={isSigningIn}
                   onClick={() => handleSignIn("google")}
                 >
-                  {isSigningIn ? (
-                    <Spinner />
-                  ) : (
-                    <GoogleIcon />
-                  )}
+                  {isSigningIn ? <Spinner /> : <GoogleIcon />}
                   {oauthProviderLabel("google")}
                 </Button>
                 {/* <Button

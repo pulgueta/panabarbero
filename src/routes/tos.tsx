@@ -24,6 +24,10 @@ export const Route = createFileRoute("/tos")({
   },
   pendingComponent: LoadingComponent,
   component: TermsOfServicePage,
+  ssr: true,
+  headers: () => ({
+    "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+  }),
 });
 
 function TermsOfServicePage() {

@@ -8,8 +8,38 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { env } from "@/env";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
-import { getCanonicalUrl, seo } from "@/lib/utils";
+import {
+  breadcrumbStructuredData,
+  faqStructuredData,
+  getCanonicalUrl,
+  seo,
+  softwareApplicationStructuredData,
+} from "@/lib/utils";
 import { useLocationStore } from "@/store/barbershop-filters";
+
+const SellingPointsSection = lazy(() =>
+  import("@/components/landing/selling-points-section").then((module) => ({
+    default: module.SellingPointsSection,
+  })),
+);
+
+const NotificationsSection = lazy(() =>
+  import("@/components/landing/notifications-section").then((module) => ({
+    default: module.NotificationsSection,
+  })),
+);
+
+const CtaSection = lazy(() =>
+  import("@/components/landing/cta-section").then((module) => ({
+    default: module.CtaSection,
+  })),
+);
+
+const LandingFooter = lazy(() =>
+  import("@/components/landing/footer").then((module) => ({
+    default: module.LandingFooter,
+  })),
+);
 
 const PricingCards = lazy(() =>
   import("@/components/pricing/pricing-cards").then((module) => ({
@@ -17,21 +47,74 @@ const PricingCards = lazy(() =>
   })),
 );
 
+const HOME_FAQS = [
+  {
+    question: "¿Qué es PanaBarbero?",
+    answer:
+      "PanaBarbero es una plataforma colombiana para barberías y clientes. Permite reservar citas en línea, gestionar barberos y servicios, y enviar notificaciones automáticas por email y SMS para cada evento de la cita.",
+  },
+  {
+    question: "¿Necesito crear una cuenta para reservar una cita?",
+    answer:
+      "No. Tus clientes pueden reservar una cita con solo su nombre y número de teléfono, sin necesidad de registrarse. Recibirán notificaciones de su cita de todas formas.",
+  },
+  {
+    question: "¿Cómo registro mi barbería en PanaBarbero?",
+    answer:
+      "Crea una cuenta gratuita en panabarbero.com, completa el perfil de tu barbería con nombre, dirección, servicios y horarios, e invita a tus barberos. Tu barbería estará visible para los clientes de inmediato.",
+  },
+  {
+    question: "¿Es gratis usar PanaBarbero?",
+    answer:
+      "Sí. El plan gratuito está disponible para barberías independientes con un solo barbero. Para equipos más grandes o funcionalidades avanzadas, existen planes de pago con más capacidad.",
+  },
+  {
+    question: "¿Qué notificaciones reciben los clientes y barberos?",
+    answer:
+      "Ambos reciben notificaciones automáticas por email y/o SMS para: cita agendada, recordatorio antes de la cita, cancelación, solicitud de reagendamiento, confirmación o rechazo del reagendamiento, y citas sin marcar como completadas.",
+  },
+  {
+    question: "¿Puedo agregar más barberos a mi barbería?",
+    answer:
+      "Sí. Puedes invitar a tu equipo por email o SMS. Cada barbero tiene su propio panel de citas y los clientes pueden elegir a qué barbero reservarle directamente.",
+  },
+  {
+    question: "¿Los clientes pueden reagendar una cita?",
+    answer:
+      "Sí. Los clientes pueden solicitar un cambio de fecha y hora. El barbero recibe la solicitud y decide si aceptarla o rechazarla. Ambas partes son notificadas de la decisión.",
+  },
+  {
+    question: "¿En qué ciudades de Colombia está disponible PanaBarbero?",
+    answer:
+      "PanaBarbero está disponible en todo el territorio colombiano. Puedes buscar barberías por ciudad y departamento desde el directorio de barberías.",
+  },
+];
+
 export const Route = createFileRoute("/")({
   pendingComponent: LoadingComponent,
   component: RouteComponent,
   head: () => ({
-    meta: seo({
-      title: "PanaBarbero - Descubre barberías y reserva citas",
-      description:
-        "Encuentra barberías, reserva citas y gestiona tu barbería con PanaBarbero. La solución completa para barberías.",
-      canonical: getCanonicalUrl("/"),
-    }),
+    meta: [
+      ...seo({
+        title: "PanaBarbero - Descubre barberías y reserva citas",
+        description:
+          "Encuentra y reserva citas en barberías de Colombia. Gestiona tu barbería, barberos, servicios y citas con PanaBarbero. Gratis para independientes.",
+        canonical: getCanonicalUrl("/"),
+      }),
+      {
+        name: "keywords",
+        content:
+          "barberías Colombia, reservar cita barbería, gestión barbería, app barbería, PanaBarbero, citas barbero online, barberos Colombia",
+      },
+      { name: "robots", content: "index, follow" },
+      { name: "og:image:alt", content: "PanaBarbero - La solución para barberías en Colombia" },
+    ],
     links: [{ rel: "canonical", href: getCanonicalUrl("/") }],
-    // scripts: [
-    //   faqStructuredData(HOME_FAQS),
-    //   breadcrumbStructuredData([{ name: "Inicio", url: getCanonicalUrl("/") }]),
-    // ],
+    scripts: [
+      softwareApplicationStructuredData(),
+      faqStructuredData(HOME_FAQS),
+      breadcrumbStructuredData([{ name: "Inicio", url: getCanonicalUrl("/") }]),
+    ],
   }),
   loader: async ({ context }) => {
     const user = await context.queryClient.ensureQueryData(
@@ -47,6 +130,10 @@ export const Route = createFileRoute("/")({
     }
   },
   ssr: true,
+  headers: () => ({
+    "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+  }),
+  staleTime: 3600,
 });
 
 function RouteComponent() {
@@ -56,9 +143,9 @@ function RouteComponent() {
 
   return (
     <BorderContainer>
-      <main className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-start lg:py-4">
+      <main className="grid grid-cols-1 gap-4 py-4 lg:grid-cols-3 lg:items-start">
         <section className="w-full space-y-4 lg:col-span-1 lg:mt-6 lg:max-w-3xl lg:space-y-8">
-          <h1 className="text-center font-bold text-3xl tracking-tighter md:text-balance md:text-4xl lg:text-left">
+          <h1 className="text-center font-bold text-3xl tracking-tighter md:text-balance md:text-4xl lg:text-left lg:text-5xl">
             La solución para las barberías en Colombia.
           </h1>
           <div className="space-y-1 text-center lg:text-left">
@@ -124,32 +211,91 @@ function RouteComponent() {
       <section>
         <div className="space-y-4">
           <h2 className="text-balance text-center font-bold text-3xl tracking-tighter md:text-left">
-            Un sistema para organizar tu barbería.
+            Gestiona barberos y servicios desde un solo lugar.
           </h2>
           <p className="text-pretty text-center md:text-left dark:text-muted-foreground">
-            Recibe citas de tus clientes, gestiona tus barberos y servicios, y
-            mucho más.
+            Agrega a tu equipo, define los servicios que ofreces con sus precios
+            y deja que tus clientes reserven directamente. Todo organizado, sin
+            complicaciones.
           </p>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <img
+                src={`${env.VITE_STORAGE_URL}/barbers-mobile.webp`}
+                alt="Gestión de barberos en PanaBarbero."
+                className="mask-[linear-gradient(to_bottom,black_70%,transparent)] block rounded-lg md:hidden"
+                loading="lazy"
+              />
+              <img
+                src={`${env.VITE_STORAGE_URL}/barbers-desktop.webp`}
+                alt="Gestión de barberos en PanaBarbero."
+                className="mask-[linear-gradient(to_bottom,black_70%,transparent)] hidden w-full rounded-lg [-webkit-mask-image:linear-gradient(to_bottom,black_70%,transparent)] md:block"
+                loading="lazy"
+              />
+              <p className="text-center font-medium text-muted-foreground text-sm">
+                Panel de barberos
+              </p>
+            </div>
+            <div className="space-y-2">
+              <img
+                src={`${env.VITE_STORAGE_URL}/services-mobile.webp`}
+                alt="Gestión de servicios en PanaBarbero."
+                className="mask-[linear-gradient(to_bottom,black_70%,transparent)] block rounded-lg md:hidden"
+                loading="lazy"
+              />
+              <img
+                src={`${env.VITE_STORAGE_URL}/services-desktop.webp`}
+                alt="Gestión de servicios en PanaBarbero."
+                className="mask-[linear-gradient(to_bottom,black_70%,transparent)] hidden w-full rounded-lg [-webkit-mask-image:linear-gradient(to_bottom,black_70%,transparent)] md:block"
+                loading="lazy"
+              />
+              <p className="text-center font-medium text-muted-foreground text-sm">
+                Panel de servicios
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <Separator className="my-8" />
+
+      <section>
+        <div className="space-y-4">
+          <h2 className="text-balance text-center font-bold text-3xl tracking-tighter md:text-left">
+            Un sistema de citas que trabaja por ti.
+          </h2>
           <p className="text-pretty text-center md:text-left dark:text-muted-foreground">
-            En PanaBarbero recibes notificaciones de todos los eventos de tus
-            citas. Siempre estarás notificado de cualquier acción al igual que
-            tus clientes.
+            Tus clientes reservan en segundos. Tú recibes la cita y la gestionas
+            desde tu panel. Así de simple.
           </p>
 
           <img
             src={`${env.VITE_STORAGE_URL}/system-mobile.webp`}
-            alt="PanaBarbero - La solución para las barberías. Imagen de portada."
+            alt="Sistema de citas de PanaBarbero."
             className="mask-[linear-gradient(to_bottom,black_65%,transparent)] block rounded-lg md:hidden"
-            fetchPriority="high"
+            loading="lazy"
           />
           <img
             src={`${env.VITE_STORAGE_URL}/system-desktop.webp`}
-            alt="PanaBarbero - La solución para las barberías. Imagen de portada."
+            alt="Sistema de citas de PanaBarbero."
             className="mask-[linear-gradient(to_bottom,black_65%,transparent)] ml-auto hidden w-full rounded-lg [-webkit-mask-image:linear-gradient(to_bottom,black_65%,transparent)] md:block"
-            fetchPriority="high"
+            loading="lazy"
           />
         </div>
       </section>
+
+      <Separator className="my-8" />
+
+      <Suspense>
+        <NotificationsSection />
+      </Suspense>
+
+      <Separator className="my-8" />
+
+      <Suspense>
+        <SellingPointsSection />
+      </Suspense>
 
       <Separator className="my-8" />
 
@@ -158,7 +304,7 @@ function RouteComponent() {
           <h2 className="text-balance text-center font-bold text-3xl tracking-tighter md:text-4xl">
             Precios
           </h2>
-          <p className="text-pretty text-center md:text-left dark:text-muted-foreground">
+          <p className="text-pretty text-center dark:text-muted-foreground">
             Puedes operar gratuitamente de forma independiente o suscribirte a
             uno de nuestros planes para acceder a más funcionalidades.
           </p>
@@ -168,6 +314,16 @@ function RouteComponent() {
           <PricingCards />
         </Suspense>
       </section>
+
+      <Separator className="my-8" />
+
+      <Suspense>
+        <CtaSection />
+      </Suspense>
+
+      <Suspense>
+        <LandingFooter />
+      </Suspense>
     </BorderContainer>
   );
 }

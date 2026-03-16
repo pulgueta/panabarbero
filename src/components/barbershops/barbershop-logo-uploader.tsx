@@ -63,7 +63,10 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
 
   const {
     setLogoKeyMutation: { mutateAsync: setLogoKey },
-    removeLogoKeyMutation: { mutateAsync: removeLogoKey, isPending: isRemoving },
+    removeLogoKeyMutation: {
+      mutateAsync: removeLogoKey,
+      isPending: isRemoving,
+    },
   } = useBarbershopMetadataActions();
 
   const onFileReject = useCallback<

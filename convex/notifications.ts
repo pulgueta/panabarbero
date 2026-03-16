@@ -156,10 +156,7 @@ export const createAppointmentCancelled = zInternalMutation({
     smsBody = `${smsBody} Ver detalles: ${appointmentLink}`;
 
     const emailEnabled = receiverProfile
-      ? isNotificationEnabled(
-          "email",
-          receiverProfile.notificationsPreferences,
-        )
+      ? isNotificationEnabled("email", receiverProfile.notificationsPreferences)
       : isCustomer; // Default to enabled for guest customers
 
     if (emailEnabled && toEmail) {

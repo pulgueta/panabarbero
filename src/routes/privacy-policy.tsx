@@ -4,8 +4,8 @@ import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Markdown } from "@/components/markdown";
 import privacyContent from "@/content/privacy-policy.md?raw";
-import { renderMarkdown } from "@/utils/markdown";
 import { getCanonicalUrl, seo } from "@/lib/utils";
+import { renderMarkdown } from "@/utils/markdown";
 
 export const Route = createFileRoute("/privacy-policy")({
   head: () => ({
@@ -24,6 +24,10 @@ export const Route = createFileRoute("/privacy-policy")({
   },
   pendingComponent: LoadingComponent,
   component: PrivacyPolicyPage,
+  ssr: true,
+  headers: () => ({
+    "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+  }),
 });
 
 function PrivacyPolicyPage() {

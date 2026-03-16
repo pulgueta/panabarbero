@@ -249,11 +249,7 @@ export function websiteStructuredData(): ScriptHTMLAttributes<HTMLScriptElement>
           "@type": "ImageObject",
           url: `${env.VITE_STORAGE_URL}/panabarbero-logo.png`,
         },
-        sameAs: [
-          "https://twitter.com/panabarbero",
-          "https://instagram.com/panabarbero",
-          "https://facebook.com/panabarbero",
-        ],
+        sameAs: ["https://dub.sh/z11b1Xb", "https://dub.sh/f48mIt9"],
         contactPoint: {
           "@type": "ContactPoint",
           contactType: "Customer Support",
@@ -305,6 +301,40 @@ export function breadcrumbStructuredData(
         name: item.name,
         item: item.url,
       })),
+    }),
+  };
+}
+
+export function softwareApplicationStructuredData(): ScriptHTMLAttributes<HTMLScriptElement> & {
+  children: string;
+} {
+  return {
+    type: "application/ld+json",
+    children: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: "PanaBarbero",
+      url: baseUrl,
+      description:
+        "La solución para las barberías - Gestiona citas y clientes fácilmente",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web, iOS, Android",
+      inLanguage: "es-CO",
+      author: {
+        "@type": "Organization",
+        name: "PanaBarbero",
+        url: baseUrl,
+      },
+      featureList: [
+        "Reserva de citas en línea",
+        "Gestión de barberos y servicios",
+        "Notificaciones por email y SMS",
+        "Reagendamiento de citas",
+        "Reservas sin cuenta de usuario",
+        "Panel de administración para barberías",
+        "Invitaciones a barberos del equipo",
+      ],
+      sameAs: ["https://dub.sh/z11b1Xb", "https://dub.sh/f48mIt9"],
     }),
   };
 }
