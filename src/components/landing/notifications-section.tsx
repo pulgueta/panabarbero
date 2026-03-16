@@ -153,26 +153,26 @@ const NotificationCard: FC<{
         delay: index * 0.12,
         ease: [0.25, 0.46, 0.45, 0.94],
       }}
-      className="group flex items-center gap-3 rounded-lg border border-white/6 bg-white/3 px-4 py-3 backdrop-blur-sm transition-colors hover:bg-white/6"
+      className="group flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3 backdrop-blur-sm transition-colors hover:bg-muted/50"
     >
       <div
-        className={`flex size-8 shrink-0 items-center justify-center rounded-md bg-white/6 ${notification.color}`}
+        className={`flex size-8 shrink-0 items-center justify-center rounded-md bg-muted ${notification.color}`}
       >
         {notification.icon}
       </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="truncate font-medium text-sm text-white/90">
+          <span className="truncate font-medium text-foreground text-sm">
             {notification.subject}
           </span>
         </div>
-        <p className="truncate text-white/40 text-xs">
+        <p className="truncate text-muted-foreground text-xs">
           {notification.description}
         </p>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/8 bg-white/4 px-2 py-1 text-white/50 text-xs">
+      <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-muted/50 px-2 py-1 text-muted-foreground text-xs">
         {channelConfig[notification.channel].icon}
         <span>{channelConfig[notification.channel].label}</span>
       </div>
@@ -210,7 +210,7 @@ export const NotificationsSection: FC = () => {
               Notificaciones{" "}
               <span className="text-primary">en tiempo real</span>
             </h2>
-            <p className="text-pretty leading-relaxed dark:text-muted-foreground">
+            <p className="text-pretty text-muted-foreground leading-relaxed">
               Cada evento de tus citas genera una notificación automática. Desde
               la creación hasta la cancelación, tanto tú como tus clientes
               estarán siempre informados.
@@ -237,14 +237,14 @@ export const NotificationsSection: FC = () => {
           </div>
         </div>
 
-        <div className="relative min-h-145 overflow-hidden rounded-xl border border-white/8 bg-linear-to-b from-neutral-900/80 to-neutral-950/90 p-2 dark:from-neutral-900/60 dark:to-neutral-950/80">
+        <div className="relative min-h-145 overflow-hidden rounded-xl border border-border bg-card p-2 shadow-sm">
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/5 via-transparent to-transparent" />
 
-          <div className="relative flex items-center gap-2 border-white/6 border-b p-4">
+          <div className="relative flex items-center gap-2 border-border border-b p-4">
             <div className="flex size-6 items-center justify-center rounded-md bg-primary/20 text-primary">
               <BellIcon weight="bold" className="size-3.5" />
             </div>
-            <span className="font-medium text-sm text-white/70">
+            <span className="font-medium text-muted-foreground text-sm">
               Notificaciones
             </span>
             <Badge

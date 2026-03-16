@@ -76,10 +76,8 @@ export const SellingPointsSection: FC = () => {
               {point.icon}
             </div>
             <div className="space-y-1">
-              <p className="font-semibold text-sm leading-tight">
-                {point.title}
-              </p>
-              <p className="text-muted-foreground text-xs leading-relaxed">
+              <p className="font-semibold leading-tight">{point.title}</p>
+              <p className="text-pretty text-muted-foreground text-sm leading-relaxed">
                 {point.description}
               </p>
             </div>
