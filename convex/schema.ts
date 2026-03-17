@@ -256,6 +256,7 @@ export type BarbershopMetadata = output<typeof barbershopMetadata.schema>;
 export type BarbershopMember = output<typeof barbershopMembers.schema>;
 export type BarbershopMemberWithName = BarbershopMember & {
   name: string;
+  avatarUrl: string;
 };
 export type BarbershopMetadataWithCount = BarbershopMetadata & {
   completedAppointments: number;

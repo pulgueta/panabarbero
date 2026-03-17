@@ -285,10 +285,19 @@ export const answer = zMutation({
           }
 
           // Merge invitation roles into the existing member's roles
+          const wasAlreadyBarber = existingMember.roles.includes("barber");
           const mergedRoles = [
             ...new Set([...existingMember.roles, ...invitation.roles]),
           ];
           await ctx.db.patch(existingMember._id, { roles: mergedRoles });
+
+          // If the barber role was newly added, auto-assign all services
+          if (!wasAlreadyBarber && mergedRoles.includes("barber")) {
+            await ctx.runMutation(
+              internal.barbershopMemberServices.assignAllServicesToBarber,
+              { id: existingMember._id },
+            );
+          }
 
           await ctx.db.patch(invitation._id, { status: "accepted" });
           return existingMember._id;

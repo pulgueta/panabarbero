@@ -8,7 +8,7 @@ import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { authComponent } from "./auth";
-import { assertCanManageShop } from "./authz";
+import { assertCanManageShop, getBetterAuthUser } from "./authz";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
 import { barbershopMembers, barbershops } from "./schema";
@@ -32,6 +32,12 @@ export const create = zInternalMutation({
 export const getByBarbershopId = zQuery({
   args: barbershops.tools.id.shape,
   handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      return [];
+    }
+
     const members = await ctx.db
       .query("barbershopMembers")
       .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
@@ -41,10 +47,15 @@ export const getByBarbershopId = zQuery({
     const membersWithName = await Promise.all(
       members.map(async (member) => {
         const memberProfile = await ctx.db.get(member.userProfileDataId);
+        const betterAuthUser = await getBetterAuthUser(
+          ctx,
+          member.userProfileDataId,
+        );
 
         return {
           ...member,
           name: memberProfile?.name ?? "",
+          avatarUrl: betterAuthUser?.image ?? "",
         };
       }),
     );
@@ -227,10 +238,15 @@ export const getStaffByBarbershopId = zQuery({
     const staffWithName = await Promise.all(
       staffMembers.map(async (member) => {
         const memberProfile = await ctx.db.get(member.userProfileDataId);
+        const betterAuthUser = await getBetterAuthUser(
+          ctx,
+          member.userProfileDataId,
+        );
 
         return {
           ...member,
           name: memberProfile?.name ?? "",
+          avatarUrl: betterAuthUser?.image ?? "",
         };
       }),
     );
@@ -248,7 +264,7 @@ export const removeStaffFromBarbershop = zMutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    await rateLimitOrThrow(ctx, "removeBarberFromBarbershop", user._id);
+    await rateLimitOrThrow(ctx, "removeStaffFromBarbershop", user._id);
 
     const member = await ctx.db.get(args.id);
 

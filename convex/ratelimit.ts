@@ -169,6 +169,12 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     period: MINUTE,
     capacity: 5,
   },
+  removeStaffFromBarbershop: {
+    kind: "token bucket",
+    rate: 5,
+    period: MINUTE,
+    capacity: 5,
+  },
 });
 
 type RateLimitName = keyof NonNullable<typeof rateLimiter.limits>;

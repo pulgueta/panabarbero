@@ -106,7 +106,8 @@ export const update = zMutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    await assertCanManageServices(ctx, args.data.barbershopId, user.userId);
+    // Only owners and staff can edit services (not barbers — business decision)
+    await assertCanManageTeam(ctx, args.data.barbershopId, user.userId);
 
     await ctx.db.patch(args.id, args.data);
   },
