@@ -5,7 +5,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { errorMessages } from "./errors";
 import type { Appointment, BarbershopMember } from "./schema";
 
-export type Role = "owner" | "barber";
+export type Role = "owner" | "barber" | "staff";
 
 /**
  * Get a barbershop member by their user profile data ID and barbershop ID
@@ -147,6 +147,40 @@ export async function assertBarber(
 }
 
 /**
+ * Assert that a user is a staff member in a barbershop
+ */
+export async function assertStaff(
+  ctx: QueryCtx | MutationCtx,
+  barbershopId: Id<"barbershops">,
+  userId: string,
+) {
+  return assertShopRole(ctx, barbershopId, userId, "staff");
+}
+
+/**
+ * Check if a user is a staff member in a specific barbershop.
+ */
+export async function isStaffInShop(
+  ctx: QueryCtx | MutationCtx,
+  barbershopId: Id<"barbershops">,
+  userId: string,
+): Promise<boolean> {
+  return hasShopRole(ctx, barbershopId, userId, "staff");
+}
+
+/**
+ * Assert that a user can manage team members (owner or staff).
+ * Used for inviting barbers and assigning services to barbers.
+ */
+export async function assertCanManageTeam(
+  ctx: QueryCtx | MutationCtx,
+  barbershopId: Id<"barbershops">,
+  userId: string,
+) {
+  return assertShopRole(ctx, barbershopId, userId, ["owner", "staff"]);
+}
+
+/**
  * Assert that a user is a barbershop owner or admin (for management actions)
  */
 export async function assertCanManageShop(
@@ -166,7 +200,11 @@ export async function assertCanManageServices(
   barbershopId: Id<"barbershops">,
   userId: string,
 ) {
-  return assertShopRole(ctx, barbershopId, userId, ["owner", "barber"]);
+  return assertShopRole(ctx, barbershopId, userId, [
+    "owner",
+    "barber",
+    "staff",
+  ]);
 }
 
 /**
@@ -204,14 +242,18 @@ export async function assertShopMember(
 
 /**
  * Assert that a user can view appointments for a barbershop.
- * Requires owner or barber role.
+ * Requires owner, barber, or staff role.
  */
 export async function assertCanViewAppointments(
   ctx: QueryCtx | MutationCtx,
   barbershopId: Id<"barbershops">,
   userId: string,
 ) {
-  return assertShopRole(ctx, barbershopId, userId, ["owner", "barber"]);
+  return assertShopRole(ctx, barbershopId, userId, [
+    "owner",
+    "barber",
+    "staff",
+  ]);
 }
 
 /**
@@ -239,7 +281,7 @@ export async function assertCanMutateAppointment(
     throw new ConvexError(errorMessages.unauthorized);
   }
 
-  if (!memberHasAnyRole(member, ["owner", "barber"])) {
+  if (!memberHasAnyRole(member, ["owner", "barber", "staff"])) {
     throw new ConvexError(errorMessages.unauthorized);
   }
 }
@@ -269,7 +311,7 @@ export async function canViewAppointment(
     return false;
   }
 
-  return memberHasAnyRole(member, ["owner", "barber"]);
+  return memberHasAnyRole(member, ["owner", "barber", "staff"]);
 }
 
 /**

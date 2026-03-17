@@ -199,6 +199,84 @@ export const removeBarberFromBarbershop = zMutation({
   },
 });
 
+export const getStaffByBarbershopId = zQuery({
+  args: barbershops.tools.id.shape,
+  handler: async (ctx, args) => {
+    const members = await ctx.db
+      .query("barbershopMembers")
+      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+
+    const staffMembers = members.filter((member) =>
+      member.roles.includes("staff"),
+    );
+
+    const staffWithName = await Promise.all(
+      staffMembers.map(async (member) => {
+        const memberProfile = await ctx.db.get(member.userProfileDataId);
+
+        return {
+          ...member,
+          name: memberProfile?.name ?? "",
+        };
+      }),
+    );
+
+    return staffWithName;
+  },
+});
+
+export const removeStaffFromBarbershop = zMutation({
+  args: barbershopMembers.tools.id,
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    await rateLimitOrThrow(ctx, "removeBarberFromBarbershop", user._id);
+
+    const member = await ctx.db.get(args.id);
+
+    if (!member) {
+      return;
+    }
+
+    await assertCanManageShop(ctx, member.barbershopId, user.userId);
+
+    if (!member.roles.includes("staff")) {
+      throw new ConvexError("El miembro seleccionado no es recepcionista");
+    }
+
+    await ctx.db.delete(args.id);
+  },
+});
+
+export const isStaff = zQuery({
+  args: z.object({
+    userId: z.string().optional(),
+  }),
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId || !args.userId || user.userId !== args.userId) {
+      return false;
+    }
+
+    const userProfile = await getProfileByUserId(ctx, args.userId);
+
+    if (!userProfile) {
+      return false;
+    }
+
+    const barbershopMember = await getByUserIdFn(ctx, { userId: args.userId });
+
+    return barbershopMember?.roles.includes("staff") ?? false;
+  },
+});
+
 export const isBarber = zQuery({
   args: z.object({
     userId: z.string().optional(),
@@ -481,6 +559,7 @@ export const getRolesByUserId = zQuery({
     return {
       roles: barbershopMember?.roles,
       isOwner: barbershopMember?.roles.includes("owner"),
+      isStaff: barbershopMember?.roles.includes("staff"),
     };
   },
 });

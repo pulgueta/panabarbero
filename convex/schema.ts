@@ -82,7 +82,7 @@ export const barbershopMembers = zodTable("barbershopMembers", (id) => ({
   barbershopId: id("barbershops"),
   joinedAt: z.number(),
   isActive: z.boolean(),
-  roles: z.enum(["owner", "barber"]).array(),
+  roles: z.enum(["owner", "barber", "staff"]).array(),
 }));
 
 export const services = zodTable("services", (id) => ({
@@ -148,6 +148,7 @@ export const appointments = zodTable("appointments", (id) => ({
       "denied",
     ])
     .default("confirmed"),
+  createdBy: id("barbershopMembers").optional(),
   notes: z.string().optional(),
   deletedAt: z.number().optional(),
   upcomingNotificationId: id("_scheduled_functions").optional(),
@@ -169,7 +170,7 @@ export const invitations = zodTable("invitations", (id) => ({
   barbershopId: id("barbershops"),
   email: z.string(),
   phone: z.string(),
-  roles: z.enum(["barber"]).array(),
+  roles: z.enum(["barber", "staff"]).array(),
   code: z.string(),
   status: z.enum(["pending", "accepted", "denied", "expired"]),
   expiresAt: z.number(),

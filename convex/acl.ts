@@ -131,6 +131,44 @@ export async function assertBarberInviteAllowed(
   }
 }
 
+/**
+ * Assert the barbershop owner can invite a staff member without exceeding the
+ * plan limit.
+ *
+ * The count only includes members with the `"staff"` role
+ * that do NOT also hold the `"owner"` role.
+ */
+export async function assertStaffInviteAllowed(
+  ctx: QueryCtx | MutationCtx,
+  barbershopId: Id<"barbershops">,
+  ownerUserId: string,
+): Promise<void> {
+  const limits = await getUserPlanLimits(ctx, ownerUserId);
+
+  if (limits.maxStaff === 0) {
+    throw new ConvexError(errorMessages.staffLimitExceeded);
+  }
+
+  // `null` means unlimited — skip the count
+  if (limits.maxStaff === null) {
+    return;
+  }
+
+  const members = await ctx.db
+    .query("barbershopMembers")
+    .withIndex("by_barbershopId", (q) => q.eq("barbershopId", barbershopId))
+    .collect();
+
+  const staffCount = members.filter(
+    (m) =>
+      m.isActive && m.roles.includes("staff") && !m.roles.includes("owner"),
+  ).length;
+
+  if (staffCount >= limits.maxStaff) {
+    throw new ConvexError(errorMessages.staffLimitExceeded);
+  }
+}
+
 async function getUsageRow(
   ctx: QueryCtx | MutationCtx,
   barbershopId: Id<"barbershops">,

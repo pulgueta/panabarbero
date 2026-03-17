@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 
-import { convexToZod } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
+import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import { zInternalMutation, zInternalQuery, zMutation, zQuery } from ".";
@@ -12,7 +12,7 @@ import type { MutationCtx } from "./_generated/server";
 import { assertCanCreateStaffAppointment } from "./acl";
 import { authComponent } from "./auth";
 import {
-  assertBarber,
+  assertShopRole,
   getBarbershopMemberByUserId,
   memberHasAnyRole,
 } from "./authz";
@@ -40,7 +40,7 @@ const createAppointmentArgs = z.object({
     customerName: z.string(),
     contactEmail: z.string().optional(),
     notes: z.string().optional(),
-    isBarber: z.boolean(),
+    isStaffCreated: z.boolean(),
   }),
 });
 
@@ -147,10 +147,13 @@ export const create = zMutation({
     await rateLimitOrThrow(ctx, "createAppointment", user._id);
 
     const { appointment } = args;
-    const isBarberCreatingAppointment = appointment.isBarber;
+    const isStaffCreatingAppointment = appointment.isStaffCreated;
 
-    if (isBarberCreatingAppointment) {
-      await assertBarber(ctx, appointment.barbershopId, user.userId);
+    if (isStaffCreatingAppointment) {
+      await assertShopRole(ctx, appointment.barbershopId, user.userId, [
+        "barber",
+        "staff",
+      ]);
       // Only paid plans (pro / premium) allow staff to create appointments
       // on behalf of clients.
       await assertCanCreateStaffAppointment(ctx, appointment.barbershopId);
@@ -280,19 +283,32 @@ export const create = zMutation({
       throw new ConvexError(errorMessages.appointmentUnavailableHours);
     }
 
-    const appointmentUserId = isBarberCreatingAppointment
+    const appointmentUserId = isStaffCreatingAppointment
       ? (customerProfile?.userId ?? "user_does_not_exist")
       : user.userId;
-    const { isBarber: _isBarber, ...withoutIsBarber } = appointment;
+    const { isStaffCreated: _isStaffCreated, ...withoutIsStaffCreated } =
+      appointment;
+
+    // Resolve creator member ID for staff-created appointments
+    let createdByMemberId: typeof appointment.barbershopMemberId | undefined;
+    if (isStaffCreatingAppointment) {
+      const creatorMember = await getBarbershopMemberByUserId(
+        ctx,
+        appointment.barbershopId,
+        user.userId,
+      );
+      createdByMemberId = creatorMember?._id;
+    }
 
     const appointmentId = await ctx.db.insert("appointments", {
-      ...withoutIsBarber,
-      contactPhone: formatPhoneNumber(withoutIsBarber.contactPhone),
+      ...withoutIsStaffCreated,
+      contactPhone: formatPhoneNumber(withoutIsStaffCreated.contactPhone),
       userId: appointmentUserId,
       status: "confirmed",
+      createdBy: createdByMemberId,
     });
 
-    if (!isBarberCreatingAppointment) {
+    if (!isStaffCreatingAppointment) {
       await ctx.runMutation(internal.notifications.createAppointmentCreated, {
         appointmentId,
         barberUserId: barberProfile.userId,
@@ -301,7 +317,7 @@ export const create = zMutation({
         sendTo: "barber",
         barbershopName: barbershop.name,
         receiverPhoneNumber: appointment.contactPhone,
-        isBarberCreated: isBarberCreatingAppointment,
+        isStaffCreated: isStaffCreatingAppointment,
       });
     }
 
@@ -313,7 +329,7 @@ export const create = zMutation({
       sendTo: "customer",
       barbershopName: barbershop.name,
       receiverPhoneNumber: appointment.contactPhone,
-      isBarberCreated: isBarberCreatingAppointment,
+      isStaffCreated: isStaffCreatingAppointment,
     });
 
     const thirtyMinutesBeforeAppointment = appointment.date - 30 * 60 * 1000;
@@ -432,8 +448,12 @@ export const getByBarbershopId = zQuery({
           user.userId,
         );
 
-        // If user is a barber (not owner), filter appointments for this barber only
-        if (barbershopMember && !barbershopMember.roles.includes("owner")) {
+        // If user is a barber (not owner/staff), filter appointments for this barber only
+        if (
+          barbershopMember &&
+          !barbershopMember.roles.includes("owner") &&
+          !barbershopMember.roles.includes("staff")
+        ) {
           return appointments.filter(
             (appt) => appt.barbershopMemberId === barbershopMember._id,
           );
@@ -499,7 +519,7 @@ export const setStatus = zMutation({
     if (
       !member ||
       !member.isActive ||
-      !memberHasAnyRole(member, ["owner", "barber"])
+      !memberHasAnyRole(member, ["owner", "barber", "staff"])
     ) {
       throw new ConvexError(errorMessages.unauthorized);
     }
@@ -594,7 +614,21 @@ export const deleteAppointment = zMutation({
     const isAppointmentBarber = barberProfile.userId === user.userId;
     const isAppointmentCustomer = appointment.userId === user.userId;
 
-    if (!isAppointmentBarber && !isAppointmentCustomer) {
+    // Also check if user is a staff member or owner of the barbershop
+    let isShopStaffOrOwner = false;
+    if (!isAppointmentBarber && !isAppointmentCustomer && user.userId) {
+      const callerMember = await getBarbershopMemberByUserId(
+        ctx,
+        appointment.barbershopId,
+        user.userId,
+      );
+      isShopStaffOrOwner =
+        !!callerMember &&
+        callerMember.isActive &&
+        memberHasAnyRole(callerMember, ["owner", "staff"]);
+    }
+
+    if (!isAppointmentBarber && !isAppointmentCustomer && !isShopStaffOrOwner) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 

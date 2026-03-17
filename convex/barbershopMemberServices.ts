@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { zInternalMutation, zMutation, zQuery } from ".";
 import { authComponent } from "./auth";
-import { assertCanManageShop, getBarbershopMemberByUserId } from "./authz";
+import { assertCanManageTeam, getBarbershopMemberByUserId } from "./authz";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
 import { barbershopMembers, barbershops, services } from "./schema";
@@ -133,7 +133,7 @@ export const getServicesWithBarberAssignments = zQuery({
 
 /**
  * Set the services that a barber can perform
- * Only owners can assign services to barbers
+ * Owners and staff can assign services to barbers
  */
 export const setBarberServices = zMutation({
   args: z.object({
@@ -155,7 +155,7 @@ export const setBarberServices = zMutation({
       throw new ConvexError(errorMessages.notFound("miembro de barbería"));
     }
 
-    await assertCanManageShop(ctx, member.barbershopId, user.userId);
+    await assertCanManageTeam(ctx, member.barbershopId, user.userId);
 
     if (!member.roles.includes("barber")) {
       throw new ConvexError("El miembro seleccionado no es un barbero");
@@ -235,7 +235,7 @@ export const addServiceToBarber = zMutation({
       throw new ConvexError(errorMessages.notFound("miembro de barbería"));
     }
 
-    await assertCanManageShop(ctx, member.barbershopId, user.userId);
+    await assertCanManageTeam(ctx, member.barbershopId, user.userId);
 
     const service = await ctx.db.get(args.service.id);
     if (!service) {
@@ -292,7 +292,7 @@ export const removeServiceFromBarber = zMutation({
       throw new ConvexError(errorMessages.notFound("miembro de barbería"));
     }
 
-    await assertCanManageShop(ctx, member.barbershopId, user.userId);
+    await assertCanManageTeam(ctx, member.barbershopId, user.userId);
 
     const service = await ctx.db.get(args.service.id);
     if (!service) {

@@ -240,7 +240,7 @@ export const sendBarberInvitationEmail = zInternalAction({
 
     await ctx.runAction(internal.emails.sendEmail, {
       to: args.to,
-      subject: subjects.barber_invited,
+      subject: subjects.team_invited,
       html,
     });
   },
