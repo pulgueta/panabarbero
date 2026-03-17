@@ -50,15 +50,9 @@ const DashboardHeader = lazy(() =>
   })),
 );
 
-const BarberCard = lazy(() =>
-  import("@/components/barbers/barber-card").then((module) => ({
-    default: module.BarberCard,
-  })),
-);
-
-const StaffCard = lazy(() =>
-  import("@/components/barbers/staff-card").then((module) => ({
-    default: module.StaffCard,
+const MemberCard = lazy(() =>
+  import("@/components/barbers/member-card").then((module) => ({
+    default: module.MemberCard,
   })),
 );
 
@@ -198,9 +192,9 @@ function RouteComponent() {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {services &&
                   barbershopMembers?.map((barbershopMember) => (
-                    <BarberCard
+                    <MemberCard
                       key={barbershopMember._id}
-                      barbershopMember={barbershopMember}
+                      member={barbershopMember}
                       services={services}
                       isOwner={isOwner}
                     />
@@ -236,7 +230,7 @@ function RouteComponent() {
               )}
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {staffMembers?.map((staffMember) => (
-                  <StaffCard
+                  <MemberCard
                     key={staffMember._id}
                     member={staffMember}
                     isOwner={isOwner}

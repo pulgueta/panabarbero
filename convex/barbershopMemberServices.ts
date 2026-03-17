@@ -5,7 +5,11 @@ import { z } from "zod";
 
 import { zInternalMutation, zMutation, zQuery } from ".";
 import { authComponent } from "./auth";
-import { assertCanManageTeam, getBarbershopMemberByUserId } from "./authz";
+import {
+  assertCanManageTeam,
+  getBarbershopMemberByUserId,
+  getBetterAuthUser,
+} from "./authz";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
 import { barbershopMembers, barbershops, services } from "./schema";
@@ -89,11 +93,17 @@ export const getBarbersForService = zQuery({
 
         const profile = await ctx.db.get(member.userProfileDataId);
 
+        const betterAuthUser = await getBetterAuthUser(
+          ctx,
+          member.userProfileDataId,
+        );
+
         return {
           ...member,
           name: profile?.name ?? "",
           email: profile?.email ?? "",
           phoneNumber: profile?.phoneNumber ?? "",
+          avatarUrl: betterAuthUser?.image ?? "",
         };
       }),
     );
