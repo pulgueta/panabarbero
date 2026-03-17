@@ -202,6 +202,18 @@ export const removeBarberFromBarbershop = zMutation({
 export const getStaffByBarbershopId = zQuery({
   args: barbershops.tools.id.shape,
   handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      return [];
+    }
+
+    const callerMember = await getByUserIdFn(ctx, { userId: user.userId });
+
+    if (!callerMember || callerMember.barbershopId !== args.id) {
+      return [];
+    }
+
     const members = await ctx.db
       .query("barbershopMembers")
       .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
@@ -551,6 +563,7 @@ export const getRolesByUserId = zQuery({
       return {
         roles: [],
         isOwner: false,
+        isStaff: false,
       };
     }
 

@@ -17,7 +17,7 @@ const INVITATION_EXPIRATION_MS = 1000 * 60 * 60 * 24 * 7;
 export const inviteBarberSchema = z.object({
   phone: z.string(),
   email: z.string(),
-  roles: z.array(z.enum(["barber", "staff"])),
+  roles: z.array(z.enum(["barber", "staff"])).length(1),
 });
 
 export const invite = zMutation({
@@ -56,7 +56,7 @@ export const invite = zMutation({
     if (isInvitingStaff) {
       // Only owner can invite staff
       await assertOwner(ctx, barbershop._id, user.userId);
-      await assertStaffInviteAllowed(ctx, barbershop._id, user.userId);
+      await assertStaffInviteAllowed(ctx, barbershop._id, barbershop.ownerId);
     } else if (isInvitingBarber) {
       // Owner or staff can invite barbers
       await assertCanManageTeam(ctx, barbershop._id, user.userId);
@@ -283,6 +283,12 @@ export const answer = zMutation({
               "No puedes ser barbero si ya eres recepcionista en esta barbería.",
             );
           }
+
+          // Merge invitation roles into the existing member's roles
+          const mergedRoles = [
+            ...new Set([...existingMember.roles, ...invitation.roles]),
+          ];
+          await ctx.db.patch(existingMember._id, { roles: mergedRoles });
 
           await ctx.db.patch(invitation._id, { status: "accepted" });
           return existingMember._id;

@@ -146,7 +146,7 @@ function RouteComponent() {
               <ServiceCard
                 key={service._id}
                 service={service}
-                isOwner={rolesData?.isOwner! || rolesData?.isStaff!}
+                canManage={rolesData?.isOwner! || rolesData?.isStaff!}
               />
             ))}
           </div>

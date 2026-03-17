@@ -6,7 +6,7 @@ import { z } from "zod";
 import { zMutation, zQuery } from ".";
 import { internal } from "./_generated/api";
 import { authComponent } from "./auth";
-import { assertCanManageServices } from "./authz";
+import { assertCanManageServices, assertCanManageTeam } from "./authz";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
 import { appointments, barbershops, services } from "./schema";
@@ -134,8 +134,8 @@ export const deleteService = zMutation({
 
     await rateLimitOrThrow(ctx, "deleteService", user._id);
 
-    // Owners and staff can delete services
-    await assertCanManageServices(ctx, args.barbershop.id, user.userId);
+    // Only owners and staff can delete services (not barbers — destructive operation)
+    await assertCanManageTeam(ctx, args.barbershop.id, user.userId);
 
     const service = await ctx.db.get(args.service.id);
     if (!service) {

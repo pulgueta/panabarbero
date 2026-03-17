@@ -28,9 +28,9 @@ const ServiceDialog = lazy(() =>
 
 interface ServiceCardProps {
   service: Service;
-  isOwner: boolean;
+  canManage: boolean;
 }
-export const ServiceCard: FC<ServiceCardProps> = ({ service, isOwner }) => {
+export const ServiceCard: FC<ServiceCardProps> = ({ service, canManage }) => {
   return (
     <Card key={service._id} className="h-full">
       <CardHeader>
@@ -42,7 +42,7 @@ export const ServiceCard: FC<ServiceCardProps> = ({ service, isOwner }) => {
         <p className="font-bold">{formatCurrency(service.price)}</p>
       </CardContent>
 
-      {isOwner && (
+      {canManage && (
         <CardFooter className="justify-end gap-2">
           <Suspense
             fallback={
@@ -56,7 +56,7 @@ export const ServiceCard: FC<ServiceCardProps> = ({ service, isOwner }) => {
               initialValues={service}
               serviceId={service._id}
               trigger={
-                <Button variant="outline" disabled={!isOwner}>
+                <Button variant="outline" disabled={!canManage}>
                   Editar
                 </Button>
               }
@@ -74,7 +74,7 @@ export const ServiceCard: FC<ServiceCardProps> = ({ service, isOwner }) => {
               serviceId={service._id}
               barbershopId={service.barbershopId}
               trigger={
-                <Button variant="destructive" disabled={!isOwner}>
+                <Button variant="destructive" disabled={!canManage}>
                   Eliminar
                 </Button>
               }
