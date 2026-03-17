@@ -7,6 +7,8 @@ on:
       - production
     paths:
       - "convex/**"
+      - "src/**"
+      - "vite.config.ts"
       - ".github/workflows/convex.yaml"
 
 concurrency:
