@@ -107,7 +107,10 @@ export const Route = createFileRoute("/")({
           "barberías Colombia, reservar cita barbería, gestión barbería, app barbería, PanaBarbero, citas barbero online, barberos Colombia",
       },
       { name: "robots", content: "index, follow" },
-      { name: "og:image:alt", content: "PanaBarbero - La solución para barberías en Colombia" },
+      {
+        name: "og:image:alt",
+        content: "PanaBarbero - La solución para barberías en Colombia",
+      },
     ],
     links: [{ rel: "canonical", href: getCanonicalUrl("/") }],
     scripts: [
@@ -195,12 +198,16 @@ function RouteComponent() {
             src={`${env.VITE_STORAGE_URL}/landing-mobile.webp`}
             alt="PanaBarbero - La solución para las barberías. Imagen de portada."
             className="mask-[linear-gradient(to_bottom,black_65%,transparent)] block rounded-lg md:hidden"
+            width={1080}
+            height={1920}
             fetchPriority="high"
           />
           <img
             src={`${env.VITE_STORAGE_URL}/landing-desktop.webp`}
             alt="PanaBarbero - La solución para las barberías. Imagen de portada."
             className="mask-[linear-gradient(to_bottom,black_65%,transparent)] ml-auto hidden w-full max-w-4xl rounded-lg [-webkit-mask-image:linear-gradient(to_bottom,black_65%,transparent)] md:block"
+            width={1920}
+            height={1280}
             fetchPriority="high"
           />
         </div>
@@ -225,12 +232,16 @@ function RouteComponent() {
                 src={`${env.VITE_STORAGE_URL}/barbers-mobile.webp`}
                 alt="Gestión de barberos en PanaBarbero."
                 className="mask-[linear-gradient(to_bottom,black_70%,transparent)] block rounded-lg md:hidden"
+                width={1080}
+                height={1920}
                 loading="lazy"
               />
               <img
                 src={`${env.VITE_STORAGE_URL}/barbers-desktop.webp`}
                 alt="Gestión de barberos en PanaBarbero."
                 className="mask-[linear-gradient(to_bottom,black_70%,transparent)] hidden w-full rounded-lg [-webkit-mask-image:linear-gradient(to_bottom,black_70%,transparent)] md:block"
+                width={1920}
+                height={1080}
                 loading="lazy"
               />
               <p className="text-center font-medium text-muted-foreground text-sm">
@@ -242,12 +253,16 @@ function RouteComponent() {
                 src={`${env.VITE_STORAGE_URL}/services-mobile.webp`}
                 alt="Gestión de servicios en PanaBarbero."
                 className="mask-[linear-gradient(to_bottom,black_70%,transparent)] block rounded-lg md:hidden"
+                width={1080}
+                height={1920}
                 loading="lazy"
               />
               <img
                 src={`${env.VITE_STORAGE_URL}/services-desktop.webp`}
                 alt="Gestión de servicios en PanaBarbero."
                 className="mask-[linear-gradient(to_bottom,black_70%,transparent)] hidden w-full rounded-lg [-webkit-mask-image:linear-gradient(to_bottom,black_70%,transparent)] md:block"
+                width={1920}
+                height={1080}
                 loading="lazy"
               />
               <p className="text-center font-medium text-muted-foreground text-sm">
@@ -274,12 +289,16 @@ function RouteComponent() {
             src={`${env.VITE_STORAGE_URL}/system-mobile.webp`}
             alt="Sistema de citas de PanaBarbero."
             className="mask-[linear-gradient(to_bottom,black_65%,transparent)] block rounded-lg md:hidden"
+            width={1080}
+            height={1620}
             loading="lazy"
           />
           <img
             src={`${env.VITE_STORAGE_URL}/system-desktop.webp`}
             alt="Sistema de citas de PanaBarbero."
             className="mask-[linear-gradient(to_bottom,black_65%,transparent)] ml-auto hidden w-full rounded-lg [-webkit-mask-image:linear-gradient(to_bottom,black_65%,transparent)] md:block"
+            width={1920}
+            height={1280}
             loading="lazy"
           />
         </div>

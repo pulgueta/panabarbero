@@ -24,6 +24,7 @@ import { LoadingComponent } from "@/components/layout/loading-component";
 import { NotFoundComponent } from "@/components/layout/not-found-component";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { env } from "@/env";
 import { authClient } from "@/lib/auth-client";
 import { getToken } from "@/lib/auth-server";
 import { seo, websiteStructuredData } from "@/lib/utils";
@@ -53,6 +54,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       }),
     ],
     links: [
+      { rel: "preconnect", href: env.VITE_STORAGE_URL },
+      { rel: "dns-prefetch", href: env.VITE_STORAGE_URL },
       { rel: "stylesheet", href: appCss },
       { rel: "canonical", href: "https://panabarbero.com" },
       { rel: "sitemap", href: "/sitemap.xml" },
