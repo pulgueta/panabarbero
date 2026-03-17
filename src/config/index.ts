@@ -57,6 +57,28 @@ export const authenticatedRoutes = {
       icon: UserIcon,
     },
   ],
+  staff: [
+    {
+      label: "Citas",
+      to: "/profile/barbershops/appointments",
+      icon: CalendarIcon,
+    },
+    {
+      label: "Equipo",
+      to: "/profile/barbershops/team",
+      icon: UsersIcon,
+    },
+    {
+      label: "Servicios",
+      to: "/profile/barbershops/services",
+      icon: ScissorsIcon,
+    },
+    {
+      label: "Perfil",
+      to: "/profile",
+      icon: UserIcon,
+    },
+  ],
   owner: [
     {
       label: "Citas",
@@ -69,8 +91,8 @@ export const authenticatedRoutes = {
       icon: ScissorsIcon,
     },
     {
-      label: "Barberos",
-      to: "/profile/barbershops/barbers",
+      label: "Equipo",
+      to: "/profile/barbershops/team",
       icon: UsersIcon,
     },
     {

@@ -211,7 +211,11 @@ export const getBarbershopOwnerSubscription = zQuery({
       return null;
     }
 
-    await assertShopRole(ctx, args.id, user.userId, ["barber", "owner"]);
+    await assertShopRole(ctx, args.id, user.userId, [
+      "barber",
+      "owner",
+      "staff",
+    ]);
 
     const subscription = await polar.getCurrentSubscription(ctx, {
       userId: barbershop.ownerId,

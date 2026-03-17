@@ -108,13 +108,11 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
             </p>
 
             <Popover>
-              <PopoverTrigger
-                render={
-                  <Button variant="outline" className="w-full md:w-max">
-                    Ver horario de atención
-                  </Button>
-                }
-              />
+              <PopoverTrigger>
+                <Button variant="outline" className="w-full md:w-max">
+                  Ver horario de atención
+                </Button>
+              </PopoverTrigger>
               <PopoverContent className="w-full">
                 <div className="space-y-2">
                   <h4 className="font-semibold">Horario de atención</h4>

@@ -41,6 +41,8 @@ interface CreateAppointmentFormProps {
   barbers: BarbershopMemberWithName[];
   disabledFields?: (keyof output<typeof appointmentFormSchema>)[];
   isBarber: boolean;
+  /** When true, the barber selector is replaced with a hidden input (barber auto-selects themselves). Staff must always see the selector. */
+  hideBarberSelector?: boolean;
   onSubmit: (e: BaseSyntheticEvent) => void;
   services: Service[];
   barberServices?: Service[] | null;
@@ -65,6 +67,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
   barbers,
   disabledFields,
   isBarber,
+  hideBarberSelector = false,
   onSubmit,
   services,
   barberServices,
@@ -172,7 +175,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
 
         <div
           className={cn("grid gap-4", {
-            "grid-cols-2": isBarber && showPhoneField,
+            "grid-cols-2": isBarber,
           })}
         >
           <Controller
@@ -183,7 +186,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                 data-invalid={fieldState.invalid}
                 className={cn({
                   hidden: disabledFields?.includes("contactEmail") || !isBarber,
-                  "col-span-2": isBarber,
+                  "col-span-2": hideBarberSelector,
                 })}
               >
                 <FieldLabel htmlFor={formIds.contactEmail}>
@@ -205,7 +208,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
             )}
           />
 
-          {isBarber ? (
+          {hideBarberSelector ? (
             <Controller
               name="barbershopMemberId"
               control={form.control}
@@ -218,7 +221,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={formIds.barbershopMemberId}>
-                    {barbers?.length > 1 ? "Seleccione un barbero" : "Barbero"}
+                    Barbero
                   </FieldLabel>
 
                   <Suspense fallback={<Skeleton className="h-9 w-full" />}>
@@ -274,7 +277,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
               )}
             />
           ) : (
-            <Field>
+            <Field className={cn({ "col-span-2": isBarber })}>
               <FieldLabel htmlFor={formIds.barbershopMemberId}>
                 {barbers?.length > 1 ? "Seleccione un barbero" : "Barbero"}
               </FieldLabel>

@@ -1,7 +1,7 @@
-import { convexQuery } from "@convex-dev/react-query";
 import type { PlanLimits, PlanTier } from "@convex/plans";
 import { PLAN_LIMITS } from "@convex/plans";
 import type { Barbershop } from "@convex/schema";
+import { convexQuery } from "@convex-dev/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 
@@ -35,8 +35,10 @@ export interface UsePlanResult {
 
   // Convenience feature flags ---
   canInviteBarbers: boolean;
+  canInviteStaff: boolean;
   canCreateStaffAppointments: boolean;
   maxInvitedBarbers: number | null;
+  maxStaff: number | null;
   maxSmsPerMonth: number | null;
   isFree: boolean;
   isPro: boolean;
@@ -71,8 +73,10 @@ export function usePlan(): UsePlanResult {
     // Feature flags
     canInviteBarbers:
       planLimits.maxInvitedBarbers !== null && planLimits.maxInvitedBarbers > 0,
+    canInviteStaff: planLimits.maxStaff !== null && planLimits.maxStaff > 0,
     canCreateStaffAppointments: planLimits.staffCanCreateAppointments,
     maxInvitedBarbers: planLimits.maxInvitedBarbers,
+    maxStaff: planLimits.maxStaff,
     maxSmsPerMonth: planLimits.maxSmsPerMonth,
 
     // Tier booleans
@@ -109,8 +113,10 @@ export function useBarbershopPlan(
 
     canInviteBarbers:
       planLimits.maxInvitedBarbers !== null && planLimits.maxInvitedBarbers > 0,
+    canInviteStaff: planLimits.maxStaff !== null && planLimits.maxStaff > 0,
     canCreateStaffAppointments: planLimits.staffCanCreateAppointments,
     maxInvitedBarbers: planLimits.maxInvitedBarbers,
+    maxStaff: planLimits.maxStaff,
     maxSmsPerMonth: planLimits.maxSmsPerMonth,
 
     isFree: planTier === "free",

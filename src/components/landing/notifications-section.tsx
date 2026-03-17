@@ -75,8 +75,8 @@ export const notifications: NotificationItem[] = [
   },
   {
     icon: <UserPlusIcon weight="bold" className="size-4" />,
-    subject: "Invitación de barbero",
-    description: "Has sido invitado a unirte como barbero",
+    subject: "Invitación a la barbería",
+    description: "Has sido invitado a unirte a la barbería",
     channel: "email",
     color: "text-violet-400",
   },

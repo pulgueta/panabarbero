@@ -27,7 +27,7 @@ export const subjects = {
   appointment_rescheduled_denied: "Reagendamiento rechazado",
   appointment_created: "Cita agendada",
   barber_appointment_created: "Nueva cita en tu barbería",
-  barber_invited: "Invitación a unirte como barbero",
+  team_invited: "Invitación a unirte a la barbería",
   past_appointment_reminder: "Recordatorio de cita pasada",
 } satisfies Record<string, string>;
 
@@ -377,7 +377,7 @@ export const createAppointmentCreated = zInternalMutation({
     sendTo: z.enum(["customer", "barber"]),
     barbershopName: z.string().optional(),
     receiverPhoneNumber: z.string(),
-    isBarberCreated: z.boolean(),
+    isStaffCreated: z.boolean(),
   }),
   handler: async (ctx, args) => {
     let customerProfile: UserProfileData | null = null;
@@ -444,7 +444,7 @@ export const createAppointmentCreated = zInternalMutation({
 
     if (isCustomer) {
       smsEnabled =
-        args.isBarberCreated ||
+        args.isStaffCreated ||
         (receiverProfile
           ? isNotificationEnabled(
               "sms",
@@ -596,8 +596,12 @@ export const createBarberInvited = zInternalMutation({
 
     const invitationUrl = `${process.env.SITE_URL}/invitations/${args.code}`;
 
+    const roleLabel = args.roles.includes("staff")
+      ? "recepcionista"
+      : "barbero";
+
     await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
-      body: `Has sido invitado a unirte a ${barbershop.name} como barbero. Ver detalles: ${invitationUrl}`,
+      body: `Has sido invitado a unirte a ${barbershop.name} como ${roleLabel}. Ver detalles: ${invitationUrl}`,
       to: args.phone,
     });
 

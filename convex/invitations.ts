@@ -3,8 +3,10 @@ import { z } from "zod";
 
 import { zMutation, zQuery } from ".";
 import { internal } from "./_generated/api";
-import { assertBarberInviteAllowed } from "./acl";
+import { assertBarberInviteAllowed, assertStaffInviteAllowed } from "./acl";
 import { authComponent } from "./auth";
+import { assertCanManageTeam, assertOwner } from "./authz";
+import { getByUserIdFn } from "./barbershopMembers";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
 import { getProfileByEmail, getProfileByUserId } from "./userProfileData";
@@ -15,7 +17,7 @@ const INVITATION_EXPIRATION_MS = 1000 * 60 * 60 * 24 * 7;
 export const inviteBarberSchema = z.object({
   phone: z.string(),
   email: z.string(),
-  roles: z.array(z.literal("barber")),
+  roles: z.array(z.enum(["barber", "staff"])).length(1),
 });
 
 export const invite = zMutation({
@@ -29,21 +31,37 @@ export const invite = zMutation({
 
     await rateLimitOrThrow(ctx, "inviteBarbershopMember", user._id);
 
-    const barbershop = await ctx.db
+    // Try to find barbershop via ownership first, then via membership (for staff)
+    let barbershop = await ctx.db
       .query("barbershops")
       // biome-ignore lint/style/noNonNullAssertion: already checked
       .withIndex("by_ownerId", (q) => q.eq("ownerId", user.userId!))
       .first();
 
     if (!barbershop) {
+      // Staff member — find barbershop through membership
+      const membership = await getByUserIdFn(ctx, { userId: user.userId });
+      if (membership) {
+        barbershop = await ctx.db.get(membership.barbershopId);
+      }
+    }
+
+    if (!barbershop) {
       throw new ConvexError(errorMessages.notFound("barbería"));
     }
 
-    if (barbershop.ownerId !== user.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
+    const isInvitingStaff = args.roles.includes("staff");
+    const isInvitingBarber = args.roles.includes("barber");
 
-    await assertBarberInviteAllowed(ctx, barbershop._id, user.userId);
+    if (isInvitingStaff) {
+      // Only owner can invite staff
+      await assertOwner(ctx, barbershop._id, user.userId);
+      await assertStaffInviteAllowed(ctx, barbershop._id, barbershop.ownerId);
+    } else if (isInvitingBarber) {
+      // Owner or staff can invite barbers
+      await assertCanManageTeam(ctx, barbershop._id, user.userId);
+      await assertBarberInviteAllowed(ctx, barbershop._id, barbershop.ownerId);
+    }
 
     const email = args.email.toLowerCase().trim();
 
@@ -250,17 +268,56 @@ export const answer = zMutation({
           .first();
 
         if (existingMember) {
+          // Validate role exclusivity: barber can't become staff and vice versa
+          const isInvitingStaff = invitation.roles.includes("staff");
+          const isInvitingBarber = invitation.roles.includes("barber");
+
+          if (isInvitingStaff && existingMember.roles.includes("barber")) {
+            throw new ConvexError(
+              "No puedes ser recepcionista si ya eres barbero en esta barbería.",
+            );
+          }
+
+          if (isInvitingBarber && existingMember.roles.includes("staff")) {
+            throw new ConvexError(
+              "No puedes ser barbero si ya eres recepcionista en esta barbería.",
+            );
+          }
+
+          // Merge invitation roles into the existing member's roles
+          const wasAlreadyBarber = existingMember.roles.includes("barber");
+          const mergedRoles = [
+            ...new Set([...existingMember.roles, ...invitation.roles]),
+          ];
+          await ctx.db.patch(existingMember._id, { roles: mergedRoles });
+
+          // If the barber role was newly added, auto-assign all services
+          if (!wasAlreadyBarber && mergedRoles.includes("barber")) {
+            await ctx.runMutation(
+              internal.barbershopMemberServices.assignAllServicesToBarber,
+              { id: existingMember._id },
+            );
+          }
+
           await ctx.db.patch(invitation._id, { status: "accepted" });
           return existingMember._id;
         }
 
-        await ctx.db.insert("barbershopMembers", {
+        const memberId = await ctx.db.insert("barbershopMembers", {
           barbershopId: invitation.barbershopId,
           userProfileDataId: profile._id,
           roles: invitation.roles,
           isActive: true,
           joinedAt: Date.now(),
         });
+
+        // Only assign all services for barbers, not for staff
+        if (invitation.roles.includes("barber")) {
+          await ctx.runMutation(
+            internal.barbershopMemberServices.assignAllServicesToBarber,
+            { id: memberId },
+          );
+        }
 
         await ctx.db.patch(invitation._id, { status: "accepted" });
         break;

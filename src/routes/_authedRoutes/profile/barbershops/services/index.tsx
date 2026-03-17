@@ -62,7 +62,7 @@ export const Route = createFileRoute(
           barbershopMemberRolesQueryOptions(user.userId),
         );
 
-      if (!barbershopMemberRoles?.isOwner) {
+      if (!barbershopMemberRoles?.isOwner && !barbershopMemberRoles?.isStaff) {
         throw redirect({ to: "/profile/barbershops/appointments" });
       }
 
@@ -124,17 +124,19 @@ function RouteComponent() {
               </Button>
             }
           >
-            {barbershop?._id && !isLoadingBarbershop && rolesData?.isOwner && (
-              <ServiceDialog
-                barbershopId={barbershop._id}
-                trigger={
-                  <Button variant="outline" disabled={!rolesData?.isOwner}>
-                    <PlusIcon />
-                    Agregar servicio
-                  </Button>
-                }
-              />
-            )}
+            {barbershop?._id &&
+              !isLoadingBarbershop &&
+              (rolesData?.isOwner || rolesData?.isStaff) && (
+                <ServiceDialog
+                  barbershopId={barbershop._id}
+                  trigger={
+                    <Button variant="outline">
+                      <PlusIcon />
+                      Agregar servicio
+                    </Button>
+                  }
+                />
+              )}
           </Suspense>
         </div>
 
@@ -144,7 +146,7 @@ function RouteComponent() {
               <ServiceCard
                 key={service._id}
                 service={service}
-                isOwner={rolesData?.isOwner!}
+                canManage={rolesData?.isOwner! || rolesData?.isStaff!}
               />
             ))}
           </div>
