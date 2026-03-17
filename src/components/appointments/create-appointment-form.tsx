@@ -173,7 +173,11 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div
+          className={cn("grid gap-4", {
+            "grid-cols-2": isBarber,
+          })}
+        >
           <Controller
             name="contactEmail"
             control={form.control}
@@ -182,6 +186,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                 data-invalid={fieldState.invalid}
                 className={cn({
                   hidden: disabledFields?.includes("contactEmail") || !isBarber,
+                  "col-span-2": hideBarberSelector,
                 })}
               >
                 <FieldLabel htmlFor={formIds.contactEmail}>

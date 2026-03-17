@@ -5,6 +5,7 @@ import { lazy, Suspense, useState } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -108,25 +109,27 @@ export const BarberCard: FC<BarberCardProps> = ({
   return (
     <Card className="h-full">
       <CardHeader>
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle>{barbershopMember.name}</CardTitle>
-            <CardDescription className="mt-1 flex flex-wrap gap-1">
-              {barbershopMember.roles.map((role) => (
-                <Badge
-                  key={role}
-                  variant={role === "owner" ? "default" : "secondary"}
-                >
-                  {role === "owner"
-                    ? "Dueño"
-                    : role === "staff"
-                      ? "Recepcionista"
-                      : "Barbero"}
-                </Badge>
-              ))}
-            </CardDescription>
-          </div>
-        </div>
+        <CardTitle className="inline-flex items-center gap-2">
+          <Avatar>
+            <AvatarImage src={barbershopMember.avatarUrl} />
+            <AvatarFallback>{barbershopMember.name.charAt(0)}</AvatarFallback>
+          </Avatar>
+          {barbershopMember.name}
+        </CardTitle>
+        <CardDescription className="mt-1 flex flex-wrap gap-1">
+          {barbershopMember.roles.map((role) => (
+            <Badge
+              key={role}
+              variant={role === "owner" ? "default" : "secondary"}
+            >
+              {role === "owner"
+                ? "Dueño"
+                : role === "staff"
+                  ? "Recepcionista"
+                  : "Barbero"}
+            </Badge>
+          ))}
+        </CardDescription>
       </CardHeader>
 
       <CardContent>

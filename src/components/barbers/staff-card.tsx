@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,14 +58,16 @@ export const StaffCard: FC<StaffCardProps> = ({ member, isOwner }) => {
   return (
     <Card className="h-full">
       <CardHeader>
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle>{member.name}</CardTitle>
-            <CardDescription className="mt-1">
-              <Badge variant="secondary">Recepcionista</Badge>
-            </CardDescription>
-          </div>
-        </div>
+        <CardTitle className="inline-flex items-center gap-2">
+          <Avatar>
+            <AvatarImage src={member.avatarUrl} />
+            <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+          </Avatar>
+          {member.name}
+        </CardTitle>
+        <CardDescription className="mt-1">
+          <Badge variant="secondary">Recepcionista</Badge>
+        </CardDescription>
       </CardHeader>
 
       <CardContent>

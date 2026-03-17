@@ -125,13 +125,13 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
     );
 
     if (user?.userId) {
-      const [isBarber, isOwner] = await Promise.all([
+      const [isBarber, isOwner, isStaff] = await Promise.all([
         context.queryClient.ensureQueryData(isBarberQueryOptions(user.userId)),
         context.queryClient.ensureQueryData(isOwnerQueryOptions(user.userId)),
         context.queryClient.ensureQueryData(isStaffQueryOptions(user.userId)),
       ]);
 
-      if (isBarber || isOwner) {
+      if (isBarber || isOwner || isStaff) {
         await context.queryClient.ensureQueryData(
           barbershopMemberRolesQueryOptions(user.userId),
         );
