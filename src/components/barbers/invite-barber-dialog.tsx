@@ -13,24 +13,26 @@ import { InviteBarberForm } from "./invite-barber-form";
 
 interface InviteBarberDialogProps {
   trigger: ReactElement;
+  canInviteStaff?: boolean;
 }
 
 export const InviteBarberDialog: FC<InviteBarberDialogProps> = ({
   trigger,
+  canInviteStaff = false,
 }) => {
   return (
     <ResponsiveModal>
       <ResponsiveModalTrigger render={trigger} />
       <ResponsiveModalContent>
         <ResponsiveModalHeader>
-          <ResponsiveModalTitle>Invitar barbero</ResponsiveModalTitle>
+          <ResponsiveModalTitle>Invitar miembro al equipo</ResponsiveModalTitle>
           <ResponsiveModalDescription>
-            Proporciona los datos del barbero a invitar.
+            Proporciona los datos del miembro a invitar.
           </ResponsiveModalDescription>
         </ResponsiveModalHeader>
 
         <ResponsiveModalFooter>
-          <InviteBarberForm />
+          <InviteBarberForm canInviteStaff={canInviteStaff} />
         </ResponsiveModalFooter>
       </ResponsiveModalContent>
     </ResponsiveModal>

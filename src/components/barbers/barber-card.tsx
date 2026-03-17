@@ -117,7 +117,11 @@ export const BarberCard: FC<BarberCardProps> = ({
                   key={role}
                   variant={role === "owner" ? "default" : "secondary"}
                 >
-                  {role === "owner" ? "Dueño" : "Barbero"}
+                  {role === "owner"
+                    ? "Dueño"
+                    : role === "staff"
+                      ? "Recepcionista"
+                      : "Barbero"}
                 </Badge>
               ))}
             </CardDescription>

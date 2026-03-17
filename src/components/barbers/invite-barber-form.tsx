@@ -6,11 +6,19 @@ import { useWebHaptics } from "web-haptics/react";
 
 import { useAppForm } from "@/components/form/use-form";
 import { FieldGroup } from "@/components/ui/field";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useBarbershopMemberActions } from "@/hooks/use-barbershop-members";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 import { formatPhoneNumber } from "@/lib/utils";
 
-export const InviteBarberForm: FC = () => {
+interface InviteBarberFormProps {
+  canInviteStaff?: boolean;
+}
+
+export const InviteBarberForm: FC<InviteBarberFormProps> = ({
+  canInviteStaff = false,
+}) => {
   const haptic = useWebHaptics();
 
   const {
@@ -26,13 +34,12 @@ export const InviteBarberForm: FC = () => {
       modeAfterSubmission: "change",
     }),
     validators: {
-      // @ts-expect-error - convex id schema is not supported by tanstack form
       onSubmit: inviteBarberSchema,
     },
     defaultValues: {
       email: "",
       phone: "",
-      roles: ["barber"] as ["barber"],
+      roles: ["barber"] as ("barber" | "staff")[],
     },
     onSubmit: async ({ value }) => {
       try {
@@ -67,7 +74,7 @@ export const InviteBarberForm: FC = () => {
           {(field) => (
             <field.TextField
               label="Correo electrónico"
-              placeholder="barbero@correo.com"
+              placeholder="miembro@correo.com"
               type="email"
               description="Asegúrate de que el usuario tenga una cuenta en la aplicación."
             />
@@ -83,6 +90,35 @@ export const InviteBarberForm: FC = () => {
             />
           )}
         </form.AppField>
+
+        {canInviteStaff && (
+          <form.AppField name="roles">
+            {(field) => (
+              <div className="space-y-2">
+                <Label>Rol</Label>
+                <RadioGroup
+                  value={field.state.value[0]}
+                  onValueChange={(value) =>
+                    field.handleChange([value as "barber" | "staff"])
+                  }
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="barber" id="role-barber" />
+                    <Label htmlFor="role-barber" className="font-normal">
+                      Barbero
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="staff" id="role-staff" />
+                    <Label htmlFor="role-staff" className="font-normal">
+                      Recepcionista
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            )}
+          </form.AppField>
+        )}
       </FieldGroup>
 
       <form.AppForm>

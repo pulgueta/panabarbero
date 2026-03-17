@@ -35,9 +35,11 @@ import {
   barbersForServiceQueryOptions,
   barbershopMembersByBarbershopIdQueryOptions,
   isBarberQueryOptions,
+  isStaffQueryOptions,
   servicesForBarberQueryOptions,
   useBarbershopMembersByBarbershopId,
   useIsBarber,
+  useIsStaff,
 } from "@/hooks/use-barbershop-members";
 import {
   serviceByAppointmentIdQueryOptions,
@@ -98,9 +100,10 @@ export const Route = createFileRoute(
         barbershopByMemberUserIdQueryOptions(user.userId),
       );
 
-      await context.queryClient.ensureQueryData(
-        isBarberQueryOptions(user.userId),
-      );
+      await Promise.all([
+        context.queryClient.ensureQueryData(isBarberQueryOptions(user.userId)),
+        context.queryClient.ensureQueryData(isStaffQueryOptions(user.userId)),
+      ]);
 
       if (barbershop?._id) {
         await context.queryClient.ensureQueryData(
@@ -190,6 +193,7 @@ function RouteComponent() {
   });
   const { canCreateStaffAppointments } = useBarbershopPlan(barbershop?._id!);
   const { data: isBarber } = useIsBarber(session?.userId!);
+  const { data: isStaff } = useIsStaff(session?.userId!);
 
   const isOwner = session?.userId
     ? barbershop?.ownerId === session.userId
@@ -240,29 +244,31 @@ function RouteComponent() {
                 : "No hay día seleccionado"}
             </h2>
 
-            {barbershop?._id && canCreateStaffAppointments && isBarber && (
-              <Suspense
-                fallback={
-                  <Button disabled>
-                    <PlusIcon />
-                    Crear cita
-                  </Button>
-                }
-              >
-                <CreateAppointmentDialog
-                  trigger={
-                    <Button>
+            {barbershop?._id &&
+              canCreateStaffAppointments &&
+              (isBarber || isStaff) && (
+                <Suspense
+                  fallback={
+                    <Button disabled>
                       <PlusIcon />
                       Crear cita
                     </Button>
                   }
-                  barbershopId={barbershop._id}
-                  barbers={barbershopMembers}
-                  services={services}
-                  serviceId={undefined}
-                />
-              </Suspense>
-            )}
+                >
+                  <CreateAppointmentDialog
+                    trigger={
+                      <Button>
+                        <PlusIcon />
+                        Crear cita
+                      </Button>
+                    }
+                    barbershopId={barbershop._id}
+                    barbers={barbershopMembers}
+                    services={services}
+                    serviceId={undefined}
+                  />
+                </Suspense>
+              )}
           </header>
 
           <Suspense fallback={<Skeleton className="h-32 w-full md:h-64" />}>

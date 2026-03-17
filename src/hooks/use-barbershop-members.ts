@@ -1,5 +1,5 @@
-import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import type { Barbershop, BarbershopMember, Service } from "@convex/schema";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 
@@ -29,8 +29,20 @@ export function isBarberQueryOptions(userId: string) {
   return convexQuery(api.barbershopMembers.isBarber, { userId });
 }
 
+export function isStaffQueryOptions(userId: string) {
+  return convexQuery(api.barbershopMembers.isStaff, { userId });
+}
+
 export function isOwnerQueryOptions(userId: string) {
   return convexQuery(api.barbershopMembers.isOwner, { userId });
+}
+
+export function staffByBarbershopIdQueryOptions(
+  barbershopId: Barbershop["_id"],
+) {
+  return convexQuery(api.barbershopMembers.getStaffByBarbershopId, {
+    id: barbershopId,
+  });
 }
 
 export function isMemberQueryOptions(userId: string) {
@@ -71,8 +83,16 @@ export function useIsBarber(userId: string) {
   return useSuspenseQuery(isBarberQueryOptions(userId));
 }
 
+export function useIsStaff(userId: string) {
+  return useSuspenseQuery(isStaffQueryOptions(userId));
+}
+
 export function useIsOwner(userId: string) {
   return useSuspenseQuery(isOwnerQueryOptions(userId));
+}
+
+export function useStaffByBarbershopId(barbershopId: Barbershop["_id"]) {
+  return useSuspenseQuery(staffByBarbershopIdQueryOptions(barbershopId));
 }
 
 export function useIsMember(userId: string) {
@@ -114,6 +134,12 @@ export function useBarbershopMemberActions() {
     ),
   });
 
+  const removeStaffMutation = useMutation({
+    mutationFn: useConvexMutation(
+      api.barbershopMembers.removeStaffFromBarbershop,
+    ),
+  });
+
   const toggleBarberRoleMutation = useMutation({
     mutationFn: useConvexMutation(api.barbershopMembers.toggleBarberRole),
   });
@@ -124,6 +150,7 @@ export function useBarbershopMemberActions() {
     answerInvitationMutation,
     setBarberServicesMutation,
     removeBarberMutation,
+    removeStaffMutation,
     toggleBarberRoleMutation,
   };
 }

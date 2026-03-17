@@ -143,7 +143,13 @@ function InvitationPage() {
           </header>
           <p className="text-muted-foreground text-xs sm:text-sm">
             Has sido invitado a unirte a{" "}
-            <strong>{invitationData?.barbershopName}</strong>.
+            <strong>{invitationData?.barbershopName}</strong> como{" "}
+            <strong>
+              {invitationData?.roles?.includes("staff")
+                ? "recepcionista"
+                : "barbero"}
+            </strong>
+            .
           </p>
         </div>
 

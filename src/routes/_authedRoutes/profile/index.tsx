@@ -29,8 +29,10 @@ import {
 import {
   isBarberQueryOptions,
   isOwnerQueryOptions,
+  isStaffQueryOptions,
   useIsBarber,
   useIsOwner,
+  useIsStaff,
 } from "@/hooks/use-barbershop-members";
 import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
 import { servicesByIdsQueryOptions } from "@/hooks/use-services";
@@ -126,6 +128,7 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
       const [isBarber, isOwner] = await Promise.all([
         context.queryClient.ensureQueryData(isBarberQueryOptions(user.userId)),
         context.queryClient.ensureQueryData(isOwnerQueryOptions(user.userId)),
+        context.queryClient.ensureQueryData(isStaffQueryOptions(user.userId)),
       ]);
 
       if (isBarber || isOwner) {
@@ -171,6 +174,7 @@ function ProfilePage() {
   const { data: user } = useSession();
   const { data: isBarber } = useIsBarber(user?.userId!);
   const { data: isOwner } = useIsOwner(user?.userId!);
+  const { data: isStaff } = useIsStaff(user?.userId!);
   const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
   const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
   const { data: appointments, isFetching: isFetchingAppointments } =
@@ -194,20 +198,20 @@ function ProfilePage() {
       base.push(tabs.plans);
     }
 
-    // Non-barber, non-owner users (customers) see their appointment history
-    if (!isBarber && !isOwner) {
+    // Non-barber, non-owner, non-staff users (customers) see their appointment history
+    if (!isBarber && !isOwner && !isStaff) {
       base.push(tabs.appointments);
     }
 
     return base;
-  }, [isBarber, isOwner, rolesData?.isOwner]);
+  }, [isBarber, isOwner, isStaff, rolesData?.isOwner]);
 
   return (
     <BorderContainer>
       <Suspense fallback={<DashboardHeaderSkeleton />}>
         <DashboardHeader
           title="Perfil"
-          description={`Gestiona tu perfil ${!isBarber && !isOwner ? "y tus citas." : ""}`}
+          description={`Gestiona tu perfil ${!isBarber && !isOwner && !isStaff ? "y tus citas." : ""}`}
         />
       </Suspense>
 

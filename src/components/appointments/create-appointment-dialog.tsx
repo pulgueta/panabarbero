@@ -33,6 +33,7 @@ import {
   useBarberByUserId,
   useBarbersForService,
   useIsBarber,
+  useIsStaff,
   useServicesForBarber,
 } from "@/hooks/use-barbershop-members";
 import { useProfile } from "@/hooks/use-profile";
@@ -79,21 +80,32 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   const { data: user } = useSession();
   const { data: userProfile } = useProfile(user?.userId!);
   const { data: isBarber } = useIsBarber(user?.userId!);
+  const { data: isStaff } = useIsStaff(user?.userId!);
   const { data: currentBarberMember } = useBarberByUserId(user?.userId!);
   const { data: barberServices } = useServicesForBarber(selectedBarber?._id!);
-  const { data: barbersForService } = useBarbersForService(serviceId!);
+  // service must come before useBarbersForService so we can use the store selection
+  const service = useServicesStore();
+  // Prefer the service selected in the dropdown over the prop (pre-selected from outside)
+  const effectiveServiceId = (service._id ?? serviceId) as
+    | Service["_id"]
+    | undefined;
+  const { data: barbersForService } = useBarbersForService(effectiveServiceId!);
 
-  const showPhoneField = isBarber || (!isBarber && !userProfile?.phoneNumber);
+  // Staff and barbers create appointments on behalf of clients
+  const isCreatingOnBehalf = isBarber || isStaff;
+  const showPhoneField =
+    isCreatingOnBehalf || (!isCreatingOnBehalf && !userProfile?.phoneNumber);
+
+  const allBarbers = barbers?.filter((b) => b?.roles?.includes("barber"));
 
   // Barbers available depends on context:
-  // - Barber creating appointment: show all barbers (caller already filters)
-  // - Customer with service selected: only show barbers who offer that service
-  //   (if empty, the form will show "no barbers available" message)
-  // - Customer without service selected: show all barbers
-  const availableBarbers =
-    isBarber || !serviceId
-      ? barbers?.filter((b) => b?.roles?.includes("barber"))
-      : barbersForService;
+  // - No service selected: show all barbers
+  // - Service selected (prop or dropdown): filter to only barbers who offer it
+  //   If only 1 barber → form auto-shows disabled input
+  //   If 0 barbers → form shows "no barbers available"
+  const availableBarbers = effectiveServiceId
+    ? (barbersForService ?? allBarbers)
+    : allBarbers;
 
   const haptic = useWebHaptics();
 
@@ -106,48 +118,49 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   const { minutesOfTimestamp, scheduleForDate, timeStringToMinutes } =
     useAppointmentFormMetadata(barbershopId);
 
-  const service = useServicesStore();
-
   // When a barber creates an appointment, default to themselves
-  const defaultBarberId = isBarber
-    ? currentBarberMember?._id
-    : availableBarbers?.length === 1
-      ? availableBarbers[0]?._id
-      : undefined;
+  // Barbers default to themselves; staff must pick a barber
+  const defaultBarberId =
+    isBarber && !isStaff
+      ? currentBarberMember?._id
+      : availableBarbers?.length === 1
+        ? availableBarbers[0]?._id
+        : undefined;
 
   const form = useForm({
     resolver: zodResolver(appointmentFormSchema),
     defaultValues: {
       date: undefined,
-      customerName: isBarber ? undefined : userProfile?.name,
-      contactPhone: isBarber ? undefined : userProfile?.phoneNumber,
-      contactEmail: isBarber ? undefined : userProfile?.email,
+      customerName: isCreatingOnBehalf ? undefined : userProfile?.name,
+      contactPhone: isCreatingOnBehalf ? undefined : userProfile?.phoneNumber,
+      contactEmail: isCreatingOnBehalf ? undefined : userProfile?.email,
       notes: "",
       barbershopMemberId: defaultBarberId ?? selectedBarber?._id,
     },
   });
 
-  // When a barber is creating, auto-select themselves
+  // When a barber is creating, auto-select themselves (staff must pick)
   useEffect(() => {
-    if (isBarber && currentBarberMember) {
+    if (isBarber && !isStaff && currentBarberMember) {
       const self = barbers.find((b) => b._id === currentBarberMember._id);
       if (self) {
         setSelectedBarber(self);
         form.setValue("barbershopMemberId", self._id);
       }
     }
-  }, [isBarber, currentBarberMember, barbers, form]);
+  }, [isBarber, isStaff, currentBarberMember, barbers, form]);
 
-  // Update form and state when available barbers change (customer flow)
+  // Auto-select when the available barber list narrows to exactly 1.
+  // Applies to customers always, and to staff when a service filters the list.
   useEffect(() => {
-    if (!isBarber && availableBarbers?.length === 1) {
+    if (availableBarbers?.length === 1 && (!isCreatingOnBehalf || isStaff)) {
       setSelectedBarber(availableBarbers[0]!);
       form.setValue("barbershopMemberId", availableBarbers[0]?._id);
     }
-  }, [isBarber, availableBarbers, form]);
+  }, [isCreatingOnBehalf, isStaff, availableBarbers, form]);
 
   const headLabel = "Reservar cita";
-  const description = isBarber
+  const description = isCreatingOnBehalf
     ? "Proporciona los datos del cliente para reservar el servicio."
     : "Ingresa los datos para reservar el servicio.";
 
@@ -193,8 +206,8 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
           contactPhone: formatPhoneNumber(formData.contactPhone),
           barbershopId,
           barbershopMemberId: formData.barbershopMemberId,
-          serviceId: serviceId ?? service._id,
-          isBarber,
+          serviceId: effectiveServiceId,
+          isStaffCreated: isCreatingOnBehalf ?? false,
         },
       });
 
@@ -204,7 +217,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
       haptic.trigger("success");
       toast.success("Cita reservada exitosamente");
 
-      if (!isBarber) {
+      if (!isCreatingOnBehalf) {
         navigate({
           to: "/profile",
           search: (prev) => ({ ...prev, tab: "appointments" }),
@@ -236,7 +249,8 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
             barbers={
               availableBarbers?.filter((barber) => barber !== null) ?? barbers
             }
-            isBarber={isBarber ?? false}
+            isBarber={isCreatingOnBehalf ?? false}
+            hideBarberSelector={isBarber && !isStaff}
             services={services}
             barberServices={barberServices?.filter(
               (service) => service !== null,
@@ -246,7 +260,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
             form={form}
             showPhoneField={showPhoneField}
             disabledFields={
-              isBarber
+              isCreatingOnBehalf
                 ? []
                 : userProfile?.phoneNumber
                   ? ["contactEmail", "customerName", "contactPhone"]
