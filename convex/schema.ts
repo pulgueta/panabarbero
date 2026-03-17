@@ -1,6 +1,7 @@
 import { defineSchema } from "convex/server";
 import type { output } from "zod";
 import { z } from "zod";
+
 import { zodTable } from ".";
 
 export const userProfileData = zodTable("userProfileData", () => ({
@@ -85,7 +86,11 @@ export const barbershopMembers = zodTable("barbershopMembers", (id) => ({
 }));
 
 export const services = zodTable("services", (id) => ({
-  name: z.string({ error: "El nombre es requerido" }),
+  name: z
+    .string({ error: "El nombre es requerido" })
+    .min(3, { error: "El nombre debe tener al menos 3 caracteres" })
+    .max(255, { error: "El nombre debe tener menos de 255 caracteres" })
+    .trim(),
   price: z.coerce
     .number({ error: "El precio es requerido" })
     .min(1000, { error: "El precio debe ser mayor a $1.000" }),

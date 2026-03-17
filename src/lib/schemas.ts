@@ -91,7 +91,8 @@ export const barbershopFormSchema = object({
     })
     .max(255, {
       message: "El nombre debe tener menos de 255 caracteres",
-    }),
+    })
+    .trim(),
   description: string().optional(),
   address: object({
     fullAddress: string().min(1, "Dirección requerida"),
