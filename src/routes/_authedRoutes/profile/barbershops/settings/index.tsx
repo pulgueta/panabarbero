@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cacheTime } from "@/config/cache";
 import {
   barbershopByOwnerIdQueryOptions,
   useBarbershopByOwnerId,
@@ -126,6 +127,8 @@ export const Route = createFileRoute(
     }
   },
   ssr: "data-only",
+  staleTime: cacheTime.high,
+  gcTime: cacheTime.extreme,
 });
 
 function SettingsPage() {

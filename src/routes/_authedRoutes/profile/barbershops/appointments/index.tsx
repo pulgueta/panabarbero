@@ -16,6 +16,7 @@ import { LoadingComponent } from "@/components/layout/loading-component";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cacheTime } from "@/config/cache";
 import {
   barbershopByMemberUserIdQueryOptions,
   useBarbershopByMemberUserId,
@@ -171,6 +172,8 @@ export const Route = createFileRoute(
     }
   },
   ssr: "data-only",
+  staleTime: cacheTime.low,
+  gcTime: cacheTime.medium,
 });
 
 function RouteComponent() {

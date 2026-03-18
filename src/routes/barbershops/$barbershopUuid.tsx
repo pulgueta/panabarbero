@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/empty";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cacheTime } from "@/config/cache";
 import {
   barbershopByUuidQueryOptions,
   useBarbershopByUuid,
@@ -129,6 +130,8 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
     };
   },
   ssr: true,
+  staleTime: cacheTime.low,
+  gcTime: cacheTime.medium,
 });
 
 function RouteComponent() {

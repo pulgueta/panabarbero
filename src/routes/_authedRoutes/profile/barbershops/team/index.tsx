@@ -9,6 +9,7 @@ import { UserPlusIcon, WarningIcon } from "@phosphor-icons/react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 import { z } from "zod";
+
 import { DashboardHeaderSkeleton } from "@/components/barbershops/dashboard-header.skeleton";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
@@ -22,6 +23,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cacheTime } from "@/config/cache";
 import {
   barbershopByMemberUserIdQueryOptions,
   useBarbershopByMemberUserId,
@@ -118,6 +120,8 @@ export const Route = createFileRoute(
     }
   },
   ssr: "data-only",
+  staleTime: cacheTime.high,
+  gcTime: cacheTime.extreme,
 });
 
 function RouteComponent() {

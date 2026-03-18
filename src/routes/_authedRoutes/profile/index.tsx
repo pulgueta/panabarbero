@@ -10,6 +10,7 @@ import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cacheTime } from "@/config/cache";
 import {
   barbershopByOwnerIdQueryOptions,
   useBarbershopByOwnerId,
@@ -160,6 +161,8 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
     }
   },
   ssr: "data-only",
+  staleTime: cacheTime.high,
+  gcTime: cacheTime.extreme,
 });
 
 function ProfilePage() {

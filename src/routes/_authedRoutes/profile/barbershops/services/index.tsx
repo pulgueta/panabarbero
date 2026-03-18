@@ -16,6 +16,7 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { cacheTime } from "@/config/cache";
 import {
   barbershopByMemberUserIdQueryOptions,
   useBarbershopByMemberUserId,
@@ -82,6 +83,8 @@ export const Route = createFileRoute(
     }
   },
   ssr: "data-only",
+  staleTime: cacheTime.high,
+  gcTime: cacheTime.extreme,
 });
 
 function RouteComponent() {
