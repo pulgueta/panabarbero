@@ -15,6 +15,7 @@ import {
 export const Route = createFileRoute("/_auth/forgot-password")({
   component: ForgotPasswordPage,
   pendingComponent: LoadingComponent,
+  ssr: "data-only",
 });
 
 function ForgotPasswordPage() {

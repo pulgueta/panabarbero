@@ -1,6 +1,7 @@
 import { CheckCircleIcon, XCircleIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Button } from "@/components/ui/button";
@@ -16,23 +17,21 @@ import { FieldGroup } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { verifyEmail } from "@/lib/auth-client";
 import { translateBetterAuthError } from "@/lib/better-auth-errors";
+import { tokenSchema } from "@/lib/schemas";
 
 export const Route = createFileRoute("/_auth/verify-email")({
   component: VerifyEmailPage,
   pendingComponent: LoadingComponent,
-  validateSearch: (search: Record<string, unknown>) => {
-    return {
-      token: search.token as string | undefined,
-    };
-  },
+  validateSearch: tokenSchema,
   loaderDeps: ({ search }) => ({
-    token: search.token as string | undefined,
+    token: search.token,
   }),
   loader: ({ deps }) => {
     if (!deps.token) {
       throw redirect({ to: "/login" });
     }
   },
+  ssr: "data-only",
 });
 
 type VerificationStatus = "verifying" | "success" | "error";

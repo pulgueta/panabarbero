@@ -8,7 +8,6 @@ import { FormHeader } from "@/components/auth/form-header";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
 import {
   Card,
   CardContent,
@@ -19,6 +18,7 @@ import {
 import { FieldGroup } from "@/components/ui/field";
 import { GoogleIcon } from "@/components/ui/google-icon";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import { signIn } from "@/lib/auth-client";
 import { translateBetterAuthError } from "@/lib/better-auth-errors";
 
@@ -31,6 +31,7 @@ const LoginForm = lazy(() =>
 export const Route = createFileRoute("/_auth/login")({
   component: LoginPage,
   pendingComponent: LoadingComponent,
+  ssr: "data-only",
 });
 
 type Provider = "google" | "apple" | "passkey" | "facebook";
@@ -50,24 +51,19 @@ function LoginPage() {
   };
 
   const handleSignIn = async (provider: Provider) => {
-    if (provider === "passkey") {
-      await signIn.passkey({
-        autoFill: true,
-      });
-    } else {
+    try {
       setIsSigningIn(true);
-      try {
-        const { error } = await signIn.social({
-          provider,
-        });
 
-        if (error?.code) {
-          toast.error(translateBetterAuthError(error.code));
-          return;
-        }
-      } finally {
-        setIsSigningIn(false);
+      const { error } = await signIn.social({
+        provider,
+      });
+
+      if (error?.code) {
+        toast.error(translateBetterAuthError(error.code));
+        return;
       }
+    } finally {
+      setIsSigningIn(false);
     }
   };
 

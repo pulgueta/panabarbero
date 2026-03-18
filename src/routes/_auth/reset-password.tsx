@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 import { FormHeader } from "@/components/auth/form-header";
+import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import {
@@ -11,23 +11,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { tokenSchema } from "@/lib/schemas";
 
 export const Route = createFileRoute("/_auth/reset-password")({
   component: ResetPasswordPage,
   pendingComponent: LoadingComponent,
-  validateSearch: (search: Record<string, unknown>) => {
-    return {
-      token: search.token as string | undefined,
-    };
-  },
+  validateSearch: tokenSchema,
   loaderDeps: ({ search }) => ({
-    token: search.token as string | undefined,
+    token: search.token,
   }),
   loader: ({ deps }) => {
     if (!deps.token) {
       throw redirect({ to: "/login" });
     }
   },
+  ssr: "data-only",
 });
 
 function ResetPasswordPage() {

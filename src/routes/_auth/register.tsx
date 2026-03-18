@@ -18,6 +18,7 @@ const RegisterForm = lazy(() =>
 export const Route = createFileRoute("/_auth/register")({
   component: RegisterPage,
   pendingComponent: LoadingComponent,
+  ssr: "data-only",
 });
 
 function RegisterPage() {

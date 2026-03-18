@@ -58,6 +58,10 @@ export const paymentMethodOptions = [
 // closeAt: string;
 // }[]
 
+export const tokenSchema = object({
+  token: string().min(1, "El token es requerido"),
+});
+
 const day = zodEnum([
   "monday",
   "tuesday",
