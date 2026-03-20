@@ -67,7 +67,7 @@ const CreditCard: FC<CreditCardProps> = ({
       : 0;
 
   return (
-    <Card className="min-h-115.5">
+    <Card className="min-h-115">
       <CardHeader>
         <CardTitle>{name}</CardTitle>
         <CardDescription>{description}</CardDescription>

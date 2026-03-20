@@ -34,7 +34,7 @@ export const addPurchasedCredits = zInternalMutation({
     orderId: z.string(),
     barbershopId: barbershops.tools.id.shape.id,
     type: z.enum(["sms", "email"]),
-    amount: z.number(),
+    amount: z.number().min(1),
   }),
   handler: async (ctx, args) => {
     const existing = await ctx.db

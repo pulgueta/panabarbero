@@ -218,7 +218,7 @@ export async function isSmsLimitNotExceeded(
   // Plan exhausted — check purchased extra credits
   const credits = await getExtraCredits(ctx, barbershopId);
 
-  return credits?.smsCredits ? credits.smsCredits > 0 : false;
+  return (credits?.smsCredits ?? 0) > 0;
 }
 
 /**
@@ -257,7 +257,11 @@ export async function isEmailLimitNotExceeded(
   // Plan exhausted — check purchased extra credits
   const credits = await getExtraCredits(ctx, barbershopId);
 
-  return credits?.emailCredits ? credits.emailCredits > 0 : false;
+  if (!credits?.emailCredits) {
+    return false;
+  }
+
+  return credits.emailCredits > 0;
 }
 
 /**
