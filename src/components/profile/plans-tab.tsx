@@ -2,7 +2,7 @@ import { CustomerPortalLink } from "@convex-dev/polar/react";
 import { api } from "@convex/_generated/api";
 import { CheckCircleIcon } from "@phosphor-icons/react";
 import type { FC } from "react";
-import { lazy } from "react";
+import { Suspense, lazy } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -91,7 +91,11 @@ export const PlansTab: FC = () => {
           </CardFooter>
         </Card>
 
-        {barbershop && <ExtraCreditsCards barbershopId={barbershop._id} />}
+        {barbershop && (
+          <Suspense fallback={<Skeleton className="h-full w-full rounded-xl" />}>
+            <ExtraCreditsCards barbershopId={barbershop._id} />
+          </Suspense>
+        )}
       </div>
 
       <Separator />

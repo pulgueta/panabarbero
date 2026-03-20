@@ -68,10 +68,12 @@ export const addPurchasedCredits = zInternalMutation({
       if (args.type === "sms") {
         await ctx.db.patch(row._id, {
           smsCredits: row.smsCredits + args.amount,
+          smsPurchasedTotal: row.smsPurchasedTotal + args.amount,
         });
       } else {
         await ctx.db.patch(row._id, {
           emailCredits: row.emailCredits + args.amount,
+          emailPurchasedTotal: row.emailPurchasedTotal + args.amount,
         });
       }
     } else {
@@ -79,6 +81,8 @@ export const addPurchasedCredits = zInternalMutation({
         barbershopId,
         smsCredits: args.type === "sms" ? args.amount : 0,
         emailCredits: args.type === "email" ? args.amount : 0,
+        smsPurchasedTotal: args.type === "sms" ? args.amount : 0,
+        emailPurchasedTotal: args.type === "email" ? args.amount : 0,
       });
     }
 
@@ -128,11 +132,15 @@ export const getBarbershopQuotaUsage = zQuery({
       return null;
     }
 
-    await assertShopRole(ctx, args.id, user.userId, [
-      "barber",
-      "owner",
-      "staff",
-    ]);
+    try {
+      await assertShopRole(ctx, args.id, user.userId, [
+        "barber",
+        "owner",
+        "staff",
+      ]);
+    } catch {
+      return null;
+    }
 
     const limits = await getUserPlanLimits(ctx, barbershop.ownerId);
     const month = getCurrentYearMonth();

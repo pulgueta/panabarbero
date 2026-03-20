@@ -112,10 +112,14 @@ export const PricingCards: FC = () => {
                     generateCheckoutLink: api.polar.generateCheckoutLink,
                   }}
                   productIds={checkoutProductIds}
-                  className={cn(buttonVariants({ className: "w-full" }))}
+                  className={cn(buttonVariants({ className: "w-full" }), {
+                    "pointer-events-none opacity-50": hasActiveSubscription,
+                  })}
                   lazy
                 >
-                  Adquirir plan
+                  {hasActiveSubscription
+                    ? "Cambia tu plan desde el portal"
+                    : "Adquirir plan"}
                 </CheckoutLink>
               )}
             </CardFooter>

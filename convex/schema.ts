@@ -193,6 +193,10 @@ export const extraCredits = zodTable("extraCredits", (id) => ({
   barbershopId: id("barbershops"),
   smsCredits: z.number(),
   emailCredits: z.number(),
+  /** Cumulative SMS credits ever purchased — used as the progress-bar ceiling. */
+  smsPurchasedTotal: z.number(),
+  /** Cumulative email credits ever purchased — used as the progress-bar ceiling. */
+  emailPurchasedTotal: z.number(),
 }));
 
 /**

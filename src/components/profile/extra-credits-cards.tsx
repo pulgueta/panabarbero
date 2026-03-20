@@ -1,5 +1,4 @@
 import { CheckoutLink } from "@convex-dev/polar/react";
-import { CREDITS_PER_PURCHASE } from "@convex/plans";
 import type { Barbershop, ExtraCredits } from "@convex/schema";
 import { api } from "convex/_generated/api";
 import type { FC } from "react";
@@ -59,6 +58,7 @@ const CreditCard: FC<CreditCardProps> = ({
   const planLabel =
     planQuotaKind === "sms" ? "SMS incluidos" : "Correos incluidos";
 
+  const isUnlimitedPlan = planQuotaMax === 0;
   const planRemaining =
     planQuotaMax > 0 ? Math.max(0, planQuotaMax - planQuotaUsed) : 0;
   const planRemainingPercent =
@@ -67,7 +67,7 @@ const CreditCard: FC<CreditCardProps> = ({
       : 0;
 
   return (
-    <Card>
+    <Card className="min-h-99.75">
       <CardHeader>
         <CardTitle>{name}</CardTitle>
         <CardDescription>{description}</CardDescription>
@@ -81,14 +81,20 @@ const CreditCard: FC<CreditCardProps> = ({
             Estos créditos se consumen después de los que tienes incluídos en tu
             plan.
           </span>
+        </div>
 
+        {isUnlimitedPlan ? (
+          <span className="text-muted-foreground text-sm">
+            {planLabel}: ilimitado
+          </span>
+        ) : (
           <Progress value={planRemainingPercent}>
             <ProgressLabel>{planLabel}</ProgressLabel>
             <ProgressValue>
               {() => `${planRemaining} / ${planQuotaMax}`}
             </ProgressValue>
           </Progress>
-        </div>
+        )}
 
         {hasCredits && (
           <Progress value={percentage}>
@@ -155,17 +161,10 @@ export const ExtraCreditsCards: FC<ExtraCreditsCardsProps> = ({
 
   const safeCredits: ExtraCredits | null = credits ?? null;
 
-  // Track the highest balance ever seen to set the max on the progress bar.
-  // We use the per-purchase amount as max when the user has bought exactly once,
-  // or the current balance when they've stacked multiple purchases.
-  const smsMax = Math.max(
-    safeCredits?.smsCredits ?? 0,
-    CREDITS_PER_PURCHASE.extraSms,
-  );
-  const emailMax = Math.max(
-    safeCredits?.emailCredits ?? 0,
-    CREDITS_PER_PURCHASE.extraEmails,
-  );
+  // Use the cumulative purchased total as the progress-bar ceiling so the bar
+  // accurately reflects depletion across all purchases (not just one pack).
+  const smsMax = safeCredits?.smsPurchasedTotal ?? 0;
+  const emailMax = safeCredits?.emailPurchasedTotal ?? 0;
 
   if (!smsProduct && !emailProduct) {
     return null;
