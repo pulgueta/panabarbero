@@ -67,7 +67,7 @@ const CreditCard: FC<CreditCardProps> = ({
       : 0;
 
   return (
-    <Card className="min-h-99.75">
+    <Card className="min-h-115.5">
       <CardHeader>
         <CardTitle>{name}</CardTitle>
         <CardDescription>{description}</CardDescription>
@@ -83,27 +83,29 @@ const CreditCard: FC<CreditCardProps> = ({
           </span>
         </div>
 
-        {isUnlimitedPlan ? (
-          <span className="text-muted-foreground text-sm">
-            {planLabel}: ilimitado
-          </span>
-        ) : (
-          <Progress value={planRemainingPercent}>
-            <ProgressLabel>{planLabel}</ProgressLabel>
-            <ProgressValue>
-              {() => `${planRemaining} / ${planQuotaMax}`}
-            </ProgressValue>
-          </Progress>
-        )}
+        <div className="space-y-8">
+          {isUnlimitedPlan ? (
+            <span className="text-muted-foreground text-sm">
+              {planLabel}: ilimitado
+            </span>
+          ) : (
+            <Progress value={planRemainingPercent}>
+              <ProgressLabel>{planLabel}</ProgressLabel>
+              <ProgressValue>
+                {() => `${planRemaining} / ${planQuotaMax}`}
+              </ProgressValue>
+            </Progress>
+          )}
 
-        {hasCredits && (
-          <Progress value={percentage}>
-            <ProgressLabel>
-              {planQuotaKind === "sms" ? "SMS" : "Correos"} extra restantes
-            </ProgressLabel>
-            <ProgressValue>{() => `${currentCredits}`}</ProgressValue>
-          </Progress>
-        )}
+          {hasCredits && (
+            <Progress value={percentage}>
+              <ProgressLabel>
+                {planQuotaKind === "sms" ? "SMS" : "Correos"} extra restantes
+              </ProgressLabel>
+              <ProgressValue>{() => `${currentCredits}`}</ProgressValue>
+            </Progress>
+          )}
+        </div>
       </CardContent>
       <CardFooter>
         {isLoading ? (
