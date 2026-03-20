@@ -85,8 +85,8 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   const { data: barberServices } = useServicesForBarber(selectedBarber?._id!);
   // service must come before useBarbersForService so we can use the store selection
   const service = useServicesStore();
-  // Prefer the service selected in the dropdown over the prop (pre-selected from outside)
-  const effectiveServiceId = (service._id ?? serviceId) as
+  // Prefer the service selected in the dropdown over the prop (pre-selected from outside).
+  const effectiveServiceId = (service._id || serviceId) as
     | Service["_id"]
     | undefined;
   const { data: barbersForService } = useBarbersForService(effectiveServiceId!);

@@ -2,10 +2,17 @@
 import { httpRouter } from "convex/server";
 import { ConvexError } from "convex/values";
 
+import { internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
 import { authComponent, createAuth } from "./auth";
 import { resend } from "./emails";
 import { errorMessages } from "./errors";
+import {
+  CREDIT_KEY_TO_TYPE,
+  CREDIT_PRODUCT_KEYS,
+  CREDITS_PER_PURCHASE,
+  type CreditProductKey,
+} from "./plans";
 import { polar } from "./polar";
 import { r2 } from "./r2";
 import { twilio } from "./twilio";
@@ -94,6 +101,43 @@ http.route({
 
 twilio.registerRoutes(http);
 authComponent.registerRoutes(http, createAuth);
-polar.registerRoutes(http);
+
+polar.registerRoutes(http, {
+  events: {
+    "order.paid": async (ctx, event) => {
+      const order = event.data;
+
+      if (!order.paid || !order.productId) {
+        return;
+      }
+
+      const productIdToKey = Object.fromEntries(
+        CREDIT_PRODUCT_KEYS.map((key) => [polar.products[key], key]),
+      ) as Record<string, CreditProductKey>;
+
+      const creditKey = productIdToKey[order.productId];
+
+      if (!creditKey) {
+        return;
+      }
+
+      const barbershopId = order.metadata?.barbershopId as string;
+
+      if (!barbershopId) {
+        return;
+      }
+
+      const type = CREDIT_KEY_TO_TYPE[creditKey];
+      const amount = CREDITS_PER_PURCHASE[creditKey];
+
+      await ctx.runMutation(internal.credits.addPurchasedCredits, {
+        orderId: order.id,
+        barbershopId,
+        type,
+        amount,
+      });
+    },
+  },
+});
 
 export default http;

@@ -18,6 +18,26 @@ export const PLAN_PRODUCT_KEYS = [
 
 export type ProductKey = (typeof PLAN_PRODUCT_KEYS)[number];
 
+/**
+ * One-time credit product keys — used in the Polar constructor and webhook
+ * handler to identify credit purchases.
+ */
+export const CREDIT_PRODUCT_KEYS = ["extraSms", "extraEmails"] as const;
+
+export type CreditProductKey = (typeof CREDIT_PRODUCT_KEYS)[number];
+
+/** Amount of credits granted per one-time purchase. */
+export const CREDITS_PER_PURCHASE: Record<CreditProductKey, number> = {
+  extraSms: 3000,
+  extraEmails: 1000,
+};
+
+/** Maps a credit product key to which credit type it affects. */
+export const CREDIT_KEY_TO_TYPE: Record<CreditProductKey, "sms" | "email"> = {
+  extraSms: "sms",
+  extraEmails: "email",
+};
+
 export type PlanTier = "free" | "pro" | "premium";
 
 export const PRODUCT_KEY_TO_TIER: Record<ProductKey, PlanTier> = {

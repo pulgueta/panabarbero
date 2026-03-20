@@ -184,6 +184,33 @@ export const usage = zodTable("usage", (id) => ({
   emailsSent: z.number(),
 }));
 
+/**
+ * Remaining purchased credits per barbershop.
+ * One row per barbershop — upserted when credits are purchased,
+ * decremented when plan quota is exceeded and extra credits are consumed.
+ */
+export const extraCredits = zodTable("extraCredits", (id) => ({
+  barbershopId: id("barbershops"),
+  smsCredits: z.number(),
+  emailCredits: z.number(),
+  /** Cumulative SMS credits ever purchased — used as the progress-bar ceiling. */
+  smsPurchasedTotal: z.number(),
+  /** Cumulative email credits ever purchased — used as the progress-bar ceiling. */
+  emailPurchasedTotal: z.number(),
+}));
+
+/**
+ * Individual credit purchase records — used for idempotency (deduplicate
+ * webhook retries) and purchase history.
+ */
+export const creditPurchases = zodTable("creditPurchases", (id) => ({
+  orderId: z.string(),
+  barbershopId: id("barbershops"),
+  type: z.enum(["sms", "email"]),
+  amount: z.number(),
+  purchasedAt: z.number(),
+}));
+
 export default defineSchema({
   userProfileData: userProfileData
     .table()
@@ -248,6 +275,13 @@ export default defineSchema({
     .index("by_expiresAt", ["expiresAt"]),
 
   usage: usage.table().index("by_barbershop_month", ["barbershopId", "month"]),
+
+  extraCredits: extraCredits.table().index("by_barbershopId", ["barbershopId"]),
+
+  creditPurchases: creditPurchases
+    .table()
+    .index("by_orderId", ["orderId"])
+    .index("by_barbershopId", ["barbershopId"]),
 });
 
 export type UserProfileData = output<typeof userProfileData.schema>;
@@ -271,3 +305,5 @@ export type BarbershopMemberServices = output<
 >;
 export type Invitation = output<typeof invitations.schema>;
 export type Usage = output<typeof usage.schema>;
+export type ExtraCredits = output<typeof extraCredits.schema>;
+export type CreditPurchase = output<typeof creditPurchases.schema>;
