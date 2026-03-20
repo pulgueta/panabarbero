@@ -107,40 +107,23 @@ polar.registerRoutes(http, {
     "order.paid": async (ctx, event) => {
       const order = event.data;
 
-      console.log("order", order);
-
       if (!order.paid || !order.productId) {
         return;
       }
-
-      console.log("polar.products", JSON.stringify(polar.products));
-      console.log("order.productId", order.productId);
 
       const productIdToKey = Object.fromEntries(
         CREDIT_PRODUCT_KEYS.map((key) => [polar.products[key], key]),
       ) as Record<string, CreditProductKey>;
 
-      console.log("productIdToKey", JSON.stringify(productIdToKey));
-
       const creditKey = productIdToKey[order.productId];
-
-      console.log("creditKey", creditKey);
 
       if (!creditKey) {
         return;
       }
 
-      // The barbershopId is passed through checkout metadata since we can't
-      // reverse-lookup the customer's userId from the Polar customer ID.
-      const barbershopId = order.metadata?.barbershopId as string | undefined;
-
-      console.log("barbershopId", barbershopId);
+      const barbershopId = order.metadata?.barbershopId as string;
 
       if (!barbershopId) {
-        console.error(
-          "[credits] order.created missing barbershopId in metadata",
-          order.id,
-        );
         return;
       }
 

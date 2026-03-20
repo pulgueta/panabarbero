@@ -20,6 +20,10 @@ import {
   useBarbershopMemberRoles,
 } from "@/hooks/barbershop/use-barbershop-member";
 import {
+  getBarbershopQuotaUsageQueryOptions,
+  getExtraCreditsQueryOptions,
+} from "@/hooks/billing/use-credits";
+import {
   getPricingPlansQueryOptions,
   getSubscriptionQueryOptions,
 } from "@/hooks/billing/use-pricing";
@@ -136,9 +140,14 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
         await context.queryClient.ensureQueryData(
           barbershopMemberRolesQueryOptions(user.userId),
         );
-        await context.queryClient.ensureQueryData(
+        const barbershop = await context.queryClient.ensureQueryData(
           barbershopByOwnerIdQueryOptions(user.userId),
         );
+        if (barbershop) {
+          await context.queryClient.ensureQueryData(
+            getBarbershopQuotaUsageQueryOptions(barbershop._id),
+          );
+        }
       }
 
       const [appointments] = await Promise.all([
@@ -148,6 +157,7 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
         context.queryClient.ensureQueryData(profileQueryOptions(user.userId)),
         context.queryClient.ensureQueryData(getPricingPlansQueryOptions()),
         context.queryClient.ensureQueryData(getSubscriptionQueryOptions()),
+        context.queryClient.ensureQueryData(getExtraCreditsQueryOptions()),
       ]);
 
       if (appointments) {
@@ -197,8 +207,8 @@ function ProfilePage() {
 
     // Owners (whether or not they're barbers) see Plans and Danger tabs
     if (rolesData?.isOwner) {
-      base.push(tabs.danger);
       base.push(tabs.plans);
+      base.push(tabs.danger);
     }
 
     // Non-barber, non-owner, non-staff users (customers) see their appointment history

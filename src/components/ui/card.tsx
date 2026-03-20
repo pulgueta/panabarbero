@@ -91,7 +91,7 @@ export const CardFooter: FC<CardFooterProps> = ({ className, ...props }) => (
   <footer
     data-slot="card-footer"
     className={cn(
-      "flex min-h-fit items-center rounded-b-xl border-border border-t bg-accent/50 p-4 group-data-[size=sm]/card:px-4",
+      "mt-auto flex min-h-fit items-center rounded-b-xl border-border border-t bg-accent/50 p-4 group-data-[size=sm]/card:px-4",
       className,
     )}
     {...props}

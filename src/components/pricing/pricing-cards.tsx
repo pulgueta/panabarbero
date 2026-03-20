@@ -33,7 +33,6 @@ export const PricingCards: FC = () => {
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       {monthlyProducts.map((product) => {
-        const isSubscribed = subscription?.productId === product.id;
         const usdPrices = product.prices.find(
           (price) => price.priceCurrency === "usd",
         );
@@ -43,6 +42,15 @@ export const PricingCards: FC = () => {
         const checkoutProductIds = yearlyProduct
           ? [product.id, yearlyProduct.id]
           : [product.id];
+
+        const productIdsForThisPlan = checkoutProductIds;
+        const activeProductId =
+          subscription?.productId ?? subscription?.productPlanId;
+        const hasActiveSubscription = subscription?.isSubscribed === true;
+        const isSubscribedToThisPlan =
+          hasActiveSubscription &&
+          activeProductId &&
+          productIdsForThisPlan.includes(activeProductId);
 
         return (
           <Card key={product.id} className="flex min-h-115 flex-col">
@@ -78,35 +86,7 @@ export const PricingCards: FC = () => {
             </CardContent>
 
             <CardFooter className="mt-auto">
-              {session?.userId ? (
-                isSubscribed ? (
-                  <CustomerPortalLink
-                    polarApi={{
-                      generateCustomerPortalUrl:
-                        api.polar.generateCustomerPortalUrl,
-                    }}
-                    className={cn(buttonVariants({ className: "w-full" }))}
-                  >
-                    Administrar suscripción
-                  </CustomerPortalLink>
-                ) : (
-                  <CheckoutLink
-                    polarApi={{
-                      generateCheckoutLink: api.polar.generateCheckoutLink,
-                    }}
-                    productIds={checkoutProductIds}
-                    className={cn(buttonVariants({ className: "w-full" }), {
-                      "has-data-data-polar*:cursor-not-allowed has-data-data-polar*:opacity-50":
-                        subscription?.isSubscribed,
-                    })}
-                    lazy
-                  >
-                    {subscription?.productPlanId === product.id
-                      ? "Plan actual"
-                      : "Adquirir plan"}
-                  </CheckoutLink>
-                )
-              ) : (
+              {!session?.userId ? (
                 <Button
                   nativeButton={false}
                   className="w-full"
@@ -114,6 +94,29 @@ export const PricingCards: FC = () => {
                 >
                   Iniciar sesión para adquirir plan
                 </Button>
+              ) : hasActiveSubscription && isSubscribedToThisPlan ? (
+                <CustomerPortalLink
+                  polarApi={{
+                    generateCustomerPortalUrl:
+                      api.polar.generateCustomerPortalUrl,
+                  }}
+                  className={cn(
+                    buttonVariants({ className: "w-full", variant: "outline" }),
+                  )}
+                >
+                  Administrar suscripción
+                </CustomerPortalLink>
+              ) : (
+                <CheckoutLink
+                  polarApi={{
+                    generateCheckoutLink: api.polar.generateCheckoutLink,
+                  }}
+                  productIds={checkoutProductIds}
+                  className={cn(buttonVariants({ className: "w-full" }))}
+                  lazy
+                >
+                  Adquirir plan
+                </CheckoutLink>
               )}
             </CardFooter>
           </Card>
