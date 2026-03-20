@@ -43,6 +43,10 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
                 type: "email",
                 enabled: true,
               },
+              {
+                type: "sms",
+                enabled: false,
+              },
             ],
           }),
         ]);

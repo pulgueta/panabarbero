@@ -6,10 +6,10 @@
  */
 
 import { ConvexError } from "convex/values";
-
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { usageTriggers } from "./aggregates";
+import { getExtraCredits } from "./credits";
 import { errorMessages } from "./errors";
 import {
   getCurrentYearMonth,
@@ -169,7 +169,7 @@ export async function assertStaffInviteAllowed(
   }
 }
 
-async function getUsageRow(
+export async function getUsageRow(
   ctx: QueryCtx | MutationCtx,
   barbershopId: Id<"barbershops">,
   month: string,
@@ -184,7 +184,8 @@ async function getUsageRow(
 
 /**
  * Returns `true` when the barbershop can still send SMS this month,
- * `false` when the monthly quota has been reached.
+ * `false` when both the monthly plan quota AND purchased extra credits
+ * are exhausted.
  * Never throws — safe to use in fire-and-forget notification paths.
  */
 export async function isSmsLimitNotExceeded(
@@ -209,12 +210,21 @@ export async function isSmsLimitNotExceeded(
     return true;
   }
 
-  return row.smsSent < limits.maxSmsPerMonth;
+  // Plan quota still has room
+  if (row.smsSent < limits.maxSmsPerMonth) {
+    return true;
+  }
+
+  // Plan exhausted — check purchased extra credits
+  const credits = await getExtraCredits(ctx, barbershopId);
+
+  return credits?.smsCredits ? credits.smsCredits > 0 : false;
 }
 
 /**
  * Returns `true` when the barbershop can still send emails this month,
- * `false` when the monthly quota has been reached.
+ * `false` when both the monthly plan quota AND purchased extra credits
+ * are exhausted.
  * Never throws — safe to use in fire-and-forget notification paths.
  */
 export async function isEmailLimitNotExceeded(
@@ -239,12 +249,24 @@ export async function isEmailLimitNotExceeded(
     return true;
   }
 
-  return row.emailsSent < limits.maxEmailPerMonth;
+  // Plan quota still has room
+  if (row.emailsSent < limits.maxEmailPerMonth) {
+    return true;
+  }
+
+  // Plan exhausted — check purchased extra credits
+  const credits = await getExtraCredits(ctx, barbershopId);
+
+  return credits?.emailCredits ? credits.emailCredits > 0 : false;
 }
 
 /**
  * Increment the SMS counter for a barbershop in the current month.
  * Creates the `usage` row if it doesn't exist yet (upsert pattern).
+ *
+ * When the plan's monthly quota is exceeded, purchased extra credits are
+ * decremented instead. The `usage.smsSent` counter always increases (for
+ * analytics) regardless of whether the send came from plan quota or credits.
  *
  * Writes go through `usageTriggers.wrapDB` so that `smsUsageAggregate` and
  * `emailUsageAggregate` are updated automatically — no manual sync needed.
@@ -256,6 +278,7 @@ export async function incrementSmsSent(
   const month = getCurrentYearMonth();
   const existing = await getUsageRow(ctx, barbershopId, month);
   const db = usageTriggers.wrapDB(ctx).db;
+  const previousSmsSent = existing?.smsSent ?? 0;
 
   if (existing) {
     await db.patch(existing._id, { smsSent: existing.smsSent + 1 });
@@ -267,11 +290,32 @@ export async function incrementSmsSent(
       emailsSent: 0,
     });
   }
+
+  // If this send exceeded the plan quota, decrement extra credits
+  const barbershop = await ctx.db.get(barbershopId);
+  if (barbershop) {
+    const limits = await getUserPlanLimits(ctx, barbershop.ownerId);
+    if (
+      limits.maxSmsPerMonth !== null &&
+      previousSmsSent >= limits.maxSmsPerMonth
+    ) {
+      const credits = await getExtraCredits(ctx, barbershopId);
+      if (credits && credits.smsCredits > 0) {
+        await ctx.db.patch(credits._id, {
+          smsCredits: credits.smsCredits - 1,
+        });
+      }
+    }
+  }
 }
 
 /**
  * Increment the email counter for a barbershop in the current month.
  * Creates the `usage` row if it doesn't exist yet (upsert pattern).
+ *
+ * When the plan's monthly quota is exceeded, purchased extra credits are
+ * decremented instead. The `usage.emailsSent` counter always increases (for
+ * analytics) regardless of whether the send came from plan quota or credits.
  *
  * Writes go through `usageTriggers.wrapDB` so that `emailUsageAggregate` is
  * updated automatically — no manual sync needed.
@@ -283,6 +327,7 @@ export async function incrementEmailSent(
   const month = getCurrentYearMonth();
   const existing = await getUsageRow(ctx, barbershopId, month);
   const db = usageTriggers.wrapDB(ctx).db;
+  const previousEmailsSent = existing?.emailsSent ?? 0;
 
   if (existing) {
     await db.patch(existing._id, { emailsSent: existing.emailsSent + 1 });
@@ -293,5 +338,22 @@ export async function incrementEmailSent(
       smsSent: 0,
       emailsSent: 1,
     });
+  }
+
+  // If this send exceeded the plan quota, decrement extra credits
+  const barbershop = await ctx.db.get(barbershopId);
+  if (barbershop) {
+    const limits = await getUserPlanLimits(ctx, barbershop.ownerId);
+    if (
+      limits.maxEmailPerMonth !== null &&
+      previousEmailsSent >= limits.maxEmailPerMonth
+    ) {
+      const credits = await getExtraCredits(ctx, barbershopId);
+      if (credits && credits.emailCredits > 0) {
+        await ctx.db.patch(credits._id, {
+          emailCredits: credits.emailCredits - 1,
+        });
+      }
+    }
   }
 }

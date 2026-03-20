@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { zInternalAction } from ".";
 import { api, components } from "./_generated/api";
-import { PLAN_PRODUCT_KEYS } from "./plans";
+import { CREDIT_PRODUCT_KEYS, PLAN_PRODUCT_KEYS } from "./plans";
 
 export const polar = new Polar(components.polar, {
   getUserInfo: async (ctx) => {
@@ -20,13 +20,16 @@ export const polar = new Polar(components.polar, {
   },
   // Named product keys — IDs come from environment variables so they are never
   // hard-coded in source. The key names here MUST match the keys defined in
-  // `convex/plans.ts` (`PLAN_PRODUCT_KEYS`).
+  // `convex/plans.ts` (`PLAN_PRODUCT_KEYS` + `CREDIT_PRODUCT_KEYS`).
   products: {
     [PLAN_PRODUCT_KEYS[0]]: process.env.POLAR_PRODUCT_FREE!,
     [PLAN_PRODUCT_KEYS[1]]: process.env.POLAR_PRODUCT_PRO_MONTHLY!,
     [PLAN_PRODUCT_KEYS[2]]: process.env.POLAR_PRODUCT_PRO_YEARLY!,
     [PLAN_PRODUCT_KEYS[3]]: process.env.POLAR_PRODUCT_PREMIUM_MONTHLY!,
     [PLAN_PRODUCT_KEYS[4]]: process.env.POLAR_PRODUCT_PREMIUM_YEARLY!,
+    // One-time credit products
+    [CREDIT_PRODUCT_KEYS[0]]: process.env.POLAR_PRODUCT_EXTRA_SMS!,
+    [CREDIT_PRODUCT_KEYS[1]]: process.env.POLAR_PRODUCT_EXTRA_EMAIL!,
   },
   server: process.env.POLAR as "sandbox" | "production",
 });
