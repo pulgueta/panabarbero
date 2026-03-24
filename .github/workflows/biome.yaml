@@ -24,7 +24,7 @@ jobs:
         uses: ./.github/setup
 
       - name: Lint
-        run: bun lint
+        run: pnpm lint
 
       - name: Format
-        run: bun format
+        run: pnpm format
