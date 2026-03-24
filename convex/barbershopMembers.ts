@@ -70,9 +70,7 @@ export const update = zMutation({
     const user = await authComponent.safeGetAuthUser(ctx);
 
     if (!user) {
-      throw new Error("User not authenticated", {
-        cause: user,
-      });
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     await rateLimitOrThrow(ctx, "updateBarbershopMember", user._id);
