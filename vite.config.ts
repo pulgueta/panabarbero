@@ -12,7 +12,7 @@ const config = defineConfig({
     tailwindcss(),
     tanstackStart({
       sitemap: {
-        host: "https://panabarbero.com",
+        host: "https://www.panabarbero.com",
       },
     }),
     viteReact(),

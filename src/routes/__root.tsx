@@ -15,6 +15,8 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { createServerFn } from "@tanstack/react-start";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import type { ConvexReactClient } from "convex/react";
 
 import { BottomBar } from "@/components/layout/bottom-bar";
@@ -50,14 +52,14 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       ...seo({
         title: "PanaBarbero - Descubre barberías",
         description: "La solución para las barberías.",
-        canonical: "https://panabarbero.com",
+        canonical: "https://www.panabarbero.com",
       }),
     ],
     links: [
       { rel: "preconnect", href: env.VITE_STORAGE_URL },
       { rel: "dns-prefetch", href: env.VITE_STORAGE_URL },
       { rel: "stylesheet", href: appCss },
-      { rel: "canonical", href: "https://panabarbero.com" },
+      { rel: "canonical", href: "https://www.panabarbero.com" },
       { rel: "sitemap", href: "/sitemap.xml" },
     ],
     scripts: [websiteStructuredData()],
@@ -121,6 +123,13 @@ const RootDocument = ({ children }: { children: React.ReactNode }) => {
             <Scripts />
           </ConvexBetterAuthProvider>
         </QueryClientProvider>
+
+        {process.env.NODE_ENV === "production" && (
+          <>
+            <Analytics />
+            <SpeedInsights />
+          </>
+        )}
 
         {process.env.NODE_ENV === "development" && (
           <TanStackDevtools

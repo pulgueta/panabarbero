@@ -1,14 +1,14 @@
 import {
-  Body,
-  Button,
-  Container,
-  Head,
-  Html,
-  pixelBasedPreset,
-  Preview,
-  Section,
-  Tailwind,
-  Text,
+    Body,
+    Button,
+    Container,
+    Head,
+    Html,
+    pixelBasedPreset,
+    Preview,
+    Section,
+    Tailwind,
+    Text,
 } from "@react-email/components";
 
 import { tailwindConfig } from "../../tailwind-config";
@@ -41,7 +41,7 @@ export const PastAppointmentReminderEmail = ({
 
             <Section className="mb-4 flex w-full items-center justify-center">
               <Button
-                href="https://panabarbero.com/profile/barbershop/appointments"
+                href="https://www.panabarbero.com/profile/barbershop/appointments"
                 className="rounded-md bg-primary px-4 py-2 text-primary-foreground text-sm"
               >
                 Ver citas

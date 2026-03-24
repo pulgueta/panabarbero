@@ -86,7 +86,7 @@ breadcrumbStructuredData(items: Array<{ name: string; url: string }>)
 - Terms of service (priority: 0.5, monthly)
 - Individual barbershops `/barbershops/:uuid` (priority: 0.7, weekly)
 
-**Access:** `https://panabarbero.com/sitemap.xml`
+**Access:** `https://www.panabarbero.com/sitemap.xml`
 
 ### Robots.txt (`src/routes/robots[.]txt.ts`)
 
@@ -98,7 +98,7 @@ breadcrumbStructuredData(items: Array<{ name: string; url: string }>)
 - ✅ Block known malicious bots (Nmap, sqlmap, etc.)
 - ✅ Cached for 7 days
 
-**Access:** `https://panabarbero.com/robots.txt`
+**Access:** `https://www.panabarbero.com/robots.txt`
 
 ---
 
@@ -218,7 +218,7 @@ Includes:
   "@type": "BarberShop",
   "name": "Barbería El Corte",
   "description": "...",
-  "url": "https://panabarbero.com/barbershops/...",
+  "url": "https://www.panabarbero.com/barbershops/...",
   "telephone": "+57...",
   "address": {
     "@type": "PostalAddress",
@@ -271,7 +271,7 @@ Includes:
 
 **Production:**
 ```
-Domain: https://panabarbero.com
+Domain: https://www.panabarbero.com
 ```
 
 **Local/Development:**
@@ -310,12 +310,12 @@ Both environments share the same code; domain is determined by `process.env.NODE
 
 ### Verify Sitemap
 ```bash
-curl https://panabarbero.com/sitemap.xml
+curl https://www.panabarbero.com/sitemap.xml
 ```
 
 ### Verify Robots.txt
 ```bash
-curl https://panabarbero.com/robots.txt
+curl https://www.panabarbero.com/robots.txt
 ```
 
 ### Validate Structured Data

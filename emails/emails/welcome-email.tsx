@@ -1,15 +1,15 @@
 import {
-  Body,
-  Button,
-  Container,
-  Head,
-  Heading,
-  Html,
-  pixelBasedPreset,
-  Preview,
-  Section,
-  Tailwind,
-  Text,
+    Body,
+    Button,
+    Container,
+    Head,
+    Heading,
+    Html,
+    pixelBasedPreset,
+    Preview,
+    Section,
+    Tailwind,
+    Text,
 } from "@react-email/components";
 
 import { tailwindConfig } from "../tailwind-config";
@@ -46,7 +46,7 @@ export const WelcomeEmail = (_: WelcomeEmailProps) => {
 
               <Section className="flex w-full items-center justify-center">
                 <Button
-                  href="https://panabarbero.com/barbershops"
+                  href="https://www.panabarbero.com/barbershops"
                   className="mx-auto rounded-md bg-primary px-4 py-2 text-primary-foreground text-sm"
                 >
                   Descubrir barberías

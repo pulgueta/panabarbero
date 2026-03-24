@@ -34,7 +34,7 @@ export function formatPhoneNumber(phone: string): string {
 
 const isProduction = process.env.NODE_ENV === "production";
 const baseUrl = isProduction
-  ? "https://panabarbero.com"
+  ? "https://www.panabarbero.com"
   : "http://localhost:3000";
 
 /**
