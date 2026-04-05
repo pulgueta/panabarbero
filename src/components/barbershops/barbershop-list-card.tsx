@@ -14,66 +14,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getLogoUrl } from "@/hooks/use-upload";
+import { isCurrentlyOpen } from "@/lib/schedule-utils";
 
 interface BarbershopListCardProps {
   barbershop: Barbershop;
   showAddress?: boolean;
 }
 
-const isCurrentlyOpen = (barbershop: Barbershop): boolean => {
-  const now = new Date();
-  const currentDay = now.getDay();
-  const dayMap = [
-    "sunday",
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-    "saturday",
-  ];
-  const currentDayName = dayMap[currentDay];
-
-  const todaySchedule = barbershop.availability.find(
-    (day) => day.weekDay.day === currentDayName && day.weekDay.isActive,
-  );
-
-  if (!todaySchedule) return false;
-
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  const [openHour, openMin] = todaySchedule.openAt.split(":").map(Number);
-  const [closeHour, closeMin] = todaySchedule.closeAt.split(":").map(Number);
-
-  const openMinutes = openHour * 60 + openMin;
-  const closeMinutes = closeHour * 60 + closeMin;
-
-  // Check if currently during lunch break
-  if (todaySchedule.lunchStart && todaySchedule.lunchEnd) {
-    const [lunchStartHour, lunchStartMin] = todaySchedule.lunchStart
-      .split(":")
-      .map(Number);
-    const [lunchEndHour, lunchEndMin] = todaySchedule.lunchEnd
-      .split(":")
-      .map(Number);
-    const lunchStartMinutes = lunchStartHour * 60 + lunchStartMin;
-    const lunchEndMinutes = lunchEndHour * 60 + lunchEndMin;
-
-    if (
-      currentMinutes >= lunchStartMinutes &&
-      currentMinutes < lunchEndMinutes
-    ) {
-      return false;
-    }
-  }
-
-  return currentMinutes >= openMinutes && currentMinutes < closeMinutes;
-};
-
 export const BarbershopListCard: FC<BarbershopListCardProps> = ({
   barbershop,
   showAddress = true,
 }) => {
-  const isOpen = isCurrentlyOpen(barbershop);
+  const isOpen = isCurrentlyOpen(barbershop.availability);
 
   const logoUrl = getLogoUrl(barbershop.logoKey);
 
