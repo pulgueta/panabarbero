@@ -8,9 +8,10 @@ import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { authComponent } from "./auth";
-import { assertCanManageShop, getBetterAuthUser } from "./authz";
+import { assertCanManageShop, assertShopRole, getBetterAuthUser } from "./authz";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
+import type { Barbershop } from "./schema";
 import { barbershopMembers, barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
 
@@ -608,3 +609,113 @@ export const getByUserIdFn = async (
     )
     .unique();
 };
+
+// ---------------------------------------------------------------------------
+// Barber schedule helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the effective working schedule for a barber.
+ *
+ * If the barber has a custom `availability` override → returns that.
+ * Otherwise falls back to the parent barbershop's schedule.
+ */
+export async function getEffectiveSchedule(
+  ctx: QueryCtx | MutationCtx,
+  barbershopMemberId: Id<"barbershopMembers">,
+): Promise<Barbershop["availability"]> {
+  const member = await ctx.db.get(barbershopMemberId);
+
+  if (!member) {
+    throw new ConvexError(errorMessages.notFound("barbero"));
+  }
+
+  if (member.availability && member.availability.length > 0) {
+    return member.availability;
+  }
+
+  const barbershop = await ctx.db.get(member.barbershopId);
+
+  if (!barbershop) {
+    throw new ConvexError(errorMessages.notFound("barbería"));
+  }
+
+  return barbershop.availability;
+}
+
+export const getBarberSchedule = zQuery({
+  args: z.object({
+    barbershopMemberId: barbershopMembers.tools.id.shape.id,
+  }),
+  handler: async (ctx, args) => {
+    const member = await ctx.db.get(args.barbershopMemberId);
+
+    if (!member) {
+      return null;
+    }
+
+    const isCustom = !!(member.availability && member.availability.length > 0);
+    const schedule = await getEffectiveSchedule(ctx, args.barbershopMemberId);
+
+    return { schedule, isCustom };
+  },
+});
+
+export const updateBarberSchedule = zMutation({
+  args: z.object({
+    barbershopMemberId: barbershopMembers.tools.id.shape.id,
+    availability: barbershops.insertSchema.shape.availability,
+  }),
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    const member = await ctx.db.get(args.barbershopMemberId);
+
+    if (!member) {
+      throw new ConvexError(errorMessages.notFound("barbero"));
+    }
+
+    await assertShopRole(ctx, member.barbershopId, user.userId, [
+      "owner",
+      "staff",
+    ]);
+    await rateLimitOrThrow(ctx, "updateBarberSchedule", user._id);
+
+    await ctx.db.patch(args.barbershopMemberId, {
+      availability: args.availability,
+    });
+  },
+});
+
+export const resetBarberSchedule = zMutation({
+  args: z.object({
+    barbershopMemberId: barbershopMembers.tools.id.shape.id,
+  }),
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    const member = await ctx.db.get(args.barbershopMemberId);
+
+    if (!member) {
+      throw new ConvexError(errorMessages.notFound("barbero"));
+    }
+
+    await assertShopRole(ctx, member.barbershopId, user.userId, [
+      "owner",
+      "staff",
+    ]);
+    await rateLimitOrThrow(ctx, "updateBarberSchedule", user._id);
+
+    await ctx.db.patch(args.barbershopMemberId, {
+      availability: undefined,
+    });
+  },
+});
