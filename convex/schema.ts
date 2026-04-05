@@ -83,6 +83,28 @@ export const barbershopMembers = zodTable("barbershopMembers", (id) => ({
   joinedAt: z.number(),
   isActive: z.boolean(),
   roles: z.enum(["owner", "barber", "staff"]).array(),
+  /** Per-barber schedule override. When undefined, inherits barbershop hours. */
+  availability: z
+    .object({
+      weekDay: z.object({
+        day: z.enum([
+          "monday",
+          "tuesday",
+          "wednesday",
+          "thursday",
+          "friday",
+          "saturday",
+          "sunday",
+        ]),
+        isActive: z.boolean(),
+      }),
+      openAt: z.string(),
+      closeAt: z.string(),
+      lunchStart: z.string().optional(),
+      lunchEnd: z.string().optional(),
+    })
+    .array()
+    .optional(),
 }));
 
 export const services = zodTable("services", (id) => ({

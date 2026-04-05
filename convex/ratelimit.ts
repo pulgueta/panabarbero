@@ -72,6 +72,12 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     period: MINUTE,
     capacity: 5,
   },
+  updateBarberSchedule: {
+    kind: "token bucket",
+    rate: 10,
+    period: MINUTE,
+    capacity: 10,
+  },
   inviteBarbershopMember: {
     kind: "token bucket",
     rate: 5,
