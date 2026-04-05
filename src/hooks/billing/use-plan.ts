@@ -1,9 +1,9 @@
+import { convexQuery } from "@convex-dev/react-query";
+import { api } from "@convex/_generated/api";
 import type { PlanLimits, PlanTier } from "@convex/plans";
 import { PLAN_LIMITS } from "@convex/plans";
 import type { Barbershop } from "@convex/schema";
-import { convexQuery } from "@convex-dev/react-query";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "convex/_generated/api";
 
 // ---------------------------------------------------------------------------
 // Query options (reusable in route loaders / prefetching)

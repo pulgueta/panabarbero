@@ -1,7 +1,7 @@
 import { useUploadFile } from "@convex-dev/r2/react";
 import { useConvexMutation } from "@convex-dev/react-query";
+import { api } from "@convex/_generated/api";
 import { useMutation } from "@tanstack/react-query";
-import { api } from "convex/_generated/api";
 
 import { env } from "@/env";
 

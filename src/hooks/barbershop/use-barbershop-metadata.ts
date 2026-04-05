@@ -1,7 +1,7 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
+import { api } from "@convex/_generated/api";
 import type { Barbershop } from "@convex/schema";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
-import { api } from "convex/_generated/api";
 
 export function barbershopMetadataQueryOptions(
   barbershopId: Barbershop["_id"],
