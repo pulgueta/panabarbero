@@ -1,8 +1,19 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
-import type { Appointment, Barbershop } from "@convex/schema";
+import { api } from "@convex/_generated/api";
+import type {
+  Appointment,
+  Barbershop,
+  BarbershopMember,
+  Service,
+} from "@convex/schema";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
-import { api } from "convex/_generated/api";
 
+import type { WeekdayKey } from "@/lib/schedule-utils";
+import {
+  getDayKeyForDate,
+  minutesOfDay,
+  parseTimeToMinutes,
+} from "@/lib/schedule-utils";
 import { useBarbershopAvailability } from "./barbershop/use-barbershop";
 
 export function appointmentByIdQueryOptions(appointmentId: Appointment["_id"]) {
@@ -81,32 +92,43 @@ export function appointmentFormMetadataQueryOptions(
   });
 }
 
-type WeekdayKey =
-  | "sunday"
-  | "monday"
-  | "tuesday"
-  | "wednesday"
-  | "thursday"
-  | "friday"
-  | "saturday";
+export function availableSlotsQueryOptions(opts: {
+  barbershopId: Barbershop["_id"];
+  barbershopMemberId: BarbershopMember["_id"];
+  serviceId: Service["_id"];
+  date: number;
+}) {
+  return convexQuery(api.appointments.getAvailableSlots, opts);
+}
+
+export function useAvailableSlots(opts: {
+  barbershopId: Barbershop["_id"];
+  barbershopMemberId: BarbershopMember["_id"];
+  serviceId: Service["_id"];
+  date: number;
+}) {
+  return useSuspenseQuery(availableSlotsQueryOptions(opts));
+}
 
 export function useAppointmentFormMetadata(barbershopId: Barbershop["_id"]) {
   const { data: availability } = useBarbershopAvailability(barbershopId);
 
-  const dayIndexes: Record<WeekdayKey, number> = Object.freeze({
-    sunday: 0,
-    monday: 1,
-    tuesday: 2,
-    wednesday: 3,
-    thursday: 4,
-    friday: 5,
-    saturday: 6,
-  });
-
   const activeDays = new Set(
     availability
       ?.filter((d) => d.weekDay?.isActive)
-      .map((d) => dayIndexes[d.weekDay.day as WeekdayKey]) ?? [],
+      .map((d) => {
+        const key = d.weekDay.day as WeekdayKey;
+        const dayIndexes: Record<WeekdayKey, number> = {
+          sunday: 0,
+          monday: 1,
+          tuesday: 2,
+          wednesday: 3,
+          thursday: 4,
+          friday: 5,
+          saturday: 6,
+        };
+        return dayIndexes[key];
+      }) ?? [],
   );
 
   const disableDay = (day: Date): boolean => {
@@ -116,11 +138,9 @@ export function useAppointmentFormMetadata(barbershopId: Barbershop["_id"]) {
     const currentDay = new Date(day);
     currentDay.setHours(0, 0, 0, 0);
 
-    const weekday = currentDay.getDay();
-
     if (currentDay < today) return true;
 
-    if (!activeDays.has(weekday)) return true;
+    if (!activeDays.has(currentDay.getDay())) return true;
 
     return false;
   };
@@ -128,37 +148,16 @@ export function useAppointmentFormMetadata(barbershopId: Barbershop["_id"]) {
   const scheduleForDate = (timestamp?: number) => {
     if (!timestamp || !availability) return undefined;
 
-    const weekday: WeekdayKey = [
-      "sunday",
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-    ][new Date(timestamp).getDay()] as WeekdayKey;
+    const weekday = getDayKeyForDate(timestamp);
 
     return availability.find((entry) => entry.weekDay.day === weekday);
-  };
-
-  const timeStringToMinutes = (value?: string | null) => {
-    if (!value) return null;
-    const [hours, minutes] = value.split(":").map(Number);
-    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
-
-    return hours * 60 + minutes;
-  };
-
-  const minutesOfTimestamp = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.getHours() * 60 + date.getMinutes();
   };
 
   return {
     disableDay,
     scheduleForDate,
-    timeStringToMinutes,
-    minutesOfTimestamp,
+    timeStringToMinutes: parseTimeToMinutes,
+    minutesOfTimestamp: minutesOfDay,
   };
 }
 
