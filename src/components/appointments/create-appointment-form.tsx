@@ -3,11 +3,10 @@ import type {
   BarbershopMemberWithName,
   Service,
 } from "@convex/schema";
-import { CalendarIcon, ClockCounterClockwiseIcon } from "@phosphor-icons/react";
-import { format } from "date-fns";
+import { CalendarIcon } from "@phosphor-icons/react";
 import { es } from "date-fns/locale";
 import type { BaseSyntheticEvent, FC } from "react";
-import { Activity, Suspense } from "react";
+import { Activity, Suspense, useEffect, useState, useTransition } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { Controller } from "react-hook-form";
 import type { output } from "zod";
@@ -35,6 +34,7 @@ import { useAppointmentFormMetadata } from "@/hooks/use-appointments";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { appointmentFormSchema } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
+import { TimeSlotPicker } from "./time-slot-picker";
 
 interface CreateAppointmentFormProps {
   barbershopId: Barbershop["_id"];
@@ -49,6 +49,8 @@ interface CreateAppointmentFormProps {
   onBarberChange?: (barber: BarbershopMemberWithName) => void;
   form: UseFormReturn<output<typeof appointmentFormSchema>>;
   showPhoneField?: boolean;
+  /** The resolved service ID (from store or prop) used for slot generation. */
+  effectiveServiceId?: Service["_id"];
   formIds: {
     form: string;
     customerName: string;
@@ -75,9 +77,30 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
   formIds,
   form,
   showPhoneField = false,
+  effectiveServiceId,
 }) => {
   const { isMobile } = useIsMobile();
   const { disableDay } = useAppointmentFormMetadata(barbershopId);
+  const [isPending, startTransition] = useTransition();
+  const [selectedSlotTime, setSelectedSlotTime] = useState<string | undefined>(
+    undefined,
+  );
+
+  const watchedDate = form.watch("date") as number | undefined;
+  const watchedBarber = form.watch("barbershopMemberId") as string | undefined;
+
+  const canShowSlots = !!(watchedDate && watchedBarber && effectiveServiceId);
+
+  // Normalize to midnight so slot selection (which sets hours) doesn't change query params
+  const normalizedDate = watchedDate
+    ? new Date(watchedDate).setHours(0, 0, 0, 0)
+    : undefined;
+
+  // Reset selected slot when barber or service changes (date reset handled in calendar onSelect)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — reset on barber/service change
+  useEffect(() => {
+    setSelectedSlotTime(undefined);
+  }, [watchedBarber, effectiveServiceId]);
 
   // Use barber-specific services if available, otherwise fall back to all services
   const displayServices = barberServices ?? services;
@@ -233,10 +256,11 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                             (barber) => barber.name === value,
                           );
 
-                          // Always a barber will be selected, this is for type safety
                           if (selectedBarber) {
-                            field.onChange(selectedBarber._id);
-                            onBarberChange?.(selectedBarber);
+                            startTransition(() => {
+                              field.onChange(selectedBarber._id);
+                              onBarberChange?.(selectedBarber);
+                            });
                           }
                         }}
                         aria-invalid={fieldState.invalid}
@@ -289,131 +313,125 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
           )}
         </div>
 
-        <div className="grid w-full grid-cols-2 gap-4">
-          <Controller
-            name="date"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={formIds.date}>Fecha</FieldLabel>
-                <Popover>
-                  <PopoverTrigger
-                    render={
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground",
-                        )}
-                      >
-                        {field.value ? (
-                          <span className="text-xs sm:text-sm">
-                            {new Date(field.value as number).toLocaleDateString(
-                              "es-CO",
-                              {
-                                day: "2-digit",
-                                month: isMobile ? "short" : "long",
-                                year: "numeric",
-                              },
-                            )}
-                          </span>
-                        ) : (
-                          <span className="text-xs sm:text-sm">
-                            Selecciona una fecha
-                          </span>
-                        )}
-                        <CalendarIcon className="hidden sm:ml-auto sm:block sm:size-3 sm:opacity-50" />
-                      </Button>
+        <Controller
+          name="date"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={formIds.date}>Fecha</FieldLabel>
+              <Popover>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "mb-4 w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground",
+                      )}
+                    >
+                      {field.value ? (
+                        <span className="text-xs sm:text-sm">
+                          {new Date(field.value as number).toLocaleDateString(
+                            "es-CO",
+                            {
+                              day: "2-digit",
+                              month: isMobile ? "short" : "long",
+                              year: "numeric",
+                            },
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-xs sm:text-sm">
+                          Selecciona una fecha
+                        </span>
+                      )}
+                      <CalendarIcon className="hidden sm:ml-auto sm:block sm:size-3 sm:opacity-50" />
+                    </Button>
+                  }
+                />
+                <PopoverContent className="w-auto p-0" align="center">
+                  <Calendar
+                    mode="single"
+                    selected={
+                      field.value ? new Date(field.value as number) : undefined
                     }
-                  />
-                  <PopoverContent className="w-auto p-0" align="center">
-                    <Calendar
-                      mode="single"
-                      selected={
-                        field.value
-                          ? new Date(field.value as number)
-                          : undefined
+                    onSelect={(date) => {
+                      if (!date) {
+                        field.onChange(undefined);
+                        setSelectedSlotTime(undefined);
+                        return;
                       }
-                      onSelect={(date) => {
-                        if (!date) {
-                          field.onChange(undefined);
-                          return;
-                        }
-                        const current = field.value
-                          ? new Date(field.value as number)
-                          : (() => {
-                              const d = new Date();
-                              d.setHours(8, 30, 0, 0);
-                              return d;
-                            })();
-                        const combined = new Date(date);
-                        combined.setHours(
-                          current.getHours(),
-                          current.getMinutes(),
-                          0,
-                          0,
-                        );
+                      const combined = new Date(date);
+                      combined.setHours(0, 0, 0, 0);
+                      startTransition(() => {
                         field.onChange(combined.getTime());
-                      }}
-                      disabled={disableDay}
-                      className="bg-transparent [--cell-size:--spacing(12)]"
-                      captionLayout="label"
-                      locale={es}
-                    />
-                  </PopoverContent>
-                </Popover>
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
-          />
-
-          <Controller
-            name="date"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={formIds.startTime}>Hora</FieldLabel>
-                <div className="relative w-full">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center justify-center pl-3 text-muted-foreground peer-disabled:opacity-50">
-                    <ClockCounterClockwiseIcon className="size-4" />
-                    <span className="sr-only">Hora</span>
-                  </div>
-                  <Input
-                    type="time"
-                    id={formIds.startTime}
-                    value={
-                      field.value
-                        ? format(new Date(field.value as number), "HH:mm")
-                        : ""
-                    }
-                    onChange={(e) => {
-                      const time = e.target.value;
-                      const date = field.value
-                        ? new Date(field.value as number)
-                        : undefined;
-                      if (time) {
-                        const [hours, minutes] = time.split(":").map(Number);
-                        const base = date ?? new Date();
-                        const updatedDate = new Date(base);
-                        updatedDate.setHours(hours, minutes, 0, 0);
-                        field.onChange(updatedDate.getTime());
-                      }
+                        setSelectedSlotTime(undefined);
+                      });
                     }}
-                    className="peer w-full appearance-none bg-background pl-9 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                    disabled={disableDay}
+                    className="bg-transparent [--cell-size:--spacing(12)]"
+                    captionLayout="label"
+                    locale={es}
                   />
+                </PopoverContent>
+              </Popover>
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
+
+        <Field>
+          <FieldLabel>Hora disponible</FieldLabel>
+          {canShowSlots && normalizedDate ? (
+            <Suspense
+              fallback={
+                <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <Skeleton
+                      key={`slot-skeleton-${i.toString()}`}
+                      className="h-9 w-full"
+                    />
+                  ))}
                 </div>
-              </Field>
-            )}
-          />
-        </div>
+              }
+            >
+              <TimeSlotPicker
+                barbershopId={barbershopId}
+                barbershopMemberId={
+                  watchedBarber as BarbershopMemberWithName["_id"]
+                }
+                serviceId={effectiveServiceId}
+                date={normalizedDate}
+                value={selectedSlotTime}
+                isPending={isPending}
+                onChange={(slotTime, slotMinutes) => {
+                  setSelectedSlotTime(slotTime);
+                  const dateObj = new Date(normalizedDate);
+                  const hours = Math.floor(slotMinutes / 60);
+                  const minutes = slotMinutes % 60;
+                  dateObj.setHours(hours, minutes, 0, 0);
+                  form.setValue("date", dateObj.getTime(), {
+                    shouldValidate: true,
+                  });
+                }}
+              />
+            </Suspense>
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              {!watchedDate
+                ? "Selecciona una fecha para ver los horarios."
+                : !watchedBarber
+                  ? "Selecciona un barbero para ver los horarios."
+                  : "Selecciona un servicio para ver los horarios."}
+            </p>
+          )}
+        </Field>
 
         <Controller
           name="notes"
           control={form.control}
           render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
+            <Field data-invalid={fieldState.invalid} className="mt-4">
               <FieldLabel htmlFor={formIds.notes}>Notas (opcional)</FieldLabel>
               <Textarea
                 {...field}

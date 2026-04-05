@@ -39,6 +39,7 @@ import {
 import { useProfile } from "@/hooks/use-profile";
 import { useSession } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
+import { validateAppointmentTime } from "@/lib/schedule-utils";
 import { appointmentFormSchema } from "@/lib/schemas";
 import { formatPhoneNumber } from "@/lib/utils";
 import { useServicesStore } from "@/store/services";
@@ -115,8 +116,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
       isPending: isCreatingAppointment,
     },
   } = useAppointmentActions();
-  const { minutesOfTimestamp, scheduleForDate, timeStringToMinutes } =
-    useAppointmentFormMetadata(barbershopId);
+  const { scheduleForDate } = useAppointmentFormMetadata(barbershopId);
 
   // When a barber creates an appointment, default to themselves
   // Barbers default to themselves; staff must pick a barber
@@ -166,36 +166,10 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
 
   const onSubmit = form.handleSubmit(async (formData) => {
     const schedule = scheduleForDate(formData.date);
+    const validation = validateAppointmentTime(schedule, formData.date);
 
-    if (!schedule || !schedule.weekDay.isActive) {
-      toast.error("La barbería no atiende en el día seleccionado.");
-      return;
-    }
-
-    const selectedMinutes = minutesOfTimestamp(formData.date);
-    const openMinutes = timeStringToMinutes(schedule.openAt);
-    const closeMinutes = timeStringToMinutes(schedule.closeAt);
-
-    if (
-      (openMinutes && selectedMinutes < openMinutes) ||
-      (closeMinutes && selectedMinutes >= closeMinutes)
-    ) {
-      toast.error("Selecciona una hora dentro del horario de atención.");
-      return;
-    }
-
-    const lunchStartMinutes = timeStringToMinutes(schedule.lunchStart);
-    const lunchEndMinutes = timeStringToMinutes(schedule.lunchEnd);
-
-    if (
-      lunchStartMinutes &&
-      lunchEndMinutes &&
-      selectedMinutes >= lunchStartMinutes &&
-      selectedMinutes < lunchEndMinutes
-    ) {
-      toast.error(
-        "No se puede reservar una cita durante el horario seleccionado.",
-      );
+    if (!validation.valid) {
+      toast.error(validation.error);
       return;
     }
 
@@ -233,7 +207,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   return (
     <ResponsiveModal open={open} onOpenChange={setOpen}>
       <ResponsiveModalTrigger render={trigger} />
-      <ResponsiveModalContent>
+      <ResponsiveModalContent className="overflow-y-auto">
         <ResponsiveModalHeader>
           <ResponsiveModalTitle>{headLabel}</ResponsiveModalTitle>
           <ResponsiveModalDescription>
@@ -256,6 +230,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
               (service) => service !== null,
             )}
             onBarberChange={setSelectedBarber}
+            effectiveServiceId={effectiveServiceId}
             // @ts-expect-error - zod's coerce method returns an unknown type
             form={form}
             showPhoneField={showPhoneField}
