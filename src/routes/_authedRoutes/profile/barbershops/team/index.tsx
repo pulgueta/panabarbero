@@ -34,6 +34,7 @@ import {
 } from "@/hooks/barbershop/use-barbershop-member";
 import { useBarbershopPlan } from "@/hooks/billing/use-plan";
 import {
+  barberScheduleQueryOptions,
   barbershopMembersByBarbershopIdQueryOptions,
   servicesForBarberQueryOptions,
   staffByBarbershopIdQueryOptions,
@@ -109,11 +110,14 @@ export const Route = createFileRoute(
 
         if (barbershopMembers.length) {
           await Promise.all(
-            barbershopMembers.map((barbershopMember) =>
+            barbershopMembers.flatMap((barbershopMember) => [
               opts.context.queryClient.ensureQueryData(
                 servicesForBarberQueryOptions(barbershopMember._id),
               ),
-            ),
+              opts.context.queryClient.ensureQueryData(
+                barberScheduleQueryOptions(barbershopMember._id),
+              ),
+            ]),
           );
         }
       }
