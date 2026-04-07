@@ -19,6 +19,7 @@ import {
   Field as FieldRoot,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { usePlan } from "@/hooks/billing/use-plan";
 import { useProfileActions } from "@/hooks/use-profile";
@@ -33,6 +34,12 @@ const CreateBarbershopDialog = lazy(() =>
 const PricingDialog = lazy(() =>
   import("@/components/pricing/pricing-dialog").then((mod) => ({
     default: mod.PricingDialog,
+  })),
+);
+
+const BarberScheduleCard = lazy(() =>
+  import("@/components/profile/barber-schedule-card").then((mod) => ({
+    default: mod.BarberScheduleCard,
   })),
 );
 
@@ -289,6 +296,12 @@ export const AccountTab: FC<AccountTabProps> = ({
           </CardContent>
         </Card>
       </div>
+
+      {isBarber && (
+        <Suspense fallback={<Skeleton className="h-full w-full rounded-xl" />}>
+          <BarberScheduleCard userId={userId} />
+        </Suspense>
+      )}
     </div>
   );
 };
