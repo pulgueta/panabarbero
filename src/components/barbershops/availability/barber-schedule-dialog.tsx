@@ -1,5 +1,4 @@
 import type { Barbershop, BarbershopMemberWithName } from "@convex/schema";
-import { ClockCountdown } from "@phosphor-icons/react";
 import type { FC } from "react";
 import {
   Activity,
@@ -11,6 +10,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
+
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -135,16 +135,15 @@ export const BarberScheduleDialog: FC<BarberScheduleDialogProps> = ({
   const [hasLunch, setHasLunch] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Sync state when server data arrives or dialog opens
   useEffect(() => {
     if (!scheduleData) return;
+
     setIsCustom(scheduleData.isCustom);
     setRows(buildRows(scheduleData.schedule));
     setSelectedDays([]);
     setFormError(null);
   }, [scheduleData, buildRows]);
 
-  // Sync time inputs when selected days change
   useEffect(() => {
     const base = rows.find((entry) => entry.weekDay.day === selectedDays[0]);
     if (!base) return;
@@ -345,7 +344,6 @@ export const BarberScheduleDialog: FC<BarberScheduleDialogProps> = ({
   return (
     <>
       <Button variant="outline" onClick={() => onOpenChange(true)}>
-        <ClockCountdown data-icon="inline-start" />
         Horario
       </Button>
 
@@ -367,7 +365,7 @@ export const BarberScheduleDialog: FC<BarberScheduleDialogProps> = ({
               <Skeleton className="h-32 w-full" />
             </div>
           ) : (
-            <div className="flex flex-col gap-6 py-4">
+            <div className="flex flex-col gap-4 py-4">
               <Field orientation="horizontal">
                 <Switch
                   id={formIds.customToggle}
@@ -388,37 +386,37 @@ export const BarberScheduleDialog: FC<BarberScheduleDialogProps> = ({
               </Field>
 
               {/* Schedule summary (always shown) */}
-              <div className="rounded-lg border p-4">
-                <h4 className="mb-3 font-semibold text-sm">
-                  {isCustom
-                    ? "Horario personalizado"
-                    : "Horario de la barbería"}
-                </h4>
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                  {rows.map((entry) => {
-                    const day = entry.weekDay.day as DayKey;
-                    return (
-                      <div key={day} className="rounded border p-3 text-sm">
-                        <p className="font-semibold">{dayLabelMap[day]}</p>
-                        {entry.weekDay.isActive ? (
-                          <div className="text-muted-foreground">
-                            <p>
-                              {entry.openAt} – {entry.closeAt}
-                            </p>
-                            {entry.lunchStart && entry.lunchEnd && (
-                              <p className="text-xs">
-                                Pausa: {entry.lunchStart} – {entry.lunchEnd}
+              <Activity mode={isCustom ? "visible" : "hidden"}>
+                <div className="rounded-lg border p-4">
+                  <h4 className="mb-3 font-semibold text-sm">
+                    Horario personalizado
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                    {rows.map((entry) => {
+                      const day = entry.weekDay.day as DayKey;
+                      return (
+                        <div key={day} className="rounded border p-3 text-sm">
+                          <p className="font-semibold">{dayLabelMap[day]}</p>
+                          {entry.weekDay.isActive ? (
+                            <div className="text-muted-foreground">
+                              <p>
+                                {entry.openAt} – {entry.closeAt}
                               </p>
-                            )}
-                          </div>
-                        ) : (
-                          <p className="text-muted-foreground">Inactivo</p>
-                        )}
-                      </div>
-                    );
-                  })}
+                              {entry.lunchStart && entry.lunchEnd && (
+                                <p className="text-xs">
+                                  Pausa: {entry.lunchStart} – {entry.lunchEnd}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-muted-foreground">Inactivo</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              </Activity>
 
               {/* Editing form (only when custom) */}
               <Activity mode={isCustom ? "visible" : "hidden"}>

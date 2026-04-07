@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 
+import { convexToZod } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
-import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import { zInternalMutation, zInternalQuery, zMutation, zQuery } from ".";
@@ -33,6 +33,7 @@ import {
   minutesOfDay,
   overlapsLunchBreak,
   parseTimeToMinutes,
+  toColombiaDateKey,
   withinOpenHours,
 } from "./utils";
 
@@ -1119,11 +1120,21 @@ export const getAvailableSlots = zQuery({
       )
       .collect();
 
-    // Build occupied ranges [startMin, endMin)
+    // Build occupied ranges [startMin, endMin) — batch-load services to avoid N+1
+    const uniqueServiceIds = [
+      ...new Set(existingAppointments.map((a) => a.serviceId)),
+    ];
+    const loadedServices = await Promise.all(
+      uniqueServiceIds.map((id) => ctx.db.get(id)),
+    );
+    const serviceMap = new Map(
+      loadedServices.filter(Boolean).map((s) => [s!._id.toString(), s!]),
+    );
+
     const occupied: Array<{ start: number; end: number }> = [];
 
     for (const appt of existingAppointments) {
-      const apptService = await ctx.db.get(appt.serviceId);
+      const apptService = serviceMap.get(appt.serviceId.toString());
       const apptDuration = apptService?.duration ?? 0;
       const apptStartMin = minutesOfDay(appt.date);
       const apptEndMin = apptStartMin + apptDuration;
@@ -1132,8 +1143,9 @@ export const getAvailableSlots = zQuery({
 
     // Filter out slots that conflict with existing appointments
     const nowMinutes = minutesOfDay(Date.now());
+    // Use Colombia-aware date comparison to avoid off-by-one around midnight (UTC vs UTC-5)
     const isToday =
-      new Date(args.date).toDateString() === new Date().toDateString();
+      toColombiaDateKey(args.date) === toColombiaDateKey(Date.now());
 
     return slots.filter((slot) => {
       // Skip past slots for today

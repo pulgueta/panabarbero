@@ -14,10 +14,6 @@ export function formatPhoneNumber(phone: string): string {
   return formatted;
 }
 
-// ---------------------------------------------------------------------------
-// Schedule utilities — single source of truth for server-side time logic
-// ---------------------------------------------------------------------------
-
 export type WeekdayKey =
   | "sunday"
   | "monday"
@@ -38,12 +34,6 @@ export const DAY_MAP: readonly WeekdayKey[] = [
   "saturday",
 ] as const;
 
-/** Returns the weekday key for a given Date or timestamp. */
-export function getDayKeyForDate(date: Date | number): WeekdayKey {
-  const d = date instanceof Date ? date : new Date(date);
-  return DAY_MAP[d.getDay()];
-}
-
 /** Parses an "HH:mm" string into total minutes since midnight. */
 export function parseTimeToMinutes(time: string): number {
   const [hh, mm] = time.split(":").map((n) => Number(n));
@@ -54,23 +44,36 @@ export function parseTimeToMinutes(time: string): number {
 }
 
 /**
- * Converts a timestamp to minutes since midnight in Colombia (UTC-5).
- *
- * The offset is hardcoded because all barbershops operate in Colombia.
+ * Colombia is permanently UTC-5 — no DST observed.
+ * All barbershops in this app operate in this timezone.
+ * Update this constant if the app ever expands to other timezones.
  */
+const COLOMBIA_UTC_OFFSET_HOURS = -5;
+const COLOMBIA_OFFSET_MS = COLOMBIA_UTC_OFFSET_HOURS * 60 * 60 * 1000;
+
+/** Converts a timestamp to minutes since midnight in Colombia (UTC-5). */
 export function minutesOfDay(ts: number): number {
   const d = new Date(ts);
 
   const utcHours = d.getUTCHours();
   const utcMinutes = d.getUTCMinutes();
 
-  let localHours = utcHours - 5;
+  let localHours = utcHours + COLOMBIA_UTC_OFFSET_HOURS;
 
   if (localHours < 0) {
     localHours += 24;
   }
 
   return localHours * 60 + utcMinutes;
+}
+
+/**
+ * Returns a YYYY-MM-DD date key for a timestamp in Colombia (UTC-5).
+ * Use instead of new Date(ts).toDateString(), which uses server local time.
+ */
+export function toColombiaDateKey(ts: number): string {
+  const d = new Date(ts + COLOMBIA_OFFSET_MS);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 }
 
 /** Checks whether an appointment time range fits within open hours. */
