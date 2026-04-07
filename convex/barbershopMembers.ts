@@ -698,10 +698,14 @@ export const updateBarberSchedule = zMutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    // Validate time strings and logical ordering before persisting
+    // Validate time strings and logical ordering before persisting.
+    // Only active days carry meaningful openAt/closeAt values — inactive days
+    // are sent with empty strings from the client and must be skipped.
     const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
 
     for (const day of args.availability) {
+      if (!day.weekDay.isActive) continue;
+
       if (!timeRegex.test(day.openAt) || !timeRegex.test(day.closeAt)) {
         throw new ConvexError("Formato de hora inválido, usa HH:mm");
       }
