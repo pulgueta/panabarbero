@@ -1,5 +1,3 @@
-import { CheckoutLink } from "@convex-dev/polar/react";
-import { api } from "@convex/_generated/api";
 import type { UserProfileData } from "@convex/schema";
 import { InfoIcon } from "@phosphor-icons/react";
 import type { FC } from "react";
@@ -21,15 +19,27 @@ import {
   Field as FieldRoot,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { usePlan } from "@/hooks/billing/use-plan";
-import { usePricingPlans } from "@/hooks/billing/use-pricing";
 import { useProfileActions } from "@/hooks/use-profile";
 import { formatPhoneNumber } from "@/lib/utils";
 
 const CreateBarbershopDialog = lazy(() =>
   import("@/components/barbershops/create-barbershop-dialog").then((mod) => ({
     default: mod.CreateBarbershopDialog,
+  })),
+);
+
+const PricingDialog = lazy(() =>
+  import("@/components/pricing/pricing-dialog").then((mod) => ({
+    default: mod.PricingDialog,
+  })),
+);
+
+const BarberScheduleCard = lazy(() =>
+  import("@/components/profile/barber-schedule-card").then((mod) => ({
+    default: mod.BarberScheduleCard,
   })),
 );
 
@@ -63,11 +73,6 @@ export const AccountTab: FC<AccountTabProps> = ({
     useState<boolean>(false);
 
   const { isSubscribed } = usePlan();
-  const { data: products } = usePricingPlans();
-
-  const freeProduct = products.find((product) =>
-    product.prices.find((price) => price.amountType === "free"),
-  );
 
   useEffect(() => {
     const checkBannerVisibility = () => {
@@ -121,25 +126,18 @@ export const AccountTab: FC<AccountTabProps> = ({
             </Button>
             <br />
             <Suspense fallback={<Button disabled>Crear mi barbería</Button>}>
-              <CreateBarbershopDialog
-                trigger={
-                  isSubscribed ? (
+              {isSubscribed ? (
+                <CreateBarbershopDialog
+                  trigger={
                     <Button className="mt-1.5">Crear mi barbería</Button>
-                  ) : freeProduct ? (
-                    <CheckoutLink
-                      polarApi={{
-                        generateCheckoutLink: api.polar.generateCheckoutLink,
-                      }}
-                      productIds={[freeProduct.id]}
-                      // biome-ignore lint/correctness/noChildrenProp: can do
-                      children={<Button>Adquirir plan</Button>}
-                    />
-                  ) : (
-                    <Button disabled>Adquirir plan</Button>
-                  )
-                }
-                userId={userId}
-              />
+                  }
+                  userId={userId}
+                />
+              ) : (
+                <PricingDialog
+                  trigger={<Button className="mt-1.5">Adquirir plan</Button>}
+                />
+              )}
             </Suspense>
           </AlertDescription>
         </Alert>
@@ -298,6 +296,12 @@ export const AccountTab: FC<AccountTabProps> = ({
           </CardContent>
         </Card>
       </div>
+
+      {isBarber && (
+        <Suspense fallback={<Skeleton className="h-full w-full rounded-xl" />}>
+          <BarberScheduleCard userId={userId} />
+        </Suspense>
+      )}
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import { convexQuery } from "@convex-dev/react-query";
+import { api } from "@convex/_generated/api";
 import type { Barbershop } from "@convex/schema";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { api } from "convex/_generated/api";
 
 export function getExtraCreditsQueryOptions() {
   return convexQuery(api.credits.getMyExtraCredits, {});

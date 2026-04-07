@@ -11,6 +11,8 @@ import {
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
+import { parseTimeToMinutes } from "@/lib/schedule-utils";
+
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -173,18 +175,15 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
     [],
   );
 
-  const parseTimeToMinutes = (value: string) => {
-    const [hours, minutes] = value.split(":").map(Number);
-
-    if (Number.isNaN(hours) || Number.isNaN(minutes)) return 0;
-
-    return hours * 60 + minutes;
-  };
-
   const isTimeRangeValid = (start?: string, end?: string) => {
     if (!start || !end) return false;
 
-    return parseTimeToMinutes(end) > parseTimeToMinutes(start);
+    const startMin = parseTimeToMinutes(start);
+    const endMin = parseTimeToMinutes(end);
+
+    if (startMin === null || endMin === null) return false;
+
+    return endMin > startMin;
   };
 
   const handleSelectedDaysChange = (values: string[]) => {

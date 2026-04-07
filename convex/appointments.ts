@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 
+import { convexToZod } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
-import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import { zInternalMutation, zInternalQuery, zMutation, zQuery } from ".";
@@ -16,6 +16,7 @@ import {
   getBarbershopMemberByUserId,
   memberHasAnyRole,
 } from "./authz";
+import { getEffectiveSchedule } from "./barbershopMembers";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
 import type { UserProfileData } from "./schema";
@@ -26,7 +27,15 @@ import {
   services,
 } from "./schema";
 import { getProfileByEmail, getProfileByUserId } from "./userProfileData";
-import { formatPhoneNumber } from "./utils";
+import {
+  DAY_MAP,
+  formatPhoneNumber,
+  minutesOfDay,
+  overlapsLunchBreak,
+  parseTimeToMinutes,
+  toColombiaDateKey,
+  withinOpenHours,
+} from "./utils";
 
 const MINUTE_MS = 60 * 1000;
 
@@ -61,78 +70,6 @@ async function cancelScheduledNotifications(
       // Already completed, failed, or cancelled — safe to ignore
     }
   }
-}
-
-function parseTimeToMinutes(time: string): number {
-  const [hh, mm] = time.split(":").map((n) => Number(n));
-
-  if (Number.isNaN(hh) || Number.isNaN(mm)) return NaN;
-
-  return hh * 60 + mm;
-}
-
-function minutesOfDay(ts: number): number {
-  const d = new Date(ts);
-
-  const utcHours = d.getUTCHours();
-  const utcMinutes = d.getUTCMinutes();
-
-  let localHours = utcHours - 5;
-
-  if (localHours < 0) {
-    localHours += 24;
-  }
-
-  return localHours * 60 + utcMinutes;
-}
-
-function withinOpenHours(
-  openAt: string | undefined,
-  closeAt: string | undefined,
-  startAt: number,
-  endAt: number,
-): boolean {
-  if (!openAt || !closeAt) return true;
-
-  const openMin = parseTimeToMinutes(openAt);
-  const closeMin = parseTimeToMinutes(closeAt);
-
-  if (Number.isNaN(openMin) || Number.isNaN(closeMin)) return true;
-
-  const startMin = minutesOfDay(startAt);
-  const endMin = minutesOfDay(endAt);
-
-  const overnight = closeMin <= openMin;
-
-  if (!overnight) {
-    return startMin >= openMin && endMin <= closeMin;
-  }
-
-  const adjust = (m: number) => (m < openMin ? m + 1440 : m);
-
-  const adjStart = adjust(startMin);
-  const adjEnd = adjust(endMin);
-
-  return adjStart >= openMin && adjEnd <= closeMin + 1440;
-}
-
-function overlapsLunchBreak(
-  lunchStart: string | undefined,
-  lunchEnd: string | undefined,
-  startAt: number,
-  endAt: number,
-): boolean {
-  if (!lunchStart || !lunchEnd) return false;
-
-  const lunchStartMin = parseTimeToMinutes(lunchStart);
-  const lunchEndMin = parseTimeToMinutes(lunchEnd);
-
-  if (Number.isNaN(lunchStartMin) || Number.isNaN(lunchEndMin)) return false;
-
-  const startMin = minutesOfDay(startAt);
-  const endMin = minutesOfDay(endAt);
-
-  return startMin < lunchEndMin && endMin > lunchStartMin;
 }
 
 export const create = zMutation({
@@ -239,19 +176,12 @@ export const create = zMutation({
 
     if (!barbershop) throw new ConvexError(errorMessages.notFound("barbería"));
 
-    const date = new Date(appointment.date);
-    const dayIdx = date.getDay();
-    const dayMap = [
-      "sunday",
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-    ] as const;
-    const day = dayMap[dayIdx];
-    const dayAvailability = barbershop.availability.find(
+    const effectiveSchedule = await getEffectiveSchedule(
+      ctx,
+      appointment.barbershopMemberId,
+    );
+    const day = DAY_MAP[new Date(appointment.date).getDay()];
+    const dayAvailability = effectiveSchedule.find(
       (a) => a.weekDay.day === day,
     );
 
@@ -1066,5 +996,169 @@ export const overlaps = zInternalQuery({
     }
 
     return null;
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Available time slots for booking
+// ---------------------------------------------------------------------------
+
+const SLOT_INTERVAL = 30; // minutes
+
+/**
+ * Returns available 30-minute time slots for a given barber + date + service.
+ *
+ * Logic:
+ * 1. Get effective schedule for the barber (custom or inherited from barbershop).
+ * 2. Generate 30-min slots from openAt to (closeAt - serviceDuration).
+ * 3. Exclude slots that overlap the lunch break.
+ * 4. Exclude slots that overlap an existing appointment (pending/confirmed/rescheduled).
+ * 5. Exclude past slots if the date is today.
+ *
+ * The query is reactive — if another user books a slot, it auto-updates in real-time.
+ */
+export const getAvailableSlots = zQuery({
+  args: z.object({
+    barbershopId: barbershops.tools.id.shape.id,
+    barbershopMemberId: barbershopMembers.tools.id.shape.id,
+    serviceId: services.tools.id.shape.id,
+    /** Midnight timestamp of the selected date (any time on that day works). */
+    date: z.number(),
+  }),
+  handler: async (ctx, args) => {
+    const service = await ctx.db.get(args.serviceId);
+
+    if (!service) {
+      return [];
+    }
+
+    const effectiveSchedule = await getEffectiveSchedule(
+      ctx,
+      args.barbershopMemberId,
+    );
+
+    // Determine which day of the week we're looking at
+    const dateObj = new Date(args.date);
+    const dayKey = DAY_MAP[dateObj.getDay()];
+    const dayAvailability = effectiveSchedule.find(
+      (a) => a.weekDay.day === dayKey,
+    );
+
+    if (!dayAvailability || !dayAvailability.weekDay.isActive) {
+      return [];
+    }
+
+    const openMin = parseTimeToMinutes(dayAvailability.openAt);
+    const closeMin = parseTimeToMinutes(dayAvailability.closeAt);
+
+    if (Number.isNaN(openMin) || Number.isNaN(closeMin)) {
+      return [];
+    }
+
+    const lunchStartMin = dayAvailability.lunchStart
+      ? parseTimeToMinutes(dayAvailability.lunchStart)
+      : null;
+    const lunchEndMin = dayAvailability.lunchEnd
+      ? parseTimeToMinutes(dayAvailability.lunchEnd)
+      : null;
+    const hasLunch =
+      lunchStartMin !== null &&
+      lunchEndMin !== null &&
+      !Number.isNaN(lunchStartMin) &&
+      !Number.isNaN(lunchEndMin);
+
+    const serviceDuration = service.duration; // in minutes
+
+    // Generate candidate slots
+    const slots: Array<{ time: string; minutes: number }> = [];
+
+    for (
+      let min = openMin;
+      min + serviceDuration <= closeMin;
+      min += SLOT_INTERVAL
+    ) {
+      const slotEnd = min + serviceDuration;
+
+      // Skip if slot overlaps the lunch break
+      if (hasLunch && min < lunchEndMin! && slotEnd > lunchStartMin!) {
+        continue;
+      }
+
+      const hh = String(Math.floor(min / 60)).padStart(2, "0");
+      const mm = String(min % 60).padStart(2, "0");
+
+      slots.push({ time: `${hh}:${mm}`, minutes: min });
+    }
+
+    if (slots.length === 0) {
+      return [];
+    }
+
+    // Fetch existing appointments for this barber on this day
+    const startOfDay = new Date(args.date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const existingAppointments = await ctx.db
+      .query("appointments")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("barbershopMemberId"), args.barbershopMemberId),
+          q.gte(q.field("date"), startOfDay.getTime()),
+          q.lte(q.field("date"), endOfDay.getTime()),
+          q.or(
+            q.eq(q.field("status"), "pending"),
+            q.eq(q.field("status"), "confirmed"),
+            q.eq(q.field("status"), "rescheduled"),
+          ),
+          q.eq(q.field("deletedAt"), undefined),
+        ),
+      )
+      .collect();
+
+    // Build occupied ranges [startMin, endMin) — batch-load services to avoid N+1
+    const uniqueServiceIds = [
+      ...new Set(existingAppointments.map((a) => a.serviceId)),
+    ];
+    const loadedServices = await Promise.all(
+      uniqueServiceIds.map((id) => ctx.db.get(id)),
+    );
+    const serviceMap = new Map(
+      loadedServices.filter(Boolean).map((s) => [s!._id.toString(), s!]),
+    );
+
+    const occupied: Array<{ start: number; end: number }> = [];
+
+    for (const appt of existingAppointments) {
+      const apptService = serviceMap.get(appt.serviceId.toString());
+      const apptDuration = apptService?.duration ?? 0;
+      const apptStartMin = minutesOfDay(appt.date);
+      const apptEndMin = apptStartMin + apptDuration;
+      occupied.push({ start: apptStartMin, end: apptEndMin });
+    }
+
+    // Filter out slots that conflict with existing appointments
+    const nowMinutes = minutesOfDay(Date.now());
+    // Use Colombia-aware date comparison to avoid off-by-one around midnight (UTC vs UTC-5)
+    const isToday =
+      toColombiaDateKey(args.date) === toColombiaDateKey(Date.now());
+
+    return slots.filter((slot) => {
+      // Skip past slots for today
+      if (isToday && slot.minutes < nowMinutes) {
+        return false;
+      }
+
+      const slotEnd = slot.minutes + serviceDuration;
+
+      // Check overlap with occupied ranges
+      return !occupied.some(
+        (occ) => slot.minutes < occ.end && slotEnd > occ.start,
+      );
+    });
   },
 });

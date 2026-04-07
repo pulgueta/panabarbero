@@ -20,6 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cacheTime } from "@/config/cache";
 import {
+  barbershopAvailabilityQueryOptions,
   barbershopByUuidQueryOptions,
   useBarbershopByUuid,
 } from "@/hooks/barbershop/use-barbershop";
@@ -55,6 +56,12 @@ const ServicesGrid = lazy(() =>
   })),
 );
 
+const BarberTeamSection = lazy(() =>
+  import("@/components/barbershops/barber-team-section").then((module) => ({
+    default: module.BarberTeamSection,
+  })),
+);
+
 export const Route = createFileRoute("/barbershops/$barbershopUuid")({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
@@ -78,13 +85,17 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid")({
     }
 
     if (barbershop?._id) {
-      await context.queryClient.ensureQueryData(
-        servicesQueryOptions(barbershop._id),
-      );
-
-      const barbershopMembers = await context.queryClient.ensureQueryData(
-        barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
-      );
+      const [, barbershopMembers] = await Promise.all([
+        context.queryClient.ensureQueryData(
+          servicesQueryOptions(barbershop._id),
+        ),
+        context.queryClient.ensureQueryData(
+          barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+        ),
+        context.queryClient.ensureQueryData(
+          barbershopAvailabilityQueryOptions(barbershop._id),
+        ),
+      ]);
 
       if (barbershopMembers.length > 0) {
         await Promise.all(
@@ -213,6 +224,33 @@ function RouteComponent() {
             )}
           </Suspense>
         </section>
+
+        {barbershopMembers && barbershopMembers.length > 0 && (
+          <>
+            <Separator className="my-6" />
+
+            <section className="space-y-4">
+              <h2 className="text-balance font-semibold text-xl tracking-tight">
+                Nuestro equipo
+              </h2>
+
+              <Suspense
+                fallback={
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <Skeleton
+                        key={`team-skeleton-${i.toString()}`}
+                        className="h-16 w-full rounded-lg"
+                      />
+                    ))}
+                  </div>
+                }
+              >
+                <BarberTeamSection barbers={barbershopMembers} />
+              </Suspense>
+            </section>
+          </>
+        )}
       </main>
     </BorderContainer>
   );

@@ -25,6 +25,7 @@ import {
 } from "@/hooks/use-appointments";
 import { useSession } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
+import { validateAppointmentTime } from "@/lib/schedule-utils";
 import { rescheduleRequestFormSchema } from "@/lib/schemas";
 import { RescheduleRequestForm } from "./reschedule-request-form";
 
@@ -58,12 +59,9 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
 
   const { data: session } = useSession();
 
-  const {
-    disableDay,
-    scheduleForDate,
-    timeStringToMinutes,
-    minutesOfTimestamp,
-  } = useAppointmentFormMetadata(appointment.barbershopId);
+  const { disableDay, scheduleForDate } = useAppointmentFormMetadata(
+    appointment.barbershopId,
+  );
   const haptic = useWebHaptics();
 
   const {
@@ -87,36 +85,10 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
     const timestamp = values.date;
 
     const schedule = scheduleForDate(timestamp);
+    const validation = validateAppointmentTime(schedule, timestamp);
 
-    if (!schedule || !schedule.weekDay.isActive) {
-      toast.error("La barbería no atiende en el día seleccionado.");
-      return;
-    }
-
-    const selectedMinutes = minutesOfTimestamp(timestamp);
-    const openMinutes = timeStringToMinutes(schedule.openAt);
-    const closeMinutes = timeStringToMinutes(schedule.closeAt);
-
-    if (
-      (openMinutes !== null && selectedMinutes < openMinutes) ||
-      (closeMinutes !== null && selectedMinutes >= closeMinutes)
-    ) {
-      toast.error("Selecciona una hora dentro del horario de atención.");
-      return;
-    }
-
-    const lunchStartMinutes = timeStringToMinutes(schedule.lunchStart);
-    const lunchEndMinutes = timeStringToMinutes(schedule.lunchEnd);
-
-    if (
-      lunchStartMinutes !== null &&
-      lunchEndMinutes !== null &&
-      selectedMinutes >= lunchStartMinutes &&
-      selectedMinutes < lunchEndMinutes
-    ) {
-      toast.error(
-        "No se puede proponer una cita durante el horario seleccionado.",
-      );
+    if (!validation.valid) {
+      toast.error(validation.error);
       return;
     }
 

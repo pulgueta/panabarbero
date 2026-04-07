@@ -43,6 +43,14 @@ const ManageServicesDialog = lazy(() =>
   })),
 );
 
+const BarberScheduleDialog = lazy(() =>
+  import("../barbershops/availability/barber-schedule-dialog").then(
+    (module) => ({
+      default: module.BarberScheduleDialog,
+    }),
+  ),
+);
+
 function parseWillCancelError(errorMessage: string): number | null {
   const match = errorMessage.match(/WILL_CANCEL:(\d+)/);
   return match ? Number.parseInt(match[1], 10) : null;
@@ -206,6 +214,7 @@ export const MemberCard: FC<MemberCardProps> = ({
   isOwner,
 }) => {
   const [manageOpen, setManageOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
 
   const isBarber = member.roles.includes("barber");
   const isMemberOwner = member.roles.includes("owner");
@@ -216,6 +225,7 @@ export const MemberCard: FC<MemberCardProps> = ({
 
   const canRemove = isOwner && !isMemberOwner;
   const canManageServices = isOwner && isBarber && barberServices;
+  const canManageSchedule = isOwner && isBarber;
   const removeVariant = isBarber ? "barber" : "staff";
 
   return (
@@ -255,7 +265,23 @@ export const MemberCard: FC<MemberCardProps> = ({
         )}
       </CardContent>
 
-      <CardFooter className="justify-end gap-2">
+      <CardFooter className="flex-wrap justify-end gap-2">
+        {canManageSchedule && (
+          <Suspense
+            fallback={
+              <Button variant="outline" disabled>
+                Horario
+              </Button>
+            }
+          >
+            <BarberScheduleDialog
+              member={member}
+              open={scheduleOpen}
+              onOpenChange={setScheduleOpen}
+            />
+          </Suspense>
+        )}
+
         {canManageServices && services && (
           <Suspense
             fallback={

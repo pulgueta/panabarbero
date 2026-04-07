@@ -1,7 +1,7 @@
-import type { Barbershop, BarbershopMember, Service } from "@convex/schema";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
+import { api } from "@convex/_generated/api";
+import type { Barbershop, BarbershopMember, Service } from "@convex/schema";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import { api } from "convex/_generated/api";
 
 export function barbershopMembersByBarbershopIdQueryOptions(
   barbershopId: Barbershop["_id"],
@@ -109,6 +109,22 @@ export function useBarbersForService(serviceId: Service["_id"]) {
   return useQuery(barbersForServiceQueryOptions(serviceId));
 }
 
+// ---------------------------------------------------------------------------
+// Barber schedule
+// ---------------------------------------------------------------------------
+
+export function barberScheduleQueryOptions(
+  barbershopMemberId: BarbershopMember["_id"],
+) {
+  return convexQuery(api.barbershopMembers.getBarberSchedule, {
+    barbershopMemberId,
+  });
+}
+
+export function useBarberSchedule(barbershopMemberId: BarbershopMember["_id"]) {
+  return useQuery(barberScheduleQueryOptions(barbershopMemberId));
+}
+
 export function useBarbershopMemberActions() {
   const inviteBarberMutation = useMutation({
     mutationFn: inviteBarberMutationOptions(),
@@ -144,6 +160,14 @@ export function useBarbershopMemberActions() {
     mutationFn: useConvexMutation(api.barbershopMembers.toggleBarberRole),
   });
 
+  const updateBarberScheduleMutation = useMutation({
+    mutationFn: useConvexMutation(api.barbershopMembers.updateBarberSchedule),
+  });
+
+  const resetBarberScheduleMutation = useMutation({
+    mutationFn: useConvexMutation(api.barbershopMembers.resetBarberSchedule),
+  });
+
   return {
     inviteBarberMutation,
     validateInvitationMutation,
@@ -152,5 +176,7 @@ export function useBarbershopMemberActions() {
     removeBarberMutation,
     removeStaffMutation,
     toggleBarberRoleMutation,
+    updateBarberScheduleMutation,
+    resetBarberScheduleMutation,
   };
 }

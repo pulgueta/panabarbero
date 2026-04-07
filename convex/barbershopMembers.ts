@@ -8,11 +8,17 @@ import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { authComponent } from "./auth";
-import { assertCanManageShop, getBetterAuthUser } from "./authz";
+import {
+  assertCanManageShop,
+  assertShopRole,
+  getBetterAuthUser,
+} from "./authz";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
+import type { Barbershop } from "./schema";
 import { barbershopMembers, barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
+import { parseTimeToMinutes } from "./utils";
 
 export const create = zInternalMutation({
   args: barbershopMembers.tools.insert,
@@ -608,3 +614,180 @@ export const getByUserIdFn = async (
     )
     .unique();
 };
+
+// ---------------------------------------------------------------------------
+// Barber schedule helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the effective working schedule for a barber.
+ *
+ * If the barber has a custom `availability` override → returns that.
+ * Otherwise falls back to the parent barbershop's schedule.
+ */
+export async function getEffectiveSchedule(
+  ctx: QueryCtx | MutationCtx,
+  barbershopMemberId: Id<"barbershopMembers">,
+): Promise<Barbershop["availability"]> {
+  const member = await ctx.db.get(barbershopMemberId);
+
+  if (!member) {
+    throw new ConvexError(errorMessages.notFound("barbero"));
+  }
+
+  if (member.availability && member.availability.length > 0) {
+    return member.availability;
+  }
+
+  const barbershop = await ctx.db.get(member.barbershopId);
+
+  if (!barbershop) {
+    throw new ConvexError(errorMessages.notFound("barbería"));
+  }
+
+  return barbershop.availability;
+}
+
+export const getBarberSchedule = zQuery({
+  args: z.object({
+    barbershopMemberId: barbershopMembers.tools.id.shape.id,
+  }),
+  handler: async (ctx, args) => {
+    const member = await ctx.db.get(args.barbershopMemberId);
+
+    if (!member) {
+      return null;
+    }
+
+    const isCustom = !!(member.availability && member.availability.length > 0);
+    const schedule = await getEffectiveSchedule(ctx, args.barbershopMemberId);
+
+    return { schedule, isCustom };
+  },
+});
+
+export const updateBarberSchedule = zMutation({
+  args: z.object({
+    barbershopMemberId: barbershopMembers.tools.id.shape.id,
+    availability: barbershops.insertSchema.shape.availability,
+  }),
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    const member = await ctx.db.get(args.barbershopMemberId);
+
+    if (!member) {
+      throw new ConvexError(errorMessages.notFound("barbero"));
+    }
+
+    const callerMember = await assertShopRole(
+      ctx,
+      member.barbershopId,
+      user.userId,
+      ["owner", "staff"],
+    );
+    await rateLimitOrThrow(ctx, "updateBarberSchedule", user._id);
+
+    // Staff may only edit their own schedule; owners can edit any barber's schedule
+    const isOwner = callerMember.roles.includes("owner");
+    if (!isOwner && callerMember._id !== args.barbershopMemberId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    // Validate time strings and logical ordering before persisting.
+    // Only active days carry meaningful openAt/closeAt values — inactive days
+    // are sent with empty strings from the client and must be skipped.
+    const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+    for (const day of args.availability) {
+      if (!day.weekDay.isActive) continue;
+
+      if (!timeRegex.test(day.openAt) || !timeRegex.test(day.closeAt)) {
+        throw new ConvexError("Formato de hora inválido, usa HH:mm");
+      }
+
+      const openMin = parseTimeToMinutes(day.openAt);
+      const closeMin = parseTimeToMinutes(day.closeAt);
+
+      if (openMin >= closeMin) {
+        throw new ConvexError(
+          "La hora de apertura debe ser anterior a la hora de cierre",
+        );
+      }
+
+      if (day.lunchStart || day.lunchEnd) {
+        if (!day.lunchStart || !day.lunchEnd) {
+          throw new ConvexError(
+            "Debes especificar tanto el inicio como el fin del horario de no disponibilidad",
+          );
+        }
+
+        if (!timeRegex.test(day.lunchStart) || !timeRegex.test(day.lunchEnd)) {
+          throw new ConvexError(
+            "Formato de hora de no disponibilidad inválido, usa HH:mm",
+          );
+        }
+
+        const lunchStartMin = parseTimeToMinutes(day.lunchStart);
+        const lunchEndMin = parseTimeToMinutes(day.lunchEnd);
+
+        if (lunchStartMin >= lunchEndMin) {
+          throw new ConvexError(
+            "El inicio del horario de no disponibilidad debe ser anterior al fin del horario de no disponibilidad",
+          );
+        }
+
+        if (lunchStartMin < openMin || lunchEndMin > closeMin) {
+          throw new ConvexError(
+            "El horario de no disponibilidad debe estar dentro del horario de apertura",
+          );
+        }
+      }
+    }
+
+    await ctx.db.patch(args.barbershopMemberId, {
+      availability: args.availability,
+    });
+  },
+});
+
+export const resetBarberSchedule = zMutation({
+  args: z.object({
+    barbershopMemberId: barbershopMembers.tools.id.shape.id,
+  }),
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    const member = await ctx.db.get(args.barbershopMemberId);
+
+    if (!member) {
+      throw new ConvexError(errorMessages.notFound("barbero"));
+    }
+
+    const callerMember = await assertShopRole(
+      ctx,
+      member.barbershopId,
+      user.userId,
+      ["owner", "staff"],
+    );
+    await rateLimitOrThrow(ctx, "updateBarberSchedule", user._id);
+
+    // Staff may only reset their own schedule; owners can reset any barber's schedule
+    const isOwner = callerMember.roles.includes("owner");
+    if (!isOwner && callerMember._id !== args.barbershopMemberId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    await ctx.db.patch(args.barbershopMemberId, {
+      availability: undefined,
+    });
+  },
+});

@@ -1,5 +1,7 @@
 import type { Barbershop } from "@convex/schema";
 
+import { getDayKeyForDate } from "@/lib/schedule-utils";
+
 export function useSchedule(availability: Barbershop["availability"] | null) {
   const formatTimeLabel = (time?: string | null) => {
     if (!time) return null;
@@ -21,15 +23,7 @@ export function useSchedule(availability: Barbershop["availability"] | null) {
   const todaySchedule = (() => {
     if (!availability?.length) return undefined;
 
-    const weekday = [
-      "sunday",
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-    ][new Date().getDay()];
+    const weekday = getDayKeyForDate(new Date());
 
     return availability.find((entry) => entry.weekDay.day === weekday);
   })();

@@ -14,7 +14,7 @@ import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
 import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
-import { formatPhoneNumber } from "./utils";
+import { DAY_MAP, formatPhoneNumber } from "./utils";
 
 export const create = zMutation({
   args: z.object({
@@ -311,17 +311,7 @@ export const getAvailabilityForDate = zQuery({
       return null;
     }
 
-    const dayIdx = new Date(args.date).getDay();
-    const dayMap = [
-      "sunday",
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-    ] as const;
-    const day = dayMap[dayIdx];
+    const day = DAY_MAP[new Date(args.date).getDay()];
 
     const dayAvailability = barbershop.availability.find(
       (a) => a.weekDay.day === day,

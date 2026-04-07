@@ -1,7 +1,7 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
+import { api } from "@convex/_generated/api";
 import type { Appointment, Barbershop, Service } from "@convex/schema";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import { api } from "convex/_generated/api";
 
 export function createServiceOptions() {
   return useConvexMutation(api.services.create);

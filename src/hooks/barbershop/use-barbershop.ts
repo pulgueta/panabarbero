@@ -1,7 +1,7 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
+import { api } from "@convex/_generated/api";
 import type { Barbershop } from "@convex/schema";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import { api } from "convex/_generated/api";
 
 import type { BarbershopSearch } from "@/routes/barbershops";
 
