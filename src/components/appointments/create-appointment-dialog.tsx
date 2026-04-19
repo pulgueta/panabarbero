@@ -41,7 +41,6 @@ import { useSession } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 import { validateAppointmentTime } from "@/lib/schedule-utils";
 import { appointmentFormSchema } from "@/lib/schemas";
-import { formatPhoneNumber } from "@/lib/utils";
 import { useServicesStore } from "@/store/services";
 import { CreateAppointmentForm } from "./create-appointment-form";
 
@@ -177,7 +176,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
       await createAppointment({
         appointment: {
           ...formData,
-          contactPhone: formatPhoneNumber(formData.contactPhone),
+          contactPhone: formData.contactPhone,
           barbershopId,
           barbershopMemberId: formData.barbershopMemberId,
           serviceId: effectiveServiceId,

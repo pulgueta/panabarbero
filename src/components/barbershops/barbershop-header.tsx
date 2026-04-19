@@ -171,7 +171,7 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
           <div className="flex items-center gap-2 text-muted-foreground">
             <PhoneIcon className="size-4 shrink-0" weight="duotone" />
             <a
-              href={`tel:+57${barbershop.contactPhone}`}
+              href={`tel:${barbershop.contactPhone}`}
               className="underline-offset-4 hover:text-foreground hover:underline"
             >
               {barbershop.contactPhone}

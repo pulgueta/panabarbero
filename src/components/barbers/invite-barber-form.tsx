@@ -5,12 +5,12 @@ import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
 import { useAppForm } from "@/components/form/use-form";
-import { FieldGroup } from "@/components/ui/field";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useBarbershopMemberActions } from "@/hooks/use-barbershop-members";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
-import { formatPhoneNumber } from "@/lib/utils";
 
 interface InviteBarberFormProps {
   canInviteStaff?: boolean;
@@ -45,7 +45,7 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
       try {
         await inviteBarber({
           ...value,
-          phone: formatPhoneNumber(value.phone),
+          phone: value.phone,
           email: value.email.trim().toLowerCase(),
         });
 
@@ -83,11 +83,23 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
 
         <form.AppField name="phone">
           {(field) => (
-            <field.TextField
-              label="Teléfono"
-              placeholder="3119871234"
-              type="tel"
-            />
+            <Field data-invalid={field.state.meta.errors.length > 0}>
+              <FieldLabel>Teléfono</FieldLabel>
+              <PhoneInput
+                value={field.state.value}
+                onChange={field.handleChange}
+                defaultCountry="CO"
+                placeholder="311 987 1234"
+                aria-invalid={field.state.meta.errors.length > 0}
+              />
+              {field.state.meta.errors.length > 0 && (
+                <FieldError
+                  errors={field.state.meta.errors.map((e) => ({
+                    message: String(e),
+                  }))}
+                />
+              )}
+            </Field>
           )}
         </form.AppField>
 

@@ -17,7 +17,7 @@ export const sendSms = zInternalAction({
   }),
   handler: async (ctx, args) => {
     return await twilio.sendMessage(ctx, {
-      to: `+57${args.to}`,
+      to: args.to,
       from: defaultFrom,
       body: args.body,
     });

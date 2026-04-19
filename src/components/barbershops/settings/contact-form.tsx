@@ -11,10 +11,9 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Spinner } from "@/components/ui/spinner";
 import { useBarbershopActions } from "@/hooks/barbershop/use-barbershop";
-import { formatPhoneNumber } from "@/lib/utils";
 
 interface ContactFormProps {
   barbershop: Barbershop;
@@ -51,7 +50,7 @@ export const ContactForm: FC<ContactFormProps> = ({
           description: barbershop.description || undefined,
           address: barbershop.address,
           services: barbershop.services ?? [],
-          contactPhone: phone ? formatPhoneNumber(phone) : undefined,
+          contactPhone: phone || undefined,
           isActive: barbershop.isActive,
           gracePeriodMinutes: barbershop.gracePeriodMinutes ?? 5,
           ownerId: barbershop.ownerId,
@@ -76,11 +75,12 @@ export const ContactForm: FC<ContactFormProps> = ({
       <FieldGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor={ids.phone}>Teléfono de contacto</FieldLabel>
-          <Input
+          <PhoneInput
             id={ids.phone}
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="3000000000"
+            onChange={setPhone}
+            defaultCountry="CO"
+            placeholder="300 000 0000"
           />
         </Field>
         <Field data-invalid={invalidEmail}>

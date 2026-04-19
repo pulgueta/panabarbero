@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import {
   Popover,
   PopoverContent,
@@ -175,13 +176,13 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                       <FieldLabel htmlFor={formIds.contactPhone}>
                         Teléfono de contacto
                       </FieldLabel>
-                      <Input
-                        {...field}
+                      <PhoneInput
                         id={formIds.contactPhone}
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        defaultCountry="CO"
+                        placeholder="311 987 1234"
                         aria-invalid={fieldState.invalid}
-                        placeholder="3119871234"
-                        autoComplete="tel"
-                        type="tel"
                         disabled={disabledFields?.includes("contactPhone")}
                       />
 

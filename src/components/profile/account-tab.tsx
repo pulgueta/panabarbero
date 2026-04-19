@@ -19,11 +19,11 @@ import {
   Field as FieldRoot,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { usePlan } from "@/hooks/billing/use-plan";
 import { useProfileActions } from "@/hooks/use-profile";
-import { formatPhoneNumber } from "@/lib/utils";
 
 const CreateBarbershopDialog = lazy(() =>
   import("@/components/barbershops/create-barbershop-dialog").then((mod) => ({
@@ -218,20 +218,18 @@ export const AccountTab: FC<AccountTabProps> = ({
             <FieldRoot>
               <FieldContent>
                 <div className="flex gap-3">
-                  <Input
+                  <PhoneInput
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="3014441122"
-                    autoComplete="tel"
-                    type="tel"
-                    pattern="[0-9]*"
-                    maxLength={10}
+                    onChange={setPhone}
+                    defaultCountry="CO"
+                    placeholder="300 444 1122"
                     disabled={isUpdatingPhoneNumber}
+                    className="flex-1"
                   />
                   <Button
                     onClick={() =>
                       updatePhoneNumber({
-                        phoneNumber: phone ? formatPhoneNumber(phone) : "",
+                        phoneNumber: phone ?? "",
                       })
                     }
                     disabled={isUpdatingPhoneNumber}
