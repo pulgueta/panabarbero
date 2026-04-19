@@ -151,3 +151,10 @@ export function isCurrentlyOpen(
 
   return currentMinutes >= openMinutes && currentMinutes < closeMinutes;
 }
+
+/** Returns the end time string given a start "HH:MM" and a duration in minutes. */
+export function addMinutesToTime(hhmm: string, minutes: number): string {
+  const [h, m] = hhmm.split(":").map(Number);
+  const total = h * 60 + m + minutes;
+  return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}

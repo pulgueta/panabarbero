@@ -3,10 +3,10 @@ import type {
   BarbershopMemberWithName,
   Service,
 } from "@convex/schema";
+import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
 
-import { CreateAppointmentDialog } from "@/components/appointments/create-appointment-dialog";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -14,18 +14,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 interface ServicesGridProps {
   services: Service[];
   barbers: BarbershopMemberWithName[];
   barbershopId: Barbershop["_id"];
+  barbershopUuid: string;
 }
 
 export const ServicesGrid: FC<ServicesGridProps> = ({
   services,
-  barbers,
-  barbershopId,
+  barbershopUuid,
 }) => {
   const viewTransitionName =
     services.length > 0
@@ -54,17 +54,17 @@ export const ServicesGrid: FC<ServicesGridProps> = ({
             </p>
           </CardContent>
           <CardFooter>
-            <CreateAppointmentDialog
-              barbershopId={barbershopId}
-              services={services}
-              barbers={barbers}
-              serviceId={service._id}
-              trigger={
-                <Button className="w-full" variant="default">
-                  Reservar
-                </Button>
-              }
-            />
+            <Link
+              to="/barbershops/$barbershopUuid/book"
+              params={{ barbershopUuid }}
+              search={{ serviceId: service._id }}
+              className={cn(
+                buttonVariants({ variant: "default" }),
+                "w-full justify-center",
+              )}
+            >
+              Reservar
+            </Link>
           </CardFooter>
         </Card>
       ))}

@@ -62,7 +62,7 @@ const BarberTeamSection = lazy(() =>
   })),
 );
 
-export const Route = createFileRoute("/barbershops/$barbershopUuid")({
+export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
   loader: async ({ context, params }) => {
@@ -206,11 +206,14 @@ function RouteComponent() {
           </h2>
 
           <Suspense fallback={<ServicesSkeleton />}>
-            <ServicesGrid
-              services={services}
-              barbers={barbershopMembers}
-              barbershopId={barbershop?._id!}
-            />
+            {barbershop?.uuid && (
+              <ServicesGrid
+                services={services}
+                barbers={barbershopMembers}
+                barbershopId={barbershop?._id!}
+                barbershopUuid={barbershop.uuid}
+              />
+            )}
 
             {services?.length < 1 && (
               <Empty>

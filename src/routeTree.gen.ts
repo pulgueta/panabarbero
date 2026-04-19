@@ -19,14 +19,15 @@ import { Route as AuthedRoutesRouteRouteImport } from "./routes/_authedRoutes/ro
 import { Route as AuthRouteRouteImport } from "./routes/_auth/route"
 import { Route as IndexRouteImport } from "./routes/index"
 import { Route as BarbershopsIndexRouteImport } from "./routes/barbershops/index"
-import { Route as BarbershopsBarbershopUuidRouteImport } from "./routes/barbershops/$barbershopUuid"
 import { Route as AppointmentsCreateRouteImport } from "./routes/appointments/create"
 import { Route as AuthVerifyEmailRouteImport } from "./routes/_auth/verify-email"
 import { Route as AuthResetPasswordRouteImport } from "./routes/_auth/reset-password"
 import { Route as AuthRegisterRouteImport } from "./routes/_auth/register"
 import { Route as AuthLoginRouteImport } from "./routes/_auth/login"
 import { Route as AuthForgotPasswordRouteImport } from "./routes/_auth/forgot-password"
+import { Route as BarbershopsBarbershopUuidIndexRouteImport } from "./routes/barbershops/$barbershopUuid/index"
 import { Route as AuthedRoutesProfileIndexRouteImport } from "./routes/_authedRoutes/profile/index"
+import { Route as BarbershopsBarbershopUuidBookRouteImport } from "./routes/barbershops/$barbershopUuid/book"
 import { Route as ApiAuthSplatRouteImport } from "./routes/api/auth/$"
 import { Route as AuthedRoutesInvitationsCodeRouteImport } from "./routes/_authedRoutes/invitations/$code"
 import { Route as AuthedRoutesProfileBarbershopsTeamIndexRouteImport } from "./routes/_authedRoutes/profile/barbershops/team/index"
@@ -82,12 +83,6 @@ const BarbershopsIndexRoute = BarbershopsIndexRouteImport.update({
   path: "/barbershops/",
   getParentRoute: () => rootRouteImport,
 } as any)
-const BarbershopsBarbershopUuidRoute =
-  BarbershopsBarbershopUuidRouteImport.update({
-    id: "/barbershops/$barbershopUuid",
-    path: "/barbershops/$barbershopUuid",
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const AppointmentsCreateRoute = AppointmentsCreateRouteImport.update({
   id: "/appointments/create",
   path: "/appointments/create",
@@ -118,11 +113,23 @@ const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
   path: "/forgot-password",
   getParentRoute: () => AuthRouteRoute,
 } as any)
+const BarbershopsBarbershopUuidIndexRoute =
+  BarbershopsBarbershopUuidIndexRouteImport.update({
+    id: "/barbershops/$barbershopUuid/",
+    path: "/barbershops/$barbershopUuid/",
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthedRoutesProfileIndexRoute =
   AuthedRoutesProfileIndexRouteImport.update({
     id: "/profile/",
     path: "/profile/",
     getParentRoute: () => AuthedRoutesRouteRoute,
+  } as any)
+const BarbershopsBarbershopUuidBookRoute =
+  BarbershopsBarbershopUuidBookRouteImport.update({
+    id: "/barbershops/$barbershopUuid/book",
+    path: "/barbershops/$barbershopUuid/book",
+    getParentRoute: () => rootRouteImport,
   } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: "/api/auth/$",
@@ -174,11 +181,12 @@ export interface FileRoutesByFullPath {
   "/reset-password": typeof AuthResetPasswordRoute
   "/verify-email": typeof AuthVerifyEmailRoute
   "/appointments/create": typeof AppointmentsCreateRoute
-  "/barbershops/$barbershopUuid": typeof BarbershopsBarbershopUuidRoute
   "/barbershops/": typeof BarbershopsIndexRoute
   "/invitations/$code": typeof AuthedRoutesInvitationsCodeRoute
   "/api/auth/$": typeof ApiAuthSplatRoute
+  "/barbershops/$barbershopUuid/book": typeof BarbershopsBarbershopUuidBookRoute
   "/profile/": typeof AuthedRoutesProfileIndexRoute
+  "/barbershops/$barbershopUuid/": typeof BarbershopsBarbershopUuidIndexRoute
   "/profile/barbershops/appointments/": typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
   "/profile/barbershops/services/": typeof AuthedRoutesProfileBarbershopsServicesIndexRoute
   "/profile/barbershops/settings/": typeof AuthedRoutesProfileBarbershopsSettingsIndexRoute
@@ -198,11 +206,12 @@ export interface FileRoutesByTo {
   "/reset-password": typeof AuthResetPasswordRoute
   "/verify-email": typeof AuthVerifyEmailRoute
   "/appointments/create": typeof AppointmentsCreateRoute
-  "/barbershops/$barbershopUuid": typeof BarbershopsBarbershopUuidRoute
   "/barbershops": typeof BarbershopsIndexRoute
   "/invitations/$code": typeof AuthedRoutesInvitationsCodeRoute
   "/api/auth/$": typeof ApiAuthSplatRoute
+  "/barbershops/$barbershopUuid/book": typeof BarbershopsBarbershopUuidBookRoute
   "/profile": typeof AuthedRoutesProfileIndexRoute
+  "/barbershops/$barbershopUuid": typeof BarbershopsBarbershopUuidIndexRoute
   "/profile/barbershops/appointments": typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
   "/profile/barbershops/services": typeof AuthedRoutesProfileBarbershopsServicesIndexRoute
   "/profile/barbershops/settings": typeof AuthedRoutesProfileBarbershopsSettingsIndexRoute
@@ -225,11 +234,12 @@ export interface FileRoutesById {
   "/_auth/reset-password": typeof AuthResetPasswordRoute
   "/_auth/verify-email": typeof AuthVerifyEmailRoute
   "/appointments/create": typeof AppointmentsCreateRoute
-  "/barbershops/$barbershopUuid": typeof BarbershopsBarbershopUuidRoute
   "/barbershops/": typeof BarbershopsIndexRoute
   "/_authedRoutes/invitations/$code": typeof AuthedRoutesInvitationsCodeRoute
   "/api/auth/$": typeof ApiAuthSplatRoute
+  "/barbershops/$barbershopUuid/book": typeof BarbershopsBarbershopUuidBookRoute
   "/_authedRoutes/profile/": typeof AuthedRoutesProfileIndexRoute
+  "/barbershops/$barbershopUuid/": typeof BarbershopsBarbershopUuidIndexRoute
   "/_authedRoutes/profile/barbershops/appointments/": typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
   "/_authedRoutes/profile/barbershops/services/": typeof AuthedRoutesProfileBarbershopsServicesIndexRoute
   "/_authedRoutes/profile/barbershops/settings/": typeof AuthedRoutesProfileBarbershopsSettingsIndexRoute
@@ -251,11 +261,12 @@ export interface FileRouteTypes {
     | "/reset-password"
     | "/verify-email"
     | "/appointments/create"
-    | "/barbershops/$barbershopUuid"
     | "/barbershops/"
     | "/invitations/$code"
     | "/api/auth/$"
+    | "/barbershops/$barbershopUuid/book"
     | "/profile/"
+    | "/barbershops/$barbershopUuid/"
     | "/profile/barbershops/appointments/"
     | "/profile/barbershops/services/"
     | "/profile/barbershops/settings/"
@@ -275,11 +286,12 @@ export interface FileRouteTypes {
     | "/reset-password"
     | "/verify-email"
     | "/appointments/create"
-    | "/barbershops/$barbershopUuid"
     | "/barbershops"
     | "/invitations/$code"
     | "/api/auth/$"
+    | "/barbershops/$barbershopUuid/book"
     | "/profile"
+    | "/barbershops/$barbershopUuid"
     | "/profile/barbershops/appointments"
     | "/profile/barbershops/services"
     | "/profile/barbershops/settings"
@@ -301,11 +313,12 @@ export interface FileRouteTypes {
     | "/_auth/reset-password"
     | "/_auth/verify-email"
     | "/appointments/create"
-    | "/barbershops/$barbershopUuid"
     | "/barbershops/"
     | "/_authedRoutes/invitations/$code"
     | "/api/auth/$"
+    | "/barbershops/$barbershopUuid/book"
     | "/_authedRoutes/profile/"
+    | "/barbershops/$barbershopUuid/"
     | "/_authedRoutes/profile/barbershops/appointments/"
     | "/_authedRoutes/profile/barbershops/services/"
     | "/_authedRoutes/profile/barbershops/settings/"
@@ -323,9 +336,10 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TosRoute: typeof TosRoute
   AppointmentsCreateRoute: typeof AppointmentsCreateRoute
-  BarbershopsBarbershopUuidRoute: typeof BarbershopsBarbershopUuidRoute
   BarbershopsIndexRoute: typeof BarbershopsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  BarbershopsBarbershopUuidBookRoute: typeof BarbershopsBarbershopUuidBookRoute
+  BarbershopsBarbershopUuidIndexRoute: typeof BarbershopsBarbershopUuidIndexRoute
 }
 
 declare module "@tanstack/react-router" {
@@ -400,13 +414,6 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof BarbershopsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/barbershops/$barbershopUuid": {
-      id: "/barbershops/$barbershopUuid"
-      path: "/barbershops/$barbershopUuid"
-      fullPath: "/barbershops/$barbershopUuid"
-      preLoaderRoute: typeof BarbershopsBarbershopUuidRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     "/appointments/create": {
       id: "/appointments/create"
       path: "/appointments/create"
@@ -449,12 +456,26 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthForgotPasswordRouteImport
       parentRoute: typeof AuthRouteRoute
     }
+    "/barbershops/$barbershopUuid/": {
+      id: "/barbershops/$barbershopUuid/"
+      path: "/barbershops/$barbershopUuid"
+      fullPath: "/barbershops/$barbershopUuid/"
+      preLoaderRoute: typeof BarbershopsBarbershopUuidIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     "/_authedRoutes/profile/": {
       id: "/_authedRoutes/profile/"
       path: "/profile"
       fullPath: "/profile/"
       preLoaderRoute: typeof AuthedRoutesProfileIndexRouteImport
       parentRoute: typeof AuthedRoutesRouteRoute
+    }
+    "/barbershops/$barbershopUuid/book": {
+      id: "/barbershops/$barbershopUuid/book"
+      path: "/barbershops/$barbershopUuid/book"
+      fullPath: "/barbershops/$barbershopUuid/book"
+      preLoaderRoute: typeof BarbershopsBarbershopUuidBookRouteImport
+      parentRoute: typeof rootRouteImport
     }
     "/api/auth/$": {
       id: "/api/auth/$"
@@ -557,9 +578,10 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TosRoute: TosRoute,
   AppointmentsCreateRoute: AppointmentsCreateRoute,
-  BarbershopsBarbershopUuidRoute: BarbershopsBarbershopUuidRoute,
   BarbershopsIndexRoute: BarbershopsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  BarbershopsBarbershopUuidBookRoute: BarbershopsBarbershopUuidBookRoute,
+  BarbershopsBarbershopUuidIndexRoute: BarbershopsBarbershopUuidIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
