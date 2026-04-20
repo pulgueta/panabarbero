@@ -76,7 +76,9 @@ export interface NotificationCopy {
   href: string;
 }
 
-export function buildNotificationCopy(input: NotificationInput): NotificationCopy {
+export function buildNotificationCopy(
+  input: NotificationInput,
+): NotificationCopy {
   switch (input.kind) {
     case "appointment_created": {
       const isCustomer = input.sendTo === "customer";
@@ -157,7 +159,9 @@ export function buildNotificationCopy(input: NotificationInput): NotificationCop
       return {
         kind: "past_appointment_reminder",
         title: subjects.past_appointment_reminder,
+        description:
           "Has tenido una cita hace poco, no olvides marcar su estado final.",
+        href: deepLinks.customerAppointments(),
       };
     }
     case "team_invited": {
@@ -186,7 +190,9 @@ export function buildNotificationCopy(input: NotificationInput): NotificationCop
     }
     default: {
       const _exhaustive: never = input;
-      throw new Error(`Unhandled notification kind: ${JSON.stringify(_exhaustive)}`);
+      throw new Error(
+        `Unhandled notification kind: ${JSON.stringify(_exhaustive)}`,
+      );
     }
   }
 }
