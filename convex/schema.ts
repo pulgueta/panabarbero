@@ -233,6 +233,47 @@ export const creditPurchases = zodTable("creditPurchases", (id) => ({
   purchasedAt: z.number(),
 }));
 
+export const notificationKinds = [
+  "appointment_created",
+  "barber_appointment_created",
+  "appointment_cancelled",
+  "appointment_reschedule_request",
+  "appointment_reschedule_accepted",
+  "appointment_reschedule_denied",
+  "appointment_reminder",
+  "past_appointment_reminder",
+  "team_invited",
+  "barber_removed_cancellation",
+  "service_deleted_cancellation",
+] as const;
+
+export const notificationKindSchema = z.enum(notificationKinds);
+
+/**
+ * In-app notification inbox rows. One row per recipient; copy is rendered
+ * server-side so SMS, email and in-app stay in sync.
+ */
+export const inAppNotifications = zodTable("inAppNotifications", (id) => ({
+  userId: z.string(),
+  kind: notificationKindSchema,
+  title: z.string(),
+  description: z.string(),
+  payload: z
+    .object({
+      appointmentId: id("appointments").optional(),
+      barbershopId: id("barbershops").optional(),
+      barbershopName: z.string().optional(),
+      barberName: z.string().optional(),
+      customerName: z.string().optional(),
+      serviceName: z.string().optional(),
+      invitationCode: z.string().optional(),
+      notes: z.string().optional(),
+    })
+    .optional(),
+  /** Timestamp at which the recipient marked the row as read; undefined = unread. */
+  readAt: z.number().optional(),
+}));
+
 export default defineSchema({
   userProfileData: userProfileData
     .table()
@@ -304,6 +345,11 @@ export default defineSchema({
     .table()
     .index("by_orderId", ["orderId"])
     .index("by_barbershopId", ["barbershopId"]),
+
+  inAppNotifications: inAppNotifications
+    .table()
+    .index("by_user_created", ["userId"])
+    .index("by_user_unread", ["userId", "readAt"]),
 });
 
 export type UserProfileData = output<typeof userProfileData.schema>;
@@ -329,3 +375,5 @@ export type Invitation = output<typeof invitations.schema>;
 export type Usage = output<typeof usage.schema>;
 export type ExtraCredits = output<typeof extraCredits.schema>;
 export type CreditPurchase = output<typeof creditPurchases.schema>;
+export type InAppNotification = output<typeof inAppNotifications.schema>;
+export type NotificationKind = (typeof notificationKinds)[number];

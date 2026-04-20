@@ -25,6 +25,8 @@ import type * as http from "../http.js";
 import type * as index from "../index.js";
 import type * as invitations from "../invitations.js";
 import type * as migrations from "../migrations.js";
+import type * as notificationCopy from "../notificationCopy.js";
+import type * as notificationSubjects from "../notificationSubjects.js";
 import type * as notifications from "../notifications.js";
 import type * as plans from "../plans.js";
 import type * as polar from "../polar.js";
@@ -59,6 +61,8 @@ declare const fullApi: ApiFromModules<{
   index: typeof index;
   invitations: typeof invitations;
   migrations: typeof migrations;
+  notificationCopy: typeof notificationCopy;
+  notificationSubjects: typeof notificationSubjects;
   notifications: typeof notifications;
   plans: typeof plans;
   polar: typeof polar;

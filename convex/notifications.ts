@@ -1,11 +1,13 @@
+import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
-import { zid } from "convex-helpers/server/zod4";
+import { convexToZod, zid } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
-import { zInternalMutation } from ".";
+import { zInternalMutation, zMutation, zQuery } from ".";
 import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
+import { authComponent } from "./auth";
 import {
   incrementEmailSent,
   incrementSmsSent,
@@ -13,23 +15,16 @@ import {
   isSmsLimitNotExceeded,
 } from "./acl";
 import { errorMessages } from "./errors";
+import {
+  buildNotificationCopy,
+  buildSmsBody,
+  type NotificationCopy,
+} from "./notificationCopy";
+import { subjects } from "./notificationSubjects";
 import type { UserProfileData } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
 
-export const subjects = {
-  appointment_reminder: "Recordatorio de cita",
-  appointment_cancelled: "Cita cancelada",
-  appointment_rescheduled: "Cita reagendada",
-  appointment_rescheduled_request: "Solicitud de reagendamiento",
-  appointment_no_show: "Cita no mostrada",
-  appointment_confirmed: "Cita confirmada",
-  appointment_rescheduled_accepted: "Reagendamiento aceptado",
-  appointment_rescheduled_denied: "Reagendamiento rechazado",
-  appointment_created: "Cita agendada",
-  barber_appointment_created: "Nueva cita en tu barbería",
-  team_invited: "Invitación a unirte a la barbería",
-  past_appointment_reminder: "Recordatorio de cita pasada",
-} satisfies Record<string, string>;
+export { subjects };
 
 export function isNotificationEnabled(
   channel: UserProfileData["notificationsPreferences"][number]["type"],
@@ -115,6 +110,31 @@ async function scheduleEmailWithQuota(
   await send();
 }
 
+/**
+ * Persist an in-app notification row for a specific user. Silently ignored
+ * for guest/unknown recipients so existing SMS + email paths keep working.
+ */
+async function recordInApp(
+  ctx: MutationCtx,
+  opts: {
+    userId: string;
+    copy: NotificationCopy;
+    payload?: Doc<"inAppNotifications">["payload"];
+  },
+): Promise<void> {
+  if (!opts.userId || opts.userId === "user_does_not_exist") {
+    return;
+  }
+
+  await ctx.db.insert("inAppNotifications", {
+    userId: opts.userId,
+    kind: opts.copy.kind,
+    title: opts.copy.title,
+    description: opts.copy.description,
+    payload: opts.payload,
+  });
+}
+
 export const createAppointmentCancelled = zInternalMutation({
   args: z.object({
     customerUserId: z.string(),
@@ -157,17 +177,14 @@ export const createAppointmentCancelled = zInternalMutation({
     const cancellingCustomerName =
       customerProfile?.name ?? appointment.customerName ?? "El cliente";
 
-    const body = isCustomer
-      ? `Tu cita ha sido cancelada.`
-      : `${cancellingCustomerName} ha cancelado su cita.`;
-
-    // Deep link to view appointments
-    const appointmentLink = isCustomer
-      ? `${process.env.SITE_URL}/profile?tab=appointments`
-      : `${process.env.SITE_URL}/profile/barbershops/appointments`;
-
-    let smsBody = args.notes ? `${body} Motivo: ${args.notes}` : body;
-    smsBody = `${smsBody} Ver detalles: ${appointmentLink}`;
+    const copy = buildNotificationCopy({
+      kind: "appointment_cancelled",
+      sendTo: args.sendTo,
+      customerName: cancellingCustomerName,
+      notes: args.notes,
+    });
+    const body = copy.description;
+    const smsBody = buildSmsBody(copy);
 
     const emailEnabled = receiverProfile
       ? isNotificationEnabled("email", receiverProfile.notificationsPreferences)
@@ -196,6 +213,19 @@ export const createAppointmentCancelled = zInternalMutation({
         body: smsBody,
         to: phoneNumber,
         barbershopId: appointment.barbershopId,
+      });
+    }
+
+    if (receiverProfile?.userId) {
+      await recordInApp(ctx, {
+        userId: receiverProfile.userId,
+        copy,
+        payload: {
+          appointmentId: appointment._id,
+          barbershopId: appointment.barbershopId,
+          customerName: cancellingCustomerName,
+          notes: args.notes || undefined,
+        },
       });
     }
   },
@@ -241,21 +271,16 @@ export const createAppointmentRescheduleRequest = zInternalMutation({
       ? resolveCustomerEmail(appointment.contactEmail, customerProfile?.email)
       : barberProfile.email;
 
-    const body = `${isCustomer ? "Tu barbero" : "Un cliente"} ha solicitado reagendar una cita.`;
-
-    // Deep link to view/respond to reschedule request
-    const appointmentLink = isCustomer
-      ? `${process.env.SITE_URL}/profile?tab=appointments`
-      : `${process.env.SITE_URL}/profile/barbershops/appointments`;
-
-    const smsBody = `${body} Responde aquí: ${appointmentLink}`;
+    const copy = buildNotificationCopy({
+      kind: "appointment_reschedule_request",
+      sendTo: args.sendTo,
+    });
+    const body = copy.description;
+    const smsBody = buildSmsBody(copy);
 
     const emailEnabled = isCustomer
       ? isCustomerEmailEnabled(customerProfile)
-      : isNotificationEnabled(
-          "email",
-          receiverProfile.notificationsPreferences,
-        );
+      : isNotificationEnabled("email", barberProfile.notificationsPreferences);
 
     if (emailEnabled && toEmail) {
       await scheduleEmailWithQuota(ctx, appointment.barbershopId, () =>
@@ -279,6 +304,17 @@ export const createAppointmentRescheduleRequest = zInternalMutation({
         body: smsBody,
         to: phoneNumber,
         barbershopId: appointment.barbershopId,
+      });
+    }
+
+    if (receiverProfile?.userId) {
+      await recordInApp(ctx, {
+        userId: receiverProfile.userId,
+        copy,
+        payload: {
+          appointmentId: appointment._id,
+          barbershopId: appointment.barbershopId,
+        },
       });
     }
   },
@@ -307,24 +343,22 @@ export const createAppointmentRescheduleDecision = zInternalMutation({
 
     const appointment = await ctx.db.get(args.appointmentId);
 
-    const acceptedBody = "Tu solicitud de reagendamiento ha sido aceptada.";
-    const deniedBodyForCustomer = `Tu cita en ${args.barbershopName} ha sido cancelada.`;
-    const deniedBodyForBarber =
-      "Tu solicitud de reagendamiento ha sido rechazada.";
+    const copy = buildNotificationCopy(
+      args.accepted
+        ? {
+            kind: "appointment_reschedule_accepted",
+            sendTo: args.role,
+          }
+        : {
+            kind: "appointment_reschedule_denied",
+            sendTo: args.role,
+            barbershopName: args.barbershopName,
+          },
+    );
 
     const isCustomer = args.role === "customer";
-    const body = args.accepted
-      ? acceptedBody
-      : isCustomer
-        ? deniedBodyForCustomer
-        : deniedBodyForBarber;
-
-    // Deep link to view appointments
-    const appointmentLink = isCustomer
-      ? `${process.env.SITE_URL}/profile?tab=appointments`
-      : `${process.env.SITE_URL}/profile/barbershops/appointments`;
-
-    const smsBody = `${body} Ver detalles: ${appointmentLink}`;
+    const body = copy.description;
+    const smsBody = buildSmsBody(copy);
 
     const emailEnabled = receiverProfile
       ? isNotificationEnabled("email", receiverProfile.notificationsPreferences)
@@ -379,6 +413,19 @@ export const createAppointmentRescheduleDecision = zInternalMutation({
         barbershopId: appointment?.barbershopId,
       });
     }
+
+    if (receiverProfile?.userId && appointment) {
+      await recordInApp(ctx, {
+        userId: receiverProfile.userId,
+        copy,
+        payload: {
+          appointmentId: appointment._id,
+          barbershopId: appointment.barbershopId,
+          barbershopName: args.barbershopName,
+          notes: args.notes,
+        },
+      });
+    }
   },
 });
 
@@ -412,24 +459,16 @@ export const createAppointmentCreated = zInternalMutation({
 
     const appointment = await ctx.db.get(args.appointmentId);
 
-    const body = {
-      barber: "Un cliente ha reservado una cita.",
-      customer: `Tu cita en ${args.barbershopName} ha sido agendada.`,
-    };
-
     const isCustomer = args.sendTo === "customer";
     const receiverProfile = isCustomer ? customerProfile : barberProfile;
-    const receiverBody = isCustomer ? body.customer : body.barber;
-    const subject = isCustomer
-      ? subjects.appointment_created
-      : subjects.barber_appointment_created;
-
-    // Deep link to view appointments
-    const appointmentLink = isCustomer
-      ? `${process.env.SITE_URL}/profile?tab=appointments`
-      : `${process.env.SITE_URL}/profile/barbershops/appointments`;
-
-    const smsBody = `${receiverBody} Ver detalles: ${appointmentLink}`;
+    const copy = buildNotificationCopy({
+      kind: "appointment_created",
+      sendTo: args.sendTo,
+      barbershopName: args.barbershopName,
+    });
+    const receiverBody = copy.description;
+    const subject = copy.title;
+    const smsBody = buildSmsBody(copy);
 
     const to = isCustomer
       ? resolveCustomerEmail(args.to, customerProfile?.email)
@@ -484,6 +523,18 @@ export const createAppointmentCreated = zInternalMutation({
         barbershopId: appointment?.barbershopId,
       });
     }
+
+    if (receiverProfile?.userId) {
+      await recordInApp(ctx, {
+        userId: receiverProfile.userId,
+        copy,
+        payload: {
+          appointmentId: args.appointmentId,
+          barbershopId: appointment?.barbershopId,
+          barbershopName: args.barbershopName,
+        },
+      });
+    }
   },
 });
 
@@ -506,11 +557,12 @@ export const createAppointmentReminder = zInternalMutation({
       }
     }
 
-    const body = `Tienes una cita en ~30 minutos en ${args.barbershopName}.`;
-
-    // Deep link to view appointments
-    const appointmentLink = `${process.env.SITE_URL}/profile?tab=appointments`;
-    const smsBody = `${body} Ver detalles: ${appointmentLink}`;
+    const copy = buildNotificationCopy({
+      kind: "appointment_reminder",
+      barbershopName: args.barbershopName,
+    });
+    const body = copy.description;
+    const smsBody = buildSmsBody(copy);
 
     const to = resolveCustomerEmail(args.to, customerProfile?.email);
     const emailEnabled = isCustomerEmailEnabled(customerProfile);
@@ -541,6 +593,17 @@ export const createAppointmentReminder = zInternalMutation({
         barbershopId: args.barbershopId,
       });
     }
+
+    if (customerProfile?.userId) {
+      await recordInApp(ctx, {
+        userId: customerProfile.userId,
+        copy,
+        payload: {
+          barbershopId: args.barbershopId,
+          barbershopName: args.barbershopName,
+        },
+      });
+    }
   },
 });
 
@@ -555,11 +618,8 @@ export const createPastAppointmentReminder = zInternalMutation({
       throw new ConvexError(errorMessages.notFound("perfil de barbero"));
     }
 
-    const body = `Haz tenido una cita hace poco, no olvides marcar su estado final.`;
-
-    // Deep link to appointments management
-    const appointmentLink = `${process.env.SITE_URL}/profile/barbershops/appointments`;
-    const smsBody = `${body} Ver citas: ${appointmentLink}`;
+    const copy = buildNotificationCopy({ kind: "past_appointment_reminder" });
+    const smsBody = buildSmsBody(copy);
 
     if (
       isNotificationEnabled("email", barberProfile.notificationsPreferences)
@@ -582,6 +642,11 @@ export const createPastAppointmentReminder = zInternalMutation({
         to: barberProfile.phoneNumber,
       });
     }
+
+    await recordInApp(ctx, {
+      userId: barberProfile.userId,
+      copy,
+    });
   },
 });
 
@@ -611,8 +676,14 @@ export const createBarberInvited = zInternalMutation({
       ? "recepcionista"
       : "barbero";
 
+    const copy = buildNotificationCopy({
+      kind: "team_invited",
+      barbershopName: barbershop.name,
+      roleLabel,
+    });
+
     await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
-      body: `Has sido invitado a unirte a ${barbershop.name} como ${roleLabel}. Ver detalles: ${invitationUrl}`,
+      body: `${copy.description} Ver detalles: ${invitationUrl}`,
       to: args.phone,
     });
 
@@ -623,6 +694,24 @@ export const createBarberInvited = zInternalMutation({
       inviterName: inviterProfile?.name ?? undefined,
       expiresLabel: new Date(args.expiresAt).toLocaleDateString("es-ES"),
     });
+
+    // If the invitee already has an account, surface the invite in-app too.
+    const inviteeProfile = await ctx.db
+      .query("userProfileData")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .unique();
+
+    if (inviteeProfile?.userId) {
+      await recordInApp(ctx, {
+        userId: inviteeProfile.userId,
+        copy: { ...copy, href: invitationUrl },
+        payload: {
+          barbershopId: args.barbershopId,
+          barbershopName: barbershop.name,
+          invitationCode: args.code,
+        },
+      });
+    }
   },
 });
 
@@ -644,10 +733,13 @@ export const createBarberRemovedCancellation = zInternalMutation({
 
     const appointment = await ctx.db.get(args.appointmentId);
 
-    const body = `Tu cita en ${args.barbershopName} ha sido cancelada porque el barbero ${args.barberName} ya no pertenece a la barbería.`;
-
-    const appointmentsUrl = `${process.env.SITE_URL}/profile?tab=appointments`;
-    const smsBody = `${body} Ver detalles: ${appointmentsUrl}`;
+    const copy = buildNotificationCopy({
+      kind: "barber_removed_cancellation",
+      barbershopName: args.barbershopName,
+      barberName: args.barberName,
+    });
+    const body = copy.description;
+    const smsBody = buildSmsBody(copy);
 
     const toEmail = resolveCustomerEmail(
       args.contactEmail,
@@ -682,6 +774,19 @@ export const createBarberRemovedCancellation = zInternalMutation({
         barbershopId: appointment?.barbershopId,
       });
     }
+
+    if (customerProfile?.userId) {
+      await recordInApp(ctx, {
+        userId: customerProfile.userId,
+        copy,
+        payload: {
+          appointmentId: args.appointmentId,
+          barbershopId: appointment?.barbershopId,
+          barbershopName: args.barbershopName,
+          barberName: args.barberName,
+        },
+      });
+    }
   },
 });
 
@@ -703,10 +808,13 @@ export const createServiceDeletedCancellation = zInternalMutation({
 
     const appointment = await ctx.db.get(args.appointmentId);
 
-    const body = `Tu cita en ${args.barbershopName} ha sido cancelada porque el servicio "${args.serviceName}" ya no está disponible.`;
-
-    const appointmentsUrl = `${process.env.SITE_URL}/profile?tab=appointments`;
-    const smsBody = `${body} Ver detalles: ${appointmentsUrl}`;
+    const copy = buildNotificationCopy({
+      kind: "service_deleted_cancellation",
+      barbershopName: args.barbershopName,
+      serviceName: args.serviceName,
+    });
+    const body = copy.description;
+    const smsBody = buildSmsBody(copy);
 
     const toEmail = resolveCustomerEmail(
       args.contactEmail,
@@ -740,6 +848,132 @@ export const createServiceDeletedCancellation = zInternalMutation({
         to: phoneNumber,
         barbershopId: appointment?.barbershopId,
       });
+    }
+
+    if (customerProfile?.userId) {
+      await recordInApp(ctx, {
+        userId: customerProfile.userId,
+        copy,
+        payload: {
+          appointmentId: args.appointmentId,
+          barbershopId: appointment?.barbershopId,
+          barbershopName: args.barbershopName,
+          serviceName: args.serviceName,
+        },
+      });
+    }
+  },
+});
+
+/* ------------------------------------------------------------------------- */
+/*  In-app notification inbox — public queries/mutations                     */
+/* ------------------------------------------------------------------------- */
+
+const INBOX_RECENT_LIMIT = 5;
+
+/** Most recent 5 notifications for the current user. Used by the header popover. */
+export const listRecent = zQuery({
+  args: z.object({}),
+  handler: async (ctx) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      return [];
+    }
+
+    return await ctx.db
+      .query("inAppNotifications")
+      .withIndex("by_user_created", (q) => q.eq("userId", user.userId!))
+      .order("desc")
+      .take(INBOX_RECENT_LIMIT);
+  },
+});
+
+/** Paginated notifications list for the profile "Notificaciones" tab. */
+export const list = zQuery({
+  args: z.object({
+    paginationOpts: convexToZod(paginationOptsValidator),
+  }),
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      return { page: [], isDone: true, continueCursor: "" } as const;
+    }
+
+    return await ctx.db
+      .query("inAppNotifications")
+      .withIndex("by_user_created", (q) => q.eq("userId", user.userId!))
+      .order("desc")
+      .paginate(args.paginationOpts);
+  },
+});
+
+/** Count of notifications the current user has not yet read. Used for the bell badge. */
+export const unreadCount = zQuery({
+  args: z.object({}),
+  handler: async (ctx) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      return 0;
+    }
+
+    const unread = await ctx.db
+      .query("inAppNotifications")
+      .withIndex("by_user_unread", (q) =>
+        q.eq("userId", user.userId!).eq("readAt", undefined),
+      )
+      .take(100);
+
+    return unread.length;
+  },
+});
+
+/** Mark a single notification as read. */
+export const markRead = zMutation({
+  args: z.object({
+    id: zid("inAppNotifications"),
+  }),
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    const row = await ctx.db.get(args.id);
+
+    if (!row || row.userId !== user.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    if (!row.readAt) {
+      await ctx.db.patch(row._id, { readAt: Date.now() });
+    }
+  },
+});
+
+/** Mark every notification belonging to the current user as read. */
+export const markAllRead = zMutation({
+  args: z.object({}),
+  handler: async (ctx) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    const unread = await ctx.db
+      .query("inAppNotifications")
+      .withIndex("by_user_unread", (q) =>
+        q.eq("userId", user.userId!).eq("readAt", undefined),
+      )
+      .take(200);
+
+    const now = Date.now();
+    for (const row of unread) {
+      await ctx.db.patch(row._id, { readAt: now });
     }
   },
 });
