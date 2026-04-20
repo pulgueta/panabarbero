@@ -10,7 +10,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   useIsBarber,
   useIsOwner,
@@ -33,11 +32,11 @@ export const NotificationsBell = () => {
   const { data: isOwner } = useIsOwner(user?.userId ?? "");
   const usesBarberCalendar = Boolean(isBarber || isStaff || isOwner);
 
-  const { data: recent, isLoading } = useRecentNotifications();
-  const { data: unread = 0 } = useUnreadNotificationsCount();
+  const { data: recent } = useRecentNotifications();
+  const { data: unread } = useUnreadNotificationsCount();
   const { markReadMutation, markAllReadMutation } = useNotificationActions();
 
-  const items = useMemo(() => recent ?? [], [recent]);
+  const items = useMemo(() => recent, [recent]);
   const hasUnread = unread !== 0;
 
   return (
@@ -97,20 +96,7 @@ export const NotificationsBell = () => {
 
         <ScrollArea className="max-h-88">
           <div className="flex flex-col gap-0.5 p-1.5">
-            {isLoading ? (
-              ["a", "b", "c"].map((key) => (
-                <div
-                  key={`notif-skeleton-${key}`}
-                  className="flex items-start gap-3 rounded-md px-3 py-3"
-                >
-                  <Skeleton className="size-9 shrink-0 rounded-full" />
-                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                    <Skeleton className="h-3.5 w-1/2" />
-                    <Skeleton className="h-3 w-4/5" />
-                  </div>
-                </div>
-              ))
-            ) : items.length === 0 ? (
+            {items.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-2 px-4 py-10 text-center">
                 <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
                   <BellIcon weight="duotone" />

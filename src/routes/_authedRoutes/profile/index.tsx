@@ -40,6 +40,12 @@ import {
   useIsStaff,
 } from "@/hooks/use-barbershop-members";
 import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
+import {
+  notificationsPageQueryOptions,
+  recentNotificationsQueryOptions,
+  unreadNotificationsCountQueryOptions,
+  unreadNotificationsPageQueryOptions,
+} from "@/hooks/use-notifications";
 import { servicesByIdsQueryOptions } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
@@ -169,6 +175,16 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
         context.queryClient.ensureQueryData(getPricingPlansQueryOptions()),
         context.queryClient.ensureQueryData(getSubscriptionQueryOptions()),
         context.queryClient.ensureQueryData(getExtraCreditsQueryOptions()),
+        context.queryClient.ensureQueryData(
+          unreadNotificationsCountQueryOptions(),
+        ),
+        context.queryClient.ensureQueryData(
+          notificationsPageQueryOptions({ cursor: null, numItems: 20 }),
+        ),
+        context.queryClient.ensureQueryData(
+          unreadNotificationsPageQueryOptions({ cursor: null, numItems: 20 }),
+        ),
+        context.queryClient.ensureQueryData(recentNotificationsQueryOptions()),
       ]);
 
       if (appointments) {

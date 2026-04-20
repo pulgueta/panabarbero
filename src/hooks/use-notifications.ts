@@ -1,6 +1,6 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 
 export function recentNotificationsQueryOptions() {
   return convexQuery(api.notifications.listRecent, {});
@@ -30,26 +30,26 @@ export function unreadNotificationsPageQueryOptions(opts: {
 
 /** Live-updating list of the 5 most recent notifications for the current user. */
 export function useRecentNotifications() {
-  return useQuery(recentNotificationsQueryOptions());
+  return useSuspenseQuery(recentNotificationsQueryOptions());
 }
 
 /** Live-updating count of unread notifications for the header bell. */
 export function useUnreadNotificationsCount() {
-  return useQuery(unreadNotificationsCountQueryOptions());
+  return useSuspenseQuery(unreadNotificationsCountQueryOptions());
 }
 
 export function useNotificationsPage(opts: {
   cursor: string | null;
   numItems: number;
 }) {
-  return useQuery(notificationsPageQueryOptions(opts));
+  return useSuspenseQuery(notificationsPageQueryOptions(opts));
 }
 
 export function useUnreadNotificationsPage(opts: {
   cursor: string | null;
   numItems: number;
 }) {
-  return useQuery(unreadNotificationsPageQueryOptions(opts));
+  return useSuspenseQuery(unreadNotificationsPageQueryOptions(opts));
 }
 
 export function useNotificationActions() {

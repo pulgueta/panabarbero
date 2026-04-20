@@ -161,7 +161,7 @@ export function buildNotificationCopy(
         title: subjects.past_appointment_reminder,
         description:
           "Has tenido una cita hace poco, no olvides marcar su estado final.",
-        href: deepLinks.customerAppointments(),
+        href: deepLinks.barberAppointments(),
       };
     }
     case "team_invited": {
@@ -201,4 +201,3 @@ export function buildNotificationCopy(
 export function buildSmsBody(copy: NotificationCopy): string {
   return `${copy.description} Ver detalles: ${copy.href}`;
 }
-
