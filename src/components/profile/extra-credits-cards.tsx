@@ -1,6 +1,6 @@
 import { CheckoutLink } from "@convex-dev/polar/react";
+import { api } from "@convex/_generated/api";
 import type { Barbershop, ExtraCredits } from "@convex/schema";
-import { api } from "convex/_generated/api";
 import type { FC } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -119,6 +119,7 @@ const CreditCard: FC<CreditCardProps> = ({
             metadata={{ barbershopId }}
             className={cn(buttonVariants({ className: "w-full" }))}
             lazy
+            locale="es-CO"
           >
             Comprar créditos
           </CheckoutLink>

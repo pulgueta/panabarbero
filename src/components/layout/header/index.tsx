@@ -18,6 +18,11 @@ const UserAvatar = lazy(() =>
     default: mod.UserAvatar,
   })),
 );
+const NotificationsBell = lazy(() =>
+  import("@/components/notifications/notifications-bell").then((mod) => ({
+    default: mod.NotificationsBell,
+  })),
+);
 
 export const Header = () => {
   const { routes, user } = useNavRoutes();
@@ -84,6 +89,11 @@ export const Header = () => {
 
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
+            {user?.userId ? (
+              <Suspense fallback={<Skeleton className="size-9" />}>
+                <NotificationsBell />
+              </Suspense>
+            ) : null}
             <Suspense fallback={<Skeleton className="size-8" />}>
               {user?.userId ? (
                 <div className="hidden md:block">

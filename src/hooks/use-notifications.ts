@@ -1,0 +1,64 @@
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
+import { api } from "@convex/_generated/api";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+
+export function recentNotificationsQueryOptions() {
+  return convexQuery(api.notifications.listRecent, {});
+}
+
+export function unreadNotificationsCountQueryOptions() {
+  return convexQuery(api.notifications.unreadCount, {});
+}
+
+export function notificationsPageQueryOptions(opts: {
+  cursor: string | null;
+  numItems: number;
+}) {
+  return convexQuery(api.notifications.list, {
+    paginationOpts: opts,
+  });
+}
+
+export function unreadNotificationsPageQueryOptions(opts: {
+  cursor: string | null;
+  numItems: number;
+}) {
+  return convexQuery(api.notifications.listUnread, {
+    paginationOpts: opts,
+  });
+}
+
+/** Live-updating list of the 5 most recent notifications for the current user. */
+export function useRecentNotifications() {
+  return useSuspenseQuery(recentNotificationsQueryOptions());
+}
+
+/** Live-updating count of unread notifications for the header bell. */
+export function useUnreadNotificationsCount() {
+  return useSuspenseQuery(unreadNotificationsCountQueryOptions());
+}
+
+export function useNotificationsPage(opts: {
+  cursor: string | null;
+  numItems: number;
+}) {
+  return useSuspenseQuery(notificationsPageQueryOptions(opts));
+}
+
+export function useUnreadNotificationsPage(opts: {
+  cursor: string | null;
+  numItems: number;
+}) {
+  return useSuspenseQuery(unreadNotificationsPageQueryOptions(opts));
+}
+
+export function useNotificationActions() {
+  const markReadMutation = useMutation({
+    mutationFn: useConvexMutation(api.notifications.markRead),
+  });
+  const markAllReadMutation = useMutation({
+    mutationFn: useConvexMutation(api.notifications.markAllRead),
+  });
+
+  return { markReadMutation, markAllReadMutation };
+}

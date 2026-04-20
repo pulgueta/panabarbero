@@ -115,6 +115,7 @@ export const PricingCard: FC<PricingCardProps> = ({
               "pointer-events-none opacity-50": hasActiveSubscription,
             })}
             lazy
+            locale="es-CO"
           >
             {hasActiveSubscription
               ? "Cambia tu plan desde el portal"

@@ -40,6 +40,12 @@ import {
   useIsStaff,
 } from "@/hooks/use-barbershop-members";
 import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
+import {
+  notificationsPageQueryOptions,
+  recentNotificationsQueryOptions,
+  unreadNotificationsCountQueryOptions,
+  unreadNotificationsPageQueryOptions,
+} from "@/hooks/use-notifications";
 import { servicesByIdsQueryOptions } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
@@ -73,8 +79,14 @@ const SecurityTab = lazy(() =>
     default: mod.SecurityTab,
   })),
 );
+const NotificationsTab = lazy(() =>
+  import("@/components/profile/notifications-tab").then((mod) => ({
+    default: mod.NotificationsTab,
+  })),
+);
 
 type ProfileTabValue =
+  | "notifications"
   | "account"
   | "security"
   | "appointments"
@@ -83,6 +95,10 @@ type ProfileTabValue =
   | "plans";
 
 const tabs = {
+  notifications: {
+    label: "Notificaciones",
+    value: "notifications",
+  },
   account: {
     label: "Perfil",
     value: "account",
@@ -111,6 +127,7 @@ const tabs = {
 
 const searchSchema = z.object({
   tab: z.enum([
+    "notifications",
     "account",
     "security",
     "appointments",
@@ -158,6 +175,16 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
         context.queryClient.ensureQueryData(getPricingPlansQueryOptions()),
         context.queryClient.ensureQueryData(getSubscriptionQueryOptions()),
         context.queryClient.ensureQueryData(getExtraCreditsQueryOptions()),
+        context.queryClient.ensureQueryData(
+          unreadNotificationsCountQueryOptions(),
+        ),
+        context.queryClient.ensureQueryData(
+          notificationsPageQueryOptions({ cursor: null, numItems: 20 }),
+        ),
+        context.queryClient.ensureQueryData(
+          unreadNotificationsPageQueryOptions({ cursor: null, numItems: 20 }),
+        ),
+        context.queryClient.ensureQueryData(recentNotificationsQueryOptions()),
       ]);
 
       if (appointments) {
@@ -203,7 +230,9 @@ function ProfilePage() {
   };
 
   const tabsToRender = useMemo(() => {
-    const base = [tabs.account, tabs.security];
+    // Notificaciones sits first so the bell popover lands the user on a familiar
+    // left-most tab, while Perfil stays the default for direct /profile visits.
+    const base = [tabs.notifications, tabs.account, tabs.security];
 
     // Owners (whether or not they're barbers) see Plans and Danger tabs
     if (rolesData?.isOwner) {
@@ -240,12 +269,18 @@ function ProfilePage() {
               <TabsTrigger
                 key={tabOption.value}
                 value={tabOption.value}
-                className="text-sm sm:min-w-24"
+                className="text-xs sm:min-w-max sm:text-sm"
               >
                 {tabOption.label}
               </TabsTrigger>
             ))}
           </TabsList>
+
+          <Suspense fallback={<ProfileTabSkeleton />}>
+            <TabsContent value={tabs.notifications.value} className="pt-2">
+              <NotificationsTab />
+            </TabsContent>
+          </Suspense>
 
           <Suspense fallback={<ProfileTabSkeleton />}>
             <TabsContent value={tabs.account.value} className="pt-2">
