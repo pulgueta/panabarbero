@@ -924,9 +924,9 @@ export const unreadCount = zQuery({
       .withIndex("by_user_unread", (q) =>
         q.eq("userId", user.userId!).eq("readAt", undefined),
       )
-      .take(100);
+      .take(101);
 
-    return unread.length;
+    return unread.length > 100 ? "99+" : unread.length;
   },
 });
 
