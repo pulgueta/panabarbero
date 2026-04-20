@@ -73,8 +73,14 @@ const SecurityTab = lazy(() =>
     default: mod.SecurityTab,
   })),
 );
+const NotificationsTab = lazy(() =>
+  import("@/components/profile/notifications-tab").then((mod) => ({
+    default: mod.NotificationsTab,
+  })),
+);
 
 type ProfileTabValue =
+  | "notifications"
   | "account"
   | "security"
   | "appointments"
@@ -83,6 +89,10 @@ type ProfileTabValue =
   | "plans";
 
 const tabs = {
+  notifications: {
+    label: "Notificaciones",
+    value: "notifications",
+  },
   account: {
     label: "Perfil",
     value: "account",
@@ -111,6 +121,7 @@ const tabs = {
 
 const searchSchema = z.object({
   tab: z.enum([
+    "notifications",
     "account",
     "security",
     "appointments",
@@ -203,7 +214,9 @@ function ProfilePage() {
   };
 
   const tabsToRender = useMemo(() => {
-    const base = [tabs.account, tabs.security];
+    // Notificaciones sits first so the bell popover lands the user on a familiar
+    // left-most tab, while Perfil stays the default for direct /profile visits.
+    const base = [tabs.notifications, tabs.account, tabs.security];
 
     // Owners (whether or not they're barbers) see Plans and Danger tabs
     if (rolesData?.isOwner) {
@@ -240,12 +253,18 @@ function ProfilePage() {
               <TabsTrigger
                 key={tabOption.value}
                 value={tabOption.value}
-                className="text-sm sm:min-w-24"
+                className="text-sm sm:min-w-max"
               >
                 {tabOption.label}
               </TabsTrigger>
             ))}
           </TabsList>
+
+          <Suspense fallback={<ProfileTabSkeleton />}>
+            <TabsContent value={tabs.notifications.value} className="pt-2">
+              <NotificationsTab />
+            </TabsContent>
+          </Suspense>
 
           <Suspense fallback={<ProfileTabSkeleton />}>
             <TabsContent value={tabs.account.value} className="pt-2">
