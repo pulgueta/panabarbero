@@ -19,36 +19,33 @@ export interface VariantBaseProps {
   onSelect?: () => void;
 }
 
-const customerHub = getAppointmentHubLink(false);
-const barberHub = getAppointmentHubLink(true);
-
 const config = {
   appointment_created: {
     tone: "primary" as const,
     icon: <CalendarCheckIcon weight="duotone" />,
     actionLabel: "Ver mi cita",
     /** Only customers receive this kind in-app. */
-    link: customerHub,
+    getLink: () => getAppointmentHubLink(false),
   },
   barber_appointment_created: {
     tone: "primary" as const,
     icon: <CalendarCheckIcon weight="duotone" />,
     actionLabel: "Ver citas",
-    link: barberHub,
+    getLink: () => getAppointmentHubLink(true),
   },
   appointment_reminder: {
     tone: "warning" as const,
     icon: <ClockCountdownIcon weight="duotone" />,
     actionLabel: "Ver cita",
     /** Reminder notifications are only recorded for customers. */
-    link: customerHub,
+    getLink: () => getAppointmentHubLink(false),
   },
   past_appointment_reminder: {
     tone: "muted" as const,
     icon: <CalendarBlankIcon weight="duotone" />,
     actionLabel: "Marcar estado",
     /** Past reminders are only for barbers. */
-    link: barberHub,
+    getLink: () => getAppointmentHubLink(true),
   },
 };
 
@@ -64,7 +61,8 @@ export const AppointmentNotification: FC<
   kind,
   usesBarberCalendar: _usesBarberCalendar,
 }) => {
-  const { tone, icon, actionLabel, link } = config[kind];
+  const { tone, icon, actionLabel, getLink } = config[kind];
+  const link = getLink();
 
   return (
     <NotificationItem
