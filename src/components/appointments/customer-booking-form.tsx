@@ -293,7 +293,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
   const pendingLabel = "Pendiente";
 
   return (
-    <form id={formIds.form} onSubmit={onSubmit} className="space-y-10">
+    <form id={formIds.form} onSubmit={onSubmit} className="space-y-6">
       {/* Hidden fields for pre-filled customer data */}
       <Controller
         name="customerName"
@@ -303,7 +303,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
 
       <section
         aria-labelledby="booking-service-heading"
-        className="grid gap-6 lg:grid-cols-2 lg:gap-8"
+        className="grid grid-cols-1 gap-4 md:grid-cols-2"
       >
         <div className="flex flex-col gap-2">
           <h2
@@ -741,7 +741,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
 
       <Separator />
 
-      <section aria-labelledby={formIds.summarySection} className="space-y-3">
+      <section aria-labelledby={formIds.summarySection} className="space-y-4">
         <div className="space-y-1">
           <h2
             id={formIds.summarySection}
@@ -887,13 +887,21 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
         <Button
           type="submit"
           form={formIds.form}
-          disabled={isCreatingAppointment || !availableBarbers?.length}
+          disabled={
+            isCreatingAppointment || !availableBarbers?.length || !user?.userId
+          }
           className="sm:min-w-44"
         >
           {isCreatingAppointment && <Spinner />}
           Confirmar cita
         </Button>
       </div>
+
+      {!user?.userId && (
+        <p className="text-right text-muted-foreground text-sm">
+          Para reservar una cita, debes iniciar sesión.
+        </p>
+      )}
     </form>
   );
 };
