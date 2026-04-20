@@ -1,5 +1,5 @@
-import { zid } from "convex-helpers/server/zod4";
 import { ConvexError } from "convex/values";
+import { zid } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import { zInternalMutation } from ".";
@@ -36,6 +36,20 @@ export function isNotificationEnabled(
   notificationsPreferences: UserProfileData["notificationsPreferences"],
 ) {
   return notificationsPreferences.some((n) => n.type === channel && n.enabled);
+}
+
+function resolveCustomerEmail(
+  appointmentEmail?: string | null,
+  profileEmail?: string | null,
+) {
+  const normalizedAppointmentEmail = appointmentEmail?.trim();
+  return normalizedAppointmentEmail || profileEmail || undefined;
+}
+
+function isCustomerEmailEnabled(customerProfile: UserProfileData | null) {
+  return customerProfile
+    ? isNotificationEnabled("email", customerProfile.notificationsPreferences)
+    : true;
 }
 
 /**
@@ -137,7 +151,7 @@ export const createAppointmentCancelled = zInternalMutation({
     const receiverProfile = isCustomer ? customerProfile : barberProfile;
 
     const toEmail = isCustomer
-      ? (customerProfile?.email ?? appointment.contactEmail)
+      ? resolveCustomerEmail(appointment.contactEmail, customerProfile?.email)
       : barberProfile.email;
 
     const cancellingCustomerName =
@@ -224,7 +238,7 @@ export const createAppointmentRescheduleRequest = zInternalMutation({
     const isCustomer = args.sendTo === "customer";
     const receiverProfile = isCustomer ? customerProfile : barberProfile;
     const toEmail = isCustomer
-      ? (appointment.contactEmail ?? customerProfile?.email)
+      ? resolveCustomerEmail(appointment.contactEmail, customerProfile?.email)
       : barberProfile.email;
 
     const body = `${isCustomer ? "Tu barbero" : "Un cliente"} ha solicitado reagendar una cita.`;
@@ -236,14 +250,14 @@ export const createAppointmentRescheduleRequest = zInternalMutation({
 
     const smsBody = `${body} Responde aquí: ${appointmentLink}`;
 
-    if (
-      receiverProfile &&
-      isNotificationEnabled(
-        "email",
-        receiverProfile.notificationsPreferences,
-      ) &&
-      toEmail
-    ) {
+    const emailEnabled = isCustomer
+      ? isCustomerEmailEnabled(customerProfile)
+      : isNotificationEnabled(
+          "email",
+          receiverProfile.notificationsPreferences,
+        );
+
+    if (emailEnabled && toEmail) {
       await scheduleEmailWithQuota(ctx, appointment.barbershopId, () =>
         ctx.scheduler.runAfter(
           0,
@@ -417,15 +431,18 @@ export const createAppointmentCreated = zInternalMutation({
 
     const smsBody = `${receiverBody} Ver detalles: ${appointmentLink}`;
 
-    const to = args.to ?? receiverProfile?.email;
+    const to = isCustomer
+      ? resolveCustomerEmail(args.to, customerProfile?.email)
+      : (args.to ?? receiverProfile?.email);
 
-    if (
-      isNotificationEnabled(
-        "email",
-        receiverProfile?.notificationsPreferences ?? [],
-      ) &&
-      to
-    ) {
+    const emailEnabled = isCustomer
+      ? isCustomerEmailEnabled(customerProfile)
+      : isNotificationEnabled(
+          "email",
+          receiverProfile?.notificationsPreferences ?? [],
+        );
+
+    if (emailEnabled && to) {
       await scheduleEmailWithQuota(ctx, appointment?.barbershopId, () =>
         ctx.scheduler.runAfter(
           0,
@@ -495,16 +512,10 @@ export const createAppointmentReminder = zInternalMutation({
     const appointmentLink = `${process.env.SITE_URL}/profile?tab=appointments`;
     const smsBody = `${body} Ver detalles: ${appointmentLink}`;
 
-    const to = args.to ?? customerProfile?.email;
+    const to = resolveCustomerEmail(args.to, customerProfile?.email);
+    const emailEnabled = isCustomerEmailEnabled(customerProfile);
 
-    if (
-      customerProfile &&
-      isNotificationEnabled(
-        "email",
-        customerProfile.notificationsPreferences,
-      ) &&
-      to
-    ) {
+    if (emailEnabled && to) {
       await scheduleEmailWithQuota(ctx, args.barbershopId, () =>
         ctx.scheduler.runAfter(
           0,
@@ -638,7 +649,10 @@ export const createBarberRemovedCancellation = zInternalMutation({
     const appointmentsUrl = `${process.env.SITE_URL}/profile?tab=appointments`;
     const smsBody = `${body} Ver detalles: ${appointmentsUrl}`;
 
-    const toEmail = customerProfile?.email ?? args.contactEmail;
+    const toEmail = resolveCustomerEmail(
+      args.contactEmail,
+      customerProfile?.email,
+    );
 
     const emailEnabled = customerProfile
       ? isNotificationEnabled("email", customerProfile.notificationsPreferences)
@@ -694,7 +708,10 @@ export const createServiceDeletedCancellation = zInternalMutation({
     const appointmentsUrl = `${process.env.SITE_URL}/profile?tab=appointments`;
     const smsBody = `${body} Ver detalles: ${appointmentsUrl}`;
 
-    const toEmail = customerProfile?.email ?? args.contactEmail;
+    const toEmail = resolveCustomerEmail(
+      args.contactEmail,
+      customerProfile?.email,
+    );
 
     const emailEnabled = customerProfile
       ? isNotificationEnabled("email", customerProfile.notificationsPreferences)

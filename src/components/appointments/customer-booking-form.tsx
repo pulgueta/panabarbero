@@ -5,12 +5,7 @@ import type {
 } from "@convex/schema";
 import { formatPhoneNumber } from "@convex/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  CalendarIcon,
-  CaretUpDownIcon,
-  CheckIcon,
-  ClockIcon,
-} from "@phosphor-icons/react";
+import { CalendarIcon, ClockIcon } from "@phosphor-icons/react";
 import { useNavigate } from "@tanstack/react-router";
 import { es } from "date-fns/locale";
 import type { FC } from "react";
@@ -23,15 +18,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent, CardDescription } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
@@ -40,6 +28,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
@@ -59,13 +54,6 @@ import {
 import { appointmentFormSchema } from "@/lib/schemas";
 import { cn, formatCurrency } from "@/lib/utils";
 import { setServiceStore, useServicesStore } from "@/store/services";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
 import { TimeSlotPicker } from "./time-slot-picker";
 
 interface CustomerBookingFormProps {
@@ -96,9 +84,11 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
     notes: useId(),
     barbershopMemberId: useId(),
     serviceId: useId(),
+    summarySection: useId(),
   };
 
   const { data: user } = useSession();
+  // biome-ignore lint/style/noNonNullAssertion: profile data is preloaded for authenticated booking routes
   const { data: userProfile } = useProfile(user?.userId!);
 
   const storeService = useServicesStore();
@@ -106,6 +96,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
     | Service["_id"]
     | undefined;
 
+  // biome-ignore lint/style/noNonNullAssertion: query is only consumed when a service is selected
   const { data: barbersForService } = useBarbersForService(effectiveServiceId!);
 
   const availableBarbers = effectiveServiceId
@@ -126,8 +117,9 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
   const profilePhone = userProfile?.phoneNumber
     ? formatPhoneNumber(userProfile.phoneNumber)
     : "";
-
+  const profileEmail = userProfile?.email?.trim() ?? "";
   const [useAlternatePhone, setUseAlternatePhone] = useState(false);
+  const [useAlternateEmail, setUseAlternateEmail] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(appointmentFormSchema),
@@ -135,7 +127,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
       date: undefined,
       customerName: userProfile?.name,
       contactPhone: profilePhone,
-      contactEmail: userProfile?.email,
+      contactEmail: profileEmail || undefined,
       notes: "",
       barbershopMemberId:
         availableBarbers?.length === 1 ? availableBarbers[0]?._id : undefined,
@@ -149,6 +141,13 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
     form.setValue("contactPhone", profilePhone);
   }, [profilePhone, useAlternatePhone, form]);
 
+  useEffect(() => {
+    if (!profileEmail || useAlternateEmail) {
+      return;
+    }
+    form.setValue("contactEmail", profileEmail);
+  }, [profileEmail, useAlternateEmail, form]);
+
   // Auto-select when the available barber list narrows to exactly 1
   useEffect(() => {
     if (availableBarbers?.length === 1) {
@@ -160,10 +159,12 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
   const [selectedSlotTime, setSelectedSlotTime] = useState<string | undefined>(
     undefined,
   );
-  const [serviceOpen, setServiceOpen] = useState(false);
-
   const watchedDate = form.watch("date") as number | undefined;
   const watchedBarber = form.watch("barbershopMemberId") as string | undefined;
+  const watchedCustomerName = form.watch("customerName");
+  const watchedContactPhone = form.watch("contactPhone");
+  const watchedContactEmail = form.watch("contactEmail");
+  const watchedNotes = form.watch("notes");
 
   const canShowSlots = !!(watchedDate && watchedBarber && effectiveServiceId);
   const normalizedDate = watchedDate
@@ -192,6 +193,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
         appointment: {
           ...formData,
           contactPhone: formData.contactPhone,
+          contactEmail: formData.contactEmail?.trim() || undefined,
           barbershopId: barbershop._id,
           barbershopMemberId: formData.barbershopMemberId,
           serviceId: effectiveServiceId,
@@ -200,11 +202,12 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
       });
 
       setUseAlternatePhone(false);
+      setUseAlternateEmail(false);
       form.reset({
         date: undefined,
         customerName: userProfile?.name,
         contactPhone: profilePhone,
-        contactEmail: userProfile?.email,
+        contactEmail: profileEmail || undefined,
         notes: "",
         barbershopMemberId:
           availableBarbers?.length === 1 ? availableBarbers[0]?._id : undefined,
@@ -258,16 +261,42 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
       ? "Elige un barbero para cargar sus horarios."
       : "Elige un servicio para ver la disponibilidad.";
 
+  const selectedBarberName =
+    availableBarbers?.find((b) => b?._id === watchedBarber)?.name ?? null;
+
+  const appointmentDateTimeLabel =
+    watchedDate !== undefined
+      ? new Date(watchedDate).toLocaleString("es-CO", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : null;
+
+  const timeRangeLabel =
+    selectedSlotTime && effectiveService
+      ? `${selectedSlotTime} – ${addMinutesToTime(
+          selectedSlotTime,
+          effectiveService.duration,
+        )} (${effectiveService.duration} min)`
+      : null;
+
+  const phoneSummaryRaw = watchedContactPhone?.trim() ?? "";
+  const phoneSummaryLabel =
+    phoneSummaryRaw === ""
+      ? null
+      : formatPhoneNumber(phoneSummaryRaw) || phoneSummaryRaw;
+
+  const pendingLabel = "Pendiente";
+
   return (
     <form id={formIds.form} onSubmit={onSubmit} className="space-y-10">
       {/* Hidden fields for pre-filled customer data */}
       <Controller
         name="customerName"
-        control={form.control}
-        render={({ field }) => <Input {...field} type="hidden" />}
-      />
-      <Controller
-        name="contactEmail"
         control={form.control}
         render={({ field }) => <Input {...field} type="hidden" />}
       />
@@ -284,65 +313,54 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
             Servicio
           </h2>
           <Field>
-            <FieldLabel className="sr-only">Servicio</FieldLabel>
+            <FieldLabel htmlFor={formIds.serviceId} className="sr-only">
+              Servicio
+            </FieldLabel>
 
-            <Popover open={serviceOpen} onOpenChange={setServiceOpen}>
-              <PopoverTrigger
-                render={
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={serviceOpen}
-                    className="h-11 w-full justify-between px-3 text-left font-normal"
-                  >
-                    {effectiveService
-                      ? effectiveService.name
-                      : "Seleccionar servicio..."}
-                    <CaretUpDownIcon className="size-4 shrink-0 opacity-50" />
-                  </Button>
-                }
-              />
-              <PopoverContent className="w-[min(100vw-2rem,var(--radix-popover-trigger-width))] p-0 sm:w-(--radix-popover-trigger-width)">
-                <Command>
-                  <CommandInput
-                    placeholder="Buscar servicio..."
-                    className="h-9"
-                  />
-                  <CommandList>
-                    <CommandEmpty>No se encontraron servicios.</CommandEmpty>
-                    <CommandGroup>
-                      {services.map((service) => (
-                        <CommandItem
-                          key={service._id}
-                          value={service._id}
-                          onSelect={(value) => {
-                            const match = services.find((s) => s._id === value);
-                            if (match) setServiceStore({ service: match });
-                            setServiceOpen(false);
-                          }}
-                        >
-                          <div className="flex w-full items-center justify-between gap-2">
-                            <span className="font-medium">{service.name}</span>
-                            <div className="flex flex-col items-end text-muted-foreground text-xs">
-                              <span>{formatCurrency(service.price)}</span>
-                              <span>{service.duration} min</span>
-                            </div>
+            {services.length === 0 ? (
+              <span className="text-muted-foreground text-sm">
+                No hay servicios disponibles.
+              </span>
+            ) : (
+              <Suspense fallback={<Skeleton className="h-11 w-full" />}>
+                <Select
+                  value={effectiveServiceId}
+                  onValueChange={(value) => {
+                    const match = services.find(
+                      (s) => String(s._id) === String(value),
+                    );
+                    if (match) {
+                      startTransition(() => {
+                        setServiceStore({ service: match });
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger id={formIds.serviceId} className="h-11 w-full">
+                    <SelectValue placeholder="Seleccionar servicio...">
+                      {effectiveServiceId
+                        ? (services.find(
+                            (s) => String(s._id) === String(effectiveServiceId),
+                          )?.name ?? "Servicio no disponible")
+                        : undefined}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {services.map((service) => (
+                      <SelectItem key={service._id} value={service._id}>
+                        <div className="flex w-full items-center justify-between gap-2">
+                          <span className="font-medium">{service.name}</span>
+                          <div className="flex flex-col items-end text-muted-foreground text-xs">
+                            <span>{formatCurrency(service.price)}</span>
+                            <span>{service.duration} min</span>
                           </div>
-                          <CheckIcon
-                            className={cn(
-                              "ml-2 size-3 shrink-0",
-                              effectiveServiceId === service._id
-                                ? "opacity-100"
-                                : "opacity-0",
-                            )}
-                          />
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Suspense>
+            )}
             {effectiveService && (
               <div className="flex flex-wrap gap-2 pt-2">
                 <Badge variant="secondary">
@@ -397,7 +415,13 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                       id={formIds.barbershopMemberId}
                       className="h-11 w-full"
                     >
-                      <SelectValue placeholder="Selecciona un barbero" />
+                      <SelectValue placeholder="Selecciona un barbero">
+                        {field.value
+                          ? (availableBarbers?.find(
+                              (b) => String(b?._id) === String(field.value),
+                            )?.name ?? "Barbero no disponible")
+                          : undefined}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {availableBarbers?.map((barber) => (
@@ -426,7 +450,13 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
       <Separator />
 
       <section aria-labelledby="booking-contact-heading" className="space-y-4">
-        <div className="space-y-4" id="booking-contact-heading">
+        <h2
+          id="booking-contact-heading"
+          className="font-semibold text-foreground text-sm"
+        >
+          Contacto
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2">
           <Controller
             name="contactPhone"
             control={form.control}
@@ -469,8 +499,70 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                         htmlFor={formIds.alternateContactPhone}
                         className="font-normal text-muted-foreground text-sm leading-snug"
                       >
-                        Usar otro número solo para esta reserva (no se guarda en
-                        tu perfil)
+                        Usar otro número solo para esta reserva
+                      </FieldLabel>
+                    </div>
+                  ) : null}
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              );
+            }}
+          />
+          <Controller
+            name="contactEmail"
+            control={form.control}
+            render={({ field, fieldState }) => {
+              const hasSavedEmail = Boolean(profileEmail);
+              const emailDisabled = hasSavedEmail && !useAlternateEmail;
+
+              return (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={formIds.contactEmail}>Correo</FieldLabel>
+                  <Input
+                    id={formIds.contactEmail}
+                    type="email"
+                    value={field.value ?? ""}
+                    onChange={(e) =>
+                      field.onChange(
+                        e.target.value.trim() === ""
+                          ? undefined
+                          : e.target.value,
+                      )
+                    }
+                    placeholder="tu@correo.com"
+                    disabled={emailDisabled}
+                    aria-invalid={fieldState.invalid}
+                  />
+                  {hasSavedEmail ? (
+                    <div className="mt-2 flex gap-2">
+                      <Checkbox
+                        id={`${formIds.contactEmail}-alternate`}
+                        className="mt-0.5"
+                        checked={useAlternateEmail}
+                        onCheckedChange={(checked) => {
+                          const useAlt = checked === true;
+                          setUseAlternateEmail(useAlt);
+                          if (useAlt) {
+                            form.setValue("contactEmail", undefined, {
+                              shouldValidate: true,
+                            });
+                          } else {
+                            form.setValue(
+                              "contactEmail",
+                              profileEmail || undefined,
+                              { shouldValidate: true },
+                            );
+                          }
+                        }}
+                        disabled={isCreatingAppointment}
+                      />
+                      <FieldLabel
+                        htmlFor={`${formIds.contactEmail}-alternate`}
+                        className="font-normal text-muted-foreground text-sm leading-snug"
+                      >
+                        Usar otro correo solo para esta reserva
                       </FieldLabel>
                     </div>
                   ) : null}
@@ -611,17 +703,6 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                 </p>
               </div>
             )}
-
-            {selectedSlotTime && effectiveService && (
-              <p className="mt-3 rounded-md bg-primary/5 px-3 py-2 text-foreground text-sm">
-                <span className="font-medium">Resumen: </span>
-                {selectedSlotTime} –{" "}
-                {addMinutesToTime(selectedSlotTime, effectiveService.duration)}{" "}
-                <span className="text-muted-foreground">
-                  ({effectiveService.duration} min)
-                </span>
-              </p>
-            )}
           </Field>
         </div>
       </section>
@@ -658,18 +739,137 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
         />
       </section>
 
-      <div className="flex flex-col-reverse gap-3 border-border/80 border-t pt-6 sm:flex-row sm:justify-end sm:gap-3">
+      <Separator />
+
+      <section aria-labelledby={formIds.summarySection} className="space-y-3">
+        <div className="space-y-1">
+          <h2
+            id={formIds.summarySection}
+            className="font-semibold text-foreground text-sm"
+          >
+            Revisa tu reserva
+          </h2>
+          <p className="text-muted-foreground text-xs">
+            Confirma que los datos sean correctos antes de enviar la solicitud.
+          </p>
+        </div>
+        <Card size="sm" className="shadow-none ring-border/80">
+          <CardContent className="grid gap-4 pt-2 pb-4 sm:grid-cols-2">
+            <div className="min-w-0 sm:col-span-2">
+              <CardDescription className="text-xs">Barbería</CardDescription>
+              <p className="mt-0.5 font-medium text-foreground text-sm">
+                {barbershop.name}
+              </p>
+            </div>
+            <div className="min-w-0">
+              <CardDescription className="text-xs">Servicio</CardDescription>
+              <p
+                className={cn(
+                  "mt-0.5 text-sm",
+                  effectiveService
+                    ? "font-medium text-foreground"
+                    : "text-muted-foreground",
+                )}
+              >
+                {effectiveService
+                  ? `${effectiveService.name} · ${formatCurrency(effectiveService.price)} · ${effectiveService.duration} min`
+                  : pendingLabel}
+              </p>
+            </div>
+            <div className="min-w-0">
+              <CardDescription className="text-xs">Barbero</CardDescription>
+              <p
+                className={cn(
+                  "mt-0.5 text-sm",
+                  selectedBarberName
+                    ? "font-medium text-foreground"
+                    : "text-muted-foreground",
+                )}
+              >
+                {selectedBarberName ?? pendingLabel}
+              </p>
+            </div>
+            <div className="min-w-0 sm:col-span-2">
+              <CardDescription className="text-xs">
+                Fecha y hora
+              </CardDescription>
+              <p
+                className={cn(
+                  "mt-0.5 text-sm",
+                  appointmentDateTimeLabel
+                    ? "font-medium text-foreground"
+                    : "text-muted-foreground",
+                )}
+              >
+                {appointmentDateTimeLabel ?? pendingLabel}
+              </p>
+              {timeRangeLabel ? (
+                <p className="mt-1 text-muted-foreground text-xs">
+                  Franja: {timeRangeLabel}
+                </p>
+              ) : null}
+            </div>
+            <div className="min-w-0">
+              <CardDescription className="text-xs">Cliente</CardDescription>
+              <p
+                className={cn(
+                  "mt-0.5 text-sm",
+                  watchedCustomerName?.trim()
+                    ? "font-medium text-foreground"
+                    : "text-muted-foreground",
+                )}
+              >
+                {watchedCustomerName?.trim() || pendingLabel}
+              </p>
+            </div>
+            <div className="min-w-0">
+              <CardDescription className="text-xs">Teléfono</CardDescription>
+              <p
+                className={cn(
+                  "mt-0.5 break-all text-sm",
+                  phoneSummaryLabel
+                    ? "font-medium text-foreground"
+                    : "text-muted-foreground",
+                )}
+              >
+                {phoneSummaryLabel ?? pendingLabel}
+              </p>
+            </div>
+            {watchedContactEmail?.trim() ? (
+              <div className="min-w-0 sm:col-span-2">
+                <CardDescription className="text-xs">Correo</CardDescription>
+                <p className="mt-0.5 break-all font-medium text-foreground text-sm">
+                  {watchedContactEmail.trim()}
+                </p>
+              </div>
+            ) : null}
+            {watchedNotes?.trim() ? (
+              <div className="min-w-0 sm:col-span-2">
+                <CardDescription className="text-xs">
+                  Notas para el barbero
+                </CardDescription>
+                <p className="mt-0.5 whitespace-pre-wrap text-foreground text-sm">
+                  {watchedNotes.trim()}
+                </p>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      </section>
+
+      <div className="flex flex-col-reverse gap-4 sm:flex-row sm:justify-end">
         <Button
           type="button"
           variant="outline"
           className="sm:min-w-36"
           onClick={() => {
             setUseAlternatePhone(false);
+            setUseAlternateEmail(false);
             form.reset({
               date: undefined,
               customerName: userProfile?.name,
               contactPhone: profilePhone,
-              contactEmail: userProfile?.email,
+              contactEmail: profileEmail || undefined,
               notes: "",
               barbershopMemberId:
                 availableBarbers?.length === 1

@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 
-import { convexToZod } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
+import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import { zInternalMutation, zInternalQuery, zMutation, zQuery } from ".";
@@ -84,6 +84,7 @@ export const create = zMutation({
     await rateLimitOrThrow(ctx, "createAppointment", user._id);
 
     const { appointment } = args;
+    const contactEmail = appointment.contactEmail?.trim() || undefined;
     const isStaffCreatingAppointment = appointment.isStaffCreated;
 
     if (isStaffCreatingAppointment) {
@@ -124,8 +125,8 @@ export const create = zMutation({
     const barberProfile = await ctx.db.get(barber.userProfileDataId);
     let customerProfile: UserProfileData | null = null;
 
-    if (appointment.contactEmail) {
-      customerProfile = await getProfileByEmail(ctx, appointment.contactEmail);
+    if (contactEmail) {
+      customerProfile = await getProfileByEmail(ctx, contactEmail);
     }
 
     if (!barberProfile) {
@@ -232,6 +233,7 @@ export const create = zMutation({
 
     const appointmentId = await ctx.db.insert("appointments", {
       ...withoutIsStaffCreated,
+      contactEmail,
       contactPhone: formatPhoneNumber(withoutIsStaffCreated.contactPhone),
       userId: appointmentUserId,
       status: "confirmed",
@@ -255,7 +257,7 @@ export const create = zMutation({
       appointmentId,
       barberUserId: barberProfile.userId,
       customerUserId: appointmentUserId,
-      to: customerProfile?.email || appointment.contactEmail,
+      to: contactEmail ?? customerProfile?.email,
       sendTo: "customer",
       barbershopName: barbershop.name,
       receiverPhoneNumber: appointment.contactPhone,
@@ -921,8 +923,8 @@ export const answerRescheduleRequest = zMutation({
       : "La solicitud fue rechazada y la cita fue cancelada.";
 
     const receiverEmail =
-      receiverProfile?.email ??
       (receiverRole === "customer" ? appt.contactEmail : undefined) ??
+      receiverProfile?.email ??
       "";
 
     await ctx.runMutation(
