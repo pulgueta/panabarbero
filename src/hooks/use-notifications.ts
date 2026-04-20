@@ -19,6 +19,15 @@ export function notificationsPageQueryOptions(opts: {
   });
 }
 
+export function unreadNotificationsPageQueryOptions(opts: {
+  cursor: string | null;
+  numItems: number;
+}) {
+  return convexQuery(api.notifications.listUnread, {
+    paginationOpts: opts,
+  });
+}
+
 /** Live-updating list of the 5 most recent notifications for the current user. */
 export function useRecentNotifications() {
   return useQuery(recentNotificationsQueryOptions());
@@ -34,6 +43,13 @@ export function useNotificationsPage(opts: {
   numItems: number;
 }) {
   return useQuery(notificationsPageQueryOptions(opts));
+}
+
+export function useUnreadNotificationsPage(opts: {
+  cursor: string | null;
+  numItems: number;
+}) {
+  return useQuery(unreadNotificationsPageQueryOptions(opts));
 }
 
 export function useNotificationActions() {

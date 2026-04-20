@@ -909,6 +909,28 @@ export const list = zQuery({
   },
 });
 
+/** Paginated unread notifications for the "Sin leer" tab in the profile inbox. */
+export const listUnread = zQuery({
+  args: z.object({
+    paginationOpts: convexToZod(paginationOptsValidator),
+  }),
+  handler: async (ctx, args) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      return { page: [], isDone: true, continueCursor: "" } as const;
+    }
+
+    return await ctx.db
+      .query("inAppNotifications")
+      .withIndex("by_user_unread", (q) =>
+        q.eq("userId", user.userId!).eq("readAt", undefined),
+      )
+      .order("desc")
+      .paginate(args.paginationOpts);
+  },
+});
+
 /** Count of notifications the current user has not yet read. Used for the bell badge. */
 export const unreadCount = zQuery({
   args: z.object({}),
@@ -964,16 +986,24 @@ export const markAllRead = zMutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    const unread = await ctx.db
-      .query("inAppNotifications")
-      .withIndex("by_user_unread", (q) =>
-        q.eq("userId", user.userId!).eq("readAt", undefined),
-      )
-      .take(200);
-
+    const BATCH = 200;
     const now = Date.now();
-    for (const row of unread) {
-      await ctx.db.patch(row._id, { readAt: now });
+
+    while (true) {
+      const batch = await ctx.db
+        .query("inAppNotifications")
+        .withIndex("by_user_unread", (q) =>
+          q.eq("userId", user.userId!).eq("readAt", undefined),
+        )
+        .take(BATCH);
+
+      if (batch.length === 0) break;
+
+      for (const row of batch) {
+        await ctx.db.patch(row._id, { readAt: now });
+      }
+
+      if (batch.length < BATCH) break;
     }
   },
 });

@@ -17,6 +17,7 @@ import {
   useNotificationActions,
   useNotificationsPage,
   useUnreadNotificationsCount,
+  useUnreadNotificationsPage,
 } from "@/hooks/use-notifications";
 import { useSession } from "@/hooks/use-session";
 
@@ -35,20 +36,22 @@ export const NotificationsTab = () => {
   const { data: isOwner } = useIsOwner(user?.userId ?? "");
   const usesBarberCalendar = Boolean(isBarber || isStaff || isOwner);
 
-  const { data: page, isLoading } = useNotificationsPage({
+  const { data: allPage, isLoading: isLoadingAll } = useNotificationsPage({
     cursor,
     numItems: PAGE_SIZE,
   });
+  const { data: unreadPage, isLoading: isLoadingUnread } =
+    useUnreadNotificationsPage({ cursor, numItems: PAGE_SIZE });
+
+  const page = filter === "unread" ? unreadPage : allPage;
+  const isLoading = filter === "unread" ? isLoadingUnread : isLoadingAll;
+
   const { data: unread = 0 } = useUnreadNotificationsCount();
   const { markReadMutation, markAllReadMutation } = useNotificationActions();
 
-  const all = useMemo<InAppNotification[]>(
+  const visible = useMemo<InAppNotification[]>(
     () => (page && "page" in page ? (page.page as InAppNotification[]) : []),
     [page],
-  );
-  const visible = useMemo(
-    () => (filter === "unread" ? all.filter((n) => !n.readAt) : all),
-    [all, filter],
   );
 
   // Group into lightweight date buckets for easier scanning.
@@ -95,7 +98,11 @@ export const NotificationsTab = () => {
         <div className="flex flex-wrap items-center gap-2">
           <Tabs
             value={filter}
-            onValueChange={(v) => setFilter(v as NotificationsFilter)}
+            onValueChange={(v) => {
+              setFilter(v as NotificationsFilter);
+              setCursor(null);
+              setCursorStack([]);
+            }}
             orientation="horizontal"
           >
             <TabsList variant="default" className="h-9">

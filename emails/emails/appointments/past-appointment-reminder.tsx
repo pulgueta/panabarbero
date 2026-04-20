@@ -36,7 +36,7 @@ export const PastAppointmentReminderEmail = ({
             <Header />
 
             <Text className="mb-4 text-pretty">
-              Haz tenido una cita hace poco, no olvides marcar su estado final.
+              Has tenido una cita hace poco, no olvides marcar su estado final.
             </Text>
 
             <Section className="mb-4 flex w-full items-center justify-center">

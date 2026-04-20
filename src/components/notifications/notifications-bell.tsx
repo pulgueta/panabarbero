@@ -38,7 +38,7 @@ export const NotificationsBell = () => {
   const { markReadMutation, markAllReadMutation } = useNotificationActions();
 
   const items = useMemo(() => recent ?? [], [recent]);
-  const hasUnread = unread > 0;
+  const hasUnread = unread !== 0;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -60,7 +60,7 @@ export const NotificationsBell = () => {
                 aria-hidden="true"
                 className="absolute -top-0.5 -right-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-primary px-1 font-medium text-[10px] text-primary-foreground tabular-nums leading-none ring-2 ring-background"
               >
-                {unread > 9 ? "9+" : unread}
+                {typeof unread === "number" && unread <= 9 ? unread : "9+"}
               </span>
             ) : null}
           </Button>

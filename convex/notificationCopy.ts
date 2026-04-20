@@ -15,7 +15,7 @@ export const deepLinks = {
   invitation: (code: string) => `${siteUrl()}/invitations/${code}`,
 };
 
-type BaseInput = { barbershopName?: string };
+export type BaseInput = { barbershopName?: string };
 
 export type NotificationInput =
   | {
@@ -202,5 +202,3 @@ export function buildSmsBody(copy: NotificationCopy): string {
   return `${copy.description} Ver detalles: ${copy.href}`;
 }
 
-// Re-export helpers unused by the UI for now but handy from server code.
-export type { BaseInput };
