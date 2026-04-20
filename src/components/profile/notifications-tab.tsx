@@ -1,6 +1,7 @@
 import type { InAppNotification } from "@convex/schema";
 import { BellSimpleIcon, CheckIcon, SparkleIcon } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
+
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
 import { NotificationRenderer } from "@/components/notifications/notification-renderer";
 import { getSectionLabel } from "@/components/notifications/relative-time";
@@ -85,7 +86,7 @@ export const NotificationsTab = () => {
             Notificaciones
           </h2>
           <p className="text-muted-foreground text-sm">
-            {unread > 0
+            {unread
               ? `Tienes ${unread} ${unread === 1 ? "notificación nueva" : "notificaciones nuevas"}.`
               : "Aquí verás tus actualizaciones en tiempo real."}
           </p>
@@ -101,9 +102,9 @@ export const NotificationsTab = () => {
               <TabsTrigger value="all">Todas</TabsTrigger>
               <TabsTrigger value="unread" className="gap-1.5">
                 Sin leer
-                {unread > 0 ? (
+                {unread ? (
                   <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 font-medium text-[11px] text-primary-foreground tabular-nums">
-                    {unread > 99 ? "99+" : unread}
+                    {unread === 99 || unread === "99+" ? "99+" : unread}
                   </span>
                 ) : null}
               </TabsTrigger>
