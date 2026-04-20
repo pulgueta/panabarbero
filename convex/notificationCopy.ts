@@ -157,9 +157,7 @@ export function buildNotificationCopy(input: NotificationInput): NotificationCop
       return {
         kind: "past_appointment_reminder",
         title: subjects.past_appointment_reminder,
-        description:
-          "Haz tenido una cita hace poco, no olvides marcar su estado final.",
-        href: deepLinks.barberAppointments(),
+          "Has tenido una cita hace poco, no olvides marcar su estado final.",
       };
     }
     case "team_invited": {
