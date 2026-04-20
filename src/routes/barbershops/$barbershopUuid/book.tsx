@@ -136,8 +136,8 @@ function RouteComponent() {
 
         {barbershop ? (
           <section>
-            <header className="space-y-1">
-              <h3 className="text-balance font-bold text-3xl tracking-tightest">
+            <header className="">
+              <h3 className="mb-4 text-balance font-bold text-3xl tracking-tightest">
                 {barbershop.name}
               </h3>
               <p className="text-xl">Reservar cita</p>

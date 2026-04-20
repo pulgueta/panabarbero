@@ -198,8 +198,9 @@ export const appointmentFormSchema = object({
   contactPhone: string({
     error: "El teléfono de contacto es requerido",
   })
-    .min(10, "El teléfono debe tener al menos 10 caracteres")
-    .max(10, "El teléfono debe tener menos de 10 caracteres"),
+    .trim()
+    .min(8, "Introduce un número de teléfono válido")
+    .max(22, "Introduce un número de teléfono válido"),
   contactEmail: email().or(zodUndefined()),
   notes: string().optional(),
   barbershopMemberId: zodAny(),

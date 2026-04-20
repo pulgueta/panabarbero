@@ -23,4 +23,5 @@ export const errorMessages = {
     "Has alcanzado el límite de personal para tu plan actual.",
   smsLimitExceeded: "Has alcanzado el límite de SMS para este mes.",
   emailLimitExceeded: "Has alcanzado el límite de correos para este mes.",
+  invalidPhoneNumber: "El número de teléfono no es válido.",
 } as const;

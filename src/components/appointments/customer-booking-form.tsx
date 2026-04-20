@@ -3,13 +3,13 @@ import type {
   BarbershopMemberWithName,
   Service,
 } from "@convex/schema";
+import { formatPhoneNumber } from "@convex/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   CalendarIcon,
   CaretUpDownIcon,
   CheckIcon,
   ClockIcon,
-  ScissorsIcon,
 } from "@phosphor-icons/react";
 import { useNavigate } from "@tanstack/react-router";
 import { es } from "date-fns/locale";
@@ -23,6 +23,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Command,
   CommandEmpty,
@@ -39,13 +40,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
@@ -65,6 +59,13 @@ import {
 import { appointmentFormSchema } from "@/lib/schemas";
 import { cn, formatCurrency } from "@/lib/utils";
 import { setServiceStore, useServicesStore } from "@/store/services";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 import { TimeSlotPicker } from "./time-slot-picker";
 
 interface CustomerBookingFormProps {
@@ -90,6 +91,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
     date: useId(),
     startTime: useId(),
     contactPhone: useId(),
+    alternateContactPhone: useId(),
     contactEmail: useId(),
     notes: useId(),
     barbershopMemberId: useId(),
@@ -121,20 +123,31 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
     barbershop._id,
   );
 
-  const showPhoneField = !userProfile?.phoneNumber;
+  const profilePhone = userProfile?.phoneNumber
+    ? formatPhoneNumber(userProfile.phoneNumber)
+    : "";
+
+  const [useAlternatePhone, setUseAlternatePhone] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(appointmentFormSchema),
     defaultValues: {
       date: undefined,
       customerName: userProfile?.name,
-      contactPhone: userProfile?.phoneNumber,
+      contactPhone: profilePhone,
       contactEmail: userProfile?.email,
       notes: "",
       barbershopMemberId:
         availableBarbers?.length === 1 ? availableBarbers[0]?._id : undefined,
     },
   });
+
+  useEffect(() => {
+    if (!profilePhone || useAlternatePhone) {
+      return;
+    }
+    form.setValue("contactPhone", profilePhone);
+  }, [profilePhone, useAlternatePhone, form]);
 
   // Auto-select when the available barber list narrows to exactly 1
   useEffect(() => {
@@ -186,7 +199,16 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
         },
       });
 
-      form.reset();
+      setUseAlternatePhone(false);
+      form.reset({
+        date: undefined,
+        customerName: userProfile?.name,
+        contactPhone: profilePhone,
+        contactEmail: userProfile?.email,
+        notes: "",
+        barbershopMemberId:
+          availableBarbers?.length === 1 ? availableBarbers[0]?._id : undefined,
+      });
       haptic.trigger("success");
 
       toast.custom(
@@ -250,102 +272,169 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
         render={({ field }) => <Input {...field} type="hidden" />}
       />
 
-      <section aria-labelledby="booking-service-heading" className="space-y-4">
-        <div className="flex items-center gap-2">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <ScissorsIcon className="size-4" weight="duotone" />
-          </span>
-          <div>
-            <h2
-              id="booking-service-heading"
-              className="font-semibold text-foreground text-sm"
-            >
-              Servicio
-            </h2>
-            <p className="text-muted-foreground text-xs">
-              Precio y duración se aplican a la cita.
-            </p>
-          </div>
-        </div>
-        <Field>
-          <FieldLabel className="sr-only">Servicio</FieldLabel>
-          <Popover open={serviceOpen} onOpenChange={setServiceOpen}>
-            <PopoverTrigger
-              render={
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={serviceOpen}
-                  className="h-11 w-full justify-between px-3 text-left font-normal"
-                >
-                  {effectiveService
-                    ? effectiveService.name
-                    : "Seleccionar servicio..."}
-                  <CaretUpDownIcon className="size-4 shrink-0 opacity-50" />
-                </Button>
-              }
-            />
-            <PopoverContent className="w-[min(100vw-2rem,var(--radix-popover-trigger-width))] p-0 sm:w-(--radix-popover-trigger-width)">
-              <Command>
-                <CommandInput
-                  placeholder="Buscar servicio..."
-                  className="h-9"
-                />
-                <CommandList>
-                  <CommandEmpty>No se encontraron servicios.</CommandEmpty>
-                  <CommandGroup>
-                    {services.map((service) => (
-                      <CommandItem
-                        key={service._id}
-                        value={service._id}
-                        onSelect={(value) => {
-                          const match = services.find((s) => s._id === value);
-                          if (match) setServiceStore({ service: match });
-                          setServiceOpen(false);
-                        }}
-                      >
-                        <div className="flex w-full items-center justify-between gap-2">
-                          <span className="font-medium">{service.name}</span>
-                          <div className="flex flex-col items-end text-muted-foreground text-xs">
-                            <span>{formatCurrency(service.price)}</span>
-                            <span>{service.duration} min</span>
+      <section
+        aria-labelledby="booking-service-heading"
+        className="grid gap-6 lg:grid-cols-2 lg:gap-8"
+      >
+        <div className="flex flex-col gap-2">
+          <h2
+            id="booking-service-heading"
+            className="font-semibold text-foreground text-sm"
+          >
+            Servicio
+          </h2>
+          <Field>
+            <FieldLabel className="sr-only">Servicio</FieldLabel>
+
+            <Popover open={serviceOpen} onOpenChange={setServiceOpen}>
+              <PopoverTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={serviceOpen}
+                    className="h-11 w-full justify-between px-3 text-left font-normal"
+                  >
+                    {effectiveService
+                      ? effectiveService.name
+                      : "Seleccionar servicio..."}
+                    <CaretUpDownIcon className="size-4 shrink-0 opacity-50" />
+                  </Button>
+                }
+              />
+              <PopoverContent className="w-[min(100vw-2rem,var(--radix-popover-trigger-width))] p-0 sm:w-(--radix-popover-trigger-width)">
+                <Command>
+                  <CommandInput
+                    placeholder="Buscar servicio..."
+                    className="h-9"
+                  />
+                  <CommandList>
+                    <CommandEmpty>No se encontraron servicios.</CommandEmpty>
+                    <CommandGroup>
+                      {services.map((service) => (
+                        <CommandItem
+                          key={service._id}
+                          value={service._id}
+                          onSelect={(value) => {
+                            const match = services.find((s) => s._id === value);
+                            if (match) setServiceStore({ service: match });
+                            setServiceOpen(false);
+                          }}
+                        >
+                          <div className="flex w-full items-center justify-between gap-2">
+                            <span className="font-medium">{service.name}</span>
+                            <div className="flex flex-col items-end text-muted-foreground text-xs">
+                              <span>{formatCurrency(service.price)}</span>
+                              <span>{service.duration} min</span>
+                            </div>
                           </div>
-                        </div>
-                        <CheckIcon
-                          className={cn(
-                            "ml-2 size-3 shrink-0",
-                            effectiveServiceId === service._id
-                              ? "opacity-100"
-                              : "opacity-0",
-                          )}
-                        />
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-          {effectiveService && (
-            <div className="flex flex-wrap gap-2 pt-2">
-              <Badge variant="secondary">
-                {formatCurrency(effectiveService.price)}
-              </Badge>
-              <Badge variant="outline">{effectiveService.duration} min</Badge>
-            </div>
+                          <CheckIcon
+                            className={cn(
+                              "ml-2 size-3 shrink-0",
+                              effectiveServiceId === service._id
+                                ? "opacity-100"
+                                : "opacity-0",
+                            )}
+                          />
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            {effectiveService && (
+              <div className="flex flex-wrap gap-2 pt-2">
+                <Badge variant="secondary">
+                  {formatCurrency(effectiveService.price)}
+                </Badge>
+                <Badge variant="outline">{effectiveService.duration} min</Badge>
+              </div>
+            )}
+          </Field>
+        </div>
+
+        <Controller
+          name="barbershopMemberId"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={formIds.barbershopMemberId}>
+                Barbero
+              </FieldLabel>
+
+              {availableBarbers?.length === 0 ? (
+                <span className="text-muted-foreground text-sm">
+                  No hay barberos disponibles para este servicio.
+                </span>
+              ) : availableBarbers?.length === 1 ? (
+                <>
+                  <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
+                    <Avatar size="default">
+                      <AvatarFallback>
+                        {availableBarbers[0]?.name?.slice(0, 2).toUpperCase() ??
+                          "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium text-sm">
+                      {availableBarbers[0]?.name}
+                    </span>
+                  </div>
+                  <Input {...field} type="hidden" />
+                </>
+              ) : (
+                <Suspense fallback={<Skeleton className="h-11 w-full" />}>
+                  <Select
+                    value={field.value}
+                    onValueChange={(value) => {
+                      startTransition(() => {
+                        field.onChange(value);
+                      });
+                    }}
+                    aria-invalid={fieldState.invalid}
+                  >
+                    <SelectTrigger
+                      id={formIds.barbershopMemberId}
+                      className="h-11 w-full"
+                    >
+                      <SelectValue placeholder="Selecciona un barbero" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableBarbers?.map((barber) => (
+                        <SelectItem key={barber?._id} value={barber?._id}>
+                          <div className="flex items-center gap-2">
+                            <Avatar size="sm">
+                              <AvatarFallback>
+                                {barber?.name.slice(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            {barber?.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Suspense>
+              )}
+
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
           )}
-        </Field>
+        />
       </section>
 
       <Separator />
 
       <section aria-labelledby="booking-contact-heading" className="space-y-4">
-        <div className={cn("grid gap-4", showPhoneField && "sm:grid-cols-2")}>
-          {showPhoneField && (
-            <Controller
-              name="contactPhone"
-              control={form.control}
-              render={({ field, fieldState }) => (
+        <div className="space-y-4" id="booking-contact-heading">
+          <Controller
+            name="contactPhone"
+            control={form.control}
+            render={({ field, fieldState }) => {
+              const hasSavedPhone = Boolean(profilePhone);
+              const phoneDisabled = hasSavedPhone && !useAlternatePhone;
+
+              return (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={formIds.contactPhone}>
                     Teléfono
@@ -356,113 +445,54 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                     onChange={field.onChange}
                     defaultCountry="CO"
                     placeholder="311 987 1234"
+                    disabled={phoneDisabled}
                     aria-invalid={fieldState.invalid}
                   />
+                  {hasSavedPhone ? (
+                    <div className="mt-2 flex gap-2">
+                      <Checkbox
+                        id={formIds.alternateContactPhone}
+                        className="mt-0.5"
+                        checked={useAlternatePhone}
+                        onCheckedChange={(checked) => {
+                          const useAlt = checked === true;
+                          setUseAlternatePhone(useAlt);
+                          if (useAlt) {
+                            form.setValue("contactPhone", "");
+                          } else {
+                            form.setValue("contactPhone", profilePhone);
+                          }
+                        }}
+                        disabled={isCreatingAppointment}
+                      />
+                      <FieldLabel
+                        htmlFor={formIds.alternateContactPhone}
+                        className="font-normal text-muted-foreground text-sm leading-snug"
+                      >
+                        Usar otro número solo para esta reserva (no se guarda en
+                        tu perfil)
+                      </FieldLabel>
+                    </div>
+                  ) : null}
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
                   )}
                 </Field>
-              )}
-            />
-          )}
-
-          <Controller
-            name="barbershopMemberId"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={formIds.barbershopMemberId}>
-                  Barbero
-                </FieldLabel>
-
-                {availableBarbers?.length === 0 ? (
-                  <span className="text-muted-foreground text-sm">
-                    No hay barberos disponibles para este servicio.
-                  </span>
-                ) : availableBarbers?.length === 1 ? (
-                  <>
-                    <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
-                      <Avatar size="default">
-                        <AvatarFallback>
-                          {availableBarbers[0]?.name
-                            ?.slice(0, 2)
-                            .toUpperCase() ?? "?"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="font-medium text-sm">
-                        {availableBarbers[0]?.name}
-                      </span>
-                    </div>
-                    <Input {...field} type="hidden" />
-                  </>
-                ) : (
-                  <Suspense fallback={<Skeleton className="h-11 w-full" />}>
-                    <Select
-                      value={field.value}
-                      onValueChange={(value) => {
-                        startTransition(() => {
-                          field.onChange(value);
-                        });
-                      }}
-                      aria-invalid={fieldState.invalid}
-                    >
-                      <SelectTrigger
-                        id={formIds.barbershopMemberId}
-                        className="h-11 w-full"
-                      >
-                        <SelectValue placeholder="Selecciona un barbero" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableBarbers?.map((barber) => (
-                          <SelectItem key={barber?._id} value={barber?._id}>
-                            <div className="flex items-center gap-2">
-                              <Avatar size="sm">
-                                <AvatarFallback>
-                                  {barber?.name.slice(0, 2).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              {barber?.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Suspense>
-                )}
-
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
+              );
+            }}
           />
         </div>
       </section>
 
       <Separator />
 
-      <section
-        aria-labelledby="booking-schedule-heading"
-        className="space-y-4 rounded-xl border border-border/80 border-dashed bg-muted/15 p-4 sm:p-5"
-      >
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <CalendarIcon className="size-4" weight="duotone" />
-            </span>
-            <div>
-              <h2
-                id="booking-schedule-heading"
-                className="font-semibold text-foreground text-sm"
-              >
-                Fecha y hora
-              </h2>
-              <p className="text-muted-foreground text-xs">
-                Primero el día; luego elige un cupo.
-              </p>
-            </div>
-          </div>
-        </div>
+      <section aria-labelledby="booking-schedule-heading" className="space-y-4">
+        <h2
+          id="booking-schedule-heading"
+          className="font-semibold text-foreground text-sm"
+        >
+          Fecha y hora
+        </h2>
 
         <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
           <Controller
@@ -634,7 +664,18 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
           variant="outline"
           className="sm:min-w-36"
           onClick={() => {
-            form.reset();
+            setUseAlternatePhone(false);
+            form.reset({
+              date: undefined,
+              customerName: userProfile?.name,
+              contactPhone: profilePhone,
+              contactEmail: userProfile?.email,
+              notes: "",
+              barbershopMemberId:
+                availableBarbers?.length === 1
+                  ? availableBarbers[0]?._id
+                  : undefined,
+            });
             navigate({
               to: "/barbershops/$barbershopUuid",
               params: { barbershopUuid },

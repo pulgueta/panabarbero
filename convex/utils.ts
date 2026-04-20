@@ -1,17 +1,40 @@
+/**
+ * Normalizes a phone value to E.164 (`+<country><national>`) for Twilio/SMS.
+ * Colombian national numbers (10 digits, no country code) get `+57`.
+ * Values that already include `+` keep their country code.
+ */
 export function formatPhoneNumber(phone: string): string {
   if (!phone) return "";
 
-  let formatted = phone.replace(/\s/g, "");
+  const trimmed = phone.trim();
+  const compactNoSpaces = trimmed.replace(/\s/g, "");
 
-  if (formatted.startsWith("+57")) {
-    formatted = formatted.slice(3);
+  if (compactNoSpaces.startsWith("+")) {
+    const digits = compactNoSpaces.slice(1).replace(/\D/g, "");
+
+    return digits ? `+${digits}` : "";
   }
 
-  if (formatted.startsWith("0")) {
-    formatted = formatted.slice(1);
+  let digits = trimmed.replace(/\D/g, "");
+  if (!digits) return "";
+
+  while (digits.startsWith("0")) {
+    digits = digits.slice(1);
   }
 
-  return formatted;
+  if (digits.startsWith("57") && digits.length >= 12) {
+    return `+${digits}`;
+  }
+
+  if (digits.length === 10) {
+    return `+57${digits}`;
+  }
+
+  if (digits.length >= 11) {
+    return `+${digits}`;
+  }
+
+  return "";
 }
 
 export type WeekdayKey =

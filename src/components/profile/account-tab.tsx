@@ -1,8 +1,8 @@
 import type { UserProfileData } from "@convex/schema";
+import { formatPhoneNumber } from "@convex/utils";
 import { InfoIcon } from "@phosphor-icons/react";
 import type { FC } from "react";
 import { lazy, Suspense, useEffect, useState } from "react";
-
 import { ProfilePhotoUploader } from "@/components/profile/profile-photo-uploader";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -68,7 +68,9 @@ export const AccountTab: FC<AccountTabProps> = ({
   } = useProfileActions();
 
   const [name, setName] = useState<string>(profile?.name ?? "");
-  const [phone, setPhone] = useState<string>(profile?.phoneNumber ?? "");
+  const [phone, setPhone] = useState<string>(
+    profile?.phoneNumber ? formatPhoneNumber(profile.phoneNumber) : "",
+  );
   const [showBarbershopBanner, setShowBarbershopBanner] =
     useState<boolean>(false);
 
@@ -106,7 +108,9 @@ export const AccountTab: FC<AccountTabProps> = ({
   }, [profile?.name]);
 
   useEffect(() => {
-    setPhone(profile?.phoneNumber ?? "");
+    setPhone(
+      profile?.phoneNumber ? formatPhoneNumber(profile.phoneNumber) : "",
+    );
   }, [profile?.phoneNumber]);
 
   return (
@@ -217,25 +221,44 @@ export const AccountTab: FC<AccountTabProps> = ({
           <CardContent>
             <FieldRoot>
               <FieldContent>
-                <div className="flex gap-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-3">
                   <PhoneInput
                     value={phone}
                     onChange={setPhone}
                     defaultCountry="CO"
                     placeholder="300 444 1122"
                     disabled={isUpdatingPhoneNumber}
-                    className="flex-1"
+                    className="min-w-0 flex-1"
                   />
-                  <Button
-                    onClick={() =>
-                      updatePhoneNumber({
-                        phoneNumber: phone ?? "",
-                      })
-                    }
-                    disabled={isUpdatingPhoneNumber}
-                  >
-                    Guardar
-                  </Button>
+                  <div className="flex shrink-0 gap-2">
+                    <Button
+                      type="button"
+                      onClick={() =>
+                        updatePhoneNumber({
+                          phoneNumber: phone?.trim()
+                            ? formatPhoneNumber(phone)
+                            : "",
+                        })
+                      }
+                      disabled={isUpdatingPhoneNumber}
+                    >
+                      Guardar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={async () => {
+                        await updatePhoneNumber({ clearPhoneNumber: true });
+                        setPhone("");
+                      }}
+                      disabled={
+                        isUpdatingPhoneNumber ||
+                        (!profile?.phoneNumber && !phone?.trim())
+                      }
+                    >
+                      Quitar
+                    </Button>
+                  </div>
                 </div>
               </FieldContent>
             </FieldRoot>

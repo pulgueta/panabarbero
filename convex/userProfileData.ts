@@ -2,7 +2,7 @@ import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zInternalMutation, zMutation, zQuery } from ".";
-import { api } from "./_generated/api";
+import { api, components } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { authComponent, createAuth } from "./auth";
 import { errorMessages } from "./errors";
@@ -51,7 +51,14 @@ export const getMyProfile = zQuery({
       return null;
     }
 
-    return profile;
+    const phoneNumber = profile.phoneNumber
+      ? formatPhoneNumber(profile.phoneNumber)
+      : profile.phoneNumber;
+
+    return {
+      ...profile,
+      phoneNumber: phoneNumber || undefined,
+    };
   },
 });
 
@@ -88,7 +95,16 @@ export const updateName = zMutation({
 });
 
 export const updatePhoneNumber = zMutation({
-  args: userProfileData.schema.pick({ phoneNumber: true }),
+  args: z
+    .object({
+      phoneNumber: z.string().optional(),
+      /** When true, removes the number from Better Auth and drops the profile field. */
+      clearPhoneNumber: z.boolean().optional(),
+    })
+    .refine(
+      (a) => a.clearPhoneNumber === true || typeof a.phoneNumber === "string",
+      { message: "Indica un número de teléfono o elige quitar." },
+    ),
   handler: async (ctx, args) => {
     const user = await authComponent.safeGetAuthUser(ctx);
 
@@ -98,19 +114,54 @@ export const updatePhoneNumber = zMutation({
 
     await rateLimitOrThrow(ctx, "updatePhoneNumber", user._id);
 
-    const profile = await getProfileByUserId(ctx, user.userId ?? "");
+    const profile = await getProfileByUserId(
+      ctx,
+      user.userId ?? String(user._id),
+    );
 
     if (!profile) {
       return;
     }
 
-    const phoneNumber = args.phoneNumber
-      ? formatPhoneNumber(args.phoneNumber)
-      : undefined;
+    const isClear = args.clearPhoneNumber === true;
+    const raw = isClear ? "" : (args.phoneNumber?.trim() ?? "");
+    const normalized = raw ? formatPhoneNumber(raw) : "";
 
-    await ctx.db.patch(profile._id, {
-      phoneNumber,
+    if (!isClear && raw && !normalized) {
+      throw new ConvexError(errorMessages.invalidPhoneNumber);
+    }
+
+    // `better-auth/minimal` does not register `phoneNumber` on `/update-user`, so
+    // `parseUserInput` drops it. Persist on the component `user` row via the
+    // Convex adapter (same pattern as `convex/auth.ts` triggers).
+    await ctx.runMutation(components.betterAuth.adapter.updateOne, {
+      input: {
+        model: "user",
+        update: normalized
+          ? {
+              phoneNumber: normalized,
+              phoneNumberVerified: false,
+              updatedAt: Date.now(),
+            }
+          : {
+              phoneNumber: null,
+              phoneNumberVerified: false,
+              updatedAt: Date.now(),
+            },
+        where: [{ field: "_id", operator: "eq", value: user._id }],
+      },
     });
+
+    if (normalized) {
+      await ctx.db.patch(profile._id, { phoneNumber: normalized });
+    } else {
+      await ctx.db.replace(profile._id, {
+        userId: profile.userId,
+        email: profile.email,
+        notificationsPreferences: profile.notificationsPreferences,
+        ...(profile.name !== undefined ? { name: profile.name } : {}),
+      });
+    }
   },
 });
 
