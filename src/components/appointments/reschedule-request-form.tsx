@@ -1,6 +1,5 @@
 import type { Appointment } from "@convex/schema";
 import { CalendarIcon, ClockCounterClockwiseIcon } from "@phosphor-icons/react";
-import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import type { FC } from "react";
 import type { UseFormReturn } from "react-hook-form";
@@ -23,7 +22,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import type { rescheduleRequestFormSchema } from "@/lib/schemas";
-import { cn } from "@/lib/utils";
+import { cn, formatLongDate, formatTimeOfDay, toDate } from "@/lib/utils";
 
 interface RescheduleRequestFormProps {
   disableDay: (day: Date) => boolean;
@@ -36,27 +35,56 @@ interface RescheduleRequestFormProps {
   appointment: Appointment;
 }
 
+function timeInputValue(value: number | undefined): string {
+  if (value === undefined) return "";
+  const date = new Date(value);
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
+function combineDateAndTimeMs(
+  baseMs: number | undefined,
+  time: string,
+): number {
+  const [hours, minutes] = time.split(":").map(Number);
+  const base = baseMs !== undefined ? new Date(baseMs) : new Date();
+  base.setHours(hours, minutes, 0, 0);
+  return base.getTime();
+}
+
+function combineDayAndCurrentTimeMs(
+  day: Date,
+  currentMs: number | undefined,
+): number {
+  const current =
+    currentMs !== undefined
+      ? new Date(currentMs)
+      : (() => {
+          const d = new Date();
+          d.setHours(8, 30, 0, 0);
+          return d;
+        })();
+  const combined = new Date(day);
+  combined.setHours(current.getHours(), current.getMinutes(), 0, 0);
+  return combined.getTime();
+}
+
 export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
   formIds,
   disableDay,
   form,
   appointment,
 }) => {
-  const originalDay = new Date(appointment.date).toLocaleDateString("es-CO", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-  const originalTime = new Date(appointment.date).toLocaleTimeString("es-CO", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const originalDay = formatLongDate(appointment.date);
+  const originalTime = formatTimeOfDay(appointment.date);
 
   return (
     <form
       id={formIds.form}
       onSubmit={(e) => e.preventDefault()}
       className="space-y-4"
+      suppressHydrationWarning
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
@@ -88,42 +116,36 @@ export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
                         "w-[240px] pl-3 text-left font-normal",
                         !field.value && "text-muted-foreground",
                       )}
+                      suppressHydrationWarning
                     >
                       {field.value ? (
-                        format(new Date(field.value as number), "PPP")
+                        formatLongDate(field.value as number)
                       ) : (
                         <span>Seleccione una fecha</span>
                       )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      <CalendarIcon className="ml-auto size-4 opacity-50" />
                     </Button>
                   }
                 />
-                <PopoverContent className="w-auto p-0" align="center">
+                <PopoverContent
+                  className="w-auto p-0"
+                  align="center"
+                  suppressHydrationWarning
+                >
                   <Calendar
                     mode="single"
-                    selected={
-                      field.value ? new Date(field.value as number) : undefined
-                    }
-                    onSelect={(date) => {
-                      if (!date) {
+                    selected={toDate(field.value as number | undefined)}
+                    onSelect={(day) => {
+                      if (!day) {
                         field.onChange(undefined);
                         return;
                       }
-                      const current = field.value
-                        ? new Date(field.value as number)
-                        : (() => {
-                            const d = new Date();
-                            d.setHours(8, 30, 0, 0);
-                            return d;
-                          })();
-                      const combined = new Date(date);
-                      combined.setHours(
-                        current.getHours(),
-                        current.getMinutes(),
-                        0,
-                        0,
+                      field.onChange(
+                        combineDayAndCurrentTimeMs(
+                          day,
+                          field.value as number | undefined,
+                        ),
                       );
-                      field.onChange(combined.getTime());
                     }}
                     disabled={disableDay}
                     className="bg-transparent [--cell-size:--spacing(12)]"
@@ -151,23 +173,17 @@ export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
                 <Input
                   type="time"
                   id={formIds.time}
-                  value={
-                    field.value
-                      ? format(new Date(field.value as number), "HH:mm")
-                      : ""
-                  }
+                  suppressHydrationWarning
+                  value={timeInputValue(field.value as number | undefined)}
                   onChange={(e) => {
                     const time = e.target.value;
-                    const date = field.value
-                      ? new Date(field.value as number)
-                      : undefined;
-                    if (time) {
-                      const [hours, minutes] = time.split(":").map(Number);
-                      const base = date ?? new Date();
-                      const updatedDate = new Date(base);
-                      updatedDate.setHours(hours, minutes, 0, 0);
-                      field.onChange(updatedDate.getTime());
-                    }
+                    if (!time) return;
+                    field.onChange(
+                      combineDateAndTimeMs(
+                        field.value as number | undefined,
+                        time,
+                      ),
+                    );
                   }}
                   className="peer appearance-none bg-background pl-9 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                 />

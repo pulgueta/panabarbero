@@ -5,7 +5,7 @@ interface ServicesStore {
   service: Service;
 }
 
-export const servicesStore = new Store<ServicesStore>({
+const servicesStore = new Store<ServicesStore>({
   service: {
     _creationTime: 0,
     _id: "" as unknown as Service["_id"],
@@ -17,7 +17,7 @@ export const servicesStore = new Store<ServicesStore>({
   },
 });
 
-export const emptyService: Service = {
+const emptyService: Service = {
   _creationTime: 0,
   _id: "" as unknown as Service["_id"],
   barbershopId: "" as unknown as Barbershop["_id"],

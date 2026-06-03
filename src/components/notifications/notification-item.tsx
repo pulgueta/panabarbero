@@ -1,12 +1,7 @@
 import type { InAppNotification } from "@convex/schema";
 import { Link } from "@tanstack/react-router";
-import {
-  createContext,
-  type FC,
-  type ReactNode,
-  useContext,
-  useMemo,
-} from "react";
+import type { FC, ReactNode } from "react";
+import { createContext, use, useMemo } from "react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -19,9 +14,9 @@ import { cn } from "@/lib/utils";
  * actions without adding a growing list of boolean props to the root.
  */
 
-export type NotificationDensity = "compact" | "comfortable";
+type NotificationDensity = "compact" | "comfortable";
 
-export interface NotificationItemContextValue {
+interface NotificationItemContextValue {
   notification: InAppNotification;
   density: NotificationDensity;
   isUnread: boolean;
@@ -32,7 +27,7 @@ const NotificationItemContext =
   createContext<NotificationItemContextValue | null>(null);
 
 function useNotificationItem() {
-  const ctx = useContext(NotificationItemContext);
+  const ctx = use(NotificationItemContext);
 
   if (!ctx) {
     throw new Error("NotificationItem.* must render inside NotificationItem");
@@ -267,5 +262,3 @@ export const NotificationItem = Object.assign(NotificationItemRoot, {
   Meta: NotificationItemMeta,
   Action: NotificationItemAction,
 });
-
-export { useNotificationItem };

@@ -7,7 +7,7 @@ export const LoadingComponent = () => {
       <div className="flex flex-col items-center justify-center gap-2">
         <Spinner className="size-6" />
         <p className="text-pretty text-center text-muted-foreground text-sm">
-          Cargando...
+          Cargando…
         </p>
       </div>
     </BorderContainer>

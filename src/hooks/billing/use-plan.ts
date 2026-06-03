@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 // Query options (reusable in route loaders / prefetching)
 // ---------------------------------------------------------------------------
 
-export function getPlanQueryOptions() {
+function getPlanQueryOptions() {
   return convexQuery(api.auth.getUserSubscription, {});
 }
 

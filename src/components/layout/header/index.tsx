@@ -59,7 +59,7 @@ export const Header = () => {
         </div>
 
         <nav className="flex flex-1 items-center justify-center">
-          <div className="flex items-center font-medium text-sm md:space-x-4 lg:space-x-8">
+          <div className="flex items-center font-medium text-sm md:gap-4 lg:gap-8">
             {routes.map((route) => (
               <Button
                 key={route.to}
@@ -87,8 +87,8 @@ export const Header = () => {
           </div>
         </nav>
 
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             {user?.userId ? (
               <Suspense fallback={<Skeleton className="size-9" />}>
                 <NotificationsBell />

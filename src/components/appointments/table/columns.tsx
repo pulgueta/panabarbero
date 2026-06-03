@@ -56,6 +56,13 @@ const RescheduleResponseDialog = lazy(() =>
   })),
 );
 
+const ServiceNameCell: FC<{ appointmentId: Appointment["_id"] }> = ({
+  appointmentId,
+}) => {
+  const { data: service } = useServiceByAppointmentId(appointmentId);
+  return <div className="text-center">{service?.name}</div>;
+};
+
 const AppointmentActionsCell: FC<Appointment> = (appointment) => {
   const status = appointment.status;
 
@@ -218,11 +225,7 @@ export function getAppointmentsTableColumns(opts: {
     {
       accessorKey: "serviceName",
       header: ({ column }) => <TableHeader column={column} header="Servicio" />,
-      cell: ({ row }) => {
-        const { data: service } = useServiceByAppointmentId(row.original._id);
-
-        return <div className="text-center">{service?.name}</div>;
-      },
+      cell: ({ row }) => <ServiceNameCell appointmentId={row.original._id} />,
     },
     {
       accessorKey: "notes",
@@ -301,11 +304,7 @@ export const rescheduledAppointmentRequestsTableColumns: ColumnDef<
   {
     accessorKey: "serviceName",
     header: ({ column }) => <TableHeader column={column} header="Servicio" />,
-    cell: ({ row }) => {
-      const { data: service } = useServiceByAppointmentId(row.original._id);
-
-      return <div className="text-center">{service?.name}</div>;
-    },
+    cell: ({ row }) => <ServiceNameCell appointmentId={row.original._id} />,
   },
   {
     accessorKey: "date",
@@ -313,7 +312,7 @@ export const rescheduledAppointmentRequestsTableColumns: ColumnDef<
       <TableHeader column={column} header="Fecha original" />
     ),
     cell: ({ row }) => (
-      <div className="text-center">
+      <div className="text-center" suppressHydrationWarning>
         {new Date(row.original.date).toLocaleDateString("es-CO", {
           year: "numeric",
           month: "long",
@@ -330,7 +329,7 @@ export const rescheduledAppointmentRequestsTableColumns: ColumnDef<
       <TableHeader column={column} header="Fecha propuesta" />
     ),
     cell: ({ row }) => (
-      <div className="text-center">
+      <div className="text-center" suppressHydrationWarning>
         {new Date(row.original.proposedDate!).toLocaleDateString("es-CO", {
           year: "numeric",
           month: "long",

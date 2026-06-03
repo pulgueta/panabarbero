@@ -39,6 +39,7 @@ export const ServicesDropdown: FC<ServicesDropdownProps> = ({ services }) => {
             role="combobox"
             size="default"
             aria-expanded={open}
+            aria-controls="services-listbox"
             className="w-full justify-between"
           >
             {services && value
@@ -51,7 +52,7 @@ export const ServicesDropdown: FC<ServicesDropdownProps> = ({ services }) => {
       <PopoverContent className="w-full p-0">
         <Command>
           <CommandInput placeholder="Buscar servicio..." className="h-9" />
-          <CommandList>
+          <CommandList id="services-listbox">
             <CommandEmpty>No se encontraron servicios.</CommandEmpty>
             <CommandGroup>
               {services?.map((service) => (

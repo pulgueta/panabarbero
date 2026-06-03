@@ -32,9 +32,14 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppointmentFormMetadata } from "@/hooks/use-appointments";
-import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { appointmentFormSchema } from "@/lib/schemas";
-import { cn } from "@/lib/utils";
+import {
+  cn,
+  dateWithTimeOfDay,
+  formatLongDate,
+  startOfDay,
+  toDate,
+} from "@/lib/utils";
 import { TimeSlotPicker } from "./time-slot-picker";
 
 interface CreateAppointmentFormProps {
@@ -80,7 +85,6 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
   showPhoneField = false,
   effectiveServiceId,
 }) => {
-  const { isMobile } = useIsMobile();
   const { disableDay } = useAppointmentFormMetadata(barbershopId);
   const [isPending, startTransition] = useTransition();
   const [selectedSlotTime, setSelectedSlotTime] = useState<string | undefined>(
@@ -94,7 +98,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
 
   // Normalize to midnight so slot selection (which sets hours) doesn't change query params
   const normalizedDate = watchedDate
-    ? new Date(watchedDate).setHours(0, 0, 0, 0)
+    ? startOfDay(watchedDate).getTime()
     : undefined;
 
   // Reset selected slot when barber or service changes (date reset handled in calendar onSelect)
@@ -107,7 +111,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
   const displayServices = barberServices ?? services;
 
   return (
-    <form id={formIds.form} onSubmit={onSubmit}>
+    <form id={formIds.form} onSubmit={onSubmit} suppressHydrationWarning>
       <div className="space-y-4">
         <div className="grid grid-cols-1 gap-4">
           {(disabledFields?.includes("serviceId") || isBarber) && (
@@ -318,7 +322,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
           name="date"
           control={form.control}
           render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
+            <Field data-invalid={fieldState.invalid} suppressHydrationWarning>
               <FieldLabel htmlFor={formIds.date}>Fecha</FieldLabel>
               <Popover>
                 <PopoverTrigger
@@ -331,15 +335,11 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                       )}
                     >
                       {field.value ? (
-                        <span className="text-xs sm:text-sm">
-                          {new Date(field.value as number).toLocaleDateString(
-                            "es-CO",
-                            {
-                              day: "2-digit",
-                              month: isMobile ? "short" : "long",
-                              year: "numeric",
-                            },
-                          )}
+                        <span
+                          className="text-xs sm:text-sm"
+                          suppressHydrationWarning
+                        >
+                          {formatLongDate(field.value as number)}
                         </span>
                       ) : (
                         <span className="text-xs sm:text-sm">
@@ -350,20 +350,21 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                     </Button>
                   }
                 />
-                <PopoverContent className="w-auto p-0" align="center">
+                <PopoverContent
+                  className="w-auto p-0"
+                  align="center"
+                  suppressHydrationWarning
+                >
                   <Calendar
                     mode="single"
-                    selected={
-                      field.value ? new Date(field.value as number) : undefined
-                    }
+                    selected={toDate(field.value as number | undefined)}
                     onSelect={(date) => {
                       if (!date) {
                         field.onChange(undefined);
                         setSelectedSlotTime(undefined);
                         return;
                       }
-                      const combined = new Date(date);
-                      combined.setHours(0, 0, 0, 0);
+                      const combined = startOfDay(date);
                       startTransition(() => {
                         field.onChange(combined.getTime());
                         setSelectedSlotTime(undefined);
@@ -407,10 +408,10 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                 isPending={isPending}
                 onChange={(slotTime, slotMinutes) => {
                   setSelectedSlotTime(slotTime);
-                  const dateObj = new Date(normalizedDate);
-                  const hours = Math.floor(slotMinutes / 60);
-                  const minutes = slotMinutes % 60;
-                  dateObj.setHours(hours, minutes, 0, 0);
+                  const dateObj = dateWithTimeOfDay(
+                    normalizedDate ?? Date.now(),
+                    slotMinutes,
+                  );
                   form.setValue("date", dateObj.getTime(), {
                     shouldValidate: true,
                   });

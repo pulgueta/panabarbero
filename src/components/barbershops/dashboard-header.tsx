@@ -12,7 +12,7 @@ export const DashboardHeader: FC<DashboardHeaderProps> = ({
   return (
     <header className="space-y-1">
       <h1
-        className="text-balance font-bold text-xl tracking-tight"
+        className="text-balance font-semibold text-xl tracking-tight"
         style={{
           viewTransitionName: `dashboard-${title}`,
         }}

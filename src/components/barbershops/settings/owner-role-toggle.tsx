@@ -241,7 +241,10 @@ export const OwnerRoleToggle: FC<OwnerRoleToggleProps> = ({
                     <span className="font-medium text-sm">
                       {appt.customerName}
                     </span>
-                    <span className="text-muted-foreground text-xs">
+                    <span
+                      className="text-muted-foreground text-xs"
+                      suppressHydrationWarning
+                    >
                       {new Date(appt.date).toLocaleDateString("es-CO", {
                         month: "short",
                         day: "numeric",

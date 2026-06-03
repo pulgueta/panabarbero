@@ -45,10 +45,6 @@ export function staffByBarbershopIdQueryOptions(
   });
 }
 
-export function isMemberQueryOptions(userId: string) {
-  return convexQuery(api.barbershopMembers.isMember, { userId });
-}
-
 export function barberByUserIdQueryOptions(userId: string) {
   return convexQuery(api.barbershopMembers.getByUserId, {
     userId,
@@ -57,10 +53,6 @@ export function barberByUserIdQueryOptions(userId: string) {
 
 export function useBarberByUserId(userId: string) {
   return useSuspenseQuery(barberByUserIdQueryOptions(userId));
-}
-
-export function inviteBarberMutationOptions() {
-  return useConvexMutation(api.invitations.invite);
 }
 
 export function invitationByCodeQueryOptions(code: string) {
@@ -95,10 +87,6 @@ export function useStaffByBarbershopId(barbershopId: Barbershop["_id"]) {
   return useSuspenseQuery(staffByBarbershopIdQueryOptions(barbershopId));
 }
 
-export function useIsMember(userId: string) {
-  return useSuspenseQuery(isMemberQueryOptions(userId));
-}
-
 export function useServicesForBarber(
   barbershopMemberId: BarbershopMember["_id"],
 ) {
@@ -127,7 +115,7 @@ export function useBarberSchedule(barbershopMemberId: BarbershopMember["_id"]) {
 
 export function useBarbershopMemberActions() {
   const inviteBarberMutation = useMutation({
-    mutationFn: inviteBarberMutationOptions(),
+    mutationFn: useConvexMutation(api.invitations.invite),
   });
 
   const validateInvitationMutation = useMutation({

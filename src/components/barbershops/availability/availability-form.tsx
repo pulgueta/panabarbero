@@ -98,9 +98,9 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
 
   const initialSelectedDays = useMemo(
     () =>
-      availability
-        ?.filter((entry) => entry.weekDay.isActive)
-        .map((entry) => entry.weekDay.day as DayKey) ?? [],
+      availability?.flatMap((entry) =>
+        entry.weekDay.isActive ? [entry.weekDay.day as DayKey] : [],
+      ) ?? [],
     [availability],
   );
 
@@ -143,9 +143,9 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
 
     setRows(nextRows);
     setSelectedDays(
-      nextRows
-        .filter((entry) => entry.weekDay.isActive)
-        .map((entry) => entry.weekDay.day as DayKey),
+      nextRows.flatMap((entry) =>
+        entry.weekDay.isActive ? [entry.weekDay.day as DayKey] : [],
+      ),
     );
   }, [availability, buildInitialRows]);
 

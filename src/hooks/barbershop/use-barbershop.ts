@@ -5,7 +5,7 @@ import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 
 import type { BarbershopSearch } from "@/routes/barbershops";
 
-export type BarbershopAvailabilityPayload = {
+type BarbershopAvailabilityPayload = {
   barbershopId: Barbershop["_id"];
   date: number;
 };
@@ -24,9 +24,7 @@ export function barbershopByUuidQueryOptions(uuid: string) {
   return convexQuery(api.barbershops.getByUuid, { uuid });
 }
 
-export function barbershopsByIdsQueryOptions(
-  barbershopIds: Barbershop["_id"][],
-) {
+function barbershopsByIdsQueryOptions(barbershopIds: Barbershop["_id"][]) {
   return convexQuery(api.barbershops.getByIds, {
     barbershopIds: barbershopIds.map((id) => ({ id })),
   });

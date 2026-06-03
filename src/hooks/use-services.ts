@@ -3,17 +3,15 @@ import { api } from "@convex/_generated/api";
 import type { Appointment, Barbershop, Service } from "@convex/schema";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 
-export function createServiceOptions() {
+function useCreateServiceMutation() {
   return useConvexMutation(api.services.create);
 }
 
-export function updateServiceMutationOptions() {
+function useUpdateServiceMutation() {
   return useConvexMutation(api.services.update);
 }
 
-export function servicesByBarbershopIdQueryOptions(
-  barbershopId: Barbershop["_id"],
-) {
+function servicesByBarbershopIdQueryOptions(barbershopId: Barbershop["_id"]) {
   return convexQuery(api.barbershops.getServices, { id: barbershopId });
 }
 
@@ -33,10 +31,6 @@ export function servicesPaginatedByBarbershopIdQueryOptions(
   });
 }
 
-export function serviceByIdQueryOptions(serviceId: Service["_id"]) {
-  return convexQuery(api.services.getById, { id: serviceId });
-}
-
 export function servicesByIdsQueryOptions(serviceIds: Service["_id"][]) {
   return convexQuery(api.services.getByIds, {
     serviceIds: serviceIds.map((id) => ({ id })),
@@ -49,7 +43,7 @@ export function serviceByAppointmentIdQueryOptions(
   return convexQuery(api.services.getByAppointmentId, { id: appointmentId });
 }
 
-export function deleteServiceMutationOptions() {
+function useDeleteServiceMutation() {
   return useConvexMutation(api.services.deleteService);
 }
 
@@ -71,10 +65,6 @@ export function usePaginatedServicesFromBarbershop(
   );
 }
 
-export function useServiceById(serviceId: Service["_id"]) {
-  return useSuspenseQuery(serviceByIdQueryOptions(serviceId));
-}
-
 export function useServicesByIds(serviceIds: Service["_id"][]) {
   return useSuspenseQuery(servicesByIdsQueryOptions(serviceIds));
 }
@@ -89,13 +79,13 @@ export function useServicesByBarbershopId(barbershopId: Barbershop["_id"]) {
 
 export function useServiceActions() {
   const createServiceMutation = useMutation({
-    mutationFn: createServiceOptions(),
+    mutationFn: useCreateServiceMutation(),
   });
   const updateServiceMutation = useMutation({
-    mutationFn: updateServiceMutationOptions(),
+    mutationFn: useUpdateServiceMutation(),
   });
   const deleteServiceMutation = useMutation({
-    mutationFn: deleteServiceMutationOptions(),
+    mutationFn: useDeleteServiceMutation(),
   });
 
   return {
