@@ -80,12 +80,14 @@ export const get = zQuery({
   handler: async (ctx) => {
     const barbershops = await ctx.db.query("barbershops").collect();
 
-    for (const barbershop of barbershops) {
-      const services = await ctx.runQuery(api.barbershops.getServices, {
-        id: barbershop._id,
-      });
+    const allServices = await Promise.all(
+      barbershops.map((barbershop) =>
+        ctx.runQuery(api.barbershops.getServices, { id: barbershop._id }),
+      ),
+    );
 
-      barbershop.services = services.map((service) => service._id);
+    for (let i = 0; i < barbershops.length; i++) {
+      barbershops[i].services = allServices[i].map((service) => service._id);
     }
 
     return barbershops;
@@ -219,68 +221,58 @@ export const deleteCascade = zMutation({
 
     await rateLimitOrThrow(ctx, "deleteBarbershopCascade", user._id);
 
-    const barbershop = await ctx.db.get(args.id);
+    const [barbershop, appointments] = await Promise.all([
+      ctx.db.get(args.id),
+      ctx.db
+        .query("appointments")
+        .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
+        .collect(),
+    ]);
 
     if (!barbershop || barbershop.ownerId !== user.userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    const appointments = await ctx.db
-      .query("appointments")
-      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-      .collect();
-
     await Promise.all(
       appointments.map((appointment) => ctx.db.delete(appointment._id)),
     );
 
-    const services = await ctx.db
-      .query("services")
-      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-      .collect();
+    const [services, assignments, members, reviews, metadata, invitations] =
+      await Promise.all([
+        ctx.db
+          .query("services")
+          .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
+          .collect(),
+        ctx.db
+          .query("barbershopMemberServices")
+          .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
+          .collect(),
+        ctx.db
+          .query("barbershopMembers")
+          .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
+          .collect(),
+        ctx.db
+          .query("reviews")
+          .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
+          .collect(),
+        ctx.db
+          .query("barbershopMetadata")
+          .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
+          .unique(),
+        ctx.db
+          .query("invitations")
+          .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
+          .collect(),
+      ]);
 
-    await Promise.all(services.map((service) => ctx.db.delete(service._id)));
-
-    const assignments = await ctx.db
-      .query("barbershopMemberServices")
-      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-      .collect();
-
-    await Promise.all(
-      assignments.map((assignment) => ctx.db.delete(assignment._id)),
-    );
-
-    const members = await ctx.db
-      .query("barbershopMembers")
-      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-      .collect();
-
-    await Promise.all(members.map((member) => ctx.db.delete(member._id)));
-
-    const reviews = await ctx.db
-      .query("reviews")
-      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-      .collect();
-
-    await Promise.all(reviews.map((review) => ctx.db.delete(review._id)));
-
-    const metadata = await ctx.db
-      .query("barbershopMetadata")
-      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-      .unique();
-
-    if (metadata?._id) {
-      await ctx.db.delete(metadata._id);
-    }
-
-    const invitations = await ctx.db
-      .query("invitations")
-      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-      .collect();
-
-    await Promise.all(
-      invitations.map((invitation) => ctx.db.delete(invitation._id)),
-    );
+    await Promise.all([
+      ...services.map((service) => ctx.db.delete(service._id)),
+      ...assignments.map((assignment) => ctx.db.delete(assignment._id)),
+      ...members.map((member) => ctx.db.delete(member._id)),
+      ...reviews.map((review) => ctx.db.delete(review._id)),
+      ...invitations.map((invitation) => ctx.db.delete(invitation._id)),
+      ...(metadata?._id ? [ctx.db.delete(metadata._id)] : []),
+    ]);
 
     await ctx.db.delete(args.id);
   },
@@ -586,8 +578,10 @@ export const setLogoKey = zMutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    await assertOwner(ctx, args.barbershopId, user.userId);
-    await rateLimitOrThrow(ctx, "uploadBarbershopLogo", user.userId);
+    await Promise.all([
+      assertOwner(ctx, args.barbershopId, user.userId),
+      rateLimitOrThrow(ctx, "uploadBarbershopLogo", user.userId),
+    ]);
 
     const barbershop = await ctx.db.get("barbershops", args.barbershopId);
 
@@ -620,8 +614,10 @@ export const removeLogoKey = zMutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    await assertOwner(ctx, args.barbershopId, user.userId);
-    await rateLimitOrThrow(ctx, "removeBarbershopLogo", user.userId);
+    await Promise.all([
+      assertOwner(ctx, args.barbershopId, user.userId),
+      rateLimitOrThrow(ctx, "removeBarbershopLogo", user.userId),
+    ]);
 
     const barbershop = await ctx.db.get("barbershops", args.barbershopId);
 

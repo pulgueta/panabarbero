@@ -52,11 +52,10 @@ export const getByBarbershopId = zQuery({
 
     const membersWithName = await Promise.all(
       members.map(async (member) => {
-        const memberProfile = await ctx.db.get(member.userProfileDataId);
-        const betterAuthUser = await getBetterAuthUser(
-          ctx,
-          member.userProfileDataId,
-        );
+        const [memberProfile, betterAuthUser] = await Promise.all([
+          ctx.db.get(member.userProfileDataId),
+          getBetterAuthUser(ctx, member.userProfileDataId),
+        ]);
 
         return {
           ...member,
@@ -163,54 +162,61 @@ export const removeBarberFromBarbershop = zMutation({
         .collect(),
     ]);
 
-    await Promise.all(
-      assignments.map((assignment) => ctx.db.delete(assignment._id)),
-    );
-
     // Cancel all active appointments for this barber (past and future)
-    const activeAppointments = await ctx.db
-      .query("appointments")
-      .withIndex("by_barbershopMemberId", (q) =>
-        q.eq("barbershopMemberId", args.id),
-      )
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("deletedAt"), undefined),
-          q.or(
-            q.eq(q.field("status"), "pending"),
-            q.eq(q.field("status"), "confirmed"),
-            q.eq(q.field("status"), "rescheduled"),
+    const [, activeAppointments] = await Promise.all([
+      Promise.all(
+        assignments.map((assignment) => ctx.db.delete(assignment._id)),
+      ),
+      ctx.db
+        .query("appointments")
+        .withIndex("by_barbershopMemberId", (q) =>
+          q.eq("barbershopMemberId", args.id),
+        )
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("deletedAt"), undefined),
+            q.or(
+              q.eq(q.field("status"), "pending"),
+              q.eq(q.field("status"), "confirmed"),
+              q.eq(q.field("status"), "rescheduled"),
+            ),
           ),
-        ),
-      )
-      .collect();
+        )
+        .collect(),
+    ]);
 
     const barberName = barberProfile?.name ?? "el barbero";
     const barbershopName = barbershop?.name ?? "la barbería";
 
-    for (const appt of activeAppointments) {
-      await ctx.db.patch(appt._id, {
-        deletedAt: Date.now(),
-        status: "cancelled",
-        notes: "Cita cancelada porque el barbero ya no pertenece a la barbería",
-        proposedDate: undefined,
-        rescheduleRequestedByUserId: undefined,
-      });
+    await Promise.all(
+      activeAppointments.map((appt) =>
+        ctx.db.patch(appt._id, {
+          deletedAt: Date.now(),
+          status: "cancelled",
+          notes:
+            "Cita cancelada porque el barbero ya no pertenece a la barbería",
+          proposedDate: undefined,
+          rescheduleRequestedByUserId: undefined,
+        }),
+      ),
+    );
 
-      await ctx.runMutation(
-        internal.notifications.createBarberRemovedCancellation,
-        {
-          appointmentId: appt._id,
-          customerUserId: appt.userId,
-          barberName,
-          barbershopName,
-          contactPhone: appt.contactPhone,
-          contactEmail: appt.contactEmail,
-        },
-      );
-    }
-
-    await ctx.db.delete(args.id);
+    await Promise.all([
+      ...activeAppointments.map((appt) =>
+        ctx.runMutation(
+          internal.notifications.createBarberRemovedCancellation,
+          {
+            appointmentId: appt._id,
+            customerUserId: appt.userId,
+            barberName,
+            barbershopName,
+            contactPhone: appt.contactPhone,
+            contactEmail: appt.contactEmail,
+          },
+        ),
+      ),
+      ctx.db.delete(args.id),
+    ]);
   },
 });
 
@@ -241,11 +247,10 @@ export const getStaffByBarbershopId = zQuery({
 
     const staffWithName = await Promise.all(
       staffMembers.map(async (member) => {
-        const memberProfile = await ctx.db.get(member.userProfileDataId);
-        const betterAuthUser = await getBetterAuthUser(
-          ctx,
-          member.userProfileDataId,
-        );
+        const [memberProfile, betterAuthUser] = await Promise.all([
+          ctx.db.get(member.userProfileDataId),
+          getBetterAuthUser(ctx, member.userProfileDataId),
+        ]);
 
         return {
           ...member,
@@ -490,16 +495,25 @@ export const toggleBarberRole = zMutation({
 
     // Process reassignments if provided
     if (args.reassignments && args.reassignments.length > 0) {
-      for (const reassignment of args.reassignments) {
-        const appointment = futureAppointments.find(
-          (a) => String(a._id) === reassignment.appointmentId,
-        );
+      const targetMembers = await Promise.all(
+        args.reassignments.map((reassignment) => {
+          const targetMemberId =
+            reassignment.targetBarbershopMemberId as Id<"barbershopMembers">;
+          return ctx.db.get(targetMemberId);
+        }),
+      );
+
+      const appointmentMap = new Map(
+        futureAppointments.map((a) => [String(a._id), a]),
+      );
+
+      for (let i = 0; i < args.reassignments.length; i++) {
+        const reassignment = args.reassignments[i];
+        const appointment = appointmentMap.get(reassignment.appointmentId);
 
         if (!appointment) continue;
 
-        const targetMemberId =
-          reassignment.targetBarbershopMemberId as Id<"barbershopMembers">;
-        const targetMember = await ctx.db.get(targetMemberId);
+        const targetMember = targetMembers[i];
 
         if (
           !targetMember ||
@@ -522,32 +536,34 @@ export const toggleBarberRole = zMutation({
       (a) => !reassignmentIds.has(String(a._id)),
     );
 
-    for (const appt of unreassignedAppointments) {
-      await ctx.db.patch(appt._id, {
-        deletedAt: now,
-        status: "cancelled",
-        notes: "Cita cancelada porque el dueño dejó de atender como barbero.",
-        proposedDate: undefined,
-        rescheduleRequestedByUserId: undefined,
-      });
-    }
-
     // Remove service assignments
-    const assignments = await ctx.db
-      .query("barbershopMemberServices")
-      .withIndex("by_barbershopMemberId", (q) =>
-        q.eq("barbershopMemberId", member._id),
-      )
-      .collect();
+    const [, assignments] = await Promise.all([
+      Promise.all(
+        unreassignedAppointments.map((appt) =>
+          ctx.db.patch(appt._id, {
+            deletedAt: now,
+            status: "cancelled",
+            notes:
+              "Cita cancelada porque el dueño dejó de atender como barbero.",
+            proposedDate: undefined,
+            rescheduleRequestedByUserId: undefined,
+          }),
+        ),
+      ),
+      ctx.db
+        .query("barbershopMemberServices")
+        .withIndex("by_barbershopMemberId", (q) =>
+          q.eq("barbershopMemberId", member._id),
+        )
+        .collect(),
+    ]);
 
-    await Promise.all(
-      assignments.map((assignment) => ctx.db.delete(assignment._id)),
-    );
-
-    // Update roles
-    await ctx.db.patch(member._id, {
-      roles: member.roles.filter((r) => r !== "barber"),
-    });
+    await Promise.all([
+      ...assignments.map((assignment) => ctx.db.delete(assignment._id)),
+      ctx.db.patch(member._id, {
+        roles: member.roles.filter((r) => r !== "barber"),
+      }),
+    ]);
 
     return { status: "removed" as const };
   },

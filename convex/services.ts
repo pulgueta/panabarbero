@@ -20,10 +20,10 @@ export const create = zMutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    await rateLimitOrThrow(ctx, "createService", user._id);
-
-    // Verify the user has permission to create services (owner or barber)
-    await assertCanManageServices(ctx, args.barbershopId, user.userId);
+    await Promise.all([
+      rateLimitOrThrow(ctx, "createService", user._id),
+      assertCanManageServices(ctx, args.barbershopId, user.userId),
+    ]);
 
     const barbershop = await ctx.db.get(args.barbershopId);
 
@@ -42,15 +42,16 @@ export const create = zMutation({
       }
     }
 
-    const serviceId = await ctx.db.insert("services", args);
-
-    const members = await ctx.db
-      .query("barbershopMembers")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId),
-      )
-      .filter((q) => q.eq(q.field("isActive"), true))
-      .collect();
+    const [serviceId, members] = await Promise.all([
+      ctx.db.insert("services", args),
+      ctx.db
+        .query("barbershopMembers")
+        .withIndex("by_barbershopId", (q) =>
+          q.eq("barbershopId", args.barbershopId),
+        )
+        .filter((q) => q.eq(q.field("isActive"), true))
+        .collect(),
+    ]);
 
     if (members.length === 1) {
       const onlyMember = members[0];
@@ -133,10 +134,10 @@ export const deleteService = zMutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    await rateLimitOrThrow(ctx, "deleteService", user._id);
-
-    // Only owners and staff can delete services (not barbers — destructive operation)
-    await assertCanManageTeam(ctx, args.barbershop.id, user.userId);
+    await Promise.all([
+      rateLimitOrThrow(ctx, "deleteService", user._id),
+      assertCanManageTeam(ctx, args.barbershop.id, user.userId),
+    ]);
 
     const service = await ctx.db.get(args.service.id);
     if (!service) {
@@ -172,44 +173,47 @@ export const deleteService = zMutation({
     }
 
     // If force or no impacted appointments, proceed with deletion
-    const barbershop = await ctx.db.get(args.barbershop.id);
-
     // Cancel and soft-delete impacted appointments, notify customers
-    for (const appt of impactedAppointments) {
-      await ctx.db.patch(appt._id, {
-        status: "cancelled",
-        deletedAt: Date.now(),
-        notes: `Servicio "${service.name}" eliminado por la barbería`,
-        proposedDate: undefined,
-        rescheduleRequestedByUserId: undefined,
-      });
-
-      // Send notification to customer
-      await ctx.runMutation(
-        internal.notifications.createServiceDeletedCancellation,
-        {
-          appointmentId: appt._id,
-          customerUserId: appt.userId,
-          serviceName: service.name,
-          barbershopName: barbershop?.name ?? "la barbería",
-          contactPhone: appt.contactPhone,
-          contactEmail: appt.contactEmail,
-        },
-      );
-    }
+    const [barbershop] = await Promise.all([
+      ctx.db.get(args.barbershop.id),
+      ...impactedAppointments.map((appt) =>
+        ctx.db.patch(appt._id, {
+          status: "cancelled",
+          deletedAt: Date.now(),
+          notes: `Servicio "${service.name}" eliminado por la barbería`,
+          proposedDate: undefined,
+          rescheduleRequestedByUserId: undefined,
+        }),
+      ),
+    ]);
 
     // Delete all barber-service assignments for this service
-    const assignments = await ctx.db
-      .query("barbershopMemberServices")
-      .withIndex("by_serviceId", (q) => q.eq("serviceId", args.service.id))
-      .collect();
+    const [, assignments] = await Promise.all([
+      Promise.all(
+        impactedAppointments.map((appt) =>
+          ctx.runMutation(
+            internal.notifications.createServiceDeletedCancellation,
+            {
+              appointmentId: appt._id,
+              customerUserId: appt.userId,
+              serviceName: service.name,
+              barbershopName: barbershop?.name ?? "la barbería",
+              contactPhone: appt.contactPhone,
+              contactEmail: appt.contactEmail,
+            },
+          ),
+        ),
+      ),
+      ctx.db
+        .query("barbershopMemberServices")
+        .withIndex("by_serviceId", (q) => q.eq("serviceId", args.service.id))
+        .collect(),
+    ]);
 
-    for (const assignment of assignments) {
-      await ctx.db.delete(assignment._id);
-    }
-
-    // Finally delete the service
-    await ctx.db.delete(args.service.id);
+    await Promise.all([
+      ...assignments.map((assignment) => ctx.db.delete(assignment._id)),
+      ctx.db.delete(args.service.id),
+    ]);
   },
 });
 
