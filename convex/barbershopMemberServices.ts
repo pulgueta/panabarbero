@@ -91,12 +91,10 @@ export const getBarbersForService = zQuery({
 
         if (!member || !member.isActive) return null;
 
-        const profile = await ctx.db.get(member.userProfileDataId);
-
-        const betterAuthUser = await getBetterAuthUser(
-          ctx,
-          member.userProfileDataId,
-        );
+        const [profile, betterAuthUser] = await Promise.all([
+          ctx.db.get(member.userProfileDataId),
+          getBetterAuthUser(ctx, member.userProfileDataId),
+        ]);
 
         return {
           ...member,
@@ -119,15 +117,16 @@ export const getBarbersForService = zQuery({
 export const getServicesWithBarberAssignments = zQuery({
   args: barbershops.tools.id,
   handler: async (ctx, args) => {
-    const services = await ctx.db
-      .query("services")
-      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-      .collect();
-
-    const assignments = await ctx.db
-      .query("barbershopMemberServices")
-      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-      .collect();
+    const [services, assignments] = await Promise.all([
+      ctx.db
+        .query("services")
+        .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
+        .collect(),
+      ctx.db
+        .query("barbershopMemberServices")
+        .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
+        .collect(),
+    ]);
 
     return services.map((service) => {
       const serviceAssignments = assignments.filter(
@@ -171,9 +170,12 @@ export const setBarberServices = zMutation({
       throw new ConvexError("El miembro seleccionado no es un barbero");
     }
 
-    for (const { id } of args.services) {
-      const service = await ctx.db.get(id);
+    const fetchedServices = await Promise.all(
+      args.services.map(({ id }) => ctx.db.get(id)),
+    );
 
+    for (let i = 0; i < args.services.length; i++) {
+      const service = fetchedServices[i];
       if (!service) {
         return;
       }
@@ -203,23 +205,23 @@ export const setBarberServices = zMutation({
         args.services.some((s) => s.id === a.serviceId) && a.isActive === false,
     );
 
-    for (const service of servicesToAdd) {
-      await ctx.db.insert("barbershopMemberServices", {
-        uuid: crypto.randomUUID(),
-        barbershopId: member.barbershopId,
-        barbershopMemberId: args.barbershopMember.id,
-        serviceId: service.id,
-        isActive: true,
-      });
-    }
-
-    for (const assignment of servicesToRemove) {
-      await ctx.db.patch(assignment._id, { isActive: false });
-    }
-
-    for (const assignment of servicesToReactivate) {
-      await ctx.db.patch(assignment._id, { isActive: true });
-    }
+    await Promise.all([
+      ...servicesToAdd.map((service) =>
+        ctx.db.insert("barbershopMemberServices", {
+          uuid: crypto.randomUUID(),
+          barbershopId: member.barbershopId,
+          barbershopMemberId: args.barbershopMember.id,
+          serviceId: service.id,
+          isActive: true,
+        }),
+      ),
+      ...servicesToRemove.map((assignment) =>
+        ctx.db.patch(assignment._id, { isActive: false }),
+      ),
+      ...servicesToReactivate.map((assignment) =>
+        ctx.db.patch(assignment._id, { isActive: true }),
+      ),
+    ]);
   },
 });
 
@@ -334,41 +336,45 @@ export const assignAllServicesToBarber = zInternalMutation({
       throw new ConvexError(errorMessages.notFound("miembro de barbería"));
     }
 
-    const services = await ctx.db
-      .query("services")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", member.barbershopId),
-      )
-      .collect();
-
-    const existingAssignments = await ctx.db
-      .query("barbershopMemberServices")
-      .withIndex("by_barbershopMemberId", (q) =>
-        q.eq("barbershopMemberId", args.id),
-      )
-      .collect();
+    const [services, existingAssignments] = await Promise.all([
+      ctx.db
+        .query("services")
+        .withIndex("by_barbershopId", (q) =>
+          q.eq("barbershopId", member.barbershopId),
+        )
+        .collect(),
+      ctx.db
+        .query("barbershopMemberServices")
+        .withIndex("by_barbershopMemberId", (q) =>
+          q.eq("barbershopMemberId", args.id),
+        )
+        .collect(),
+    ]);
 
     const existingServiceIds = new Set(
       existingAssignments.map((a) => a.serviceId),
     );
 
-    for (const service of services) {
-      if (!existingServiceIds.has(service._id)) {
-        await ctx.db.insert("barbershopMemberServices", {
-          uuid: crypto.randomUUID(),
-          barbershopId: member.barbershopId,
-          barbershopMemberId: args.id,
-          serviceId: service._id,
-          isActive: true,
-        });
-      }
-    }
-
-    for (const assignment of existingAssignments) {
-      if (assignment.isActive === false) {
-        await ctx.db.patch(assignment._id, { isActive: true });
-      }
-    }
+    await Promise.all([
+      ...services.flatMap((service) =>
+        existingServiceIds.has(service._id)
+          ? []
+          : [
+              ctx.db.insert("barbershopMemberServices", {
+                uuid: crypto.randomUUID(),
+                barbershopId: member.barbershopId,
+                barbershopMemberId: args.id,
+                serviceId: service._id,
+                isActive: true,
+              }),
+            ],
+      ),
+      ...existingAssignments.flatMap((assignment) =>
+        assignment.isActive === false
+          ? [ctx.db.patch(assignment._id, { isActive: true })]
+          : [],
+      ),
+    ]);
   },
 });
 

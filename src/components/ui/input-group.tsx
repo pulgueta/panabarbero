@@ -46,14 +46,14 @@ function InputGroupAddon({
   align = "inline-start",
   ...props
 }: ComponentProps<"fieldset"> & VariantProps<typeof inputGroupAddonVariants>) {
-  const handleClick = (e: MouseEvent<HTMLFieldSetElement>) => {
+  const focusInputOnAddonClick = (e: MouseEvent<HTMLFieldSetElement>) => {
     if ((e.target as HTMLElement).closest("button")) {
       return;
     }
     e.currentTarget.parentElement?.querySelector("input")?.focus();
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLFieldSetElement>) => {
+  const focusInputOnAddonKeyDown = (e: KeyboardEvent<HTMLFieldSetElement>) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       (e.currentTarget as HTMLElement).querySelector("input")?.focus();
@@ -69,8 +69,8 @@ function InputGroupAddon({
         inputGroupAddonVariants({ align }),
         className,
       )}
-      onClick={handleClick}
-      onKeyDown={handleKeyDown}
+      onClick={focusInputOnAddonClick}
+      onKeyDown={focusInputOnAddonKeyDown}
       {...props}
     />
   );

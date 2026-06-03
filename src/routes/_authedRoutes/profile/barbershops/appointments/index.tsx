@@ -91,6 +91,9 @@ export const Route = createFileRoute(
   pendingComponent: LoadingComponent,
   validateSearch: dateSchema,
   loaderDeps: ({ search }) => search,
+  ssr: "data-only",
+  staleTime: cacheTime.low,
+  gcTime: cacheTime.medium,
   loader: async ({ context, deps }) => {
     const user = await context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
@@ -107,19 +110,26 @@ export const Route = createFileRoute(
       ]);
 
       if (barbershop?._id) {
-        await context.queryClient.ensureQueryData(
-          getBarbershopPlanQueryOptions(barbershop._id),
-        );
-
-        const appointments = await context.queryClient.ensureQueryData(
-          appointmentsByBarbershopQueryOptions({
-            id: barbershop._id,
-            date: deps.date,
-          }),
-        );
-        const barbershopMembers = await context.queryClient.ensureQueryData(
-          barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
-        );
+        const [appointments, barbershopMembers] = await Promise.all([
+          context.queryClient.ensureQueryData(
+            getBarbershopPlanQueryOptions(barbershop._id),
+          ),
+          context.queryClient.ensureQueryData(
+            appointmentsByBarbershopQueryOptions({
+              id: barbershop._id,
+              date: deps.date,
+            }),
+          ),
+          context.queryClient.ensureQueryData(
+            barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+          ),
+          context.queryClient.ensureQueryData(
+            barberByUserIdQueryOptions(user.userId),
+          ),
+          context.queryClient.ensureQueryData(
+            requestRescheduleQueryOptions(barbershop._id),
+          ),
+        ]).then(([, appts, members]) => [appts, members] as const);
 
         if (barbershopMembers.length) {
           await Promise.all(
@@ -130,14 +140,6 @@ export const Route = createFileRoute(
             ),
           );
         }
-
-        await context.queryClient.ensureQueryData(
-          barberByUserIdQueryOptions(user.userId),
-        );
-
-        await context.queryClient.ensureQueryData(
-          requestRescheduleQueryOptions(barbershop._id),
-        );
 
         if (appointments) {
           const services = await context.queryClient.ensureQueryData(
@@ -171,9 +173,6 @@ export const Route = createFileRoute(
       }
     }
   },
-  ssr: "data-only",
-  staleTime: cacheTime.low,
-  gcTime: cacheTime.medium,
 });
 
 function RouteComponent() {
@@ -212,7 +211,7 @@ function RouteComponent() {
       </Suspense>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="space-y-2">
+        <div className="space-y-2" suppressHydrationWarning>
           <h2 className="font-semibold text-lg">Selecciona un día</h2>
           <Calendar
             mode="single"
@@ -235,7 +234,10 @@ function RouteComponent() {
         </div>
 
         <div className="md:col-span-2">
-          <header className="mb-2 flex items-center justify-between gap-1">
+          <header
+            className="mb-2 flex items-center justify-between gap-1"
+            suppressHydrationWarning
+          >
             <h2 className="font-semibold text-lg">
               {date
                 ? `${appointments.length} cita${appointments.length > 1 || appointments.length === 0 ? "s" : ""} (${new Date(

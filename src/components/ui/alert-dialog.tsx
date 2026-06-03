@@ -2,16 +2,9 @@ import type { ComponentProps } from "react";
 import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog";
 
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 
 function AlertDialog({ ...props }: AlertDialogPrimitive.Root.Props) {
   return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />;
-}
-
-function AlertDialogTrigger({ ...props }: AlertDialogPrimitive.Trigger.Props) {
-  return (
-    <AlertDialogPrimitive.Trigger data-slot="alert-dialog-trigger" {...props} />
-  );
 }
 
 function AlertDialogPortal({ ...props }: AlertDialogPrimitive.Portal.Props) {
@@ -72,32 +65,6 @@ function AlertDialogHeader({ className, ...props }: ComponentProps<"div">) {
   );
 }
 
-function AlertDialogFooter({ className, ...props }: ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="alert-dialog-footer"
-      className={cn(
-        "flex flex-col-reverse gap-2 group-data-[size=sm]/alert-dialog-content:grid group-data-[size=sm]/alert-dialog-content:grid-cols-2 sm:flex-row sm:justify-end",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
-function AlertDialogMedia({ className, ...props }: ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="alert-dialog-media"
-      className={cn(
-        "mb-2 inline-flex size-16 items-center justify-center rounded-md bg-muted sm:group-data-[size=default]/alert-dialog-content:row-span-2 *:[svg:not([class*='size-'])]:size-8",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
 function AlertDialogTitle({
   className,
   ...props
@@ -130,47 +97,10 @@ function AlertDialogDescription({
   );
 }
 
-function AlertDialogAction({
-  className,
-  ...props
-}: ComponentProps<typeof Button>) {
-  return (
-    <Button
-      data-slot="alert-dialog-action"
-      className={cn(className)}
-      {...props}
-    />
-  );
-}
-
-function AlertDialogCancel({
-  className,
-  variant = "outline",
-  size = "default",
-  ...props
-}: AlertDialogPrimitive.Close.Props &
-  Pick<ComponentProps<typeof Button>, "variant" | "size">) {
-  return (
-    <AlertDialogPrimitive.Close
-      data-slot="alert-dialog-cancel"
-      className={cn(className)}
-      render={<Button variant={variant} size={size} />}
-      {...props}
-    />
-  );
-}
-
 export {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
-  AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogMedia,
-  AlertDialogOverlay,
-  AlertDialogPortal,
   AlertDialogTitle,
-  AlertDialogTrigger,
 };

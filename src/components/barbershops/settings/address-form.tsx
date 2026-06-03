@@ -1,6 +1,6 @@
 import type { Barbershop } from "@convex/schema";
 import type { FC } from "react";
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
@@ -42,11 +42,9 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
   const setLocationState = useLocationStore((s) => s.setState);
   const setLocationCity = useLocationStore((s) => s.setCity);
 
-  const [fullAddress, setFullAddress] = useState(
-    barbershop.address.fullAddress,
-  );
-  const [details, setDetails] = useState(barbershop.address.details ?? "");
-  const [zip, setZip] = useState(barbershop.zipCode ?? "");
+  const fullAddressRef = useRef(barbershop.address.fullAddress);
+  const detailsRef = useRef(barbershop.address.details ?? "");
+  const zipRef = useRef(barbershop.zipCode ?? "");
 
   const availableCities = useMemo(
     () => (state ? citiesFromState(state) : []),
@@ -87,8 +85,8 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
           name: barbershop.name,
           description: barbershop.description || undefined,
           address: {
-            fullAddress,
-            details: details || undefined,
+            fullAddress: fullAddressRef.current,
+            details: detailsRef.current || undefined,
           },
           services: barbershop.services ?? [],
           contactPhone: barbershop.contactPhone || undefined,
@@ -98,7 +96,7 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
           availability: barbershop.availability ?? [],
           city: city ?? "",
           state: state ?? "",
-          zipCode: zip || undefined,
+          zipCode: zipRef.current || undefined,
         },
       });
       haptic.trigger("success");
@@ -109,20 +107,22 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
     }
   };
 
-  const invalid = !fullAddress || !state || !city;
+  const invalid = !fullAddressRef.current || !state || !city;
 
   return (
     <div className="space-y-4">
       <FieldGroup className="gap-4">
         <div className="grid grid-cols-2 gap-4">
-          <Field data-invalid={!fullAddress}>
+          <Field data-invalid={!fullAddressRef.current}>
             <FieldLabel htmlFor={ids.address}>Dirección</FieldLabel>
             <Input
               id={ids.address}
-              value={fullAddress}
-              onChange={(e) => setFullAddress(e.target.value)}
+              defaultValue={fullAddressRef.current}
+              onChange={(e) => {
+                fullAddressRef.current = e.target.value;
+              }}
             />
-            {!fullAddress && (
+            {!fullAddressRef.current && (
               <FieldError errors={[{ message: "Dirección requerida" }]} />
             )}
           </Field>
@@ -131,8 +131,10 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
             <FieldLabel htmlFor={ids.details}>Detalles</FieldLabel>
             <Input
               id={ids.details}
-              value={details}
-              onChange={(e) => setDetails(e.target.value)}
+              defaultValue={detailsRef.current}
+              onChange={(e) => {
+                detailsRef.current = e.target.value;
+              }}
             />
           </Field>
         </div>
@@ -193,8 +195,10 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
             <FieldLabel htmlFor={ids.zip}>Código postal</FieldLabel>
             <Input
               id={ids.zip}
-              value={zip}
-              onChange={(e) => setZip(e.target.value)}
+              defaultValue={zipRef.current}
+              onChange={(e) => {
+                zipRef.current = e.target.value;
+              }}
             />
           </Field>
         </div>

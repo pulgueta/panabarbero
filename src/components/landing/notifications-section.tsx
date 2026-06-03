@@ -10,9 +10,11 @@ import {
   XCircleIcon,
 } from "@phosphor-icons/react";
 import {
-  AnimatePresence,
   animate,
-  motion,
+  AnimatePresence,
+  domAnimation,
+  LazyMotion,
+  m,
   useInView,
   useMotionValue,
   useTransform,
@@ -144,39 +146,41 @@ const NotificationCard: FC<{
   index: number;
 }> = ({ notification, index }) => {
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 60, filter: "blur(8px)" }}
-      animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-      exit={{ opacity: 0, x: -30, filter: "blur(4px)" }}
-      transition={{
-        duration: 0.5,
-        delay: index * 0.12,
-        ease: [0.25, 0.46, 0.45, 0.94],
-      }}
-      className="group flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3 backdrop-blur-sm transition-colors hover:bg-muted/50"
-    >
-      <div
-        className={`flex size-8 shrink-0 items-center justify-center rounded-md bg-muted ${notification.color}`}
+    <LazyMotion features={domAnimation}>
+      <m.div
+        initial={{ opacity: 0, x: 60, filter: "blur(8px)" }}
+        animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+        exit={{ opacity: 0, x: -30, filter: "blur(4px)" }}
+        transition={{
+          duration: 0.5,
+          delay: index * 0.12,
+          ease: [0.25, 0.46, 0.45, 0.94],
+        }}
+        className="group flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3 backdrop-blur-sm transition-colors hover:bg-muted/50"
       >
-        {notification.icon}
-      </div>
-
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="truncate font-medium text-foreground text-sm">
-            {notification.subject}
-          </span>
+        <div
+          className={`flex size-8 shrink-0 items-center justify-center rounded-md bg-muted ${notification.color}`}
+        >
+          {notification.icon}
         </div>
-        <p className="truncate text-muted-foreground text-xs">
-          {notification.description}
-        </p>
-      </div>
 
-      <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-muted/50 px-2 py-1 text-muted-foreground text-xs">
-        {channelConfig[notification.channel].icon}
-        <span>{channelConfig[notification.channel].label}</span>
-      </div>
-    </motion.div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="truncate font-medium text-foreground text-sm">
+              {notification.subject}
+            </span>
+          </div>
+          <p className="truncate text-muted-foreground text-xs">
+            {notification.description}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-muted/50 px-2 py-1 text-muted-foreground text-xs">
+          {channelConfig[notification.channel].icon}
+          <span>{channelConfig[notification.channel].label}</span>
+        </div>
+      </m.div>
+    </LazyMotion>
   );
 };
 
@@ -204,9 +208,9 @@ export const NotificationsSection: FC = () => {
   return (
     <section ref={sectionRef} className="space-y-8">
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start lg:gap-16">
-        <div className="flex flex-col justify-center space-y-4">
+        <div className="flex flex-col justify-center gap-y-4">
           <div className="space-y-4">
-            <h2 className="font-bold text-3xl tracking-tighter md:text-4xl">
+            <h2 className="font-semibold text-3xl tracking-tighter md:text-4xl">
               Notificaciones{" "}
               <span className="text-primary">en tiempo real</span>
             </h2>

@@ -8,6 +8,12 @@ import { getCanonicalUrl, seo } from "@/lib/utils";
 import { renderMarkdown } from "@/utils/markdown";
 
 export const Route = createFileRoute("/tos")({
+  ssr: true,
+  loader: async () => {
+    const markup = await renderMarkdown(tosContent);
+
+    return { markup };
+  },
   head: () => ({
     meta: seo({
       title: "Términos de Servicio - PanaBarbero",
@@ -17,17 +23,11 @@ export const Route = createFileRoute("/tos")({
     }),
     links: [{ rel: "canonical", href: getCanonicalUrl("/tos") }],
   }),
-  loader: async () => {
-    const markup = await renderMarkdown(tosContent);
-
-    return { markup };
-  },
-  pendingComponent: LoadingComponent,
-  component: TermsOfServicePage,
-  ssr: true,
   headers: () => ({
     "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
   }),
+  pendingComponent: LoadingComponent,
+  component: TermsOfServicePage,
 });
 
 function TermsOfServicePage() {

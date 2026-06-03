@@ -35,14 +35,14 @@ export const AppointmentRescheduleRequestEmail = ({
           theme: tailwindConfig.theme,
         }}
       >
-        <Body className="bg-gray-100 font-sans">
+        <Body className="bg-zinc-100 font-sans">
           <Container className="mx-auto w-full max-w-md rounded-xl border border-border/50 bg-white p-4">
             <Header />
 
             <Section className="my-4">
-              <Text className="m-0 mb-[8px] text-gray-700 text-sm">{body}</Text>
+              <Text className="m-0 mb-[8px] text-zinc-700 text-sm">{body}</Text>
 
-              <Text className="m-0 mb-[8px] text-gray-700 text-sm">
+              <Text className="m-0 mb-[8px] text-zinc-700 text-sm">
                 Ingresa al siguiente enlace para revisar y responder la
                 solicitud.
               </Text>

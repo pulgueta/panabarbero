@@ -12,8 +12,8 @@ import type {
 } from "react";
 import {
   createContext,
+  use,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -29,7 +29,6 @@ import { cn } from "@/lib/utils";
 const ROOT_NAME = "Cropper";
 const ROOT_IMPL_NAME = "CropperImpl";
 const IMAGE_NAME = "CropperImage";
-const VIDEO_NAME = "CropperVideo";
 const AREA_NAME = "CropperArea";
 
 interface Point {
@@ -355,7 +354,7 @@ interface Store {
 const StoreContext = createContext<Store | null>(null);
 
 function useStoreContext(consumerName: string) {
-  const context = useContext(StoreContext);
+  const context = use(StoreContext);
   if (!context) {
     throw new Error(`\`${consumerName}\` must be used within \`${ROOT_NAME}\``);
   }
@@ -392,7 +391,7 @@ interface CropperContextValue {
 const CropperContext = createContext<CropperContextValue | null>(null);
 
 function useCropperContext(consumerName: string) {
-  const context = useContext(CropperContext);
+  const context = use(CropperContext);
   if (!context) {
     throw new Error(`\`${consumerName}\` must be used within \`${ROOT_NAME}\``);
   }
@@ -1600,138 +1599,6 @@ function CropperImage(props: CropperImageProps) {
   );
 }
 
-interface CropperVideoProps
-  extends ComponentProps<"video">,
-    VariantProps<typeof cropperMediaVariants> {
-  asChild?: boolean;
-  snapPixels?: boolean;
-}
-
-function CropperVideo(props: CropperVideoProps) {
-  const {
-    className,
-    style,
-    asChild,
-    ref,
-    onLoadedMetadata,
-    objectFit,
-    snapPixels = false,
-    ...videoProps
-  } = props;
-
-  const context = useCropperContext(VIDEO_NAME);
-  const store = useStoreContext(VIDEO_NAME);
-  const crop = useStore((state) => state.crop);
-  const zoom = useStore((state) => state.zoom);
-  const rotation = useStore((state) => state.rotation);
-
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const composedRef = useComposedRefs(ref, videoRef);
-
-  const getNaturalDimensions = useCallback(
-    (video: HTMLVideoElement) => ({
-      width: video.videoWidth,
-      height: video.videoHeight,
-    }),
-    [],
-  );
-
-  const { computeSizes } = useMediaComputation({
-    mediaRef: videoRef,
-    context,
-    store,
-    rotation,
-    getNaturalDimensions,
-  });
-
-  const onMediaLoad = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    computeSizes();
-
-    onLoadedMetadata?.(
-      new Event(
-        "loadedmetadata",
-      ) as unknown as SyntheticEvent<HTMLVideoElement>,
-    );
-  }, [computeSizes, onLoadedMetadata]);
-
-  useEffect(() => {
-    const content = context.rootRef?.current;
-    if (!content) return;
-
-    if (typeof ResizeObserver !== "undefined") {
-      let isFirstResize = true;
-      const resizeObserver = new ResizeObserver(() => {
-        if (isFirstResize) {
-          isFirstResize = false;
-          return;
-        }
-
-        const callback = () => {
-          const video = videoRef.current;
-          if (video && video.videoWidth > 0 && video.videoHeight > 0) {
-            computeSizes();
-          }
-        };
-
-        if ("requestIdleCallback" in window) {
-          requestIdleCallback(callback);
-        } else {
-          setTimeout(callback, 16);
-        }
-      });
-
-      resizeObserver.observe(content);
-
-      return () => {
-        resizeObserver.disconnect();
-      };
-    } else {
-      const onWindowResize = () => {
-        const video = videoRef.current;
-        if (video && video.videoWidth > 0 && video.videoHeight > 0) {
-          computeSizes();
-        }
-      };
-
-      window.addEventListener("resize", onWindowResize);
-      return () => {
-        window.removeEventListener("resize", onWindowResize);
-      };
-    }
-  }, [context.rootRef, computeSizes]);
-
-  const VideoPrimitive = asChild ? SlotPrimitive.Slot : "video";
-
-  return (
-    <VideoPrimitive
-      data-slot="cropper-video"
-      autoPlay
-      playsInline
-      loop
-      muted
-      controls={false}
-      {...videoProps}
-      ref={composedRef}
-      className={cn(
-        cropperMediaVariants({
-          objectFit: objectFit ?? context.objectFit,
-          className,
-        }),
-      )}
-      style={{
-        transform: snapPixels
-          ? `translate(${snapToDevicePixel(crop.x)}px, ${snapToDevicePixel(crop.y)}px) rotate(${rotation}deg) scale(${zoom})`
-          : `translate(${crop.x}px, ${crop.y}px) rotate(${rotation}deg) scale(${zoom})`,
-        ...style,
-      }}
-      onLoadedMetadata={onMediaLoad}
-    />
-  );
-}
-
 const cropperAreaVariants = cva(
   "absolute top-1/2 left-1/2 box-border -translate-x-1/2 -translate-y-1/2 overflow-hidden border border-2 border-white/90 shadow-[0_0_0_9999em_rgba(0,0,0,0.5)]",
   {
@@ -1802,14 +1669,7 @@ export {
   Cropper,
   CropperArea,
   CropperImage,
-  CropperVideo,
   //
-  useStore as useCropper,
   type Area as CropperAreaData,
-  type ObjectFit as CropperObjectFit,
-  type Point as CropperPoint,
-  //
-  type CropperProps,
   type Shape as CropperShape,
-  type Size as CropperSize,
 };

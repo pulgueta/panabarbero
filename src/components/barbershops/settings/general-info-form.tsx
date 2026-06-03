@@ -1,6 +1,6 @@
 import type { Barbershop } from "@convex/schema";
 import type { FC } from "react";
-import { useId, useState } from "react";
+import { useId, useRef } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
@@ -24,8 +24,8 @@ export const GeneralInfoForm: FC<GeneralInfoFormProps> = ({ barbershop }) => {
     name: useId(),
     description: useId(),
   };
-  const [name, setName] = useState(barbershop.name);
-  const [description, setDescription] = useState(barbershop.description ?? "");
+  const nameRef = useRef(barbershop.name);
+  const descriptionRef = useRef(barbershop.description ?? "");
 
   const {
     updateBarbershopMutation: {
@@ -42,8 +42,8 @@ export const GeneralInfoForm: FC<GeneralInfoFormProps> = ({ barbershop }) => {
         id: barbershop._id,
         data: {
           uuid: barbershop.uuid,
-          name,
-          description: description || undefined,
+          name: nameRef.current,
+          description: descriptionRef.current || undefined,
           address: barbershop.address,
           services: barbershop.services ?? [],
           contactPhone: barbershop.contactPhone || undefined,
@@ -64,7 +64,7 @@ export const GeneralInfoForm: FC<GeneralInfoFormProps> = ({ barbershop }) => {
     }
   };
 
-  const nameInvalid = !name || name.length < 3;
+  const nameInvalid = !nameRef.current || nameRef.current.length < 3;
 
   return (
     <div className="w-full space-y-4">
@@ -73,8 +73,10 @@ export const GeneralInfoForm: FC<GeneralInfoFormProps> = ({ barbershop }) => {
           <FieldLabel htmlFor={ids.name}>Nombre</FieldLabel>
           <Input
             id={ids.name}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            defaultValue={nameRef.current}
+            onChange={(e) => {
+              nameRef.current = e.target.value;
+            }}
           />
           {nameInvalid && (
             <FieldError errors={[{ message: "Nombre requerido" }]} />
@@ -85,8 +87,10 @@ export const GeneralInfoForm: FC<GeneralInfoFormProps> = ({ barbershop }) => {
           <FieldLabel htmlFor={ids.description}>Descripción</FieldLabel>
           <Input
             id={ids.description}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            defaultValue={descriptionRef.current}
+            onChange={(e) => {
+              descriptionRef.current = e.target.value;
+            }}
           />
         </Field>
       </FieldGroup>

@@ -5,7 +5,6 @@ import {
   coerce,
   email,
   literal,
-  number,
   object,
   string,
   url,
@@ -13,41 +12,6 @@ import {
   enum as zodEnum,
   undefined as zodUndefined,
 } from "zod";
-
-export const dayMapping = {
-  lunes: "monday",
-  martes: "tuesday",
-  miércoles: "wednesday",
-  jueves: "thursday",
-  viernes: "friday",
-  sábado: "saturday",
-  domingo: "sunday",
-} as const;
-
-export const socialPlatforms = [
-  "instagram",
-  "facebook",
-  "tiktok",
-  "twitter",
-  "youtube",
-] as const;
-
-export const appointmentStatusOptions = [
-  "pending",
-  "confirmed",
-  "cancelled",
-  "completed",
-  "no-show",
-  "rescheduled",
-] as const;
-
-export const paymentMethodOptions = [
-  "cash",
-  "card",
-  "pse",
-  "daviplata",
-  "safetypay",
-] as const;
 
 // availability: {
 // weekDay: {
@@ -83,11 +47,6 @@ const availabilitySchema = object({
   lunchEnd: string().optional(),
 });
 
-const socialMediaSchema = object({
-  platform: zodEnum(socialPlatforms),
-  url: string().url("URL inválida"),
-});
-
 export const barbershopFormSchema = object({
   name: string({ error: "Nombre requerido" })
     .min(3, {
@@ -121,43 +80,7 @@ export const barbershopFormSchema = object({
   ownerIsBarber: boolean().default(true),
 });
 
-export const barbershopFormSchemaV2 = object({
-  name: string({ error: "El nombre de la barbería es requerido" })
-    .min(3, {
-      message: "El nombre de la barbería debe tener al menos 3 caracteres",
-    })
-    .max(255, {
-      message: "El nombre de la barbería debe tener menos de 255 caracteres",
-    }),
-  description: string().optional(),
-  address: object({
-    fullAddress: string().min(1, "Dirección es requerida"),
-    details: string().optional(),
-  }),
-  city: string().min(1, "Ciudad es requerida"),
-  state: string().min(1, "Departamento es requerido"),
-  openAt: string().min(1, "Hora de apertura requerida"),
-  closeAt: string().min(1, "Hora de cierre requerida"),
-  lunchStart: string().optional(),
-  lunchEnd: string().optional(),
-  zipCode: string().optional(),
-  contactPhone: string().optional(),
-  bannerUrl: url("URL inválida").optional().or(literal("")),
-  isActive: boolean().default(false),
-  gracePeriodMinutes: coerce.number().min(5).max(60).default(5),
-  // availability: array(availabilitySchema).default([]),
-  metadata: object({
-    websiteUrl: url().optional(),
-    contactEmail: email().optional(),
-    reviews: coerce.number().optional(),
-    rating: coerce.number().optional(),
-    socialMedia: array(socialMediaSchema).optional(),
-  }),
-});
-
-export type BarbershopFormDataV2 = output<typeof barbershopFormSchemaV2>;
-
-export const serviceFormSchema = object({
+const serviceFormSchema = object({
   name: string({ error: "El nombre del servicio es requerido" })
     .min(3, {
       message: "El nombre del servicio debe tener al menos 3 caracteres",
@@ -207,34 +130,7 @@ export const appointmentFormSchema = object({
   serviceId: zodAny(),
 });
 
-export const reviewFormSchema = object({
-  barbershopId: string().min(1, "Barbería es requerida"),
-  rating: number()
-    .min(1, "Calificación mínima es 1")
-    .max(5, "Calificación máxima es 5"),
-  comment: string().optional(),
-  customerName: string().optional(),
-});
-
-export const inviteBarberFormSchema = object({
-  barbershopId: zodAny(),
-  email: email({ error: "El email del barbero es requerido" }),
-  phone: string({ error: "El teléfono del barbero es requerido" })
-    .min(10, {
-      message: "El teléfono del barbero debe tener 10 caracteres",
-    })
-    .regex(/^\+?[0-9]+$/, {
-      message: "El teléfono del barbero debe ser válido",
-    }),
-  roles: array(zodEnum(["barber"]))
-    .min(1, { message: "Debes seleccionar al menos un rol" })
-    .default(["barber"]),
-});
-
-export type BarbershopFormData = output<typeof barbershopFormSchema>;
 export type ServiceFormData = output<typeof serviceFormSchema>;
-export type AppointmentFormData = output<typeof appointmentFormSchema>;
-export type ReviewFormData = output<typeof reviewFormSchema>;
 
 export const rescheduleRequestFormSchema = object({
   date: coerce
@@ -247,16 +143,8 @@ export const rescheduleRequestFormSchema = object({
     ),
 });
 
-export type RescheduleRequestFormData = output<
-  typeof rescheduleRequestFormSchema
->;
-
 export const cancelAppointmentFormSchema = object({
   notes: string()
     .min(3, "Debes proporcionar una explicación para la cancelación.")
     .max(300, "La nota debe tener máximo 300 caracteres"),
 });
-
-export type CancelAppointmentFormData = output<
-  typeof cancelAppointmentFormSchema
->;

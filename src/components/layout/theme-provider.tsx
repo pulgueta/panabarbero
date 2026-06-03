@@ -1,5 +1,12 @@
 import { ScriptOnce } from "@tanstack/react-router";
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 export type UserTheme = "light" | "dark" | "system";
 export type AppTheme = "light" | "dark";
@@ -94,14 +101,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const appTheme = userTheme === "system" ? getSystemTheme() : userTheme;
 
-  const setTheme = (newTheme: UserTheme) => {
+  const setTheme = useCallback((newTheme: UserTheme) => {
     setUserTheme(newTheme);
     setStoredTheme(newTheme);
     handleThemeChange(newTheme);
-  };
+  }, []);
+
+  const value = useMemo(
+    () => ({ userTheme, appTheme, setTheme }),
+    [userTheme, appTheme, setTheme],
+  );
 
   return (
-    <ThemeContext.Provider value={{ userTheme, appTheme, setTheme }}>
+    <ThemeContext.Provider value={value}>
       <ScriptOnce>{themeScript}</ScriptOnce>
       {children}
     </ThemeContext.Provider>
@@ -109,7 +121,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useTheme() {
-  const context = useContext(ThemeContext);
+  const context = use(ThemeContext);
 
   if (context === undefined)
     throw new Error("useTheme must be used within a ThemeProvider");

@@ -1,10 +1,10 @@
 import {
   CalendarIcon,
-  CalendarPlusIcon,
   CurrencyDollarIcon,
   GearSixIcon,
   HouseIcon,
   ScissorsIcon,
+  SparkleIcon,
   UserIcon,
   UsersIcon,
 } from "@phosphor-icons/react";
@@ -24,14 +24,14 @@ export const publicRoutes = {
       icon: ScissorsIcon,
     },
     {
-      label: "Agendar",
-      to: "/appointments/create",
-      icon: CalendarPlusIcon,
-    },
-    {
       label: "Precios",
       to: "/pricing",
       icon: CurrencyDollarIcon,
+    },
+    {
+      label: "Pana IA",
+      to: "/ai",
+      icon: SparkleIcon,
     },
   ],
 };
@@ -107,45 +107,3 @@ export const authenticatedRoutes = {
     },
   ],
 };
-
-export const routes = {
-  navigation: [
-    {
-      label: "Inicio",
-      to: "/",
-      icon: HouseIcon,
-    },
-    {
-      label: "Barberías",
-      to: "/barbershops",
-      icon: ScissorsIcon,
-    },
-    {
-      label: "Agendar",
-      to: "/appointments/create",
-      icon: CalendarPlusIcon,
-    },
-    {
-      label: "Perfil",
-      to: "/profile",
-      icon: UserIcon,
-    },
-  ],
-  barbershop: {
-    index: "/barbershops",
-    create: "/barbershops/create",
-    edit: "/barbershops/$barbershopUuid/edit",
-    show: "/barbershops/$barbershopUuid",
-  },
-};
-
-export const localStorageKeys = {
-  barbershopsLatest: "barbershops_latest",
-  barbershopsState: "barbershops_state",
-  barbershopsCity: "barbershops_city",
-};
-
-export const getNavigationRoutes = (userId: string | undefined) =>
-  userId
-    ? routes.navigation
-    : routes.navigation.filter((route) => route.to !== "/profile");

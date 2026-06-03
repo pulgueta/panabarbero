@@ -29,7 +29,7 @@ export const WelcomeEmail = (_: WelcomeEmailProps) => {
           theme: tailwindConfig.theme,
         }}
       >
-        <Body className="bg-gray-100 font-sans">
+        <Body className="bg-zinc-100 font-sans">
           <Container className="mx-auto w-full max-w-md rounded-xl border border-border/50 bg-white p-4">
             <Header />
 

@@ -131,7 +131,7 @@ export const ManageServicesDialog: FC<ManageServicesDialogProps> = ({
               return (
                 <div
                   key={service._id}
-                  className="flex items-center space-x-3 rounded-md border p-3"
+                  className="flex items-center gap-3 rounded-md border p-3"
                 >
                   <Checkbox
                     id={checkboxId}

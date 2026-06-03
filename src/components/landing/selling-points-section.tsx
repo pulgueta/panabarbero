@@ -57,7 +57,7 @@ export const SellingPointsSection: FC = () => {
   return (
     <section className="space-y-6 py-4">
       <div className="space-y-2">
-        <h2 className="text-balance text-center font-bold text-3xl tracking-tighter md:text-4xl">
+        <h2 className="text-balance text-center font-semibold text-3xl tracking-tighter md:text-4xl">
           Todo lo que tu barbería necesita
         </h2>
         <p className="text-pretty text-center dark:text-muted-foreground">

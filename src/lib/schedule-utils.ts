@@ -14,7 +14,7 @@ export type WeekdayKey =
   | "saturday";
 
 /** Indexed by `Date.getDay()` (0 = Sunday). */
-export const DAY_MAP: readonly WeekdayKey[] = [
+const DAY_MAP: readonly WeekdayKey[] = [
   "sunday",
   "monday",
   "tuesday",
@@ -34,9 +34,7 @@ export function getDayKeyForDate(date: Date | number): WeekdayKey {
  * Parses an "HH:mm" string into total minutes since midnight.
  * Returns `null` for falsy / unparseable input.
  */
-export function parseTimeToMinutes(
-  time?: string | null,
-): number | null {
+export function parseTimeToMinutes(time?: string | null): number | null {
   if (!time) return null;
 
   const [hours, minutes] = time.split(":").map(Number);

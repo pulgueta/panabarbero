@@ -58,13 +58,3 @@ export const AlertDescription: FC<AlertDescriptionProps> = ({
     {...props}
   />
 );
-
-type AlertActionProps = ComponentProps<"div">;
-
-export const AlertAction: FC<AlertActionProps> = ({ className, ...props }) => (
-  <div
-    data-slot="alert-action"
-    className={cn("absolute top-2.5 right-3", className)}
-    {...props}
-  />
-);

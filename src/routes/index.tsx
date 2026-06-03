@@ -93,6 +93,21 @@ const HOME_FAQS = [
 export const Route = createFileRoute("/")({
   pendingComponent: LoadingComponent,
   component: RouteComponent,
+  ssr: true,
+  staleTime: 3600,
+  loader: async ({ context }) => {
+    const user = await context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
+
+    if (user?.userId) {
+      throw redirect({
+        to: "/profile",
+        search: { tab: "account" },
+        replace: true,
+      });
+    }
+  },
   head: () => ({
     meta: [
       ...seo({
@@ -119,24 +134,9 @@ export const Route = createFileRoute("/")({
       breadcrumbStructuredData([{ name: "Inicio", url: getCanonicalUrl("/") }]),
     ],
   }),
-  loader: async ({ context }) => {
-    const user = await context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
-
-    if (user?.userId) {
-      throw redirect({
-        to: "/profile",
-        search: { tab: "account" },
-        replace: true,
-      });
-    }
-  },
-  ssr: true,
   headers: () => ({
     "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
   }),
-  staleTime: 3600,
 });
 
 function RouteComponent() {
@@ -148,16 +148,16 @@ function RouteComponent() {
     <BorderContainer>
       <main className="grid grid-cols-1 gap-4 py-4 lg:grid-cols-3 lg:items-start">
         <section className="w-full space-y-4 lg:col-span-1 lg:mt-6 lg:max-w-3xl lg:space-y-8">
-          <h1 className="text-center font-bold text-3xl tracking-tighter md:text-balance md:text-4xl lg:text-left lg:text-5xl">
+          <h1 className="text-center font-semibold text-3xl tracking-tighter md:text-balance md:text-4xl lg:text-left lg:text-5xl">
             La solución para las barberías en Colombia.
           </h1>
           <div className="space-y-1 text-center lg:text-left">
             <p className="text-pretty dark:text-muted-foreground">
-              <span className="font-bold">Para clientes: </span>
+              <span className="font-semibold">Para clientes: </span>
               Encuentra barberías y reserva citas con tus barberos de confianza.
             </p>
             <p className="text-pretty dark:text-muted-foreground">
-              <span className="font-bold">Para barberos: </span>
+              <span className="font-semibold">Para barberos: </span>
               Gestiona tu barbería, clientes y citas de manera fácil y
               eficiente.
             </p>
@@ -217,7 +217,7 @@ function RouteComponent() {
 
       <section>
         <div className="space-y-4">
-          <h2 className="text-balance text-center font-bold text-3xl tracking-tighter md:text-left">
+          <h2 className="text-balance text-center font-semibold text-3xl tracking-tighter md:text-left">
             Gestiona barberos y servicios desde un solo lugar.
           </h2>
           <p className="text-pretty text-center md:text-left dark:text-muted-foreground">
@@ -277,7 +277,7 @@ function RouteComponent() {
 
       <section>
         <div className="space-y-4">
-          <h2 className="text-balance text-center font-bold text-3xl tracking-tighter md:text-left">
+          <h2 className="text-balance text-center font-semibold text-3xl tracking-tighter md:text-left">
             Un sistema de citas que trabaja por ti.
           </h2>
           <p className="text-pretty text-center md:text-left dark:text-muted-foreground">
@@ -320,7 +320,7 @@ function RouteComponent() {
 
       <section className="space-y-8">
         <div className="space-y-2">
-          <h2 className="text-balance text-center font-bold text-3xl tracking-tighter md:text-4xl">
+          <h2 className="text-balance text-center font-semibold text-3xl tracking-tighter md:text-4xl">
             Precios
           </h2>
           <p className="text-pretty text-center dark:text-muted-foreground">

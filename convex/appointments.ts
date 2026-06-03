@@ -39,6 +39,14 @@ import {
 
 const MINUTE_MS = 60 * 1000;
 
+const dateTimeFormatter = new Intl.DateTimeFormat("es-CO", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
 const createAppointmentArgs = z.object({
   appointment: z.object({
     barbershopId: barbershops.tools.id.shape.id,
@@ -60,16 +68,17 @@ async function cancelScheduledNotifications(
   const ids = [
     appointment.upcomingNotificationId,
     appointment.pastReminderNotificationId,
-  ];
+  ].filter(Boolean);
 
-  for (const id of ids) {
-    if (!id) continue;
-    try {
-      await ctx.scheduler.cancel(id);
-    } catch {
-      // Already completed, failed, or cancelled — safe to ignore
-    }
-  }
+  await Promise.all(
+    ids.map(async (id) => {
+      try {
+        await ctx.scheduler.cancel(id!);
+      } catch {
+        // Already completed, failed, or cancelled — safe to ignore
+      }
+    }),
+  );
 }
 
 export const create = zMutation({
@@ -163,8 +172,13 @@ export const create = zMutation({
       )
       .collect();
 
-    for (const appt of candidates) {
-      const apptService = await ctx.db.get(appt.serviceId);
+    const apptServices = await Promise.all(
+      candidates.map((appt) => ctx.db.get(appt.serviceId)),
+    );
+
+    for (let i = 0; i < candidates.length; i++) {
+      const appt = candidates[i];
+      const apptService = apptServices[i];
       const apptEnd = appt.date + (apptService?.duration ?? 0) * MINUTE_MS;
       const overlaps = appt.date < endsAt && apptEnd > appointment.date;
 
@@ -267,23 +281,25 @@ export const create = zMutation({
     const thirtyMinutesBeforeAppointment = appointment.date - 30 * 60 * 1000;
     const thirtyMinutesAfterAppointment = appointment.date + 30 * 60 * 1000;
 
-    const upcomingNotificationId = await ctx.scheduler.runAt(
-      thirtyMinutesBeforeAppointment,
-      internal.appointments.notifyUpcoming,
-      {
-        appointmentId: { id: appointmentId },
-        barbershopId: { id: appointment.barbershopId },
-        userId: appointmentUserId,
-      },
-    );
-
-    const pastReminderNotificationId = await ctx.scheduler.runAt(
-      thirtyMinutesAfterAppointment,
-      internal.notifications.createPastAppointmentReminder,
-      {
-        barberUserId: barberProfile.userId,
-      },
-    );
+    const [upcomingNotificationId, pastReminderNotificationId] =
+      await Promise.all([
+        ctx.scheduler.runAt(
+          thirtyMinutesBeforeAppointment,
+          internal.appointments.notifyUpcoming,
+          {
+            appointmentId: { id: appointmentId },
+            barbershopId: { id: appointment.barbershopId },
+            userId: appointmentUserId,
+          },
+        ),
+        ctx.scheduler.runAt(
+          thirtyMinutesAfterAppointment,
+          internal.notifications.createPastAppointmentReminder,
+          {
+            barberUserId: barberProfile.userId,
+          },
+        ),
+      ]);
 
     await ctx.db.patch(appointmentId, {
       upcomingNotificationId,
@@ -910,13 +926,9 @@ export const answerRescheduleRequest = zMutation({
     const receiverRole = isCustomerAccepting ? "barber" : "customer";
     const receiverUserId = receiverProfile?.userId ?? "user_does_not_exist";
 
-    const formattedDate = new Intl.DateTimeFormat("es-CO", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(appt.proposedDate!));
+    const formattedDate = dateTimeFormatter.format(
+      new Date(appt.proposedDate!),
+    );
 
     const body = args.accepted
       ? `Tu cita ha sido confirmada con la nueva fecha: ${formattedDate}.`
@@ -990,8 +1002,13 @@ export const overlaps = zInternalQuery({
 
     const activeCandidates = candidates.filter((appt) => !appt.deletedAt);
 
-    for (const appt of activeCandidates) {
-      const svc = await ctx.db.get(appt.serviceId);
+    const services = await Promise.all(
+      activeCandidates.map((appt) => ctx.db.get(appt.serviceId)),
+    );
+
+    for (let i = 0; i < activeCandidates.length; i++) {
+      const appt = activeCandidates[i];
+      const svc = services[i];
       const apptEnd = appt.date + (svc?.duration ?? 0) * MINUTE_MS;
       const overlaps = appt.date < args.endAt && apptEnd > args.date;
       if (overlaps) return appt;
@@ -1130,7 +1147,9 @@ export const getAvailableSlots = zQuery({
       uniqueServiceIds.map((id) => ctx.db.get(id)),
     );
     const serviceMap = new Map(
-      loadedServices.filter(Boolean).map((s) => [s!._id.toString(), s!]),
+      loadedServices.flatMap((s) =>
+        s ? [[s._id.toString(), s] as const] : [],
+      ),
     );
 
     const occupied: Array<{ start: number; end: number }> = [];
@@ -1162,5 +1181,121 @@ export const getAvailableSlots = zQuery({
         (occ) => slot.minutes < occ.end && slotEnd > occ.start,
       );
     });
+  },
+});
+
+const ANON_PREFIX = "anon:";
+
+export const agentBook = zInternalMutation({
+  args: z.object({
+    userId: z.string(),
+    barbershopId: barbershops.tools.id.shape.id,
+    serviceId: services.tools.id.shape.id,
+    barbershopMemberId: barbershopMembers.tools.id.shape.id,
+    date: z.number(),
+    customerName: z.string(),
+    contactPhone: z.string(),
+    contactEmail: z.string().optional(),
+    notes: z.string().optional(),
+  }),
+  handler: async (ctx, args) => {
+    const [service, barber, barbershop] = await Promise.all([
+      ctx.db.get(args.serviceId),
+      ctx.db.get(args.barbershopMemberId),
+      ctx.db.get(args.barbershopId),
+    ]);
+
+    if (!barber) throw new ConvexError(errorMessages.notFound("barbero"));
+    if (!service) throw new ConvexError(errorMessages.notFound("servicio"));
+    if (!barbershop) throw new ConvexError(errorMessages.notFound("barbería"));
+    if (barber.barbershopId !== args.barbershopId)
+      throw new ConvexError(errorMessages.unauthorized);
+    if (!barber.userProfileDataId)
+      throw new ConvexError(errorMessages.notFound("barbero"));
+
+    const barberProfile = await ctx.db.get(barber.userProfileDataId);
+    if (!barberProfile)
+      throw new ConvexError(errorMessages.notFound("perfil de barbero"));
+
+    const endsAt = args.date + service.duration * MINUTE_MS;
+
+    const startOfDay = new Date(args.date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const candidates = await ctx.db
+      .query("appointments")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("barbershopMemberId"), args.barbershopMemberId),
+          q.gte(q.field("date"), startOfDay.getTime()),
+          q.lte(q.field("date"), endOfDay.getTime()),
+          q.or(
+            q.eq(q.field("status"), "pending"),
+            q.eq(q.field("status"), "confirmed"),
+            q.eq(q.field("status"), "rescheduled"),
+          ),
+          q.eq(q.field("deletedAt"), undefined),
+        ),
+      )
+      .collect();
+
+    const candidateServices = await Promise.all(
+      candidates.map((appt) => ctx.db.get(appt.serviceId)),
+    );
+
+    for (let i = 0; i < candidates.length; i++) {
+      const appt = candidates[i];
+      const apptService = candidateServices[i];
+      const apptEnd = appt.date + (apptService?.duration ?? 0) * MINUTE_MS;
+      if (appt.date < endsAt && apptEnd > args.date) {
+        throw new ConvexError(errorMessages.appointmentOverlaps);
+      }
+    }
+
+    const appointmentId = await ctx.db.insert("appointments", {
+      userId: args.userId,
+      barbershopId: args.barbershopId,
+      serviceId: args.serviceId,
+      barbershopMemberId: args.barbershopMemberId,
+      date: args.date,
+      customerName: args.customerName,
+      contactPhone: formatPhoneNumber(args.contactPhone),
+      contactEmail: args.contactEmail,
+      notes: args.notes,
+      status: "confirmed",
+    });
+
+    const isAnon = args.userId.startsWith(ANON_PREFIX);
+
+    await ctx.runMutation(internal.notifications.createAppointmentCreated, {
+      appointmentId,
+      barberUserId: barberProfile.userId,
+      customerUserId: "user_does_not_exist",
+      to: barberProfile.email,
+      sendTo: "barber",
+      barbershopName: barbershop.name,
+      receiverPhoneNumber: args.contactPhone,
+      isStaffCreated: false,
+    });
+
+    if (!isAnon && args.contactEmail) {
+      await ctx.runMutation(internal.notifications.createAppointmentCreated, {
+        appointmentId,
+        barberUserId: barberProfile.userId,
+        customerUserId: args.userId,
+        to: args.contactEmail,
+        sendTo: "customer",
+        barbershopName: barbershop.name,
+        receiverPhoneNumber: args.contactPhone,
+        isStaffCreated: false,
+      });
+    }
+
+    return appointmentId;
   },
 });

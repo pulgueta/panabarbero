@@ -38,7 +38,6 @@ import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
 
 import {
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -46,7 +45,6 @@ import {
   DialogTrigger,
 } from "./dialog";
 import {
-  DrawerClose,
   DrawerContent,
   DrawerDescription,
   DrawerFooter,
@@ -62,6 +60,11 @@ interface ResponsiveModalContextValue {
 const ResponsiveModalContext = createContext<ResponsiveModalContextValue>({
   isMobile: false,
 });
+
+// Stable, module-scope context values (the two possibilities) so consumers
+// don't re-render just because the provider re-rendered.
+const MOBILE_CONTEXT: ResponsiveModalContextValue = { isMobile: true };
+const DESKTOP_CONTEXT: ResponsiveModalContextValue = { isMobile: false };
 
 interface ResponsiveModalProps {
   /** Controlled open state. Omit to let base-ui manage state via the trigger. */
@@ -84,7 +87,7 @@ function ResponsiveModal({
 
   if (isMobile) {
     return (
-      <ResponsiveModalContext.Provider value={{ isMobile: true }}>
+      <ResponsiveModalContext.Provider value={MOBILE_CONTEXT}>
         <DrawerPrimitive.Root
           data-slot="responsive-modal"
           open={open}
@@ -98,7 +101,7 @@ function ResponsiveModal({
   }
 
   return (
-    <ResponsiveModalContext.Provider value={{ isMobile: false }}>
+    <ResponsiveModalContext.Provider value={DESKTOP_CONTEXT}>
       <DialogPrimitive.Root
         data-slot="responsive-modal"
         open={open}
@@ -283,18 +286,8 @@ function ResponsiveModalDescription({
   );
 }
 
-function ResponsiveModalClose({
-  ...props
-}: ComponentProps<typeof DialogClose> & ComponentProps<typeof DrawerClose>) {
-  const { isMobile } = use(ResponsiveModalContext);
-  if (isMobile)
-    return <DrawerClose data-slot="responsive-modal-close" {...props} />;
-  return <DialogClose data-slot="responsive-modal-close" {...props} />;
-}
-
 export {
   ResponsiveModal,
-  ResponsiveModalClose,
   ResponsiveModalContent,
   ResponsiveModalDescription,
   ResponsiveModalFooter,

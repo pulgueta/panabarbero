@@ -4,35 +4,7 @@ import type { VariantProps } from "class-variance-authority";
 import { cva } from "class-variance-authority";
 import type { ComponentProps } from "react";
 
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-
-function ItemGroup({ className, ...props }: ComponentProps<"ul">) {
-  return (
-    <ul
-      data-slot="item-group"
-      className={cn(
-        "group/item-group m-0 flex w-full list-none flex-col gap-4 p-0 has-data-[size=sm]:gap-2.5 has-data-[size=xs]:gap-2",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
-function ItemSeparator({
-  className,
-  ...props
-}: ComponentProps<typeof Separator>) {
-  return (
-    <Separator
-      data-slot="item-separator"
-      orientation="horizontal"
-      className={cn("my-2", className)}
-      {...props}
-    />
-  );
-}
 
 const itemVariants = cva(
   "group/item flex w-full flex-wrap items-center rounded-md border text-sm outline-none transition-colors duration-100 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 [a]:transition-colors [a]:hover:bg-muted",
@@ -82,51 +54,6 @@ function Item({
   });
 }
 
-const itemMediaVariants = cva(
-  "flex shrink-0 items-center justify-center gap-2 group-has-data-[slot=item-description]/item:translate-y-0.5 group-has-data-[slot=item-description]/item:self-start [&_svg]:pointer-events-none",
-  {
-    variants: {
-      variant: {
-        default: "bg-transparent",
-        icon: "[&_svg:not([class*='size-'])]:size-4",
-        image:
-          "size-10 overflow-hidden rounded-sm group-data-[size=sm]/item:size-8 group-data-[size=xs]/item:size-6 [&_img]:size-full [&_img]:object-cover",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  },
-);
-
-function ItemMedia({
-  className,
-  variant = "default",
-  ...props
-}: ComponentProps<"div"> & VariantProps<typeof itemMediaVariants>) {
-  return (
-    <div
-      data-slot="item-media"
-      data-variant={variant}
-      className={cn(itemMediaVariants({ variant, className }))}
-      {...props}
-    />
-  );
-}
-
-function ItemContent({ className, ...props }: ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="item-content"
-      className={cn(
-        "flex flex-1 flex-col gap-1 group-data-[size=xs]/item:gap-0 [&+[data-slot=item-content]]:flex-none",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
 function ItemTitle({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
@@ -153,51 +80,4 @@ function ItemDescription({ className, ...props }: ComponentProps<"p">) {
   );
 }
 
-function ItemActions({ className, ...props }: ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="item-actions"
-      className={cn("flex items-center gap-2", className)}
-      {...props}
-    />
-  );
-}
-
-function ItemHeader({ className, ...props }: ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="item-header"
-      className={cn(
-        "flex basis-full items-center justify-between gap-2",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
-function ItemFooter({ className, ...props }: ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="item-footer"
-      className={cn(
-        "flex basis-full items-center justify-between gap-2",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
-export {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemFooter,
-  ItemGroup,
-  ItemHeader,
-  ItemMedia,
-  ItemSeparator,
-  ItemTitle,
-};
+export { Item, ItemDescription, ItemTitle };

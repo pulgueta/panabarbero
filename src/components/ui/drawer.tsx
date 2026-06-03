@@ -13,9 +13,9 @@ export const DrawerTrigger: FC<
   return <DrawerPrimitive.Trigger data-slot="drawer-trigger" {...props} />;
 };
 
-export const DrawerPortal: FC<
-  ComponentProps<typeof DrawerPrimitive.Portal>
-> = ({ ...props }) => {
+const DrawerPortal: FC<ComponentProps<typeof DrawerPrimitive.Portal>> = ({
+  ...props
+}) => {
   return <DrawerPrimitive.Portal data-slot="drawer-portal" {...props} />;
 };
 
@@ -25,9 +25,10 @@ export const DrawerClose: FC<ComponentProps<typeof DrawerPrimitive.Close>> = ({
   return <DrawerPrimitive.Close data-slot="drawer-close" {...props} />;
 };
 
-export const DrawerOverlay: FC<
-  ComponentProps<typeof DrawerPrimitive.Backdrop>
-> = ({ className, ...props }) => {
+const DrawerOverlay: FC<ComponentProps<typeof DrawerPrimitive.Backdrop>> = ({
+  className,
+  ...props
+}) => {
   return (
     <DrawerPrimitive.Backdrop
       data-slot="drawer-overlay"

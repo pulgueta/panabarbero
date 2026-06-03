@@ -24,6 +24,7 @@ import {
   barbershopByUuidQueryOptions,
   useBarbershopByUuid,
 } from "@/hooks/barbershop/use-barbershop";
+import { barbershopLocationQueryOptions } from "@/hooks/barbershop/use-barbershop-metadata";
 import {
   barberByUserIdQueryOptions,
   barbershopMembersByBarbershopIdQueryOptions,
@@ -62,26 +63,35 @@ const BarberTeamSection = lazy(() =>
   })),
 );
 
+const BarbershopLocationSection = lazy(() =>
+  import("@/components/barbershops/barbershop-location-section").then(
+    (module) => ({
+      default: module.BarbershopLocationSection,
+    }),
+  ),
+);
+
 export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
+  ssr: true,
+  staleTime: cacheTime.low,
+  gcTime: cacheTime.medium,
   loader: async ({ context, params }) => {
-    const user = await context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
-
-    const barbershop = await context.queryClient.ensureQueryData(
-      barbershopByUuidQueryOptions(params.barbershopUuid),
-    );
+    const [user, barbershop] = await Promise.all([
+      context.queryClient.ensureQueryData(getSessionQueryOptions()),
+      context.queryClient.ensureQueryData(
+        barbershopByUuidQueryOptions(params.barbershopUuid),
+      ),
+    ]);
 
     if (user?.userId) {
-      await context.queryClient.ensureQueryData(
-        profileQueryOptions(user.userId),
-      );
-
-      await context.queryClient.ensureQueryData(
-        barberByUserIdQueryOptions(user.userId),
-      );
+      await Promise.all([
+        context.queryClient.ensureQueryData(profileQueryOptions(user.userId)),
+        context.queryClient.ensureQueryData(
+          barberByUserIdQueryOptions(user.userId),
+        ),
+      ]);
     }
 
     if (barbershop?._id) {
@@ -94,6 +104,9 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
         ),
         context.queryClient.ensureQueryData(
           barbershopAvailabilityQueryOptions(barbershop._id),
+        ),
+        context.queryClient.ensureQueryData(
+          barbershopLocationQueryOptions(barbershop._id),
         ),
       ]);
 
@@ -140,9 +153,6 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
       ],
     };
   },
-  ssr: true,
-  staleTime: cacheTime.low,
-  gcTime: cacheTime.medium,
 });
 
 function RouteComponent() {
@@ -254,6 +264,15 @@ function RouteComponent() {
             </section>
           </>
         )}
+
+        <Suspense fallback={null}>
+          {barbershop?._id && (
+            <BarbershopLocationSection
+              barbershopId={barbershop._id}
+              barbershopName={barbershop.name}
+            />
+          )}
+        </Suspense>
       </main>
     </BorderContainer>
   );

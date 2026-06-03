@@ -221,7 +221,7 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
                     className="size-3.5 animate-spin"
                     weight="bold"
                   />
-                  Eliminando...
+                  Eliminando…
                 </>
               ) : (
                 "Sí, eliminar"
@@ -281,7 +281,7 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
                   : "Arrastra o selecciona el logo de tu barbería"}
               </p>
               <p className="mt-0.5 text-muted-foreground text-xs">
-                PNG, JPG, WebP o AVIF — máx. 2 MB
+                PNG, JPG, WebP o AVIF, máx. 2 MB
               </p>
             </div>
 

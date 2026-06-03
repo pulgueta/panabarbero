@@ -173,7 +173,7 @@ export const Calendar = ({
   );
 };
 
-export const CalendarDayButton = ({
+const CalendarDayButton = ({
   className,
   day,
   modifiers,

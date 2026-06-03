@@ -300,8 +300,6 @@ export const deleteUserProfiles = zInternalMutation({
       .withIndex("by_userId")
       .collect();
 
-    for (const user of users) {
-      await ctx.db.delete(user._id);
-    }
+    await Promise.all(users.map((user) => ctx.db.delete(user._id)));
   },
 });

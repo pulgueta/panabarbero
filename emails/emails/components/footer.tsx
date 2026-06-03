@@ -1,5 +1,7 @@
 import { Hr, Section, Text } from "@react-email/components";
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 export const Footer = () => {
   return (
     <>
@@ -10,7 +12,7 @@ export const Footer = () => {
           Calle 61 #18a 20, Barrancabermeja, Santander, Colombia
         </Text> */}
         <Text className="text-xs">
-          &copy; {new Date().getFullYear()} PanaBarbero S.A.S.
+          &copy; {CURRENT_YEAR} PanaBarbero S.A.S.
         </Text>
       </Section>
     </>

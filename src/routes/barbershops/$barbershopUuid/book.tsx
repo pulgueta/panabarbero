@@ -46,14 +46,16 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/book")({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
   validateSearch: searchSchema,
+  ssr: true,
+  staleTime: cacheTime.low,
+  gcTime: cacheTime.medium,
   loader: async ({ context, params }) => {
-    const user = await context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
-
-    const barbershop = await context.queryClient.ensureQueryData(
-      barbershopByUuidQueryOptions(params.barbershopUuid),
-    );
+    const [user, barbershop] = await Promise.all([
+      context.queryClient.ensureQueryData(getSessionQueryOptions()),
+      context.queryClient.ensureQueryData(
+        barbershopByUuidQueryOptions(params.barbershopUuid),
+      ),
+    ]);
 
     if (user?.userId) {
       await Promise.all([
@@ -88,9 +90,6 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/book")({
       }
     }
   },
-  ssr: true,
-  staleTime: cacheTime.low,
-  gcTime: cacheTime.medium,
 });
 
 function RouteComponent() {
@@ -137,7 +136,7 @@ function RouteComponent() {
         {barbershop ? (
           <section>
             <header className="">
-              <h3 className="mb-4 text-balance font-bold text-3xl tracking-tightest">
+              <h3 className="mb-4 text-balance font-semibold text-3xl tracking-tightest">
                 {barbershop.name}
               </h3>
               <p className="text-xl">Reservar cita</p>

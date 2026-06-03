@@ -36,6 +36,7 @@ export const CardHeader: FC<CardHeaderProps> = ({ className, ...props }) => (
 type CardTitleProps = ComponentProps<"h3">;
 
 export const CardTitle: FC<CardTitleProps> = ({ className, ...props }) => (
+  // eslint-disable-next-line jsx-a11y/heading-has-content
   <h3
     data-slot="card-title"
     className={cn(
@@ -56,19 +57,6 @@ export const CardDescription: FC<CardDescriptionProps> = ({
     data-slot="card-description"
     className={cn(
       "text-pretty text-muted-foreground text-sm tracking-tight",
-      className,
-    )}
-    {...props}
-  />
-);
-
-type CardActionProps = ComponentProps<"div">;
-
-export const CardAction: FC<CardActionProps> = ({ className, ...props }) => (
-  <div
-    data-slot="card-action"
-    className={cn(
-      "col-start-2 row-span-2 row-start-1 self-start justify-self-end",
       className,
     )}
     {...props}

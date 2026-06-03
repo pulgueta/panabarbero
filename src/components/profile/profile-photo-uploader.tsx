@@ -243,7 +243,7 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
                     className="size-3.5 animate-spin"
                     weight="bold"
                   />
-                  Eliminando...
+                  Eliminando…
                 </>
               ) : (
                 "Sí, eliminar"
@@ -313,7 +313,7 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
                     : "Arrastra o selecciona tu foto de perfil"}
                 </p>
                 <p className="mt-0.5 text-muted-foreground text-xs">
-                  PNG, JPG, WebP o AVIF — máx. 5 MB
+                  PNG, JPG, WebP o AVIF, máx. 5 MB
                 </p>
               </div>
               <Button

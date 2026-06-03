@@ -1,19 +1,20 @@
+/** biome-ignore-all lint/style/noNonNullAssertion: early return */
+import { convexToZod, zid } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
-import { convexToZod, zid } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import { zInternalMutation, zMutation, zQuery } from ".";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
-import { authComponent } from "./auth";
 import {
   incrementEmailSent,
   incrementSmsSent,
   isEmailLimitNotExceeded,
   isSmsLimitNotExceeded,
 } from "./acl";
+import { authComponent } from "./auth";
 import { errorMessages } from "./errors";
 import {
   buildNotificationCopy,
@@ -682,18 +683,19 @@ export const createBarberInvited = zInternalMutation({
       roleLabel,
     });
 
-    await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
-      body: `${copy.description} Ver detalles: ${invitationUrl}`,
-      to: args.phone,
-    });
-
-    await ctx.scheduler.runAfter(0, internal.emails.sendBarberInvitationEmail, {
-      to: args.email,
-      barbershopName: barbershop.name,
-      invitationLink: invitationUrl,
-      inviterName: inviterProfile?.name ?? undefined,
-      expiresLabel: new Date(args.expiresAt).toLocaleDateString("es-ES"),
-    });
+    await Promise.all([
+      ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
+        body: `${copy.description} Ver detalles: ${invitationUrl}`,
+        to: args.phone,
+      }),
+      ctx.scheduler.runAfter(0, internal.emails.sendBarberInvitationEmail, {
+        to: args.email,
+        barbershopName: barbershop.name,
+        invitationLink: invitationUrl,
+        inviterName: inviterProfile?.name ?? undefined,
+        expiresLabel: new Date(args.expiresAt).toLocaleDateString("es-ES"),
+      }),
+    ]);
 
     // If the invitee already has an account, surface the invite in-app too.
     const inviteeProfile = await ctx.db
@@ -729,9 +731,10 @@ export const createBarberRemovedCancellation = zInternalMutation({
     contactEmail: z.string().optional(),
   }),
   handler: async (ctx, args) => {
-    const customerProfile = await getProfileByUserId(ctx, args.customerUserId);
-
-    const appointment = await ctx.db.get(args.appointmentId);
+    const [customerProfile, appointment] = await Promise.all([
+      getProfileByUserId(ctx, args.customerUserId),
+      ctx.db.get(args.appointmentId),
+    ]);
 
     const copy = buildNotificationCopy({
       kind: "barber_removed_cancellation",
@@ -804,9 +807,10 @@ export const createServiceDeletedCancellation = zInternalMutation({
     contactEmail: z.string().optional(),
   }),
   handler: async (ctx, args) => {
-    const customerProfile = await getProfileByUserId(ctx, args.customerUserId);
-
-    const appointment = await ctx.db.get(args.appointmentId);
+    const [customerProfile, appointment] = await Promise.all([
+      getProfileByUserId(ctx, args.customerUserId),
+      ctx.db.get(args.appointmentId),
+    ]);
 
     const copy = buildNotificationCopy({
       kind: "service_deleted_cancellation",
@@ -999,9 +1003,9 @@ export const markAllRead = zMutation({
 
       if (batch.length === 0) break;
 
-      for (const row of batch) {
-        await ctx.db.patch(row._id, { readAt: now });
-      }
+      await Promise.all(
+        batch.map((row) => ctx.db.patch(row._id, { readAt: now })),
+      );
 
       if (batch.length < BATCH) break;
     }

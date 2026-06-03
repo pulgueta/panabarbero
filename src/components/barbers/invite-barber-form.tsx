@@ -5,7 +5,12 @@ import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
 import { useAppForm } from "@/components/form/use-form";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -114,13 +119,13 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
                     field.handleChange([value as "barber" | "staff"])
                   }
                 >
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-2">
                     <RadioGroupItem value="barber" id="role-barber" />
                     <Label htmlFor="role-barber" className="font-normal">
                       Barbero
                     </Label>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-2">
                     <RadioGroupItem value="staff" id="role-staff" />
                     <Label htmlFor="role-staff" className="font-normal">
                       Recepcionista

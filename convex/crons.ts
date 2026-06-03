@@ -49,9 +49,9 @@ export const cleanupAppointments = zInternalMutation({
       )
       .collect();
 
-    for (const appointment of appointments) {
-      await ctx.db.delete(appointment._id);
-    }
+    await Promise.all(
+      appointments.map((appointment) => ctx.db.delete(appointment._id)),
+    );
   },
 });
 
@@ -73,9 +73,9 @@ export const cleanupOldInvitations = zInternalMutation({
       )
       .collect();
 
-    for (const invitation of invitations) {
-      await ctx.db.delete(invitation._id);
-    }
+    await Promise.all(
+      invitations.map((invitation) => ctx.db.delete(invitation._id)),
+    );
   },
 });
 

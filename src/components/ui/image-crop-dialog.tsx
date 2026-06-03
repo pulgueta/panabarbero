@@ -4,7 +4,7 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import type { FC } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -103,6 +103,64 @@ interface ImageCropDialogProps {
   shape?: CropperShape;
 }
 
+type CropState = {
+  imageUrl: string | null;
+  crop: { x: number; y: number };
+  zoom: number;
+  rotation: number;
+  croppedAreaPixels: CropperAreaData | null;
+  isProcessing: boolean;
+};
+
+type CropAction =
+  | { type: "setImageUrl"; imageUrl: string | null }
+  | { type: "resetView" }
+  | { type: "setCrop"; crop: { x: number; y: number } }
+  | { type: "setZoom"; zoom: number }
+  | { type: "setRotation"; rotation: number }
+  | { type: "setCroppedAreaPixels"; croppedAreaPixels: CropperAreaData | null }
+  | { type: "setProcessing"; isProcessing: boolean }
+  | { type: "loadImage"; imageUrl: string };
+
+const initialCropState: CropState = {
+  imageUrl: null,
+  crop: { x: 0, y: 0 },
+  zoom: 1,
+  rotation: 0,
+  croppedAreaPixels: null,
+  isProcessing: false,
+};
+
+function cropReducer(state: CropState, action: CropAction): CropState {
+  switch (action.type) {
+    case "setImageUrl":
+      return { ...state, imageUrl: action.imageUrl };
+    case "resetView":
+      return { ...state, crop: { x: 0, y: 0 }, zoom: 1, rotation: 0 };
+    case "setCrop":
+      return { ...state, crop: action.crop };
+    case "setZoom":
+      return { ...state, zoom: action.zoom };
+    case "setRotation":
+      return { ...state, rotation: action.rotation };
+    case "setCroppedAreaPixels":
+      return { ...state, croppedAreaPixels: action.croppedAreaPixels };
+    case "setProcessing":
+      return { ...state, isProcessing: action.isProcessing };
+    case "loadImage":
+      return {
+        ...state,
+        imageUrl: action.imageUrl,
+        crop: { x: 0, y: 0 },
+        zoom: 1,
+        rotation: 0,
+        croppedAreaPixels: null,
+      };
+    default:
+      return state;
+  }
+}
+
 export const ImageCropDialog: FC<ImageCropDialogProps> = ({
   file,
   onConfirm,
@@ -110,49 +168,40 @@ export const ImageCropDialog: FC<ImageCropDialogProps> = ({
   aspectRatio = 1,
   shape = "rectangle",
 }) => {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [rotation, setRotation] = useState(0);
-  const [croppedAreaPixels, setCroppedAreaPixels] =
-    useState<CropperAreaData | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [
+    { imageUrl, crop, zoom, rotation, croppedAreaPixels, isProcessing },
+    dispatch,
+  ] = useReducer(cropReducer, initialCropState);
 
   const open = file !== null;
 
   useEffect(() => {
     if (!file) {
-      setImageUrl(null);
+      dispatch({ type: "setImageUrl", imageUrl: null });
       return;
     }
 
     const url = URL.createObjectURL(file);
-    setImageUrl(url);
-    setCrop({ x: 0, y: 0 });
-    setZoom(1);
-    setRotation(0);
-    setCroppedAreaPixels(null);
+    dispatch({ type: "loadImage", imageUrl: url });
 
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
   const handleCropComplete = useCallback(
     (_croppedArea: CropperAreaData, pixels: CropperAreaData) => {
-      setCroppedAreaPixels(pixels);
+      dispatch({ type: "setCroppedAreaPixels", croppedAreaPixels: pixels });
     },
     [],
   );
 
   const handleReset = useCallback(() => {
-    setCrop({ x: 0, y: 0 });
-    setZoom(1);
-    setRotation(0);
+    dispatch({ type: "resetView" });
   }, []);
 
   const handleConfirm = useCallback(async () => {
     if (!imageUrl || !croppedAreaPixels || !file) return;
 
-    setIsProcessing(true);
+    dispatch({ type: "setProcessing", isProcessing: true });
     try {
       const croppedFile = await getCroppedFile(
         imageUrl,
@@ -165,7 +214,7 @@ export const ImageCropDialog: FC<ImageCropDialogProps> = ({
     } catch {
       // silently ignore - caller will handle via mutation error
     } finally {
-      setIsProcessing(false);
+      dispatch({ type: "setProcessing", isProcessing: false });
     }
   }, [imageUrl, croppedAreaPixels, rotation, file, onConfirm]);
 
@@ -187,9 +236,15 @@ export const ImageCropDialog: FC<ImageCropDialogProps> = ({
               minZoom={1}
               maxZoom={5}
               objectFit="contain"
-              onCropChange={setCrop}
-              onZoomChange={setZoom}
-              onRotationChange={setRotation}
+              onCropChange={(value) =>
+                dispatch({ type: "setCrop", crop: value })
+              }
+              onZoomChange={(value) =>
+                dispatch({ type: "setZoom", zoom: value })
+              }
+              onRotationChange={(value) =>
+                dispatch({ type: "setRotation", rotation: value })
+              }
               onCropComplete={handleCropComplete}
             >
               <CropperImage src={imageUrl} alt="Imagen a recortar" />

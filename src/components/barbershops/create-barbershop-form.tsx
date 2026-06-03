@@ -25,7 +25,7 @@ import { useColombia } from "@/hooks/use-colombia";
 import type { barbershopFormSchema } from "@/lib/schemas";
 import { useLocationStore } from "@/store/barbershop-filters";
 
-export type CreateBarbershopFormData = {
+type CreateBarbershopFormData = {
   name: string;
   description?: string;
   address: string;
@@ -195,7 +195,7 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
                   }
                   className="grid grid-cols-2 gap-2"
                 >
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-2">
                     <RadioGroupItem
                       value="owner-barber"
                       id={formIds.ownerBarber}
@@ -207,7 +207,7 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
                       Dueño y barbero
                     </Label>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-2">
                     <RadioGroupItem value="owner-only" id={formIds.ownerOnly} />
                     <Label
                       htmlFor={formIds.ownerOnly}

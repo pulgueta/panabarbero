@@ -10,6 +10,8 @@ Bienvenido a PanaBarbero. Estos Términos de Servicio ("Términos") regulan el a
 
 PanaBarbero es un marketplace que conecta a usuarios con barberías locales, permitiendo a los usuarios buscar barberías y agendar servicios. Para las barberías, PanaBarbero ofrece una plataforma SaaS (Software como Servicio) que les permite gestionar su negocio y ofrecer sus servicios a los usuarios de la plataforma.
 
+**Servicios de ubicación.** La plataforma puede ofrecer funciones basadas en la ubicación para mostrarle barberías cercanas. El uso de la geolocalización de su dispositivo es opcional y requiere su autorización expresa a través de su navegador; usted siempre puede seleccionar su departamento y ciudad manualmente. Para resolver su ubicación aproximada utilizamos un servicio externo de geocodificación inversa. El tratamiento de los datos de ubicación se rige por nuestra Política de Privacidad.
+
 ## 3. Elegibilidad
 
 Para usar PanaBarbero, debe tener al menos 13 años de edad. Si es menor de 18 años, declara que cuenta con el consentimiento de su padre, madre o tutor legal para usar la plataforma. Nos reservamos el derecho de solicitar verificación de edad en cualquier momento.

@@ -16,22 +16,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatPhoneNumber(phone: string): string {
-  if (!phone) return "";
-
-  let formatted = phone.replace(/\s/g, "");
-
-  if (formatted.startsWith("+57")) {
-    formatted = formatted.slice(3);
-  }
-
-  if (formatted.startsWith("0")) {
-    formatted = formatted.slice(1);
-  }
-
-  return formatted;
-}
-
 const isProduction = process.env.NODE_ENV === "production";
 const baseUrl = isProduction
   ? "https://www.panabarbero.com"
@@ -54,7 +38,7 @@ export function getCanonicalUrl(path: string): string {
 /**
  * Generate OG image URL
  */
-export function getOgImageUrl(customImage?: string | null): string {
+function getOgImageUrl(customImage?: string | null): string {
   return customImage ?? `${env.VITE_STORAGE_URL}/panabarbero-og.png`;
 }
 
@@ -339,13 +323,23 @@ export function softwareApplicationStructuredData(): ScriptHTMLAttributes<HTMLSc
   };
 }
 
+const currencyFormatter = new Intl.NumberFormat("es-CO", {
+  style: "currency",
+  currency: "COP",
+  minimumFractionDigits: 0,
+  currencyDisplay: "code",
+});
+
+const usdFormatter = new Intl.NumberFormat("es-CO", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 0,
+  currencyDisplay: "code",
+});
+
 export function formatCurrency(amount: number, currency = "COP"): string {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
-    currencyDisplay: "code",
-  }).format(amount);
+  if (currency === "USD") return usdFormatter.format(amount);
+  return currencyFormatter.format(amount);
 }
 
 export function isAuthError(error: unknown) {
@@ -355,4 +349,103 @@ export function isAuthError(error: unknown) {
     "";
 
   return /auth/i.test(message);
+}
+
+const longDateFormatter = new Intl.DateTimeFormat("es-CO", {
+  day: "2-digit",
+  month: "long",
+  year: "numeric",
+});
+
+const dateTimeFormatter = new Intl.DateTimeFormat("es-CO", {
+  day: "2-digit",
+  month: "long",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+const shortMonthDayFormatter = new Intl.DateTimeFormat("es-CO", {
+  month: "long",
+  day: "numeric",
+});
+
+const timeFormatter = new Intl.DateTimeFormat("es-CO", {
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+const weekdayFormatter = new Intl.DateTimeFormat("es-CO", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
+
+/** Format a timestamp (or Date) as `02 de enero de 2024`. */
+export function formatLongDate(value: number | Date): string {
+  return longDateFormatter.format(
+    typeof value === "number" ? new Date(value) : value,
+  );
+}
+
+/** Format a timestamp (or Date) including time. */
+export function formatLongDateTime(value: number | Date): string {
+  return dateTimeFormatter.format(
+    typeof value === "number" ? new Date(value) : value,
+  );
+}
+
+/** Format a timestamp as `enero 2`. */
+export function formatShortMonthDay(value: number | Date): string {
+  return shortMonthDayFormatter.format(
+    typeof value === "number" ? new Date(value) : value,
+  );
+}
+
+/** Format a timestamp as `9:30 a. m.`. */
+export function formatTimeOfDay(value: number | Date): string {
+  return timeFormatter.format(
+    typeof value === "number" ? new Date(value) : value,
+  );
+}
+
+/** Format a timestamp as `lunes, 2 de enero`. */
+export function formatWeekdayDate(value: number | Date): string {
+  return weekdayFormatter.format(
+    typeof value === "number" ? new Date(value) : value,
+  );
+}
+
+/** Convert a timestamp to a Date with the same value. */
+export function toDate(
+  value: number | Date | undefined | null,
+): Date | undefined {
+  if (value == null) return undefined;
+  return typeof value === "number" ? new Date(value) : value;
+}
+
+/** Combine a date with a time-of-day in minutes. */
+export function dateWithTimeOfDay(
+  date: number | Date,
+  minutesOfDay: number,
+): Date {
+  const d = typeof date === "number" ? new Date(date) : new Date(date);
+  const hours = Math.floor(minutesOfDay / 60);
+  const minutes = minutesOfDay % 60;
+  d.setHours(hours, minutes, 0, 0);
+  return d;
+}
+
+/** Set the time of a date to midnight (start of day). */
+export function startOfDay(date: number | Date): Date {
+  const d = typeof date === "number" ? new Date(date) : new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/** Set the time of a date to end of day. */
+export function endOfDay(date: number | Date): Date {
+  const d = typeof date === "number" ? new Date(date) : new Date(date);
+  d.setHours(23, 59, 59, 999);
+  return d;
 }

@@ -52,7 +52,15 @@ import {
   validateAppointmentTime,
 } from "@/lib/schedule-utils";
 import { appointmentFormSchema } from "@/lib/schemas";
-import { cn, formatCurrency } from "@/lib/utils";
+import {
+  cn,
+  dateWithTimeOfDay,
+  formatCurrency,
+  formatLongDate,
+  formatLongDateTime,
+  startOfDay,
+  toDate,
+} from "@/lib/utils";
 import { setServiceStore, useServicesStore } from "@/store/services";
 import { TimeSlotPicker } from "./time-slot-picker";
 
@@ -168,16 +176,20 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
 
   const canShowSlots = !!(watchedDate && watchedBarber && effectiveServiceId);
   const normalizedDate = watchedDate
-    ? new Date(watchedDate).setHours(0, 0, 0, 0)
+    ? startOfDay(watchedDate).getTime()
     : undefined;
 
   const effectiveService = services.find((s) => s._id === effectiveServiceId);
 
-  // Reset slot when barber or service changes
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional reset
-  useEffect(() => {
+  // Reset the chosen slot when the barber or service changes. Done as a
+  // render-phase adjustment (not an effect) so there's no extra render showing
+  // the stale slot against the new barber/service.
+  const slotKey = `${watchedBarber ?? ""}|${effectiveServiceId ?? ""}`;
+  const [prevSlotKey, setPrevSlotKey] = useState(slotKey);
+  if (slotKey !== prevSlotKey) {
+    setPrevSlotKey(slotKey);
     setSelectedSlotTime(undefined);
-  }, [watchedBarber, effectiveServiceId]);
+  }
 
   const onSubmit = form.handleSubmit(async (formData) => {
     const schedule = scheduleForDate(formData.date);
@@ -265,16 +277,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
     availableBarbers?.find((b) => b?._id === watchedBarber)?.name ?? null;
 
   const appointmentDateTimeLabel =
-    watchedDate !== undefined
-      ? new Date(watchedDate).toLocaleString("es-CO", {
-          weekday: "long",
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : null;
+    watchedDate !== undefined ? formatLongDateTime(watchedDate) : null;
 
   const timeRangeLabel =
     selectedSlotTime && effectiveService
@@ -293,7 +296,12 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
   const pendingLabel = "Pendiente";
 
   return (
-    <form id={formIds.form} onSubmit={onSubmit} className="space-y-6">
+    <form
+      id={formIds.form}
+      onSubmit={onSubmit}
+      className="space-y-6"
+      suppressHydrationWarning
+    >
       {/* Hidden fields for pre-filled customer data */}
       <Controller
         name="customerName"
@@ -591,7 +599,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
             name="date"
             control={form.control}
             render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
+              <Field data-invalid={fieldState.invalid} suppressHydrationWarning>
                 <FieldLabel htmlFor={formIds.date}>Día</FieldLabel>
                 <Popover>
                   <PopoverTrigger
@@ -605,15 +613,8 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                         )}
                       >
                         {field.value ? (
-                          <span className="text-sm">
-                            {new Date(field.value as number).toLocaleDateString(
-                              "es-CO",
-                              {
-                                day: "2-digit",
-                                month: "long",
-                                year: "numeric",
-                              },
-                            )}
+                          <span className="text-sm" suppressHydrationWarning>
+                            {formatLongDate(field.value as number)}
                           </span>
                         ) : (
                           <span className="text-sm">Selecciona una fecha</span>
@@ -622,22 +623,21 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                       </Button>
                     }
                   />
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent
+                    className="w-auto p-0"
+                    align="start"
+                    suppressHydrationWarning
+                  >
                     <Calendar
                       mode="single"
-                      selected={
-                        field.value
-                          ? new Date(field.value as number)
-                          : undefined
-                      }
+                      selected={toDate(field.value as number | undefined)}
                       onSelect={(date) => {
                         if (!date) {
                           field.onChange(undefined);
                           setSelectedSlotTime(undefined);
                           return;
                         }
-                        const combined = new Date(date);
-                        combined.setHours(0, 0, 0, 0);
+                        const combined = startOfDay(date);
                         startTransition(() => {
                           field.onChange(combined.getTime());
                           setSelectedSlotTime(undefined);
@@ -686,10 +686,10 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                   isPending={isPending}
                   onChange={(slotTime, slotMinutes) => {
                     setSelectedSlotTime(slotTime);
-                    const dateObj = new Date(normalizedDate);
-                    const hours = Math.floor(slotMinutes / 60);
-                    const minutes = slotMinutes % 60;
-                    dateObj.setHours(hours, minutes, 0, 0);
+                    const dateObj = dateWithTimeOfDay(
+                      normalizedDate ?? Date.now(),
+                      slotMinutes,
+                    );
                     form.setValue("date", dateObj.getTime(), {
                       shouldValidate: true,
                     });
@@ -800,6 +800,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                     ? "font-medium text-foreground"
                     : "text-muted-foreground",
                 )}
+                suppressHydrationWarning
               >
                 {appointmentDateTimeLabel ?? pendingLabel}
               </p>

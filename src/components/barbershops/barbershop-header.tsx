@@ -66,7 +66,7 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
 
         <div className="w-full space-y-1">
           <h1
-            className="text-balance font-bold text-3xl tracking-tight"
+            className="text-balance font-semibold text-3xl tracking-tight"
             style={{ viewTransitionName: `barbershop-${barbershop?.uuid}` }}
           >
             {barbershop?.name}
@@ -156,8 +156,11 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
                     <p className="text-muted-foreground text-xs italic">
                       (*): No disponible durante:{" "}
                       {availability
-                        .filter((day) => day.lunchStart && day.lunchEnd)
-                        .map((day) => `${day.lunchStart} – ${day.lunchEnd}`)
+                        .flatMap((day) =>
+                          day.lunchStart && day.lunchEnd
+                            ? [`${day.lunchStart} – ${day.lunchEnd}`]
+                            : [],
+                        )
                         .find(() => true)}
                     </p>
                   )}

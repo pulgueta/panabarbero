@@ -6,6 +6,7 @@ type LabelProps = ComponentProps<"label">;
 
 export const Label: FC<LabelProps> = ({ className, ...props }) => (
   // biome-ignore lint/a11y/noLabelWithoutControl: required by the component
+  // eslint-disable-next-line jsx-a11y/label-has-associated-control
   <label
     data-slot="label"
     className={cn(

@@ -2,6 +2,11 @@ import type { Barbershop } from "@convex/schema";
 
 import { getDayKeyForDate } from "@/lib/schedule-utils";
 
+const timeFormatter = new Intl.DateTimeFormat("es-CO", {
+  hour: "numeric",
+  minute: "2-digit",
+});
+
 export function useSchedule(availability: Barbershop["availability"] | null) {
   const formatTimeLabel = (time?: string | null) => {
     if (!time) return null;
@@ -14,10 +19,7 @@ export function useSchedule(availability: Barbershop["availability"] | null) {
 
     date.setHours(hours, minutes, 0, 0);
 
-    return new Intl.DateTimeFormat("es-CO", {
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(date);
+    return timeFormatter.format(date);
   };
 
   const todaySchedule = (() => {

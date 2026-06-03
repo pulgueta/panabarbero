@@ -1,13 +1,6 @@
 import { CheckIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { Command as CommandPrimitive } from "cmdk";
-import type { ComponentProps, ReactNode } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import type { ComponentProps } from "react";
 import { InputGroup, InputGroupAddon } from "@/components/ui/input-group";
 import { cn } from "@/lib/utils";
 
@@ -24,39 +17,6 @@ function Command({
       )}
       {...props}
     />
-  );
-}
-
-function CommandDialog({
-  title = "Command Palette",
-  description = "Search for a command to run...",
-  children,
-  className,
-  showCloseButton = false,
-  ...props
-}: Omit<ComponentProps<typeof Dialog>, "children"> & {
-  title?: string;
-  description?: string;
-  className?: string;
-  showCloseButton?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <Dialog {...props}>
-      <DialogHeader className="sr-only">
-        <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
-      </DialogHeader>
-      <DialogContent
-        className={cn(
-          "top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0",
-          className,
-        )}
-        showCloseButton={showCloseButton}
-      >
-        {children}
-      </DialogContent>
-    </Dialog>
   );
 }
 
@@ -128,19 +88,6 @@ function CommandGroup({
   );
 }
 
-function CommandSeparator({
-  className,
-  ...props
-}: ComponentProps<typeof CommandPrimitive.Separator>) {
-  return (
-    <CommandPrimitive.Separator
-      data-slot="command-separator"
-      className={cn("-mx-1 h-px w-auto bg-border", className)}
-      {...props}
-    />
-  );
-}
-
 function CommandItem({
   className,
   children,
@@ -161,27 +108,11 @@ function CommandItem({
   );
 }
 
-function CommandShortcut({ className, ...props }: ComponentProps<"span">) {
-  return (
-    <span
-      data-slot="command-shortcut"
-      className={cn(
-        "ml-auto text-muted-foreground text-xs tracking-widest group-data-selected/command-item:text-foreground",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
 export {
   Command,
-  CommandDialog,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
-  CommandSeparator,
-  CommandShortcut,
 };

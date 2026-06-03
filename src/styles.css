@@ -36,6 +36,8 @@
     --warning-foreground: oklch(0.145 0 0);
     --success: oklch(31.8% 0.0792 140.7);
     --success-foreground: oklch(0.7933 0.2287 140.68);
+    --info: oklch(0.7 0.15 230);
+    --info-foreground: oklch(0.985 0 0);
     --destructive: oklch(0.704 0.191 22.216);
     --destructive-foreground: oklch(0.985 0 0);
     --border: oklch(1 0 0 / 10%);
@@ -91,6 +93,8 @@ code {
   --warning-foreground: oklch(1 0 0);
   --success: oklch(93.3% 0.078 140.7);
   --success-foreground: oklch(53.9% 0.1521 140.7);
+  --info: oklch(0.6 0.17 230);
+  --info-foreground: oklch(0.985 0 0);
   --destructive: oklch(59.8% 0.198 25.52);
   --destructive-foreground: oklch(98.3% 0.0083 25.52);
   --border: oklch(0.92 0.004 286.32);
@@ -130,6 +134,8 @@ code {
   --warning-foreground: oklch(0.145 0 0);
   --success: oklch(31.8% 0.0792 140.7);
   --success-foreground: oklch(0.7933 0.2287 140.68);
+  --info: oklch(0.7 0.15 230);
+  --info-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(1 0 0 / 10%);
@@ -170,6 +176,8 @@ code {
   --color-warning-foreground: var(--warning-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -197,9 +205,27 @@ code {
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
   }
   body {
     @apply bg-background text-foreground;
+  }
+  .maplibregl-popup-content {
+    @apply bg-transparent! shadow-none! p-0! rounded-none!;
+  }
+  .maplibregl-popup-tip {
+    @apply hidden!;
+  }
+  ::-webkit-scrollbar {
+    width: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 5px;
   }
 }
 
@@ -348,5 +374,16 @@ html:active-view-transition-type(warp) {
     opacity: 1;
     filter: blur(0) brightness(1);
     transform: scale(1) rotate(0deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
   }
 }

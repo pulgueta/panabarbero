@@ -1,11 +1,11 @@
-import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import type { Barbershop } from "@convex/schema";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 
 import type { BarbershopSearch } from "@/routes/barbershops";
 
-export type BarbershopAvailabilityPayload = {
+type BarbershopAvailabilityPayload = {
   barbershopId: Barbershop["_id"];
   date: number;
 };
@@ -24,9 +24,7 @@ export function barbershopByUuidQueryOptions(uuid: string) {
   return convexQuery(api.barbershops.getByUuid, { uuid });
 }
 
-export function barbershopsByIdsQueryOptions(
-  barbershopIds: Barbershop["_id"][],
-) {
+function barbershopsByIdsQueryOptions(barbershopIds: Barbershop["_id"][]) {
   return convexQuery(api.barbershops.getByIds, {
     barbershopIds: barbershopIds.map((id) => ({ id })),
   });
@@ -38,10 +36,6 @@ export function barbershopAvailabilityQueryOptions(
   return convexQuery(api.barbershops.getAvailability, {
     id: barbershopId,
   });
-}
-
-export function searchBarbershopsByNameQueryOptions(name?: string) {
-  return convexQuery(api.barbershops.getByName, { name });
 }
 
 export function barbershopByOwnerIdQueryOptions(ownerId: string) {
@@ -64,10 +58,6 @@ export function useActiveBarbershops(
 
 export function useBarbershopsByIds(barbershopIds: Barbershop["_id"][]) {
   return useSuspenseQuery(barbershopsByIdsQueryOptions(barbershopIds));
-}
-
-export function useSearchBarbershopsByName(name: string) {
-  return useSuspenseQuery(searchBarbershopsByNameQueryOptions(name));
 }
 
 export function useBarbershopByOwnerId(ownerId: string) {
