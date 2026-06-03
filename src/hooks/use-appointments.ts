@@ -1,12 +1,8 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
-import type {
-  Appointment,
-  Barbershop,
-  BarbershopMember,
-  Service,
-} from "@convex/schema";
+import type { Barbershop, BarbershopMember, Service } from "@convex/schema";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 
 import type { WeekdayKey } from "@/lib/schedule-utils";
 import {
@@ -15,16 +11,6 @@ import {
   parseTimeToMinutes,
 } from "@/lib/schedule-utils";
 import { useBarbershopAvailability } from "./barbershop/use-barbershop";
-
-export function appointmentByIdQueryOptions(appointmentId: Appointment["_id"]) {
-  return convexQuery(api.appointments.getById, {
-    id: appointmentId,
-  });
-}
-
-export function createAppointmentMutationOptions() {
-  return useConvexMutation(api.appointments.create);
-}
 
 export function appointmentsByUserQueryOptions(
   userId: string,
@@ -62,10 +48,6 @@ export function useRescheduledAppointmentRequests(
   return useSuspenseQuery(requestRescheduleQueryOptions(barbershopId));
 }
 
-export function useAppointmentById(id: Appointment["_id"]) {
-  return useSuspenseQuery(appointmentByIdQueryOptions(id));
-}
-
 export function useAppointmentsByUser(
   userId: string,
   cursor: string | null = null,
@@ -84,15 +66,7 @@ export function useVisitedBarbershops(userId: string | undefined) {
   return useSuspenseQuery(userVisitedBarbershopsQueryOptions(userId));
 }
 
-export function appointmentFormMetadataQueryOptions(
-  barbershopId: Barbershop["_id"],
-) {
-  return convexQuery(api.barbershops.getAvailability, {
-    id: barbershopId,
-  });
-}
-
-export function availableSlotsQueryOptions(opts: {
+function availableSlotsQueryOptions(opts: {
   barbershopId: Barbershop["_id"];
   barbershopMemberId: BarbershopMember["_id"];
   serviceId: Service["_id"];
@@ -114,27 +88,29 @@ export function useAppointmentFormMetadata(barbershopId: Barbershop["_id"]) {
   const { data: availability } = useBarbershopAvailability(barbershopId);
 
   const activeDays = new Set(
-    availability
-      ?.filter((d) => d.weekDay?.isActive)
-      .map((d) => {
-        const key = d.weekDay.day as WeekdayKey;
-        const dayIndexes: Record<WeekdayKey, number> = {
-          sunday: 0,
-          monday: 1,
-          tuesday: 2,
-          wednesday: 3,
-          thursday: 4,
-          friday: 5,
-          saturday: 6,
-        };
-        return dayIndexes[key];
-      }) ?? [],
+    availability?.flatMap((d) => {
+      if (!d.weekDay?.isActive) return [];
+      const key = d.weekDay.day as WeekdayKey;
+      const dayIndexes: Record<WeekdayKey, number> = {
+        sunday: 0,
+        monday: 1,
+        tuesday: 2,
+        wednesday: 3,
+        thursday: 4,
+        friday: 5,
+        saturday: 6,
+      };
+      return [dayIndexes[key]];
+    }) ?? [],
   );
 
-  const disableDay = (day: Date): boolean => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
 
+  const disableDay = (day: Date): boolean => {
     const currentDay = new Date(day);
     currentDay.setHours(0, 0, 0, 0);
 
@@ -163,7 +139,7 @@ export function useAppointmentFormMetadata(barbershopId: Barbershop["_id"]) {
 
 export function useAppointmentActions() {
   const createAppointment = useMutation({
-    mutationFn: createAppointmentMutationOptions(),
+    mutationFn: useConvexMutation(api.appointments.create),
   });
   const setStatusMutation = useMutation({
     mutationFn: useConvexMutation(
