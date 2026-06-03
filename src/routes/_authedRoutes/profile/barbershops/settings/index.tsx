@@ -87,6 +87,9 @@ export const Route = createFileRoute(
 )({
   component: SettingsPage,
   pendingComponent: LoadingComponent,
+  ssr: "data-only",
+  staleTime: cacheTime.high,
+  gcTime: cacheTime.extreme,
   loader: async (opts) => {
     const user = await opts.context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
@@ -126,9 +129,6 @@ export const Route = createFileRoute(
       }
     }
   },
-  ssr: "data-only",
-  staleTime: cacheTime.high,
-  gcTime: cacheTime.extreme,
 });
 
 function SettingsPage() {
@@ -214,7 +214,7 @@ function SettingsPage() {
           <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <section className="space-y-2">
               <header>
-                <h2 className="font-bold text-xl tracking-tight">
+                <h2 className="font-semibold text-xl tracking-tight">
                   Logo de la barbería
                 </h2>
                 <p className="text-muted-foreground text-sm">
@@ -232,7 +232,7 @@ function SettingsPage() {
 
             <section className="space-y-4">
               <div>
-                <h2 className="font-bold text-xl tracking-tight">Tu rol</h2>
+                <h2 className="font-semibold text-xl tracking-tight">Tu rol</h2>
                 <p className="text-muted-foreground text-sm">
                   Decide si atiendes clientes como barbero o solo administras la
                   barbería.
@@ -253,7 +253,7 @@ function SettingsPage() {
           <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <header>
-                <h2 className="font-bold text-xl tracking-tight">
+                <h2 className="font-semibold text-xl tracking-tight">
                   Información general
                 </h2>
                 <p className="text-muted-foreground text-sm">
@@ -268,7 +268,9 @@ function SettingsPage() {
 
             <div className="space-y-2">
               <header>
-                <h2 className="font-bold text-xl tracking-tight">Dirección</h2>
+                <h2 className="font-semibold text-xl tracking-tight">
+                  Dirección
+                </h2>
                 <p className="text-muted-foreground text-sm">
                   Dirección, ciudad y departamento.
                 </p>
@@ -284,7 +286,7 @@ function SettingsPage() {
 
           <section className="space-y-4">
             <div>
-              <h2 className="font-bold text-xl tracking-tight">Contacto</h2>
+              <h2 className="font-semibold text-xl tracking-tight">Contacto</h2>
               <p className="text-muted-foreground text-sm">
                 Formas de contacto para tus clientes.
               </p>
@@ -300,7 +302,7 @@ function SettingsPage() {
 
           {/* <section className="space-y-4">
             <div>
-              <h2 className="font-bold text-xl tracking-tight">Medios</h2>
+              <h2 className="font-semibold text-xl tracking-tight">Medios</h2>
               <p className="text-muted-foreground text-sm">
                 Imagen de banner y sitio web.
               </p>
@@ -313,7 +315,7 @@ function SettingsPage() {
 
           {/* <section className="space-y-4">
             <div>
-              <h2 className="font-bold text-xl tracking-tight">
+              <h2 className="font-semibold text-xl tracking-tight">
                 Ubicación geográfica
               </h2>
               <p className="text-muted-foreground text-sm">
@@ -329,7 +331,7 @@ function SettingsPage() {
           <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <section className="min-h-44 w-full space-y-4">
               <div>
-                <h2 className="font-bold text-xl tracking-tight">
+                <h2 className="font-semibold text-xl tracking-tight">
                   Preferencias
                 </h2>
                 <p className="text-muted-foreground text-sm">
@@ -344,7 +346,7 @@ function SettingsPage() {
 
             {/* <section className="flex min-h-44 w-full flex-col justify-between gap-4">
               <div>
-                <h2 className="font-bold text-xl tracking-tight">
+                <h2 className="font-semibold text-xl tracking-tight">
                   Redes sociales
                 </h2>
                 <p className="text-muted-foreground text-sm">
@@ -400,7 +402,9 @@ function SettingsPage() {
       {rolesData?.isOwner && (
         <section className="space-y-4">
           <div>
-            <h2 className="font-bold text-xl tracking-tight">Disponibilidad</h2>
+            <h2 className="font-semibold text-xl tracking-tight">
+              Disponibilidad
+            </h2>
             <p className="text-muted-foreground text-sm">
               Define los días y horas en los que tu barbería atiende.
             </p>

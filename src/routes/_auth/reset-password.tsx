@@ -20,12 +20,12 @@ export const Route = createFileRoute("/_auth/reset-password")({
   loaderDeps: ({ search }) => ({
     token: search.token,
   }),
+  ssr: "data-only",
   loader: ({ deps }) => {
     if (!deps.token) {
       throw redirect({ to: "/login" });
     }
   },
-  ssr: "data-only",
 });
 
 function ResetPasswordPage() {

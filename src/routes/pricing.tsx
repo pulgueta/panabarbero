@@ -19,6 +19,13 @@ const PricingCards = lazy(() =>
 export const Route = createFileRoute("/pricing")({
   component: PricingPage,
   pendingComponent: LoadingComponent,
+  ssr: "data-only",
+  loader: async ({ context }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(getPricingPlansQueryOptions()),
+      context.queryClient.ensureQueryData(getSubscriptionQueryOptions()),
+    ]);
+  },
   head: () => ({
     meta: seo({
       title: "Planes de PanaBarbero - Precios y características",
@@ -28,21 +35,14 @@ export const Route = createFileRoute("/pricing")({
     }),
     links: [{ rel: "canonical", href: getCanonicalUrl("/pricing") }],
   }),
-  loader: async ({ context }) => {
-    await Promise.all([
-      context.queryClient.ensureQueryData(getPricingPlansQueryOptions()),
-      context.queryClient.ensureQueryData(getSubscriptionQueryOptions()),
-    ]);
-  },
   wrapInSuspense: true,
-  ssr: "data-only",
 });
 
 function PricingPage() {
   return (
     <BorderContainer>
       <header className="flex flex-col items-center gap-1 text-center">
-        <h1 className="text-balance font-bold text-3xl tracking-tight md:text-4xl">
+        <h1 className="text-balance font-semibold text-3xl tracking-tight md:text-4xl">
           Haz crecer tu barbería
         </h1>
         <p className="max-w-prose text-pretty text-center text-muted-foreground">

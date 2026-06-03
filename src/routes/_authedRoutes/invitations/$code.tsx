@@ -19,6 +19,7 @@ import { getConvexErrorMessage } from "@/lib/convex-errors";
 export const Route = createFileRoute("/_authedRoutes/invitations/$code")({
   pendingComponent: LoadingComponent,
   component: InvitationPage,
+  ssr: "data-only",
   loader: async ({ context, params }) => {
     const user = await context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
@@ -38,7 +39,6 @@ export const Route = createFileRoute("/_authedRoutes/invitations/$code")({
       }
     }
   },
-  ssr: "data-only",
 });
 
 function InvitationPage() {
@@ -124,7 +124,7 @@ function InvitationPage() {
   const isDisabled = statusLabel !== "pending" || isAnsweringInvitation;
 
   return (
-    <BorderContainer className="flex flex-col items-center justify-center space-y-4">
+    <BorderContainer className="flex flex-col items-center justify-center gap-y-4">
       <Card className="w-full max-w-xl px-6">
         <div className="space-y-1">
           <header className="flex items-center justify-between gap-2">

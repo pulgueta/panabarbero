@@ -48,6 +48,9 @@ export const Route = createFileRoute(
 )({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
+  ssr: "data-only",
+  staleTime: cacheTime.high,
+  gcTime: cacheTime.extreme,
   loader: async (opts) => {
     const user = await opts.context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
@@ -82,9 +85,6 @@ export const Route = createFileRoute(
       }
     }
   },
-  ssr: "data-only",
-  staleTime: cacheTime.high,
-  gcTime: cacheTime.extreme,
 });
 
 function RouteComponent() {

@@ -65,23 +65,24 @@ const BarberTeamSection = lazy(() =>
 export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
+  ssr: true,
+  staleTime: cacheTime.low,
+  gcTime: cacheTime.medium,
   loader: async ({ context, params }) => {
-    const user = await context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
-
-    const barbershop = await context.queryClient.ensureQueryData(
-      barbershopByUuidQueryOptions(params.barbershopUuid),
-    );
+    const [user, barbershop] = await Promise.all([
+      context.queryClient.ensureQueryData(getSessionQueryOptions()),
+      context.queryClient.ensureQueryData(
+        barbershopByUuidQueryOptions(params.barbershopUuid),
+      ),
+    ]);
 
     if (user?.userId) {
-      await context.queryClient.ensureQueryData(
-        profileQueryOptions(user.userId),
-      );
-
-      await context.queryClient.ensureQueryData(
-        barberByUserIdQueryOptions(user.userId),
-      );
+      await Promise.all([
+        context.queryClient.ensureQueryData(profileQueryOptions(user.userId)),
+        context.queryClient.ensureQueryData(
+          barberByUserIdQueryOptions(user.userId),
+        ),
+      ]);
     }
 
     if (barbershop?._id) {
@@ -140,9 +141,6 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
       ],
     };
   },
-  ssr: true,
-  staleTime: cacheTime.low,
-  gcTime: cacheTime.medium,
 });
 
 function RouteComponent() {

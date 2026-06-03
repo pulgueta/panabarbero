@@ -141,6 +141,9 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
   component: ProfilePage,
   pendingComponent: LoadingComponent,
   validateSearch: searchSchema,
+  ssr: "data-only",
+  staleTime: cacheTime.high,
+  gcTime: cacheTime.extreme,
   loader: async ({ context }) => {
     const user = await context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
@@ -197,9 +200,6 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
       }
     }
   },
-  ssr: "data-only",
-  staleTime: cacheTime.high,
-  gcTime: cacheTime.extreme,
 });
 
 function ProfilePage() {

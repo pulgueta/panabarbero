@@ -8,6 +8,12 @@ import { getCanonicalUrl, seo } from "@/lib/utils";
 import { renderMarkdown } from "@/utils/markdown";
 
 export const Route = createFileRoute("/privacy-policy")({
+  ssr: true,
+  loader: async () => {
+    const markup = await renderMarkdown(privacyContent);
+
+    return { markup };
+  },
   head: () => ({
     meta: seo({
       title: "Política de Privacidad - PanaBarbero",
@@ -17,14 +23,8 @@ export const Route = createFileRoute("/privacy-policy")({
     }),
     links: [{ rel: "canonical", href: getCanonicalUrl("/privacy-policy") }],
   }),
-  loader: async () => {
-    const markup = await renderMarkdown(privacyContent);
-
-    return { markup };
-  },
   pendingComponent: LoadingComponent,
   component: PrivacyPolicyPage,
-  ssr: true,
   headers: () => ({
     "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
   }),

@@ -1,6 +1,6 @@
 import { CheckCircleIcon, XCircleIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useReducer } from "react";
 
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
@@ -26,53 +26,68 @@ export const Route = createFileRoute("/_auth/verify-email")({
   loaderDeps: ({ search }) => ({
     token: search.token,
   }),
+  ssr: "data-only",
   loader: ({ deps }) => {
     if (!deps.token) {
       throw redirect({ to: "/login" });
     }
   },
-  ssr: "data-only",
 });
 
 type VerificationStatus = "verifying" | "success" | "error";
+type State = { status: VerificationStatus; errorMessage: string };
+type Action = { type: "success" } | { type: "error"; message: string };
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case "success":
+      return { status: "success", errorMessage: "" };
+    case "error":
+      return { status: "error", errorMessage: action.message };
+    default:
+      return state;
+  }
+}
 
 function VerifyEmailPage() {
   const { token } = Route.useSearch();
-  const [status, setStatus] = useState<VerificationStatus>("verifying");
-  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [{ status, errorMessage }, dispatch] = useReducer(reducer, {
+    status: "verifying",
+    errorMessage: "",
+  });
 
   useEffect(() => {
-    let isMounted = true;
+    if (!token) return;
+
+    const abortController = new AbortController();
 
     const runVerification = async () => {
-      if (!token) {
-        return;
+      try {
+        const { error } = await verifyEmail({
+          query: { token },
+          fetchOptions: { signal: abortController.signal },
+        });
+
+        if (error?.code) {
+          dispatch({
+            type: "error",
+            message:
+              translateBetterAuthError(error.code) ??
+              "No pudimos verificar tu correo electrónico.",
+          });
+          return;
+        }
+
+        dispatch({ type: "success" });
+      } catch {
+        // Aborted requests reject — ignore them.
       }
-
-      const { error } = await verifyEmail({
-        query: { token },
-      });
-
-      if (!isMounted) {
-        return;
-      }
-
-      if (error?.code) {
-        setStatus("error");
-        setErrorMessage(
-          translateBetterAuthError(error.code) ??
-            "No pudimos verificar tu correo electrónico.",
-        );
-        return;
-      }
-
-      setStatus("success");
     };
 
     void runVerification();
 
     return () => {
-      isMounted = false;
+      abortController.abort();
     };
   }, [token]);
 
@@ -110,7 +125,7 @@ function VerifyEmailPage() {
               {status === "verifying" && (
                 <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
                   <Spinner />
-                  Verificando tu correo...
+                  Verificando tu correo…
                 </div>
               )}
 

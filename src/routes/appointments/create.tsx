@@ -31,6 +31,21 @@ const BarbershopListCard = lazy(() =>
 export const Route = createFileRoute("/appointments/create")({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
+  ssr: false,
+  loader: async (ctx) => {
+    const [user] = await Promise.all([
+      ctx.context.queryClient.ensureQueryData(getSessionQueryOptions()),
+      ctx.context.queryClient.ensureQueryData(
+        searchBarbershopsByNameQueryOptions(),
+      ),
+    ]);
+
+    if (user?.userId) {
+      await ctx.context.queryClient.ensureQueryData(
+        userVisitedBarbershopsQueryOptions(user.userId),
+      );
+    }
+  },
   head: () => ({
     meta: seo({
       title: "Agendar Cita - PanaBarbero",
@@ -42,24 +57,6 @@ export const Route = createFileRoute("/appointments/create")({
       { rel: "canonical", href: getCanonicalUrl("/appointments/create") },
     ],
   }),
-  loader: async (ctx) => {
-    const user = await ctx.context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
-
-    if (user?.userId) {
-      await Promise.all([
-        ctx.context.queryClient.ensureQueryData(
-          userVisitedBarbershopsQueryOptions(user.userId),
-        ),
-      ]);
-    }
-
-    await ctx.context.queryClient.ensureQueryData(
-      searchBarbershopsByNameQueryOptions(),
-    );
-  },
-  ssr: false,
 });
 
 function RouteComponent() {
@@ -79,7 +76,7 @@ function RouteComponent() {
     <BorderContainer>
       <div className="flex flex-col gap-2">
         <h1
-          className="text-balance font-bold text-xl tracking-tight"
+          className="text-balance font-semibold text-xl tracking-tight"
           style={{
             viewTransitionName: "barbershops",
           }}
@@ -131,7 +128,7 @@ function RouteComponent() {
       </div>
 
       <div className="flex w-full flex-col gap-2">
-        <h1 className="font-bold text-xl">Buscar barbería:</h1>
+        <h1 className="font-semibold text-xl">Buscar barbería:</h1>
         <div className="mb-4 w-full">
           <InputGroup className="w-full max-w-xl">
             <InputGroupInput

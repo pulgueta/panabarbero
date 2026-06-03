@@ -59,6 +59,30 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/barbershops/")({
   validateSearch: searchSchema,
   loaderDeps: ({ search }) => toCompleteLocation(search),
+  ssr: "data-only",
+  loader: async (opts) => {
+    const user = await opts.context.queryClient.ensureQueryData(
+      getSessionQueryOptions(),
+    );
+
+    const barbershops = await opts.context.queryClient.ensureQueryData(
+      activeBarbershopsQueryOptions({
+        city: opts.deps.city,
+        state: opts.deps.state,
+        userId: user?.userId ?? undefined,
+      }),
+    );
+
+    if (barbershops.length) {
+      await Promise.all(
+        barbershops.map((barbershop) =>
+          opts.context.queryClient.ensureQueryData(
+            barbershopMetadataQueryOptions(barbershop._id),
+          ),
+        ),
+      );
+    }
+  },
   head: () => {
     const persisted = useLocationStore.getState();
 
@@ -82,32 +106,8 @@ export const Route = createFileRoute("/barbershops/")({
       ],
     };
   },
-  loader: async (opts) => {
-    const user = await opts.context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
-
-    const barbershops = await opts.context.queryClient.ensureQueryData(
-      activeBarbershopsQueryOptions({
-        city: opts.deps.city,
-        state: opts.deps.state,
-        userId: user?.userId ?? undefined,
-      }),
-    );
-
-    if (barbershops.length) {
-      await Promise.all(
-        barbershops.map(async (barbershop) => {
-          await opts.context.queryClient.ensureQueryData(
-            barbershopMetadataQueryOptions(barbershop._id),
-          );
-        }),
-      );
-    }
-  },
   component: BarbershopsPage,
   pendingComponent: LoadingComponent,
-  ssr: "data-only",
 });
 
 function BarbershopsPage() {
@@ -129,7 +129,7 @@ function BarbershopsPage() {
       <header className="flex flex-col items-center justify-between gap-2.5 pt-4 pb-2">
         <section className="w-full space-y-4">
           <h1
-            className="text-balance text-center font-bold text-2xl tracking-tight md:text-3xl"
+            className="text-balance text-center font-semibold text-2xl tracking-tight md:text-3xl"
             style={{
               viewTransitionName: "barbershops",
             }}

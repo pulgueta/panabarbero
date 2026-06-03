@@ -43,6 +43,17 @@ type RouterContext = {
 };
 
 export const Route = createRootRouteWithContext<RouterContext>()({
+  beforeLoad: async ({ context }) => {
+    const token = await getAuth();
+
+    if (token) {
+      context.convexQueryClient.serverHttpClient?.setAuth(token);
+    }
+
+    return {
+      token,
+    };
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -64,17 +75,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     ],
     scripts: [websiteStructuredData()],
   }),
-  beforeLoad: async ({ context }) => {
-    const token = await getAuth();
-
-    if (token) {
-      context.convexQueryClient.serverHttpClient?.setAuth(token);
-    }
-
-    return {
-      token,
-    };
-  },
   shellComponent: () => <RootComponent />,
   errorComponent: (props) => (
     <RootDocument>
