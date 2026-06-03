@@ -1,3 +1,4 @@
+import agent from "@convex-dev/agent/convex.config";
 import aggregate from "@convex-dev/aggregate/convex.config";
 import betterAuth from "@convex-dev/better-auth/convex.config";
 import migrations from "@convex-dev/migrations/convex.config";
@@ -16,6 +17,7 @@ app.use(resend);
 app.use(r2);
 app.use(migrations);
 app.use(polar);
+app.use(agent);
 app.use(aggregate, { name: "aggregateCompletedAppointments" });
 app.use(aggregate, { name: "aggregateSmsSent" });
 app.use(aggregate, { name: "aggregateEmailsSent" });

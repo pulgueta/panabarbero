@@ -181,6 +181,30 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     period: MINUTE,
     capacity: 5,
   },
+  aiSendMessage: {
+    kind: "fixed window",
+    period: 5 * 1000,
+    rate: 1,
+    capacity: 3,
+  },
+  aiSendMessageAnon: {
+    kind: "fixed window",
+    period: 15 * 1000,
+    rate: 1,
+    capacity: 1,
+  },
+  aiTokenUsage: {
+    kind: "token bucket",
+    period: MINUTE,
+    rate: 5_000,
+    capacity: 20_000,
+  },
+  aiTokenUsageAnon: {
+    kind: "token bucket",
+    period: MINUTE,
+    rate: 2_000,
+    capacity: 6_000,
+  },
 });
 
 type RateLimitName = keyof NonNullable<typeof rateLimiter.limits>;
