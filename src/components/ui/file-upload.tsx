@@ -24,7 +24,7 @@ import type {
 import {
   createContext,
   useCallback,
-  useContext,
+  use,
   useEffect,
   useId,
   useMemo,
@@ -38,14 +38,11 @@ import { cn } from "@/lib/utils";
 
 const ROOT_NAME = "FileUpload";
 const DROPZONE_NAME = "FileUploadDropzone";
-const TRIGGER_NAME = "FileUploadTrigger";
 const LIST_NAME = "FileUploadList";
 const ITEM_NAME = "FileUploadItem";
 const ITEM_PREVIEW_NAME = "FileUploadItemPreview";
 const ITEM_METADATA_NAME = "FileUploadItemMetadata";
-const ITEM_PROGRESS_NAME = "FileUploadItemProgress";
 const ITEM_DELETE_NAME = "FileUploadItemDelete";
-const CLEAR_NAME = "FileUploadClear";
 
 function formatBytes(bytes: number) {
   if (bytes === 0) return "0 B";
@@ -144,7 +141,7 @@ type Store = {
 const StoreContext = createContext<Store | null>(null);
 
 function useStoreContext(consumerName: string) {
-  const context = useContext(StoreContext);
+  const context = use(StoreContext);
   if (!context) {
     throw new Error(`\`${consumerName}\` must be used within \`${ROOT_NAME}\``);
   }
@@ -188,7 +185,7 @@ interface FileUploadContextValue {
 const FileUploadContext = createContext<FileUploadContextValue | null>(null);
 
 function useFileUploadContext(consumerName: string) {
-  const context = useContext(FileUploadContext);
+  const context = use(FileUploadContext);
   if (!context) {
     throw new Error(`\`${consumerName}\` must be used within \`${ROOT_NAME}\``);
   }
@@ -536,16 +533,23 @@ function FileUpload(props: FileUploadProps) {
 
       const acceptedFiles: File[] = [];
       const rejectedFiles: { file: File; message: string }[] = [];
+      const acceptTypeSet = acceptTypes
+        ? new Set(acceptTypes.filter((t) => !t.includes("/*")))
+        : null;
+      const wildcardTypes = acceptTypes
+        ? acceptTypes.filter((t) => t.includes("/*"))
+        : null;
 
       for (const file of filesToProcess) {
         let rejected = false;
         let rejectionMessage = "";
+        const onFileReject = propsRef.current.onFileReject;
 
         if (propsRef.current.onFileValidate) {
           const validationMessage = propsRef.current.onFileValidate(file);
           if (validationMessage) {
             rejectionMessage = validationMessage;
-            propsRef.current.onFileReject?.(file, rejectionMessage);
+            onFileReject?.(file, rejectionMessage);
             rejected = true;
             invalid = true;
             continue;
@@ -557,16 +561,14 @@ function FileUpload(props: FileUploadProps) {
           const fileExtension = `.${file.name.split(".").pop()}`;
 
           if (
-            !acceptTypes.some(
-              (type) =>
-                type === fileType ||
-                type === fileExtension ||
-                (type.includes("/*") &&
-                  fileType.startsWith(type.replace("/*", "/"))),
+            !acceptTypeSet?.has(fileType) &&
+            !acceptTypeSet?.has(fileExtension) &&
+            !wildcardTypes?.some((type) =>
+              fileType.startsWith(type.replace("/*", "/")),
             )
           ) {
             rejectionMessage = "File type not accepted";
-            propsRef.current.onFileReject?.(file, rejectionMessage);
+            onFileReject?.(file, rejectionMessage);
             rejected = true;
             invalid = true;
           }
@@ -574,7 +576,7 @@ function FileUpload(props: FileUploadProps) {
 
         if (maxSize && file.size > maxSize) {
           rejectionMessage = "File too large";
-          propsRef.current.onFileReject?.(file, rejectionMessage);
+          onFileReject?.(file, rejectionMessage);
           rejected = true;
           invalid = true;
         }
@@ -896,45 +898,6 @@ function FileUploadDropzone(props: FileUploadDropzoneProps) {
   );
 }
 
-interface FileUploadTriggerProps extends ComponentProps<"button"> {
-  asChild?: boolean;
-}
-
-function FileUploadTrigger(props: FileUploadTriggerProps) {
-  const { asChild, onClick: onClickProp, ...triggerProps } = props;
-
-  const context = useFileUploadContext(TRIGGER_NAME);
-
-  const propsRef = useAsRef({
-    onClick: onClickProp,
-  });
-
-  const onClick = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => {
-      propsRef.current.onClick?.(event);
-
-      if (event.defaultPrevented) return;
-
-      context.inputRef.current?.click();
-    },
-    [context.inputRef, propsRef],
-  );
-
-  const TriggerPrimitive = asChild ? SlotPrimitive.Slot : "button";
-
-  return (
-    <TriggerPrimitive
-      type="button"
-      aria-controls={context.inputId}
-      data-disabled={context.disabled ? "" : undefined}
-      data-slot="file-upload-trigger"
-      {...triggerProps}
-      disabled={context.disabled}
-      onClick={onClick}
-    />
-  );
-}
-
 interface FileUploadListProps extends ComponentProps<"div"> {
   orientation?: "horizontal" | "vertical";
   asChild?: boolean;
@@ -991,7 +954,7 @@ const FileUploadItemContext = createContext<FileUploadItemContextValue | null>(
 );
 
 function useFileUploadItemContext(consumerName: string) {
-  const context = useContext(FileUploadItemContext);
+  const context = use(FileUploadItemContext);
   if (!context) {
     throw new Error(`\`${consumerName}\` must be used within \`${ITEM_NAME}\``);
   }
@@ -1194,137 +1157,6 @@ function FileUploadItemMetadata(props: FileUploadItemMetadataProps) {
     </ItemMetadataPrimitive>
   );
 }
-interface FileUploadItemProgressProps extends ComponentProps<"div"> {
-  variant?: "linear" | "circular" | "fill";
-  size?: number;
-  asChild?: boolean;
-  forceMount?: boolean;
-}
-
-function FileUploadItemProgress(props: FileUploadItemProgressProps) {
-  const {
-    variant = "linear",
-    size = 40,
-    asChild,
-    forceMount,
-    className,
-    ...progressProps
-  } = props;
-
-  const itemContext = useFileUploadItemContext(ITEM_PROGRESS_NAME);
-
-  if (!itemContext.fileState) return null;
-
-  const shouldRender = forceMount || itemContext.fileState.progress !== 100;
-
-  if (!shouldRender) return null;
-
-  const ItemProgressPrimitive = asChild ? SlotPrimitive.Slot : "div";
-
-  switch (variant) {
-    case "circular": {
-      const circumference = 2 * Math.PI * ((size - 4) / 2);
-      const strokeDashoffset =
-        circumference - (itemContext.fileState.progress / 100) * circumference;
-
-      return (
-        <ItemProgressPrimitive
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={itemContext.fileState.progress}
-          aria-valuetext={`${itemContext.fileState.progress}%`}
-          aria-labelledby={itemContext.nameId}
-          data-slot="file-upload-progress"
-          {...progressProps}
-          className={cn(
-            "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-            className,
-          )}
-        >
-          <svg
-            className="-rotate-90 transform"
-            width={size}
-            height={size}
-            viewBox={`0 0 ${size} ${size}`}
-            fill="none"
-            stroke="currentColor"
-            aria-label="Circular progress"
-          >
-            <circle
-              className="text-primary/20"
-              strokeWidth="2"
-              cx={size / 2}
-              cy={size / 2}
-              r={(size - 4) / 2}
-            />
-            <circle
-              className="text-primary transition-[stroke-dashoffset] duration-300 ease-linear"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={strokeDashoffset}
-              cx={size / 2}
-              cy={size / 2}
-              r={(size - 4) / 2}
-            />
-          </svg>
-        </ItemProgressPrimitive>
-      );
-    }
-
-    case "fill": {
-      const progressPercentage = itemContext.fileState.progress;
-      const topInset = 100 - progressPercentage;
-
-      return (
-        <ItemProgressPrimitive
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={progressPercentage}
-          aria-valuetext={`${progressPercentage}%`}
-          aria-labelledby={itemContext.nameId}
-          data-slot="file-upload-progress"
-          {...progressProps}
-          className={cn(
-            "absolute inset-0 bg-primary/50 transition-[clip-path] duration-300 ease-linear",
-            className,
-          )}
-          style={{
-            clipPath: `inset(${topInset}% 0% 0% 0%)`,
-          }}
-        />
-      );
-    }
-
-    default:
-      return (
-        <ItemProgressPrimitive
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={itemContext.fileState.progress}
-          aria-valuetext={`${itemContext.fileState.progress}%`}
-          aria-labelledby={itemContext.nameId}
-          data-slot="file-upload-progress"
-          {...progressProps}
-          className={cn(
-            "relative h-1.5 w-full overflow-hidden rounded-full bg-primary/20",
-            className,
-          )}
-        >
-          <div
-            className="h-full w-full flex-1 bg-primary transition-transform duration-300 ease-linear"
-            style={{
-              transform: `translateX(-${100 - itemContext.fileState.progress}%)`,
-            }}
-          />
-        </ItemProgressPrimitive>
-      );
-  }
-}
-
 interface FileUploadItemDeleteProps extends ComponentProps<"button"> {
   asChild?: boolean;
 }
@@ -1365,69 +1197,14 @@ function FileUploadItemDelete(props: FileUploadItemDeleteProps) {
   );
 }
 
-interface FileUploadClearProps extends ComponentProps<"button"> {
-  forceMount?: boolean;
-  asChild?: boolean;
-}
-
-function FileUploadClear(props: FileUploadClearProps) {
-  const {
-    asChild,
-    forceMount,
-    disabled,
-    onClick: onClickProp,
-    ...clearProps
-  } = props;
-
-  const context = useFileUploadContext(CLEAR_NAME);
-  const store = useStoreContext(CLEAR_NAME);
-  const fileCount = useStore((state) => state.files.size);
-
-  const isDisabled = disabled || context.disabled;
-
-  const onClick = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => {
-      onClickProp?.(event);
-
-      if (event.defaultPrevented) return;
-
-      store.dispatch({ type: "CLEAR" });
-    },
-    [store, onClickProp],
-  );
-
-  const shouldRender = forceMount || fileCount > 0;
-
-  if (!shouldRender) return null;
-
-  const ClearPrimitive = asChild ? SlotPrimitive.Slot : "button";
-
-  return (
-    <ClearPrimitive
-      type="button"
-      aria-controls={context.listId}
-      data-slot="file-upload-clear"
-      data-disabled={isDisabled ? "" : undefined}
-      {...clearProps}
-      disabled={isDisabled}
-      onClick={onClick}
-    />
-  );
-}
-
 export {
   FileUpload,
-  FileUploadClear,
   FileUploadDropzone,
   FileUploadItem,
   FileUploadItemDelete,
   FileUploadItemMetadata,
   FileUploadItemPreview,
-  FileUploadItemProgress,
   FileUploadList,
-  FileUploadTrigger,
-  //
-  useStore as useFileUpload,
   //
   type FileUploadProps,
 };

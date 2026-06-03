@@ -38,7 +38,6 @@ import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
 
 import {
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -46,7 +45,6 @@ import {
   DialogTrigger,
 } from "./dialog";
 import {
-  DrawerClose,
   DrawerContent,
   DrawerDescription,
   DrawerFooter,
@@ -283,18 +281,8 @@ function ResponsiveModalDescription({
   );
 }
 
-function ResponsiveModalClose({
-  ...props
-}: ComponentProps<typeof DialogClose> & ComponentProps<typeof DrawerClose>) {
-  const { isMobile } = use(ResponsiveModalContext);
-  if (isMobile)
-    return <DrawerClose data-slot="responsive-modal-close" {...props} />;
-  return <DialogClose data-slot="responsive-modal-close" {...props} />;
-}
-
 export {
   ResponsiveModal,
-  ResponsiveModalClose,
   ResponsiveModalContent,
   ResponsiveModalDescription,
   ResponsiveModalFooter,

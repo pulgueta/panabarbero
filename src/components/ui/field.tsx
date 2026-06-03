@@ -1,10 +1,9 @@
 import type { VariantProps } from "class-variance-authority";
 import { cva } from "class-variance-authority";
 import type { ComponentProps, ReactNode } from "react";
-import { useMemo } from "react";
+import { memo } from "react";
 
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 function FieldSet({ className, ...props }: ComponentProps<"fieldset">) {
@@ -13,24 +12,6 @@ function FieldSet({ className, ...props }: ComponentProps<"fieldset">) {
       data-slot="field-set"
       className={cn(
         "flex flex-col gap-6 has-[>[data-slot=checkbox-group]]:gap-3 has-[>[data-slot=radio-group]]:gap-3",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
-function FieldLegend({
-  className,
-  variant = "legend",
-  ...props
-}: ComponentProps<"legend"> & { variant?: "legend" | "label" }) {
-  return (
-    <legend
-      data-slot="field-legend"
-      data-variant={variant}
-      className={cn(
-        "mb-3 font-medium data-[variant=label]:text-sm data-[variant=legend]:text-base",
         className,
       )}
       {...props}
@@ -143,35 +124,35 @@ function FieldDescription({ className, ...props }: ComponentProps<"p">) {
   );
 }
 
-function FieldSeparator({
+const FieldErrorContent = memo(function FieldErrorContent({
   children,
-  className,
-  ...props
-}: ComponentProps<"div"> & {
+  errors,
+}: {
   children?: ReactNode;
+  errors?: Array<{ message?: string } | undefined>;
 }) {
+  if (children) return <>{children}</>;
+  if (!errors?.length) return null;
+
+  const uniqueErrors = [
+    ...new Map(errors.map((error) => [error?.message, error])).values(),
+  ];
+
+  if (uniqueErrors.length === 1) {
+    return <>{uniqueErrors[0]?.message}</>;
+  }
+
   return (
-    <div
-      data-slot="field-separator"
-      data-content={!!children}
-      className={cn(
-        "relative -my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2",
-        className,
+    <ul className="ml-4 flex list-disc flex-col gap-1">
+      {uniqueErrors.map(
+        (error, index) =>
+          error?.message && (
+            <li key={error.message ?? `error-${index}`}>{error.message}</li>
+          ),
       )}
-      {...props}
-    >
-      <Separator className="absolute inset-0 top-1/2" />
-      {children && (
-        <span
-          className="relative mx-auto block w-fit bg-background px-2 text-muted-foreground"
-          data-slot="field-separator-content"
-        >
-          {children}
-        </span>
-      )}
-    </div>
+    </ul>
   );
-}
+});
 
 function FieldError({
   className,
@@ -181,36 +162,9 @@ function FieldError({
 }: ComponentProps<"div"> & {
   errors?: Array<{ message?: string } | undefined>;
 }) {
-  const content = useMemo(() => {
-    if (children) {
-      return children;
-    }
+  const hasContent = children || errors?.some((e) => e?.message);
 
-    if (!errors?.length) {
-      return null;
-    }
-
-    const uniqueErrors = [
-      ...new Map(errors.map((error) => [error?.message, error])).values(),
-    ];
-
-    if (uniqueErrors?.length === 1) {
-      return uniqueErrors[0]?.message;
-    }
-
-    return (
-      <ul className="ml-4 flex list-disc flex-col gap-1">
-        {uniqueErrors.map(
-          (error, index) =>
-            error?.message && (
-              <li key={error.message ?? `error-${index}`}>{error.message}</li>
-            ),
-        )}
-      </ul>
-    );
-  }, [children, errors]);
-
-  if (!content) {
+  if (!hasContent) {
     return null;
   }
 
@@ -221,7 +175,7 @@ function FieldError({
       className={cn("font-normal text-destructive text-sm", className)}
       {...props}
     >
-      {content}
+      <FieldErrorContent errors={errors}>{children}</FieldErrorContent>
     </div>
   );
 }
@@ -233,8 +187,6 @@ export {
   FieldError,
   FieldGroup,
   FieldLabel,
-  FieldLegend,
-  FieldSeparator,
   FieldSet,
   FieldTitle,
 };

@@ -1,5 +1,5 @@
 import { GlobeSimpleIcon } from "@phosphor-icons/react";
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, use, useMemo, useState } from "react";
 import * as BasePhoneInput from "react-phone-number-input";
 import flags from "react-phone-number-input/flags";
 
@@ -82,7 +82,7 @@ function InputComponent({
   className,
   ...props
 }: React.ComponentProps<typeof Input>) {
-  const { variant } = useContext(PhoneInputContext);
+  const { variant } = use(PhoneInputContext);
 
   return (
     <Input
@@ -115,7 +115,7 @@ function CountrySelect({
   options: countryList,
   onChange,
 }: CountrySelectProps) {
-  const { variant, popupClassName } = useContext(PhoneInputContext);
+  const { variant, popupClassName } = use(PhoneInputContext);
   const [searchValue, setSearchValue] = useState("");
 
   const filteredCountries = useMemo(() => {
@@ -208,7 +208,7 @@ function FlagComponent({ country, countryName }: BasePhoneInput.FlagProps) {
   const Flag = flags[country];
 
   return (
-    <span className="flex h-4 w-4 items-center justify-center [&_svg:not([class*='size-'])]:size-full! [&_svg:not([class*='size-'])]:rounded-[5px]">
+    <span className="flex size-4 items-center justify-center [&_svg:not([class*='size-'])]:size-full! [&_svg:not([class*='size-'])]:rounded-[5px]">
       {Flag ? (
         <Flag title={countryName} />
       ) : (

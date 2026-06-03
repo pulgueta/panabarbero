@@ -59,4 +59,4 @@ const Badge: FC<BadgeProps> = ({
   });
 };
 
-export { Badge, badgeVariants };
+export { Badge };
