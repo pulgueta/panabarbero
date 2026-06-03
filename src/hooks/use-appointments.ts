@@ -1,6 +1,6 @@
-import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import type { Barbershop, BarbershopMember, Service } from "@convex/schema";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
@@ -31,10 +31,6 @@ export function requestRescheduleQueryOptions(barbershopId: Barbershop["_id"]) {
   });
 }
 
-export function userVisitedBarbershopsQueryOptions(userId: string | undefined) {
-  return convexQuery(api.barbershops.getUserVisitedBarbershops, { userId });
-}
-
 export function appointmentsByBarbershopQueryOptions(opts: {
   id: Barbershop["_id"];
   date: number | undefined;
@@ -60,10 +56,6 @@ export function useAppointmentsByBarbershop(opts: {
   date: number | undefined;
 }) {
   return useSuspenseQuery(appointmentsByBarbershopQueryOptions(opts));
-}
-
-export function useVisitedBarbershops(userId: string | undefined) {
-  return useSuspenseQuery(userVisitedBarbershopsQueryOptions(userId));
 }
 
 function availableSlotsQueryOptions(opts: {

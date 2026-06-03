@@ -59,6 +59,13 @@ export const barbershops = zodTable("barbershops", (id) => ({
 
 export const barbershopMetadata = zodTable("barbershopMetadata", (id) => ({
   barbershopId: id("barbershops"),
+  /** Owner-set geographic location, also indexed in the geospatial component. */
+  location: z
+    .object({
+      latitude: z.number(),
+      longitude: z.number(),
+    })
+    .optional(),
   websiteUrl: z.string().optional(),
   contactEmail: z.string().optional(),
   socialMedia: z
@@ -274,6 +281,24 @@ export const inAppNotifications = zodTable("inAppNotifications", (id) => ({
   readAt: z.number().optional(),
 }));
 
+/**
+ * Cache of computed driving routes (OSRM), keyed by quantized
+ * origin→destination coordinates so repeat lookups for the same trip are
+ * served from Convex instead of re-hitting the routing API.
+ */
+export const routeCache = zodTable("routeCache", () => ({
+  /** `${fromLat},${fromLng}->${toLat},${toLng}` with coordinates quantized. */
+  key: z.string(),
+  fromLatitude: z.number(),
+  fromLongitude: z.number(),
+  toLatitude: z.number(),
+  toLongitude: z.number(),
+  distanceMeters: z.number(),
+  durationSeconds: z.number(),
+  /** Route polyline as `[longitude, latitude]` pairs. */
+  geometry: z.array(z.array(z.number())),
+}));
+
 export default defineSchema({
   userProfileData: userProfileData
     .table()
@@ -350,6 +375,8 @@ export default defineSchema({
     .table()
     .index("by_user_created", ["userId"])
     .index("by_user_unread", ["userId", "readAt"]),
+
+  routeCache: routeCache.table().index("by_key", ["key"]),
 });
 
 export type UserProfileData = output<typeof userProfileData.schema>;
@@ -377,3 +404,4 @@ export type ExtraCredits = output<typeof extraCredits.schema>;
 export type CreditPurchase = output<typeof creditPurchases.schema>;
 export type InAppNotification = output<typeof inAppNotifications.schema>;
 export type NotificationKind = (typeof notificationKinds)[number];
+export type RouteCache = output<typeof routeCache.schema>;

@@ -19,7 +19,7 @@ Recopilamos los siguientes tipos de información:
 
 ### 2.2 Información recopilada automáticamente
 
-- **Datos de ubicación:** Utilizamos su ubicación para mostrarle barberías cercanas. Esta información se procesa en tiempo real y no se almacena de forma permanente.
+- **Datos de ubicación:** Con su autorización expresa, accedemos a la ubicación de su dispositivo a través del permiso de geolocalización de su navegador para mostrarle barberías cercanas. El acceso a la ubicación es opcional y solo se solicita cuando usted lo activa; en todo momento puede elegir su ciudad manualmente. Para convertir las coordenadas en un departamento y ciudad, enviamos las coordenadas a un servicio externo de geocodificación inversa ([BigDataCloud](https://www.bigdatacloud.com)). Esta información se procesa de forma transitoria para resolver su ubicación aproximada y no se almacena de forma permanente en nuestros servidores.
 - **Datos de uso:** Información sobre cómo interactúa con la plataforma (páginas visitadas, funcionalidades utilizadas, tiempo de uso).
 - **Información del dispositivo:** Tipo de navegador, sistema operativo y dirección IP.
 

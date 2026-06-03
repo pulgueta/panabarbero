@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 
-import { convexToZod } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
+import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import { zMutation, zQuery } from ".";
@@ -11,6 +11,7 @@ import { assertIsSubscribed } from "./acl";
 import { authComponent } from "./auth";
 import { assertOwner } from "./authz";
 import { errorMessages } from "./errors";
+import { barbershopGeospatial } from "./geospatial";
 import { rateLimitOrThrow } from "./ratelimit";
 import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
@@ -272,6 +273,7 @@ export const deleteCascade = zMutation({
       ...reviews.map((review) => ctx.db.delete(review._id)),
       ...invitations.map((invitation) => ctx.db.delete(invitation._id)),
       ...(metadata?._id ? [ctx.db.delete(metadata._id)] : []),
+      barbershopGeospatial.remove(ctx, args.id),
     ]);
 
     await ctx.db.delete(args.id);
@@ -429,39 +431,6 @@ export const update = zMutation({
     };
 
     await ctx.db.patch(args.id, dataToUpdate);
-  },
-});
-
-export const getUserVisitedBarbershops = zQuery({
-  args: z.object({
-    userId: z.string().optional(),
-  }),
-  handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
-
-    if (!user) {
-      return [];
-    }
-
-    if (args.userId !== user.userId) {
-      return [];
-    }
-
-    const appointments = await ctx.db
-      .query("appointments")
-      .withIndex("by_userId", (q) => q.eq("userId", user.userId ?? ""))
-      .filter((q) => q.eq(q.field("status"), "completed"))
-      .take(5);
-
-    const uniqueBarbershopIds = Array.from(
-      new Set(appointments.map((appointment) => appointment.barbershopId)),
-    );
-
-    const barbershops = await Promise.all(
-      uniqueBarbershopIds.map((barbershopId) => ctx.db.get(barbershopId)),
-    );
-
-    return barbershops;
   },
 });
 

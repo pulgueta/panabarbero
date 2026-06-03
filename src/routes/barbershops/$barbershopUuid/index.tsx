@@ -24,6 +24,7 @@ import {
   barbershopByUuidQueryOptions,
   useBarbershopByUuid,
 } from "@/hooks/barbershop/use-barbershop";
+import { barbershopLocationQueryOptions } from "@/hooks/barbershop/use-barbershop-metadata";
 import {
   barberByUserIdQueryOptions,
   barbershopMembersByBarbershopIdQueryOptions,
@@ -62,6 +63,14 @@ const BarberTeamSection = lazy(() =>
   })),
 );
 
+const BarbershopLocationSection = lazy(() =>
+  import("@/components/barbershops/barbershop-location-section").then(
+    (module) => ({
+      default: module.BarbershopLocationSection,
+    }),
+  ),
+);
+
 export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
@@ -95,6 +104,9 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
         ),
         context.queryClient.ensureQueryData(
           barbershopAvailabilityQueryOptions(barbershop._id),
+        ),
+        context.queryClient.ensureQueryData(
+          barbershopLocationQueryOptions(barbershop._id),
         ),
       ]);
 
@@ -252,6 +264,15 @@ function RouteComponent() {
             </section>
           </>
         )}
+
+        <Suspense fallback={null}>
+          {barbershop?._id && (
+            <BarbershopLocationSection
+              barbershopId={barbershop._id}
+              barbershopName={barbershop.name}
+            />
+          )}
+        </Suspense>
       </main>
     </BorderContainer>
   );

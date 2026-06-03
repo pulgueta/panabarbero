@@ -1,6 +1,6 @@
-import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import type { Barbershop } from "@convex/schema";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 
 import type { BarbershopSearch } from "@/routes/barbershops";
@@ -38,10 +38,6 @@ export function barbershopAvailabilityQueryOptions(
   });
 }
 
-export function searchBarbershopsByNameQueryOptions(name?: string) {
-  return convexQuery(api.barbershops.getByName, { name });
-}
-
 export function barbershopByOwnerIdQueryOptions(ownerId: string) {
   return convexQuery(api.barbershops.getByOwnerId, { ownerId });
 }
@@ -62,10 +58,6 @@ export function useActiveBarbershops(
 
 export function useBarbershopsByIds(barbershopIds: Barbershop["_id"][]) {
   return useSuspenseQuery(barbershopsByIdsQueryOptions(barbershopIds));
-}
-
-export function useSearchBarbershopsByName(name: string) {
-  return useSuspenseQuery(searchBarbershopsByNameQueryOptions(name));
 }
 
 export function useBarbershopByOwnerId(ownerId: string) {

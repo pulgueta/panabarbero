@@ -66,6 +66,11 @@ const PreferencesForm = lazy(() =>
     default: mod.PreferencesForm,
   })),
 );
+const LocationForm = lazy(() =>
+  import("@/components/barbershops/settings/location-form").then((mod) => ({
+    default: mod.LocationForm,
+  })),
+);
 const OwnerRoleToggle = lazy(() =>
   import("@/components/barbershops/settings/owner-role-toggle").then((mod) => ({
     default: mod.OwnerRoleToggle,
@@ -341,6 +346,22 @@ function SettingsPage() {
 
               <Suspense fallback={<Skeleton className="h-48 w-full" />}>
                 <PreferencesForm barbershop={barbershop} />
+              </Suspense>
+            </section>
+
+            <section className="w-full space-y-4">
+              <div>
+                <h2 className="font-semibold text-xl tracking-tight">
+                  Ubicación
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  Fija el punto exacto de tu barbería en el mapa para que tus
+                  clientes te encuentren.
+                </p>
+              </div>
+
+              <Suspense fallback={<Skeleton className="h-72 w-full" />}>
+                <LocationForm barbershop={barbershop} />
               </Suspense>
             </section>
 
