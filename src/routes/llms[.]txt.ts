@@ -17,7 +17,7 @@ export const Route = createFileRoute("/llms.txt")({
 
 - Inicio: ${baseUrl}
 - Barberías: ${baseUrl}/barbershops
-- Agendar cita: ${baseUrl}/appointments/create
+- Pana IA (asistente de reservas): ${baseUrl}/ai
 - Precios: ${baseUrl}/pricing
 - Política de privacidad: ${baseUrl}/privacy-policy
 - Términos de servicio: ${baseUrl}/tos

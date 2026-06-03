@@ -1,11 +1,10 @@
 import {
   CalendarIcon,
-  CalendarPlusIcon,
-  ChatCircleIcon,
   CurrencyDollarIcon,
   GearSixIcon,
   HouseIcon,
   ScissorsIcon,
+  SparkleIcon,
   UserIcon,
   UsersIcon,
 } from "@phosphor-icons/react";
@@ -25,19 +24,14 @@ export const publicRoutes = {
       icon: ScissorsIcon,
     },
     {
-      label: "Agendar",
-      to: "/appointments/create",
-      icon: CalendarPlusIcon,
-    },
-    {
       label: "Precios",
       to: "/pricing",
       icon: CurrencyDollarIcon,
     },
     {
       label: "Pana IA",
-      to: "/chat",
-      icon: ChatCircleIcon,
+      to: "/ai",
+      icon: SparkleIcon,
     },
   ],
 };

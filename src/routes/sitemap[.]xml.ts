@@ -11,6 +11,7 @@ export const Route = createFileRoute("/sitemap.xml")({
 
           const staticPages = [
             { loc: "/", changefreq: "daily", priority: 1.0 },
+            { loc: "/ai", changefreq: "weekly", priority: 0.8 },
             { loc: "/pricing", changefreq: "weekly", priority: 0.8 },
             { loc: "/privacy-policy", changefreq: "monthly", priority: 0.5 },
             { loc: "/tos", changefreq: "monthly", priority: 0.5 },
@@ -48,6 +49,7 @@ ${urls
 
           const staticPages = [
             { loc: "/", changefreq: "daily", priority: 1.0 },
+            { loc: "/ai", changefreq: "weekly", priority: 0.8 },
             { loc: "/pricing", changefreq: "weekly", priority: 0.8 },
             { loc: "/privacy-policy", changefreq: "monthly", priority: 0.5 },
             { loc: "/tos", changefreq: "monthly", priority: 0.5 },
