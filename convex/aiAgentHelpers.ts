@@ -2,6 +2,9 @@ import { z } from "zod";
 
 import { zInternalQuery } from ".";
 import type { Id } from "./_generated/dataModel";
+import { getByUserIdFn } from "./barbershopMembers";
+import { getLimitsForProductKey } from "./plans";
+import { polar } from "./polar";
 import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
 
@@ -140,5 +143,25 @@ export const getMembersByBarbershopId = zInternalQuery({
         return { ...member, name: memberProfile?.name ?? "" };
       }),
     );
+  },
+});
+
+/**
+ * Pana management entitlement for the AI agent. Determines whether the caller
+ * is a barbershop member and whether their plan unlocks managing the shop via
+ * chat, so the dynamic system prompt can softly gate management requests.
+ */
+export const getPanaEntitlement = zInternalQuery({
+  args: z.object({ userId: z.string() }),
+  handler: async (ctx, args) => {
+    const member = await getByUserIdFn(ctx, { userId: args.userId });
+    const isShopMember = Boolean(member?.roles && member.roles.length > 0);
+
+    const subscription = await polar.getCurrentSubscription(ctx, {
+      userId: args.userId,
+    });
+    const limits = getLimitsForProductKey(subscription?.productKey);
+
+    return { isShopMember, canManage: limits.panaManagement };
   },
 });

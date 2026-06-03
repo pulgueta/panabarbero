@@ -165,15 +165,23 @@ export interface ProfileForPrompt {
   email?: string | null;
 }
 
+/** Pana shop-management entitlement for the caller. */
+export interface PanaManagementEntitlement {
+  isShopMember: boolean;
+  canManage: boolean;
+}
+
 /** Builds the full system prompt for one generation: static rules + dynamic context. */
 export function buildPanaSystemPrompt({
   profile,
   isAnon,
   nowMs,
+  management,
 }: {
   profile: ProfileForPrompt | null;
   isAnon: boolean;
   nowMs: number;
+  management?: PanaManagementEntitlement | null;
 }): string {
   const shifted = new Date(nowMs + COLOMBIA_OFFSET_MS);
   const dateKey = toColombiaDateKey(nowMs);
@@ -202,11 +210,17 @@ Ya conoces estos datos; no preguntes por ellos al proponer una reserva. Si el te
 No se pudo cargar el perfil del usuario. Llama a getMyProfile para obtener nombre y teléfono antes de proponer una reserva.`;
   }
 
+  let managementBlock = "";
+  if (management?.isShopMember && !management.canManage) {
+    managementBlock = `
+Gestión de barbería: este usuario hace parte de una barbería, pero su plan actual no incluye gestionar el negocio por chat. Si te pide administrar su barbería (agenda del negocio, equipo, servicios, configuración o reportes), explícale con amabilidad que esa función está incluida en los planes Barbería y Barbería Profesional e invítalo a verlos en la página de Precios. Reservar, consultar disponibilidad y manejar sus propias citas sigue funcionando con normalidad.`;
+  }
+
   return `${PAN_AGENT_INSTRUCTIONS_STATIC}
 
 ---
 ${dateBlock}
-${sessionBlock}`;
+${sessionBlock}${managementBlock}`;
 }
 
 export const panaAgent = new Agent(components.agent, {

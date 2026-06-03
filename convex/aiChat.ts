@@ -5,9 +5,9 @@ import {
   syncStreams,
   vStreamArgs,
 } from "@convex-dev/agent";
-import { convexToZod } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
+import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import { zAction, zInternalAction, zMutation, zQuery } from ".";
@@ -153,16 +153,22 @@ export const streamResponse = zInternalAction({
   }),
   handler: async (ctx, { threadId, promptMessageId, callerId }) => {
     const isAnon = callerId.startsWith(ANON_PREFIX);
-    const profile = isAnon
-      ? null
-      : await ctx.runQuery(internal.aiAgentHelpers.getProfileForUserId, {
-          userId: callerId,
-        });
+    const [profile, management] = isAnon
+      ? [null, null]
+      : await Promise.all([
+          ctx.runQuery(internal.aiAgentHelpers.getProfileForUserId, {
+            userId: callerId,
+          }),
+          ctx.runQuery(internal.aiAgentHelpers.getPanaEntitlement, {
+            userId: callerId,
+          }),
+        ]);
 
     const system = buildPanaSystemPrompt({
       profile,
       isAnon,
       nowMs: Date.now(),
+      management,
     });
 
     const result = await panaAgent.streamText(

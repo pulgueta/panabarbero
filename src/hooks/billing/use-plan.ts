@@ -1,8 +1,8 @@
-import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import type { PlanLimits, PlanTier } from "@convex/plans";
 import { PLAN_LIMITS } from "@convex/plans";
 import type { Barbershop } from "@convex/schema";
+import { convexQuery } from "@convex-dev/react-query";
 import { useQuery } from "@tanstack/react-query";
 
 // ---------------------------------------------------------------------------
@@ -37,6 +37,8 @@ export interface UsePlanResult {
   canInviteBarbers: boolean;
   canInviteStaff: boolean;
   canCreateStaffAppointments: boolean;
+  /** Whether the plan unlocks managing the barbershop through Pana chat. */
+  canUsePanaManagement: boolean;
   maxInvitedBarbers: number | null;
   maxStaff: number | null;
   maxSmsPerMonth: number | null;
@@ -75,6 +77,7 @@ export function usePlan(): UsePlanResult {
       planLimits.maxInvitedBarbers !== null && planLimits.maxInvitedBarbers > 0,
     canInviteStaff: planLimits.maxStaff !== null && planLimits.maxStaff > 0,
     canCreateStaffAppointments: planLimits.staffCanCreateAppointments,
+    canUsePanaManagement: planLimits.panaManagement,
     maxInvitedBarbers: planLimits.maxInvitedBarbers,
     maxStaff: planLimits.maxStaff,
     maxSmsPerMonth: planLimits.maxSmsPerMonth,
@@ -115,6 +118,7 @@ export function useBarbershopPlan(
       planLimits.maxInvitedBarbers !== null && planLimits.maxInvitedBarbers > 0,
     canInviteStaff: planLimits.maxStaff !== null && planLimits.maxStaff > 0,
     canCreateStaffAppointments: planLimits.staffCanCreateAppointments,
+    canUsePanaManagement: planLimits.panaManagement,
     maxInvitedBarbers: planLimits.maxInvitedBarbers,
     maxStaff: planLimits.maxStaff,
     maxSmsPerMonth: planLimits.maxSmsPerMonth,

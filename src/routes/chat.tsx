@@ -1,5 +1,5 @@
-import { ChatCircleIcon } from "@phosphor-icons/react";
-import { createFileRoute } from "@tanstack/react-router";
+import { ChatCircleIcon, CrownIcon } from "@phosphor-icons/react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ChangeEvent, FormEvent } from "react";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/ai/prompt-input";
 import { Suggestion, Suggestions } from "@/components/ui/ai/suggestion";
 import { Button } from "@/components/ui/button";
+import { useBarbershopMemberRoles } from "@/hooks/barbershop/use-barbershop-member";
+import { usePlan } from "@/hooks/billing/use-plan";
 import {
   myThreadsQueryOptions,
   useChatMessages,
@@ -73,6 +75,13 @@ function ChatRoute() {
 
   const { data: user } = useSession();
   const userId = user?.userId ?? undefined;
+
+  const { canUsePanaManagement, isLoading: planLoading } = usePlan();
+  const { data: rolesData } = useBarbershopMemberRoles(userId ?? "");
+  const isShopMember = Boolean(rolesData?.roles && rolesData.roles.length > 0);
+  const showManagementUpsell =
+    isShopMember && !planLoading && !canUsePanaManagement;
+
   const { results, status, loadMore } = useChatMessages(threadId, userId);
   const send = useSendChatMessage(userId);
   const { confirm: handleConfirm, reject: handleReject } = useProposalActions(
@@ -160,7 +169,29 @@ function ChatRoute() {
   );
 
   return (
-    <div className="relative mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-3xl flex-col">
+    <div className="relative mx-auto flex h-[calc(100dvh-3.5rem-4rem-env(safe-area-inset-bottom))] w-full max-w-3xl flex-col md:h-[calc(100dvh-4rem)]">
+      {showManagementUpsell && (
+        <div className="mx-4 mt-4 flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3 dark:bg-primary/10">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+            <CrownIcon className="size-4" weight="fill" />
+          </span>
+          <div className="flex-1">
+            <p className="font-medium text-sm">Gestiona tu barbería con Pana</p>
+            <p className="text-muted-foreground text-xs">
+              Reservar siempre es gratis. Para administrar tu negocio por chat,
+              activa un plan pago.
+            </p>
+          </div>
+          <Button
+            nativeButton={false}
+            render={<Link to="/pricing" />}
+            size="sm"
+          >
+            Ver planes
+          </Button>
+        </div>
+      )}
+
       <Conversation>
         <ConversationContent>
           {results.length === 0 ? (

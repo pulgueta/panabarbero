@@ -59,6 +59,8 @@ export interface PlanLimits {
   maxStaff: number | null;
   /** Whether staff (owner/barber) can create appointments on behalf of clients. */
   staffCanCreateAppointments: boolean;
+  /** Whether shop members can manage their barbershop through the Pana chat. */
+  panaManagement: boolean;
 }
 
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
@@ -68,6 +70,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxSmsPerMonth: 200,
     maxEmailPerMonth: 50,
     staffCanCreateAppointments: false,
+    panaManagement: false,
   },
   pro: {
     maxInvitedBarbers: 5,
@@ -75,6 +78,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxSmsPerMonth: 1000,
     maxEmailPerMonth: 500,
     staffCanCreateAppointments: true,
+    panaManagement: true,
   },
   premium: {
     maxInvitedBarbers: 10,
@@ -82,6 +86,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxSmsPerMonth: 3000,
     maxEmailPerMonth: 1500,
     staffCanCreateAppointments: true,
+    panaManagement: true,
   },
 };
 
