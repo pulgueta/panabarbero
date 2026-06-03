@@ -1,12 +1,11 @@
 import {
-  FileArchiveIcon,
   FileAudioIcon,
   FileCodeIcon,
-  FileCogIcon,
   FileIcon,
   FileTextIcon,
   FileVideoIcon,
-} from "lucide-react";
+  FileZipIcon,
+} from "@phosphor-icons/react";
 import {
   Direction as DirectionPrimitive,
   Slot as SlotPrimitive,
@@ -93,14 +92,14 @@ function getFileIcon(file: File) {
   }
 
   if (["zip", "rar", "7z", "tar", "gz", "bz2"].includes(extension)) {
-    return <FileArchiveIcon />;
+    return <FileZipIcon />;
   }
 
   if (
     ["exe", "msi", "app", "apk", "deb", "rpm"].includes(extension) ||
     type.startsWith("application/")
   ) {
-    return <FileCogIcon />;
+    return <FileIcon />;
   }
 
   return <FileIcon />;

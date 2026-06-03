@@ -1,4 +1,4 @@
-import { CheckIcon, XIcon } from "lucide-react";
+import { CheckIcon, XIcon } from "@phosphor-icons/react";
 import { useCallback, useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";

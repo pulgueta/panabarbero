@@ -7,7 +7,11 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import type { ChatStatus, FileUIPart, SourceDocumentUIPart } from "ai";
-import { CornerDownLeftIcon, SquareIcon, XIcon } from "lucide-react";
+import {
+  ArrowBendDownLeftIcon,
+  SquareIcon,
+  XIcon,
+} from "@phosphor-icons/react";
 import type {
   ChangeEvent,
   ChangeEventHandler,
@@ -754,7 +758,7 @@ export const PromptInputSubmit = ({
 }: PromptInputSubmitProps) => {
   const isGenerating = status === "submitted" || status === "streaming";
 
-  let Icon = <CornerDownLeftIcon className="size-4" />;
+  let Icon = <ArrowBendDownLeftIcon className="size-4" />;
 
   if (status === "submitted") {
     Icon = <Spinner />;
