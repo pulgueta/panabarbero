@@ -1,12 +1,15 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
+import { domMax, LazyMotion } from "motion/react";
 import { lazy, Suspense } from "react";
-
+import { useNavSearch } from "@/components/layout/nav/nav-data";
+import { NavIndicator } from "@/components/layout/nav/nav-indicator";
+import { useActiveRoute } from "@/components/layout/nav/use-active-route";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { APP_NAME } from "@/config";
 import { useIsBarber } from "@/hooks/use-barbershop-members";
 import { useNavRoutes } from "@/hooks/use-nav-routes";
-import { useLocationStore } from "@/store/barbershop-filters";
+import { cn } from "@/lib/utils";
 
 const ThemeToggler = lazy(() =>
   import("@/components/layout/theme-toggler").then((mod) => ({
@@ -27,17 +30,8 @@ const NotificationsBell = lazy(() =>
 export const Header = () => {
   const { routes, user } = useNavRoutes();
   const { data: isBarber } = useIsBarber(user?.userId ?? "");
-  const persistedState = useLocationStore((s) => s.state);
-  const persistedCity = useLocationStore((s) => s.city);
-
-  const router = useRouterState();
-  const currentPath = router.location.pathname;
-
-  const today = Date.now();
-  const startOfDay = new Date(today);
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(startOfDay);
-  endOfDay.setHours(23, 59, 59, 999);
+  const activeTo = useActiveRoute(routes);
+  const navSearch = useNavSearch();
 
   return (
     <header className="sticky top-0 z-50 hidden w-full border-b bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/60 md:block md:px-4">
@@ -59,32 +53,38 @@ export const Header = () => {
         </div>
 
         <nav className="flex flex-1 items-center justify-center">
-          <div className="flex items-center font-medium text-sm md:gap-4 lg:gap-8">
-            {routes.map((route) => (
-              <Button
-                key={route.to}
-                variant={currentPath === route.to ? "outline" : "ghost"}
-                nativeButton={false}
-                render={
-                  <Link
-                    to={route.to}
-                    style={{ viewTransitionName: route.to }}
-                    search={
-                      route.to === "/profile"
-                        ? { tab: "account" }
-                        : route.to === "/profile/barbershops/appointments"
-                          ? { date: startOfDay.getTime() }
-                          : route.to === "/barbershops"
-                            ? { city: persistedCity, state: persistedState }
-                            : undefined
-                    }
-                  />
-                }
-              >
-                {route.label}
-              </Button>
-            ))}
-          </div>
+          <LazyMotion features={domMax}>
+            <ul className="flex items-center font-medium text-sm">
+              {routes.map((route) => {
+                const isActive = activeTo === route.to;
+
+                return (
+                  <li className="relative" key={route.to}>
+                    <Link
+                      aria-current={isActive ? "page" : undefined}
+                      className={cn(
+                        "relative flex h-16 items-center px-3 transition-colors lg:px-4",
+                        isActive
+                          ? "text-foreground"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                      search={navSearch(route.to)}
+                      style={{ viewTransitionName: route.to }}
+                      to={route.to}
+                    >
+                      {route.label}
+                      {isActive && (
+                        <NavIndicator
+                          layoutId="desktop-nav-indicator"
+                          variant="underline"
+                        />
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </LazyMotion>
         </nav>
 
         <div className="flex items-center gap-4">

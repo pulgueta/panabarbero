@@ -19,10 +19,11 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import type { ConvexReactClient } from "convex/react";
 
-import { BottomBar } from "@/components/layout/bottom-bar";
 import { DefaultCatchBoundary } from "@/components/layout/error-component";
 import { Header } from "@/components/layout/header";
 import { LoadingComponent } from "@/components/layout/loading-component";
+import { BottomNav } from "@/components/layout/nav/bottom-nav";
+import { MobileTopBar } from "@/components/layout/nav/mobile-top-bar";
 import { NotFoundComponent } from "@/components/layout/not-found-component";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -93,6 +94,8 @@ function RootComponent() {
   );
 }
 
+const ICON_CONTEXT_VALUE = { weight: "bold", size: 24 } as const;
+
 const RootDocument = ({ children }: { children: React.ReactNode }) => {
   const { convexQueryClient, queryClient, token } = Route.useRouteContext();
 
@@ -109,14 +112,17 @@ const RootDocument = ({ children }: { children: React.ReactNode }) => {
             initialToken={token}
           >
             <ThemeProvider>
-              <IconContext.Provider value={{ weight: "bold", size: 24 }}>
+              <IconContext.Provider value={ICON_CONTEXT_VALUE}>
                 <Toaster richColors position="top-center" />
 
+                <MobileTopBar />
                 <Header />
 
-                {children}
+                <div className="pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+                  {children}
+                </div>
 
-                <BottomBar />
+                <BottomNav />
               </IconContext.Provider>
             </ThemeProvider>
 
