@@ -61,6 +61,11 @@ const ResponsiveModalContext = createContext<ResponsiveModalContextValue>({
   isMobile: false,
 });
 
+// Stable, module-scope context values (the two possibilities) so consumers
+// don't re-render just because the provider re-rendered.
+const MOBILE_CONTEXT: ResponsiveModalContextValue = { isMobile: true };
+const DESKTOP_CONTEXT: ResponsiveModalContextValue = { isMobile: false };
+
 interface ResponsiveModalProps {
   /** Controlled open state. Omit to let base-ui manage state via the trigger. */
   open?: boolean;
@@ -82,7 +87,7 @@ function ResponsiveModal({
 
   if (isMobile) {
     return (
-      <ResponsiveModalContext.Provider value={{ isMobile: true }}>
+      <ResponsiveModalContext.Provider value={MOBILE_CONTEXT}>
         <DrawerPrimitive.Root
           data-slot="responsive-modal"
           open={open}
@@ -96,7 +101,7 @@ function ResponsiveModal({
   }
 
   return (
-    <ResponsiveModalContext.Provider value={{ isMobile: false }}>
+    <ResponsiveModalContext.Provider value={DESKTOP_CONTEXT}>
       <DialogPrimitive.Root
         data-slot="responsive-modal"
         open={open}

@@ -6,7 +6,7 @@ import type {
 import { CalendarIcon } from "@phosphor-icons/react";
 import { es } from "date-fns/locale";
 import type { BaseSyntheticEvent, FC } from "react";
-import { Activity, Suspense, useEffect, useState, useTransition } from "react";
+import { Activity, Suspense, useState, useTransition } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { Controller } from "react-hook-form";
 import type { output } from "zod";
@@ -101,11 +101,15 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
     ? startOfDay(watchedDate).getTime()
     : undefined;
 
-  // Reset selected slot when barber or service changes (date reset handled in calendar onSelect)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — reset on barber/service change
-  useEffect(() => {
+  // Reset the chosen slot when the barber or service changes (date reset handled
+  // in calendar onSelect). Render-phase adjustment instead of an effect, to
+  // avoid an extra render showing the stale slot.
+  const slotKey = `${watchedBarber ?? ""}|${effectiveServiceId ?? ""}`;
+  const [prevSlotKey, setPrevSlotKey] = useState(slotKey);
+  if (slotKey !== prevSlotKey) {
+    setPrevSlotKey(slotKey);
     setSelectedSlotTime(undefined);
-  }, [watchedBarber, effectiveServiceId]);
+  }
 
   // Use barber-specific services if available, otherwise fall back to all services
   const displayServices = barberServices ?? services;

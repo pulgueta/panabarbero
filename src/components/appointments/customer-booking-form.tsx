@@ -181,11 +181,15 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
 
   const effectiveService = services.find((s) => s._id === effectiveServiceId);
 
-  // Reset slot when barber or service changes
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional reset
-  useEffect(() => {
+  // Reset the chosen slot when the barber or service changes. Done as a
+  // render-phase adjustment (not an effect) so there's no extra render showing
+  // the stale slot against the new barber/service.
+  const slotKey = `${watchedBarber ?? ""}|${effectiveServiceId ?? ""}`;
+  const [prevSlotKey, setPrevSlotKey] = useState(slotKey);
+  if (slotKey !== prevSlotKey) {
+    setPrevSlotKey(slotKey);
     setSelectedSlotTime(undefined);
-  }, [watchedBarber, effectiveServiceId]);
+  }
 
   const onSubmit = form.handleSubmit(async (formData) => {
     const schedule = scheduleForDate(formData.date);
