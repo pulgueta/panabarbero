@@ -37,18 +37,18 @@ export const BarberInvitationEmail = ({
           theme: tailwindConfig.theme,
         }}
       >
-        <Body className="bg-gray-100 font-sans">
+        <Body className="bg-zinc-100 font-sans">
           <Container className="mx-auto w-full max-w-md rounded-xl border border-border/50 bg-white p-4">
             <Header />
 
             <Section className="my-4">
-              <Text className="m-0 mb-2 text-gray-700 text-sm">
+              <Text className="m-0 mb-2 text-zinc-700 text-sm">
                 {inviterName
                   ? `${inviterName} te ha invitado a unirte a ${barbershopName} como parte del equipo.`
                   : `Te han invitado a unirte a ${barbershopName} como parte del equipo.`}
               </Text>
 
-              <Text className="m-0 mb-4 text-gray-700 text-sm">
+              <Text className="m-0 mb-4 text-zinc-700 text-sm">
                 Ingresa para aceptar la invitación y crear tu cuenta.
               </Text>
             </Section>
@@ -64,7 +64,7 @@ export const BarberInvitationEmail = ({
 
             {expiresLabel ? (
               <Section className="mb-4">
-                <Text className="m-0 text-gray-500 text-xs">
+                <Text className="m-0 text-zinc-500 text-xs">
                   Esta invitación vence {expiresLabel}.
                 </Text>
               </Section>

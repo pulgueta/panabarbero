@@ -33,14 +33,14 @@ export const AppointmentCancelledEmail = ({
           theme: tailwindConfig.theme,
         }}
       >
-        <Body className="bg-gray-100 font-sans">
+        <Body className="bg-zinc-100 font-sans">
           <Container className="mx-auto w-full max-w-md rounded-xl border border-border/50 bg-white p-4">
             <Header />
 
             <Text className="text-pretty">{body}</Text>
 
             <Container className="mb-4 rounded-lg bg-muted p-4">
-              <Text className="m-0 mb-[8px] text-gray-700 text-sm italic">
+              <Text className="m-0 mb-[8px] text-zinc-700 text-sm italic">
                 {notes}
               </Text>
             </Container>
