@@ -62,8 +62,11 @@ const NotificationItemRoot: FC<NotificationItemRootProps> = ({
 
   return (
     <NotificationItemContext.Provider value={value}>
-      <article
+      {/* biome-ignore lint/a11y/useSemanticElements: clickable row wraps a nested interactive Action (a Link/anchor) which a native <button> cannot legally contain, so role+tabIndex on a div is the correct ARIA "clickable card" pattern */}
+      <div
         data-slot="notification-item"
+        role="button"
+        tabIndex={0}
         data-unread={isUnread || undefined}
         data-density={density}
         onClick={() => {
@@ -82,13 +85,15 @@ const NotificationItemRoot: FC<NotificationItemRootProps> = ({
           onSelect?.();
         }}
         className={cn(
-          // Base row: relies on CSS vars so light/dark stay coherent.
-          "group/notif relative isolate grid cursor-pointer grid-cols-[auto_1fr_auto] items-start gap-3 rounded-lg border border-transparent bg-transparent px-3 text-left outline-none transition-colors",
+          // Each row is its own bordered tile so it stands out from the
+          // surrounding surface (a darker well in the popover); tokens keep
+          // light/dark coherent.
+          "group/notif relative isolate grid cursor-pointer grid-cols-[auto_1fr_auto] items-start gap-3 rounded-lg border border-border bg-card px-3 text-left outline-none transition-colors",
           density === "compact" ? "py-2.5" : "py-3.5",
-          // Subtle inset strip + accent dot for unread rows.
-          "data-unread:border-border/60 data-unread:bg-muted/40",
+          // Unread rows lift to a brighter surface; the left accent bar reinforces it.
+          "data-unread:bg-muted",
           // Hover + focus affordances.
-          "hover:border-border/70 hover:bg-muted/60 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30",
+          "hover:border-ring/45 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30",
           className,
         )}
       >
@@ -101,7 +106,7 @@ const NotificationItemRoot: FC<NotificationItemRootProps> = ({
             "group-data-unread/notif:opacity-100",
           )}
         />
-      </article>
+      </div>
     </NotificationItemContext.Provider>
   );
 };
@@ -191,7 +196,7 @@ const NotificationItemMeta: FC<{
   <span
     data-slot="notification-meta"
     className={cn(
-      "inline-flex items-center gap-1 text-[11px] text-muted-foreground/80 tabular-nums tracking-wide",
+      "inline-flex items-center gap-1 text-[11px] text-muted-foreground tabular-nums tracking-wide",
       className,
     )}
   >

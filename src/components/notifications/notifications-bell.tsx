@@ -69,9 +69,9 @@ export const NotificationsBell = () => {
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-[min(22rem,calc(100vw-1.5rem))] gap-0 p-0"
+        className="flex max-h-[min(30rem,var(--available-height,30rem))] w-[min(22rem,calc(100vw-1.5rem))] flex-col gap-0 overflow-hidden p-0"
       >
-        <header className="flex items-center justify-between gap-2 border-b px-3 py-2.5">
+        <header className="flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2.5">
           <div className="flex items-center gap-2">
             <span className="font-medium text-sm tracking-tight">
               Notificaciones
@@ -94,8 +94,8 @@ export const NotificationsBell = () => {
           </Button>
         </header>
 
-        <ScrollArea className="max-h-88">
-          <div className="flex flex-col gap-0.5 p-1.5">
+        <ScrollArea className="min-h-0 flex-1 bg-background">
+          <div className="flex flex-col gap-1.5 p-2">
             {items.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-2 px-4 py-10 text-center">
                 <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
@@ -125,7 +125,7 @@ export const NotificationsBell = () => {
           </div>
         </ScrollArea>
 
-        <footer className="border-t p-2">
+        <footer className="shrink-0 border-t p-2">
           <Button
             variant="ghost"
             size="sm"
