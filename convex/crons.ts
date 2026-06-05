@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { zInternalMutation } from ".";
 import { components, internal } from "./_generated/api";
+import { invites } from "./invitations";
 
 const crons = cronJobs();
 
@@ -58,24 +59,9 @@ export const cleanupAppointments = zInternalMutation({
 export const cleanupOldInvitations = zInternalMutation({
   args: z.object({}),
   handler: async (ctx) => {
-    const now = Date.now();
-
-    const invitations = await ctx.db
-      .query("invitations")
-      .withIndex("by_expiresAt", (q) => q.lte("expiresAt", now))
-      .filter((q) =>
-        q.or(
-          q.eq(q.field("status"), "pending"),
-          q.eq(q.field("status"), "expired"),
-          q.eq(q.field("status"), "accepted"),
-          q.eq(q.field("status"), "denied"),
-        ),
-      )
-      .collect();
-
-    await Promise.all(
-      invitations.map((invitation) => ctx.db.delete(invitation._id)),
-    );
+    // Delete claimed/revoked/expired invites managed by the invite-links
+    // component. Active (pending) invites are left untouched.
+    await invites.deleteOldInvites(ctx, { olderThanMs: ONE_WEEK_MS });
   },
 });
 

@@ -195,17 +195,6 @@ export const barbershopMemberServices = zodTable(
   }),
 );
 
-export const invitations = zodTable("invitations", (id) => ({
-  barbershopId: id("barbershops"),
-  email: z.string(),
-  phone: z.string(),
-  roles: z.enum(["barber", "staff"]).array(),
-  code: z.string(),
-  status: z.enum(["pending", "accepted", "denied", "expired"]),
-  expiresAt: z.number(),
-  inviterUserId: z.string(),
-}));
-
 export const usage = zodTable("usage", (id) => ({
   barbershopId: id("barbershops"),
   month: z.string(),
@@ -354,14 +343,6 @@ export default defineSchema({
     .index("by_barbershopId", ["barbershopId"])
     .index("by_serviceId", ["serviceId"]),
 
-  invitations: invitations
-    .table()
-    .index("by_barbershopId", ["barbershopId"])
-    .index("by_email", ["email"])
-    .index("by_code", ["code"])
-    .index("by_status", ["status"])
-    .index("by_expiresAt", ["expiresAt"]),
-
   usage: usage.table().index("by_barbershop_month", ["barbershopId", "month"]),
 
   extraCredits: extraCredits.table().index("by_barbershopId", ["barbershopId"]),
@@ -398,7 +379,6 @@ export type Appointment = output<typeof appointments.schema>;
 export type BarbershopMemberServices = output<
   typeof barbershopMemberServices.schema
 >;
-export type Invitation = output<typeof invitations.schema>;
 export type Usage = output<typeof usage.schema>;
 export type ExtraCredits = output<typeof extraCredits.schema>;
 export type CreditPurchase = output<typeof creditPurchases.schema>;

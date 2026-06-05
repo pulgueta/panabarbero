@@ -65,7 +65,7 @@ export interface PlanLimits {
 
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
   free: {
-    maxInvitedBarbers: 0,
+    maxInvitedBarbers: 2,
     maxStaff: 0,
     maxSmsPerMonth: 200,
     maxEmailPerMonth: 50,

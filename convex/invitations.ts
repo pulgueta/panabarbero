@@ -1,24 +1,85 @@
+import { InviteLinks } from "convex-invite-links";
 import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zMutation, zQuery } from ".";
-import { internal } from "./_generated/api";
+import { components, internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
 import { assertBarberInviteAllowed, assertStaffInviteAllowed } from "./acl";
 import { authComponent } from "./auth";
 import { assertCanManageTeam, assertOwner } from "./authz";
 import { getByUserIdFn } from "./barbershopMembers";
 import { errorMessages } from "./errors";
+import { siteUrl } from "./notificationCopy";
 import { rateLimitOrThrow } from "./ratelimit";
 import { getProfileByEmail, getProfileByUserId } from "./userProfileData";
 import { formatPhoneNumber } from "./utils";
 
-const INVITATION_EXPIRATION_MS = 1000 * 60 * 60 * 24 * 7;
+const INVITATION_EXPIRATION_MS = 1000 * 60 * 60 * 24 * 5;
+
+export const invites = new InviteLinks(components.inviteLinks, {
+  defaultExpiryMs: INVITATION_EXPIRATION_MS,
+  baseUrl: siteUrl(),
+});
+
+/**
+ * App-specific data carried on each invite's `metadata`. The invite token is
+ * the value used in the `/invitations/$code` link; the barbershop relation and
+ * roles live here so acceptance can rebuild the `barbershopMembers` row. Invites
+ * are scoped to the barbershop via the component's group feature
+ * (`groupId === barbershop._id`).
+ */
+type InviteMeta = {
+  roles: ("barber" | "staff")[];
+  phone: string;
+  barbershopId: Id<"barbershops">;
+  inviterUserId: string;
+};
 
 export const inviteBarberSchema = z.object({
   phone: z.string(),
   email: z.string(),
   roles: z.array(z.enum(["barber", "staff"])).length(1),
 });
+
+/**
+ * Revoke an expired invite and issue a fresh one with the same recipient and
+ * metadata, then re-send the notification. Used when a recipient opens an
+ * expired link or tries to accept one.
+ */
+async function renewExpiredInvite(
+  ctx: MutationCtx,
+  inv: { inviteId: string; email?: string; metadata?: unknown },
+): Promise<void> {
+  const meta = (inv.metadata ?? {}) as InviteMeta;
+
+  if (!inv.email || !meta.barbershopId) {
+    return;
+  }
+
+  await invites.revokeInvite(ctx, { inviteId: inv.inviteId });
+
+  const expiresAt = Date.now() + INVITATION_EXPIRATION_MS;
+
+  const { token } = await invites.makeInvite(ctx, {
+    email: inv.email,
+    groupId: meta.barbershopId,
+    expiresAt,
+    createdBy: meta.inviterUserId,
+    metadata: meta,
+  });
+
+  await ctx.scheduler.runAfter(0, internal.notifications.createBarberInvited, {
+    barbershopId: meta.barbershopId,
+    email: inv.email,
+    code: token,
+    inviterUserId: meta.inviterUserId,
+    roles: meta.roles,
+    expiresAt,
+    phone: meta.phone,
+  });
+}
 
 export const invite = zMutation({
   args: inviteBarberSchema,
@@ -81,50 +142,45 @@ export const invite = zMutation({
       }
     }
 
-    const existingInvitation = await ctx.db
-      .query("invitations")
-      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", barbershop._id))
-      .filter((q) => q.eq(q.field("email"), email))
-      .first();
+    // `listInvites` excludes claimed/revoked/expired by default, so any match
+    // here is an active (pending) invite for this email.
+    const activeInvites = await invites.listInvites(ctx, {
+      groupId: barbershop._id,
+    });
 
-    const now = Date.now();
-
-    if (
-      existingInvitation &&
-      existingInvitation.status === "pending" &&
-      existingInvitation.expiresAt > now
-    ) {
+    if (activeInvites.some((i) => i.email?.toLowerCase() === email)) {
       throw new ConvexError(
         "Ya existe una invitación activa para este correo.",
       );
     }
 
-    if (existingInvitation && existingInvitation.status === "pending") {
-      await ctx.db.patch(existingInvitation._id, { status: "expired" });
-    }
+    const expiresAt = Date.now() + INVITATION_EXPIRATION_MS;
 
-    const code = crypto.randomUUID();
-    const expiresAt = now + INVITATION_EXPIRATION_MS;
+    await invites.upsertGroup(ctx, {
+      groupId: barbershop._id,
+      name: barbershop.name,
+    });
 
-    const invitationId = await ctx.db.insert("invitations", {
-      barbershopId: barbershop._id,
+    const { token } = await invites.makeInvite(ctx, {
       email,
-      phone: formatPhoneNumber(args.phone),
-      roles: args.roles,
-      code,
-      status: "pending",
+      groupId: barbershop._id,
       expiresAt,
-      inviterUserId: user.userId,
+      createdBy: user.userId,
+      metadata: {
+        roles: args.roles,
+        phone: formatPhoneNumber(args.phone),
+        barbershopId: barbershop._id,
+        inviterUserId: user.userId,
+      } satisfies InviteMeta,
     });
 
     await ctx.scheduler.runAfter(
       0,
       internal.notifications.createBarberInvited,
       {
-        invitationId,
         barbershopId: barbershop._id,
         email,
-        code,
+        code: token,
         inviterUserId: user.userId,
         roles: args.roles,
         expiresAt,
@@ -132,27 +188,44 @@ export const invite = zMutation({
       },
     );
 
-    return invitationId;
+    return token;
   },
 });
 
 export const getByCode = zQuery({
   args: z.object({ code: z.string() }),
   handler: async (ctx, args) => {
-    const invitation = await ctx.db
-      .query("invitations")
-      .withIndex("by_code", (q) => q.eq("code", args.code))
-      .unique();
+    const inv = await invites.getInviteByToken(ctx, { token: args.code });
 
-    if (!invitation) {
+    if (!inv) {
       return null;
     }
 
-    const barbershop = await ctx.db.get(invitation.barbershopId);
+    const meta = (inv.metadata ?? {}) as InviteMeta;
+    const now = Date.now();
+
+    let status: "pending" | "accepted" | "denied" | "expired" = "pending";
+    if (inv.claimedAt) {
+      status = "accepted";
+    } else if (inv.revokedAt) {
+      status = "denied";
+    }
+
+    const isExpired =
+      !inv.claimedAt &&
+      !inv.revokedAt &&
+      !!inv.expiresAt &&
+      now > inv.expiresAt;
+
+    const barbershop = meta.barbershopId
+      ? await ctx.db.get(meta.barbershopId)
+      : null;
 
     return {
-      ...invitation,
-      isExpired: Date.now() > invitation.expiresAt,
+      email: inv.email,
+      roles: meta.roles ?? [],
+      status,
+      isExpired,
       barbershopName: barbershop?.name,
     };
   },
@@ -161,54 +234,29 @@ export const getByCode = zQuery({
 export const validate = zMutation({
   args: z.object({ code: z.string() }),
   handler: async (ctx, args) => {
-    const invitation = await ctx.db
-      .query("invitations")
-      .withIndex("by_code", (q) => q.eq("code", args.code))
-      .unique();
+    const inv = await invites.getInviteByToken(ctx, { token: args.code });
 
-    if (!invitation) {
+    if (!inv) {
       throw new ConvexError(errorMessages.notFound("invitación"));
     }
 
-    if (invitation.status !== "pending") {
-      return { status: invitation.status };
+    if (inv.claimedAt) {
+      return { status: "accepted" as const };
     }
 
-    const isExpired = invitation.expiresAt <= Date.now();
+    if (inv.revokedAt) {
+      return { status: "denied" as const };
+    }
+
+    const isExpired = !!inv.expiresAt && inv.expiresAt <= Date.now();
 
     if (!isExpired) {
-      return { status: "pending" };
+      return { status: "pending" as const };
     }
 
-    await ctx.db.patch(invitation._id, { status: "expired" });
+    await renewExpiredInvite(ctx, inv);
 
-    const newCode = crypto.randomUUID();
-    const expiresAt = Date.now() + INVITATION_EXPIRATION_MS;
-    const { _id, _creationTime, ...rest } = invitation;
-
-    const newInvitationId = await ctx.db.insert("invitations", {
-      ...rest,
-      status: "pending",
-      code: newCode,
-      expiresAt,
-    });
-
-    await ctx.scheduler.runAfter(
-      0,
-      internal.notifications.createBarberInvited,
-      {
-        invitationId: newInvitationId,
-        barbershopId: invitation.barbershopId,
-        email: invitation.email,
-        code: newCode,
-        inviterUserId: invitation.inviterUserId,
-        roles: invitation.roles,
-        expiresAt,
-        phone: invitation.phone,
-      },
-    );
-
-    return { status: "pending" };
+    return { status: "pending" as const };
   },
 });
 
@@ -226,23 +274,20 @@ export const answer = zMutation({
 
     await rateLimitOrThrow(ctx, "answerInvitation", `${user._id}-${args.code}`);
 
-    const invitation = await ctx.db
-      .query("invitations")
-      .withIndex("by_code", (q) => q.eq("code", args.code))
-      .unique();
+    const inv = await invites.getInviteByToken(ctx, { token: args.code });
 
-    if (!invitation) {
+    if (!inv) {
       throw new ConvexError(errorMessages.notFound("invitación"));
     }
 
-    if (invitation.status !== "pending") {
+    if (inv.claimedAt || inv.revokedAt) {
       throw new ConvexError("La invitación ya fue gestionada.");
     }
 
     switch (args.answer) {
       case "accept": {
-        if (invitation.expiresAt <= Date.now()) {
-          await ctx.db.patch(invitation._id, { status: "expired" });
+        if (inv.expiresAt && inv.expiresAt <= Date.now()) {
+          await renewExpiredInvite(ctx, inv);
 
           throw new ConvexError(
             "La invitación ha expirado. Se ha reenviado un nuevo enlace.",
@@ -255,22 +300,51 @@ export const answer = zMutation({
           throw new ConvexError(errorMessages.notFound("perfil de usuario"));
         }
 
-        if (profile.email !== invitation.email) {
-          throw new ConvexError("Esta invitación no corresponde a tu cuenta.");
+        // Claim marks the invite as used and adds the user to the barbershop
+        // group. If we throw afterwards (e.g. a role conflict), the whole
+        // mutation transaction — including this claim — rolls back.
+        const result = await invites.claimInvite(ctx, {
+          token: args.code,
+          userId: user.userId,
+          email: profile.email,
+        });
+
+        if (!result.ok) {
+          switch (result.reason) {
+            case "email_mismatch":
+              throw new ConvexError(
+                "Esta invitación no corresponde a tu cuenta.",
+              );
+            case "already_claimed":
+            case "revoked":
+              throw new ConvexError("La invitación ya fue gestionada.");
+            case "expired":
+              await renewExpiredInvite(ctx, inv);
+              throw new ConvexError(
+                "La invitación ha expirado. Se ha reenviado un nuevo enlace.",
+              );
+            default:
+              throw new ConvexError(errorMessages.notFound("invitación"));
+          }
         }
+
+        const meta = (result.metadata ?? inv.metadata ?? {}) as InviteMeta;
+        const barbershopId =
+          (result.groupId as Id<"barbershops"> | undefined) ??
+          meta.barbershopId;
 
         const existingMember = await ctx.db
           .query("barbershopMembers")
           .withIndex("by_barbershopId", (q) =>
-            q.eq("barbershopId", invitation.barbershopId),
+            q.eq("barbershopId", barbershopId),
           )
           .filter((q) => q.eq(q.field("userProfileDataId"), profile._id))
           .first();
 
         if (existingMember) {
           // Validate role exclusivity: barber can't become staff and vice versa
-          const isInvitingStaff = invitation.roles.includes("staff");
-          const isInvitingBarber = invitation.roles.includes("barber");
+          const isInvitingStaff = meta.roles.includes("staff");
+          const isInvitingBarber = meta.roles.includes("barber");
 
           if (isInvitingStaff && existingMember.roles.includes("barber")) {
             throw new ConvexError(
@@ -287,7 +361,7 @@ export const answer = zMutation({
           // Merge invitation roles into the existing member's roles
           const wasAlreadyBarber = existingMember.roles.includes("barber");
           const mergedRoles = [
-            ...new Set([...existingMember.roles, ...invitation.roles]),
+            ...new Set([...existingMember.roles, ...meta.roles]),
           ];
           await ctx.db.patch(existingMember._id, { roles: mergedRoles });
 
@@ -299,31 +373,29 @@ export const answer = zMutation({
             );
           }
 
-          await ctx.db.patch(invitation._id, { status: "accepted" });
           return existingMember._id;
         }
 
         const memberId = await ctx.db.insert("barbershopMembers", {
-          barbershopId: invitation.barbershopId,
+          barbershopId,
           userProfileDataId: profile._id,
-          roles: invitation.roles,
+          roles: meta.roles,
           isActive: true,
           joinedAt: Date.now(),
         });
 
         // Only assign all services for barbers, not for staff
-        if (invitation.roles.includes("barber")) {
+        if (meta.roles.includes("barber")) {
           await ctx.runMutation(
             internal.barbershopMemberServices.assignAllServicesToBarber,
             { id: memberId },
           );
         }
 
-        await ctx.db.patch(invitation._id, { status: "accepted" });
         break;
       }
       case "deny":
-        await ctx.db.patch(invitation._id, { status: "denied" });
+        await invites.revokeInviteByToken(ctx, { token: args.code });
         break;
       default:
         throw new ConvexError("Respuesta inválida.");
