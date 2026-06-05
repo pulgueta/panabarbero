@@ -15,12 +15,14 @@ import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
-import { Route as ChatRouteImport } from './routes/chat'
 import { Route as AiRouteImport } from './routes/ai'
+import { Route as ChatRouteRouteImport } from './routes/chat/route'
 import { Route as AuthedRoutesRouteRouteImport } from './routes/_authedRoutes/route'
 import { Route as AuthRouteRouteImport } from './routes/_auth/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ChatIndexRouteImport } from './routes/chat/index'
 import { Route as BarbershopsIndexRouteImport } from './routes/barbershops/index'
+import { Route as ChatThreadIdRouteImport } from './routes/chat/$threadId'
 import { Route as AuthVerifyEmailRouteImport } from './routes/_auth/verify-email'
 import { Route as AuthResetPasswordRouteImport } from './routes/_auth/reset-password'
 import { Route as AuthRegisterRouteImport } from './routes/_auth/register'
@@ -66,14 +68,14 @@ const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
   path: '/llms.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ChatRoute = ChatRouteImport.update({
-  id: '/chat',
-  path: '/chat',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AiRoute = AiRouteImport.update({
   id: '/ai',
   path: '/ai',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatRouteRoute = ChatRouteRouteImport.update({
+  id: '/chat',
+  path: '/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthedRoutesRouteRoute = AuthedRoutesRouteRouteImport.update({
@@ -89,10 +91,20 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChatIndexRoute = ChatIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ChatRouteRoute,
+} as any)
 const BarbershopsIndexRoute = BarbershopsIndexRouteImport.update({
   id: '/barbershops/',
   path: '/barbershops/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ChatThreadIdRoute = ChatThreadIdRouteImport.update({
+  id: '/$threadId',
+  path: '/$threadId',
+  getParentRoute: () => ChatRouteRoute,
 } as any)
 const AuthVerifyEmailRoute = AuthVerifyEmailRouteImport.update({
   id: '/verify-email',
@@ -175,8 +187,8 @@ const AuthedRoutesProfileBarbershopsAppointmentsIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/chat': typeof ChatRouteRouteWithChildren
   '/ai': typeof AiRoute
-  '/chat': typeof ChatRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/pricing': typeof PricingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
@@ -188,7 +200,9 @@ export interface FileRoutesByFullPath {
   '/register': typeof AuthRegisterRoute
   '/reset-password': typeof AuthResetPasswordRoute
   '/verify-email': typeof AuthVerifyEmailRoute
+  '/chat/$threadId': typeof ChatThreadIdRoute
   '/barbershops/': typeof BarbershopsIndexRoute
+  '/chat/': typeof ChatIndexRoute
   '/invitations/$code': typeof AuthedRoutesInvitationsCodeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/barbershops/$barbershopUuid/book': typeof BarbershopsBarbershopUuidBookRoute
@@ -202,7 +216,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ai': typeof AiRoute
-  '/chat': typeof ChatRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/pricing': typeof PricingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
@@ -214,7 +227,9 @@ export interface FileRoutesByTo {
   '/register': typeof AuthRegisterRoute
   '/reset-password': typeof AuthResetPasswordRoute
   '/verify-email': typeof AuthVerifyEmailRoute
+  '/chat/$threadId': typeof ChatThreadIdRoute
   '/barbershops': typeof BarbershopsIndexRoute
+  '/chat': typeof ChatIndexRoute
   '/invitations/$code': typeof AuthedRoutesInvitationsCodeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/barbershops/$barbershopUuid/book': typeof BarbershopsBarbershopUuidBookRoute
@@ -230,8 +245,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_auth': typeof AuthRouteRouteWithChildren
   '/_authedRoutes': typeof AuthedRoutesRouteRouteWithChildren
+  '/chat': typeof ChatRouteRouteWithChildren
   '/ai': typeof AiRoute
-  '/chat': typeof ChatRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/pricing': typeof PricingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
@@ -243,7 +258,9 @@ export interface FileRoutesById {
   '/_auth/register': typeof AuthRegisterRoute
   '/_auth/reset-password': typeof AuthResetPasswordRoute
   '/_auth/verify-email': typeof AuthVerifyEmailRoute
+  '/chat/$threadId': typeof ChatThreadIdRoute
   '/barbershops/': typeof BarbershopsIndexRoute
+  '/chat/': typeof ChatIndexRoute
   '/_authedRoutes/invitations/$code': typeof AuthedRoutesInvitationsCodeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/barbershops/$barbershopUuid/book': typeof BarbershopsBarbershopUuidBookRoute
@@ -258,8 +275,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/ai'
     | '/chat'
+    | '/ai'
     | '/llms.txt'
     | '/pricing'
     | '/privacy-policy'
@@ -271,7 +288,9 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/verify-email'
+    | '/chat/$threadId'
     | '/barbershops/'
+    | '/chat/'
     | '/invitations/$code'
     | '/api/auth/$'
     | '/barbershops/$barbershopUuid/book'
@@ -285,7 +304,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/ai'
-    | '/chat'
     | '/llms.txt'
     | '/pricing'
     | '/privacy-policy'
@@ -297,7 +315,9 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/verify-email'
+    | '/chat/$threadId'
     | '/barbershops'
+    | '/chat'
     | '/invitations/$code'
     | '/api/auth/$'
     | '/barbershops/$barbershopUuid/book'
@@ -312,8 +332,8 @@ export interface FileRouteTypes {
     | '/'
     | '/_auth'
     | '/_authedRoutes'
-    | '/ai'
     | '/chat'
+    | '/ai'
     | '/llms.txt'
     | '/pricing'
     | '/privacy-policy'
@@ -325,7 +345,9 @@ export interface FileRouteTypes {
     | '/_auth/register'
     | '/_auth/reset-password'
     | '/_auth/verify-email'
+    | '/chat/$threadId'
     | '/barbershops/'
+    | '/chat/'
     | '/_authedRoutes/invitations/$code'
     | '/api/auth/$'
     | '/barbershops/$barbershopUuid/book'
@@ -341,8 +363,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRouteRoute: typeof AuthRouteRouteWithChildren
   AuthedRoutesRouteRoute: typeof AuthedRoutesRouteRouteWithChildren
+  ChatRouteRoute: typeof ChatRouteRouteWithChildren
   AiRoute: typeof AiRoute
-  ChatRoute: typeof ChatRoute
   LlmsDottxtRoute: typeof LlmsDottxtRoute
   PricingRoute: typeof PricingRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
@@ -399,18 +421,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LlmsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/chat': {
-      id: '/chat'
-      path: '/chat'
-      fullPath: '/chat'
-      preLoaderRoute: typeof ChatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/ai': {
       id: '/ai'
       path: '/ai'
       fullPath: '/ai'
       preLoaderRoute: typeof AiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat': {
+      id: '/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof ChatRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authedRoutes': {
@@ -434,12 +456,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/chat/': {
+      id: '/chat/'
+      path: '/'
+      fullPath: '/chat/'
+      preLoaderRoute: typeof ChatIndexRouteImport
+      parentRoute: typeof ChatRouteRoute
+    }
     '/barbershops/': {
       id: '/barbershops/'
       path: '/barbershops'
       fullPath: '/barbershops/'
       preLoaderRoute: typeof BarbershopsIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/chat/$threadId': {
+      id: '/chat/$threadId'
+      path: '/$threadId'
+      fullPath: '/chat/$threadId'
+      preLoaderRoute: typeof ChatThreadIdRouteImport
+      parentRoute: typeof ChatRouteRoute
     }
     '/_auth/verify-email': {
       id: '/_auth/verify-email'
@@ -587,12 +623,26 @@ const AuthedRoutesRouteRouteChildren: AuthedRoutesRouteRouteChildren = {
 const AuthedRoutesRouteRouteWithChildren =
   AuthedRoutesRouteRoute._addFileChildren(AuthedRoutesRouteRouteChildren)
 
+interface ChatRouteRouteChildren {
+  ChatThreadIdRoute: typeof ChatThreadIdRoute
+  ChatIndexRoute: typeof ChatIndexRoute
+}
+
+const ChatRouteRouteChildren: ChatRouteRouteChildren = {
+  ChatThreadIdRoute: ChatThreadIdRoute,
+  ChatIndexRoute: ChatIndexRoute,
+}
+
+const ChatRouteRouteWithChildren = ChatRouteRoute._addFileChildren(
+  ChatRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRouteRoute: AuthRouteRouteWithChildren,
   AuthedRoutesRouteRoute: AuthedRoutesRouteRouteWithChildren,
+  ChatRouteRoute: ChatRouteRouteWithChildren,
   AiRoute: AiRoute,
-  ChatRoute: ChatRoute,
   LlmsDottxtRoute: LlmsDottxtRoute,
   PricingRoute: PricingRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
