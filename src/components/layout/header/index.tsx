@@ -1,6 +1,3 @@
-import { Link } from "@tanstack/react-router";
-import { domMax, LazyMotion } from "motion/react";
-import { lazy, Suspense } from "react";
 import { useNavSearch } from "@/components/layout/nav/nav-data";
 import { NavIndicator } from "@/components/layout/nav/nav-indicator";
 import { useActiveRoute } from "@/components/layout/nav/use-active-route";
@@ -10,6 +7,9 @@ import { APP_NAME } from "@/config";
 import { useIsBarber } from "@/hooks/use-barbershop-members";
 import { useNavRoutes } from "@/hooks/use-nav-routes";
 import { cn } from "@/lib/utils";
+import { Link } from "@tanstack/react-router";
+import { domMax, LazyMotion } from "motion/react";
+import { lazy, Suspense } from "react";
 
 const ThemeToggler = lazy(() =>
   import("@/components/layout/theme-toggler").then((mod) => ({
@@ -35,7 +35,7 @@ export const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 hidden w-full border-b bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/60 md:block md:px-4">
-      <div className="container mx-auto flex h-16 items-center border-x md:px-8 lg:px-10">
+      <div className="mx-auto flex h-16 w-full max-w-450 items-center border-x md:px-8 lg:px-10">
         <div className="mr-6 flex">
           <Link
             to={

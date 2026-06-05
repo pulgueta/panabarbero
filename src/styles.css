@@ -229,6 +229,14 @@ code {
   }
 }
 
+/* The sliding old/new snapshots translate by ±100%, which would otherwise bleed
+   over the chat sidebar/header because view-transition pseudo-elements render in
+   a viewport-level overlay. Clipping the group to the captured box keeps the
+   slide contained within the conversation column. */
+::view-transition-group(main-content) {
+  overflow: clip;
+}
+
 html:active-view-transition-type(slide-up) {
   &::view-transition-old(main-content) {
     animation: 300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-out-up;
