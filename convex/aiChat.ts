@@ -5,6 +5,7 @@ import {
   syncStreams,
   vStreamArgs,
 } from "@convex-dev/agent";
+import { gateway, generateText } from "ai";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
 import { convexToZod } from "convex-helpers/server/zod4";
@@ -14,7 +15,8 @@ import { zAction, zInternalAction, zMutation, zQuery } from ".";
 import { api, components, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
-import { buildPanaSystemPrompt, panaAgent } from "./aiAgent";
+import { buildPanaSystemPrompt, PANA_MODEL_ID, panaAgent } from "./aiAgent";
+import { resolvePanaAccessForUserId } from "./aiAgentHelpers";
 import { authComponent } from "./auth";
 import { rateLimiter } from "./ratelimit";
 
@@ -38,7 +40,7 @@ async function authorizeThreadAccess(
   ctx: Parameters<typeof listUIMessages>[0],
   threadId: string,
   callerId: string,
-): Promise<void> {
+) {
   const thread = await ctx.runQuery(components.agent.threads.getThread, {
     threadId,
   });
@@ -46,22 +48,101 @@ async function authorizeThreadAccess(
   if (!thread) throw new ConvexError("Esta conversación no existe.");
   if (thread.userId !== callerId)
     throw new ConvexError("No tienes acceso a esta conversación.");
+
+  return thread;
 }
 
-export const createNewThread = zMutation({
+/**
+ * Starts a new conversation and sends its first message in a single round-trip,
+ * then schedules the AI response and the title generation. Combining the two
+ * mutations the client used to make (create + send) removes a network hop, so
+ * the first message lands instantly when we navigate to `/chat/$threadId`.
+ *
+ * The thread is created without a title on purpose — `generateThreadTitle`
+ * fills it in from this first message, letting the sidebar show a skeleton in
+ * the meantime.
+ */
+export const createThreadAndSend = zMutation({
   args: z.object({
+    prompt: z.string(),
     userId: z.string().optional(),
-    title: z.string().optional(),
   }),
   handler: async (ctx, args) => {
     const callerId = await resolveCallerId(ctx, args.userId);
 
+    const isAnon = callerId.startsWith(ANON_PREFIX);
+    await rateLimiter.limit(
+      ctx,
+      isAnon ? "aiSendMessageAnon" : "aiSendMessage",
+      { key: callerId, throws: true },
+    );
+
     const threadId = await createThread(ctx, components.agent, {
       userId: callerId,
-      title: args.title ?? "Conversación con Pana",
     });
 
+    const { messageId } = await panaAgent.saveMessage(ctx, {
+      threadId,
+      userId: callerId,
+      prompt: args.prompt,
+      skipEmbeddings: true,
+    });
+
+    await Promise.all([
+      ctx.scheduler.runAfter(0, internal.aiChat.streamResponse, {
+        threadId,
+        promptMessageId: messageId,
+        callerId,
+      }),
+      ctx.scheduler.runAfter(0, internal.aiChat.generateThreadTitle, {
+        threadId,
+        prompt: args.prompt,
+      }),
+    ]);
+
     return { threadId };
+  },
+});
+
+/**
+ * Generates a short Spanish title for a thread from its first message using
+ * DeepSeek v4 flash, then patches the thread. Runs in the background right
+ * after the thread is created. On any failure it writes a safe fallback title
+ * so the sidebar never gets stuck on a loading skeleton.
+ */
+export const generateThreadTitle = zInternalAction({
+  args: z.object({
+    threadId: z.string(),
+    prompt: z.string(),
+  }),
+  handler: async (ctx, { threadId, prompt }) => {
+    let title = "Conversación con Pana";
+
+    try {
+      const { text } = await generateText({
+        model: gateway(PANA_MODEL_ID),
+        prompt: `Eres quien titula las conversaciones de un chat de barberías en Colombia. A partir del primer mensaje del usuario, escribe un título corto y claro de 3 a 6 palabras en español que resuma el tema. Sin comillas, sin punto final y sin emojis.
+
+Mensaje del usuario:
+${prompt}
+
+Título:`,
+      });
+
+      const cleaned = text
+        .trim()
+        .replace(/^["'«»\s]+|["'«».\s]+$/g, "")
+        .trim();
+
+      if (cleaned) title = cleaned.slice(0, 60);
+    } catch {
+      // Keep the fallback title — better a generic name than a stuck skeleton.
+    }
+
+    await ctx.runMutation(components.agent.threads.updateThread, {
+      threadId,
+      patch: { title },
+    });
   },
 });
 
@@ -153,13 +234,16 @@ export const streamResponse = zInternalAction({
   }),
   handler: async (ctx, { threadId, promptMessageId, callerId }) => {
     const isAnon = callerId.startsWith(ANON_PREFIX);
-    const [profile, management] = isAnon
-      ? [null, null]
+    const [profile, management, member] = isAnon
+      ? [null, null, null]
       : await Promise.all([
           ctx.runQuery(internal.aiAgentHelpers.getProfileForUserId, {
             userId: callerId,
           }),
           ctx.runQuery(internal.aiAgentHelpers.getPanaEntitlement, {
+            userId: callerId,
+          }),
+          ctx.runQuery(internal.aiAgentHelpers.getMemberForUserId, {
             userId: callerId,
           }),
         ]);
@@ -169,6 +253,7 @@ export const streamResponse = zInternalAction({
       isAnon,
       nowMs: Date.now(),
       management,
+      member,
     });
 
     const result = await panaAgent.streamText(
@@ -302,5 +387,25 @@ export const rejectPendingAction = zAction({
       },
       agentName: "Pana",
     });
+  },
+});
+
+/**
+ * Client-facing gate for the Pana chat. Tells the UI whether the current user
+ * is a barbershop member and, if so, whether the barbershop's plan unlocks the
+ * management capabilities. Customers (authenticated or anonymous) are never
+ * gated — they use Pana freely. Access is derived from the barbershop owner's
+ * plan, the same source the AI's system prompt uses.
+ */
+export const getPanaAccess = zQuery({
+  args: z.object({}),
+  handler: async (ctx) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+
+    if (!user?.userId) {
+      return { isShopMember: false, canManage: true, isOwner: false };
+    }
+
+    return await resolvePanaAccessForUserId(ctx, user.userId);
   },
 });

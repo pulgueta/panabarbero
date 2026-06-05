@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { zInternalQuery } from ".";
 import type { Id } from "./_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { getByUserIdFn } from "./barbershopMembers";
 import { getLimitsForProductKey } from "./plans";
 import { polar } from "./polar";
@@ -122,6 +123,51 @@ export const getProfileForUserId = zInternalQuery({
 });
 
 /**
+ * Resolves the barbershop member record for a user. Used by the AI tools to
+ * determine whether the caller is a barber/owner and to get their memberId
+ * for schedule lookups.
+ */
+export const getMemberForUserId = zInternalQuery({
+  args: z.object({ userId: z.string() }),
+  handler: async (ctx, args) => {
+    const member = await getByUserIdFn(ctx, { userId: args.userId });
+    if (!member) return null;
+
+    const barbershop = await ctx.db.get(member.barbershopId);
+    return {
+      memberId: member._id as string,
+      barbershopId: member.barbershopId as string,
+      barbershopName: barbershop?.name ?? "",
+      roles: member.roles,
+    };
+  },
+});
+
+/**
+ * Appointments where the user is the attending barber (work schedule view).
+ * Queries by the `by_barbershopMemberId` index, distinct from
+ * `getAppointmentsByUserId` which queries the customer-side `by_userId` index.
+ */
+export const getAppointmentsByMemberId = zInternalQuery({
+  args: z.object({
+    barbershopMemberId: z.string(),
+    numItems: z.number(),
+  }),
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("appointments")
+      .withIndex("by_barbershopMemberId", (q) =>
+        q.eq(
+          "barbershopMemberId",
+          args.barbershopMemberId as Id<"barbershopMembers">,
+        ),
+      )
+      .order("desc")
+      .take(args.numItems);
+  },
+});
+
+/**
  * Barbershop members lookup for the AI agent. Bypasses `safeGetAuthUser`
  * because the agent runs inside a scheduled action with no caller auth context.
  * The public `barbershopMembers.getByBarbershopId` returns `[]` in that case.
@@ -147,6 +193,39 @@ export const getMembersByBarbershopId = zInternalQuery({
 });
 
 /**
+ * Resolve whether a user can manage their barbershop through Pana.
+ *
+ * A member's access is always derived from the **barbershop owner's** plan,
+ * since barbers/staff don't hold their own subscription. Non-members (regular
+ * customers, anonymous users) are not gated — they use Pana freely for booking.
+ *
+ * Shared by the AI system-prompt soft gate (`getPanaEntitlement`) and the
+ * client-facing UI gate (`aiChat.getPanaAccess`) so both stay consistent.
+ */
+export async function resolvePanaAccessForUserId(
+  ctx: QueryCtx | MutationCtx,
+  userId: string,
+): Promise<{ isShopMember: boolean; canManage: boolean; isOwner: boolean }> {
+  const member = await getByUserIdFn(ctx, { userId });
+
+  if (!member?.roles || member.roles.length === 0) {
+    return { isShopMember: false, canManage: true, isOwner: false };
+  }
+
+  const barbershop = await ctx.db.get(member.barbershopId);
+  const subscription = barbershop
+    ? await polar.getCurrentSubscription(ctx, { userId: barbershop.ownerId })
+    : null;
+  const limits = getLimitsForProductKey(subscription?.productKey);
+
+  return {
+    isShopMember: true,
+    canManage: limits.panaManagement,
+    isOwner: member.roles.includes("owner"),
+  };
+}
+
+/**
  * Pana management entitlement for the AI agent. Determines whether the caller
  * is a barbershop member and whether their plan unlocks managing the shop via
  * chat, so the dynamic system prompt can softly gate management requests.
@@ -154,14 +233,11 @@ export const getMembersByBarbershopId = zInternalQuery({
 export const getPanaEntitlement = zInternalQuery({
   args: z.object({ userId: z.string() }),
   handler: async (ctx, args) => {
-    const member = await getByUserIdFn(ctx, { userId: args.userId });
-    const isShopMember = Boolean(member?.roles && member.roles.length > 0);
+    const { isShopMember, canManage } = await resolvePanaAccessForUserId(
+      ctx,
+      args.userId,
+    );
 
-    const subscription = await polar.getCurrentSubscription(ctx, {
-      userId: args.userId,
-    });
-    const limits = getLimitsForProductKey(subscription?.productKey);
-
-    return { isShopMember, canManage: limits.panaManagement };
+    return { isShopMember, canManage };
   },
 });
