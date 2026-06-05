@@ -41,25 +41,25 @@ const inputGroupAddonVariants = cva(
   },
 );
 
+function focusInputOnAddonClick(e: MouseEvent<HTMLFieldSetElement>) {
+  if ((e.target as HTMLElement).closest("button")) {
+    return;
+  }
+  e.currentTarget.parentElement?.querySelector("input")?.focus();
+}
+
+function focusInputOnAddonKeyDown(e: KeyboardEvent<HTMLFieldSetElement>) {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).querySelector("input")?.focus();
+  }
+}
+
 function InputGroupAddon({
   className,
   align = "inline-start",
   ...props
 }: ComponentProps<"fieldset"> & VariantProps<typeof inputGroupAddonVariants>) {
-  const focusInputOnAddonClick = (e: MouseEvent<HTMLFieldSetElement>) => {
-    if ((e.target as HTMLElement).closest("button")) {
-      return;
-    }
-    e.currentTarget.parentElement?.querySelector("input")?.focus();
-  };
-
-  const focusInputOnAddonKeyDown = (e: KeyboardEvent<HTMLFieldSetElement>) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      (e.currentTarget as HTMLElement).querySelector("input")?.focus();
-    }
-  };
-
   return (
     <fieldset
       data-slot="input-group-addon"

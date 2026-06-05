@@ -1,6 +1,16 @@
 import { GlobeSimpleIcon } from "@phosphor-icons/react";
+import type { ComponentProps } from "react";
 import { createContext, use, useMemo, useState } from "react";
-import * as BasePhoneInput from "react-phone-number-input";
+import type {
+  Country,
+  FlagProps,
+  Props,
+  Value,
+} from "react-phone-number-input";
+import {
+  getCountryCallingCode,
+  default as PhoneInputComponent,
+} from "react-phone-number-input";
 import flags from "react-phone-number-input/flags";
 
 import { Button } from "@/components/ui/button";
@@ -32,14 +42,14 @@ const PhoneInputContext = createContext<{
 });
 
 type PhoneInputProps = Omit<
-  React.ComponentProps<"input">,
+  ComponentProps<"input">,
   "onChange" | "value" | "ref"
 > &
   Omit<
-    BasePhoneInput.Props<typeof BasePhoneInput.default>,
+    Props<typeof PhoneInputComponent>,
     "onChange" | "variant" | "popupClassName" | "scrollAreaClassName"
   > & {
-    onChange?: (value: BasePhoneInput.Value) => void;
+    onChange?: (value: Value) => void;
     variant?: PhoneInputSize;
     popupClassName?: string;
     scrollAreaClassName?: string;
@@ -61,7 +71,7 @@ function PhoneInput({
   );
   return (
     <PhoneInputContext.Provider value={contextValue}>
-      <BasePhoneInput.default
+      <PhoneInputComponent
         className={cn(
           "flex",
           props["aria-invalid"] &&
@@ -73,17 +83,14 @@ function PhoneInput({
         inputComponent={InputComponent}
         smartCaret={false}
         value={value || undefined}
-        onChange={(value) => onChange?.(value || ("" as BasePhoneInput.Value))}
+        onChange={(value) => onChange?.(value || ("" as Value))}
         {...props}
       />
     </PhoneInputContext.Provider>
   );
 }
 
-function InputComponent({
-  className,
-  ...props
-}: React.ComponentProps<typeof Input>) {
+function InputComponent({ className, ...props }: ComponentProps<typeof Input>) {
   const { variant } = use(PhoneInputContext);
 
   return (
@@ -101,14 +108,14 @@ function InputComponent({
 
 type CountryEntry = {
   label: string;
-  value: BasePhoneInput.Country | undefined;
+  value: Country | undefined;
 };
 
 type CountrySelectProps = {
   disabled?: boolean;
-  value: BasePhoneInput.Country;
+  value: Country;
   options: CountryEntry[];
-  onChange: (country: BasePhoneInput.Country) => void;
+  onChange: (country: Country) => void;
 };
 
 function CountrySelect({
@@ -131,7 +138,7 @@ function CountrySelect({
     <Combobox
       items={filteredCountries}
       value={selectedCountry || ""}
-      onValueChange={(country: BasePhoneInput.Country | null) => {
+      onValueChange={(country: Country | null) => {
         if (country) {
           onChange(country);
         }
@@ -192,7 +199,7 @@ function CountrySelect({
                       />
                       <span className="flex-1 text-sm">{item.label}</span>
                       <span className="text-foreground/50 text-sm">
-                        {`+${BasePhoneInput.getCountryCallingCode(item.value)}`}
+                        {`+${getCountryCallingCode(item.value)}`}
                       </span>
                     </ComboboxItem>
                   ) : null,
@@ -206,7 +213,7 @@ function CountrySelect({
   );
 }
 
-function FlagComponent({ country, countryName }: BasePhoneInput.FlagProps) {
+function FlagComponent({ country, countryName }: FlagProps) {
   const Flag = flags[country];
 
   return (
