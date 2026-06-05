@@ -1,18 +1,20 @@
 import {
-  ArrowsOutIcon,
-  CircleNotchIcon,
-  CrosshairIcon,
+  CornersOutIcon,
+  MapPinIcon,
   MinusIcon,
   PlusIcon,
+  SpinnerIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import type { MarkerOptions, PopupOptions } from "maplibre-gl";
-import MapLibreGL from "maplibre-gl";
-import type { ReactNode, Ref } from "react";
+import { default as MapLibreGL } from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+import type { PropsWithChildren } from "react";
 import {
   createContext,
-  use,
+  forwardRef,
   useCallback,
+  useContext,
   useEffect,
   useId,
   useImperativeHandle,
@@ -23,7 +25,6 @@ import {
 import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/utils";
-import "maplibre-gl/dist/maplibre-gl.css";
 
 const defaultStyles = {
   dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
@@ -95,7 +96,7 @@ type MapContextValue = {
 const MapContext = createContext<MapContextValue | null>(null);
 
 function useMap() {
-  const context = use(MapContext);
+  const context = useContext(MapContext);
   if (!context) {
     throw new Error("useMap must be used within a Map component");
   }
@@ -118,8 +119,9 @@ type MapStyleOption = string | MapLibreGL.StyleSpecification;
 
 type MapRef = MapLibreGL.Map;
 
-type MapProps = {
-  children?: ReactNode;
+interface MapProps
+  extends PropsWithChildren,
+    Omit<MapLibreGL.MapOptions, "container" | "style"> {
   /** Additional CSS classes for the map container */
   className?: string;
   /**
@@ -147,17 +149,15 @@ type MapProps = {
   onViewportChange?: (viewport: MapViewport) => void;
   /** Show a loading indicator on the map */
   loading?: boolean;
-  /** Imperative handle exposing the underlying MapLibre instance. */
-  ref?: Ref<MapRef>;
-} & Omit<MapLibreGL.MapOptions, "container" | "style">;
+}
 
 function DefaultLoader() {
   return (
-    <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-xs">
+    <div className="bg-background/50 absolute inset-0 z-10 flex items-center justify-center backdrop-blur-xs">
       <div className="flex gap-1">
-        <span className="size-1.5 animate-pulse rounded-full bg-muted-foreground/60" />
-        <span className="size-1.5 animate-pulse rounded-full bg-muted-foreground/60 [animation-delay:150ms]" />
-        <span className="size-1.5 animate-pulse rounded-full bg-muted-foreground/60 [animation-delay:300ms]" />
+        <span className="bg-muted-foreground/60 size-1.5 animate-pulse rounded-full" />
+        <span className="bg-muted-foreground/60 size-1.5 animate-pulse rounded-full [animation-delay:150ms]" />
+        <span className="bg-muted-foreground/60 size-1.5 animate-pulse rounded-full [animation-delay:300ms]" />
       </div>
     </div>
   );
@@ -173,19 +173,20 @@ function getViewport(map: MapLibreGL.Map): MapViewport {
   };
 }
 
-// biome-ignore lint/suspicious/noShadowRestrictedNames: public component is intentionally named Map
-function Map({
-  children,
-  className,
-  theme: themeProp,
-  styles,
-  projection,
-  viewport,
-  onViewportChange,
-  loading = false,
+const Map = forwardRef<MapRef, MapProps>(function Map(
+  {
+    children,
+    className,
+    theme: themeProp,
+    styles,
+    projection,
+    viewport,
+    onViewportChange,
+    loading = false,
+    ...props
+  },
   ref,
-  ...props
-}: MapProps) {
+) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [mapInstance, setMapInstance] = useState<MapLibreGL.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -273,16 +274,7 @@ function Map({
       setMapInstance(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    clearStyleTimeout,
-    mapStyles.dark,
-    mapStyles.light,
-    projection,
-    // biome-ignore lint/correctness/useExhaustiveDependencies: props object is intentionally captured on mount only
-    props,
-    resolvedTheme,
-    viewport,
-  ]);
+  }, []);
 
   // Sync controlled viewport to map
   useEffect(() => {
@@ -348,7 +340,7 @@ function Map({
       </div>
     </MapContext.Provider>
   );
-}
+});
 
 type MarkerContextValue = {
   marker: MapLibreGL.Marker;
@@ -358,20 +350,20 @@ type MarkerContextValue = {
 const MarkerContext = createContext<MarkerContextValue | null>(null);
 
 function useMarkerContext() {
-  const context = use(MarkerContext);
+  const context = useContext(MarkerContext);
   if (!context) {
     throw new Error("Marker components must be used within MapMarker");
   }
   return context;
 }
 
-type MapMarkerProps = {
+interface MapMarkerProps
+  extends PropsWithChildren,
+    Omit<MarkerOptions, "element"> {
   /** Longitude coordinate for marker position */
   longitude: number;
   /** Latitude coordinate for marker position */
   latitude: number;
-  /** Marker subcomponents (MarkerContent, MarkerPopup, MarkerTooltip, MarkerLabel) */
-  children: ReactNode;
   /** Callback when marker is clicked */
   onClick?: (e: MouseEvent) => void;
   /** Callback when mouse enters marker */
@@ -384,7 +376,7 @@ type MapMarkerProps = {
   onDrag?: (lngLat: { lng: number; lat: number }) => void;
   /** Callback when marker drag ends (requires draggable: true) */
   onDragEnd?: (lngLat: { lng: number; lat: number }) => void;
-} & Omit<MarkerOptions, "element">;
+}
 
 function MapMarker({
   longitude,
@@ -458,8 +450,8 @@ function MapMarker({
 
     return markerInstance;
 
-    // biome-ignore lint/correctness/useExhaustiveDependencies: markerOptions is intentionally captured on mount only
-  }, [draggable, latitude, longitude, markerOptions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!map) return;
@@ -471,7 +463,7 @@ function MapMarker({
     };
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, marker.addTo, marker.remove]);
+  }, [map]);
 
   if (
     marker.getLngLat().lng !== longitude ||
@@ -502,21 +494,17 @@ function MapMarker({
     marker.setPitchAlignment(markerOptions.pitchAlignment ?? "auto");
   }
 
-  const markerContextValue = useMemo(() => ({ marker, map }), [marker, map]);
-
   return (
-    <MarkerContext.Provider value={markerContextValue}>
+    <MarkerContext.Provider value={{ marker, map }}>
       {children}
     </MarkerContext.Provider>
   );
 }
 
-type MarkerContentProps = {
-  /** Custom marker content. Defaults to a blue dot if not provided */
-  children?: ReactNode;
+interface MarkerContentProps extends PropsWithChildren {
   /** Additional CSS classes for the marker container */
   className?: string;
-};
+}
 
 function MarkerContent({ children, className }: MarkerContentProps) {
   const { marker } = useMarkerContext();
@@ -531,7 +519,7 @@ function MarkerContent({ children, className }: MarkerContentProps) {
 
 function DefaultMarkerIcon() {
   return (
-    <div className="relative size-4 rounded-full border-2 border-white bg-blue-500 shadow-lg" />
+    <div className="relative h-4 w-4 rounded-full border-2 border-white bg-blue-500 shadow-lg" />
   );
 }
 
@@ -541,21 +529,21 @@ function PopupCloseButton({ onClick }: { onClick: () => void }) {
       type="button"
       onClick={onClick}
       aria-label="Close popup"
-      className="absolute top-0.5 right-0.5 z-10 inline-flex size-5 cursor-pointer items-center justify-center rounded-sm text-foreground transition-colors hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="focus-visible:ring-ring hover:bg-muted text-foreground absolute top-0.5 right-0.5 z-10 inline-flex size-5 cursor-pointer items-center justify-center rounded-sm transition-colors focus:outline-none focus-visible:ring-2"
     >
       <XIcon className="size-3.5" />
     </button>
   );
 }
 
-type MarkerPopupProps = {
-  /** Popup content */
-  children: ReactNode;
+interface MarkerPopupProps
+  extends PropsWithChildren,
+    Omit<PopupOptions, "className" | "closeButton"> {
   /** Additional CSS classes for the popup container */
   className?: string;
   /** Show a close button in the popup (default: false) */
   closeButton?: boolean;
-} & Omit<PopupOptions, "className" | "closeButton">;
+}
 
 function MarkerPopup({
   children,
@@ -577,8 +565,8 @@ function MarkerPopup({
       .setDOMContent(container);
 
     return popupInstance;
-    // biome-ignore lint/correctness/useExhaustiveDependencies: popupOptions is intentionally captured on mount only
-  }, [container, popupOptions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!map) return;
@@ -590,7 +578,7 @@ function MarkerPopup({
       marker.setPopup(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, container, marker.setPopup, popup]);
+  }, [map]);
 
   if (popup.isOpen()) {
     const prev = prevPopupOptions.current;
@@ -610,8 +598,8 @@ function MarkerPopup({
   return createPortal(
     <div
       className={cn(
-        "relative max-w-62 rounded-md border bg-popover p-3 text-popover-foreground shadow-md",
-        "fade-in-0 zoom-in-95 animate-in duration-200 ease-out",
+        "bg-popover text-popover-foreground relative max-w-62 rounded-md border p-3 shadow-md",
+        "animate-in fade-in-0 zoom-in-95 duration-200 ease-out",
         className,
       )}
     >
@@ -622,12 +610,12 @@ function MarkerPopup({
   );
 }
 
-type MarkerTooltipProps = {
-  /** Tooltip content */
-  children: ReactNode;
+interface MarkerTooltipProps
+  extends PropsWithChildren,
+    Omit<PopupOptions, "className" | "closeButton" | "closeOnClick"> {
   /** Additional CSS classes for the tooltip container */
   className?: string;
-} & Omit<PopupOptions, "className" | "closeButton" | "closeOnClick">;
+}
 
 function MarkerTooltip({
   children,
@@ -647,8 +635,8 @@ function MarkerTooltip({
     }).setMaxWidth("none");
 
     return tooltipInstance;
-    // biome-ignore lint/correctness/useExhaustiveDependencies: popupOptions is intentionally captured on mount only
-  }, [popupOptions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!map) return;
@@ -669,15 +657,7 @@ function MarkerTooltip({
       tooltip.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    map,
-    container,
-    marker.getElement,
-    marker.getLngLat,
-    tooltip.remove,
-    tooltip.setDOMContent,
-    tooltip.setLngLat,
-  ]);
+  }, [map]);
 
   if (tooltip.isOpen()) {
     const prev = prevTooltipOptions.current;
@@ -695,8 +675,8 @@ function MarkerTooltip({
   return createPortal(
     <div
       className={cn(
-        "pointer-events-none text-balance rounded-md bg-foreground px-2 py-1 text-background text-xs shadow-md",
-        "fade-in-0 zoom-in-95 animate-in duration-200 ease-out",
+        "bg-foreground text-background pointer-events-none rounded-md px-2 py-1 text-xs text-balance shadow-md",
+        "animate-in fade-in-0 zoom-in-95 duration-200 ease-out",
         className,
       )}
     >
@@ -706,14 +686,12 @@ function MarkerTooltip({
   );
 }
 
-type MarkerLabelProps = {
-  /** Label text content */
-  children: ReactNode;
+interface MarkerLabelProps extends PropsWithChildren {
   /** Additional CSS classes for the label */
   className?: string;
   /** Position of the label relative to the marker (default: "top") */
   position?: "top" | "bottom";
-};
+}
 
 function MarkerLabel({
   children,
@@ -729,7 +707,7 @@ function MarkerLabel({
     <div
       className={cn(
         "absolute left-1/2 -translate-x-1/2 whitespace-nowrap",
-        "font-medium text-foreground text-xs",
+        "text-foreground text-[10px] font-medium",
         positionClasses[position],
         className,
       )}
@@ -765,7 +743,7 @@ const positionClasses = {
 
 function ControlGroup({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col overflow-hidden rounded-md border border-border bg-background shadow-sm [&>button:not(:last-child)]:border-border [&>button:not(:last-child)]:border-b">
+    <div className="border-border bg-background [&>button:not(:last-child)]:border-border flex flex-col overflow-hidden rounded-md border shadow-sm [&>button:not(:last-child)]:border-b">
       {children}
     </div>
   );
@@ -791,7 +769,7 @@ function ControlButton({
         "flex size-8 items-center justify-center transition-all",
         "first:rounded-t-md last:rounded-b-md",
         "hover:bg-accent dark:hover:bg-accent/40",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+        "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset",
         "disabled:pointer-events-none disabled:opacity-50",
       )}
       disabled={disabled}
@@ -891,9 +869,9 @@ function MapControls({
             disabled={waitingForLocation}
           >
             {waitingForLocation ? (
-              <CircleNotchIcon className="size-4 animate-spin" />
+              <SpinnerIcon className="size-4 animate-spin" />
             ) : (
-              <CrosshairIcon className="size-4" />
+              <MapPinIcon className="size-4" />
             )}
           </ControlButton>
         </ControlGroup>
@@ -901,7 +879,7 @@ function MapControls({
       {showFullscreen && (
         <ControlGroup>
           <ControlButton onClick={handleFullscreen} label="Toggle fullscreen">
-            <ArrowsOutIcon className="size-4" />
+            <CornersOutIcon className="size-4" />
           </ControlButton>
         </ControlGroup>
       )}
@@ -941,7 +919,6 @@ function CompassButton({ onClick }: { onClick: () => void }) {
         viewBox="0 0 24 24"
         className="size-5 transition-transform duration-200"
         style={{ transformStyle: "preserve-3d" }}
-        aria-hidden="true"
       >
         <path d="M12 2L16 12H12V2Z" className="fill-red-500" />
         <path d="M12 2L8 12H12V2Z" className="fill-red-300" />
@@ -952,20 +929,20 @@ function CompassButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-type MapPopupProps = {
+interface MapPopupProps
+  extends PropsWithChildren,
+    Omit<PopupOptions, "className" | "closeButton"> {
   /** Longitude coordinate for popup position */
   longitude: number;
   /** Latitude coordinate for popup position */
   latitude: number;
   /** Callback when popup is closed */
   onClose?: () => void;
-  /** Popup content */
-  children: ReactNode;
   /** Additional CSS classes for the popup container */
   className?: string;
   /** Show a close button in the popup (default: false) */
   closeButton?: boolean;
-} & Omit<PopupOptions, "className" | "closeButton">;
+}
 
 function MapPopup({
   longitude,
@@ -992,8 +969,8 @@ function MapPopup({
       .setLngLat([longitude, latitude]);
 
     return popupInstance;
-    // biome-ignore lint/correctness/useExhaustiveDependencies: popupOptions is intentionally captured on mount only
-  }, [latitude, longitude, popupOptions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!map) return;
@@ -1012,16 +989,7 @@ function MapPopup({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    map,
-    container,
-    popup.addTo,
-    popup.isOpen,
-    popup.off,
-    popup.on,
-    popup.remove,
-    popup.setDOMContent,
-  ]);
+  }, [map]);
 
   if (popup.isOpen()) {
     const prev = popupOptionsRef.current;
@@ -1049,8 +1017,8 @@ function MapPopup({
   return createPortal(
     <div
       className={cn(
-        "relative max-w-62 rounded-md border bg-popover p-3 text-popover-foreground shadow-md",
-        "fade-in-0 zoom-in-95 animate-in duration-200 ease-out",
+        "bg-popover text-popover-foreground relative max-w-62 rounded-md border p-3 shadow-md",
+        "animate-in fade-in-0 zoom-in-95 duration-200 ease-out",
         className,
       )}
     >
@@ -1137,7 +1105,7 @@ function MapRoute({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoaded, map, color, dashArray, layerId, opacity, sourceId, width]);
+  }, [isLoaded, map]);
 
   // When coordinates change, update the source data
   useEffect(() => {
@@ -1454,18 +1422,7 @@ function MapArc<T extends MapArcDatum = MapArcDatum>({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    isLoaded,
-    map,
-    beforeId,
-    geoJSON,
-    hitLayerId,
-    hitWidth,
-    layerId,
-    mergedLayout,
-    mergedPaint,
-    sourceId,
-  ]);
+  }, [isLoaded, map]);
 
   // Sync features when data / curvature / samples change.
   useEffect(() => {
@@ -1717,20 +1674,7 @@ function MapClusterLayer<
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    isLoaded,
-    map,
-    sourceId,
-    clusterColors[0],
-    clusterCountLayerId,
-    clusterLayerId,
-    clusterMaxZoom,
-    clusterRadius,
-    clusterThresholds[0],
-    data,
-    pointColor,
-    unclusteredLayerId,
-  ]);
+  }, [isLoaded, map, sourceId]);
 
   // Update source data when data prop changes (only for non-URL data)
   useEffect(() => {
