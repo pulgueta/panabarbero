@@ -1,3 +1,4 @@
+import { cloudflare } from "@cloudflare/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
@@ -10,11 +11,10 @@ const config = defineConfig({
     devtools(),
     nitro(),
     tailwindcss(),
-    tanstackStart({
-      sitemap: {
-        host: "https://www.panabarbero.com",
-      },
+    cloudflare({
+      tunnel: { name: "panabarbero-tunnel", autoStart: true },
     }),
+    tanstackStart(),
     viteReact(),
   ],
   ssr: {
@@ -22,6 +22,9 @@ const config = defineConfig({
   },
   resolve: {
     tsconfigPaths: true,
+  },
+  server: {
+    allowedHosts: ["localhost.panabarbero.com"],
   },
 });
 
