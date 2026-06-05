@@ -1,9 +1,8 @@
 "use node";
 
 import { Resend } from "@convex-dev/resend";
-import { render } from "@react-email/components";
+import { render } from "react-email";
 import { z } from "zod";
-import { zInternalAction } from ".";
 import {
   AppointmentCancelledEmail,
   AppointmentCreatedEmail,
@@ -14,6 +13,7 @@ import {
   RescheduleRequestAcceptEmail,
   RescheduleRequestDeniedEmail,
 } from "../emails/emails";
+import { zInternalAction } from ".";
 import { components, internal } from "./_generated/api";
 import { subjects } from "./notifications";
 

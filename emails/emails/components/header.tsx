@@ -1,4 +1,4 @@
-import { Hr, Img, Section } from "@react-email/components";
+import { Hr, Img, Section } from "react-email";
 
 export const Header = () => {
   return (
