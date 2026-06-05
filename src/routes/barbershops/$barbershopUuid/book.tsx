@@ -57,16 +57,8 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/book")({
       ),
     ]);
 
-    if (user?.userId) {
-      await Promise.all([
-        context.queryClient.ensureQueryData(profileQueryOptions(user.userId)),
-        context.queryClient.ensureQueryData(
-          barberByUserIdQueryOptions(user.userId),
-        ),
-      ]);
-    }
-
     if (barbershop?._id) {
+      // Core booking-form inputs (services, barbers, schedule) — block.
       const [, barbershopMembers] = await Promise.all([
         context.queryClient.ensureQueryData(
           servicesQueryOptions(barbershop._id),
@@ -79,15 +71,21 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/book")({
         ),
       ]);
 
-      if (barbershopMembers.length > 0) {
-        await Promise.all(
-          barbershopMembers.map((member) =>
-            context.queryClient.ensureQueryData(
-              servicesForBarberQueryOptions(member._id),
-            ),
-          ),
+      // Per-barber service filtering happens on selection — prime without
+      // blocking the form.
+      for (const member of barbershopMembers) {
+        void context.queryClient.prefetchQuery(
+          servicesForBarberQueryOptions(member._id),
         );
       }
+    }
+
+    // Viewer checks (not needed for first paint) — fire-and-forget.
+    if (user?.userId) {
+      void context.queryClient.prefetchQuery(profileQueryOptions(user.userId));
+      void context.queryClient.prefetchQuery(
+        barberByUserIdQueryOptions(user.userId),
+      );
     }
   },
 });

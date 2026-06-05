@@ -36,10 +36,13 @@ export const Route = createFileRoute("/chat")({
     );
 
     if (user?.userId) {
-      await Promise.all([
-        context.queryClient.ensureQueryData(myThreadsQueryOptions(user.userId)),
-        context.queryClient.ensureQueryData(getPanaAccessQueryOptions()),
-      ]);
+      // The sidebar thread list (useQuery, with its own loading state) and Pana
+      // access (read by chat children inside their own boundaries) shouldn't
+      // block the chat shell or the conversation — prime the cache only.
+      void context.queryClient.prefetchQuery(
+        myThreadsQueryOptions(user.userId),
+      );
+      void context.queryClient.prefetchQuery(getPanaAccessQueryOptions());
     }
   },
 });

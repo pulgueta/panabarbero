@@ -111,16 +111,14 @@ export const Route = createFileRoute(
           ),
         ]);
 
-        if (barbershopMembers.length) {
-          await Promise.all(
-            barbershopMembers.flatMap((barbershopMember) => [
-              opts.context.queryClient.ensureQueryData(
-                servicesForBarberQueryOptions(barbershopMember._id),
-              ),
-              opts.context.queryClient.ensureQueryData(
-                barberScheduleQueryOptions(barbershopMember._id),
-              ),
-            ]),
+        // Per-member services + schedules feed the member cards' detail
+        // controls (both useQuery) — prime the cache without blocking the list.
+        for (const barbershopMember of barbershopMembers) {
+          void opts.context.queryClient.prefetchQuery(
+            servicesForBarberQueryOptions(barbershopMember._id),
+          );
+          void opts.context.queryClient.prefetchQuery(
+            barberScheduleQueryOptions(barbershopMember._id),
           );
         }
       }

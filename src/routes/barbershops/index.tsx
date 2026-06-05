@@ -20,7 +20,6 @@ import {
   activeBarbershopsQueryOptions,
   useActiveBarbershops,
 } from "@/hooks/barbershop/use-barbershop";
-import { barbershopMetadataQueryOptions } from "@/hooks/barbershop/use-barbershop-metadata";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 import { breadcrumbStructuredData, getCanonicalUrl, seo } from "@/lib/utils";
 import { useLocationStore } from "@/store/barbershop-filters";
@@ -67,22 +66,13 @@ export const Route = createFileRoute("/barbershops/")({
     );
 
     // Primary content: the grid blocks on the barbershop list.
-    const barbershops = await opts.context.queryClient.ensureQueryData(
+    await opts.context.queryClient.ensureQueryData(
       activeBarbershopsQueryOptions({
         city: opts.deps.city,
         state: opts.deps.state,
         userId: user?.userId ?? undefined,
       }),
     );
-
-    // Ratings/metadata are decorative (the rating UI is currently commented out
-    // in the card), so they must not block the grid. prefetchQuery primes the
-    // cache without throwing and without awaiting.
-    for (const barbershop of barbershops) {
-      void opts.context.queryClient.prefetchQuery(
-        barbershopMetadataQueryOptions(barbershop._id),
-      );
-    }
   },
   head: () => {
     const persisted = useLocationStore.getState();

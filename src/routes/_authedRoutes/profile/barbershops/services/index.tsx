@@ -70,15 +70,13 @@ export const Route = createFileRoute(
         throw redirect({ to: "/profile/barbershops/appointments" });
       }
 
-      await opts.context.queryClient.ensureQueryData(
-        barbershopMemberRolesQueryOptions(user.userId),
-      );
-
-      await opts.context.queryClient.ensureQueryData(
+      // Not read on this page — prime without blocking.
+      void opts.context.queryClient.prefetchQuery(
         profileQueryOptions(user.userId),
       );
 
       if (barbershop?._id) {
+        // Primary content: the first page of services.
         await opts.context.queryClient.ensureQueryData(
           servicesPaginatedByBarbershopIdQueryOptions(barbershop._id, null),
         );
