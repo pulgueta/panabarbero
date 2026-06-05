@@ -173,6 +173,7 @@ function getViewport(map: MapLibreGL.Map): MapViewport {
   };
 }
 
+// biome-ignore lint/suspicious/noShadowRestrictedNames: public component is intentionally named Map
 function Map({
   children,
   className,
@@ -277,6 +278,7 @@ function Map({
     mapStyles.dark,
     mapStyles.light,
     projection,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: props object is intentionally captured on mount only
     props,
     resolvedTheme,
     viewport,
@@ -456,7 +458,7 @@ function MapMarker({
 
     return markerInstance;
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // biome-ignore lint/correctness/useExhaustiveDependencies: markerOptions is intentionally captured on mount only
   }, [draggable, latitude, longitude, markerOptions]);
 
   useEffect(() => {
@@ -575,7 +577,7 @@ function MarkerPopup({
       .setDOMContent(container);
 
     return popupInstance;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // biome-ignore lint/correctness/useExhaustiveDependencies: popupOptions is intentionally captured on mount only
   }, [container, popupOptions]);
 
   useEffect(() => {
@@ -645,7 +647,7 @@ function MarkerTooltip({
     }).setMaxWidth("none");
 
     return tooltipInstance;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // biome-ignore lint/correctness/useExhaustiveDependencies: popupOptions is intentionally captured on mount only
   }, [popupOptions]);
 
   useEffect(() => {
@@ -939,6 +941,7 @@ function CompassButton({ onClick }: { onClick: () => void }) {
         viewBox="0 0 24 24"
         className="size-5 transition-transform duration-200"
         style={{ transformStyle: "preserve-3d" }}
+        aria-hidden="true"
       >
         <path d="M12 2L16 12H12V2Z" className="fill-red-500" />
         <path d="M12 2L8 12H12V2Z" className="fill-red-300" />
@@ -989,7 +992,7 @@ function MapPopup({
       .setLngLat([longitude, latitude]);
 
     return popupInstance;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // biome-ignore lint/correctness/useExhaustiveDependencies: popupOptions is intentionally captured on mount only
   }, [latitude, longitude, popupOptions]);
 
   useEffect(() => {

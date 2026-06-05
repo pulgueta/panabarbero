@@ -5,11 +5,6 @@ import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 
 import type { BarbershopSearch } from "@/routes/barbershops";
 
-type BarbershopAvailabilityPayload = {
-  barbershopId: Barbershop["_id"];
-  date: number;
-};
-
 export type ActiveBarbershopsPayload = BarbershopSearch & {
   userId?: string | undefined;
 };
