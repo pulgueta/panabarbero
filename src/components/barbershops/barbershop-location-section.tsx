@@ -22,9 +22,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { useBarbershopLocation } from "@/hooks/barbershop/use-barbershop-metadata";
+import type { Coord } from "@/hooks/use-directions";
 import {
-  benchmarkDirections,
-  type Coord,
   getCachedRouteQueryOptions,
   useDrivingRoute,
 } from "@/hooks/use-directions";
@@ -139,14 +138,6 @@ export function BarbershopLocationSection({
         ]),
         { padding: 56, maxZoom: 16, duration: 700 },
       );
-
-      if (import.meta.env.DEV) {
-        benchmarkDirections(queryClient, from, to)
-          .then((result) =>
-            console.info("[directions] Convex cache vs OSRM API", result),
-          )
-          .catch(() => {});
-      }
     } catch {
       setState({ phase: "idle" });
       toast.error("No se pudo calcular la ruta.");

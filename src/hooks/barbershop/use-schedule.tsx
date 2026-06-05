@@ -7,21 +7,21 @@ const timeFormatter = new Intl.DateTimeFormat("es-CO", {
   minute: "2-digit",
 });
 
+function formatTimeLabel(time?: string | null) {
+  if (!time) return null;
+
+  const [hours, minutes] = time.split(":").map(Number);
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+
+  const date = new Date();
+
+  date.setHours(hours, minutes, 0, 0);
+
+  return timeFormatter.format(date);
+}
+
 export function useSchedule(availability: Barbershop["availability"] | null) {
-  const formatTimeLabel = (time?: string | null) => {
-    if (!time) return null;
-
-    const [hours, minutes] = time.split(":").map(Number);
-
-    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
-
-    const date = new Date();
-
-    date.setHours(hours, minutes, 0, 0);
-
-    return timeFormatter.format(date);
-  };
-
   const todaySchedule = (() => {
     if (!availability?.length) return undefined;
 

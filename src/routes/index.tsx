@@ -66,7 +66,7 @@ const HOME_FAQS = [
   {
     question: "¿Es gratis usar PanaBarbero?",
     answer:
-      "Sí. El plan gratuito está disponible para barberías independientes con un solo barbero. Para equipos más grandes o funcionalidades avanzadas, existen planes de pago con más capacidad.",
+      "Sí. El plan gratuito está disponible para barberías pequeñas con hasta 3 barberos. Para equipos más grandes o funcionalidades avanzadas, existen planes de pago con más capacidad.",
   },
   {
     question: "¿Qué notificaciones reciben los clientes y barberos?",

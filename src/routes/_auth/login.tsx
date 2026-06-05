@@ -36,19 +36,19 @@ export const Route = createFileRoute("/_auth/login")({
 
 type Provider = "google" | "apple" | "passkey" | "facebook";
 
+function oauthProviderLabel(provider: Provider) {
+  const baseLabel = "Iniciar sesión con";
+
+  switch (provider) {
+    case "google":
+      return `${baseLabel} Google`;
+    default:
+      return baseLabel;
+  }
+}
+
 function LoginPage() {
   const [isSigningIn, setIsSigningIn] = useState(false);
-
-  const oauthProviderLabel = (provider: Provider) => {
-    const baseLabel = "Iniciar sesión con";
-
-    switch (provider) {
-      case "google":
-        return `${baseLabel} Google`;
-      default:
-        return baseLabel;
-    }
-  };
 
   const handleSignIn = async (provider: Provider) => {
     try {

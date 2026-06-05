@@ -129,6 +129,18 @@ const CreditCard: FC<CreditCardProps> = ({
   );
 };
 
+function getCopPrice(
+  product:
+    | { prices: Array<{ priceCurrency?: string; priceAmount?: number }> }
+    | undefined,
+) {
+  if (!product) return 0;
+
+  const copPrice = product.prices.find((p) => p.priceCurrency === "cop");
+
+  return (copPrice?.priceAmount ?? 0) / 100;
+}
+
 interface ExtraCreditsCardsProps {
   barbershopId: Barbershop["_id"];
 }
@@ -149,18 +161,6 @@ export const ExtraCreditsCards: FC<ExtraCreditsCardsProps> = ({
   const emailProduct = products?.find(
     (p) => !p.isRecurring && p.name.toLowerCase().includes("correo"),
   );
-
-  const getCopPrice = (
-    product:
-      | { prices: Array<{ priceCurrency?: string; priceAmount?: number }> }
-      | undefined,
-  ) => {
-    if (!product) return 0;
-
-    const copPrice = product.prices.find((p) => p.priceCurrency === "cop");
-
-    return (copPrice?.priceAmount ?? 0) / 100;
-  };
 
   const safeCredits: ExtraCredits | null = credits ?? null;
 

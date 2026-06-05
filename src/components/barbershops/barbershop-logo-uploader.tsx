@@ -1,10 +1,10 @@
+import type { Id } from "@convex/_generated/dataModel";
 import {
   CameraIcon,
   SpinnerGapIcon,
   TrashIcon,
   UploadIcon,
 } from "@phosphor-icons/react";
-import type { Id } from "convex/_generated/dataModel";
 import type { FC } from "react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
