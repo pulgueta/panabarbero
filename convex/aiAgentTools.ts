@@ -305,6 +305,100 @@ const getMyAppointments = createTool({
   },
 });
 
+const getMyAgenda = createTool({
+  description:
+    "Agenda de trabajo del usuario como BARBERO: las citas que sus clientes tienen reservadas CON ÉL en su barbería (nombre del cliente, servicio, fecha y estado). Es DISTINTA de `getMyAppointments`, que son las reservas del propio usuario como CLIENTE. Úsala cuando un miembro del equipo (dueño o barbero) pregunte por su agenda, sus 'citas con clientes', 'qué tengo hoy/mañana' o sus 'citas pendientes' del negocio. Requiere sesión y un plan de pago (Barbería o Barbería Profesional).",
+  inputSchema: z.object({
+    onlyUpcoming: z
+      .boolean()
+      .optional()
+      .describe("Si es true (recomendado), solo citas futuras activas"),
+  }),
+  execute: async (ctx, input) => {
+    const userId = requireAuthUserId(ctx.userId);
+
+    const member = (await ctx.runQuery(
+      internal.aiAgentHelpers.getMemberForUserId,
+      { userId },
+    )) as {
+      memberId: string;
+      barbershopId: string;
+      barbershopName: string;
+      roles: Array<"owner" | "barber" | "staff">;
+    } | null;
+
+    if (!member) {
+      return { isTeamMember: false as const };
+    }
+
+    const { canManage } = (await ctx.runQuery(
+      internal.aiAgentHelpers.getPanaEntitlement,
+      { userId },
+    )) as { isShopMember: boolean; canManage: boolean };
+
+    if (!canManage) {
+      return {
+        isTeamMember: true as const,
+        canManage: false as const,
+        barbershopName: member.barbershopName,
+      };
+    }
+
+    const appointments = (await ctx.runQuery(
+      internal.aiAgentHelpers.getAppointmentsByMemberId,
+      { barbershopMemberId: member.memberId, numItems: 25 },
+    )) as AppointmentDoc[];
+
+    const now = Date.now();
+    const activeStatuses: AppointmentDoc["status"][] = [
+      "pending",
+      "confirmed",
+      "rescheduled",
+    ];
+
+    const onlyUpcoming = input.onlyUpcoming ?? true;
+    const relevant = onlyUpcoming
+      ? appointments
+          .filter(
+            (a) =>
+              !a.deletedAt &&
+              a.date >= now &&
+              activeStatuses.includes(a.status),
+          )
+          .sort((a, b) => a.date - b.date)
+      : appointments
+          .filter((a) => !a.deletedAt)
+          .sort((a, b) => b.date - a.date);
+
+    const sliced = relevant.slice(0, 10);
+
+    const serviceIds = [...new Set(sliced.map((a) => a.serviceId))];
+    const serviceDocs = (await Promise.all(
+      serviceIds.map((id) => ctx.runQuery(api.services.getById, { id })),
+    )) as (ServiceDoc | null)[];
+    const serviceNames = new Map(
+      serviceDocs.flatMap((s) => (s ? [[s._id, s.name] as const] : [])),
+    );
+
+    return {
+      isTeamMember: true as const,
+      canManage: true as const,
+      barbershopName: member.barbershopName,
+      count: sliced.length,
+      appointments: sliced.map((a) => ({
+        customerName: a.customerName,
+        service: serviceNames.get(a.serviceId) ?? "",
+        when: formatDate(a.date),
+        status: a.status,
+        rescheduleProposedWhen:
+          a.status === "pending" && a.proposedDate
+            ? formatDate(a.proposedDate)
+            : undefined,
+      })),
+    };
+  },
+});
+
 const getMyProfile = createTool({
   description:
     "Devuelve el perfil del usuario autenticado (nombre, teléfono, email). Útil para precargar datos en una reserva.",
@@ -613,6 +707,7 @@ export const tools = {
   listBarbersForService,
   getAvailability,
   getMyAppointments,
+  getMyAgenda,
   getMyProfile,
   getMyNotifications,
   getBarbershopReviews,

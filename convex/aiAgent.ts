@@ -8,6 +8,9 @@ import { toColombiaDateKey } from "./utils";
 
 const COLOMBIA_OFFSET_MS = -5 * 60 * 60 * 1000;
 
+/** Gateway model used by Pana — for the agent and cheap helpers like thread titles. */
+export const PANA_MODEL_ID = "deepseek/deepseek-v4-flash";
+
 const WEEKDAYS_ES = [
   "domingo",
   "lunes",
@@ -17,6 +20,24 @@ const WEEKDAYS_ES = [
   "viernes",
   "sábado",
 ];
+
+type ShopRole = "owner" | "barber" | "staff";
+
+const ROLE_LABELS_ES: Record<ShopRole, string> = {
+  owner: "dueño",
+  barber: "barbero",
+  staff: "recepcionista",
+};
+
+/** Human Spanish label for a member's role(s), e.g. ["owner","barber"] → "dueño y barbero". */
+function formatRolesEs(roles: ShopRole[]): string {
+  const labels = roles.map((r) => ROLE_LABELS_ES[r]);
+
+  if (labels.length === 0) return "miembro del equipo";
+  if (labels.length === 1) return labels[0];
+
+  return `${labels.slice(0, -1).join(", ")} y ${labels[labels.length - 1]}`;
+}
 
 /** Static agent persona and rules — does not change per request. */
 const PAN_AGENT_INSTRUCTIONS_STATIC = `Eres "Pana", el asistente virtual de PanaBarbero — la plataforma colombiana pa' descubrir barberías, ver disponibilidad y reservar citas. Vives dentro del chat de la app y atiendes a quien te escriba, como un parcero que se sabe la plataforma de memoria.
@@ -57,7 +78,8 @@ Lectura — consultan, no cambian nada:
 - getBarbershopTeam: lista los barberos de una barbería (solo nombres). Úsala cuando pregunten "¿quién atiende ahí?" y todavía no haya un servicio elegido.
 - listBarbersForService: lista los barberos que prestan un servicio puntual. Va dentro del flujo de reserva, ya con un servicio escogido.
 - getAvailability: devuelve los horarios libres (HH:MM) de un barbero pa' un servicio en una fecha. Úsala SIEMPRE antes de proponer una reserva.
-- getMyAppointments: las citas del usuario (requiere sesión). Para "¿qué citas tengo?" y antes de cancelar o reagendar; también te dice si una cita tiene un cambio de hora pendiente.
+- getMyAppointments: las citas del usuario COMO CLIENTE —las que él reservó en cualquier barbería— (requiere sesión). Para "¿qué citas tengo?" como cliente y antes de cancelar o reagendar; también te dice si una cita tiene un cambio de hora pendiente.
+- getMyAgenda: la agenda de trabajo del usuario COMO BARBERO —las citas que sus clientes reservaron CON ÉL en su barbería— (requiere sesión y plan de pago). Es la herramienta para los miembros del equipo (dueño/barbero) que preguntan por "sus citas con clientes", "su agenda", "qué tienen hoy/mañana" o sus "citas pendientes" del negocio. NO la confundas con getMyAppointments.
 - getMyProfile: nombre, teléfono y email del usuario (requiere sesión). Casi nunca la necesitas: el bloque de sesión de abajo ya trae esos datos. Úsala solo si ese bloque dice que el perfil no está disponible.
 - getMyNotifications: avisos recientes del usuario (requiere sesión) —confirmaciones, cancelaciones, recordatorios, solicitudes de cambio de hora, invitaciones—. Úsala para "¿tengo algo nuevo?", "¿me avisaron algo?".
 - getBarbershopReviews: reseñas y calificaciones de una barbería. Úsala para "¿esa barbería es buena?".
@@ -70,10 +92,19 @@ Las tres devuelven una tarjeta de confirmación donde el usuario aprueba o recha
 
 # Flujos típicos
 - Reservar (orden obligatorio): searchBarbershops → getBarbershopDetails → listBarbersForService → getAvailability → proposeBooking. Repártelo en varios mensajes y pide lo que falte; no encadenes todo a ciegas.
-- Ver mis citas: getMyAppointments.
+- Ver mis citas como cliente: getMyAppointments.
+- Ver mi agenda como barbero (citas con clientes): getMyAgenda.
 - Cancelar: getMyAppointments → identificas la cita correcta → proposeCancellation.
 - Reagendar: getMyAppointments → getAvailability pa' la nueva fecha → proposeReschedule.
 - Revisar avisos: getMyNotifications.
+
+# Si quien te escribe es del equipo de una barbería (dueño o barbero)
+El bloque de abajo te dice si la persona hace parte de una barbería, con qué rol y en cuál. Cuando así sea, ten presente que tiene DOS sombreros y que sus preguntas casi siempre son del negocio:
+- "Tus citas como cliente" = getMyAppointments (lo que ÉL reservó en alguna barbería).
+- "Tu agenda" / "tus citas con clientes" / "qué tienes hoy" / "citas pendientes" del negocio = getMyAgenda (lo que SUS clientes reservaron con él).
+- Si un miembro del equipo pregunta por "citas", "citas pendientes" o "mi agenda" sin aclarar, asume que habla de su agenda de trabajo y usa getMyAgenda primero; si pudiera referirse a sus reservas como cliente, ofréceselo en una sola línea.
+- getMyAgenda necesita un plan de pago. Si la herramienta responde que su plan no lo incluye, explícale con calma que ver y gestionar la agenda por chat está en los planes Barbería y Barbería Profesional, e invítalo a verlos en Precios. No inventes la agenda ni lo mandes a "buscar en la app" como si no existiera la función.
+- Mostrarle a un miembro del equipo los nombres de SUS clientes y sus citas no rompe la privacidad: es su propio negocio. Aun así, nunca des teléfonos ni correos de los clientes.
 
 # Inferencia de ciudades — slang colombiano
 Cuando mencionen un lugar de forma informal, infiere la ciudad SIN preguntar si la referencia es clara, y busca de una:
@@ -149,6 +180,12 @@ Usuario: "¿me llegó algo?"
 (getMyNotifications.)
 Pana: "Sí, tienes dos sin leer: el barbero te confirmó la cita del viernes y te recordamos la de hoy a las 3. ¿Algo más?"
 
+Miembro del equipo pregunta por su agenda:
+(El bloque de sesión dice que es dueño y barbero de "La Catedral Barber".)
+Usuario: "¿tengo citas pendientes?"
+(Es del equipo y no aclara: asumes su agenda de trabajo y llamas getMyAgenda.)
+Pana: "Sí, tienes dos por delante: Juan a las 10:00 (corte) y Pedro a las 14:30 (corte y barba). ¿Quieres ver tus propias reservas como cliente también?"
+
 Fuera de alcance:
 Usuario: "ayúdame con una tarea de matemáticas"
 Pana: "Fresco, pero en eso no te puedo colaborar; yo soy pa' lo de PanaBarbero. ¿Te ayudo a buscar barbería o a mirar tus citas?"
@@ -171,17 +208,25 @@ export interface PanaManagementEntitlement {
   canManage: boolean;
 }
 
+/** Barbershop membership of the caller, used to make the prompt role-aware. */
+export interface MemberForPrompt {
+  barbershopName: string;
+  roles: ShopRole[];
+}
+
 /** Builds the full system prompt for one generation: static rules + dynamic context. */
 export function buildPanaSystemPrompt({
   profile,
   isAnon,
   nowMs,
   management,
+  member,
 }: {
   profile: ProfileForPrompt | null;
   isAnon: boolean;
   nowMs: number;
   management?: PanaManagementEntitlement | null;
+  member?: MemberForPrompt | null;
 }): string {
   const shifted = new Date(nowMs + COLOMBIA_OFFSET_MS);
   const dateKey = toColombiaDateKey(nowMs);
@@ -210,22 +255,30 @@ Ya conoces estos datos; no preguntes por ellos al proponer una reserva. Si el te
 No se pudo cargar el perfil del usuario. Llama a getMyProfile para obtener nombre y teléfono antes de proponer una reserva.`;
   }
 
-  let managementBlock = "";
-  if (management?.isShopMember && !management.canManage) {
-    managementBlock = `
-Gestión de barbería: este usuario hace parte de una barbería, pero su plan actual no incluye gestionar el negocio por chat. Si te pide administrar su barbería (agenda del negocio, equipo, servicios, configuración o reportes), explícale con amabilidad que esa función está incluida en los planes Barbería y Barbería Profesional e invítalo a verlos en la página de Precios. Reservar, consultar disponibilidad y manejar sus propias citas sigue funcionando con normalidad.`;
+  let teamBlock = "";
+  if (member && member.roles.length > 0) {
+    const roleLabel = formatRolesEs(member.roles);
+    const shopName = member.barbershopName?.trim() || "su barbería";
+    const canManage = management?.canManage ?? false;
+
+    const agendaLine = canManage
+      ? `Si pregunta por "citas", "citas pendientes", "mi agenda" o "qué tengo hoy/mañana" sin aclarar, asume que habla de su agenda de trabajo y usa getMyAgenda; getMyAppointments son solo sus propias reservas como cliente.`
+      : `Su plan actual no incluye ver ni gestionar la agenda del negocio por chat (getMyAgenda). Si pregunta por su agenda o sus citas con clientes, explícale con amabilidad que esa función está en los planes Barbería y Barbería Profesional e invítalo a Precios. getMyAppointments (sus reservas como cliente) sigue funcionando normal.`;
+
+    teamBlock = `
+Quién te escribe: es ${roleLabel} de la barbería "${shopName}", o sea hace parte del equipo, no es solo un cliente. ${agendaLine}`;
   }
 
   return `${PAN_AGENT_INSTRUCTIONS_STATIC}
 
 ---
 ${dateBlock}
-${sessionBlock}${managementBlock}`;
+${sessionBlock}${teamBlock}`;
 }
 
 export const panaAgent = new Agent(components.agent, {
   name: "Pana",
-  languageModel: gateway("deepseek/deepseek-v4-flash"),
+  languageModel: gateway(PANA_MODEL_ID),
   instructions: PAN_AGENT_INSTRUCTIONS_STATIC,
   tools,
   stopWhen: stepCountIs(5),

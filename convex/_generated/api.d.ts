@@ -122,6 +122,7 @@ export declare const components: {
   polar: import("@convex-dev/polar/_generated/component.js").ComponentApi<"polar">;
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
   geospatial: import("@convex-dev/geospatial/_generated/component.js").ComponentApi<"geospatial">;
+  inviteLinks: import("convex-invite-links/_generated/component.js").ComponentApi<"inviteLinks">;
   aggregateCompletedAppointments: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateCompletedAppointments">;
   aggregateSmsSent: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateSmsSent">;
   aggregateEmailsSent: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateEmailsSent">;

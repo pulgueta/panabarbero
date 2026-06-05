@@ -25,17 +25,6 @@ import { useColombia } from "@/hooks/use-colombia";
 import type { barbershopFormSchema } from "@/lib/schemas";
 import { useLocationStore } from "@/store/barbershop-filters";
 
-type CreateBarbershopFormData = {
-  name: string;
-  description?: string;
-  address: string;
-  addressDetails?: string;
-  state: string;
-  city: string;
-  zipCode?: string;
-  contactPhone?: string;
-};
-
 interface CreateBarbershopFormProps {
   formIds: {
     [key: string]: string;

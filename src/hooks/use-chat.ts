@@ -1,20 +1,31 @@
+import { api } from "@convex/_generated/api";
 import {
   optimisticallySendMessage,
   useUIMessages,
 } from "@convex-dev/agent/react";
 import { convexQuery } from "@convex-dev/react-query";
-import { api } from "@convex/_generated/api";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useAction, useMutation } from "convex/react";
 import { useCallback } from "react";
 
 import type { Proposal } from "@/components/chat/proposal-card";
+import { chatViewTransition } from "@/lib/chat-view-transition";
 
 export function myThreadsQueryOptions(userId?: string) {
   return convexQuery(api.aiChat.listMyThreads, {
     userId,
     paginationOpts: { cursor: null, numItems: 20 },
   });
+}
+
+/**
+ * Recent threads for the chat sidebar. Uses `useQuery` (not suspense) so it
+ * handles the anonymous case gracefully — `userId` is `undefined` until the
+ * client mounts, and the backend returns an empty page for unknown callers.
+ */
+export function useMyThreads(userId: string | undefined) {
+  return useQuery(myThreadsQueryOptions(userId));
 }
 
 export function useChatMessages(
@@ -30,7 +41,7 @@ export function useChatMessages(
 
 export function useSendChatMessage(userId: string | undefined) {
   const navigate = useNavigate();
-  const createThread = useMutation(api.aiChat.createNewThread);
+  const createThreadAndSend = useMutation(api.aiChat.createThreadAndSend);
   const sendMessage = useMutation(api.aiChat.sendMessage).withOptimisticUpdate(
     optimisticallySendMessage(api.aiChat.listMessages),
   );
@@ -40,21 +51,28 @@ export function useSendChatMessage(userId: string | undefined) {
       const trimmed = prompt.trim();
       if (!trimmed || !userId) return null;
 
-      let tid = threadId;
-      if (!tid) {
-        const { threadId: newId } = await createThread({ userId });
-        tid = newId;
-        void navigate({
-          to: "/chat",
-          search: { thread: newId },
-          replace: true,
+      // First message: create the thread and send it in one round-trip, then
+      // navigate. The message is already persisted, so it shows the moment the
+      // thread's first page loads (no lost optimistic update across the remount).
+      if (!threadId) {
+        const { threadId: newId } = await createThreadAndSend({
+          prompt: trimmed,
+          userId,
         });
+        void navigate({
+          to: "/chat/$threadId",
+          params: { threadId: newId },
+          viewTransition: chatViewTransition,
+        });
+        return newId;
       }
 
-      await sendMessage({ threadId: tid, prompt: trimmed, userId });
-      return tid;
+      // Existing thread: the subscription is already live, so the optimistic
+      // update inserts the user's message instantly.
+      await sendMessage({ threadId, prompt: trimmed, userId });
+      return threadId;
     },
-    [userId, createThread, sendMessage, navigate],
+    [userId, createThreadAndSend, sendMessage, navigate],
   );
 }
 

@@ -12,6 +12,7 @@ import { authComponent } from "./auth";
 import { assertOwner } from "./authz";
 import { errorMessages } from "./errors";
 import { barbershopGeospatial } from "./geospatial";
+import { invites } from "./invitations";
 import { rateLimitOrThrow } from "./ratelimit";
 import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
@@ -238,7 +239,7 @@ export const deleteCascade = zMutation({
       appointments.map((appointment) => ctx.db.delete(appointment._id)),
     );
 
-    const [services, assignments, members, reviews, metadata, invitations] =
+    const [services, assignments, members, reviews, metadata, pendingInvites] =
       await Promise.all([
         ctx.db
           .query("services")
@@ -260,10 +261,9 @@ export const deleteCascade = zMutation({
           .query("barbershopMetadata")
           .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
           .unique(),
-        ctx.db
-          .query("invitations")
-          .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-          .collect(),
+        // Pending invites are stored in the invite-links component, scoped to
+        // this barbershop's group.
+        invites.listInvites(ctx, { groupId: args.id }),
       ]);
 
     await Promise.all([
@@ -271,7 +271,9 @@ export const deleteCascade = zMutation({
       ...assignments.map((assignment) => ctx.db.delete(assignment._id)),
       ...members.map((member) => ctx.db.delete(member._id)),
       ...reviews.map((review) => ctx.db.delete(review._id)),
-      ...invitations.map((invitation) => ctx.db.delete(invitation._id)),
+      ...pendingInvites.map((inv) =>
+        invites.revokeInvite(ctx, { inviteId: inv.inviteId }),
+      ),
       ...(metadata?._id ? [ctx.db.delete(metadata._id)] : []),
       barbershopGeospatial.remove(ctx, args.id),
     ]);

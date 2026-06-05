@@ -1,4 +1,5 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: early return */
+
 import { convexToZod, zid } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
@@ -20,6 +21,7 @@ import {
   buildNotificationCopy,
   buildSmsBody,
   type NotificationCopy,
+  siteUrl,
 } from "./notificationCopy";
 import { subjects } from "./notificationSubjects";
 import type { UserProfileData } from "./schema";
@@ -653,7 +655,6 @@ export const createPastAppointmentReminder = zInternalMutation({
 
 export const createBarberInvited = zInternalMutation({
   args: z.object({
-    invitationId: zid("invitations"),
     barbershopId: zid("barbershops"),
     email: z.string(),
     code: z.string(),
@@ -671,7 +672,7 @@ export const createBarberInvited = zInternalMutation({
 
     const inviterProfile = await getProfileByUserId(ctx, args.inviterUserId);
 
-    const invitationUrl = `${process.env.SITE_URL}/invitations/${args.code}`;
+    const invitationUrl = `${siteUrl()}/invitations/${args.code}`;
 
     const roleLabel = args.roles.includes("staff")
       ? "recepcionista"

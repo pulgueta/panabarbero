@@ -13,7 +13,7 @@ export const BorderContainer: FC<BorderContainerProps> = ({
   return (
     <section
       className={cn(
-        "container mx-auto min-h-[calc(100dvh-65px)] space-y-4 border-x bg-accent/20 px-4 pt-4 pb-24 md:px-8 md:pb-32 lg:px-10",
+        "mx-auto min-h-[calc(100dvh-110px)] w-full max-w-450 space-y-4 border-x bg-accent/20 px-4 pt-4 pb-24 md:min-h-[calc(100dvh-65px)] md:px-8 md:pb-32 lg:px-10",
         className,
       )}
       {...props}

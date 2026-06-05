@@ -110,6 +110,8 @@ export const Route = createFileRoute(
       ]);
 
       if (barbershop?._id) {
+        // Spine: everything the dashboard reads at the page level via
+        // useSuspenseQuery must be resolved before render.
         const [appointments, barbershopMembers] = await Promise.all([
           context.queryClient.ensureQueryData(
             getBarbershopPlanQueryOptions(barbershop._id),
@@ -131,44 +133,35 @@ export const Route = createFileRoute(
           ),
         ]).then(([, appts, members]) => [appts, members] as const);
 
-        if (barbershopMembers.length) {
-          await Promise.all(
-            barbershopMembers.map((barbershopMember) =>
-              context.queryClient.ensureQueryData(
-                servicesForBarberQueryOptions(barbershopMember._id),
-              ),
-            ),
+        // Leaf drill-downs feeding table cells + the create dialog — all
+        // useQuery, or consumed inside their own <Suspense> boundaries. Prime
+        // the cache without blocking the dashboard render.
+        for (const barbershopMember of barbershopMembers) {
+          void context.queryClient.prefetchQuery(
+            servicesForBarberQueryOptions(barbershopMember._id),
           );
         }
 
-        if (appointments) {
-          const services = await context.queryClient.ensureQueryData(
-            servicesByIdsQueryOptions(
-              appointments.map((appointment) => appointment.serviceId),
-            ),
+        if (appointments.length) {
+          const serviceIds = appointments.map(
+            (appointment) => appointment.serviceId,
           );
 
-          if (services) {
-            const servicesForBarbers = services.filter(
-              (service) => service !== null,
-            );
+          void context.queryClient.prefetchQuery(
+            servicesByIdsQueryOptions(serviceIds),
+          );
 
-            await Promise.all(
-              servicesForBarbers.map((service) =>
-                context.queryClient.ensureQueryData(
-                  barbersForServiceQueryOptions(service._id),
-                ),
-              ),
+          for (const serviceId of new Set(serviceIds)) {
+            void context.queryClient.prefetchQuery(
+              barbersForServiceQueryOptions(serviceId),
             );
           }
 
-          await Promise.all(
-            appointments.map((appointment) =>
-              context.queryClient.ensureQueryData(
-                serviceByAppointmentIdQueryOptions(appointment._id),
-              ),
-            ),
-          );
+          for (const appointment of appointments) {
+            void context.queryClient.prefetchQuery(
+              serviceByAppointmentIdQueryOptions(appointment._id),
+            );
+          }
         }
       }
     }

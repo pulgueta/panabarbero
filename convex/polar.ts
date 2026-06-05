@@ -31,7 +31,6 @@ export const polar = new Polar(components.polar, {
     [CREDIT_PRODUCT_KEYS[0]]: process.env.POLAR_PRODUCT_EXTRA_SMS!,
     [CREDIT_PRODUCT_KEYS[1]]: process.env.POLAR_PRODUCT_EXTRA_EMAIL!,
   },
-  server: process.env.POLAR as "sandbox" | "production",
 });
 
 export const {

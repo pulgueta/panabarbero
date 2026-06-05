@@ -1,17 +1,17 @@
 import {
-  Body,
-  Button,
-  Container,
-  Head,
-  Heading,
-  Html,
-  Link,
-  pixelBasedPreset,
-  Preview,
-  Section,
-  Tailwind,
-  Text,
-} from "@react-email/components";
+    Body,
+    Button,
+    Container,
+    Head,
+    Heading,
+    Html,
+    Link,
+    pixelBasedPreset,
+    Preview,
+    Section,
+    Tailwind,
+    Text,
+} from "react-email";
 
 import { tailwindConfig } from "../../tailwind-config";
 import { Header } from "../components/header";

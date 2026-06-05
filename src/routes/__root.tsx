@@ -137,23 +137,21 @@ const RootDocument = ({ children }: { children: React.ReactNode }) => {
           </>
         )}
 
-        {process.env.NODE_ENV === "development" && (
-          <TanStackDevtools
-            config={{
-              position: "bottom-left",
-            }}
-            plugins={[
-              {
-                name: "Tanstack Router",
-                render: <TanStackRouterDevtoolsPanel />,
-              },
-              {
-                name: "TanStack Query",
-                render: <ReactQueryDevtoolsPanel />,
-              },
-            ]}
-          />
-        )}
+        <TanStackDevtools
+          config={{
+            position: "bottom-left",
+          }}
+          plugins={[
+            {
+              name: "Tanstack Router",
+              render: <TanStackRouterDevtoolsPanel />,
+            },
+            {
+              name: "TanStack Query",
+              render: <ReactQueryDevtoolsPanel />,
+            },
+          ]}
+        />
       </body>
     </html>
   );

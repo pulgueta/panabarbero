@@ -1,5 +1,6 @@
 import {
   CalendarIcon,
+  ChatCircleIcon,
   CurrencyDollarIcon,
   GearSixIcon,
   HouseIcon,
@@ -33,6 +34,11 @@ export const publicRoutes = {
       to: "/ai",
       icon: SparkleIcon,
     },
+    {
+      label: "Pana",
+      to: "/chat",
+      icon: ChatCircleIcon,
+    },
   ],
 };
 
@@ -50,6 +56,11 @@ export const authenticatedRoutes = {
       label: "Citas",
       to: "/profile/barbershops/appointments",
       icon: CalendarIcon,
+    },
+    {
+      label: "Pana",
+      to: "/chat",
+      icon: ChatCircleIcon,
     },
     {
       label: "Perfil",
@@ -72,6 +83,11 @@ export const authenticatedRoutes = {
       label: "Servicios",
       to: "/profile/barbershops/services",
       icon: ScissorsIcon,
+    },
+    {
+      label: "Pana",
+      to: "/chat",
+      icon: ChatCircleIcon,
     },
     {
       label: "Perfil",
@@ -99,6 +115,11 @@ export const authenticatedRoutes = {
       label: "Ajustes",
       to: "/profile/barbershops/settings",
       icon: GearSixIcon,
+    },
+    {
+      label: "Pana",
+      to: "/chat",
+      icon: ChatCircleIcon,
     },
     {
       label: "Perfil",

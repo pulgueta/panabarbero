@@ -1,4 +1,4 @@
-import { Hr, Section, Text } from "@react-email/components";
+import { Hr, Section, Text } from "react-email";
 
 const CURRENT_YEAR = new Date().getFullYear();
 

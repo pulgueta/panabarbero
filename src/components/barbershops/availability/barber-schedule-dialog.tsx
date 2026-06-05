@@ -40,7 +40,7 @@ import {
   useBarbershopMemberActions,
 } from "@/hooks/use-barbershop-members";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
-import { parseTimeToMinutes } from "@/lib/schedule-utils";
+import { isTimeRangeValid } from "@/lib/schedule-utils";
 
 type DayKey =
   | "monday"
@@ -68,6 +68,47 @@ const dayLabelMap = days.reduce<Record<DayKey, string>>(
   },
   {} as Record<DayKey, string>,
 );
+
+const validateEntry = (
+  entry: Barbershop["availability"][number],
+): Barbershop["availability"][number] => {
+  const formatTime = (value?: string) =>
+    value && value.trim().length > 0 ? value : undefined;
+  const lunchStart = formatTime(entry.lunchStart);
+  const lunchEnd = formatTime(entry.lunchEnd);
+
+  if (entry.weekDay.isActive) {
+    if (!entry.openAt || !entry.closeAt) {
+      throw new Error(
+        `Define el horario disponible para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+      );
+    }
+    if (!isTimeRangeValid(entry.openAt, entry.closeAt)) {
+      throw new Error(
+        `La hora de disponibilidad final debe ser mayor a la hora inicial para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+      );
+    }
+  }
+
+  if ((lunchStart && !lunchEnd) || (!lunchStart && lunchEnd)) {
+    throw new Error(
+      `Completa ambas horas para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+    );
+  }
+  if (lunchStart && lunchEnd && !isTimeRangeValid(lunchStart, lunchEnd)) {
+    throw new Error(
+      `La hora de no disponibilidad final debe ser mayor a la hora inicial para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+    );
+  }
+
+  return {
+    weekDay: entry.weekDay,
+    openAt: entry.openAt ?? "",
+    closeAt: entry.closeAt ?? "",
+    lunchStart,
+    lunchEnd,
+  };
+};
 
 interface BarberScheduleDialogProps {
   member: BarbershopMemberWithName;
@@ -179,14 +220,6 @@ export const BarberScheduleDialog: FC<BarberScheduleDialogProps> = ({
     });
   }, [rows, initialRows, isCustom, scheduleData?.isCustom]);
 
-  const isTimeRangeValid = (start?: string, end?: string) => {
-    if (!start || !end) return false;
-    const startMin = parseTimeToMinutes(start);
-    const endMin = parseTimeToMinutes(end);
-    if (startMin === null || endMin === null) return false;
-    return endMin > startMin;
-  };
-
   const handleSelectedDaysChange = (values: string[]) => {
     const typed = values.filter(
       (value): value is DayKey => !!dayLabelMap[value as DayKey],
@@ -253,47 +286,6 @@ export const BarberScheduleDialog: FC<BarberScheduleDialogProps> = ({
       ),
     );
     toast.info("Los días seleccionados ahora están inactivos");
-  };
-
-  const validateEntry = (
-    entry: Barbershop["availability"][number],
-  ): Barbershop["availability"][number] => {
-    const formatTime = (value?: string) =>
-      value && value.trim().length > 0 ? value : undefined;
-    const lunchStart = formatTime(entry.lunchStart);
-    const lunchEnd = formatTime(entry.lunchEnd);
-
-    if (entry.weekDay.isActive) {
-      if (!entry.openAt || !entry.closeAt) {
-        throw new Error(
-          `Define el horario disponible para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
-        );
-      }
-      if (!isTimeRangeValid(entry.openAt, entry.closeAt)) {
-        throw new Error(
-          `La hora de disponibilidad final debe ser mayor a la hora inicial para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
-        );
-      }
-    }
-
-    if ((lunchStart && !lunchEnd) || (!lunchStart && lunchEnd)) {
-      throw new Error(
-        `Completa ambas horas para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
-      );
-    }
-    if (lunchStart && lunchEnd && !isTimeRangeValid(lunchStart, lunchEnd)) {
-      throw new Error(
-        `La hora de no disponibilidad final debe ser mayor a la hora inicial para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
-      );
-    }
-
-    return {
-      weekDay: entry.weekDay,
-      openAt: entry.openAt ?? "",
-      closeAt: entry.closeAt ?? "",
-      lunchStart,
-      lunchEnd,
-    };
   };
 
   const handleSave = async () => {

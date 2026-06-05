@@ -39,13 +39,13 @@ import {
   useIsOwner,
   useIsStaff,
 } from "@/hooks/use-barbershop-members";
-import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
 import {
   notificationsPageQueryOptions,
   recentNotificationsQueryOptions,
   unreadNotificationsCountQueryOptions,
   unreadNotificationsPageQueryOptions,
 } from "@/hooks/use-notifications";
+import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
 import { servicesByIdsQueryOptions } from "@/hooks/use-services";
 import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
 
@@ -150,48 +150,52 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
     );
 
     if (user?.userId) {
-      const [isBarber, isOwner, isStaff] = await Promise.all([
-        context.queryClient.ensureQueryData(isBarberQueryOptions(user.userId)),
-        context.queryClient.ensureQueryData(isOwnerQueryOptions(user.userId)),
-        context.queryClient.ensureQueryData(isStaffQueryOptions(user.userId)),
-      ]);
-
-      if (isBarber || isOwner || isStaff) {
-        await context.queryClient.ensureQueryData(
-          barbershopMemberRolesQueryOptions(user.userId),
-        );
-        const barbershop = await context.queryClient.ensureQueryData(
-          barbershopByOwnerIdQueryOptions(user.userId),
-        );
-        if (barbershop) {
-          await context.queryClient.ensureQueryData(
-            getBarbershopQuotaUsageQueryOptions(barbershop._id),
-          );
-        }
-      }
-
-      const [appointments] = await Promise.all([
+      // Spine (single parallel layer): everything read at the page level —
+      // profile + the customer's own appointments, the role flags (suspense)
+      // and owner roles/barbershop that gate the tab list. The component reads
+      // roles and the owner barbershop via useQuery for every user, so priming
+      // them here is never wasted.
+      const [appointments, barbershop] = await Promise.all([
         context.queryClient.ensureQueryData(
           appointmentsByUserQueryOptions(user.userId),
         ),
+        context.queryClient.ensureQueryData(
+          barbershopByOwnerIdQueryOptions(user.userId),
+        ),
+        context.queryClient.ensureQueryData(isBarberQueryOptions(user.userId)),
+        context.queryClient.ensureQueryData(isOwnerQueryOptions(user.userId)),
+        context.queryClient.ensureQueryData(isStaffQueryOptions(user.userId)),
         context.queryClient.ensureQueryData(profileQueryOptions(user.userId)),
-        context.queryClient.ensureQueryData(getPricingPlansQueryOptions()),
-        context.queryClient.ensureQueryData(getSubscriptionQueryOptions()),
-        context.queryClient.ensureQueryData(getExtraCreditsQueryOptions()),
         context.queryClient.ensureQueryData(
-          unreadNotificationsCountQueryOptions(),
+          barbershopMemberRolesQueryOptions(user.userId),
         ),
-        context.queryClient.ensureQueryData(
-          notificationsPageQueryOptions({ cursor: null, numItems: 20 }),
-        ),
-        context.queryClient.ensureQueryData(
-          unreadNotificationsPageQueryOptions({ cursor: null, numItems: 20 }),
-        ),
-        context.queryClient.ensureQueryData(recentNotificationsQueryOptions()),
       ]);
 
+      // Quota usage only feeds an owner tab — defer it.
+      if (barbershop) {
+        void context.queryClient.prefetchQuery(
+          getBarbershopQuotaUsageQueryOptions(barbershop._id),
+        );
+      }
+
+      // Tab-specific data — every consumer lives inside a <Suspense>-wrapped
+      // lazy tab, so prime the cache without blocking the shell or default tab.
+      void context.queryClient.prefetchQuery(getPricingPlansQueryOptions());
+      void context.queryClient.prefetchQuery(getSubscriptionQueryOptions());
+      void context.queryClient.prefetchQuery(getExtraCreditsQueryOptions());
+      void context.queryClient.prefetchQuery(
+        unreadNotificationsCountQueryOptions(),
+      );
+      void context.queryClient.prefetchQuery(
+        notificationsPageQueryOptions({ cursor: null, numItems: 20 }),
+      );
+      void context.queryClient.prefetchQuery(
+        unreadNotificationsPageQueryOptions({ cursor: null, numItems: 20 }),
+      );
+      void context.queryClient.prefetchQuery(recentNotificationsQueryOptions());
+
       if (appointments) {
-        await context.queryClient.ensureQueryData(
+        void context.queryClient.prefetchQuery(
           servicesByIdsQueryOptions(
             // @ts-expect-error - appointments is defined
             appointments.page.map((appointment) => appointment.serviceId),

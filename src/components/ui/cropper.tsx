@@ -1,11 +1,12 @@
+import { mergeProps } from "@base-ui/react/merge-props";
+import { useRender } from "@base-ui/react/use-render";
 import type { VariantProps } from "class-variance-authority";
 import { cva } from "class-variance-authority";
-import { Slot as SlotPrimitive } from "radix-ui";
 import type {
   ComponentProps,
-  ComponentRef,
   KeyboardEvent,
   MouseEvent,
+  ReactElement,
   RefObject,
   SyntheticEvent,
   TouchEvent,
@@ -372,7 +373,7 @@ function useStore<T>(selector: (state: StoreState) => T): T {
   return useSyncExternalStore(store.subscribe, getSnapshot, getSnapshot);
 }
 
-type RootElement = ComponentRef<typeof CropperImpl>;
+type RootElement = HTMLDivElement;
 
 interface CropperContextValue {
   aspectRatio: number;
@@ -1246,7 +1247,6 @@ function CropperImpl(props: CropperImplProps) {
       } else if (event.touches.length === 1) {
         const firstTouch = event.touches[0];
         if (firstTouch) {
-          // @ts-expect-error - TouchList is not iterable
           onDragStart(getTouchPoint(firstTouch));
         }
       }
@@ -1299,24 +1299,26 @@ function CropperImpl(props: CropperImplProps) {
     };
   }, [onRefsCleanup, onCacheCleanup]);
 
-  const RootPrimitive = asChild ? SlotPrimitive.Slot : "div";
-
-  return (
-    <RootPrimitive
-      data-slot="cropper"
-      tabIndex={0}
-      {...rootImplProps}
-      ref={composedRef}
-      className={cn(
-        "absolute inset-0 flex cursor-move touch-none select-none items-center justify-center overflow-hidden outline-none",
-        className,
-      )}
-      onKeyUp={onKeyUp}
-      onKeyDown={onKeyDown}
-      onMouseDown={onMouseDown}
-      onTouchStart={onTouchStart}
-    />
-  );
+  return useRender({
+    defaultTagName: "div",
+    render: asChild ? (rootImplProps.children as ReactElement) : undefined,
+    ref: composedRef,
+    props: mergeProps<"div">(
+      {
+        "data-slot": "cropper",
+        tabIndex: 0,
+        className: cn(
+          "absolute inset-0 flex cursor-move touch-none select-none items-center justify-center overflow-hidden outline-none",
+          className,
+        ),
+        onKeyUp,
+        onKeyDown,
+        onMouseDown,
+        onTouchStart,
+      },
+      rootImplProps,
+    ),
+  });
 }
 
 const cropperMediaVariants = cva("will-change-transform", {
@@ -1575,32 +1577,34 @@ function CropperImage(props: CropperImageProps) {
     }
   }, [context.rootRef, computeSizes]);
 
-  const ImagePrimitive = asChild ? SlotPrimitive.Slot : "img";
-
-  return (
-    <ImagePrimitive
-      data-slot="cropper-image"
-      {...imageProps}
-      ref={composedRef}
-      className={cn(
-        cropperMediaVariants({
-          objectFit: objectFit ?? context.objectFit,
-          className,
-        }),
-      )}
-      style={{
-        transform: snapPixels
-          ? `translate(${snapToDevicePixel(crop.x)}px, ${snapToDevicePixel(crop.y)}px) rotate(${rotation}deg) scale(${zoom})`
-          : `translate(${crop.x}px, ${crop.y}px) rotate(${rotation}deg) scale(${zoom})`,
-        ...style,
-      }}
-      onLoad={onMediaLoad}
-    />
-  );
+  return useRender({
+    defaultTagName: "img",
+    render: asChild ? (imageProps.children as ReactElement) : undefined,
+    ref: composedRef,
+    props: mergeProps<"img">(
+      {
+        "data-slot": "cropper-image",
+        className: cn(
+          cropperMediaVariants({
+            objectFit: objectFit ?? context.objectFit,
+            className,
+          }),
+        ),
+        style: {
+          transform: snapPixels
+            ? `translate(${snapToDevicePixel(crop.x)}px, ${snapToDevicePixel(crop.y)}px) rotate(${rotation}deg) scale(${zoom})`
+            : `translate(${crop.x}px, ${crop.y}px) rotate(${rotation}deg) scale(${zoom})`,
+          ...style,
+        },
+        onLoad: onMediaLoad,
+      },
+      imageProps,
+    ),
+  });
 }
 
 const cropperAreaVariants = cva(
-  "absolute top-1/2 left-1/2 box-border -translate-x-1/2 -translate-y-1/2 overflow-hidden border border-2 border-white/90 shadow-[0_0_0_9999em_rgba(0,0,0,0.5)]",
+  "absolute top-1/2 left-1/2 box-border -translate-x-1/2 -translate-y-1/2 overflow-hidden border-2 border-white/90 shadow-[0_0_0_9999em_rgba(0,0,0,0.5)]",
   {
     variants: {
       shape: {
@@ -1640,29 +1644,34 @@ function CropperArea(props: CropperAreaProps) {
   const context = useCropperContext(AREA_NAME);
   const cropSize = useStore((state) => state.cropSize);
 
-  if (!cropSize) return null;
-
-  const AreaPrimitive = asChild ? SlotPrimitive.Slot : "div";
-
-  return (
-    <AreaPrimitive
-      data-slot="cropper-area"
-      {...areaProps}
-      ref={ref}
-      className={cn(
-        cropperAreaVariants({
-          shape: shape ?? context.shape,
-          withGrid: withGrid ?? context.withGrid,
-          className,
-        }),
-      )}
-      style={{
-        width: snapPixels ? Math.round(cropSize.width) : cropSize.width,
-        height: snapPixels ? Math.round(cropSize.height) : cropSize.height,
-        ...style,
-      }}
-    />
-  );
+  return useRender({
+    defaultTagName: "div",
+    render: asChild ? (areaProps.children as ReactElement) : undefined,
+    ref,
+    enabled: cropSize != null,
+    props: mergeProps<"div">(
+      {
+        "data-slot": "cropper-area",
+        className: cn(
+          cropperAreaVariants({
+            shape: shape ?? context.shape,
+            withGrid: withGrid ?? context.withGrid,
+            className,
+          }),
+        ),
+        style: cropSize
+          ? {
+              width: snapPixels ? Math.round(cropSize.width) : cropSize.width,
+              height: snapPixels
+                ? Math.round(cropSize.height)
+                : cropSize.height,
+              ...style,
+            }
+          : style,
+      },
+      areaProps,
+    ),
+  });
 }
 
 export {

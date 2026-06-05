@@ -1,3 +1,6 @@
+import { useDirection } from "@base-ui/react/direction-provider";
+import { mergeProps } from "@base-ui/react/merge-props";
+import { useRender } from "@base-ui/react/use-render";
 import {
   FileAudioIcon,
   FileCodeIcon,
@@ -6,10 +9,6 @@ import {
   FileVideoIcon,
   FileZipIcon,
 } from "@phosphor-icons/react";
-import {
-  Direction as DirectionPrimitive,
-  Slot as SlotPrimitive,
-} from "radix-ui";
 import type {
   ChangeEvent,
   ClipboardEvent,
@@ -17,6 +16,7 @@ import type {
   DragEvent,
   KeyboardEvent,
   MouseEvent,
+  ReactElement,
   ReactNode,
   RefObject,
 } from "react";
@@ -252,7 +252,8 @@ function FileUpload(props: FileUploadProps) {
   const listId = useId();
   const labelId = useId();
 
-  const dir = DirectionPrimitive.useDirection(dirProp);
+  const contextDir = useDirection();
+  const dir = dirProp ?? contextDir;
   const listeners = useLazyRef(() => new Set<() => void>()).current;
   const files = useLazyRef<Map<File, FileState>>(() => new Map()).current;
   const urlCache = useLazyRef(() => new WeakMap<File, string>()).current;
@@ -654,38 +655,47 @@ function FileUpload(props: FileUploadProps) {
     [dropzoneId, inputId, listId, labelId, dir, disabled, urlCache],
   );
 
-  const RootPrimitive = asChild ? SlotPrimitive.Slot : "div";
+  const element = useRender({
+    defaultTagName: "div",
+    render: asChild ? (children as ReactElement) : undefined,
+    props: mergeProps<"div">(
+      {
+        "data-disabled": disabled ? "" : undefined,
+        "data-slot": "file-upload",
+        dir,
+        className: cn("relative flex flex-col gap-2", className),
+        children: (
+          <>
+            {children}
+            <input
+              type="file"
+              id={inputId}
+              aria-labelledby={labelId}
+              aria-describedby={dropzoneId}
+              ref={inputRef}
+              tabIndex={-1}
+              accept={accept}
+              name={name}
+              className="sr-only"
+              disabled={disabled}
+              multiple={multiple}
+              required={required}
+              onChange={onInputChange}
+            />
+            <div id={labelId} className="sr-only">
+              {label ?? "File upload"}
+            </div>
+          </>
+        ),
+      },
+      rootProps,
+    ),
+  });
 
   return (
     <StoreContext.Provider value={store}>
       <FileUploadContext.Provider value={contextValue}>
-        <RootPrimitive
-          data-disabled={disabled ? "" : undefined}
-          data-slot="file-upload"
-          dir={dir}
-          {...rootProps}
-          className={cn("relative flex flex-col gap-2", className)}
-        >
-          {children}
-          <input
-            type="file"
-            id={inputId}
-            aria-labelledby={labelId}
-            aria-describedby={dropzoneId}
-            ref={inputRef}
-            tabIndex={-1}
-            accept={accept}
-            name={name}
-            className="sr-only"
-            disabled={disabled}
-            multiple={multiple}
-            required={required}
-            onChange={onInputChange}
-          />
-          <div id={labelId} className="sr-only">
-            {label ?? "File upload"}
-          </div>
-        </RootPrimitive>
+        {element}
       </FileUploadContext.Provider>
     </StoreContext.Provider>
   );
@@ -866,35 +876,37 @@ function FileUploadDropzone(props: FileUploadDropzoneProps) {
     [context.inputRef, propsRef],
   );
 
-  const DropzonePrimitive = asChild ? SlotPrimitive.Slot : "div";
-
-  return (
-    <DropzonePrimitive
-      role="region"
-      id={context.dropzoneId}
-      aria-controls={`${context.inputId} ${context.listId}`}
-      aria-disabled={context.disabled}
-      aria-invalid={invalid}
-      data-disabled={context.disabled ? "" : undefined}
-      data-dragging={dragOver ? "" : undefined}
-      data-invalid={invalid ? "" : undefined}
-      data-slot="file-upload-dropzone"
-      dir={context.dir}
-      tabIndex={context.disabled ? undefined : 0}
-      {...dropzoneProps}
-      className={cn(
-        "relative flex select-none flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 outline-none transition-colors hover:bg-accent/30 focus-visible:border-ring/50 data-disabled:pointer-events-none data-dragging:border-primary/30 data-invalid:border-destructive data-dragging:bg-accent/30 data-invalid:ring-destructive/20",
-        className,
-      )}
-      onClick={onClick}
-      onDragEnter={onDragEnter}
-      onDragLeave={onDragLeave}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      onKeyDown={onKeyDown}
-      onPaste={onPaste}
-    />
-  );
+  return useRender({
+    defaultTagName: "div",
+    render: asChild ? (dropzoneProps.children as ReactElement) : undefined,
+    props: mergeProps<"div">(
+      {
+        role: "region",
+        id: context.dropzoneId,
+        "aria-controls": `${context.inputId} ${context.listId}`,
+        "aria-disabled": context.disabled,
+        "aria-invalid": invalid,
+        "data-disabled": context.disabled ? "" : undefined,
+        "data-dragging": dragOver ? "" : undefined,
+        "data-invalid": invalid ? "" : undefined,
+        "data-slot": "file-upload-dropzone",
+        dir: context.dir,
+        tabIndex: context.disabled ? undefined : 0,
+        className: cn(
+          "relative flex select-none flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 outline-none transition-colors hover:bg-accent/30 focus-visible:border-ring/50 data-disabled:pointer-events-none data-dragging:border-primary/30 data-invalid:border-destructive data-dragging:bg-accent/30 data-invalid:ring-destructive/20",
+          className,
+        ),
+        onClick,
+        onDragEnter,
+        onDragLeave,
+        onDragOver,
+        onDrop,
+        onKeyDown,
+        onPaste,
+      },
+      dropzoneProps,
+    ),
+  });
 }
 
 interface FileUploadListProps extends ComponentProps<"div"> {
@@ -916,27 +928,28 @@ function FileUploadList(props: FileUploadListProps) {
   const fileCount = useStore((state) => state.files.size);
   const shouldRender = forceMount || fileCount > 0;
 
-  if (!shouldRender) return null;
-
-  const ListPrimitive = asChild ? SlotPrimitive.Slot : "div";
-
-  return (
-    <ListPrimitive
-      role="list"
-      id={context.listId}
-      aria-orientation={orientation}
-      data-orientation={orientation}
-      data-slot="file-upload-list"
-      data-state={shouldRender ? "active" : "inactive"}
-      dir={context.dir}
-      {...listProps}
-      className={cn(
-        "data-[state=inactive]:fade-out-0 data-[state=active]:fade-in-0 data-[state=inactive]:slide-out-to-top-2 data-[state=active]:slide-in-from-top-2 flex flex-col gap-2 data-[state=active]:animate-in data-[state=inactive]:animate-out",
-        orientation === "horizontal" && "flex-row overflow-x-auto p-1.5",
-        className,
-      )}
-    />
-  );
+  return useRender({
+    defaultTagName: "div",
+    render: asChild ? (listProps.children as ReactElement) : undefined,
+    enabled: shouldRender,
+    props: mergeProps<"div">(
+      {
+        role: "list",
+        id: context.listId,
+        "aria-orientation": orientation,
+        "data-orientation": orientation,
+        "data-slot": "file-upload-list",
+        "data-state": shouldRender ? "active" : "inactive",
+        dir: context.dir,
+        className: cn(
+          "data-[state=inactive]:fade-out-0 data-[state=active]:fade-in-0 data-[state=inactive]:slide-out-to-top-2 data-[state=active]:slide-in-from-top-2 flex flex-col gap-2 data-[state=active]:animate-in data-[state=inactive]:animate-out",
+          orientation === "horizontal" && "flex-row overflow-x-auto p-1.5",
+          className,
+        ),
+      },
+      listProps,
+    ),
+  });
 }
 
 interface FileUploadItemContextValue {
@@ -966,7 +979,7 @@ interface FileUploadItemProps extends ComponentProps<"div"> {
 }
 
 function FileUploadItem(props: FileUploadItemProps) {
-  const { value, asChild, className, ...itemProps } = props;
+  const { value, asChild, className, children, ...itemProps } = props;
 
   const id = useId();
   const statusId = `${id}-status`;
@@ -994,42 +1007,50 @@ function FileUploadItem(props: FileUploadItemProps) {
     [id, fileState, statusId, nameId, sizeId, messageId],
   );
 
-  if (!fileState) return null;
-
-  const statusText = fileState.error
+  const statusText = fileState?.error
     ? `Error: ${fileState.error}`
-    : fileState.status === "uploading"
+    : fileState?.status === "uploading"
       ? `Uploading: ${fileState.progress}% complete`
-      : fileState.status === "success"
+      : fileState?.status === "success"
         ? "Upload complete"
         : "Ready to upload";
 
-  const ItemPrimitive = asChild ? SlotPrimitive.Slot : "div";
+  const element = useRender({
+    defaultTagName: "div",
+    render: asChild ? (children as ReactElement) : undefined,
+    enabled: fileState != null,
+    props: mergeProps<"div">(
+      {
+        role: "listitem",
+        id,
+        "aria-setsize": fileCount,
+        "aria-posinset": fileIndex,
+        "aria-describedby": `${nameId} ${sizeId} ${statusId} ${
+          fileState?.error ? messageId : ""
+        }`,
+        "aria-labelledby": nameId,
+        "data-slot": "file-upload-item",
+        dir: context.dir,
+        className: cn(
+          "relative flex items-center gap-2.5 rounded-md border p-3",
+          className,
+        ),
+        children: (
+          <>
+            {children}
+            <span id={statusId} className="sr-only">
+              {statusText}
+            </span>
+          </>
+        ),
+      },
+      itemProps,
+    ),
+  });
 
   return (
     <FileUploadItemContext.Provider value={itemContext}>
-      <ItemPrimitive
-        role="listitem"
-        id={id}
-        aria-setsize={fileCount}
-        aria-posinset={fileIndex}
-        aria-describedby={`${nameId} ${sizeId} ${statusId} ${
-          fileState.error ? messageId : ""
-        }`}
-        aria-labelledby={nameId}
-        data-slot="file-upload-item"
-        dir={context.dir}
-        {...itemProps}
-        className={cn(
-          "relative flex items-center gap-2.5 rounded-md border p-3",
-          className,
-        )}
-      >
-        {props.children}
-        <span id={statusId} className="sr-only">
-          {statusText}
-        </span>
-      </ItemPrimitive>
+      {element}
     </FileUploadItemContext.Provider>
   );
 }
@@ -1075,24 +1096,30 @@ function FileUploadItemPreview(props: FileUploadItemPreviewProps) {
     [render, getDefaultRender],
   );
 
-  if (!itemContext.fileState) return null;
-
-  const ItemPreviewPrimitive = asChild ? SlotPrimitive.Slot : "div";
-
-  return (
-    <ItemPreviewPrimitive
-      aria-labelledby={itemContext.nameId}
-      data-slot="file-upload-preview"
-      {...previewProps}
-      className={cn(
-        "relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded border bg-accent/50 [&>svg]:size-10",
-        className,
-      )}
-    >
-      {onPreviewRender(itemContext.fileState.file)}
-      {children}
-    </ItemPreviewPrimitive>
-  );
+  return useRender({
+    defaultTagName: "div",
+    render: asChild ? (children as ReactElement) : undefined,
+    enabled: itemContext.fileState != null,
+    props: mergeProps<"div">(
+      {
+        "aria-labelledby": itemContext.nameId,
+        "data-slot": "file-upload-preview",
+        className: cn(
+          "relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded border bg-accent/50 [&>svg]:size-10",
+          className,
+        ),
+        children: (
+          <>
+            {itemContext.fileState
+              ? onPreviewRender(itemContext.fileState.file)
+              : null}
+            {children}
+          </>
+        ),
+      },
+      previewProps,
+    ),
+  });
 }
 
 interface FileUploadItemMetadataProps extends ComponentProps<"div"> {
@@ -1112,49 +1139,51 @@ function FileUploadItemMetadata(props: FileUploadItemMetadataProps) {
   const context = useFileUploadContext(ITEM_METADATA_NAME);
   const itemContext = useFileUploadItemContext(ITEM_METADATA_NAME);
 
-  if (!itemContext.fileState) return null;
-
-  const ItemMetadataPrimitive = asChild ? SlotPrimitive.Slot : "div";
-
-  return (
-    <ItemMetadataPrimitive
-      data-slot="file-upload-metadata"
-      dir={context.dir}
-      {...metadataProps}
-      className={cn("flex min-w-0 flex-1 flex-col", className)}
-    >
-      {children ?? (
-        <>
-          <span
-            id={itemContext.nameId}
-            className={cn(
-              "truncate font-medium text-sm",
-              size === "sm" && "font-normal text-[13px] leading-snug",
-            )}
-          >
-            {itemContext.fileState.file.name}
-          </span>
-          <span
-            id={itemContext.sizeId}
-            className={cn(
-              "truncate text-muted-foreground text-xs",
-              size === "sm" && "text-[11px] leading-snug",
-            )}
-          >
-            {formatBytes(itemContext.fileState.file.size)}
-          </span>
-          {itemContext.fileState.error && (
+  return useRender({
+    defaultTagName: "div",
+    render: asChild ? (children as ReactElement) : undefined,
+    enabled: itemContext.fileState != null,
+    props: mergeProps<"div">(
+      {
+        "data-slot": "file-upload-metadata",
+        dir: context.dir,
+        className: cn("flex min-w-0 flex-1 flex-col", className),
+        children: children ?? (
+          <>
             <span
-              id={itemContext.messageId}
-              className="text-destructive text-xs"
+              id={itemContext.nameId}
+              className={cn(
+                "truncate font-medium text-sm",
+                size === "sm" && "font-normal text-[13px] leading-snug",
+              )}
             >
-              {itemContext.fileState.error}
+              {itemContext.fileState?.file.name}
             </span>
-          )}
-        </>
-      )}
-    </ItemMetadataPrimitive>
-  );
+            <span
+              id={itemContext.sizeId}
+              className={cn(
+                "truncate text-muted-foreground text-xs",
+                size === "sm" && "text-[11px] leading-snug",
+              )}
+            >
+              {itemContext.fileState
+                ? formatBytes(itemContext.fileState.file.size)
+                : null}
+            </span>
+            {itemContext.fileState?.error && (
+              <span
+                id={itemContext.messageId}
+                className="text-destructive text-xs"
+              >
+                {itemContext.fileState.error}
+              </span>
+            )}
+          </>
+        ),
+      },
+      metadataProps,
+    ),
+  });
 }
 interface FileUploadItemDeleteProps extends ComponentProps<"button"> {
   asChild?: boolean;
@@ -1180,20 +1209,21 @@ function FileUploadItemDelete(props: FileUploadItemDeleteProps) {
     [store, itemContext.fileState, onClickProp],
   );
 
-  if (!itemContext.fileState) return null;
-
-  const ItemDeletePrimitive = asChild ? SlotPrimitive.Slot : "button";
-
-  return (
-    <ItemDeletePrimitive
-      type="button"
-      aria-controls={itemContext.id}
-      aria-describedby={itemContext.nameId}
-      data-slot="file-upload-item-delete"
-      {...deleteProps}
-      onClick={onClick}
-    />
-  );
+  return useRender({
+    defaultTagName: "button",
+    render: asChild ? (deleteProps.children as ReactElement) : undefined,
+    enabled: itemContext.fileState != null,
+    props: mergeProps<"button">(
+      {
+        type: "button",
+        "aria-controls": itemContext.id,
+        "aria-describedby": itemContext.nameId,
+        "data-slot": "file-upload-item-delete",
+        onClick,
+      },
+      deleteProps,
+    ),
+  });
 }
 
 export {

@@ -34,8 +34,8 @@ export const PricingCard: FC<PricingCardProps> = ({
     (product) => product?.recurringInterval === "year",
   );
 
-  const usdPrices = product?.prices.find(
-    (price) => price.priceCurrency === "usd",
+  const copPrices = product?.prices.find(
+    (price) => price.priceCurrency === "cop",
   );
 
   const yearlyProduct = yearlyProducts.find((p) => p?.name === product?.name);
@@ -64,11 +64,11 @@ export const PricingCard: FC<PricingCardProps> = ({
       <CardContent className="flex flex-1 flex-col gap-4">
         <div className="flex items-end gap-2">
           <span className="font-semibold text-3xl">
-            {formatCurrency((usdPrices?.priceAmount ?? 0) / 100, "USD")}
+            {formatCurrency((copPrices?.priceAmount ?? 0) / 100)}
           </span>
           {product?.isRecurring &&
-            usdPrices?.priceAmount &&
-            usdPrices.priceAmount > 0 && (
+            copPrices?.priceAmount &&
+            copPrices.priceAmount > 0 && (
               <span className="text-muted-foreground text-sm">
                 {product?.recurringInterval === "year" ? "Anual" : "Mensual"}
               </span>

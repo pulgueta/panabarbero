@@ -101,10 +101,6 @@ export const Route = createFileRoute(
     );
 
     if (user?.userId) {
-      await opts.context.queryClient.ensureQueryData(getSessionQueryOptions());
-    }
-
-    if (user?.userId) {
       const barbershop = await opts.context.queryClient.ensureQueryData(
         barbershopByOwnerIdQueryOptions(user.userId),
       );
@@ -123,14 +119,15 @@ export const Route = createFileRoute(
       );
 
       if (barbershop) {
-        await Promise.all([
-          opts.context.queryClient.ensureQueryData(
-            servicesQueryOptions(barbershop._id),
-          ),
-          opts.context.queryClient.ensureQueryData(
-            barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
-          ),
-        ]);
+        // Services drive the "create your first service" alert (read on the
+        // page); members only feed dialogs not rendered here — prime without
+        // blocking.
+        await opts.context.queryClient.ensureQueryData(
+          servicesQueryOptions(barbershop._id),
+        );
+        void opts.context.queryClient.prefetchQuery(
+          barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+        );
       }
     }
   },

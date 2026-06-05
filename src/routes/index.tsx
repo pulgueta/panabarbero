@@ -1,4 +1,6 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { Hydrate } from "@tanstack/react-start";
+import { visible } from "@tanstack/react-start/hydration";
 import { lazy, Suspense } from "react";
 
 import { BorderContainer } from "@/components/layout/border-container";
@@ -66,7 +68,7 @@ const HOME_FAQS = [
   {
     question: "¿Es gratis usar PanaBarbero?",
     answer:
-      "Sí. El plan gratuito está disponible para barberías independientes con un solo barbero. Para equipos más grandes o funcionalidades avanzadas, existen planes de pago con más capacidad.",
+      "Sí. El plan gratuito está disponible para barberías pequeñas con hasta 3 barberos. Para equipos más grandes o funcionalidades avanzadas, existen planes de pago con más capacidad.",
   },
   {
     question: "¿Qué notificaciones reciben los clientes y barberos?",
@@ -329,16 +331,19 @@ function RouteComponent() {
           </p>
         </div>
 
-        <Suspense fallback={<ProfileTabSkeleton />}>
+        <Hydrate
+          when={visible({ rootMargin: "200px" })}
+          fallback={<ProfileTabSkeleton />}
+        >
           <PricingCards />
-        </Suspense>
+        </Hydrate>
       </section>
 
       <Separator className="my-8" />
 
-      <Suspense>
+      <Hydrate when={visible({ rootMargin: "200px" })}>
         <CtaSection />
-      </Suspense>
+      </Hydrate>
 
       <Suspense>
         <LandingFooter />

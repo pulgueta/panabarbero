@@ -44,6 +44,18 @@ export function parseTimeToMinutes(time?: string | null): number | null {
   return hours * 60 + minutes;
 }
 
+/** True when both times parse and `end` is strictly after `start`. */
+export function isTimeRangeValid(start?: string, end?: string): boolean {
+  if (!start || !end) return false;
+
+  const startMin = parseTimeToMinutes(start);
+  const endMin = parseTimeToMinutes(end);
+
+  if (startMin === null || endMin === null) return false;
+
+  return endMin > startMin;
+}
+
 /** Converts a timestamp to minutes since midnight using the browser's local TZ. */
 export function minutesOfDay(ts: number): number {
   const date = new Date(ts);
