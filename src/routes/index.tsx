@@ -1,4 +1,6 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { Hydrate } from "@tanstack/react-start";
+import { visible } from "@tanstack/react-start/hydration";
 import { lazy, Suspense } from "react";
 
 import { BorderContainer } from "@/components/layout/border-container";
@@ -329,16 +331,19 @@ function RouteComponent() {
           </p>
         </div>
 
-        <Suspense fallback={<ProfileTabSkeleton />}>
+        <Hydrate
+          when={visible({ rootMargin: "200px" })}
+          fallback={<ProfileTabSkeleton />}
+        >
           <PricingCards />
-        </Suspense>
+        </Hydrate>
       </section>
 
       <Separator className="my-8" />
 
-      <Suspense>
+      <Hydrate when={visible({ rootMargin: "200px" })}>
         <CtaSection />
-      </Suspense>
+      </Hydrate>
 
       <Suspense>
         <LandingFooter />

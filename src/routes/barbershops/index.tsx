@@ -66,6 +66,7 @@ export const Route = createFileRoute("/barbershops/")({
       getSessionQueryOptions(),
     );
 
+    // Primary content: the grid blocks on the barbershop list.
     const barbershops = await opts.context.queryClient.ensureQueryData(
       activeBarbershopsQueryOptions({
         city: opts.deps.city,
@@ -74,13 +75,12 @@ export const Route = createFileRoute("/barbershops/")({
       }),
     );
 
-    if (barbershops.length) {
-      await Promise.all(
-        barbershops.map((barbershop) =>
-          opts.context.queryClient.ensureQueryData(
-            barbershopMetadataQueryOptions(barbershop._id),
-          ),
-        ),
+    // Ratings/metadata are decorative (the rating UI is currently commented out
+    // in the card), so they must not block the grid. prefetchQuery primes the
+    // cache without throwing and without awaiting.
+    for (const barbershop of barbershops) {
+      void opts.context.queryClient.prefetchQuery(
+        barbershopMetadataQueryOptions(barbershop._id),
       );
     }
   },

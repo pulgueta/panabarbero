@@ -38,6 +38,9 @@ export function getRouter() {
   const router = createRouter({
     routeTree,
     defaultPreload: "intent",
+    // Let TanStack Query own all caching: the router keeps no separate preload
+    // cache, so it re-runs loaders on navigation and Query dedupes the fetch.
+    defaultPreloadStaleTime: 0,
     context: {
       queryClient,
       convexClient: convexQueryClient.convexClient,

@@ -3,8 +3,11 @@
 
 import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Hydrate } from "@tanstack/react-start";
+import { visible } from "@tanstack/react-start/hydration";
 import { lazy, Suspense } from "react";
 
+import { BarberTeamSection } from "@/components/barbershops/barber-team-section";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ServicesSkeleton } from "@/components/layout/skeleton/services-skeleton";
@@ -57,12 +60,6 @@ const ServicesGrid = lazy(() =>
   })),
 );
 
-const BarberTeamSection = lazy(() =>
-  import("@/components/barbershops/barber-team-section").then((module) => ({
-    default: module.BarberTeamSection,
-  })),
-);
-
 const BarbershopLocationSection = lazy(() =>
   import("@/components/barbershops/barbershop-location-section").then(
     (module) => ({
@@ -78,6 +75,7 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
   staleTime: cacheTime.low,
   gcTime: cacheTime.medium,
   loader: async ({ context, params }) => {
+    // Critical, above-the-fold identity — block on the shop and the session.
     const [user, barbershop] = await Promise.all([
       context.queryClient.ensureQueryData(getSessionQueryOptions()),
       context.queryClient.ensureQueryData(
@@ -85,16 +83,9 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
       ),
     ]);
 
-    if (user?.userId) {
-      await Promise.all([
-        context.queryClient.ensureQueryData(profileQueryOptions(user.userId)),
-        context.queryClient.ensureQueryData(
-          barberByUserIdQueryOptions(user.userId),
-        ),
-      ]);
-    }
-
     if (barbershop?._id) {
+      // Primary content (services list + the barbers it lets you pick) — block
+      // the initial render on these.
       const [, barbershopMembers] = await Promise.all([
         context.queryClient.ensureQueryData(
           servicesQueryOptions(barbershop._id),
@@ -102,23 +93,33 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
         context.queryClient.ensureQueryData(
           barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
         ),
-        context.queryClient.ensureQueryData(
-          barbershopAvailabilityQueryOptions(barbershop._id),
-        ),
-        context.queryClient.ensureQueryData(
-          barbershopLocationQueryOptions(barbershop._id),
-        ),
       ]);
 
-      if (barbershopMembers.length > 0) {
-        await Promise.all(
-          barbershopMembers.map((barbershopMember) =>
-            context.queryClient.ensureQueryData(
-              servicesForBarberQueryOptions(barbershopMember._id),
-            ),
-          ),
+      // Secondary / below-the-fold / interaction-only data — prime the cache
+      // without blocking. prefetchQuery never throws, and the streaming SSR
+      // integration hands these to the components' <Suspense>/<Hydrate>
+      // boundaries (availability + per-barber services are for the booking flow,
+      // location feeds the lazily-hydrated map).
+      void context.queryClient.prefetchQuery(
+        barbershopAvailabilityQueryOptions(barbershop._id),
+      );
+      void context.queryClient.prefetchQuery(
+        barbershopLocationQueryOptions(barbershop._id),
+      );
+      for (const barbershopMember of barbershopMembers) {
+        void context.queryClient.prefetchQuery(
+          servicesForBarberQueryOptions(barbershopMember._id),
         );
       }
+    }
+
+    // Viewer-specific data (used by the booking flow / barber checks, not the
+    // first paint) — fire-and-forget so an authenticated session never blocks.
+    if (user?.userId) {
+      void context.queryClient.prefetchQuery(profileQueryOptions(user.userId));
+      void context.queryClient.prefetchQuery(
+        barberByUserIdQueryOptions(user.userId),
+      );
     }
 
     return {
@@ -247,7 +248,8 @@ function RouteComponent() {
                 Nuestro equipo
               </h2>
 
-              <Suspense
+              <Hydrate
+                when={visible({ rootMargin: "200px" })}
                 fallback={
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                     {Array.from({ length: 3 }).map((_, i) => (
@@ -260,19 +262,22 @@ function RouteComponent() {
                 }
               >
                 <BarberTeamSection barbers={barbershopMembers} />
-              </Suspense>
+              </Hydrate>
             </section>
           </>
         )}
 
-        <Suspense fallback={null}>
-          {barbershop?._id && (
+        {/* Heavy interactive map, below the fold: keep it code-split via lazy()
+            and defer hydration (and therefore the chunk download) until it
+            scrolls into view. */}
+        {barbershop?._id && (
+          <Hydrate when={visible({ rootMargin: "200px" })} split={false}>
             <BarbershopLocationSection
               barbershopId={barbershop._id}
               barbershopName={barbershop.name}
             />
-          )}
-        </Suspense>
+          </Hydrate>
+        )}
       </main>
     </BorderContainer>
   );
