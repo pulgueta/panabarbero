@@ -7,11 +7,11 @@ import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
 import { DashboardHeaderSkeleton } from "@/components/barbershops/dashboard-header.skeleton";
+import { SettingsCard } from "@/components/barbershops/settings/settings-card";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cacheTime } from "@/config/cache";
 import {
@@ -81,11 +81,6 @@ const BarbershopLogoUploader = lazy(() =>
     default: mod.BarbershopLogoUploader,
   })),
 );
-// const SocialMediaForm = lazy(() =>
-//   import("@/components/barbershops/settings/social-media-form").then((mod) => ({
-//     default: mod.SocialMediaForm,
-//   })),
-// );
 
 export const Route = createFileRoute(
   "/_authedRoutes/profile/barbershops/settings/",
@@ -119,9 +114,6 @@ export const Route = createFileRoute(
       );
 
       if (barbershop) {
-        // Services drive the "create your first service" alert (read on the
-        // page); members only feed dialogs not rendered here — prime without
-        // blocking.
         await opts.context.queryClient.ensureQueryData(
           servicesQueryOptions(barbershop._id),
         );
@@ -134,15 +126,6 @@ export const Route = createFileRoute(
 });
 
 function SettingsPage() {
-  // const [_, convert, ref] = useToPng<HTMLDivElement>({
-  //   onSuccess: (data) => {
-  //     const link = document.createElement("a");
-  //     link.download = "codigo-qr-barberia.jpeg";
-  //     link.href = data;
-  //     link.click();
-  //   },
-  // });
-
   const { data: user } = useSession();
   const [copy] = useClipboard();
 
@@ -153,6 +136,7 @@ function SettingsPage() {
 
   const { trigger } = useWebHaptics();
 
+  const isOwner = barbershop && rolesData?.isOwner;
   const hasService = services?.length && services.length > 0;
   const hasAnyActiveDay = barbershop?.availability?.some(
     (a) => a.weekDay.isActive,
@@ -174,271 +158,163 @@ function SettingsPage() {
 
   return (
     <BorderContainer>
-      <Suspense fallback={<DashboardHeaderSkeleton />}>
-        <DashboardHeader
-          title="Configuración"
-          description="Configura tu barbería y personaliza tu experiencia."
-        />
-      </Suspense>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <Suspense fallback={<DashboardHeaderSkeleton />}>
+          <DashboardHeader
+            title="Configuración"
+            description="Administra el perfil público y la operación de tu barbería."
+          />
+        </Suspense>
+
+        {isOwner && (
+          <Button variant="outline" size="sm" onClick={onCopyLink}>
+            <ShareNetworkIcon weight="bold" />
+            Copiar link
+          </Button>
+        )}
+      </div>
 
       {barbershop && rolesData?.isOwner && (
-        <>
-          {/* <div className="flex flex-col items-center justify-center gap-2">
-            <div ref={ref}>
-              <QRCode
-                size="lg"
-                value={url}
-                options={{
-                  dotsOptions: { color: "var(--secondary)" },
-                  cornersSquareOptions: { color: "var(--primary)" },
-                  cornersDotOptions: { color: "var(--primary)" },
-                }}
-                className="mx-auto max-w-max"
-              />
-            </div>
+        <div className="space-y-10">
+          {(!hasAnyActiveDay || !hasService) && (
+            <div className="space-y-3">
+              {!hasAnyActiveDay && (
+                <Alert>
+                  <AlertTitle>Horario de atención requerido</AlertTitle>
+                  <AlertDescription>
+                    Configura el horario de apertura y cierre de tu barbería.
+                    Puedes aplicar los mismos horarios a varios días o
+                    establecerlos uno por uno.
+                  </AlertDescription>
+                </Alert>
+              )}
 
-            <p className="text-muted-foreground text-sm">
-              Comparte este código QR con tus clientes para agendar en tu
-              barbería.
-            </p>
-
-            <Button onClick={convert}>
-              <Download className="size-3" />
-              Descargar código QR
-            </Button>
-          </div> */}
-
-          <Button onClick={onCopyLink}>
-            <ShareNetworkIcon className="size-3" />
-            Copia el link de tu barbería
-          </Button>
-
-          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <section className="space-y-2">
-              <header>
-                <h2 className="font-semibold text-xl tracking-tight">
-                  Logo de la barbería
-                </h2>
-                <p className="text-muted-foreground text-sm">
-                  Imagen que identifica tu barbería en la plataforma.
-                </p>
-              </header>
-
-              <Suspense fallback={<Skeleton className="h-80 w-full" />}>
-                <BarbershopLogoUploader
-                  barbershopId={barbershop._id}
-                  logoKey={barbershop.logoKey}
-                />
-              </Suspense>
-            </section>
-
-            <section className="space-y-4">
-              <div>
-                <h2 className="font-semibold text-xl tracking-tight">Tu rol</h2>
-                <p className="text-muted-foreground text-sm">
-                  Decide si atiendes clientes como barbero o solo administras la
-                  barbería.
-                </p>
-              </div>
-
-              <Suspense fallback={<Skeleton className="h-48 w-full" />}>
-                <OwnerRoleToggle
-                  barbershopId={barbershop._id}
-                  isCurrentlyBarber={isBarber}
-                />
-              </Suspense>
-            </section>
-          </section>
-
-          <Separator />
-
-          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <header>
-                <h2 className="font-semibold text-xl tracking-tight">
-                  Información general
-                </h2>
-                <p className="text-muted-foreground text-sm">
-                  Nombre y descripción pública de tu barbería.
-                </p>
-              </header>
-
-              <Suspense fallback={<Skeleton className="h-48 w-full" />}>
-                <GeneralInfoForm barbershop={barbershop} />
+              <Suspense fallback={<Skeleton className="h-28 w-full" />}>
+                {!hasService && (
+                  <Alert>
+                    <AlertTitle>Debes crear al menos un servicio</AlertTitle>
+                    <AlertDescription>
+                      Agrega tu primer servicio para que tus clientes puedan
+                      reservar.
+                      <div className="mt-2">
+                        <ServiceDialog
+                          barbershopId={barbershop._id}
+                          trigger={
+                            <Button variant="outline">
+                              <PlusIcon /> Agregar servicio
+                            </Button>
+                          }
+                        />
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
               </Suspense>
             </div>
-
-            <div className="space-y-2">
-              <header>
-                <h2 className="font-semibold text-xl tracking-tight">
-                  Dirección
-                </h2>
-                <p className="text-muted-foreground text-sm">
-                  Dirección, ciudad y departamento.
-                </p>
-              </header>
-
-              <Suspense fallback={<Skeleton className="h-48 w-full" />}>
-                <AddressForm barbershop={barbershop} />
-              </Suspense>
-            </div>
-          </section>
-
-          {/* <Separator />
+          )}
 
           <section className="space-y-4">
-            <div>
-              <h2 className="font-semibold text-xl tracking-tight">Contacto</h2>
-              <p className="text-muted-foreground text-sm">
-                Formas de contacto para tus clientes.
-              </p>
-            </div>
-
-            <ContactForm
-              barbershop={barbershop}
-              barbershopMetadata={barbershopMetadata!}
-            />
-          </section> */}
-
-          {/* <Separator /> */}
-
-          {/* <section className="space-y-4">
-            <div>
-              <h2 className="font-semibold text-xl tracking-tight">Medios</h2>
-              <p className="text-muted-foreground text-sm">
-                Imagen de banner y sitio web.
-              </p>
-            </div>
-
-            <MediaForm barbershop={barbershop} />
-          </section> */}
-
-          {/* <Separator /> */}
-
-          {/* <section className="space-y-4">
-            <div>
-              <h2 className="font-semibold text-xl tracking-tight">
-                Ubicación geográfica
+            <div className="space-y-1">
+              <h2 className="font-semibold text-foreground text-lg tracking-tight">
+                Perfil público
               </h2>
               <p className="text-muted-foreground text-sm">
-                Coordenadas para mejorar la ubicación en el mapa (opcional).
+                Lo que tus clientes ven al visitar tu barbería.
               </p>
             </div>
 
-            <CoordinatesForm barbershop={barbershop} />
-          </section> */}
+            <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+              <SettingsCard
+                title="Información general"
+                description="Nombre y descripción pública de tu barbería."
+              >
+                <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+                  <GeneralInfoForm barbershop={barbershop} />
+                </Suspense>
+              </SettingsCard>
 
-          <Separator />
+              <SettingsCard
+                title="Dirección"
+                description="Dirección, ciudad y departamento."
+              >
+                <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+                  <AddressForm barbershop={barbershop} />
+                </Suspense>
+              </SettingsCard>
 
-          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <section className="min-h-44 w-full space-y-4">
-              <div>
-                <h2 className="font-semibold text-xl tracking-tight">
-                  Preferencias
-                </h2>
-                <p className="text-muted-foreground text-sm">
-                  Ajustes operativos como el periodo de gracia.
-                </p>
-              </div>
+              <SettingsCard
+                title="Logo"
+                description="Imagen que identifica tu barbería en la plataforma."
+              >
+                <Suspense fallback={<Skeleton className="h-72 w-full" />}>
+                  <BarbershopLogoUploader
+                    barbershopId={barbershop._id}
+                    logoKey={barbershop.logoKey}
+                  />
+                </Suspense>
+              </SettingsCard>
 
-              <Suspense fallback={<Skeleton className="h-48 w-full" />}>
-                <PreferencesForm barbershop={barbershop} />
-              </Suspense>
-            </section>
-
-            <section className="w-full space-y-4">
-              <div>
-                <h2 className="font-semibold text-xl tracking-tight">
-                  Ubicación
-                </h2>
-                <p className="text-muted-foreground text-sm">
-                  Fija el punto exacto de tu barbería en el mapa para que tus
-                  clientes te encuentren.
-                </p>
-              </div>
-
-              <Suspense fallback={<Skeleton className="h-72 w-full" />}>
-                <LocationForm barbershop={barbershop} />
-              </Suspense>
-            </section>
-
-            {/* <section className="flex min-h-44 w-full flex-col justify-between gap-4">
-              <div>
-                <h2 className="font-semibold text-xl tracking-tight">
-                  Redes sociales
-                </h2>
-                <p className="text-muted-foreground text-sm">
-                  Enlaces a redes sociales de tu barbería.
-                </p>
-              </div>
-
-              <Suspense fallback={<Skeleton className="h-48 w-full" />}>
-                <SocialMediaForm
-                  barbershop={barbershop}
-                  barbershopMetadata={barbershopMetadata!}
-                />
-              </Suspense>
-            </section> */}
+              <SettingsCard
+                title="Ubicación"
+                description="Fija el punto exacto de tu barbería para que tus clientes te encuentren."
+              >
+                <Suspense fallback={<Skeleton className="h-72 w-full" />}>
+                  <LocationForm barbershop={barbershop} />
+                </Suspense>
+              </SettingsCard>
+            </div>
           </section>
 
-          <Separator />
-        </>
-      )}
+          <section className="space-y-4">
+            <div className="space-y-1">
+              <h2 className="font-semibold text-foreground text-lg tracking-tight">
+                Operación
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                Ajustes que definen cómo funciona tu barbería.
+              </p>
+            </div>
 
-      {!hasAnyActiveDay && rolesData?.isOwner && (
-        <Alert>
-          <AlertTitle>Horario de atención requerido</AlertTitle>
-          <AlertDescription>
-            Configura el horario de apertura y cierre de tu barbería. Puedes
-            aplicar los mismos horarios a varios días o establecerlos uno por
-            uno.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <Suspense fallback={<Skeleton className="h-48 w-full" />}>
-        {!hasService && barbershop && rolesData?.isOwner && (
-          <Alert>
-            <AlertTitle>Debes crear al menos un servicio</AlertTitle>
-            <AlertDescription>
-              Agrega tu primer servicio para que tus clientes puedan reservar.
-              <div className="mt-2">
-                <ServiceDialog
-                  barbershopId={barbershop._id}
-                  trigger={
-                    <Button variant="outline">
-                      <PlusIcon /> Agregar servicio
-                    </Button>
-                  }
-                />
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
-      </Suspense>
-
-      {rolesData?.isOwner && (
-        <section className="space-y-4">
-          <div>
-            <h2 className="font-semibold text-xl tracking-tight">
-              Disponibilidad
-            </h2>
-            <p className="text-muted-foreground text-sm">
-              Define los días y horas en los que tu barbería atiende.
-            </p>
-          </div>
-
-          <Suspense fallback={<Skeleton className="h-48 w-full" />}>
-            {barbershop &&
-              rolesData?.isOwner &&
-              barbershop.availability.length > 0 && (
-                <AvailabilityForm
-                  barbershopId={barbershop._id}
-                  availability={barbershop?.availability}
-                />
+            <div className="space-y-4">
+              {barbershop.availability.length > 0 && (
+                <SettingsCard
+                  title="Disponibilidad"
+                  description="Define los días y horas en los que tu barbería atiende."
+                >
+                  <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+                    <AvailabilityForm
+                      barbershopId={barbershop._id}
+                      availability={barbershop.availability}
+                    />
+                  </Suspense>
+                </SettingsCard>
               )}
-          </Suspense>
-        </section>
+
+              <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+                <SettingsCard
+                  title="Preferencias"
+                  description="Ajustes operativos como el periodo de gracia."
+                >
+                  <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+                    <PreferencesForm barbershop={barbershop} />
+                  </Suspense>
+                </SettingsCard>
+
+                <SettingsCard
+                  title="Tu rol"
+                  description="Decide si atiendes clientes como barbero o solo administras."
+                >
+                  <Suspense fallback={<Skeleton className="h-32 w-full" />}>
+                    <OwnerRoleToggle
+                      barbershopId={barbershop._id}
+                      isCurrentlyBarber={isBarber}
+                    />
+                  </Suspense>
+                </SettingsCard>
+              </div>
+            </div>
+          </section>
+        </div>
       )}
     </BorderContainer>
   );

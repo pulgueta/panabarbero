@@ -10,9 +10,6 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
-
-import { isTimeRangeValid } from "@/lib/schedule-utils";
-
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -28,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useBarbershopActions } from "@/hooks/barbershop/use-barbershop";
+import { isTimeRangeValid } from "@/lib/schedule-utils";
 
 type DayKey =
   | "monday"
@@ -330,7 +328,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
   };
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-4">
       <FieldGroup>
         <FieldSet className="gap-2">
           <Field>
@@ -339,7 +337,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
               variant="outline"
               value={selectedDays}
               onValueChange={handleSelectedDaysChange}
-              className="flex flex-wrap justify-start"
+              className="flex max-w-max flex-wrap justify-start"
               aria-label="Selecciona los días para aplicar el horario"
             >
               {days.map(({ key, label }) => (
@@ -497,15 +495,15 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
           </Button>
         </div>
 
-        <div className="rounded-lg border p-4">
-          <h3 className="font-semibold text-base">Resumen de disponibilidad</h3>
+        <div className="space-y-3 border-t pt-4">
+          <h3 className="font-semibold text-sm">Resumen de disponibilidad</h3>
 
-          <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7">
             {rows.map((entry) => {
               const day = entry.weekDay.day as DayKey;
 
               return (
-                <div key={day} className="rounded border p-4 text-sm">
+                <div key={day} className="rounded-md bg-muted/40 p-3 text-sm">
                   <p className="font-semibold">{dayLabelMap[day]}</p>
 
                   {entry.weekDay.isActive ? (
