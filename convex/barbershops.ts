@@ -4,9 +4,9 @@ import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
 import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
-
 import { zMutation, zQuery } from ".";
 import { api, internal } from "./_generated/api";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { assertIsSubscribed } from "./acl";
 import { authComponent } from "./auth";
 import { assertOwner } from "./authz";
@@ -30,11 +30,29 @@ export const create = zMutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    await assertIsSubscribed(ctx, user.userId);
-
-    await rateLimitOrThrow(ctx, "createBarbershop", user._id);
+    await Promise.all([
+      assertIsSubscribed(ctx, user.userId),
+      rateLimitOrThrow(ctx, "createBarbershop", user._id),
+    ]);
 
     const { barbershop, ownerIsBarber } = args;
+
+    const existingByUuid = await getByUuidFn(ctx, barbershop.uuid);
+
+    if (existingByUuid) {
+      return existingByUuid._id;
+    }
+
+    // One barbershop per owner. A second shop trips the `.unique()` owner and
+    // member lookups and 500s the whole owner dashboard.
+    const existingByOwner = await ctx.db
+      .query("barbershops")
+      .withIndex("by_ownerId", (q) => q.eq("ownerId", user.userId!))
+      .first();
+
+    if (existingByOwner) {
+      throw new ConvexError(errorMessages.barbershopAlreadyExists);
+    }
 
     const barbershopId = await ctx.db.insert("barbershops", {
       ...barbershop,
@@ -167,10 +185,7 @@ export const getByUuid = zQuery({
     uuid: z.uuidv4(),
   }),
   handler: async (ctx, args) => {
-    const barbershop = await ctx.db
-      .query("barbershops")
-      .withIndex("by_uuid", (q) => q.eq("uuid", args.uuid))
-      .unique();
+    const barbershop = await getByUuidFn(ctx, args.uuid);
 
     if (!barbershop) return null;
 
@@ -183,6 +198,15 @@ export const getByUuid = zQuery({
     return barbershop;
   },
 });
+
+export async function getByUuidFn(ctx: QueryCtx | MutationCtx, uuid: string) {
+  const barbershop = await ctx.db
+    .query("barbershops")
+    .withIndex("by_uuid", (q) => q.eq("uuid", uuid))
+    .unique();
+
+  return barbershop;
+}
 
 export const getServices = zQuery({
   args: barbershops.tools.id,
@@ -448,7 +472,9 @@ export const getByOwnerId = zQuery({
     const barbershop = await ctx.db
       .query("barbershops")
       .withIndex("by_ownerId", (q) => q.eq("ownerId", args.ownerId!))
-      .unique();
+      // `.first()` not `.unique()`: degrade gracefully if a legacy duplicate
+      // exists instead of throwing and 500ing the dashboard.
+      .first();
 
     if (barbershop) {
       const services = await ctx.runQuery(api.barbershops.getServices, {

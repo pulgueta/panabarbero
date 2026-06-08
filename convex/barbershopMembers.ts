@@ -628,7 +628,7 @@ export const getByUserIdFn = async (
     .withIndex("by_userProfileDataId", (q) =>
       q.eq("userProfileDataId", profile._id),
     )
-    .unique();
+    .first();
 };
 
 // ---------------------------------------------------------------------------
