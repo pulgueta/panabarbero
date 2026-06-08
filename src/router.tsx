@@ -6,6 +6,7 @@ import { ConvexReactClient } from "convex/react";
 
 import { DefaultCatchBoundary } from "@/components/layout/error-component";
 import { env } from "@/env";
+import { cacheTime } from "./config/cache";
 import reportWebVitals from "./reportWebVitals";
 import { routeTree } from "./routeTree.gen";
 
@@ -25,6 +26,8 @@ export function getRouter() {
       queries: {
         queryKeyHashFn: convexQueryClient.hashFn(),
         queryFn: convexQueryClient.queryFn(),
+        staleTime: cacheTime.low,
+        gcTime: cacheTime.high,
         retry: 5,
         retryDelay: (attemptIndex) => Math.min(300 * 2 ** attemptIndex, 10000),
       },
