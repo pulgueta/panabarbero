@@ -25,8 +25,6 @@ export function getRouter() {
       queries: {
         queryKeyHashFn: convexQueryClient.hashFn(),
         queryFn: convexQueryClient.queryFn(),
-        experimental_prefetchInRender: true,
-        staleTime: 60 * 60 * 1000,
         retry: 5,
         retryDelay: (attemptIndex) => Math.min(300 * 2 ** attemptIndex, 10000),
       },
@@ -38,8 +36,6 @@ export function getRouter() {
   const router = createRouter({
     routeTree,
     defaultPreload: "intent",
-    // Let TanStack Query own all caching: the router keeps no separate preload
-    // cache, so it re-runs loaders on navigation and Query dedupes the fetch.
     defaultPreloadStaleTime: 0,
     context: {
       queryClient,

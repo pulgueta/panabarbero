@@ -20,6 +20,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { cacheTime } from "@/config/cache";
 import { getPanaAccessQueryOptions } from "@/hooks/billing/use-pana-access";
 import { useAnonId } from "@/hooks/use-anon-id";
 import { myThreadsQueryOptions, useMyThreads } from "@/hooks/use-chat";
@@ -30,15 +31,14 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/chat")({
   component: ChatLayout,
   ssr: "data-only",
+  staleTime: cacheTime.high,
+  gcTime: cacheTime.extreme,
   loader: async ({ context }) => {
     const user = await context.queryClient.ensureQueryData(
       getSessionQueryOptions(),
     );
 
     if (user?.userId) {
-      // The sidebar thread list (useQuery, with its own loading state) and Pana
-      // access (read by chat children inside their own boundaries) shouldn't
-      // block the chat shell or the conversation — prime the cache only.
       void context.queryClient.prefetchQuery(
         myThreadsQueryOptions(user.userId),
       );

@@ -1,11 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { ChatView } from "@/components/chat/chat-view";
+import { cacheTime } from "@/config/cache";
 import { seo } from "@/lib/utils";
 
 export const Route = createFileRoute("/chat/$threadId")({
   component: ChatThreadRoute,
   ssr: "data-only",
+  staleTime: cacheTime.high,
+  gcTime: cacheTime.extreme,
   head: () => ({
     meta: [
       ...seo({
