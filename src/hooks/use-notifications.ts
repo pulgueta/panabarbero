@@ -10,6 +10,10 @@ export function unreadNotificationsCountQueryOptions() {
   return convexQuery(api.notifications.unreadCount, {});
 }
 
+export function lastReadQueryOptions() {
+  return convexQuery(api.notifications.getLastRead, {});
+}
+
 export function notificationsPageQueryOptions(opts: {
   cursor: string | null;
   numItems: number;
@@ -38,6 +42,11 @@ export function useUnreadNotificationsCount() {
   return useSuspenseQuery(unreadNotificationsCountQueryOptions());
 }
 
+/** Read watermark: a row is unread iff `_creationTime > (lastRead ?? 0)`. */
+export function useLastRead() {
+  return useSuspenseQuery(lastReadQueryOptions());
+}
+
 export function useNotificationsPage(opts: {
   cursor: string | null;
   numItems: number;
@@ -53,12 +62,9 @@ export function useUnreadNotificationsPage(opts: {
 }
 
 export function useNotificationActions() {
-  const markReadMutation = useMutation({
-    mutationFn: useConvexMutation(api.notifications.markRead),
-  });
   const markAllReadMutation = useMutation({
     mutationFn: useConvexMutation(api.notifications.markAllRead),
   });
 
-  return { markReadMutation, markAllReadMutation };
+  return { markAllReadMutation };
 }

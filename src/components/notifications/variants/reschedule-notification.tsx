@@ -25,7 +25,7 @@ export const RescheduleNotification: FC<
 > = ({
   notification,
   density,
-  onMarkRead,
+  isUnread,
   onSelect,
   kind,
   usesBarberCalendar,
@@ -37,7 +37,7 @@ export const RescheduleNotification: FC<
     <NotificationItem
       notification={notification}
       density={density}
-      onMarkRead={onMarkRead}
+      isUnread={isUnread}
       onSelect={onSelect}
     >
       <NotificationItem.Icon icon={icon} tone={tone} />

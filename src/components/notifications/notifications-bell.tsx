@@ -16,6 +16,7 @@ import {
   useIsStaff,
 } from "@/hooks/use-barbershop-members";
 import {
+  useLastRead,
   useNotificationActions,
   useRecentNotifications,
   useUnreadNotificationsCount,
@@ -27,14 +28,15 @@ import { NotificationRenderer } from "./notification-renderer";
 export const NotificationsBell = () => {
   const [open, setOpen] = useState(false);
   const { data: user } = useSession();
-  const { data: isBarber } = useIsBarber(user?.userId ?? "");
-  const { data: isStaff } = useIsStaff(user?.userId ?? "");
-  const { data: isOwner } = useIsOwner(user?.userId ?? "");
+  const { data: isBarber } = useIsBarber(user?.id ?? "");
+  const { data: isStaff } = useIsStaff(user?.id ?? "");
+  const { data: isOwner } = useIsOwner(user?.id ?? "");
   const usesBarberCalendar = Boolean(isBarber || isStaff || isOwner);
 
   const { data: recent } = useRecentNotifications();
   const { data: unread } = useUnreadNotificationsCount();
-  const { markReadMutation, markAllReadMutation } = useNotificationActions();
+  const { data: lastRead } = useLastRead();
+  const { markAllReadMutation } = useNotificationActions();
 
   const items = useMemo(() => recent, [recent]);
   const hasUnread = unread !== 0;
@@ -42,9 +44,10 @@ export const NotificationsBell = () => {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
+        nativeButton={false}
         render={
           <Button
-            variant="ghost"
+            variant="outline"
             size="icon"
             aria-label={
               hasUnread
@@ -59,7 +62,7 @@ export const NotificationsBell = () => {
                 aria-hidden="true"
                 className="absolute -top-0.5 -right-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-primary px-1 font-medium text-[10px] text-primary-foreground tabular-nums leading-none ring-2 ring-background"
               >
-                {typeof unread === "number" && unread <= 9 ? unread : "9+"}
+                {unread > 9 ? "9+" : unread}
               </span>
             ) : null}
           </Button>
@@ -117,7 +120,7 @@ export const NotificationsBell = () => {
                   notification={notification}
                   usesBarberCalendar={usesBarberCalendar}
                   density="compact"
-                  onMarkRead={(id) => markReadMutation.mutate({ id })}
+                  isUnread={notification._creationTime > (lastRead ?? 0)}
                   onSelect={() => setOpen(false)}
                 />
               ))

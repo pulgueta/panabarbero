@@ -11,7 +11,7 @@ export interface NotificationRendererProps {
   /** True when the viewer manages appointments from the barbershop calendar (barber, staff, or owner). */
   usesBarberCalendar: boolean;
   density?: "compact" | "comfortable";
-  onMarkRead?: (id: InAppNotification["_id"]) => void;
+  isUnread: boolean;
   onSelect?: () => void;
 }
 
@@ -24,14 +24,14 @@ export const NotificationRenderer: FC<NotificationRendererProps> = ({
   notification,
   usesBarberCalendar,
   density,
-  onMarkRead,
+  isUnread,
   onSelect,
 }) => {
   const shared = {
     notification,
     usesBarberCalendar,
     density,
-    onMarkRead,
+    isUnread,
     onSelect,
   };
 

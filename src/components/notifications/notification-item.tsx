@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * `NotificationItem` is a compound component. The root provides shared state
- * (notification row, density, onMarkRead) via context; `Icon`, `Title`,
+ * (notification row, density, isUnread) via context; `Icon`, `Title`,
  * `Description`, `Meta`, and `Actions` are slots the variant components
  * compose. This lets each kind tailor its icon, copy emphasis, or quick
  * actions without adding a growing list of boolean props to the root.
@@ -20,7 +20,6 @@ interface NotificationItemContextValue {
   notification: InAppNotification;
   density: NotificationDensity;
   isUnread: boolean;
-  onMarkRead?: (id: InAppNotification["_id"]) => void;
 }
 
 const NotificationItemContext =
@@ -39,7 +38,7 @@ function useNotificationItem() {
 interface NotificationItemRootProps {
   notification: InAppNotification;
   density?: NotificationDensity;
-  onMarkRead?: (id: InAppNotification["_id"]) => void;
+  isUnread: boolean;
   onSelect?: () => void;
   children: ReactNode;
   className?: string;
@@ -48,16 +47,14 @@ interface NotificationItemRootProps {
 const NotificationItemRoot: FC<NotificationItemRootProps> = ({
   notification,
   density = "comfortable",
-  onMarkRead,
+  isUnread,
   onSelect,
   children,
   className,
 }) => {
-  const isUnread = !notification.readAt;
-
   const value = useMemo<NotificationItemContextValue>(
-    () => ({ notification, density, isUnread, onMarkRead }),
-    [notification, density, isUnread, onMarkRead],
+    () => ({ notification, density, isUnread }),
+    [notification, density, isUnread],
   );
 
   return (
@@ -70,18 +67,11 @@ const NotificationItemRoot: FC<NotificationItemRootProps> = ({
         data-unread={isUnread || undefined}
         data-density={density}
         onClick={() => {
-          if (isUnread) {
-            onMarkRead?.(notification._id);
-          }
-
           onSelect?.();
         }}
         onKeyDown={(event) => {
           if (event.key !== "Enter" && event.key !== " ") return;
           event.preventDefault();
-          if (isUnread) {
-            onMarkRead?.(notification._id);
-          }
           onSelect?.();
         }}
         className={cn(

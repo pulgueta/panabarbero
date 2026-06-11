@@ -15,7 +15,7 @@ export interface VariantBaseProps {
   /** Barbers, staff, and owners use the barbershop calendar; pure customers use the Citas tab. */
   usesBarberCalendar: boolean;
   density?: "compact" | "comfortable";
-  onMarkRead?: (id: InAppNotification["_id"]) => void;
+  isUnread: boolean;
   onSelect?: () => void;
 }
 
@@ -56,7 +56,7 @@ export const AppointmentNotification: FC<
 > = ({
   notification,
   density,
-  onMarkRead,
+  isUnread,
   onSelect,
   kind,
   usesBarberCalendar: _usesBarberCalendar,
@@ -68,7 +68,7 @@ export const AppointmentNotification: FC<
     <NotificationItem
       notification={notification}
       density={density}
-      onMarkRead={onMarkRead}
+      isUnread={isUnread}
       onSelect={onSelect}
     >
       <NotificationItem.Icon icon={icon} tone={tone} />
