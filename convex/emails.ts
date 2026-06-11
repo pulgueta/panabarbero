@@ -1,8 +1,11 @@
 "use node";
 
-import { Resend } from "@convex-dev/resend";
+import { ConvexError } from "convex/values";
 import { render } from "react-email";
+import { UseSend } from "usesend-js";
 import { z } from "zod";
+
+import { zInternalAction } from ".";
 import {
   AppointmentCancelledEmail,
   AppointmentCreatedEmail,
@@ -12,45 +15,39 @@ import {
   PastAppointmentReminderEmail,
   RescheduleRequestAcceptEmail,
   RescheduleRequestDeniedEmail,
+  WelcomeEmail,
 } from "../emails/emails";
-import { zInternalAction } from ".";
-import { components, internal } from "./_generated/api";
 import { subjects } from "./notifications";
 
-export const from = "Soporte de PanaBarbero <contacto@panabarbero.com>";
+export const from = "Soporte de PanaBarbero <contacto@mail.panabarbero.com>";
 
-export const resend = new Resend(components.resend, {
-  testMode: false,
-});
+const usesend = new UseSend(process.env.USESEND_API_KEY);
 
-export const sendEmail = zInternalAction({
-  args: z.object({
-    to: z.string(),
-    subject: z.string(),
-    html: z.string(),
-  }),
-  handler: async (ctx, args) => {
-    await resend.sendEmail(ctx, {
-      to: args.to,
-      from,
-      subject: args.subject,
-      html: args.html,
-    });
-  },
-});
+async function sendEmail(opts: { to: string; subject: string; html: string }) {
+  const { error } = await usesend.emails.send({
+    to: opts.to,
+    from,
+    subject: opts.subject,
+    html: opts.html,
+  });
+
+  if (error) {
+    throw new ConvexError(error.message);
+  }
+}
 
 export const sendPastAppointmentReminderEmail = zInternalAction({
   args: z.object({
     to: z.string(),
   }),
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
     const html = await render(
       PastAppointmentReminderEmail({
         subject: subjects.past_appointment_reminder,
       }),
     );
 
-    await ctx.runAction(internal.emails.sendEmail, {
+    await sendEmail({
       to: args.to,
       subject: subjects.past_appointment_reminder,
       html,
@@ -63,7 +60,7 @@ export const sendAppointmentReminderEmail = zInternalAction({
     body: z.string(),
     to: z.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
     const html = await render(
       AppointmentReminderEmail({
         body: args.body,
@@ -71,7 +68,7 @@ export const sendAppointmentReminderEmail = zInternalAction({
       }),
     );
 
-    await ctx.runAction(internal.emails.sendEmail, {
+    await sendEmail({
       to: args.to,
       subject: subjects.appointment_reminder,
       html,
@@ -86,7 +83,7 @@ export const sendAppointmentCancelled = zInternalAction({
     to: z.string(),
     body: z.string(),
   }),
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
     const html = await render(
       AppointmentCancelledEmail({
         notes: args.notes,
@@ -95,7 +92,7 @@ export const sendAppointmentCancelled = zInternalAction({
       }),
     );
 
-    await ctx.runAction(internal.emails.sendEmail, {
+    await sendEmail({
       to: args.to,
       subject: subjects.appointment_cancelled,
       html,
@@ -109,7 +106,7 @@ export const sendAppointmentRescheduleRequestEmail = zInternalAction({
     body: z.string(),
     sendTo: z.enum(["barber", "customer"]),
   }),
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
     const requestUrl =
       args.sendTo === "barber"
         ? `${process.env.SITE_URL}/profile/barbershops/appointments`
@@ -123,7 +120,7 @@ export const sendAppointmentRescheduleRequestEmail = zInternalAction({
       }),
     );
 
-    await ctx.runAction(internal.emails.sendEmail, {
+    await sendEmail({
       to: args.to,
       subject: subjects.appointment_rescheduled_request,
       html,
@@ -136,7 +133,7 @@ export const sendAppointmentRescheduledAcceptedEmail = zInternalAction({
     to: z.string(),
     body: z.string(),
   }),
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
     const html = await render(
       RescheduleRequestAcceptEmail({
         subject: subjects.appointment_rescheduled_accepted,
@@ -144,7 +141,7 @@ export const sendAppointmentRescheduledAcceptedEmail = zInternalAction({
       }),
     );
 
-    await ctx.runAction(internal.emails.sendEmail, {
+    await sendEmail({
       to: args.to,
       subject: subjects.appointment_rescheduled_accepted,
       html,
@@ -157,7 +154,7 @@ export const sendAppointmentRescheduledDeniedEmail = zInternalAction({
     to: z.string(),
     body: z.string(),
   }),
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
     const html = await render(
       RescheduleRequestDeniedEmail({
         subject: subjects.appointment_rescheduled_denied,
@@ -165,7 +162,7 @@ export const sendAppointmentRescheduledDeniedEmail = zInternalAction({
       }),
     );
 
-    await ctx.runAction(internal.emails.sendEmail, {
+    await sendEmail({
       to: args.to,
       subject: subjects.appointment_rescheduled_denied,
       html,
@@ -179,7 +176,7 @@ export const sendAppointmentCreatedToUserEmail = zInternalAction({
     body: z.string(),
     subject: z.string(),
   }),
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
     const html = await render(
       AppointmentCreatedEmail({
         sendTo: "customer",
@@ -188,7 +185,7 @@ export const sendAppointmentCreatedToUserEmail = zInternalAction({
       }),
     );
 
-    await ctx.runAction(internal.emails.sendEmail, {
+    await sendEmail({
       to: args.to,
       subject: args.subject,
       html,
@@ -202,7 +199,7 @@ export const sendAppointmentCreatedToBarberEmail = zInternalAction({
     body: z.string(),
     subject: z.string(),
   }),
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
     const html = await render(
       AppointmentCreatedEmail({
         sendTo: "barber",
@@ -212,9 +209,24 @@ export const sendAppointmentCreatedToBarberEmail = zInternalAction({
       }),
     );
 
-    await ctx.runAction(internal.emails.sendEmail, {
+    await sendEmail({
       to: args.to,
       subject: args.subject,
+      html,
+    });
+  },
+});
+
+export const sendWelcomeEmail = zInternalAction({
+  args: z.object({
+    to: z.string(),
+  }),
+  handler: async (_ctx, args) => {
+    const html = await render(WelcomeEmail({}));
+
+    await sendEmail({
+      to: args.to,
+      subject: "¡Bienvenido a PanaBarbero!",
       html,
     });
   },
@@ -228,7 +240,7 @@ export const sendBarberInvitationEmail = zInternalAction({
     inviterName: z.string().optional(),
     expiresLabel: z.string().optional(),
   }),
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
     const html = await render(
       BarberInvitationEmail({
         barbershopName: args.barbershopName,
@@ -238,7 +250,7 @@ export const sendBarberInvitationEmail = zInternalAction({
       }),
     );
 
-    await ctx.runAction(internal.emails.sendEmail, {
+    await sendEmail({
       to: args.to,
       subject: subjects.team_invited,
       html,

@@ -7,10 +7,10 @@ import { components, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { assertBarberInviteAllowed, assertStaffInviteAllowed } from "./acl";
-import { authComponent } from "./auth";
 import { assertCanManageTeam, assertOwner } from "./authz";
 import { getByUserIdFn } from "./barbershopMembers";
 import { errorMessages } from "./errors";
+import { requireUserId } from "./identity";
 import { siteUrl } from "./notificationCopy";
 import { rateLimitOrThrow } from "./ratelimit";
 import { getProfileByEmail, getProfileByUserId } from "./userProfileData";
@@ -84,24 +84,19 @@ async function renewExpiredInvite(
 export const invite = zMutation({
   args: inviteBarberSchema,
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await requireUserId(ctx);
 
-    if (!user || !user.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    await rateLimitOrThrow(ctx, "inviteBarbershopMember", user._id);
+    await rateLimitOrThrow(ctx, "inviteBarbershopMember", userId);
 
     // Try to find barbershop via ownership first, then via membership (for staff)
     let barbershop = await ctx.db
       .query("barbershops")
-      // biome-ignore lint/style/noNonNullAssertion: already checked
-      .withIndex("by_ownerId", (q) => q.eq("ownerId", user.userId!))
+      .withIndex("by_ownerId", (q) => q.eq("ownerId", userId))
       .first();
 
     if (!barbershop) {
       // Staff member — find barbershop through membership
-      const membership = await getByUserIdFn(ctx, { userId: user.userId });
+      const membership = await getByUserIdFn(ctx, { userId });
       if (membership) {
         barbershop = await ctx.db.get(membership.barbershopId);
       }
@@ -115,13 +110,15 @@ export const invite = zMutation({
     const isInvitingBarber = args.roles.includes("barber");
 
     if (isInvitingStaff) {
-      // Only owner can invite staff
-      await assertOwner(ctx, barbershop._id, user.userId);
-      await assertStaffInviteAllowed(ctx, barbershop._id, barbershop.ownerId);
+      await Promise.all([
+        assertOwner(ctx, barbershop._id, userId),
+        assertStaffInviteAllowed(ctx, barbershop._id, barbershop.ownerId),
+      ]);
     } else if (isInvitingBarber) {
-      // Owner or staff can invite barbers
-      await assertCanManageTeam(ctx, barbershop._id, user.userId);
-      await assertBarberInviteAllowed(ctx, barbershop._id, barbershop.ownerId);
+      await Promise.all([
+        assertCanManageTeam(ctx, barbershop._id, userId),
+        assertBarberInviteAllowed(ctx, barbershop._id, barbershop.ownerId),
+      ]);
     }
 
     const email = args.email.toLowerCase().trim();
@@ -165,12 +162,12 @@ export const invite = zMutation({
       email,
       groupId: barbershop._id,
       expiresAt,
-      createdBy: user.userId,
+      createdBy: userId,
       metadata: {
         roles: args.roles,
         phone: formatPhoneNumber(args.phone),
         barbershopId: barbershop._id,
-        inviterUserId: user.userId,
+        inviterUserId: userId,
       } satisfies InviteMeta,
     });
 
@@ -181,7 +178,7 @@ export const invite = zMutation({
         barbershopId: barbershop._id,
         email,
         code: token,
-        inviterUserId: user.userId,
+        inviterUserId: userId,
         roles: args.roles,
         expiresAt,
         phone: args.phone,
@@ -266,13 +263,9 @@ export const answer = zMutation({
     answer: z.enum(["accept", "deny"]),
   }),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await requireUserId(ctx);
 
-    if (!user || !user.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    await rateLimitOrThrow(ctx, "answerInvitation", `${user._id}-${args.code}`);
+    await rateLimitOrThrow(ctx, "answerInvitation", `${userId}-${args.code}`);
 
     const inv = await invites.getInviteByToken(ctx, { token: args.code });
 
@@ -294,7 +287,7 @@ export const answer = zMutation({
           );
         }
 
-        const profile = await getProfileByUserId(ctx, user.userId ?? "");
+        const profile = await getProfileByUserId(ctx, userId);
 
         if (!profile) {
           throw new ConvexError(errorMessages.notFound("perfil de usuario"));
@@ -305,7 +298,7 @@ export const answer = zMutation({
         // mutation transaction — including this claim — rolls back.
         const result = await invites.claimInvite(ctx, {
           token: args.code,
-          userId: user.userId,
+          userId,
           email: profile.email,
         });
 

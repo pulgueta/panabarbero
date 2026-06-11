@@ -2,10 +2,10 @@ import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zInternalMutation, zMutation, zQuery } from ".";
-import { api, components } from "./_generated/api";
+import { api } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { authComponent, createAuth } from "./auth";
 import { errorMessages } from "./errors";
+import { getUserId, requireUserId } from "./identity";
 import { rateLimitOrThrow } from "./ratelimit";
 import { userProfileData } from "./schema";
 import { formatPhoneNumber } from "./utils";
@@ -37,15 +37,13 @@ export const getMyProfile = zQuery({
       return null;
     }
 
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await getUserId(ctx);
 
-    if (!user) return null;
-
-    if (user.userId !== args.userId) {
+    if (!userId || userId !== args.userId) {
       return null;
     }
 
-    const profile = await getProfileByUserId(ctx, user.userId);
+    const profile = await getProfileByUserId(ctx, userId);
 
     if (!profile) {
       return null;
@@ -65,30 +63,17 @@ export const getMyProfile = zQuery({
 export const updateName = zMutation({
   args: userProfileData.schema.pick({ name: true }),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await requireUserId(ctx);
 
-    if (!user) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
+    await rateLimitOrThrow(ctx, "updateName", userId);
 
-    await rateLimitOrThrow(ctx, "updateName", user._id);
-
-    const profile = await getProfileByUserId(ctx, user.userId ?? "");
+    const profile = await getProfileByUserId(ctx, userId);
 
     if (!profile) {
       return null;
     }
 
-    const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
-
     const name = args.name?.trim();
-
-    await auth.api.updateUser({
-      body: {
-        name,
-      },
-      headers,
-    });
 
     await ctx.db.patch(profile._id, { name });
   },
@@ -98,7 +83,7 @@ export const updatePhoneNumber = zMutation({
   args: z
     .object({
       phoneNumber: z.string().optional(),
-      /** When true, removes the number from Better Auth and drops the profile field. */
+      /** When true, drops the phone number from the profile. */
       clearPhoneNumber: z.boolean().optional(),
     })
     .refine(
@@ -106,18 +91,11 @@ export const updatePhoneNumber = zMutation({
       { message: "Indica un número de teléfono o elige quitar." },
     ),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await requireUserId(ctx);
 
-    if (!user) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
+    await rateLimitOrThrow(ctx, "updatePhoneNumber", userId);
 
-    await rateLimitOrThrow(ctx, "updatePhoneNumber", user._id);
-
-    const profile = await getProfileByUserId(
-      ctx,
-      user.userId ?? String(user._id),
-    );
+    const profile = await getProfileByUserId(ctx, userId);
 
     if (!profile) {
       return;
@@ -131,37 +109,9 @@ export const updatePhoneNumber = zMutation({
       throw new ConvexError(errorMessages.invalidPhoneNumber);
     }
 
-    // `better-auth/minimal` does not register `phoneNumber` on `/update-user`, so
-    // `parseUserInput` drops it. Persist on the component `user` row via the
-    // Convex adapter (same pattern as `convex/auth.ts` triggers).
-    await ctx.runMutation(components.betterAuth.adapter.updateOne, {
-      input: {
-        model: "user",
-        update: normalized
-          ? {
-              phoneNumber: normalized,
-              phoneNumberVerified: false,
-              updatedAt: Date.now(),
-            }
-          : {
-              phoneNumber: null,
-              phoneNumberVerified: false,
-              updatedAt: Date.now(),
-            },
-        where: [{ field: "_id", operator: "eq", value: user._id }],
-      },
+    await ctx.db.patch(profile._id, {
+      phoneNumber: normalized || undefined,
     });
-
-    if (normalized) {
-      await ctx.db.patch(profile._id, { phoneNumber: normalized });
-    } else {
-      await ctx.db.replace(profile._id, {
-        userId: profile.userId,
-        email: profile.email,
-        notificationsPreferences: profile.notificationsPreferences,
-        ...(profile.name !== undefined ? { name: profile.name } : {}),
-      });
-    }
   },
 });
 
@@ -172,13 +122,9 @@ export const updateNotificationPreference = zMutation({
     userId: z.string(),
   }),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await requireUserId(ctx);
 
-    if (!user) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    if (user.userId !== args.userId) {
+    if (userId !== args.userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 
@@ -201,13 +147,15 @@ export const setProfilePhotoKey = zMutation({
     previousKey: z.string().optional(),
   }),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await requireUserId(ctx);
 
-    if (!user) {
-      throw new ConvexError(errorMessages.unauthorized);
+    await rateLimitOrThrow(ctx, "setProfilePhotoKey", userId);
+
+    const profile = await getProfileByUserId(ctx, userId);
+
+    if (!profile) {
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
-
-    await rateLimitOrThrow(ctx, "setProfilePhotoKey", user._id);
 
     if (args.previousKey) {
       try {
@@ -219,14 +167,7 @@ export const setProfilePhotoKey = zMutation({
       }
     }
 
-    const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
-
-    await auth.api.updateUser({
-      body: {
-        image: args.imageUrl,
-      },
-      headers,
-    });
+    await ctx.db.patch(profile._id, { image: args.imageUrl });
   },
 });
 
@@ -235,13 +176,15 @@ export const removeProfilePhoto = zMutation({
     previousKey: z.string().optional(),
   }),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await requireUserId(ctx);
 
-    if (!user) {
-      throw new ConvexError(errorMessages.unauthorized);
+    await rateLimitOrThrow(ctx, "removeProfilePhoto", userId);
+
+    const profile = await getProfileByUserId(ctx, userId);
+
+    if (!profile) {
+      throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
-
-    await rateLimitOrThrow(ctx, "removeProfilePhoto", user._id);
 
     if (args.previousKey) {
       try {
@@ -253,12 +196,7 @@ export const removeProfilePhoto = zMutation({
       }
     }
 
-    const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
-
-    await auth.api.updateUser({
-      body: { image: "" },
-      headers,
-    });
+    await ctx.db.patch(profile._id, { image: undefined });
   },
 });
 
@@ -274,11 +212,7 @@ export const create = zInternalMutation({
 export const update = zInternalMutation({
   args: userProfileData.tools.update,
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
-
-    if (!user) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
+    await requireUserId(ctx);
 
     await ctx.db.patch(args.id, {
       notificationsPreferences: args.data.notificationsPreferences,

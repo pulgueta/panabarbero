@@ -1,12 +1,13 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: early return */
 
 import { convexToZod, zid } from "convex-helpers/server/zod4";
+import { UnreadTracking } from "convex-unread-tracking";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zInternalMutation, zMutation, zQuery } from ".";
-import { internal } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import {
@@ -15,8 +16,8 @@ import {
   isEmailLimitNotExceeded,
   isSmsLimitNotExceeded,
 } from "./acl";
-import { authComponent } from "./auth";
 import { errorMessages } from "./errors";
+import { getUserId, requireUserId } from "./identity";
 import {
   buildNotificationCopy,
   buildSmsBody,
@@ -28,6 +29,8 @@ import type { UserProfileData } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
 
 export { subjects };
+
+export const unreads = new UnreadTracking(components.unreadTracking);
 
 export function isNotificationEnabled(
   channel: UserProfileData["notificationsPreferences"][number]["type"],
@@ -129,12 +132,21 @@ async function recordInApp(
     return;
   }
 
-  await ctx.db.insert("inAppNotifications", {
+  const id = await ctx.db.insert("inAppNotifications", {
     userId: opts.userId,
     kind: opts.copy.kind,
     title: opts.copy.title,
     description: opts.copy.description,
     payload: opts.payload,
+  });
+
+  // Register with the unread-tracking component in the same transaction,
+  // aligned to the row's _creationTime so watermark comparisons stay exact.
+  const doc = await ctx.db.get(id);
+
+  await unreads.insertMessage(ctx, {
+    channelId: opts.userId,
+    timestamp: doc!._creationTime,
   });
 }
 
@@ -880,15 +892,15 @@ const INBOX_RECENT_LIMIT = 5;
 export const listRecent = zQuery({
   args: z.object({}),
   handler: async (ctx) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await getUserId(ctx);
 
-    if (!user?.userId) {
+    if (!userId) {
       return [];
     }
 
     return await ctx.db
       .query("inAppNotifications")
-      .withIndex("by_user_created", (q) => q.eq("userId", user.userId!))
+      .withIndex("by_user_created", (q) => q.eq("userId", userId))
       .order("desc")
       .take(INBOX_RECENT_LIMIT);
   },
@@ -900,15 +912,15 @@ export const list = zQuery({
     paginationOpts: convexToZod(paginationOptsValidator),
   }),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await getUserId(ctx);
 
-    if (!user?.userId) {
+    if (!userId) {
       return { page: [], isDone: true, continueCursor: "" } as const;
     }
 
     return await ctx.db
       .query("inAppNotifications")
-      .withIndex("by_user_created", (q) => q.eq("userId", user.userId!))
+      .withIndex("by_user_created", (q) => q.eq("userId", userId))
       .order("desc")
       .paginate(args.paginationOpts);
   },
@@ -920,16 +932,21 @@ export const listUnread = zQuery({
     paginationOpts: convexToZod(paginationOptsValidator),
   }),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await getUserId(ctx);
 
-    if (!user?.userId) {
+    if (!userId) {
       return { page: [], isDone: true, continueCursor: "" } as const;
     }
 
+    const lastRead = await unreads.getLastRead(ctx, {
+      userId,
+      channelId: userId,
+    });
+
     return await ctx.db
       .query("inAppNotifications")
-      .withIndex("by_user_unread", (q) =>
-        q.eq("userId", user.userId!).eq("readAt", undefined),
+      .withIndex("by_user_created", (q) =>
+        q.eq("userId", userId).gt("_creationTime", lastRead ?? 0),
       )
       .order("desc")
       .paginate(args.paginationOpts);
@@ -940,44 +957,46 @@ export const listUnread = zQuery({
 export const unreadCount = zQuery({
   args: z.object({}),
   handler: async (ctx) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await getUserId(ctx);
 
-    if (!user?.userId) {
+    if (!userId) {
       return 0;
     }
 
-    const unread = await ctx.db
-      .query("inAppNotifications")
-      .withIndex("by_user_unread", (q) =>
-        q.eq("userId", user.userId!).eq("readAt", undefined),
-      )
-      .take(101);
-
-    return unread.length > 100 ? "99+" : unread.length;
+    return await unreads.getUnreadCount(ctx, {
+      userId,
+      channelId: userId,
+    });
   },
 });
 
-/** Mark a single notification as read. */
-export const markRead = zMutation({
-  args: z.object({
-    id: zid("inAppNotifications"),
-  }),
-  handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+/**
+ * Read watermark for the current user's inbox. Rows with `_creationTime`
+ * greater than this are unread — used by the client for per-row styling.
+ */
+export const getLastRead = zQuery({
+  args: z.object({}),
+  handler: async (ctx) => {
+    const userId = await getUserId(ctx);
 
-    if (!user?.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
+    if (!userId) {
+      return null;
     }
 
-    const row = await ctx.db.get(args.id);
+    return await unreads.getLastRead(ctx, {
+      userId,
+      channelId: userId,
+    });
+  },
+});
 
-    if (!row || row.userId !== user.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
+const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
 
-    if (!row.readAt) {
-      await ctx.db.patch(row._id, { readAt: Date.now() });
-    }
+/** Daily cron target: prune unread-tracking bookkeeping older than 90 days. */
+export const cleanupUnreads = zInternalMutation({
+  args: z.object({}),
+  handler: async (ctx) => {
+    await unreads.cleanup(ctx, { olderThanMs: NINETY_DAYS_MS });
   },
 });
 
@@ -985,30 +1004,12 @@ export const markRead = zMutation({
 export const markAllRead = zMutation({
   args: z.object({}),
   handler: async (ctx) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await requireUserId(ctx);
 
-    if (!user?.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    const BATCH = 200;
-    const now = Date.now();
-
-    while (true) {
-      const batch = await ctx.db
-        .query("inAppNotifications")
-        .withIndex("by_user_unread", (q) =>
-          q.eq("userId", user.userId!).eq("readAt", undefined),
-        )
-        .take(BATCH);
-
-      if (batch.length === 0) break;
-
-      await Promise.all(
-        batch.map((row) => ctx.db.patch(row._id, { readAt: now })),
-      );
-
-      if (batch.length < BATCH) break;
-    }
+    await unreads.markReadUpTo(ctx, {
+      userId,
+      channelId: userId,
+      timestamp: Date.now(),
+    });
   },
 });
