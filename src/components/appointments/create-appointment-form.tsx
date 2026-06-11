@@ -4,14 +4,16 @@ import type {
   Service,
 } from "@convex/schema";
 import { CalendarIcon } from "@phosphor-icons/react";
+import { revalidateLogic } from "@tanstack/react-form";
 import { es } from "date-fns/locale";
-import type { BaseSyntheticEvent, FC } from "react";
-import { Activity, Suspense, useState, useTransition } from "react";
-import type { UseFormReturn } from "react-hook-form";
-import { Controller } from "react-hook-form";
+import type { FC } from "react";
+import { Activity, Suspense, useEffect, useState, useTransition } from "react";
+import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 import type { output } from "zod";
 
 import { ServicesDropdown } from "@/components/barbershops/services/services-dropdown";
+import { useAppForm } from "@/components/form/use-form";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
@@ -31,8 +33,13 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { useAppointmentFormMetadata } from "@/hooks/use-appointments";
-import type { appointmentFormSchema } from "@/lib/schemas";
+import {
+  useAppointmentActions,
+  useAppointmentFormMetadata,
+} from "@/hooks/use-appointments";
+import { getConvexErrorMessage } from "@/lib/convex-errors";
+import { validateAppointmentTime } from "@/lib/schedule-utils";
+import { appointmentFormSchema } from "@/lib/schemas";
 import {
   cn,
   dateWithTimeOfDay,
@@ -42,6 +49,15 @@ import {
 } from "@/lib/utils";
 import { TimeSlotPicker } from "./time-slot-picker";
 
+interface AppointmentFormValues {
+  customerName: string;
+  date?: number;
+  contactPhone: string;
+  contactEmail?: string;
+  notes?: string;
+  barbershopMemberId?: BarbershopMemberWithName["_id"];
+}
+
 interface CreateAppointmentFormProps {
   barbershopId: Barbershop["_id"];
   barbers: BarbershopMemberWithName[];
@@ -49,14 +65,19 @@ interface CreateAppointmentFormProps {
   isBarber: boolean;
   /** When true, the barber selector is replaced with a hidden input (barber auto-selects themselves). Staff must always see the selector. */
   hideBarberSelector?: boolean;
-  onSubmit: (e: BaseSyntheticEvent) => void;
   services: Service[];
   barberServices?: Service[] | null;
   onBarberChange?: (barber: BarbershopMemberWithName) => void;
-  form: UseFormReturn<output<typeof appointmentFormSchema>>;
   showPhoneField?: boolean;
   /** The resolved service ID (from store or prop) used for slot generation. */
   effectiveServiceId?: Service["_id"];
+  initialValues: Partial<
+    Pick<
+      AppointmentFormValues,
+      "customerName" | "contactPhone" | "contactEmail" | "barbershopMemberId"
+    >
+  >;
+  onSuccess: () => void;
   formIds: {
     form: string;
     customerName: string;
@@ -76,35 +97,123 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
   disabledFields,
   isBarber,
   hideBarberSelector = false,
-  onSubmit,
   services,
   barberServices,
   onBarberChange,
   formIds,
-  form,
   showPhoneField = false,
   effectiveServiceId,
+  initialValues,
+  onSuccess,
 }) => {
-  const { disableDay } = useAppointmentFormMetadata(barbershopId);
+  const { disableDay, scheduleForDate } =
+    useAppointmentFormMetadata(barbershopId);
   const [isPending, startTransition] = useTransition();
   const [selectedSlotTime, setSelectedSlotTime] = useState<string | undefined>(
     undefined,
   );
 
-  const watchedDate = form.watch("date") as number | undefined;
-  const watchedBarber = form.watch("barbershopMemberId") as string | undefined;
+  const haptic = useWebHaptics();
 
-  const canShowSlots = !!(watchedDate && watchedBarber && effectiveServiceId);
+  const {
+    createAppointment: { mutateAsync: createAppointment },
+  } = useAppointmentActions();
 
-  // Normalize to midnight so slot selection (which sets hours) doesn't change query params
-  const normalizedDate = watchedDate
-    ? startOfDay(watchedDate).getTime()
-    : undefined;
+  const defaultValues: AppointmentFormValues = {
+    date: undefined,
+    customerName: initialValues.customerName ?? "",
+    contactPhone: initialValues.contactPhone ?? "",
+    contactEmail: initialValues.contactEmail,
+    notes: "",
+    barbershopMemberId: initialValues.barbershopMemberId,
+  };
+
+  const form = useAppForm({
+    onSubmitInvalid: () => {
+      haptic.trigger("error");
+    },
+    validationLogic: revalidateLogic({
+      mode: "submit",
+      modeAfterSubmission: "change",
+    }),
+    validators: {
+      // @ts-expect-error - zod's coerce method returns an unknown input type
+      onSubmit: appointmentFormSchema,
+    },
+    defaultValues,
+    onSubmit: async ({ value }) => {
+      const { date, barbershopMemberId, contactPhone } = value;
+
+      if (
+        date === undefined ||
+        !barbershopMemberId ||
+        !effectiveServiceId ||
+        !contactPhone
+      ) {
+        haptic.trigger("error");
+        toast.error("Selecciona servicio, barbero, fecha y hora.");
+        return;
+      }
+
+      const schedule = scheduleForDate(date);
+      const validation = validateAppointmentTime(schedule, date);
+
+      if (!validation.valid) {
+        toast.error(validation.error);
+        return;
+      }
+
+      try {
+        await createAppointment({
+          appointment: {
+            customerName: value.customerName,
+            date,
+            contactPhone,
+            contactEmail: value.contactEmail,
+            notes: value.notes,
+            barbershopId,
+            barbershopMemberId,
+            serviceId: effectiveServiceId,
+            isStaffCreated: isBarber,
+          },
+        });
+
+        form.reset();
+        setSelectedSlotTime(undefined);
+        haptic.trigger("success");
+        toast.success("Cita reservada exitosamente");
+        onSuccess();
+      } catch (error) {
+        haptic.trigger("error");
+        toast.error(getConvexErrorMessage(error));
+      }
+    },
+  });
+
+  // Auto-select when the available barber list narrows to exactly 1.
+  // Applies to customers always, and to staff when a service filters the list.
+  // The dialog mirrors this narrowing for its own selectedBarber state.
+  useEffect(() => {
+    if (barbers?.length !== 1 || hideBarberSelector) {
+      return;
+    }
+    const onlyBarber = barbers[0];
+    if (
+      !onlyBarber ||
+      form.state.values.barbershopMemberId === onlyBarber._id
+    ) {
+      return;
+    }
+    form.setFieldValue("barbershopMemberId", onlyBarber._id, {
+      dontUpdateMeta: true,
+    });
+    setSelectedSlotTime(undefined);
+  }, [barbers, hideBarberSelector, form]);
 
   // Reset the chosen slot when the barber or service changes (date reset handled
   // in calendar onSelect). Render-phase adjustment instead of an effect, to
   // avoid an extra render showing the stale slot.
-  const slotKey = `${watchedBarber ?? ""}|${effectiveServiceId ?? ""}`;
+  const slotKey = `${form.state.values.barbershopMemberId ?? ""}|${effectiveServiceId ?? ""}`;
   const [prevSlotKey, setPrevSlotKey] = useState(slotKey);
   if (slotKey !== prevSlotKey) {
     setPrevSlotKey(slotKey);
@@ -115,7 +224,15 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
   const displayServices = barberServices ?? services;
 
   return (
-    <form id={formIds.form} onSubmit={onSubmit} suppressHydrationWarning>
+    <form
+      id={formIds.form}
+      onSubmit={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        form.handleSubmit();
+      }}
+      suppressHydrationWarning
+    >
       <div className="space-y-4">
         <div className="grid grid-cols-1 gap-4">
           {(disabledFields?.includes("serviceId") || isBarber) && (
@@ -151,55 +268,61 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
               })}
             >
               {isBarber && (
-                <Controller
-                  name="customerName"
-                  control={form.control}
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={fieldState.invalid}>
+                <form.AppField name="customerName">
+                  {(field) => (
+                    <Field data-invalid={field.state.meta.errors.length > 0}>
                       <FieldLabel htmlFor={formIds.customerName}>
                         Nombre del cliente
                       </FieldLabel>
                       <Input
-                        {...field}
                         id={formIds.customerName}
-                        aria-invalid={fieldState.invalid}
+                        value={field.state.value ?? ""}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        onBlur={field.handleBlur}
+                        aria-invalid={field.state.meta.errors.length > 0}
                         placeholder="Marcos Aguilar"
                         autoComplete="given-name"
                         disabled={disabledFields?.includes("customerName")}
                       />
-                      {fieldState.invalid && (
-                        <FieldError errors={[fieldState.error]} />
+                      {field.state.meta.errors.length > 0 && (
+                        <FieldError
+                          errors={field.state.meta.errors.map((e) => ({
+                            message: String(e),
+                          }))}
+                        />
                       )}
                     </Field>
                   )}
-                />
+                </form.AppField>
               )}
 
               {showPhoneField && (
-                <Controller
-                  name="contactPhone"
-                  control={form.control}
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={fieldState.invalid}>
+                <form.AppField name="contactPhone">
+                  {(field) => (
+                    <Field data-invalid={field.state.meta.errors.length > 0}>
                       <FieldLabel htmlFor={formIds.contactPhone}>
                         Teléfono de contacto
                       </FieldLabel>
                       <PhoneInput
                         id={formIds.contactPhone}
-                        value={field.value ?? ""}
-                        onChange={field.onChange}
+                        value={field.state.value ?? ""}
+                        onChange={field.handleChange}
                         defaultCountry="CO"
                         placeholder="311 987 1234"
-                        aria-invalid={fieldState.invalid}
+                        aria-invalid={field.state.meta.errors.length > 0}
                         disabled={disabledFields?.includes("contactPhone")}
                       />
 
-                      {fieldState.invalid && (
-                        <FieldError errors={[fieldState.error]} />
+                      {field.state.meta.errors.length > 0 && (
+                        <FieldError
+                          errors={field.state.meta.errors.map((e) => ({
+                            message: String(e),
+                          }))}
+                        />
                       )}
                     </Field>
                   )}
-                />
+                </form.AppField>
               )}
             </div>
           )}
@@ -210,12 +333,10 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
             "grid-cols-2": isBarber,
           })}
         >
-          <Controller
-            name="contactEmail"
-            control={form.control}
-            render={({ field, fieldState }) => (
+          <form.AppField name="contactEmail">
+            {(field) => (
               <Field
-                data-invalid={fieldState.invalid}
+                data-invalid={field.state.meta.errors.length > 0}
                 className={cn({
                   hidden: disabledFields?.includes("contactEmail") || !isBarber,
                   "col-span-2": hideBarberSelector,
@@ -225,33 +346,37 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                   Email (opcional)
                 </FieldLabel>
                 <Input
-                  {...field}
                   id={formIds.contactEmail}
-                  aria-invalid={fieldState.invalid}
+                  value={field.state.value ?? ""}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  aria-invalid={field.state.meta.errors.length > 0}
                   placeholder="cliente@ejemplo.com"
                   autoComplete="email"
                   type="email"
                   disabled={disabledFields?.includes("contactEmail")}
                 />
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
+                {field.state.meta.errors.length > 0 && (
+                  <FieldError
+                    errors={field.state.meta.errors.map((e) => ({
+                      message: String(e),
+                    }))}
+                  />
                 )}
               </Field>
             )}
-          />
+          </form.AppField>
 
           {hideBarberSelector ? (
-            <Controller
-              name="barbershopMemberId"
-              control={form.control}
-              render={({ field }) => <Input {...field} type="hidden" />}
-            />
+            <form.AppField name="barbershopMemberId">
+              {(field) => (
+                <Input value={field.state.value ?? ""} type="hidden" readOnly />
+              )}
+            </form.AppField>
           ) : barbers?.length ? (
-            <Controller
-              name="barbershopMemberId"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+            <form.AppField name="barbershopMemberId">
+              {(field) => (
+                <Field data-invalid={field.state.meta.errors.length > 0}>
                   <FieldLabel htmlFor={formIds.barbershopMemberId}>
                     Barbero
                   </FieldLabel>
@@ -259,7 +384,9 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                   <Suspense fallback={<Skeleton className="h-9 w-full" />}>
                     <Activity mode={barbers?.length > 1 ? "visible" : "hidden"}>
                       <Select
-                        value={field.value?.name}
+                        value={
+                          barbers.find((b) => b._id === field.state.value)?.name
+                        }
                         onValueChange={(value) => {
                           const selectedBarber = barbers.find(
                             (barber) => barber.name === value,
@@ -267,12 +394,12 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
 
                           if (selectedBarber) {
                             startTransition(() => {
-                              field.onChange(selectedBarber._id);
+                              field.handleChange(selectedBarber._id);
                               onBarberChange?.(selectedBarber);
                             });
                           }
                         }}
-                        aria-invalid={fieldState.invalid}
+                        aria-invalid={field.state.meta.errors.length > 0}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Seleccione un barbero" />
@@ -296,19 +423,24 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                         value={barbers[0].name}
                       />
                       <Input
-                        {...field}
                         id={formIds.barbershopMemberId}
+                        value={field.state.value ?? ""}
                         type="hidden"
+                        readOnly
                       />
                     </Activity>
                   </Suspense>
 
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
+                  {field.state.meta.errors.length > 0 && (
+                    <FieldError
+                      errors={field.state.meta.errors.map((e) => ({
+                        message: String(e),
+                      }))}
+                    />
                   )}
                 </Field>
               )}
-            />
+            </form.AppField>
           ) : (
             <Field className={cn({ "col-span-2": isBarber })}>
               <FieldLabel htmlFor={formIds.barbershopMemberId}>
@@ -322,28 +454,30 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
           )}
         </div>
 
-        <Controller
-          name="date"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid} suppressHydrationWarning>
+        <form.AppField name="date">
+          {(field) => (
+            <Field
+              data-invalid={field.state.meta.errors.length > 0}
+              suppressHydrationWarning
+            >
               <FieldLabel htmlFor={formIds.date}>Fecha</FieldLabel>
               <Popover>
                 <PopoverTrigger
+                  nativeButton={false}
                   render={
                     <Button
                       variant="outline"
                       className={cn(
                         "mb-4 w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground",
+                        !field.state.value && "text-muted-foreground",
                       )}
                     >
-                      {field.value ? (
+                      {field.state.value ? (
                         <span
                           className="text-xs sm:text-sm"
                           suppressHydrationWarning
                         >
-                          {formatLongDate(field.value as number)}
+                          {formatLongDate(field.state.value)}
                         </span>
                       ) : (
                         <span className="text-xs sm:text-sm">
@@ -361,16 +495,16 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                 >
                   <Calendar
                     mode="single"
-                    selected={toDate(field.value as number | undefined)}
+                    selected={toDate(field.state.value)}
                     onSelect={(date) => {
                       if (!date) {
-                        field.onChange(undefined);
+                        field.handleChange(undefined);
                         setSelectedSlotTime(undefined);
                         return;
                       }
                       const combined = startOfDay(date);
                       startTransition(() => {
-                        field.onChange(combined.getTime());
+                        field.handleChange(combined.getTime());
                         setSelectedSlotTime(undefined);
                       });
                     }}
@@ -381,75 +515,117 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                   />
                 </PopoverContent>
               </Popover>
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              {field.state.meta.errors.length > 0 && (
+                <FieldError
+                  errors={field.state.meta.errors.map((e) => ({
+                    message: String(e),
+                  }))}
+                />
+              )}
             </Field>
           )}
-        />
+        </form.AppField>
 
         <Field>
           <FieldLabel>Hora disponible</FieldLabel>
-          {canShowSlots && normalizedDate ? (
-            <Suspense
-              fallback={
-                <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <Skeleton
-                      key={`slot-skeleton-${i.toString()}`}
-                      className="h-9 w-full"
-                    />
-                  ))}
-                </div>
-              }
-            >
-              <TimeSlotPicker
-                barbershopId={barbershopId}
-                barbershopMemberId={
-                  watchedBarber as BarbershopMemberWithName["_id"]
-                }
-                serviceId={effectiveServiceId}
-                date={normalizedDate}
-                value={selectedSlotTime}
-                isPending={isPending}
-                onChange={(slotTime, slotMinutes) => {
-                  setSelectedSlotTime(slotTime);
-                  const dateObj = dateWithTimeOfDay(
-                    normalizedDate ?? Date.now(),
-                    slotMinutes,
-                  );
-                  form.setValue("date", dateObj.getTime(), {
-                    shouldValidate: true,
-                  });
-                }}
-              />
-            </Suspense>
-          ) : (
-            <p className="text-muted-foreground text-sm">
-              {!watchedDate
-                ? "Selecciona una fecha para ver los horarios."
-                : !watchedBarber
-                  ? "Selecciona un barbero para ver los horarios."
-                  : "Selecciona un servicio para ver los horarios."}
-            </p>
-          )}
+          <form.Subscribe
+            selector={(state) =>
+              [state.values.date, state.values.barbershopMemberId] as const
+            }
+          >
+            {([date, barbershopMemberId]) => {
+              const canShowSlots = !!(
+                date &&
+                barbershopMemberId &&
+                effectiveServiceId
+              );
+              // Normalize to midnight so slot selection (which sets hours)
+              // doesn't change query params
+              const normalizedDate = date
+                ? startOfDay(date).getTime()
+                : undefined;
+
+              return canShowSlots && normalizedDate ? (
+                <Suspense
+                  fallback={
+                    <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <Skeleton
+                          key={`slot-skeleton-${i.toString()}`}
+                          className="h-9 w-full"
+                        />
+                      ))}
+                    </div>
+                  }
+                >
+                  <TimeSlotPicker
+                    barbershopId={barbershopId}
+                    barbershopMemberId={
+                      barbershopMemberId as BarbershopMemberWithName["_id"]
+                    }
+                    serviceId={effectiveServiceId}
+                    date={normalizedDate}
+                    value={selectedSlotTime}
+                    isPending={isPending}
+                    onChange={(slotTime, slotMinutes) => {
+                      setSelectedSlotTime(slotTime);
+                      const dateObj = dateWithTimeOfDay(
+                        normalizedDate,
+                        slotMinutes,
+                      );
+                      form.setFieldValue("date", dateObj.getTime());
+                    }}
+                  />
+                </Suspense>
+              ) : (
+                <p className="text-muted-foreground text-sm">
+                  {!date
+                    ? "Selecciona una fecha para ver los horarios."
+                    : !barbershopMemberId
+                      ? "Selecciona un barbero para ver los horarios."
+                      : "Selecciona un servicio para ver los horarios."}
+                </p>
+              );
+            }}
+          </form.Subscribe>
         </Field>
 
-        <Controller
-          name="notes"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid} className="mt-4">
+        <form.AppField name="notes">
+          {(field) => (
+            <Field
+              data-invalid={field.state.meta.errors.length > 0}
+              className="mt-4"
+            >
               <FieldLabel htmlFor={formIds.notes}>Notas (opcional)</FieldLabel>
               <Textarea
-                {...field}
                 id={formIds.notes}
-                aria-invalid={fieldState.invalid}
+                value={field.state.value ?? ""}
+                onChange={(e) => field.handleChange(e.target.value)}
+                onBlur={field.handleBlur}
+                aria-invalid={field.state.meta.errors.length > 0}
                 placeholder="Corte con cero, degradado medio-alto, etc."
                 rows={4}
               />
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              {field.state.meta.errors.length > 0 && (
+                <FieldError
+                  errors={field.state.meta.errors.map((e) => ({
+                    message: String(e),
+                  }))}
+                />
+              )}
             </Field>
           )}
-        />
+        </form.AppField>
+
+        {barbers?.length ? (
+          <form.AppForm>
+            <form.SubmitButton label="Reservar" className="w-full" />
+          </form.AppForm>
+        ) : (
+          <Button type="button" disabled className="w-full">
+            Reservar
+          </Button>
+        )}
       </div>
     </form>
   );

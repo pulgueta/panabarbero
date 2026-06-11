@@ -1,12 +1,7 @@
 import type { Appointment } from "@convex/schema";
-import { zodResolver } from "@hookform/resolvers/zod";
 import type { FC, ReactElement } from "react";
-import { useId } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { useWebHaptics } from "web-haptics/react";
+import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import {
   ResponsiveModal,
   ResponsiveModalContent,
@@ -16,10 +11,6 @@ import {
   ResponsiveModalTitle,
   ResponsiveModalTrigger,
 } from "@/components/ui/responsive-modal";
-import { Spinner } from "@/components/ui/spinner";
-import { useAppointmentActions } from "@/hooks/use-appointments";
-import { getConvexErrorMessage } from "@/lib/convex-errors";
-import { cancelAppointmentFormSchema } from "@/lib/schemas";
 import { CancelAppointmentForm } from "./delete-appointment-form";
 
 interface CancelAppointmentDialogProps {
@@ -39,82 +30,36 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
   open,
   onOpenChange,
 }) => {
-  const formIds = {
-    notes: useId(),
-    form: useId(),
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    setInternalOpen(nextOpen);
+    onOpenChange?.(nextOpen);
   };
 
-  const form = useForm({
-    resolver: zodResolver(cancelAppointmentFormSchema),
-    defaultValues: {
-      notes: "",
-    },
-  });
-
-  const haptic = useWebHaptics();
-
-  const {
-    cancelAppointmentMutation: {
-      mutateAsync: cancelAppointment,
-      isPending: isCancellingAppointment,
-    },
-  } = useAppointmentActions();
-
-  const title = "Cancelar cita";
-  const cancelButtonLabel = "Si, cancelar";
   const cancelDialogDescription = `Esta acción cancelará la cita y no podrá ser recuperada. Tendrás que volver a agendarla. Tu ${isBarber ? "cliente" : "barbero"} será notificado.`;
 
-  const onSubmit = form.handleSubmit(async (values) => {
-    if (!isBarber) {
-      form.setValue("notes", "");
-    }
-
-    try {
-      await cancelAppointment({
-        appointmentId: { id: appointment._id },
-        reason: values.notes,
-        cancelledByUserId: userId,
-        cancelledBy: isBarber ? "barber" : "customer",
-      });
-
-      haptic.trigger("success");
-      toast.success("Cita cancelada correctamente.");
-    } catch (error) {
-      haptic.trigger("error");
-      toast.error(getConvexErrorMessage(error));
-      return;
-    }
-  });
-
   return (
-    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+    <ResponsiveModal
+      open={open ?? internalOpen}
+      onOpenChange={handleOpenChange}
+    >
       <ResponsiveModalTrigger nativeButton={false} render={trigger} />
       <ResponsiveModalContent>
         <ResponsiveModalHeader>
-          <ResponsiveModalTitle>{title}</ResponsiveModalTitle>
+          <ResponsiveModalTitle>Cancelar cita</ResponsiveModalTitle>
           <ResponsiveModalDescription>
             {cancelDialogDescription}
           </ResponsiveModalDescription>
         </ResponsiveModalHeader>
 
-        <CancelAppointmentForm
-          isBarber={isBarber}
-          form={form}
-          formIds={formIds}
-          onSubmit={onSubmit}
-          disabled={isCancellingAppointment}
-        />
-
         <ResponsiveModalFooter>
-          <Button
-            variant="destructive"
-            disabled={isCancellingAppointment}
-            form={formIds.form}
-            type="submit"
-          >
-            {isCancellingAppointment && <Spinner />}
-            {cancelButtonLabel}
-          </Button>
+          <CancelAppointmentForm
+            appointmentId={appointment._id}
+            userId={userId}
+            isBarber={isBarber}
+            onSuccess={() => handleOpenChange(false)}
+          />
         </ResponsiveModalFooter>
       </ResponsiveModalContent>
     </ResponsiveModal>

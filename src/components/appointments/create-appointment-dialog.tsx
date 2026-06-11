@@ -5,16 +5,11 @@ import type {
   BarbershopMemberWithName,
   Service,
 } from "@convex/schema";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { FC, ReactElement } from "react";
 import { Activity, useEffect, useId, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
-import { Field } from "@/components/ui/field";
 import {
   ResponsiveModal,
   ResponsiveModalContent,
@@ -24,11 +19,6 @@ import {
   ResponsiveModalTitle,
   ResponsiveModalTrigger,
 } from "@/components/ui/responsive-modal";
-import { Spinner } from "@/components/ui/spinner";
-import {
-  useAppointmentActions,
-  useAppointmentFormMetadata,
-} from "@/hooks/use-appointments";
 import {
   useBarberByUserId,
   useBarbersForService,
@@ -38,9 +28,6 @@ import {
 } from "@/hooks/use-barbershop-members";
 import { useProfile } from "@/hooks/use-profile";
 import { useSession } from "@/hooks/use-session";
-import { getConvexErrorMessage } from "@/lib/convex-errors";
-import { validateAppointmentTime } from "@/lib/schedule-utils";
-import { appointmentFormSchema } from "@/lib/schemas";
 import { useServicesStore } from "@/store/services";
 import { CreateAppointmentForm } from "./create-appointment-form";
 
@@ -78,10 +65,10 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   const navigate = useNavigate();
 
   const { data: user } = useSession();
-  const { data: userProfile } = useProfile(user?.userId!);
-  const { data: isBarber } = useIsBarber(user?.userId!);
-  const { data: isStaff } = useIsStaff(user?.userId!);
-  const { data: currentBarberMember } = useBarberByUserId(user?.userId!);
+  const { data: userProfile } = useProfile(user?.id!);
+  const { data: isBarber } = useIsBarber(user?.id!);
+  const { data: isStaff } = useIsStaff(user?.id!);
+  const { data: currentBarberMember } = useBarberByUserId(user?.id!);
   const { data: barberServices } = useServicesForBarber(selectedBarber?._id!);
   // service must come before useBarbersForService so we can use the store selection
   const service = useServicesStore();
@@ -107,16 +94,6 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
     ? (barbersForService ?? allBarbers)
     : allBarbers;
 
-  const haptic = useWebHaptics();
-
-  const {
-    createAppointment: {
-      mutateAsync: createAppointment,
-      isPending: isCreatingAppointment,
-    },
-  } = useAppointmentActions();
-  const { scheduleForDate } = useAppointmentFormMetadata(barbershopId);
-
   // When a barber creates an appointment, default to themselves
   // Barbers default to themselves; staff must pick a barber
   const defaultBarberId =
@@ -126,82 +103,28 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
         ? availableBarbers[0]?._id
         : undefined;
 
-  const form = useForm({
-    resolver: zodResolver(appointmentFormSchema),
-    defaultValues: {
-      date: undefined,
-      customerName: isCreatingOnBehalf ? undefined : userProfile?.name,
-      contactPhone: isCreatingOnBehalf ? undefined : userProfile?.phoneNumber,
-      contactEmail: isCreatingOnBehalf ? undefined : userProfile?.email,
-      notes: "",
-      barbershopMemberId: defaultBarberId ?? selectedBarber?._id,
-    },
-  });
-
   // When a barber is creating, auto-select themselves (staff must pick)
   useEffect(() => {
     if (isBarber && !isStaff && currentBarberMember) {
       const self = barbers.find((b) => b._id === currentBarberMember._id);
       if (self) {
         setSelectedBarber(self);
-        form.setValue("barbershopMemberId", self._id);
       }
     }
-  }, [isBarber, isStaff, currentBarberMember, barbers, form]);
+  }, [isBarber, isStaff, currentBarberMember, barbers]);
 
-  // Auto-select when the available barber list narrows to exactly 1.
+  // Mirror the form's narrowing auto-select so barberServices stays in sync.
   // Applies to customers always, and to staff when a service filters the list.
   useEffect(() => {
     if (availableBarbers?.length === 1 && (!isCreatingOnBehalf || isStaff)) {
       setSelectedBarber(availableBarbers[0]!);
-      form.setValue("barbershopMemberId", availableBarbers[0]?._id);
     }
-  }, [isCreatingOnBehalf, isStaff, availableBarbers, form]);
+  }, [isCreatingOnBehalf, isStaff, availableBarbers]);
 
   const headLabel = "Reservar cita";
   const description = isCreatingOnBehalf
     ? "Proporciona los datos del cliente para reservar el servicio."
     : "Ingresa los datos para reservar el servicio.";
-
-  const onSubmit = form.handleSubmit(async (formData) => {
-    const schedule = scheduleForDate(formData.date);
-    const validation = validateAppointmentTime(schedule, formData.date);
-
-    if (!validation.valid) {
-      toast.error(validation.error);
-      return;
-    }
-
-    try {
-      await createAppointment({
-        appointment: {
-          ...formData,
-          contactPhone: formData.contactPhone,
-          barbershopId,
-          barbershopMemberId: formData.barbershopMemberId,
-          serviceId: effectiveServiceId,
-          isStaffCreated: isCreatingOnBehalf ?? false,
-        },
-      });
-
-      setOpen(false);
-
-      form.reset();
-      haptic.trigger("success");
-      toast.success("Cita reservada exitosamente");
-
-      if (!isCreatingOnBehalf) {
-        navigate({
-          to: "/profile",
-          search: (prev) => ({ ...prev, tab: "appointments" }),
-        });
-      }
-    } catch (error) {
-      haptic.trigger("error");
-      toast.error(getConvexErrorMessage(error));
-      return;
-    }
-  });
 
   return (
     <ResponsiveModal open={open} onOpenChange={setOpen}>
@@ -230,8 +153,6 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
             )}
             onBarberChange={setSelectedBarber}
             effectiveServiceId={effectiveServiceId}
-            // @ts-expect-error - zod's coerce method returns an unknown type
-            form={form}
             showPhoneField={showPhoneField}
             disabledFields={
               isCreatingOnBehalf
@@ -241,29 +162,38 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
                   : ["contactEmail", "customerName"]
             }
             formIds={formIds}
-            onSubmit={onSubmit}
+            initialValues={{
+              customerName: isCreatingOnBehalf
+                ? undefined
+                : (userProfile?.name ?? undefined),
+              contactPhone: isCreatingOnBehalf
+                ? undefined
+                : (userProfile?.phoneNumber ?? undefined),
+              contactEmail: isCreatingOnBehalf
+                ? undefined
+                : (userProfile?.email ?? undefined),
+              barbershopMemberId: defaultBarberId ?? selectedBarber?._id,
+            }}
+            onSuccess={() => {
+              setOpen(false);
+
+              if (!isCreatingOnBehalf) {
+                navigate({
+                  to: "/profile",
+                  search: (prev) => ({ ...prev, tab: "appointments" }),
+                });
+              }
+            }}
           />
         </Activity>
 
-        <ResponsiveModalFooter>
-          {user ? (
-            <Field className="w-full">
-              <Button
-                type="submit"
-                form={formIds.form}
-                disabled={isCreatingAppointment || !availableBarbers?.length}
-                className="w-full"
-              >
-                {isCreatingAppointment && <Spinner />}
-                Reservar
-              </Button>
-            </Field>
-          ) : (
+        {!user && (
+          <ResponsiveModalFooter>
             <Button nativeButton={false} render={<Link to="/login" />}>
               Iniciar sesión
             </Button>
-          )}
-        </ResponsiveModalFooter>
+          </ResponsiveModalFooter>
+        )}
       </ResponsiveModalContent>
     </ResponsiveModal>
   );
