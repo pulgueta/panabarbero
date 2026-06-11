@@ -33,6 +33,7 @@ interface CreditCardProps {
   currentCredits: number;
   maxCredits: number;
   barbershopId: string;
+  workosOrganizationId?: string;
   isLoading: boolean;
   planQuotaUsed: number;
   planQuotaMax: number;
@@ -47,6 +48,7 @@ const CreditCard: FC<CreditCardProps> = ({
   currentCredits,
   maxCredits,
   barbershopId,
+  workosOrganizationId,
   isLoading,
   planQuotaUsed,
   planQuotaMax,
@@ -116,7 +118,10 @@ const CreditCard: FC<CreditCardProps> = ({
               generateCheckoutLink: api.polar.generateCheckoutLink,
             }}
             productIds={[productId]}
-            metadata={{ barbershopId }}
+            metadata={{
+              barbershopId,
+              ...(workosOrganizationId ? { workosOrganizationId } : {}),
+            }}
             className={cn(buttonVariants({ className: "w-full" }))}
             lazy
             locale="es-CO"
@@ -143,10 +148,12 @@ function getCopPrice(
 
 interface ExtraCreditsCardsProps {
   barbershopId: Barbershop["_id"];
+  workosOrganizationId?: Barbershop["workosOrganizationId"];
 }
 
 export const ExtraCreditsCards: FC<ExtraCreditsCardsProps> = ({
   barbershopId,
+  workosOrganizationId,
 }) => {
   const { data: products, isLoading: productsLoading } = usePricingPlans();
   const { data: credits, isLoading: creditsLoading } = useExtraCredits();
@@ -184,6 +191,7 @@ export const ExtraCreditsCards: FC<ExtraCreditsCardsProps> = ({
           currentCredits={safeCredits?.smsCredits ?? 0}
           maxCredits={smsMax}
           barbershopId={barbershopId}
+          workosOrganizationId={workosOrganizationId}
           isLoading={isLoading}
           planQuotaUsed={quota.smsUsed}
           planQuotaMax={quota.maxSmsPerMonth ?? 0}
@@ -202,6 +210,7 @@ export const ExtraCreditsCards: FC<ExtraCreditsCardsProps> = ({
           currentCredits={safeCredits?.emailCredits ?? 0}
           maxCredits={emailMax}
           barbershopId={barbershopId}
+          workosOrganizationId={workosOrganizationId}
           isLoading={isLoading}
           planQuotaUsed={quota.emailsUsed}
           planQuotaMax={quota.maxEmailPerMonth ?? 0}

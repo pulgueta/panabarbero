@@ -21,12 +21,14 @@ export interface PricingCardProps {
   product: Awaited<ReturnType<Polar["getProduct"]>>;
   products: Awaited<ReturnType<Polar["getProduct"]>>[];
   userId: string | undefined;
+  metadata?: Record<string, string>;
 }
 
 export const PricingCard: FC<PricingCardProps> = ({
   product,
   products,
   userId,
+  metadata,
 }) => {
   const { data: subscription } = useSubscription();
 
@@ -111,6 +113,7 @@ export const PricingCard: FC<PricingCardProps> = ({
               generateCheckoutLink: api.polar.generateCheckoutLink,
             }}
             productIds={checkoutProductIds.filter((id) => id !== undefined)}
+            metadata={metadata}
             className={cn(buttonVariants({ className: "w-full" }), {
               "pointer-events-none opacity-50": hasActiveSubscription,
             })}
