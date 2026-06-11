@@ -1,5 +1,5 @@
 import { SignOutIcon } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useAuth } from "@workos/authkit-tanstack-react-start/client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -9,12 +9,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import { Spinner } from "@/components/ui/spinner";
-import { signOut } from "@/lib/auth-client";
 
 interface UserAvatarProps {
   user: {
-    userId: string;
+    id: string;
     email: string;
     name?: string | null;
     image?: string | null;
@@ -22,22 +20,7 @@ interface UserAvatarProps {
 }
 
 export function UserAvatar({ user }: UserAvatarProps) {
-  const [isSigningOut, setIsSigningOut] = useState(false);
-
-  const handleSignOut = async () => {
-    setIsSigningOut(true);
-    try {
-      await signOut({
-        fetchOptions: {
-          onSuccess: () => {
-            location.reload();
-          },
-        },
-      });
-    } finally {
-      setIsSigningOut(false);
-    }
-  };
+  const { signOut } = useAuth();
 
   const initials = user.name
     ? user.name
@@ -51,8 +34,12 @@ export function UserAvatar({ user }: UserAvatarProps) {
   return (
     <Popover>
       <PopoverTrigger
+        nativeButton={false}
         render={
-          <Button variant="ghost" className="relative size-8 rounded-full">
+          <Button
+            variant="ghost"
+            className="relative mt-1.5 size-8 rounded-full"
+          >
             <Avatar className="size-8">
               <AvatarImage
                 src={user.image || undefined}
@@ -86,12 +73,8 @@ export function UserAvatar({ user }: UserAvatarProps) {
 
           <Separator />
 
-          <Button
-            variant="destructive"
-            disabled={isSigningOut}
-            onClick={handleSignOut}
-          >
-            {isSigningOut ? <Spinner /> : <SignOutIcon className="size-4" />}
+          <Button variant="destructive" onClick={() => void signOut()}>
+            <SignOutIcon className="size-4" />
             Cerrar sesión
           </Button>
         </div>
