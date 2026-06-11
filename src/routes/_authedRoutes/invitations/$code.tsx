@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_authedRoutes/invitations/$code")({
       getSessionQueryOptions(),
     );
 
-    if (user?.userId) {
+    if (user?.id) {
       const invitation = await context.queryClient.ensureQueryData(
         invitationByCodeQueryOptions(params.code),
       );

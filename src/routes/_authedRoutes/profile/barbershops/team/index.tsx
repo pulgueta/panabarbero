@@ -45,7 +45,7 @@ import {
   servicesQueryOptions,
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
-import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { useSession } from "@/hooks/use-session";
 
 const DashboardHeader = lazy(() =>
   import("@/components/barbershops/dashboard-header").then((module) => ({
@@ -79,18 +79,16 @@ export const Route = createFileRoute(
   staleTime: cacheTime.high,
   gcTime: cacheTime.extreme,
   loader: async (opts) => {
-    const user = await opts.context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
+    const userId = opts.context.userId;
 
-    if (user?.userId) {
+    if (userId) {
       const barbershop = await opts.context.queryClient.ensureQueryData(
-        barbershopByMemberUserIdQueryOptions(user.userId),
+        barbershopByMemberUserIdQueryOptions(userId),
       );
 
       const barbershopMemberRoles =
         await opts.context.queryClient.ensureQueryData(
-          barbershopMemberRolesQueryOptions(user.userId),
+          barbershopMemberRolesQueryOptions(userId),
         );
 
       // Only owner or staff can access the team page
@@ -131,8 +129,8 @@ function RouteComponent() {
   const { tab } = Route.useSearch();
 
   const { data: user } = useSession();
-  const { data: barbershop } = useBarbershopByMemberUserId(user?.userId!);
-  const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
+  const { data: barbershop } = useBarbershopByMemberUserId(user?.id!);
+  const { data: rolesData } = useBarbershopMemberRoles(user?.id!);
   const { data: barbershopMembers } = useBarbershopMembersByBarbershopId(
     barbershop?._id!,
   );

@@ -30,7 +30,7 @@ import {
   servicesPaginatedByBarbershopIdQueryOptions,
   usePaginatedServicesFromBarbershop,
 } from "@/hooks/use-services";
-import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { useSession } from "@/hooks/use-session";
 
 const DashboardHeader = lazy(() =>
   import("@/components/barbershops/dashboard-header").then((module) => ({
@@ -52,18 +52,16 @@ export const Route = createFileRoute(
   staleTime: cacheTime.high,
   gcTime: cacheTime.extreme,
   loader: async (opts) => {
-    const user = await opts.context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
+    const userId = opts.context.userId;
 
-    if (user?.userId) {
+    if (userId) {
       const barbershop = await opts.context.queryClient.ensureQueryData(
-        barbershopByMemberUserIdQueryOptions(user.userId),
+        barbershopByMemberUserIdQueryOptions(userId),
       );
 
       const barbershopMemberRoles =
         await opts.context.queryClient.ensureQueryData(
-          barbershopMemberRolesQueryOptions(user.userId),
+          barbershopMemberRolesQueryOptions(userId),
         );
 
       if (!barbershopMemberRoles?.isOwner && !barbershopMemberRoles?.isStaff) {
@@ -71,9 +69,7 @@ export const Route = createFileRoute(
       }
 
       // Not read on this page — prime without blocking.
-      void opts.context.queryClient.prefetchQuery(
-        profileQueryOptions(user.userId),
-      );
+      void opts.context.queryClient.prefetchQuery(profileQueryOptions(userId));
 
       if (barbershop?._id) {
         // Primary content: the first page of services.
@@ -92,9 +88,9 @@ function RouteComponent() {
   const pageSize = 6;
 
   const { data: user } = useSession();
-  const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
+  const { data: rolesData } = useBarbershopMemberRoles(user?.id!);
   const { data: barbershop, isLoading: isLoadingBarbershop } =
-    useBarbershopByMemberUserId(user?.userId!);
+    useBarbershopByMemberUserId(user?.id!);
   const { data: servicesResult, isFetching: isFetchingServices } =
     usePaginatedServicesFromBarbershop(barbershop?._id!, cursor, pageSize);
 

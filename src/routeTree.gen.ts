@@ -15,6 +15,7 @@ import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
+import { Route as CallbackRouteImport } from './routes/callback'
 import { Route as AiRouteImport } from './routes/ai'
 import { Route as ChatRouteRouteImport } from './routes/chat/route'
 import { Route as AuthedRoutesRouteRouteImport } from './routes/_authedRoutes/route'
@@ -23,15 +24,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ChatIndexRouteImport } from './routes/chat/index'
 import { Route as BarbershopsIndexRouteImport } from './routes/barbershops/index'
 import { Route as ChatThreadIdRouteImport } from './routes/chat/$threadId'
-import { Route as AuthVerifyEmailRouteImport } from './routes/_auth/verify-email'
-import { Route as AuthResetPasswordRouteImport } from './routes/_auth/reset-password'
 import { Route as AuthRegisterRouteImport } from './routes/_auth/register'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
-import { Route as AuthForgotPasswordRouteImport } from './routes/_auth/forgot-password'
 import { Route as BarbershopsBarbershopUuidIndexRouteImport } from './routes/barbershops/$barbershopUuid/index'
 import { Route as AuthedRoutesProfileIndexRouteImport } from './routes/_authedRoutes/profile/index'
 import { Route as BarbershopsBarbershopUuidBookRouteImport } from './routes/barbershops/$barbershopUuid/book'
-import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthedRoutesInvitationsCodeRouteImport } from './routes/_authedRoutes/invitations/$code'
 import { Route as AuthedRoutesProfileBarbershopsTeamIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/team/index'
 import { Route as AuthedRoutesProfileBarbershopsSettingsIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/settings/index'
@@ -66,6 +63,11 @@ const PricingRoute = PricingRouteImport.update({
 const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
   id: '/llms.txt',
   path: '/llms.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CallbackRoute = CallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AiRoute = AiRouteImport.update({
@@ -106,16 +108,6 @@ const ChatThreadIdRoute = ChatThreadIdRouteImport.update({
   path: '/$threadId',
   getParentRoute: () => ChatRouteRoute,
 } as any)
-const AuthVerifyEmailRoute = AuthVerifyEmailRouteImport.update({
-  id: '/verify-email',
-  path: '/verify-email',
-  getParentRoute: () => AuthRouteRoute,
-} as any)
-const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => AuthRouteRoute,
-} as any)
 const AuthRegisterRoute = AuthRegisterRouteImport.update({
   id: '/register',
   path: '/register',
@@ -124,11 +116,6 @@ const AuthRegisterRoute = AuthRegisterRouteImport.update({
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => AuthRouteRoute,
-} as any)
-const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
   getParentRoute: () => AuthRouteRoute,
 } as any)
 const BarbershopsBarbershopUuidIndexRoute =
@@ -149,11 +136,6 @@ const BarbershopsBarbershopUuidBookRoute =
     path: '/barbershops/$barbershopUuid/book',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-  id: '/api/auth/$',
-  path: '/api/auth/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthedRoutesInvitationsCodeRoute =
   AuthedRoutesInvitationsCodeRouteImport.update({
     id: '/invitations/$code',
@@ -189,22 +171,19 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/chat': typeof ChatRouteRouteWithChildren
   '/ai': typeof AiRoute
+  '/callback': typeof CallbackRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/pricing': typeof PricingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tos': typeof TosRoute
-  '/forgot-password': typeof AuthForgotPasswordRoute
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
-  '/reset-password': typeof AuthResetPasswordRoute
-  '/verify-email': typeof AuthVerifyEmailRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/barbershops/': typeof BarbershopsIndexRoute
   '/chat/': typeof ChatIndexRoute
   '/invitations/$code': typeof AuthedRoutesInvitationsCodeRoute
-  '/api/auth/$': typeof ApiAuthSplatRoute
   '/barbershops/$barbershopUuid/book': typeof BarbershopsBarbershopUuidBookRoute
   '/profile/': typeof AuthedRoutesProfileIndexRoute
   '/barbershops/$barbershopUuid/': typeof BarbershopsBarbershopUuidIndexRoute
@@ -216,22 +195,19 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ai': typeof AiRoute
+  '/callback': typeof CallbackRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/pricing': typeof PricingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tos': typeof TosRoute
-  '/forgot-password': typeof AuthForgotPasswordRoute
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
-  '/reset-password': typeof AuthResetPasswordRoute
-  '/verify-email': typeof AuthVerifyEmailRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/barbershops': typeof BarbershopsIndexRoute
   '/chat': typeof ChatIndexRoute
   '/invitations/$code': typeof AuthedRoutesInvitationsCodeRoute
-  '/api/auth/$': typeof ApiAuthSplatRoute
   '/barbershops/$barbershopUuid/book': typeof BarbershopsBarbershopUuidBookRoute
   '/profile': typeof AuthedRoutesProfileIndexRoute
   '/barbershops/$barbershopUuid': typeof BarbershopsBarbershopUuidIndexRoute
@@ -247,22 +223,19 @@ export interface FileRoutesById {
   '/_authedRoutes': typeof AuthedRoutesRouteRouteWithChildren
   '/chat': typeof ChatRouteRouteWithChildren
   '/ai': typeof AiRoute
+  '/callback': typeof CallbackRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/pricing': typeof PricingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tos': typeof TosRoute
-  '/_auth/forgot-password': typeof AuthForgotPasswordRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/register': typeof AuthRegisterRoute
-  '/_auth/reset-password': typeof AuthResetPasswordRoute
-  '/_auth/verify-email': typeof AuthVerifyEmailRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/barbershops/': typeof BarbershopsIndexRoute
   '/chat/': typeof ChatIndexRoute
   '/_authedRoutes/invitations/$code': typeof AuthedRoutesInvitationsCodeRoute
-  '/api/auth/$': typeof ApiAuthSplatRoute
   '/barbershops/$barbershopUuid/book': typeof BarbershopsBarbershopUuidBookRoute
   '/_authedRoutes/profile/': typeof AuthedRoutesProfileIndexRoute
   '/barbershops/$barbershopUuid/': typeof BarbershopsBarbershopUuidIndexRoute
@@ -277,22 +250,19 @@ export interface FileRouteTypes {
     | '/'
     | '/chat'
     | '/ai'
+    | '/callback'
     | '/llms.txt'
     | '/pricing'
     | '/privacy-policy'
     | '/robots.txt'
     | '/sitemap.xml'
     | '/tos'
-    | '/forgot-password'
     | '/login'
     | '/register'
-    | '/reset-password'
-    | '/verify-email'
     | '/chat/$threadId'
     | '/barbershops/'
     | '/chat/'
     | '/invitations/$code'
-    | '/api/auth/$'
     | '/barbershops/$barbershopUuid/book'
     | '/profile/'
     | '/barbershops/$barbershopUuid/'
@@ -304,22 +274,19 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/ai'
+    | '/callback'
     | '/llms.txt'
     | '/pricing'
     | '/privacy-policy'
     | '/robots.txt'
     | '/sitemap.xml'
     | '/tos'
-    | '/forgot-password'
     | '/login'
     | '/register'
-    | '/reset-password'
-    | '/verify-email'
     | '/chat/$threadId'
     | '/barbershops'
     | '/chat'
     | '/invitations/$code'
-    | '/api/auth/$'
     | '/barbershops/$barbershopUuid/book'
     | '/profile'
     | '/barbershops/$barbershopUuid'
@@ -334,22 +301,19 @@ export interface FileRouteTypes {
     | '/_authedRoutes'
     | '/chat'
     | '/ai'
+    | '/callback'
     | '/llms.txt'
     | '/pricing'
     | '/privacy-policy'
     | '/robots.txt'
     | '/sitemap.xml'
     | '/tos'
-    | '/_auth/forgot-password'
     | '/_auth/login'
     | '/_auth/register'
-    | '/_auth/reset-password'
-    | '/_auth/verify-email'
     | '/chat/$threadId'
     | '/barbershops/'
     | '/chat/'
     | '/_authedRoutes/invitations/$code'
-    | '/api/auth/$'
     | '/barbershops/$barbershopUuid/book'
     | '/_authedRoutes/profile/'
     | '/barbershops/$barbershopUuid/'
@@ -365,6 +329,7 @@ export interface RootRouteChildren {
   AuthedRoutesRouteRoute: typeof AuthedRoutesRouteRouteWithChildren
   ChatRouteRoute: typeof ChatRouteRouteWithChildren
   AiRoute: typeof AiRoute
+  CallbackRoute: typeof CallbackRoute
   LlmsDottxtRoute: typeof LlmsDottxtRoute
   PricingRoute: typeof PricingRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
@@ -372,7 +337,6 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TosRoute: typeof TosRoute
   BarbershopsIndexRoute: typeof BarbershopsIndexRoute
-  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   BarbershopsBarbershopUuidBookRoute: typeof BarbershopsBarbershopUuidBookRoute
   BarbershopsBarbershopUuidIndexRoute: typeof BarbershopsBarbershopUuidIndexRoute
 }
@@ -419,6 +383,13 @@ declare module '@tanstack/react-router' {
       path: '/llms.txt'
       fullPath: '/llms.txt'
       preLoaderRoute: typeof LlmsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/callback': {
+      id: '/callback'
+      path: '/callback'
+      fullPath: '/callback'
+      preLoaderRoute: typeof CallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ai': {
@@ -477,20 +448,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatThreadIdRouteImport
       parentRoute: typeof ChatRouteRoute
     }
-    '/_auth/verify-email': {
-      id: '/_auth/verify-email'
-      path: '/verify-email'
-      fullPath: '/verify-email'
-      preLoaderRoute: typeof AuthVerifyEmailRouteImport
-      parentRoute: typeof AuthRouteRoute
-    }
-    '/_auth/reset-password': {
-      id: '/_auth/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof AuthResetPasswordRouteImport
-      parentRoute: typeof AuthRouteRoute
-    }
     '/_auth/register': {
       id: '/_auth/register'
       path: '/register'
@@ -503,13 +460,6 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof AuthLoginRouteImport
-      parentRoute: typeof AuthRouteRoute
-    }
-    '/_auth/forgot-password': {
-      id: '/_auth/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof AuthForgotPasswordRouteImport
       parentRoute: typeof AuthRouteRoute
     }
     '/barbershops/$barbershopUuid/': {
@@ -531,13 +481,6 @@ declare module '@tanstack/react-router' {
       path: '/barbershops/$barbershopUuid/book'
       fullPath: '/barbershops/$barbershopUuid/book'
       preLoaderRoute: typeof BarbershopsBarbershopUuidBookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/auth/$': {
-      id: '/api/auth/$'
-      path: '/api/auth/$'
-      fullPath: '/api/auth/$'
-      preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authedRoutes/invitations/$code': {
@@ -579,19 +522,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthRouteRouteChildren {
-  AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
-  AuthResetPasswordRoute: typeof AuthResetPasswordRoute
-  AuthVerifyEmailRoute: typeof AuthVerifyEmailRoute
 }
 
 const AuthRouteRouteChildren: AuthRouteRouteChildren = {
-  AuthForgotPasswordRoute: AuthForgotPasswordRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthRegisterRoute: AuthRegisterRoute,
-  AuthResetPasswordRoute: AuthResetPasswordRoute,
-  AuthVerifyEmailRoute: AuthVerifyEmailRoute,
 }
 
 const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
@@ -643,6 +580,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthedRoutesRouteRoute: AuthedRoutesRouteRouteWithChildren,
   ChatRouteRoute: ChatRouteRouteWithChildren,
   AiRoute: AiRoute,
+  CallbackRoute: CallbackRoute,
   LlmsDottxtRoute: LlmsDottxtRoute,
   PricingRoute: PricingRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
@@ -650,7 +588,6 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TosRoute: TosRoute,
   BarbershopsIndexRoute: BarbershopsIndexRoute,
-  ApiAuthSplatRoute: ApiAuthSplatRoute,
   BarbershopsBarbershopUuidBookRoute: BarbershopsBarbershopUuidBookRoute,
   BarbershopsBarbershopUuidIndexRoute: BarbershopsBarbershopUuidIndexRoute,
 }
@@ -659,10 +596,11 @@ export const routeTree = rootRouteImport
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }

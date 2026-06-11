@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: We need to assert non-null values because the hooks return undefined if the data is not loaded */
 
 import { createFileRoute } from "@tanstack/react-router";
-import { lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
 import { z } from "zod";
 
@@ -40,6 +40,7 @@ import {
   useIsStaff,
 } from "@/hooks/use-barbershop-members";
 import {
+  lastReadQueryOptions,
   notificationsPageQueryOptions,
   recentNotificationsQueryOptions,
   unreadNotificationsCountQueryOptions,
@@ -47,7 +48,7 @@ import {
 } from "@/hooks/use-notifications";
 import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
 import { servicesByIdsQueryOptions } from "@/hooks/use-services";
-import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { useSession } from "@/hooks/use-session";
 
 const DashboardHeader = lazy(() =>
   import("@/components/barbershops/dashboard-header").then((module) => ({
@@ -74,11 +75,6 @@ const PlansTab = lazy(() =>
     default: mod.PlansTab,
   })),
 );
-const SecurityTab = lazy(() =>
-  import("@/components/profile/security-tab").then((mod) => ({
-    default: mod.SecurityTab,
-  })),
-);
 const NotificationsTab = lazy(() =>
   import("@/components/profile/notifications-tab").then((mod) => ({
     default: mod.NotificationsTab,
@@ -88,7 +84,6 @@ const NotificationsTab = lazy(() =>
 type ProfileTabValue =
   | "notifications"
   | "account"
-  | "security"
   | "appointments"
   | "reviews"
   | "danger"
@@ -102,10 +97,6 @@ const tabs = {
   account: {
     label: "Perfil",
     value: "account",
-  },
-  security: {
-    label: "Seguridad",
-    value: "security",
   },
   appointments: {
     label: "Citas",
@@ -129,13 +120,14 @@ const searchSchema = z.object({
   tab: z.enum([
     "notifications",
     "account",
-    "security",
     "appointments",
     "reviews",
     "plans",
     "danger",
   ]),
 });
+
+const EMPTY_APPOINTMENTS: never[] = [];
 
 export const Route = createFileRoute("/_authedRoutes/profile/")({
   component: ProfilePage,
@@ -145,11 +137,9 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
   staleTime: cacheTime.high,
   gcTime: cacheTime.extreme,
   loader: async ({ context }) => {
-    const user = await context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
+    const userId = context.userId;
 
-    if (user?.userId) {
+    if (userId) {
       // Spine (single parallel layer): everything read at the page level —
       // profile + the customer's own appointments, the role flags (suspense)
       // and owner roles/barbershop that gate the tab list. The component reads
@@ -157,17 +147,17 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
       // them here is never wasted.
       const [appointments, barbershop] = await Promise.all([
         context.queryClient.ensureQueryData(
-          appointmentsByUserQueryOptions(user.userId),
+          appointmentsByUserQueryOptions(userId),
         ),
         context.queryClient.ensureQueryData(
-          barbershopByOwnerIdQueryOptions(user.userId),
+          barbershopByOwnerIdQueryOptions(userId),
         ),
-        context.queryClient.ensureQueryData(isBarberQueryOptions(user.userId)),
-        context.queryClient.ensureQueryData(isOwnerQueryOptions(user.userId)),
-        context.queryClient.ensureQueryData(isStaffQueryOptions(user.userId)),
-        context.queryClient.ensureQueryData(profileQueryOptions(user.userId)),
+        context.queryClient.ensureQueryData(isBarberQueryOptions(userId)),
+        context.queryClient.ensureQueryData(isOwnerQueryOptions(userId)),
+        context.queryClient.ensureQueryData(isStaffQueryOptions(userId)),
+        context.queryClient.ensureQueryData(profileQueryOptions(userId)),
         context.queryClient.ensureQueryData(
-          barbershopMemberRolesQueryOptions(user.userId),
+          barbershopMemberRolesQueryOptions(userId),
         ),
       ]);
 
@@ -186,6 +176,7 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
       void context.queryClient.prefetchQuery(
         unreadNotificationsCountQueryOptions(),
       );
+      void context.queryClient.prefetchQuery(lastReadQueryOptions());
       void context.queryClient.prefetchQuery(
         notificationsPageQueryOptions({ cursor: null, numItems: 20 }),
       );
@@ -216,14 +207,14 @@ function ProfilePage() {
   const haptics = useWebHaptics();
 
   const { data: user } = useSession();
-  const { data: isBarber } = useIsBarber(user?.userId!);
-  const { data: isOwner } = useIsOwner(user?.userId!);
-  const { data: isStaff } = useIsStaff(user?.userId!);
-  const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
-  const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
+  const { data: isBarber } = useIsBarber(user?.id!);
+  const { data: isOwner } = useIsOwner(user?.id!);
+  const { data: isStaff } = useIsStaff(user?.id!);
+  const { data: rolesData } = useBarbershopMemberRoles(user?.id!);
+  const { data: barbershop } = useBarbershopByOwnerId(user?.id!);
   const { data: appointments, isFetching: isFetchingAppointments } =
-    useAppointmentsByUser(user?.userId!, cursor);
-  const { data: profile } = useProfile(user?.userId!);
+    useAppointmentsByUser(user?.id!, cursor);
+  const { data: profile } = useProfile(user?.id!);
 
   const onTabChange = (value: string) => {
     haptics.trigger("light");
@@ -233,10 +224,28 @@ function ProfilePage() {
     });
   };
 
+  const onNextPage = useCallback(() => {
+    if (!("continueCursor" in appointments)) {
+      return;
+    }
+
+    setCursorStack((prev) => [...prev, cursor]);
+    setCursor(appointments.continueCursor);
+  }, [appointments, cursor]);
+
+  const onPreviousPage = useCallback(() => {
+    setCursorStack((prev) => {
+      const updated = [...prev];
+      const previousCursor = updated.pop() ?? null;
+      setCursor(previousCursor);
+      return updated;
+    });
+  }, []);
+
   const tabsToRender = useMemo(() => {
     // Notificaciones sits first so the bell popover lands the user on a familiar
     // left-most tab, while Perfil stays the default for direct /profile visits.
-    const base = [tabs.notifications, tabs.account, tabs.security];
+    const base = [tabs.notifications, tabs.account];
 
     // Owners (whether or not they're barbers) see Plans and Danger tabs
     if (rolesData?.isOwner) {
@@ -291,14 +300,8 @@ function ProfilePage() {
               <AccountTab
                 profile={profile!}
                 isBarber={isBarber || isOwner}
-                userId={user?.userId!}
+                userId={user?.id!}
               />
-            </TabsContent>
-          </Suspense>
-
-          <Suspense fallback={<ProfileTabSkeleton />}>
-            <TabsContent value={tabs.security.value} className="pt-2">
-              <SecurityTab />
             </TabsContent>
           </Suspense>
 
@@ -322,25 +325,15 @@ function ProfilePage() {
             <TabsContent value={tabs.appointments.value} className="pt-2">
               {"page" in appointments && (
                 <AppointmentsTab
-                  appointments={appointments?.page ?? []}
+                  appointments={appointments?.page ?? EMPTY_APPOINTMENTS}
                   hasNextPage={Boolean(
                     appointments &&
                       !appointments.isDone &&
                       appointments.continueCursor &&
                       appointments.page?.length >= 9,
                   )}
-                  onNextPage={() => {
-                    setCursorStack((prev) => [...prev, cursor]);
-                    setCursor(appointments.continueCursor);
-                  }}
-                  onPreviousPage={() => {
-                    setCursorStack((prev) => {
-                      const updated = [...prev];
-                      const previousCursor = updated.pop() ?? null;
-                      setCursor(previousCursor);
-                      return updated;
-                    });
-                  }}
+                  onNextPage={onNextPage}
+                  onPreviousPage={onPreviousPage}
                   canGoPrevious={cursorStack.length > 0}
                   isFetching={isFetchingAppointments}
                   isBarber={isBarber}

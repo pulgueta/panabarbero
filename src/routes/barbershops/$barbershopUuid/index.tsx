@@ -39,7 +39,7 @@ import {
   servicesQueryOptions,
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
-import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { useSession } from "@/hooks/use-session";
 import {
   barbershopSeo,
   barbershopStructuredData,
@@ -75,13 +75,10 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
   staleTime: cacheTime.low,
   gcTime: cacheTime.medium,
   loader: async ({ context, params }) => {
-    // Critical, above-the-fold identity — block on the shop and the session.
-    const [user, barbershop] = await Promise.all([
-      context.queryClient.ensureQueryData(getSessionQueryOptions()),
-      context.queryClient.ensureQueryData(
-        barbershopByUuidQueryOptions(params.barbershopUuid),
-      ),
-    ]);
+    // Critical, above-the-fold identity — block on the shop.
+    const barbershop = await context.queryClient.ensureQueryData(
+      barbershopByUuidQueryOptions(params.barbershopUuid),
+    );
 
     if (barbershop?._id) {
       // Primary content (services list + the barbers it lets you pick) — block
@@ -115,10 +112,12 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
 
     // Viewer-specific data (used by the booking flow / barber checks, not the
     // first paint) — fire-and-forget so an authenticated session never blocks.
-    if (user?.userId) {
-      void context.queryClient.prefetchQuery(profileQueryOptions(user.userId));
+    if (context.userId) {
       void context.queryClient.prefetchQuery(
-        barberByUserIdQueryOptions(user.userId),
+        profileQueryOptions(context.userId),
+      );
+      void context.queryClient.prefetchQuery(
+        barberByUserIdQueryOptions(context.userId),
       );
     }
 
@@ -203,7 +202,7 @@ function RouteComponent() {
         >
           <BarbershopHeader
             barbershop={barbershop}
-            userId={user?.userId!}
+            userId={user?.id!}
             availability={barbershop?.availability!}
             logoKey={barbershop?.logoKey}
           />

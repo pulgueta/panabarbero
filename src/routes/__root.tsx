@@ -1,8 +1,8 @@
 /// <reference types="vite/client" />
 
-import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import type { ConvexQueryClient } from "@convex-dev/react-query";
 import { IconContext } from "@phosphor-icons/react";
+import { PostHogProvider } from "@posthog/react";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { QueryClient } from "@tanstack/react-query";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -14,9 +14,6 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { createServerFn } from "@tanstack/react-start";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/react";
 import type { ConvexReactClient } from "convex/react";
 
 import { DefaultCatchBoundary } from "@/components/layout/error-component";
@@ -25,17 +22,13 @@ import { LoadingComponent } from "@/components/layout/loading-component";
 import { BottomNav } from "@/components/layout/nav/bottom-nav";
 import { MobileTopBar } from "@/components/layout/nav/mobile-top-bar";
 import { NotFoundComponent } from "@/components/layout/not-found-component";
+import { PostHogAuthSync } from "@/components/layout/posthog-auth-sync";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { env } from "@/env";
-import { authClient } from "@/lib/auth-client";
-import { getToken } from "@/lib/auth-server";
+import { clientEnv } from "@/env/client";
+import { getWorkosAuthQueryOptions } from "@/hooks/use-session";
 import { seo, websiteStructuredData } from "@/lib/utils";
 import appCss from "@/styles.css?url";
-
-const getAuth = createServerFn({ method: "GET" }).handler(
-  async () => await getToken(),
-);
 
 type RouterContext = {
   queryClient: QueryClient;
@@ -45,7 +38,8 @@ type RouterContext = {
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   beforeLoad: async ({ context }) => {
-    const token = await getAuth();
+    const { token, userId, authState } =
+      await context.queryClient.ensureQueryData(getWorkosAuthQueryOptions());
 
     if (token) {
       context.convexQueryClient.serverHttpClient?.setAuth(token);
@@ -53,6 +47,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
     return {
       token,
+      userId,
+      authState,
     };
   },
   head: () => ({
@@ -68,8 +64,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       }),
     ],
     links: [
-      { rel: "preconnect", href: env.VITE_STORAGE_URL },
-      { rel: "dns-prefetch", href: env.VITE_STORAGE_URL },
+      { rel: "preconnect", href: clientEnv.VITE_STORAGE_URL },
+      { rel: "dns-prefetch", href: clientEnv.VITE_STORAGE_URL },
       { rel: "stylesheet", href: appCss },
       { rel: "canonical", href: "https://www.panabarbero.com" },
       { rel: "sitemap", href: "/sitemap.xml" },
@@ -97,7 +93,7 @@ function RootComponent() {
 const ICON_CONTEXT_VALUE = { weight: "bold", size: 24 } as const;
 
 const RootDocument = ({ children }: { children: React.ReactNode }) => {
-  const { convexQueryClient, queryClient, token } = Route.useRouteContext();
+  const { queryClient } = Route.useRouteContext();
 
   return (
     <html lang="es" suppressHydrationWarning>
@@ -106,11 +102,16 @@ const RootDocument = ({ children }: { children: React.ReactNode }) => {
       </head>
       <body>
         <QueryClientProvider client={queryClient}>
-          <ConvexBetterAuthProvider
-            client={convexQueryClient.convexClient}
-            authClient={authClient}
-            initialToken={token}
+          <PostHogProvider
+            apiKey={clientEnv.VITE_POSTHOG_API_KEY}
+            options={{
+              api_host: "https://us.i.posthog.com",
+              defaults: "2026-01-30",
+              capture_exceptions: true,
+              autocapture: true,
+            }}
           >
+            <PostHogAuthSync />
             <ThemeProvider>
               <IconContext.Provider value={ICON_CONTEXT_VALUE}>
                 <Toaster richColors position="top-center" />
@@ -127,15 +128,8 @@ const RootDocument = ({ children }: { children: React.ReactNode }) => {
             </ThemeProvider>
 
             <Scripts />
-          </ConvexBetterAuthProvider>
+          </PostHogProvider>
         </QueryClientProvider>
-
-        {process.env.NODE_ENV === "production" && (
-          <>
-            <Analytics />
-            <SpeedInsights />
-          </>
-        )}
 
         <TanStackDevtools
           config={{

@@ -2,7 +2,7 @@
 
 import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useMemo } from "react";
 import { z } from "zod";
 
 import { BorderContainer } from "@/components/layout/border-container";
@@ -28,7 +28,7 @@ import {
   servicesQueryOptions,
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
-import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { useSession } from "@/hooks/use-session";
 import { cn } from "@/lib/utils";
 import { resetServiceStore, setServiceStore } from "@/store/services";
 
@@ -50,12 +50,9 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/book")({
   staleTime: cacheTime.low,
   gcTime: cacheTime.medium,
   loader: async ({ context, params }) => {
-    const [user, barbershop] = await Promise.all([
-      context.queryClient.ensureQueryData(getSessionQueryOptions()),
-      context.queryClient.ensureQueryData(
-        barbershopByUuidQueryOptions(params.barbershopUuid),
-      ),
-    ]);
+    const barbershop = await context.queryClient.ensureQueryData(
+      barbershopByUuidQueryOptions(params.barbershopUuid),
+    );
 
     if (barbershop?._id) {
       // Core booking-form inputs (services, barbers, schedule) — block.
@@ -81,14 +78,18 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/book")({
     }
 
     // Viewer checks (not needed for first paint) — fire-and-forget.
-    if (user?.userId) {
-      void context.queryClient.prefetchQuery(profileQueryOptions(user.userId));
+    if (context.userId) {
       void context.queryClient.prefetchQuery(
-        barberByUserIdQueryOptions(user.userId),
+        profileQueryOptions(context.userId),
+      );
+      void context.queryClient.prefetchQuery(
+        barberByUserIdQueryOptions(context.userId),
       );
     }
   },
 });
+
+const EMPTY_MEMBERS: never[] = [];
 
 function RouteComponent() {
   const { barbershopUuid } = Route.useParams();
@@ -101,8 +102,12 @@ function RouteComponent() {
     barbershop?._id!,
   );
 
-  const barbers =
-    barbershopMembers?.filter((m) => m?.roles?.includes("barber")) ?? [];
+  const barbers = useMemo(
+    () =>
+      barbershopMembers?.filter((m) => m?.roles?.includes("barber")) ??
+      EMPTY_MEMBERS,
+    [barbershopMembers],
+  );
 
   // Initialize the services store from the URL search param
   useEffect(() => {
@@ -160,7 +165,7 @@ function RouteComponent() {
               >
                 <CustomerBookingForm
                   barbershop={barbershop}
-                  services={services ?? []}
+                  services={services ?? EMPTY_MEMBERS}
                   barbers={barbers}
                   initialServiceId={
                     serviceId as (typeof services)[0]["_id"] | undefined

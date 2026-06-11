@@ -20,7 +20,7 @@ import {
   activeBarbershopsQueryOptions,
   useActiveBarbershops,
 } from "@/hooks/barbershop/use-barbershop";
-import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { useSession } from "@/hooks/use-session";
 import { breadcrumbStructuredData, getCanonicalUrl, seo } from "@/lib/utils";
 import { useLocationStore } from "@/store/barbershop-filters";
 
@@ -61,16 +61,12 @@ export const Route = createFileRoute("/barbershops/")({
   loaderDeps: ({ search }) => toCompleteLocation(search),
   ssr: "data-only",
   loader: async (opts) => {
-    const user = await opts.context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
-
     // Primary content: the grid blocks on the barbershop list.
     await opts.context.queryClient.ensureQueryData(
       activeBarbershopsQueryOptions({
         city: opts.deps.city,
         state: opts.deps.state,
-        userId: user?.userId ?? undefined,
+        userId: opts.context.userId ?? undefined,
       }),
     );
   },
@@ -109,7 +105,7 @@ function BarbershopsPage() {
   const { data: barbershops } = useActiveBarbershops({
     city: completeLocation.city,
     state: completeLocation.state,
-    userId: user?.userId ?? undefined,
+    userId: user?.id ?? undefined,
   });
 
   const hasLocation = !!(search.city && search.state);

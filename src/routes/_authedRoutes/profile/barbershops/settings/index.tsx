@@ -32,7 +32,7 @@ import {
   servicesQueryOptions,
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
-import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { useSession } from "@/hooks/use-session";
 
 const DashboardHeader = lazy(() =>
   import("@/components/barbershops/dashboard-header").then((mod) => ({
@@ -91,18 +91,16 @@ export const Route = createFileRoute(
   staleTime: cacheTime.high,
   gcTime: cacheTime.extreme,
   loader: async (opts) => {
-    const user = await opts.context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
+    const userId = opts.context.userId;
 
-    if (user?.userId) {
+    if (userId) {
       const barbershop = await opts.context.queryClient.ensureQueryData(
-        barbershopByOwnerIdQueryOptions(user.userId),
+        barbershopByOwnerIdQueryOptions(userId),
       );
 
       const barbershopMemberRoles =
         await opts.context.queryClient.ensureQueryData(
-          barbershopMemberRolesQueryOptions(user.userId),
+          barbershopMemberRolesQueryOptions(userId),
         );
 
       if (!barbershopMemberRoles?.isOwner) {
@@ -110,7 +108,7 @@ export const Route = createFileRoute(
       }
 
       await opts.context.queryClient.ensureQueryData(
-        isBarberQueryOptions(user.userId),
+        isBarberQueryOptions(userId),
       );
 
       if (barbershop) {
@@ -129,10 +127,10 @@ function SettingsPage() {
   const { data: user } = useSession();
   const [copy] = useClipboard();
 
-  const { data: barbershop } = useBarbershopByOwnerId(user?.userId!);
+  const { data: barbershop } = useBarbershopByOwnerId(user?.id!);
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
-  const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
-  const { data: isBarber } = useIsBarber(user?.userId!);
+  const { data: rolesData } = useBarbershopMemberRoles(user?.id!);
+  const { data: isBarber } = useIsBarber(user?.id!);
 
   const { trigger } = useWebHaptics();
 
@@ -191,7 +189,7 @@ function SettingsPage() {
 
               <Suspense fallback={<Skeleton className="h-28 w-full" />}>
                 {!hasService && (
-                  <Alert>
+                  <Alert variant="warning">
                     <AlertTitle>Debes crear al menos un servicio</AlertTitle>
                     <AlertDescription>
                       Agrega tu primer servicio para que tus clientes puedan
