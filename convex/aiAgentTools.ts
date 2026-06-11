@@ -466,17 +466,20 @@ const getMyNotifications = createTool({
   execute: async (ctx, input) => {
     const userId = requireAuthUserId(ctx.userId);
 
-    const notifications = (await ctx.runQuery(
+    const { notifications, lastRead } = (await ctx.runQuery(
       internal.aiAgentHelpers.getNotificationsByUserId,
       { userId, numItems: 10, onlyUnread: input.onlyUnread ?? false },
-    )) as Doc<"inAppNotifications">[];
+    )) as {
+      notifications: Doc<"inAppNotifications">[];
+      lastRead: number | null;
+    };
 
     return {
       count: notifications.length,
       notifications: notifications.map((n: Doc<"inAppNotifications">) => ({
         title: n.title,
         description: n.description,
-        isRead: n.readAt !== undefined,
+        isRead: n._creationTime <= (lastRead ?? 0),
         when: formatDate(n._creationTime),
       })),
     };

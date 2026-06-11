@@ -4,6 +4,7 @@ import { zInternalQuery } from ".";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { getByUserIdFn } from "./barbershopMembers";
+import { unreads } from "./notifications";
 import { getLimitsForProductKey } from "./plans";
 import { polar } from "./polar";
 import { barbershops } from "./schema";
@@ -49,8 +50,9 @@ export const getReviewsForBarbershop = zInternalQuery({
 /**
  * In-app notifications for a given user, used by the `getMyNotifications`
  * agent tool. Takes an explicit `userId` (the agent's resolved caller id)
- * instead of relying on `safeGetAuthUser`, since the agent runs inside a
- * scheduled action that does not carry the caller's auth context.
+ * instead of reading `ctx.auth`, since the agent runs inside a scheduled
+ * action that does not carry the caller's auth context. Returns the read
+ * watermark so the tool can derive per-row `isRead`.
  */
 export const getNotificationsByUserId = zInternalQuery({
   args: z.object({
@@ -59,21 +61,26 @@ export const getNotificationsByUserId = zInternalQuery({
     onlyUnread: z.boolean(),
   }),
   handler: async (ctx, args) => {
-    if (args.onlyUnread) {
-      return await ctx.db
-        .query("inAppNotifications")
-        .withIndex("by_user_unread", (q) =>
-          q.eq("userId", args.userId).eq("readAt", undefined),
-        )
-        .order("desc")
-        .take(args.numItems);
-    }
+    const lastRead = await unreads.getLastRead(ctx, {
+      userId: args.userId,
+      channelId: args.userId,
+    });
 
-    return await ctx.db
-      .query("inAppNotifications")
-      .withIndex("by_user_created", (q) => q.eq("userId", args.userId))
-      .order("desc")
-      .take(args.numItems);
+    const notifications = args.onlyUnread
+      ? await ctx.db
+          .query("inAppNotifications")
+          .withIndex("by_user_created", (q) =>
+            q.eq("userId", args.userId).gt("_creationTime", lastRead ?? 0),
+          )
+          .order("desc")
+          .take(args.numItems)
+      : await ctx.db
+          .query("inAppNotifications")
+          .withIndex("by_user_created", (q) => q.eq("userId", args.userId))
+          .order("desc")
+          .take(args.numItems);
+
+    return { notifications, lastRead };
   },
 });
 

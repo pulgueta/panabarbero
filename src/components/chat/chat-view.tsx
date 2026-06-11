@@ -54,7 +54,7 @@ export function ChatView({ threadId }: ChatViewProps) {
   const anonId = useAnonId();
   // Authenticated users use their real id; everyone else gets an anonymous
   // session id so they can still chat (under the anonymous rate limit).
-  const userId = user?.userId ?? anonId;
+  const userId = user?.id ?? anonId;
 
   const { data: access } = usePanaAccess();
   // Shop members on a free-plan barbershop can't use Pana — customers can.
