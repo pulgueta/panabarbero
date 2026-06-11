@@ -4,9 +4,9 @@ import { ConvexError } from "convex/values";
 
 import { internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
-import { authComponent, createAuth } from "./auth";
-import { resend } from "./emails";
+import { authkit } from "./auth.config";
 import { errorMessages } from "./errors";
+import { siteUrl } from "./notificationCopy";
 import {
   CREDIT_KEY_TO_TYPE,
   CREDIT_PRODUCT_KEYS,
@@ -18,14 +18,6 @@ import { r2 } from "./r2";
 import { twilio } from "./twilio";
 
 const http = httpRouter();
-
-http.route({
-  path: "/resend-webhook",
-  method: "POST",
-  handler: httpAction(async (ctx, req) => {
-    return await resend.handleResendEventWebhook(ctx, req);
-  }),
-});
 
 http.route({
   path: "/upload",
@@ -40,7 +32,7 @@ http.route({
     ) {
       return new Response(null, {
         headers: new Headers({
-          "Access-Control-Allow-Origin": process.env.SITE_URL!,
+          "Access-Control-Allow-Origin": siteUrl(),
           "Access-Control-Allow-Methods": "POST",
           "Access-Control-Allow-Headers": "Content-Type, Digest",
           "Access-Control-Max-Age": "86400",
@@ -66,7 +58,7 @@ http.route({
     const blob = await req.blob();
 
     const headers = new Headers({
-      "Access-Control-Allow-Origin": process.env.SITE_URL!,
+      "Access-Control-Allow-Origin": siteUrl(),
       Vary: "origin",
     });
 
@@ -100,7 +92,7 @@ http.route({
 });
 
 twilio.registerRoutes(http);
-authComponent.registerRoutes(http, createAuth);
+authkit.registerRoutes(http);
 
 polar.registerRoutes(http, {
   events: {

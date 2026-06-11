@@ -8,6 +8,8 @@ export const userProfileData = zodTable("userProfileData", () => ({
   userId: z.string(),
   email: z.string(),
   name: z.string().optional(),
+  /** R2 profile photo URL. App-level only — WorkOS users can't store pictures via API. */
+  image: z.string().optional(),
   phoneNumber: z.string().optional(),
   notificationsPreferences: z.array(
     z.object({
@@ -30,6 +32,8 @@ export const barbershops = zodTable("barbershops", (id) => ({
   isActive: z.boolean(),
   gracePeriodMinutes: z.number().optional().default(5),
   ownerId: z.string(),
+  /** WorkOS Organization mirroring this barbershop; synced on create/rename/deactivate/delete. */
+  workosOrganizationId: z.string().optional(),
   availability: z
     .object({
       weekDay: z.object({
@@ -266,8 +270,6 @@ export const inAppNotifications = zodTable("inAppNotifications", (id) => ({
       notes: z.string().optional(),
     })
     .optional(),
-  /** Timestamp at which the recipient marked the row as read; undefined = unread. */
-  readAt: z.number().optional(),
 }));
 
 /**
@@ -354,8 +356,7 @@ export default defineSchema({
 
   inAppNotifications: inAppNotifications
     .table()
-    .index("by_user_created", ["userId"])
-    .index("by_user_unread", ["userId", "readAt"]),
+    .index("by_user_created", ["userId"]),
 
   routeCache: routeCache.table().index("by_key", ["key"]),
 });
