@@ -17,9 +17,6 @@ const config = defineConfig({
     tanstackStart(),
     viteReact(),
   ],
-  ssr: {
-    noExternal: ["@convex-dev/better-auth"],
-  },
   resolve: {
     tsconfigPaths: true,
   },

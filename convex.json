@@ -1,6 +1,25 @@
 {
   "$schema": "./node_modules/convex/schemas/convex.schema.json",
-  "node": {
-    "externalPackages": ["aws-sdk"]
+  "authKit": {
+    "dev": {
+      "localEnvVars": {
+        "WORKOS_CLIENT_ID": "${authEnv.WORKOS_CLIENT_ID}",
+        "WORKOS_REDIRECT_URI": "https://localhost.panabarbero.com/callback"
+      }
+    },
+    "preview": {
+      "configure": {
+        "redirectUris": ["https://demo.panabarbero.com/callback"],
+        "appHomepageUrl": "https://www.panabarbero.com",
+        "corsOrigins": ["https://demo.panabarbero.com"]
+      }
+    },
+    "prod": {
+      "configure": {
+        "redirectUris": ["https://www.panabarbero.com/callback"],
+        "appHomepageUrl": "https://www.panabarbero.com",
+        "corsOrigins": ["https://www.panabarbero.com"]
+      }
+    }
   }
 }
