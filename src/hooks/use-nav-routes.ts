@@ -16,9 +16,9 @@ import { useSession } from "@/hooks/use-session";
  */
 export function useNavRoutes() {
   const { data: user } = useSession();
-  const { data: isBarber } = useIsBarber(user?.userId ?? "");
-  const { data: isStaff } = useIsStaff(user?.userId ?? "");
-  const { data: rolesData } = useBarbershopMemberRoles(user?.userId ?? "");
+  const { data: isBarber } = useIsBarber(user?.id ?? "");
+  const { data: isStaff } = useIsStaff(user?.id ?? "");
+  const { data: rolesData } = useBarbershopMemberRoles(user?.id ?? "");
 
   const isOwner = rolesData?.isOwner ?? false;
 

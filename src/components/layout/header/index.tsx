@@ -1,3 +1,7 @@
+import { Link } from "@tanstack/react-router";
+import { domMax, LazyMotion } from "motion/react";
+import { lazy, Suspense } from "react";
+
 import { useNavSearch } from "@/components/layout/nav/nav-data";
 import { NavIndicator } from "@/components/layout/nav/nav-indicator";
 import { useActiveRoute } from "@/components/layout/nav/use-active-route";
@@ -7,9 +11,6 @@ import { APP_NAME } from "@/config";
 import { useIsBarber } from "@/hooks/use-barbershop-members";
 import { useNavRoutes } from "@/hooks/use-nav-routes";
 import { cn } from "@/lib/utils";
-import { Link } from "@tanstack/react-router";
-import { domMax, LazyMotion } from "motion/react";
-import { lazy, Suspense } from "react";
 
 const ThemeToggler = lazy(() =>
   import("@/components/layout/theme-toggler").then((mod) => ({
@@ -29,7 +30,7 @@ const NotificationsBell = lazy(() =>
 
 export const Header = () => {
   const { routes, user } = useNavRoutes();
-  const { data: isBarber } = useIsBarber(user?.userId ?? "");
+  const { data: isBarber } = useIsBarber(user?.id ?? "");
   const activeTo = useActiveRoute(routes);
   const navSearch = useNavSearch();
 
@@ -87,19 +88,23 @@ export const Header = () => {
           </LazyMotion>
         </nav>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Suspense fallback={<Skeleton className="size-9" />}>
+            <ThemeToggler />
+          </Suspense>
+
           <div className="flex items-center gap-2">
-            {user?.userId ? (
+            {user?.id ? (
               <Suspense fallback={<Skeleton className="size-9" />}>
                 <NotificationsBell />
               </Suspense>
             ) : null}
             <Suspense fallback={<Skeleton className="size-8" />}>
-              {user?.userId ? (
+              {user?.id ? (
                 <div className="hidden md:block">
                   <UserAvatar
                     user={{
-                      userId: user.userId,
+                      id: user.id,
                       email: user.email,
                       name: user.name,
                       image: user.image,
@@ -111,9 +116,6 @@ export const Header = () => {
                   Iniciar sesión
                 </Button>
               )}
-            </Suspense>
-            <Suspense fallback={<Skeleton className="size-8" />}>
-              <ThemeToggler />
             </Suspense>
           </div>
         </div>
