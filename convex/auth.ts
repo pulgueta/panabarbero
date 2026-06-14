@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { zQuery } from ".";
 import { internal } from "./_generated/api";
+import type { MutationCtx } from "./_generated/server";
 import { identifyUser, track } from "./analytics";
 import { authkit } from "./auth.config";
 import { assertShopRole } from "./authz";
@@ -18,6 +19,69 @@ function fullName(
   lastName?: string | null,
 ): string | undefined {
   return [firstName, lastName].filter(Boolean).join(" ") || undefined;
+}
+
+/**
+ * Mirror an active WorkOS organization membership into `barbershopMembers`.
+ * A pending membership (created at invite-send time) is ignored; acceptance
+ * flips it to `active` (delivered as `organization_membership.updated`).
+ */
+async function scheduleMembershipSync(
+  ctx: MutationCtx,
+  membership: {
+    organizationId: string;
+    userId: string;
+    status: string;
+    role: { slug: string };
+  },
+) {
+  if (membership.status !== "active") {
+    return;
+  }
+
+  await ctx.scheduler.runAfter(0, internal.invitations.syncWorkosMembership, {
+    organizationId: membership.organizationId,
+    userId: membership.userId,
+    roleSlug: membership.role.slug,
+    attempt: 0,
+  });
+}
+
+/**
+ * Remove the local membership row when a WorkOS organization membership is
+ * deleted (invite revoked, or member removed in the WorkOS dashboard). The
+ * owner row and already-removed rows are left untouched.
+ */
+async function removeMembership(
+  ctx: MutationCtx,
+  membership: { organizationId: string; userId: string },
+) {
+  const barbershop = await ctx.db
+    .query("barbershops")
+    .withIndex("by_workosOrganizationId", (q) =>
+      q.eq("workosOrganizationId", membership.organizationId),
+    )
+    .unique();
+
+  if (!barbershop || membership.userId === barbershop.ownerId) {
+    return;
+  }
+
+  const profile = await getProfileByUserId(ctx, membership.userId);
+
+  if (!profile) {
+    return;
+  }
+
+  const member = await ctx.db
+    .query("barbershopMembers")
+    .withIndex("by_barbershopId", (q) => q.eq("barbershopId", barbershop._id))
+    .filter((q) => q.eq(q.field("userProfileDataId"), profile._id))
+    .first();
+
+  if (member) {
+    await ctx.db.delete(member._id);
+  }
 }
 
 export const { authKitEvent } = authkit.events({
@@ -77,6 +141,15 @@ export const { authKitEvent } = authkit.events({
     if (profile) {
       await ctx.db.delete(profile._id);
     }
+  },
+  "organization_membership.created": async (ctx, event) => {
+    await scheduleMembershipSync(ctx, event.data);
+  },
+  "organization_membership.updated": async (ctx, event) => {
+    await scheduleMembershipSync(ctx, event.data);
+  },
+  "organization_membership.deleted": async (ctx, event) => {
+    await removeMembership(ctx, event.data);
   },
 });
 

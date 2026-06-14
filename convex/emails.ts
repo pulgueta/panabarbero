@@ -4,19 +4,17 @@ import { ConvexError } from "convex/values";
 import { render } from "react-email";
 import { UseSend } from "usesend-js";
 import { z } from "zod";
-
-import { zInternalAction } from ".";
 import {
   AppointmentCancelledEmail,
   AppointmentCreatedEmail,
   AppointmentReminderEmail,
   AppointmentRescheduleRequestEmail,
-  BarberInvitationEmail,
   PastAppointmentReminderEmail,
   RescheduleRequestAcceptEmail,
   RescheduleRequestDeniedEmail,
   WelcomeEmail,
 } from "../emails/emails";
+import { zInternalAction } from ".";
 import { subjects } from "./notifications";
 
 export const from = "Soporte de PanaBarbero <contacto@mail.panabarbero.com>";
@@ -227,32 +225,6 @@ export const sendWelcomeEmail = zInternalAction({
     await sendEmail({
       to: args.to,
       subject: "¡Bienvenido a PanaBarbero!",
-      html,
-    });
-  },
-});
-
-export const sendBarberInvitationEmail = zInternalAction({
-  args: z.object({
-    to: z.string(),
-    barbershopName: z.string(),
-    invitationLink: z.string(),
-    inviterName: z.string().optional(),
-    expiresLabel: z.string().optional(),
-  }),
-  handler: async (_ctx, args) => {
-    const html = await render(
-      BarberInvitationEmail({
-        barbershopName: args.barbershopName,
-        invitationLink: args.invitationLink,
-        inviterName: args.inviterName ?? undefined,
-        expiresLabel: args.expiresLabel ?? undefined,
-      }),
-    );
-
-    await sendEmail({
-      to: args.to,
-      subject: subjects.team_invited,
       html,
     });
   },

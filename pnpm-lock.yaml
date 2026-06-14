@@ -144,9 +144,6 @@ importers:
       convex-helpers:
         specifier: 0.1.118
         version: 0.1.118(@standard-schema/spec@1.1.0)(convex@1.40.0(react@19.2.7))(hono@4.12.25)(react@19.2.7)(typescript@5.9.3)(zod@4.4.3)
-      convex-invite-links:
-        specifier: ^1.0.0
-        version: 1.0.0(convex@1.40.0(react@19.2.7))
       convex-unread-tracking:
         specifier: ^1.1.0
         version: 1.1.0(convex@1.40.0(react@19.2.7))(react@19.2.7)
@@ -3975,11 +3972,6 @@ packages:
         optional: true
       zod:
         optional: true
-
-  convex-invite-links@1.0.0:
-    resolution: {integrity: sha512-KsgOawc2CH7oHaj6ne/N3860tj+vulKRwLJfVeUHGgC/xSukzCLnJwmqTEECO2M2Hv738Y4k+8MxinfDmtIvOw==}
-    peerDependencies:
-      convex: ^1.24.0
 
   convex-unread-tracking@1.1.0:
     resolution: {integrity: sha512-o8dcN/GQJ0ro9RZX30Ee5Uz0NcmnVAduGwfDiwLjDV6wTCUcx6QmIgTWXmAOPC6bGl2RqzSz76kfj6PV4DRuhA==}
@@ -10287,10 +10279,6 @@ snapshots:
       react: 19.2.7
       typescript: 5.9.3
       zod: 4.4.3
-
-  convex-invite-links@1.0.0(convex@1.40.0(react@19.2.7)):
-    dependencies:
-      convex: 1.40.0(react@19.2.7)
 
   convex-unread-tracking@1.1.0(convex@1.40.0(react@19.2.7))(react@19.2.7):
     dependencies:

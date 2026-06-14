@@ -33,6 +33,7 @@ import type * as http from "../http.js";
 import type * as identity from "../identity.js";
 import type * as index from "../index.js";
 import type * as invitations from "../invitations.js";
+import type * as invitationsSchema from "../invitationsSchema.js";
 import type * as migrations from "../migrations.js";
 import type * as notificationCopy from "../notificationCopy.js";
 import type * as notificationSubjects from "../notificationSubjects.js";
@@ -81,6 +82,7 @@ declare const fullApi: ApiFromModules<{
   identity: typeof identity;
   index: typeof index;
   invitations: typeof invitations;
+  invitationsSchema: typeof invitationsSchema;
   migrations: typeof migrations;
   notificationCopy: typeof notificationCopy;
   notificationSubjects: typeof notificationSubjects;
@@ -135,7 +137,6 @@ export declare const components: {
   unreadTracking: import("convex-unread-tracking/_generated/component.js").ComponentApi<"unreadTracking">;
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
   geospatial: import("@convex-dev/geospatial/_generated/component.js").ComponentApi<"geospatial">;
-  inviteLinks: import("convex-invite-links/_generated/component.js").ComponentApi<"inviteLinks">;
   aggregateCompletedAppointments: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateCompletedAppointments">;
   aggregateSmsSent: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateSmsSent">;
   aggregateEmailsSent: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateEmailsSent">;

@@ -194,6 +194,17 @@ export const removeBarberFromBarbershop = zMutation({
       ),
       ctx.db.delete(args.id),
     ]);
+
+    if (barbershop?.workosOrganizationId && barberProfile?.userId) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.workosOrgs.removeOrganizationMembership,
+        {
+          workosOrganizationId: barbershop.workosOrganizationId,
+          userId: barberProfile.userId,
+        },
+      );
+    }
   },
 });
 
@@ -257,7 +268,23 @@ export const removeStaffFromBarbershop = zMutation({
       throw new ConvexError("El miembro seleccionado no es recepcionista");
     }
 
+    const [barbershop, staffProfile] = await Promise.all([
+      ctx.db.get(member.barbershopId),
+      ctx.db.get(member.userProfileDataId),
+    ]);
+
     await ctx.db.delete(args.id);
+
+    if (barbershop?.workosOrganizationId && staffProfile?.userId) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.workosOrgs.removeOrganizationMembership,
+        {
+          workosOrganizationId: barbershop.workosOrganizationId,
+          userId: staffProfile.userId,
+        },
+      );
+    }
   },
 });
 

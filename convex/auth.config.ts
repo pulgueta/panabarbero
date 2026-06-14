@@ -10,6 +10,11 @@ const authFunctions: AuthFunctions = internal.auth;
 export const authkit = new AuthKit<DataModel>(components.workOSAuthKit, {
   authFunctions,
   actionSecret: "",
+  additionalEventTypes: [
+    "organization_membership.created",
+    "organization_membership.updated",
+    "organization_membership.deleted",
+  ],
 });
 
 export default {

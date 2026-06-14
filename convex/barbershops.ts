@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 
-import { convexToZod, zid } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
+import { convexToZod, zid } from "convex-helpers/server/zod4";
 import { z } from "zod";
 import { zInternalMutation, zMutation, zQuery } from ".";
 import { api, internal } from "./_generated/api";
@@ -14,7 +14,6 @@ import { assertOwner } from "./authz";
 import { errorMessages } from "./errors";
 import { barbershopGeospatial } from "./geospatial";
 import { requireUserId } from "./identity";
-import { invites } from "./invitations";
 import { rateLimitOrThrow } from "./ratelimit";
 import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
@@ -334,7 +333,6 @@ export const deleteCascade = zMutation({
       members,
       reviews,
       metadata,
-      pendingInvites,
       usageRows,
       extraCreditsRow,
       creditPurchasesRows,
@@ -359,9 +357,6 @@ export const deleteCascade = zMutation({
         .query("barbershopMetadata")
         .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
         .unique(),
-      // Pending invites are stored in the invite-links component, scoped to
-      // this barbershop's group.
-      invites.listInvites(ctx, { groupId: args.id }),
       ctx.db
         .query("usage")
         .withIndex("by_barbershop_month", (q) => q.eq("barbershopId", args.id))
@@ -391,9 +386,6 @@ export const deleteCascade = zMutation({
       ...assignments.map((assignment) => ctx.db.delete(assignment._id)),
       ...members.map((member) => ctx.db.delete(member._id)),
       ...reviews.map((review) => ctx.db.delete(review._id)),
-      ...pendingInvites.map((inv) =>
-        invites.revokeInvite(ctx, { inviteId: inv.inviteId }),
-      ),
       ...(metadata?._id ? [ctx.db.delete(metadata._id)] : []),
       ...usageRows.map((row) => ctx.db.delete(row._id)),
       ...(extraCreditsRow ? [ctx.db.delete(extraCreditsRow._id)] : []),

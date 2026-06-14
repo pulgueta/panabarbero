@@ -305,7 +305,8 @@ export default defineSchema({
       searchField: "name",
       filterFields: ["isActive", "state", "city"],
     })
-    .index("by_uuid", ["uuid"]),
+    .index("by_uuid", ["uuid"])
+    .index("by_workosOrganizationId", ["workosOrganizationId"]),
 
   barbershopMetadata: barbershopMetadata
     .table()

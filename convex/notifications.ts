@@ -1,9 +1,9 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: early return */
 
-import { convexToZod, zid } from "convex-helpers/server/zod4";
-import { UnreadTracking } from "convex-unread-tracking";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
+import { convexToZod, zid } from "convex-helpers/server/zod4";
+import { UnreadTracking } from "convex-unread-tracking";
 import { z } from "zod";
 
 import { zInternalMutation, zMutation, zQuery } from ".";
@@ -22,7 +22,6 @@ import {
   buildNotificationCopy,
   buildSmsBody,
   type NotificationCopy,
-  siteUrl,
 } from "./notificationCopy";
 import { subjects } from "./notificationSubjects";
 import type { UserProfileData } from "./schema";
@@ -662,71 +661,6 @@ export const createPastAppointmentReminder = zInternalMutation({
       userId: barberProfile.userId,
       copy,
     });
-  },
-});
-
-export const createBarberInvited = zInternalMutation({
-  args: z.object({
-    barbershopId: zid("barbershops"),
-    email: z.string(),
-    code: z.string(),
-    inviterUserId: z.string(),
-    roles: z.array(z.enum(["owner", "barber", "staff"])),
-    expiresAt: z.number(),
-    phone: z.string(),
-  }),
-  handler: async (ctx, args) => {
-    const barbershop = await ctx.db.get(args.barbershopId);
-
-    if (!barbershop) {
-      throw new ConvexError(errorMessages.notFound("barbería"));
-    }
-
-    const inviterProfile = await getProfileByUserId(ctx, args.inviterUserId);
-
-    const invitationUrl = `${siteUrl()}/invitations/${args.code}`;
-
-    const roleLabel = args.roles.includes("staff")
-      ? "recepcionista"
-      : "barbero";
-
-    const copy = buildNotificationCopy({
-      kind: "team_invited",
-      barbershopName: barbershop.name,
-      roleLabel,
-    });
-
-    await Promise.all([
-      ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
-        body: `${copy.description} Ver detalles: ${invitationUrl}`,
-        to: args.phone,
-      }),
-      ctx.scheduler.runAfter(0, internal.emails.sendBarberInvitationEmail, {
-        to: args.email,
-        barbershopName: barbershop.name,
-        invitationLink: invitationUrl,
-        inviterName: inviterProfile?.name ?? undefined,
-        expiresLabel: new Date(args.expiresAt).toLocaleDateString("es-ES"),
-      }),
-    ]);
-
-    // If the invitee already has an account, surface the invite in-app too.
-    const inviteeProfile = await ctx.db
-      .query("userProfileData")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
-      .unique();
-
-    if (inviteeProfile?.userId) {
-      await recordInApp(ctx, {
-        userId: inviteeProfile.userId,
-        copy: { ...copy, href: invitationUrl },
-        payload: {
-          barbershopId: args.barbershopId,
-          barbershopName: barbershop.name,
-          invitationCode: args.code,
-        },
-      });
-    }
   },
 });
 

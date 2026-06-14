@@ -10,7 +10,6 @@ import authkit from "@convex-dev/workos-authkit/convex.config";
 import posthog from "@posthog/convex/convex.config";
 import { defineApp } from "convex/server";
 import { v } from "convex/values";
-import inviteLinks from "convex-invite-links/convex.config";
 import unreads from "convex-unread-tracking/convex.config";
 
 const app = defineApp({
@@ -39,7 +38,6 @@ app.use(posthog, {
 app.use(unreads);
 app.use(agent);
 app.use(geospatial);
-app.use(inviteLinks);
 app.use(aggregate, { name: "aggregateCompletedAppointments" });
 app.use(aggregate, { name: "aggregateSmsSent" });
 app.use(aggregate, { name: "aggregateEmailsSent" });

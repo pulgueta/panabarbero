@@ -30,6 +30,7 @@ export const createOrganizationForBarbershop = zInternalAction({
       await authkit.workos.userManagement.createOrganizationMembership({
         organizationId: organization.id,
         userId: args.ownerUserId,
+        roleSlug: "admin",
       });
 
       await ctx.runMutation(internal.barbershops.setWorkosOrganizationId, {
@@ -85,6 +86,46 @@ export const deleteOrganization = zInternalAction({
       await trackException(ctx, error, undefined, {
         scope: "workos_org_sync",
         operation: "delete",
+        workosOrganizationId: args.workosOrganizationId,
+      });
+    }
+  },
+});
+
+/**
+ * Remove a user's membership(s) from a barbershop's WorkOS organization when
+ * they are removed from the team in-app — keeps WorkOS free of ghost members so
+ * the email can be re-invited later. Tolerant of already-gone memberships.
+ */
+export const removeOrganizationMembership = zInternalAction({
+  args: z.object({
+    workosOrganizationId: z.string(),
+    userId: z.string(),
+  }),
+  handler: async (ctx, args) => {
+    try {
+      const memberships =
+        await authkit.workos.userManagement.listOrganizationMemberships({
+          organizationId: args.workosOrganizationId,
+          userId: args.userId,
+          statuses: ["active", "inactive", "pending"],
+        });
+
+      await Promise.all(
+        memberships.data.map((membership) =>
+          authkit.workos.userManagement.deleteOrganizationMembership(
+            membership.id,
+          ),
+        ),
+      );
+    } catch (error) {
+      if ((error as { status?: number }).status === 404) {
+        return;
+      }
+
+      await trackException(ctx, error, args.userId, {
+        scope: "workos_org_sync",
+        operation: "remove_membership",
         workosOrganizationId: args.workosOrganizationId,
       });
     }
