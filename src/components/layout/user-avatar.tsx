@@ -38,7 +38,7 @@ export function UserAvatar({ user }: UserAvatarProps) {
         render={
           <Button
             variant="ghost"
-            className="relative mt-1.5 size-8 rounded-full"
+            className="relative size-8 rounded-full md:mt-1.5"
           >
             <Avatar className="size-8">
               <AvatarImage

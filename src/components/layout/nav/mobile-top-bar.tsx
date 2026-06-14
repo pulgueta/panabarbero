@@ -43,6 +43,8 @@ export function MobileTopBar() {
       </Link>
 
       <div className="flex items-center gap-1.5">
+        <ThemeToggler />
+
         {user?.id ? (
           <>
             <Suspense fallback={<Skeleton className="size-9" />}>
@@ -64,8 +66,6 @@ export function MobileTopBar() {
             Iniciar sesión
           </Button>
         )}
-
-        <ThemeToggler />
       </div>
     </header>
   );
