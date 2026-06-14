@@ -1,6 +1,6 @@
-import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import type { Barbershop, BarbershopMember, Service } from "@convex/schema";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 
 export function barbershopMembersByBarbershopIdQueryOptions(
@@ -55,14 +55,6 @@ export function useBarberByUserId(userId: string) {
   return useSuspenseQuery(barberByUserIdQueryOptions(userId));
 }
 
-export function invitationByCodeQueryOptions(code: string) {
-  return convexQuery(api.invitations.getByCode, { code });
-}
-
-export function useInvitationByCode(code: string) {
-  return useSuspenseQuery(invitationByCodeQueryOptions(code));
-}
-
 export function useBarbershopMembersByBarbershopId(
   barbershopId: Barbershop["_id"],
 ) {
@@ -114,18 +106,6 @@ export function useBarberSchedule(barbershopMemberId: BarbershopMember["_id"]) {
 }
 
 export function useBarbershopMemberActions() {
-  const inviteBarberMutation = useMutation({
-    mutationFn: useConvexMutation(api.invitations.invite),
-  });
-
-  const validateInvitationMutation = useMutation({
-    mutationFn: useConvexMutation(api.invitations.validate),
-  });
-
-  const answerInvitationMutation = useMutation({
-    mutationFn: useConvexMutation(api.invitations.answer),
-  });
-
   const setBarberServicesMutation = useMutation({
     mutationFn: useConvexMutation(
       api.barbershopMemberServices.setBarberServices,
@@ -157,9 +137,6 @@ export function useBarbershopMemberActions() {
   });
 
   return {
-    inviteBarberMutation,
-    validateInvitationMutation,
-    answerInvitationMutation,
     setBarberServicesMutation,
     removeBarberMutation,
     removeStaffMutation,

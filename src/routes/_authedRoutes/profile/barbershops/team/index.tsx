@@ -65,8 +65,14 @@ const InviteBarberDialog = lazy(() =>
   })),
 );
 
+const InvitationsList = lazy(() =>
+  import("@/components/barbers/invitations-list").then((module) => ({
+    default: module.InvitationsList,
+  })),
+);
+
 const searchSchema = z.object({
-  tab: z.enum(["barberos", "staff"]).default("barberos"),
+  tab: z.enum(["barberos", "staff", "invitaciones"]).default("barberos"),
 });
 
 export const Route = createFileRoute(
@@ -166,6 +172,7 @@ function RouteComponent() {
           >
             {(isOwner || isStaff) && (
               <InviteBarberDialog
+                barbershopId={barbershop?._id!}
                 canInviteStaff={isOwner}
                 trigger={
                   <Button variant="outline">
@@ -182,13 +189,16 @@ function RouteComponent() {
           value={tab}
           onValueChange={(value) =>
             navigate({
-              search: { tab: value as "barberos" | "staff" },
+              search: {
+                tab: value as "barberos" | "staff" | "invitaciones",
+              },
             })
           }
         >
           <TabsList>
             <TabsTrigger value="barberos">Barberos</TabsTrigger>
             <TabsTrigger value="staff">Recepcionistas</TabsTrigger>
+            <TabsTrigger value="invitaciones">Invitaciones</TabsTrigger>
           </TabsList>
 
           <TabsContent value="barberos">
@@ -253,6 +263,12 @@ function RouteComponent() {
                   </EmptyHeader>
                 </Empty>
               )}
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="invitaciones">
+            <Suspense fallback={<ProfileTabSkeleton />}>
+              <InvitationsList barbershopId={barbershop?._id!} />
             </Suspense>
           </TabsContent>
         </Tabs>

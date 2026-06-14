@@ -29,7 +29,6 @@ import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as BarbershopsBarbershopUuidIndexRouteImport } from './routes/barbershops/$barbershopUuid/index'
 import { Route as AuthedRoutesProfileIndexRouteImport } from './routes/_authedRoutes/profile/index'
 import { Route as BarbershopsBarbershopUuidBookRouteImport } from './routes/barbershops/$barbershopUuid/book'
-import { Route as AuthedRoutesInvitationsCodeRouteImport } from './routes/_authedRoutes/invitations/$code'
 import { Route as AuthedRoutesProfileBarbershopsTeamIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/team/index'
 import { Route as AuthedRoutesProfileBarbershopsSettingsIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/settings/index'
 import { Route as AuthedRoutesProfileBarbershopsServicesIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/services/index'
@@ -136,12 +135,6 @@ const BarbershopsBarbershopUuidBookRoute =
     path: '/barbershops/$barbershopUuid/book',
     getParentRoute: () => rootRouteImport,
   } as any)
-const AuthedRoutesInvitationsCodeRoute =
-  AuthedRoutesInvitationsCodeRouteImport.update({
-    id: '/invitations/$code',
-    path: '/invitations/$code',
-    getParentRoute: () => AuthedRoutesRouteRoute,
-  } as any)
 const AuthedRoutesProfileBarbershopsTeamIndexRoute =
   AuthedRoutesProfileBarbershopsTeamIndexRouteImport.update({
     id: '/profile/barbershops/team/',
@@ -183,7 +176,6 @@ export interface FileRoutesByFullPath {
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/barbershops/': typeof BarbershopsIndexRoute
   '/chat/': typeof ChatIndexRoute
-  '/invitations/$code': typeof AuthedRoutesInvitationsCodeRoute
   '/barbershops/$barbershopUuid/book': typeof BarbershopsBarbershopUuidBookRoute
   '/profile/': typeof AuthedRoutesProfileIndexRoute
   '/barbershops/$barbershopUuid/': typeof BarbershopsBarbershopUuidIndexRoute
@@ -207,7 +199,6 @@ export interface FileRoutesByTo {
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/barbershops': typeof BarbershopsIndexRoute
   '/chat': typeof ChatIndexRoute
-  '/invitations/$code': typeof AuthedRoutesInvitationsCodeRoute
   '/barbershops/$barbershopUuid/book': typeof BarbershopsBarbershopUuidBookRoute
   '/profile': typeof AuthedRoutesProfileIndexRoute
   '/barbershops/$barbershopUuid': typeof BarbershopsBarbershopUuidIndexRoute
@@ -235,7 +226,6 @@ export interface FileRoutesById {
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/barbershops/': typeof BarbershopsIndexRoute
   '/chat/': typeof ChatIndexRoute
-  '/_authedRoutes/invitations/$code': typeof AuthedRoutesInvitationsCodeRoute
   '/barbershops/$barbershopUuid/book': typeof BarbershopsBarbershopUuidBookRoute
   '/_authedRoutes/profile/': typeof AuthedRoutesProfileIndexRoute
   '/barbershops/$barbershopUuid/': typeof BarbershopsBarbershopUuidIndexRoute
@@ -262,7 +252,6 @@ export interface FileRouteTypes {
     | '/chat/$threadId'
     | '/barbershops/'
     | '/chat/'
-    | '/invitations/$code'
     | '/barbershops/$barbershopUuid/book'
     | '/profile/'
     | '/barbershops/$barbershopUuid/'
@@ -286,7 +275,6 @@ export interface FileRouteTypes {
     | '/chat/$threadId'
     | '/barbershops'
     | '/chat'
-    | '/invitations/$code'
     | '/barbershops/$barbershopUuid/book'
     | '/profile'
     | '/barbershops/$barbershopUuid'
@@ -313,7 +301,6 @@ export interface FileRouteTypes {
     | '/chat/$threadId'
     | '/barbershops/'
     | '/chat/'
-    | '/_authedRoutes/invitations/$code'
     | '/barbershops/$barbershopUuid/book'
     | '/_authedRoutes/profile/'
     | '/barbershops/$barbershopUuid/'
@@ -483,13 +470,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BarbershopsBarbershopUuidBookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authedRoutes/invitations/$code': {
-      id: '/_authedRoutes/invitations/$code'
-      path: '/invitations/$code'
-      fullPath: '/invitations/$code'
-      preLoaderRoute: typeof AuthedRoutesInvitationsCodeRouteImport
-      parentRoute: typeof AuthedRoutesRouteRoute
-    }
     '/_authedRoutes/profile/barbershops/team/': {
       id: '/_authedRoutes/profile/barbershops/team/'
       path: '/profile/barbershops/team'
@@ -536,7 +516,6 @@ const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
 )
 
 interface AuthedRoutesRouteRouteChildren {
-  AuthedRoutesInvitationsCodeRoute: typeof AuthedRoutesInvitationsCodeRoute
   AuthedRoutesProfileIndexRoute: typeof AuthedRoutesProfileIndexRoute
   AuthedRoutesProfileBarbershopsAppointmentsIndexRoute: typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
   AuthedRoutesProfileBarbershopsServicesIndexRoute: typeof AuthedRoutesProfileBarbershopsServicesIndexRoute
@@ -545,7 +524,6 @@ interface AuthedRoutesRouteRouteChildren {
 }
 
 const AuthedRoutesRouteRouteChildren: AuthedRoutesRouteRouteChildren = {
-  AuthedRoutesInvitationsCodeRoute: AuthedRoutesInvitationsCodeRoute,
   AuthedRoutesProfileIndexRoute: AuthedRoutesProfileIndexRoute,
   AuthedRoutesProfileBarbershopsAppointmentsIndexRoute:
     AuthedRoutesProfileBarbershopsAppointmentsIndexRoute,
