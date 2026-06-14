@@ -8,41 +8,20 @@ const PROPOSAL_KIND = "needs-confirmation" as const;
 
 import { z } from "zod";
 
-export const proposalSchema = z.discriminatedUnion("action", [
-  z.object({
-    kind: z.literal(PROPOSAL_KIND),
-    action: z.literal("book"),
-    summary: z.string(),
-    args: z.object({
-      barbershopId: z.string(),
-      serviceId: z.string(),
-      barbershopMemberId: z.string(),
-      date: z.number(),
-      customerName: z.string(),
-      contactPhone: z.string(),
-      contactEmail: z.string().optional(),
-      notes: z.string().optional(),
-    }),
-  }),
-  z.object({
-    kind: z.literal(PROPOSAL_KIND),
-    action: z.literal("cancel"),
-    summary: z.string(),
-    args: z.object({
-      appointmentId: z.string(),
-      reason: z.string(),
-    }),
-  }),
-  z.object({
-    kind: z.literal(PROPOSAL_KIND),
-    action: z.literal("reschedule"),
-    summary: z.string(),
-    args: z.object({
-      appointmentId: z.string(),
-      proposedDate: z.number(),
-    }),
-  }),
-]);
+/**
+ * A tool output that asks the user to confirm an action. The card only needs
+ * `summary` (what it shows) and forwards `action` + `args` opaquely to
+ * `confirmPendingAction`, which is the authoritative validator and authz gate.
+ * Keeping this loose (instead of mirroring every action's args) means any new
+ * server-side action renders a confirmation card without a matching client
+ * edit — the action set lives only in `convex/`.
+ */
+export const proposalSchema = z.object({
+  kind: z.literal(PROPOSAL_KIND),
+  action: z.string(),
+  summary: z.string(),
+  args: z.unknown(),
+});
 
 export type Proposal = z.infer<typeof proposalSchema>;
 

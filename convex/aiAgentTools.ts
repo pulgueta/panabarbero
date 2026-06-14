@@ -3,6 +3,37 @@ import { z } from "zod";
 
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
+import { colombiaDateKeyToMs, colombiaDateTimeToMs } from "./utils";
+
+// The model produces Colombia-local date/time STRINGS — never epoch ms, which
+// it cannot compute reliably. The tools convert them server-side.
+const DATE_DESC =
+  "Fecha en formato YYYY-MM-DD (hora Colombia). Calcula tú mismo las fechas relativas (hoy, mañana, 'en una semana', 'el martes de la otra semana') a partir de la fecha actual del contexto; NO preguntes al usuario que las confirme.";
+const TIME_DESC =
+  "Hora en formato HH:MM de 24 horas (hora Colombia). Ej.: 15:00 = 3 de la tarde.";
+const dateField = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Usa el formato YYYY-MM-DD");
+const timeField = z
+  .string()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Usa el formato HH:MM (24h)");
+
+const scheduleDay = z.object({
+  day: z.enum([
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+  ]),
+  isActive: z.boolean(),
+  openAt: z.string(),
+  closeAt: z.string(),
+  lunchStart: z.string().optional(),
+  lunchEnd: z.string().optional(),
+});
 
 type AppointmentDoc = Doc<"appointments">;
 type BarbershopDoc = Doc<"barbershops">;
@@ -12,6 +43,49 @@ type ServiceDoc = Doc<"services">;
 type AvailabilityEntry = BarbershopDoc["availability"][number];
 type BarberWithName = BarbershopMemberDoc & { name: string };
 type Slot = { time: string; minutes: number };
+
+// Explicit return types for the two read tools that pass a `ctx.runQuery`
+// result straight through. Without them TS can't infer `execute`'s return
+// (it indirectly references the generated `internal` api), which degrades the
+// whole `tools` object to `any`.
+type MyBarbershopData =
+  | { isMember: false }
+  | {
+      isMember: true;
+      barbershopId: string;
+      name: string;
+      city: string;
+      myMemberId: string;
+      roles: Array<"owner" | "barber" | "staff">;
+      canManage: boolean;
+      staffAppointmentsAllowed: boolean;
+      availability: Array<{
+        day: string;
+        isOpen: boolean;
+        openAt: string;
+        closeAt: string;
+      }>;
+      services: Array<{
+        serviceId: string;
+        name: string;
+        price: number;
+        durationMinutes: number;
+      }>;
+      barbers: Array<{
+        barbershopMemberId: string;
+        name: string;
+        isOwner: boolean;
+      }>;
+    };
+
+type BarberScheduleData =
+  | { found: false }
+  | {
+      found: true;
+      barberName: string;
+      isCustom: boolean;
+      schedule: BarbershopDoc["availability"];
+    };
 
 const ANON_PREFIX = "anon:";
 
@@ -63,10 +137,126 @@ const rescheduleProposal = z.object({
   }),
 });
 
+// Team books on behalf of a walk-in/phone client — same args as `book`, but
+// confirmed through the staff-created path (plan-gated, owned by the shop).
+const staffBookProposal = z.object({
+  kind: z.literal(proposalKind),
+  action: z.literal("staffBook"),
+  summary: z.string(),
+  args: z.object({
+    barbershopId: z.string(),
+    serviceId: z.string(),
+    barbershopMemberId: z.string(),
+    date: z.number(),
+    customerName: z.string(),
+    contactPhone: z.string(),
+    contactEmail: z.string().optional(),
+    notes: z.string().optional(),
+  }),
+});
+
+// Team changes the status of a client's appointment.
+const manageAppointmentProposal = z.object({
+  kind: z.literal(proposalKind),
+  action: z.literal("manageAppointment"),
+  summary: z.string(),
+  args: z.object({
+    appointmentId: z.string(),
+    status: z.enum(["completed", "no-show", "cancelled"]),
+    reason: z.string().optional(),
+  }),
+});
+
+// Either party accepts/denies a pending reschedule request.
+const answerRescheduleProposal = z.object({
+  kind: z.literal(proposalKind),
+  action: z.literal("answerReschedule"),
+  summary: z.string(),
+  args: z.object({
+    appointmentId: z.string(),
+    accept: z.boolean(),
+    answeredBy: z.enum(["customer", "barber"]),
+  }),
+});
+
+const createServiceProposal = z.object({
+  kind: z.literal(proposalKind),
+  action: z.literal("createService"),
+  summary: z.string(),
+  args: z.object({
+    barbershopId: z.string(),
+    name: z.string(),
+    price: z.number(),
+    durationMinutes: z.number(),
+  }),
+});
+
+const updateServiceProposal = z.object({
+  kind: z.literal(proposalKind),
+  action: z.literal("updateService"),
+  summary: z.string(),
+  args: z.object({
+    barbershopId: z.string(),
+    serviceId: z.string(),
+    name: z.string().optional(),
+    price: z.number().optional(),
+    durationMinutes: z.number().optional(),
+  }),
+});
+
+const deleteServiceProposal = z.object({
+  kind: z.literal(proposalKind),
+  action: z.literal("deleteService"),
+  summary: z.string(),
+  args: z.object({
+    barbershopId: z.string(),
+    serviceId: z.string(),
+  }),
+});
+
+const updateScheduleProposal = z.object({
+  kind: z.literal(proposalKind),
+  action: z.literal("updateBarberSchedule"),
+  summary: z.string(),
+  args: z.object({
+    barbershopMemberId: z.string(),
+    availability: scheduleDay.array(),
+  }),
+});
+
+const inviteMemberProposal = z.object({
+  kind: z.literal(proposalKind),
+  action: z.literal("inviteMember"),
+  summary: z.string(),
+  args: z.object({
+    email: z.string(),
+    role: z.enum(["barber", "staff"]),
+  }),
+});
+
+const removeMemberProposal = z.object({
+  kind: z.literal(proposalKind),
+  action: z.literal("removeMember"),
+  summary: z.string(),
+  args: z.object({
+    barbershopMemberId: z.string(),
+    kind: z.enum(["barber", "staff"]),
+  }),
+});
+
 export const ProposalSchema = z.discriminatedUnion("action", [
   bookProposal,
   cancelProposal,
   rescheduleProposal,
+  staffBookProposal,
+  manageAppointmentProposal,
+  answerRescheduleProposal,
+  createServiceProposal,
+  updateServiceProposal,
+  deleteServiceProposal,
+  updateScheduleProposal,
+  inviteMemberProposal,
+  removeMemberProposal,
 ]);
 
 export type Proposal = z.infer<typeof ProposalSchema>;
@@ -86,14 +276,18 @@ const priceFormatter = new Intl.NumberFormat("es-CO", {
   maximumFractionDigits: 0,
 });
 
-const timeFormatter = new Intl.DateTimeFormat("es-CO", {
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
+const dateOnlyFormatter = new Intl.DateTimeFormat("es-CO", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
   timeZone: "America/Bogota",
 });
 
 const formatDate = (ms: number): string => dateFormatter.format(new Date(ms));
+
+/** Day label without a time — for availability lookups (a whole-day query). */
+const formatDateOnly = (ms: number): string =>
+  dateOnlyFormatter.format(new Date(ms));
 
 const formatPrice = (cop: number): string => priceFormatter.format(cop);
 
@@ -204,24 +398,24 @@ const getAvailability = createTool({
     barbershopId: z.string().describe("Id interno de la barbería"),
     barbershopMemberId: z
       .string()
-      .describe("Id del barbero (de `listBarbersForService`)"),
-    serviceId: z.string().describe("Id del servicio"),
-    dateMs: z
-      .number()
       .describe(
-        "Timestamp UTC en milisegundos de la fecha (cualquier hora del día funciona)",
+        "Id del barbero (de `listBarbersForService` o `getMyBarbershop`)",
       ),
+    serviceId: z.string().describe("Id del servicio"),
+    date: dateField.describe(DATE_DESC),
   }),
   execute: async (ctx, input) => {
+    const dateMs = colombiaDateKeyToMs(input.date);
+
     const slots = (await ctx.runQuery(api.appointments.getAvailableSlots, {
       barbershopId: input.barbershopId as Id<"barbershops">,
       barbershopMemberId: input.barbershopMemberId as Id<"barbershopMembers">,
       serviceId: input.serviceId as Id<"services">,
-      date: input.dateMs,
+      date: dateMs,
     })) as Slot[];
 
     return {
-      date: formatDate(input.dateMs),
+      date: formatDateOnly(dateMs),
       slotsHHMM: slots.map((s: Slot) => s.time),
     };
   },
@@ -527,9 +721,8 @@ const proposeBooking = createTool({
     barbershopId: z.string().describe("Id interno de la barbería"),
     serviceId: z.string().describe("Id del servicio"),
     barbershopMemberId: z.string().describe("Id del barbero"),
-    dateMs: z
-      .number()
-      .describe("Timestamp UTC en milisegundos de inicio de la cita"),
+    date: dateField.describe(DATE_DESC),
+    time: timeField.describe(TIME_DESC),
     customerName: z
       .string()
       .min(3)
@@ -543,6 +736,8 @@ const proposeBooking = createTool({
     notes: z.string().optional(),
   }),
   execute: async (ctx, input): Promise<Proposal> => {
+    const dateMs = colombiaDateTimeToMs(input.date, input.time);
+
     const [shop, service, members] = await Promise.all([
       ctx.runQuery(internal.aiAgentHelpers.getBarbershop, {
         id: input.barbershopId,
@@ -569,12 +764,10 @@ const proposeBooking = createTool({
       barbershopId: shop._id,
       barbershopMemberId: barber._id,
       serviceId: service._id,
-      date: input.dateMs,
+      date: dateMs,
     })) as Slot[];
 
-    const requestedHHMM = timeFormatter.format(new Date(input.dateMs));
-
-    if (!slots.some((s: Slot) => s.time === requestedHHMM)) {
+    if (!slots.some((s: Slot) => s.time === input.time)) {
       throw new Error(
         `Ese horario ya no está disponible. Horarios libres: ${
           slots.map((s: Slot) => s.time).join(", ") || "ninguno"
@@ -585,12 +778,12 @@ const proposeBooking = createTool({
     return {
       kind: proposalKind,
       action: "book",
-      summary: `Reservar ${service.name} con ${barber.name} en ${shop.name} el ${formatDate(input.dateMs)} por ${formatPrice(service.price)}.`,
+      summary: `Reservar ${service.name} con ${barber.name} en ${shop.name} el ${formatDate(dateMs)} por ${formatPrice(service.price)}.`,
       args: {
         barbershopId: shop._id,
         serviceId: service._id,
         barbershopMemberId: barber._id,
-        date: input.dateMs,
+        date: dateMs,
         customerName: input.customerName,
         contactPhone: input.contactPhone,
         contactEmail: input.contactEmail,
@@ -651,12 +844,13 @@ const proposeReschedule = createTool({
     "Prepara una solicitud de reagendamiento para una cita del usuario autenticado. NO reagenda: devuelve un resumen y los argumentos para confirmar.",
   inputSchema: z.object({
     appointmentId: z.string().describe("Id de la cita a reagendar"),
-    newDateMs: z
-      .number()
-      .describe("Nuevo timestamp UTC en milisegundos para la cita"),
+    date: dateField.describe(DATE_DESC),
+    time: timeField.describe(TIME_DESC),
   }),
   execute: async (ctx, input): Promise<Proposal> => {
     const userId = requireAuthUserId(ctx.userId);
+
+    const newDateMs = colombiaDateTimeToMs(input.date, input.time);
 
     const appt = (await ctx.runQuery(api.appointments.getById, {
       id: input.appointmentId as Id<"appointments">,
@@ -670,7 +864,7 @@ const proposeReschedule = createTool({
       throw new Error("Solo puedes reagendar tus propias citas.");
     }
 
-    if (input.newDateMs <= Date.now()) {
+    if (newDateMs <= Date.now()) {
       throw new Error("La nueva fecha debe ser en el futuro.");
     }
 
@@ -678,12 +872,10 @@ const proposeReschedule = createTool({
       barbershopId: appt.barbershopId,
       barbershopMemberId: appt.barbershopMemberId,
       serviceId: appt.serviceId,
-      date: input.newDateMs,
+      date: newDateMs,
     })) as Slot[];
 
-    const requestedHHMM = timeFormatter.format(new Date(input.newDateMs));
-
-    if (!slots.some((s: Slot) => s.time === requestedHHMM)) {
+    if (!slots.some((s: Slot) => s.time === input.time)) {
       throw new Error(
         `Ese horario ya no está disponible. Horarios libres: ${
           slots.map((s: Slot) => s.time).join(", ") || "ninguno"
@@ -694,10 +886,537 @@ const proposeReschedule = createTool({
     return {
       kind: proposalKind,
       action: "reschedule",
-      summary: `Solicitar reagendar tu cita al ${formatDate(input.newDateMs)}. El barbero tendrá que aceptarla.`,
+      summary: `Solicitar reagendar tu cita al ${formatDate(newDateMs)}. El barbero tendrá que aceptarla.`,
       args: {
         appointmentId: appt._id,
-        proposedDate: input.newDateMs,
+        proposedDate: newDateMs,
+      },
+    };
+  },
+});
+
+// ---------------------------------------------------------------------------
+// TEAM READ TOOLS (caller's own shop)
+// ---------------------------------------------------------------------------
+
+const getMyBarbershop = createTool({
+  description:
+    "Devuelve la barbería del PROPIO usuario cuando hace parte del equipo (dueño, barbero o recepcionista): su id, servicios (con precio y duración + sus ids), barberos activos (con sus ids), horario semanal, y el id del miembro que está escribiendo (`myMemberId`) con sus roles. Úsala SIEMPRE en lugar de searchBarbershops/getBarbershopDetails/listBarbersForService cuando un miembro del equipo quiere agendar o gestionar algo en SU PROPIA barbería: ya sabes dónde trabaja, no lo busques. Requiere sesión.",
+  inputSchema: z.object({}),
+  execute: async (ctx): Promise<MyBarbershopData> => {
+    const userId = requireAuthUserId(ctx.userId);
+    return (await ctx.runQuery(internal.aiAgentHelpers.getMyBarbershopData, {
+      userId,
+    })) as MyBarbershopData;
+  },
+});
+
+const getBarberSchedule = createTool({
+  description:
+    "Devuelve el horario semanal vigente de un barbero (horas por día y descansos). Úsala para mostrarlo, o como base ANTES de proponer un cambio con proposeUpdateBarberSchedule. Pásale el barbershopMemberId de getMyBarbershop.",
+  inputSchema: z.object({
+    barbershopMemberId: z
+      .string()
+      .describe("Id del barbero (de getMyBarbershop)"),
+  }),
+  execute: async (ctx, input): Promise<BarberScheduleData> => {
+    return (await ctx.runQuery(internal.aiAgentHelpers.getBarberScheduleData, {
+      barbershopMemberId: input.barbershopMemberId,
+    })) as BarberScheduleData;
+  },
+});
+
+// ---------------------------------------------------------------------------
+// TEAM PROPOSE TOOLS (writes — return needs-confirmation; do NOT mutate)
+// ---------------------------------------------------------------------------
+
+const proposeStaffBooking = createTool({
+  description:
+    "Prepara una reserva que un miembro del equipo (barbero o recepcionista) hace POR un cliente de la barbería, asignándola a un barbero. NO crea la cita; devuelve una tarjeta de confirmación. Valida disponibilidad con getAvailability antes. Si quien escribe es barbero y atenderá él mismo, usa su propio `myMemberId` como barbershopMemberId. Requiere sesión y un plan que permita crear citas por clientes.",
+  inputSchema: z.object({
+    serviceId: z.string().describe("Id del servicio (de getMyBarbershop)"),
+    barbershopMemberId: z
+      .string()
+      .describe("Id del barbero que atenderá (de getMyBarbershop)"),
+    date: dateField.describe(DATE_DESC),
+    time: timeField.describe(TIME_DESC),
+    customerName: z.string().min(3).describe("Nombre del cliente"),
+    contactPhone: z
+      .string()
+      .min(10)
+      .max(10)
+      .describe("Celular del cliente, 10 dígitos"),
+    contactEmail: z.string().email().optional(),
+    notes: z.string().optional(),
+  }),
+  execute: async (ctx, input): Promise<Proposal> => {
+    const userId = requireAuthUserId(ctx.userId);
+
+    const actor = await ctx.runQuery(
+      internal.aiAgentHelpers.getAgentActorContext,
+      { userId },
+    );
+
+    if (!actor.isMember) {
+      throw new Error(
+        "Solo un miembro del equipo puede agendar por un cliente.",
+      );
+    }
+
+    if (!actor.roles.includes("barber") && !actor.roles.includes("staff")) {
+      throw new Error(
+        "Solo barberos o recepcionistas pueden agendar por un cliente.",
+      );
+    }
+
+    if (!actor.staffAppointmentsAllowed) {
+      throw new Error(
+        "El plan de la barbería no permite crear citas por tus clientes desde el chat. Está disponible en los planes Barbería y Barbería Profesional.",
+      );
+    }
+
+    const dateMs = colombiaDateTimeToMs(input.date, input.time);
+    const barbershopId = actor.barbershopId as Id<"barbershops">;
+
+    const [service, members] = await Promise.all([
+      ctx.runQuery(api.services.getById, {
+        id: input.serviceId as Id<"services">,
+      }) as Promise<ServiceDoc | null>,
+      ctx.runQuery(internal.aiAgentHelpers.getMembersByBarbershopId, {
+        id: barbershopId,
+      }) as Promise<BarberWithName[]>,
+    ]);
+
+    if (!service) throw new Error("Ese servicio no existe.");
+
+    const barber = members.find(
+      (m) => m._id === (input.barbershopMemberId as Id<"barbershopMembers">),
+    );
+
+    if (!barber) throw new Error("Ese barbero no trabaja en esta barbería.");
+
+    const slots = (await ctx.runQuery(api.appointments.getAvailableSlots, {
+      barbershopId,
+      barbershopMemberId: barber._id,
+      serviceId: service._id,
+      date: dateMs,
+    })) as Slot[];
+
+    if (!slots.some((s: Slot) => s.time === input.time)) {
+      throw new Error(
+        `Ese horario ya no está disponible. Horarios libres: ${
+          slots.map((s: Slot) => s.time).join(", ") || "ninguno"
+        }.`,
+      );
+    }
+
+    return {
+      kind: proposalKind,
+      action: "staffBook",
+      summary: `Agendar ${service.name} para ${input.customerName} con ${barber.name} el ${formatDate(dateMs)} (${formatPrice(service.price)}).`,
+      args: {
+        barbershopId: barbershopId as string,
+        serviceId: service._id,
+        barbershopMemberId: barber._id,
+        date: dateMs,
+        customerName: input.customerName,
+        contactPhone: input.contactPhone,
+        contactEmail: input.contactEmail,
+        notes: input.notes,
+      },
+    };
+  },
+});
+
+const proposeManageAppointment = createTool({
+  description:
+    "Prepara un cambio de estado de la cita de un cliente por parte del equipo: marcarla como completada, como que el cliente no asistió ('no-show'), o cancelarla avisando al cliente. NO la cambia; devuelve una tarjeta de confirmación. (Para reagendar usa proposeReschedule o proposeAnswerReschedule.) Requiere ser dueño, barbero o recepcionista de la barbería de la cita.",
+  inputSchema: z.object({
+    appointmentId: z.string().describe("Id de la cita (de getMyAgenda)"),
+    status: z.enum(["completed", "no-show", "cancelled"]),
+    reason: z
+      .string()
+      .optional()
+      .describe("Motivo breve, requerido al cancelar (lo ve el cliente)"),
+  }),
+  execute: async (ctx, input): Promise<Proposal> => {
+    const userId = requireAuthUserId(ctx.userId);
+
+    const appt = (await ctx.runQuery(api.appointments.getById, {
+      id: input.appointmentId as Id<"appointments">,
+    })) as AppointmentDoc | null;
+
+    if (!appt || appt.deletedAt) {
+      throw new Error("Esa cita no existe o ya fue eliminada.");
+    }
+
+    const actor = await ctx.runQuery(
+      internal.aiAgentHelpers.getAgentActorContext,
+      { userId },
+    );
+
+    if (
+      !actor.isMember ||
+      actor.barbershopId !== (appt.barbershopId as string)
+    ) {
+      throw new Error("Solo puedes gestionar citas de tu propia barbería.");
+    }
+
+    if (input.status === "cancelled" && !input.reason) {
+      throw new Error("Necesito un motivo breve para cancelar la cita.");
+    }
+
+    const labels = {
+      completed: "completada",
+      "no-show": "no asistió",
+      cancelled: "cancelada",
+    } as const;
+
+    return {
+      kind: proposalKind,
+      action: "manageAppointment",
+      summary: `Marcar la cita de ${appt.customerName} (${formatDate(appt.date)}) como ${labels[input.status]}.`,
+      args: {
+        appointmentId: appt._id,
+        status: input.status,
+        reason: input.reason,
+      },
+    };
+  },
+});
+
+const proposeAnswerReschedule = createTool({
+  description:
+    "Prepara la respuesta a una solicitud de cambio de hora PENDIENTE: aceptarla (mueve la cita a la hora propuesta) o rechazarla. Quien responde es la parte contraria a quien la pidió. NO responde sola; devuelve una tarjeta de confirmación. La puede responder el cliente dueño de la cita o un miembro del equipo de la barbería.",
+  inputSchema: z.object({
+    appointmentId: z
+      .string()
+      .describe("Id de la cita con la solicitud pendiente"),
+    accept: z.boolean(),
+  }),
+  execute: async (ctx, input): Promise<Proposal> => {
+    const userId = requireAuthUserId(ctx.userId);
+
+    const appt = (await ctx.runQuery(api.appointments.getById, {
+      id: input.appointmentId as Id<"appointments">,
+    })) as AppointmentDoc | null;
+
+    if (!appt || appt.deletedAt) {
+      throw new Error("Esa cita no existe o ya fue eliminada.");
+    }
+
+    if (appt.status !== "pending" || !appt.proposedDate) {
+      throw new Error(
+        "Esa cita no tiene una solicitud de cambio de hora pendiente.",
+      );
+    }
+
+    const isCustomer = appt.userId === userId;
+    let isShop = false;
+
+    if (!isCustomer) {
+      const actor = await ctx.runQuery(
+        internal.aiAgentHelpers.getAgentActorContext,
+        { userId },
+      );
+      isShop =
+        actor.isMember && actor.barbershopId === (appt.barbershopId as string);
+    }
+
+    if (!isCustomer && !isShop) {
+      throw new Error("No tienes acceso a esa cita.");
+    }
+
+    const answeredBy = isCustomer ? "customer" : "barber";
+    const verb = input.accept ? "Aceptar" : "Rechazar";
+
+    return {
+      kind: proposalKind,
+      action: "answerReschedule",
+      summary: `${verb} el cambio de hora de la cita de ${appt.customerName} al ${formatDate(appt.proposedDate)}.`,
+      args: { appointmentId: appt._id, accept: input.accept, answeredBy },
+    };
+  },
+});
+
+const proposeCreateService = createTool({
+  description:
+    "Prepara la creación de un servicio nuevo en la barbería del usuario (nombre, precio en COP, duración en minutos). NO lo crea; devuelve una tarjeta de confirmación. Requiere ser dueño, barbero o recepcionista.",
+  inputSchema: z.object({
+    name: z.string().min(3),
+    price: z
+      .number()
+      .min(1000)
+      .describe("Precio en pesos colombianos (COP), p. ej. 25000"),
+    durationMinutes: z.number().min(5).max(480),
+  }),
+  execute: async (ctx, input): Promise<Proposal> => {
+    const userId = requireAuthUserId(ctx.userId);
+
+    const actor = await ctx.runQuery(
+      internal.aiAgentHelpers.getAgentActorContext,
+      { userId },
+    );
+
+    if (!actor.isMember) {
+      throw new Error("Solo un miembro del equipo puede crear servicios.");
+    }
+
+    return {
+      kind: proposalKind,
+      action: "createService",
+      summary: `Crear el servicio "${input.name}" por ${formatPrice(input.price)} (${input.durationMinutes} min).`,
+      args: {
+        barbershopId: actor.barbershopId as string,
+        name: input.name,
+        price: input.price,
+        durationMinutes: input.durationMinutes,
+      },
+    };
+  },
+});
+
+const proposeUpdateService = createTool({
+  description:
+    "Prepara la edición de un servicio (nombre, precio y/o duración — manda solo lo que cambia). NO lo edita; devuelve una tarjeta de confirmación. Solo dueño o recepcionista. Pásale el serviceId de getMyBarbershop.",
+  inputSchema: z.object({
+    serviceId: z.string(),
+    name: z.string().min(3).optional(),
+    price: z.number().min(1000).optional(),
+    durationMinutes: z.number().min(5).max(480).optional(),
+  }),
+  execute: async (ctx, input): Promise<Proposal> => {
+    const userId = requireAuthUserId(ctx.userId);
+
+    const actor = await ctx.runQuery(
+      internal.aiAgentHelpers.getAgentActorContext,
+      { userId },
+    );
+
+    if (!actor.canManageTeam) {
+      throw new Error(
+        "Solo el dueño o la recepcionista pueden editar servicios.",
+      );
+    }
+
+    const service = (await ctx.runQuery(api.services.getById, {
+      id: input.serviceId as Id<"services">,
+    })) as ServiceDoc | null;
+
+    if (!service || (service.barbershopId as string) !== actor.barbershopId) {
+      throw new Error("Ese servicio no es de tu barbería.");
+    }
+
+    if (
+      input.name === undefined &&
+      input.price === undefined &&
+      input.durationMinutes === undefined
+    ) {
+      throw new Error("Dime qué quieres cambiar: nombre, precio o duración.");
+    }
+
+    const parts: string[] = [];
+    if (input.name !== undefined) parts.push(`nombre a "${input.name}"`);
+    if (input.price !== undefined)
+      parts.push(`precio a ${formatPrice(input.price)}`);
+    if (input.durationMinutes !== undefined)
+      parts.push(`duración a ${input.durationMinutes} min`);
+
+    return {
+      kind: proposalKind,
+      action: "updateService",
+      summary: `Actualizar "${service.name}": ${parts.join(", ")}.`,
+      args: {
+        barbershopId: actor.barbershopId as string,
+        serviceId: service._id,
+        name: input.name,
+        price: input.price,
+        durationMinutes: input.durationMinutes,
+      },
+    };
+  },
+});
+
+const proposeDeleteService = createTool({
+  description:
+    "Prepara la eliminación de un servicio. Avisa cuántas citas futuras se cancelarían. NO lo elimina; devuelve una tarjeta de confirmación. Solo dueño o recepcionista. Pásale el serviceId de getMyBarbershop.",
+  inputSchema: z.object({ serviceId: z.string() }),
+  execute: async (ctx, input): Promise<Proposal> => {
+    const userId = requireAuthUserId(ctx.userId);
+
+    const actor = await ctx.runQuery(
+      internal.aiAgentHelpers.getAgentActorContext,
+      { userId },
+    );
+
+    if (!actor.canManageTeam) {
+      throw new Error(
+        "Solo el dueño o la recepcionista pueden eliminar servicios.",
+      );
+    }
+
+    const service = (await ctx.runQuery(api.services.getById, {
+      id: input.serviceId as Id<"services">,
+    })) as ServiceDoc | null;
+
+    if (!service || (service.barbershopId as string) !== actor.barbershopId) {
+      throw new Error("Ese servicio no es de tu barbería.");
+    }
+
+    const impacted = (await ctx.runQuery(
+      internal.aiAgentHelpers.countImpactedByService,
+      { serviceId: service._id },
+    )) as number;
+
+    const warn =
+      impacted > 0
+        ? ` Esto cancelará ${impacted} cita(s) futura(s) y se avisará a esos clientes.`
+        : "";
+
+    return {
+      kind: proposalKind,
+      action: "deleteService",
+      summary: `Eliminar el servicio "${service.name}".${warn}`,
+      args: {
+        barbershopId: actor.barbershopId as string,
+        serviceId: service._id,
+      },
+    };
+  },
+});
+
+const proposeUpdateBarberSchedule = createTool({
+  description:
+    "Prepara la actualización del horario semanal de un barbero. DEBES incluir los 7 días (monday…sunday); parte del horario actual de getBarberSchedule y cambia solo lo necesario; marca isActive=false en los días de descanso. NO lo cambia; devuelve una tarjeta de confirmación. El dueño puede cambiar el de cualquier barbero; la recepcionista solo el suyo.",
+  inputSchema: z.object({
+    barbershopMemberId: z.string(),
+    availability: scheduleDay
+      .array()
+      .describe(
+        "Los 7 días con sus horas en HH:MM y descansos (lunchStart/lunchEnd). isActive=false marca un día de descanso.",
+      ),
+  }),
+  execute: async (ctx, input): Promise<Proposal> => {
+    const userId = requireAuthUserId(ctx.userId);
+
+    const actor = await ctx.runQuery(
+      internal.aiAgentHelpers.getAgentActorContext,
+      { userId },
+    );
+
+    if (!actor.isMember || !actor.canManageTeam) {
+      throw new Error(
+        "Solo el dueño o la recepcionista pueden cambiar horarios.",
+      );
+    }
+
+    if (!actor.isOwner && actor.memberId !== input.barbershopMemberId) {
+      throw new Error("La recepcionista solo puede cambiar su propio horario.");
+    }
+
+    const sched = await ctx.runQuery(
+      internal.aiAgentHelpers.getBarberScheduleData,
+      { barbershopMemberId: input.barbershopMemberId },
+    );
+
+    if (!sched.found) throw new Error("Ese barbero no existe.");
+
+    const activeDays = input.availability.filter((d) => d.isActive).length;
+
+    return {
+      kind: proposalKind,
+      action: "updateBarberSchedule",
+      summary: `Actualizar el horario de ${sched.barberName}: ${activeDays} día(s) activos a la semana.`,
+      args: {
+        barbershopMemberId: input.barbershopMemberId,
+        availability: input.availability,
+      },
+    };
+  },
+});
+
+const proposeInviteMember = createTool({
+  description:
+    "Prepara una invitación por correo para sumar un barbero o una recepcionista al equipo (la persona recibe un correo para aceptar). NO la envía; devuelve una tarjeta de confirmación. Invitar barberos: dueño o recepcionista. Invitar recepcionistas: solo el dueño. Sujeto a los límites del plan.",
+  inputSchema: z.object({
+    email: z.string().email(),
+    role: z
+      .enum(["barber", "staff"])
+      .describe("barber = barbero, staff = recepcionista"),
+  }),
+  execute: async (ctx, input): Promise<Proposal> => {
+    const userId = requireAuthUserId(ctx.userId);
+
+    const actor = await ctx.runQuery(
+      internal.aiAgentHelpers.getAgentActorContext,
+      { userId },
+    );
+
+    if (!actor.isMember) {
+      throw new Error("Solo un miembro del equipo puede invitar.");
+    }
+
+    if (input.role === "staff" && !actor.isOwner) {
+      throw new Error("Solo el dueño puede invitar recepcionistas.");
+    }
+
+    if (input.role === "barber" && !actor.canManageTeam) {
+      throw new Error(
+        "Solo el dueño o la recepcionista pueden invitar barberos.",
+      );
+    }
+
+    const roleEs = input.role === "staff" ? "recepcionista" : "barbero";
+
+    return {
+      kind: proposalKind,
+      action: "inviteMember",
+      summary: `Invitar a ${input.email} como ${roleEs}.`,
+      args: { email: input.email, role: input.role },
+    };
+  },
+});
+
+const proposeRemoveMember = createTool({
+  description:
+    "Prepara la salida de un barbero o recepcionista del equipo. Para barberos, avisa cuántas citas futuras se cancelarían. NO lo quita; devuelve una tarjeta de confirmación. Solo el dueño. Pásale el barbershopMemberId de getMyBarbershop.",
+  inputSchema: z.object({
+    barbershopMemberId: z.string(),
+    kind: z.enum(["barber", "staff"]),
+  }),
+  execute: async (ctx, input): Promise<Proposal> => {
+    const userId = requireAuthUserId(ctx.userId);
+
+    const actor = await ctx.runQuery(
+      internal.aiAgentHelpers.getAgentActorContext,
+      { userId },
+    );
+
+    if (!actor.isOwner) {
+      throw new Error("Solo el dueño puede quitar miembros del equipo.");
+    }
+
+    let warn = "";
+    if (input.kind === "barber") {
+      const impacted = (await ctx.runQuery(
+        internal.aiAgentHelpers.countImpactedByMember,
+        { barbershopMemberId: input.barbershopMemberId },
+      )) as number;
+
+      if (impacted > 0) {
+        warn = ` Esto cancelará ${impacted} cita(s) futura(s) y se avisará a esos clientes.`;
+      }
+    }
+
+    const roleEs = input.kind === "staff" ? "recepcionista" : "barbero";
+
+    return {
+      kind: proposalKind,
+      action: "removeMember",
+      summary: `Quitar a este ${roleEs} del equipo.${warn}`,
+      args: {
+        barbershopMemberId: input.barbershopMemberId,
+        kind: input.kind,
       },
     };
   },
@@ -714,7 +1433,18 @@ export const tools = {
   getMyProfile,
   getMyNotifications,
   getBarbershopReviews,
+  getMyBarbershop,
+  getBarberSchedule,
   proposeBooking,
   proposeCancellation,
   proposeReschedule,
+  proposeStaffBooking,
+  proposeManageAppointment,
+  proposeAnswerReschedule,
+  proposeCreateService,
+  proposeUpdateService,
+  proposeDeleteService,
+  proposeUpdateBarberSchedule,
+  proposeInviteMember,
+  proposeRemoveMember,
 };

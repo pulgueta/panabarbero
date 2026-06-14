@@ -1,9 +1,9 @@
-import { api } from "@convex/_generated/api";
 import {
   optimisticallySendMessage,
   useUIMessages,
 } from "@convex-dev/agent/react";
 import { convexQuery } from "@convex-dev/react-query";
+import { api } from "@convex/_generated/api";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useAction, useMutation } from "convex/react";
@@ -90,7 +90,10 @@ export function useProposalActions(
         await confirm({
           threadId,
           userId,
-          pending: { action: proposal.action, args: proposal.args as never },
+          pending: {
+            action: proposal.action,
+            args: proposal.args,
+          } as never,
         });
       },
       [threadId, userId, confirm],
