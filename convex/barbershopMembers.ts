@@ -7,13 +7,9 @@ import { zInternalMutation, zMutation, zQuery } from ".";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { authComponent } from "./auth";
-import {
-  assertCanManageShop,
-  assertShopRole,
-  getBetterAuthUser,
-} from "./authz";
+import { assertCanManageShop, assertShopRole } from "./authz";
 import { errorMessages } from "./errors";
+import { getUserId, requireUserId } from "./identity";
 import { rateLimitOrThrow } from "./ratelimit";
 import type { Barbershop } from "./schema";
 import { barbershopMembers, barbershops } from "./schema";
@@ -23,11 +19,7 @@ import { parseTimeToMinutes } from "./utils";
 export const create = zInternalMutation({
   args: barbershopMembers.tools.insert,
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
-
-    if (!user) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
+    await requireUserId(ctx);
 
     const barbershopMemberId = await ctx.db.insert("barbershopMembers", args);
 
@@ -38,9 +30,9 @@ export const create = zInternalMutation({
 export const getByBarbershopId = zQuery({
   args: barbershops.tools.id.shape,
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await getUserId(ctx);
 
-    if (!user?.userId) {
+    if (!userId) {
       return [];
     }
 
@@ -52,15 +44,12 @@ export const getByBarbershopId = zQuery({
 
     const membersWithName = await Promise.all(
       members.map(async (member) => {
-        const [memberProfile, betterAuthUser] = await Promise.all([
-          ctx.db.get(member.userProfileDataId),
-          getBetterAuthUser(ctx, member.userProfileDataId),
-        ]);
+        const memberProfile = await ctx.db.get(member.userProfileDataId);
 
         return {
           ...member,
           name: memberProfile?.name ?? "",
-          avatarUrl: betterAuthUser?.image ?? "",
+          avatarUrl: memberProfile?.image ?? "",
         };
       }),
     );
@@ -72,13 +61,9 @@ export const getByBarbershopId = zQuery({
 export const update = zMutation({
   args: barbershopMembers.tools.update,
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await requireUserId(ctx);
 
-    if (!user) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    await rateLimitOrThrow(ctx, "updateBarbershopMember", user._id);
+    await rateLimitOrThrow(ctx, "updateBarbershopMember", userId);
 
     const updatedBarbershopMember = await ctx.db.patch(args.id, args.data);
 
@@ -89,11 +74,7 @@ export const update = zMutation({
 export const deleteMember = zInternalMutation({
   args: barbershopMembers.tools.id,
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
-
-    if (!user) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
+    await requireUserId(ctx);
 
     await ctx.db.delete(args.id);
   },
@@ -105,13 +86,9 @@ export const removeBarberFromBarbershop = zMutation({
     force: z.boolean().optional(),
   }),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await requireUserId(ctx);
 
-    if (!user?.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    await rateLimitOrThrow(ctx, "removeBarberFromBarbershop", user._id);
+    await rateLimitOrThrow(ctx, "removeBarberFromBarbershop", userId);
 
     const member = await ctx.db.get(args.id);
 
@@ -119,7 +96,7 @@ export const removeBarberFromBarbershop = zMutation({
       return;
     }
 
-    await assertCanManageShop(ctx, member.barbershopId, user.userId);
+    await assertCanManageShop(ctx, member.barbershopId, userId);
 
     if (member.roles.includes("owner")) {
       throw new ConvexError("No puedes eliminar al dueño de la barbería");
@@ -217,19 +194,30 @@ export const removeBarberFromBarbershop = zMutation({
       ),
       ctx.db.delete(args.id),
     ]);
+
+    if (barbershop?.workosOrganizationId && barberProfile?.userId) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.workosOrgs.removeOrganizationMembership,
+        {
+          workosOrganizationId: barbershop.workosOrganizationId,
+          userId: barberProfile.userId,
+        },
+      );
+    }
   },
 });
 
 export const getStaffByBarbershopId = zQuery({
   args: barbershops.tools.id.shape,
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await getUserId(ctx);
 
-    if (!user?.userId) {
+    if (!userId) {
       return [];
     }
 
-    const callerMember = await getByUserIdFn(ctx, { userId: user.userId });
+    const callerMember = await getByUserIdFn(ctx, { userId });
 
     if (!callerMember || callerMember.barbershopId !== args.id) {
       return [];
@@ -247,15 +235,12 @@ export const getStaffByBarbershopId = zQuery({
 
     const staffWithName = await Promise.all(
       staffMembers.map(async (member) => {
-        const [memberProfile, betterAuthUser] = await Promise.all([
-          ctx.db.get(member.userProfileDataId),
-          getBetterAuthUser(ctx, member.userProfileDataId),
-        ]);
+        const memberProfile = await ctx.db.get(member.userProfileDataId);
 
         return {
           ...member,
           name: memberProfile?.name ?? "",
-          avatarUrl: betterAuthUser?.image ?? "",
+          avatarUrl: memberProfile?.image ?? "",
         };
       }),
     );
@@ -267,13 +252,9 @@ export const getStaffByBarbershopId = zQuery({
 export const removeStaffFromBarbershop = zMutation({
   args: barbershopMembers.tools.id,
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await requireUserId(ctx);
 
-    if (!user?.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    await rateLimitOrThrow(ctx, "removeStaffFromBarbershop", user._id);
+    await rateLimitOrThrow(ctx, "removeStaffFromBarbershop", userId);
 
     const member = await ctx.db.get(args.id);
 
@@ -281,13 +262,29 @@ export const removeStaffFromBarbershop = zMutation({
       return;
     }
 
-    await assertCanManageShop(ctx, member.barbershopId, user.userId);
+    await assertCanManageShop(ctx, member.barbershopId, userId);
 
     if (!member.roles.includes("staff")) {
       throw new ConvexError("El miembro seleccionado no es recepcionista");
     }
 
+    const [barbershop, staffProfile] = await Promise.all([
+      ctx.db.get(member.barbershopId),
+      ctx.db.get(member.userProfileDataId),
+    ]);
+
     await ctx.db.delete(args.id);
+
+    if (barbershop?.workosOrganizationId && staffProfile?.userId) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.workosOrgs.removeOrganizationMembership,
+        {
+          workosOrganizationId: barbershop.workosOrganizationId,
+          userId: staffProfile.userId,
+        },
+      );
+    }
   },
 });
 
@@ -296,9 +293,9 @@ export const isStaff = zQuery({
     userId: z.string().optional(),
   }),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await getUserId(ctx);
 
-    if (!user?.userId || !args.userId || user.userId !== args.userId) {
+    if (!userId || !args.userId || userId !== args.userId) {
       return false;
     }
 
@@ -319,9 +316,9 @@ export const isBarber = zQuery({
     userId: z.string().optional(),
   }),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await getUserId(ctx);
 
-    if (!user?.userId || !args.userId || user.userId !== args.userId) {
+    if (!userId || !args.userId || userId !== args.userId) {
       return false;
     }
 
@@ -346,9 +343,9 @@ export const isOwner = zQuery({
     userId: z.string().optional(),
   }),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await getUserId(ctx);
 
-    if (!user?.userId || !args.userId || user.userId !== args.userId) {
+    if (!userId || !args.userId || userId !== args.userId) {
       return false;
     }
 
@@ -373,9 +370,9 @@ export const isMember = zQuery({
     userId: z.string().optional(),
   }),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await getUserId(ctx);
 
-    if (!user?.userId || !args.userId || user.userId !== args.userId) {
+    if (!userId || !args.userId || userId !== args.userId) {
       return false;
     }
 
@@ -415,16 +412,12 @@ export const toggleBarberRole = zMutation({
       .optional(),
   }),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await requireUserId(ctx);
 
-    if (!user?.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    await rateLimitOrThrow(ctx, "toggleBarberRole", user._id);
+    await rateLimitOrThrow(ctx, "toggleBarberRole", userId);
 
     const member = await getByUserIdFn(ctx, {
-      userId: user.userId,
+      userId,
     });
 
     if (!member) {
@@ -688,11 +681,7 @@ export const updateBarberSchedule = zMutation({
     availability: barbershops.insertSchema.shape.availability,
   }),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
-
-    if (!user?.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
+    const userId = await requireUserId(ctx);
 
     const member = await ctx.db.get(args.barbershopMemberId);
 
@@ -703,10 +692,10 @@ export const updateBarberSchedule = zMutation({
     const callerMember = await assertShopRole(
       ctx,
       member.barbershopId,
-      user.userId,
+      userId,
       ["owner", "staff"],
     );
-    await rateLimitOrThrow(ctx, "updateBarberSchedule", user._id);
+    await rateLimitOrThrow(ctx, "updateBarberSchedule", userId);
 
     // Staff may only edit their own schedule; owners can edit any barber's schedule
     const isOwner = callerMember.roles.includes("owner");
@@ -776,11 +765,7 @@ export const resetBarberSchedule = zMutation({
     barbershopMemberId: barbershopMembers.tools.id.shape.id,
   }),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
-
-    if (!user?.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
+    const userId = await requireUserId(ctx);
 
     const member = await ctx.db.get(args.barbershopMemberId);
 
@@ -791,10 +776,10 @@ export const resetBarberSchedule = zMutation({
     const callerMember = await assertShopRole(
       ctx,
       member.barbershopId,
-      user.userId,
+      userId,
       ["owner", "staff"],
     );
-    await rateLimitOrThrow(ctx, "updateBarberSchedule", user._id);
+    await rateLimitOrThrow(ctx, "updateBarberSchedule", userId);
 
     // Staff may only reset their own schedule; owners can reset any barber's schedule
     const isOwner = callerMember.roles.includes("owner");

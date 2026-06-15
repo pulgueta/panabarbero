@@ -67,7 +67,7 @@ const AppointmentActionsCell: FC<Appointment> = (appointment) => {
   const status = appointment.status;
 
   const { data: session } = useSession();
-  const { data: isBarber } = useIsBarber(session?.userId ?? "");
+  const { data: isBarber } = useIsBarber(session?.id ?? "");
 
   const isPastDate = Date.now() > appointment.date;
 
@@ -180,9 +180,7 @@ const AppointmentActionsCell: FC<Appointment> = (appointment) => {
 
 const BarberNameCell: FC<Appointment> = (appointment) => {
   const { data: session } = useSession();
-  const { data: barbershop } = useBarbershopByMemberUserId(
-    session?.userId ?? "",
-  );
+  const { data: barbershop } = useBarbershopByMemberUserId(session?.id ?? "");
   const { data: barbers } = useBarbershopMembersByBarbershopId(
     barbershop?._id as Id<"barbershops">,
   );

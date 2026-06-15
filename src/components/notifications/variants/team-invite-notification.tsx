@@ -9,7 +9,7 @@ import type { VariantBaseProps } from "./appointment-notification";
 export const TeamInviteNotification: FC<VariantBaseProps> = ({
   notification,
   density,
-  onMarkRead,
+  isUnread,
   onSelect,
   usesBarberCalendar: _usesBarberCalendar,
 }) => {
@@ -20,7 +20,7 @@ export const TeamInviteNotification: FC<VariantBaseProps> = ({
     <NotificationItem
       notification={notification}
       density={density}
-      onMarkRead={onMarkRead}
+      isUnread={isUnread}
       onSelect={onSelect}
     >
       <NotificationItem.Icon

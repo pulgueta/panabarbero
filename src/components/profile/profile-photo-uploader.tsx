@@ -32,7 +32,7 @@ import {
   ResponsiveModalTitle,
 } from "@/components/ui/responsive-modal";
 import { Spinner } from "@/components/ui/spinner";
-import { env } from "@/env";
+import { clientEnv } from "@/env/client";
 import { useProfilePhotoActions } from "@/hooks/use-profile-photo-actions";
 import { useSession } from "@/hooks/use-session";
 import { extractR2Key, useUpload } from "@/hooks/use-upload";
@@ -138,7 +138,7 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
       }
 
       await setProfilePhotoKey({
-        imageUrl: `${env.VITE_STORAGE_URL}/${key}`,
+        imageUrl: `${clientEnv.VITE_STORAGE_URL}/${key}`,
       });
 
       toast.success("Foto de perfil actualizada");

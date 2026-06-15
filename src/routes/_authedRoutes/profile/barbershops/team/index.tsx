@@ -45,7 +45,7 @@ import {
   servicesQueryOptions,
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
-import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { useSession } from "@/hooks/use-session";
 
 const DashboardHeader = lazy(() =>
   import("@/components/barbershops/dashboard-header").then((module) => ({
@@ -65,8 +65,14 @@ const InviteBarberDialog = lazy(() =>
   })),
 );
 
+const InvitationsList = lazy(() =>
+  import("@/components/barbers/invitations-list").then((module) => ({
+    default: module.InvitationsList,
+  })),
+);
+
 const searchSchema = z.object({
-  tab: z.enum(["barberos", "staff"]).default("barberos"),
+  tab: z.enum(["barberos", "staff", "invitaciones"]).default("barberos"),
 });
 
 export const Route = createFileRoute(
@@ -79,18 +85,16 @@ export const Route = createFileRoute(
   staleTime: cacheTime.high,
   gcTime: cacheTime.extreme,
   loader: async (opts) => {
-    const user = await opts.context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
+    const userId = opts.context.userId;
 
-    if (user?.userId) {
+    if (userId) {
       const barbershop = await opts.context.queryClient.ensureQueryData(
-        barbershopByMemberUserIdQueryOptions(user.userId),
+        barbershopByMemberUserIdQueryOptions(userId),
       );
 
       const barbershopMemberRoles =
         await opts.context.queryClient.ensureQueryData(
-          barbershopMemberRolesQueryOptions(user.userId),
+          barbershopMemberRolesQueryOptions(userId),
         );
 
       // Only owner or staff can access the team page
@@ -131,8 +135,8 @@ function RouteComponent() {
   const { tab } = Route.useSearch();
 
   const { data: user } = useSession();
-  const { data: barbershop } = useBarbershopByMemberUserId(user?.userId!);
-  const { data: rolesData } = useBarbershopMemberRoles(user?.userId!);
+  const { data: barbershop } = useBarbershopByMemberUserId(user?.id!);
+  const { data: rolesData } = useBarbershopMemberRoles(user?.id!);
   const { data: barbershopMembers } = useBarbershopMembersByBarbershopId(
     barbershop?._id!,
   );
@@ -168,6 +172,7 @@ function RouteComponent() {
           >
             {(isOwner || isStaff) && (
               <InviteBarberDialog
+                barbershopId={barbershop?._id!}
                 canInviteStaff={isOwner}
                 trigger={
                   <Button variant="outline">
@@ -184,13 +189,16 @@ function RouteComponent() {
           value={tab}
           onValueChange={(value) =>
             navigate({
-              search: { tab: value as "barberos" | "staff" },
+              search: {
+                tab: value as "barberos" | "staff" | "invitaciones",
+              },
             })
           }
         >
           <TabsList>
             <TabsTrigger value="barberos">Barberos</TabsTrigger>
             <TabsTrigger value="staff">Recepcionistas</TabsTrigger>
+            <TabsTrigger value="invitaciones">Invitaciones</TabsTrigger>
           </TabsList>
 
           <TabsContent value="barberos">
@@ -255,6 +263,12 @@ function RouteComponent() {
                   </EmptyHeader>
                 </Empty>
               )}
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="invitaciones">
+            <Suspense fallback={<ProfileTabSkeleton />}>
+              <InvitationsList barbershopId={barbershop?._id!} />
             </Suspense>
           </TabsContent>
         </Tabs>

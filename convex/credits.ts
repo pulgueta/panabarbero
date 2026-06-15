@@ -9,9 +9,9 @@ import { zInternalMutation, zQuery } from ".";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { getUsageRow, getUserPlanLimits } from "./acl";
-import { authComponent } from "./auth";
 import { assertShopRole } from "./authz";
 import { errorMessages } from "./errors";
+import { getUserId } from "./identity";
 import { getCurrentYearMonth } from "./plans";
 import { barbershops } from "./schema";
 
@@ -96,13 +96,11 @@ export const addPurchasedCredits = zInternalMutation({
  */
 export const getMyExtraCredits = zQuery({
   handler: async (ctx) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await getUserId(ctx);
 
-    if (!user?.userId) {
+    if (!userId) {
       return null;
     }
-
-    const userId = user.userId;
 
     const barbershop = await ctx.db
       .query("barbershops")
@@ -120,9 +118,9 @@ export const getMyExtraCredits = zQuery({
 export const getBarbershopQuotaUsage = zQuery({
   args: barbershops.tools.id,
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await getUserId(ctx);
 
-    if (!user?.userId) {
+    if (!userId) {
       return null;
     }
 
@@ -133,11 +131,7 @@ export const getBarbershopQuotaUsage = zQuery({
     }
 
     try {
-      await assertShopRole(ctx, args.id, user.userId, [
-        "barber",
-        "owner",
-        "staff",
-      ]);
+      await assertShopRole(ctx, args.id, userId, ["barber", "owner", "staff"]);
     } catch {
       return null;
     }

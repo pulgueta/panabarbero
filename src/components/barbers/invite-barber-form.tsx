@@ -1,34 +1,31 @@
-import { inviteBarberSchema } from "@convex/invitations";
+import { inviteBarberSchema } from "@convex/invitationsSchema";
+import type { Barbershop } from "@convex/schema";
 import { revalidateLogic } from "@tanstack/react-form";
 import type { FC } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
 import { useAppForm } from "@/components/form/use-form";
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import { PhoneInput } from "@/components/ui/phone-input";
+import { FieldGroup } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useBarbershopMemberActions } from "@/hooks/use-barbershop-members";
+import { useInvitationActions } from "@/hooks/use-invitations";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
 interface InviteBarberFormProps {
+  barbershopId: Barbershop["_id"];
   canInviteStaff?: boolean;
 }
 
 export const InviteBarberForm: FC<InviteBarberFormProps> = ({
+  barbershopId,
   canInviteStaff = false,
 }) => {
   const haptic = useWebHaptics();
 
   const {
-    inviteBarberMutation: { mutateAsync: inviteBarber },
-  } = useBarbershopMemberActions();
+    inviteMutation: { mutateAsync: inviteBarber },
+  } = useInvitationActions(barbershopId);
 
   const form = useAppForm({
     onSubmitInvalid: () => {
@@ -43,14 +40,12 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
     },
     defaultValues: {
       email: "",
-      phone: "",
       roles: ["barber"] as ("barber" | "staff")[],
     },
     onSubmit: async ({ value }) => {
       try {
         await inviteBarber({
-          ...value,
-          phone: value.phone,
+          roles: value.roles,
           email: value.email.trim().toLowerCase(),
         });
 
@@ -81,30 +76,8 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
               label="Correo electrónico"
               placeholder="miembro@correo.com"
               type="email"
-              description="Asegúrate de que el usuario tenga una cuenta en la aplicación."
+              description="Le enviaremos una invitación por correo para unirse al equipo."
             />
-          )}
-        </form.AppField>
-
-        <form.AppField name="phone">
-          {(field) => (
-            <Field data-invalid={field.state.meta.errors.length > 0}>
-              <FieldLabel>Teléfono</FieldLabel>
-              <PhoneInput
-                value={field.state.value}
-                onChange={field.handleChange}
-                defaultCountry="CO"
-                placeholder="311 987 1234"
-                aria-invalid={field.state.meta.errors.length > 0}
-              />
-              {field.state.meta.errors.length > 0 && (
-                <FieldError
-                  errors={field.state.meta.errors.map((e) => ({
-                    message: String(e),
-                  }))}
-                />
-              )}
-            </Field>
           )}
         </form.AppField>
 

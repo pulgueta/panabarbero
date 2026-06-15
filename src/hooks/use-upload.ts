@@ -3,12 +3,12 @@ import { api } from "@convex/_generated/api";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { env } from "@/env";
+import { clientEnv } from "@/env/client";
 
 export function extractR2Key(url: string | null | undefined): string | null {
   if (!url) return null;
 
-  const base = env.VITE_STORAGE_URL;
+  const base = clientEnv.VITE_STORAGE_URL;
   if (!url.startsWith(base)) return null;
 
   // Strip the base URL prefix and any trailing slash to get the raw key
@@ -22,7 +22,7 @@ export function extractR2Key(url: string | null | undefined): string | null {
 export function getLogoUrl(logoKey: string | null | undefined): string | null {
   if (!logoKey) return null;
 
-  return `${env.VITE_STORAGE_URL}/${logoKey}`;
+  return `${clientEnv.VITE_STORAGE_URL}/${logoKey}`;
 }
 
 export function useUpload(opts: { type: "profile-photo" | "barbershop-logo" }) {
@@ -37,7 +37,7 @@ export function useUpload(opts: { type: "profile-photo" | "barbershop-logo" }) {
 
     try {
       const convexImageUploadUrl = new URL(
-        `${env.VITE_CONVEX_SITE_URL}/upload`,
+        `${clientEnv.VITE_CONVEX_SITE_URL}/upload`,
       );
 
       convexImageUploadUrl.searchParams.set("type", opts.type);

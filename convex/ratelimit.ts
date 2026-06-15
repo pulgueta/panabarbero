@@ -84,18 +84,6 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     period: MINUTE,
     capacity: 5,
   },
-  validateInvitation: {
-    kind: "token bucket",
-    rate: 10,
-    period: MINUTE,
-    capacity: 10,
-  },
-  answerInvitation: {
-    kind: "token bucket",
-    rate: 10,
-    period: MINUTE,
-    capacity: 10,
-  },
   searchServices: {
     kind: "token bucket",
     rate: 30,

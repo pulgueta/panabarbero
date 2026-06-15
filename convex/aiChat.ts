@@ -5,19 +5,19 @@ import {
   syncStreams,
   vStreamArgs,
 } from "@convex-dev/agent";
-import { gateway, generateText } from "ai";
+import { convexToZod } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
-import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
-import { zAction, zInternalAction, zMutation, zQuery } from ".";
+import { zAction, zMutation, zQuery } from ".";
 import { api, components, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
-import { buildPanaSystemPrompt, PANA_MODEL_ID, panaAgent } from "./aiAgent";
+import { panaAgent } from "./aiAgent";
 import { resolvePanaAccessForUserId } from "./aiAgentHelpers";
-import { authComponent } from "./auth";
+import { track } from "./analytics";
+import { getUserId } from "./identity";
 import { rateLimiter } from "./ratelimit";
 
 const ANON_PREFIX = "anon:";
@@ -26,9 +26,9 @@ async function resolveCallerId(
   ctx: QueryCtx | MutationCtx | ActionCtx,
   userId: string | undefined,
 ): Promise<string> {
-  const user = await authComponent.safeGetAuthUser(ctx);
+  const authedUserId = await getUserId(ctx);
 
-  if (user?.userId) return user.userId;
+  if (authedUserId) return authedUserId;
 
   if (userId && userId.length > 0) {
     return `${ANON_PREFIX}${userId}`;
@@ -89,60 +89,24 @@ export const createThreadAndSend = zMutation({
     });
 
     await Promise.all([
-      ctx.scheduler.runAfter(0, internal.aiChat.streamResponse, {
+      ctx.scheduler.runAfter(0, internal.aiStream.streamResponse, {
         threadId,
         promptMessageId: messageId,
         callerId,
       }),
-      ctx.scheduler.runAfter(0, internal.aiChat.generateThreadTitle, {
+      ctx.scheduler.runAfter(0, internal.aiStream.generateThreadTitle, {
         threadId,
         prompt: args.prompt,
+        callerId,
+      }),
+      track(ctx, {
+        distinctId: callerId,
+        event: "ai_thread_started",
+        properties: { isAnon },
       }),
     ]);
 
     return { threadId };
-  },
-});
-
-/**
- * Generates a short Spanish title for a thread from its first message using
- * DeepSeek v4 flash, then patches the thread. Runs in the background right
- * after the thread is created. On any failure it writes a safe fallback title
- * so the sidebar never gets stuck on a loading skeleton.
- */
-export const generateThreadTitle = zInternalAction({
-  args: z.object({
-    threadId: z.string(),
-    prompt: z.string(),
-  }),
-  handler: async (ctx, { threadId, prompt }) => {
-    let title = "Conversación con Pana";
-
-    try {
-      const { text } = await generateText({
-        model: gateway(PANA_MODEL_ID),
-        prompt: `Eres quien titula las conversaciones de un chat de barberías en Colombia. A partir del primer mensaje del usuario, escribe un título corto y claro de 3 a 6 palabras en español que resuma el tema. Sin comillas, sin punto final y sin emojis.
-
-Mensaje del usuario:
-${prompt}
-
-Título:`,
-      });
-
-      const cleaned = text
-        .trim()
-        .replace(/^["'«»\s]+|["'«».\s]+$/g, "")
-        .trim();
-
-      if (cleaned) title = cleaned.slice(0, 60);
-    } catch {
-      // Keep the fallback title — better a generic name than a stuck skeleton.
-    }
-
-    await ctx.runMutation(components.agent.threads.updateThread, {
-      threadId,
-      patch: { title },
-    });
   },
 });
 
@@ -218,7 +182,7 @@ export const sendMessage = zMutation({
       skipEmbeddings: true,
     });
 
-    await ctx.scheduler.runAfter(0, internal.aiChat.streamResponse, {
+    await ctx.scheduler.runAfter(0, internal.aiStream.streamResponse, {
       threadId: args.threadId,
       promptMessageId: messageId,
       callerId,
@@ -226,66 +190,40 @@ export const sendMessage = zMutation({
   },
 });
 
-export const streamResponse = zInternalAction({
-  args: z.object({
-    threadId: z.string(),
-    promptMessageId: z.string(),
-    callerId: z.string(),
-  }),
-  handler: async (ctx, { threadId, promptMessageId, callerId }) => {
-    const isAnon = callerId.startsWith(ANON_PREFIX);
-    const [profile, management, member] = isAnon
-      ? [null, null, null]
-      : await Promise.all([
-          ctx.runQuery(internal.aiAgentHelpers.getProfileForUserId, {
-            userId: callerId,
-          }),
-          ctx.runQuery(internal.aiAgentHelpers.getPanaEntitlement, {
-            userId: callerId,
-          }),
-          ctx.runQuery(internal.aiAgentHelpers.getMemberForUserId, {
-            userId: callerId,
-          }),
-        ]);
+const scheduleDayArg = z.object({
+  day: z.enum([
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+  ]),
+  isActive: z.boolean(),
+  openAt: z.string(),
+  closeAt: z.string(),
+  lunchStart: z.string().optional(),
+  lunchEnd: z.string().optional(),
+});
 
-    const system = buildPanaSystemPrompt({
-      profile,
-      isAnon,
-      nowMs: Date.now(),
-      management,
-      member,
-    });
-
-    const result = await panaAgent.streamText(
-      ctx,
-      { threadId, userId: callerId },
-      { promptMessageId, system },
-      { saveStreamDeltas: { chunking: "word", throttleMs: 100 } },
-    );
-    await result.consumeStream();
-  },
+const bookArgs = z.object({
+  barbershopId: z.string(),
+  serviceId: z.string(),
+  barbershopMemberId: z.string(),
+  date: z.number(),
+  customerName: z.string(),
+  contactPhone: z.string(),
+  contactEmail: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 const confirmActionArgs = z.discriminatedUnion("action", [
-  z.object({
-    action: z.literal("book"),
-    args: z.object({
-      barbershopId: z.string(),
-      serviceId: z.string(),
-      barbershopMemberId: z.string(),
-      date: z.number(),
-      customerName: z.string(),
-      contactPhone: z.string(),
-      contactEmail: z.string().optional(),
-      notes: z.string().optional(),
-    }),
-  }),
+  z.object({ action: z.literal("book"), args: bookArgs }),
+  z.object({ action: z.literal("staffBook"), args: bookArgs }),
   z.object({
     action: z.literal("cancel"),
-    args: z.object({
-      appointmentId: z.string(),
-      reason: z.string(),
-    }),
+    args: z.object({ appointmentId: z.string(), reason: z.string() }),
   }),
   z.object({
     action: z.literal("reschedule"),
@@ -294,7 +232,75 @@ const confirmActionArgs = z.discriminatedUnion("action", [
       proposedDate: z.number(),
     }),
   }),
+  z.object({
+    action: z.literal("manageAppointment"),
+    args: z.object({
+      appointmentId: z.string(),
+      status: z.enum(["completed", "no-show", "cancelled"]),
+      reason: z.string().optional(),
+    }),
+  }),
+  z.object({
+    action: z.literal("answerReschedule"),
+    args: z.object({
+      appointmentId: z.string(),
+      accept: z.boolean(),
+      answeredBy: z.enum(["customer", "barber"]),
+    }),
+  }),
+  z.object({
+    action: z.literal("createService"),
+    args: z.object({
+      barbershopId: z.string(),
+      name: z.string(),
+      price: z.number(),
+      durationMinutes: z.number(),
+    }),
+  }),
+  z.object({
+    action: z.literal("updateService"),
+    args: z.object({
+      barbershopId: z.string(),
+      serviceId: z.string(),
+      name: z.string().optional(),
+      price: z.number().optional(),
+      durationMinutes: z.number().optional(),
+    }),
+  }),
+  z.object({
+    action: z.literal("deleteService"),
+    args: z.object({ barbershopId: z.string(), serviceId: z.string() }),
+  }),
+  z.object({
+    action: z.literal("updateBarberSchedule"),
+    args: z.object({
+      barbershopMemberId: z.string(),
+      availability: scheduleDayArg.array(),
+    }),
+  }),
+  z.object({
+    action: z.literal("inviteMember"),
+    args: z.object({
+      email: z.string(),
+      role: z.enum(["barber", "staff"]),
+    }),
+  }),
+  z.object({
+    action: z.literal("removeMember"),
+    args: z.object({
+      barbershopMemberId: z.string(),
+      kind: z.enum(["barber", "staff"]),
+    }),
+  }),
 ]);
+
+const requireAuthed = (isAnon: boolean) => {
+  if (isAnon) {
+    throw new ConvexError(
+      "Necesitas iniciar sesión para hacer esta acción en PanaBarbero.",
+    );
+  }
+};
 
 export const confirmPendingAction = zAction({
   args: z.object({
@@ -307,11 +313,12 @@ export const confirmPendingAction = zAction({
     await authorizeThreadAccess(ctx, args.threadId, callerId);
 
     const isAnon = callerId.startsWith(ANON_PREFIX);
+    const pending = args.pending;
     let summary: string;
 
-    switch (args.pending.action) {
+    switch (pending.action) {
       case "book": {
-        const a = args.pending.args;
+        const a = pending.args;
         await ctx.runMutation(internal.appointments.agentBook, {
           userId: callerId,
           barbershopId: a.barbershopId as Id<"barbershops">,
@@ -326,13 +333,35 @@ export const confirmPendingAction = zAction({
         summary = "Tu cita quedó reservada. ¡Nos vemos pronto!";
         break;
       }
+      case "staffBook": {
+        requireAuthed(isAnon);
+        const a = pending.args;
+        // `create` (isStaffCreated) enforces barber/staff role + paid plan via
+        // requireUserId(ctx.auth) — the authoritative gate.
+        await ctx.runMutation(api.appointments.create, {
+          appointment: {
+            barbershopId: a.barbershopId as Id<"barbershops">,
+            serviceId: a.serviceId as Id<"services">,
+            barbershopMemberId: a.barbershopMemberId as Id<"barbershopMembers">,
+            date: a.date,
+            customerName: a.customerName,
+            contactPhone: a.contactPhone,
+            contactEmail: a.contactEmail,
+            notes: a.notes,
+            isStaffCreated: true,
+          },
+        });
+        summary = `Listo, agendé la cita de ${a.customerName}.`;
+        break;
+      }
       case "cancel": {
-        if (isAnon) {
-          throw new ConvexError(
-            "Necesitas iniciar sesión para cancelar citas.",
-          );
-        }
-        const a = args.pending.args;
+        requireAuthed(isAnon);
+        const a = pending.args;
+        await ctx.runQuery(internal.aiAgentHelpers.assertAppointmentActor, {
+          userId: callerId,
+          appointmentId: a.appointmentId,
+          requiredActor: "customer",
+        });
         await ctx.runMutation(api.appointments.cancel, {
           appointmentId: { id: a.appointmentId as Id<"appointments"> },
           cancelledByUserId: callerId,
@@ -343,20 +372,156 @@ export const confirmPendingAction = zAction({
         break;
       }
       case "reschedule": {
-        if (isAnon) {
-          throw new ConvexError(
-            "Necesitas iniciar sesión para reagendar citas.",
-          );
-        }
-        const a = args.pending.args;
+        requireAuthed(isAnon);
+        const a = pending.args;
+        await ctx.runQuery(internal.aiAgentHelpers.assertAppointmentActor, {
+          userId: callerId,
+          appointmentId: a.appointmentId,
+          requiredActor: "customer",
+        });
         await ctx.runMutation(api.appointments.requestReschedule, {
           appointmentId: { id: a.appointmentId as Id<"appointments"> },
           proposedDate: a.proposedDate,
-          requestedByUserId: callerId,
         });
         summary = "Solicitud de reagendamiento enviada al barbero.";
         break;
       }
+      case "manageAppointment": {
+        requireAuthed(isAnon);
+        const a = pending.args;
+        await ctx.runQuery(internal.aiAgentHelpers.assertAppointmentActor, {
+          userId: callerId,
+          appointmentId: a.appointmentId,
+          requiredActor: "shop",
+        });
+        if (a.status === "cancelled") {
+          await ctx.runMutation(api.appointments.cancel, {
+            appointmentId: { id: a.appointmentId as Id<"appointments"> },
+            cancelledByUserId: callerId,
+            reason: a.reason ?? "Cancelada por la barbería",
+            cancelledBy: "barber",
+          });
+          summary = "Listo, cancelé la cita y el cliente queda avisado.";
+        } else {
+          await ctx.runMutation(api.appointments.setStatus, {
+            appointment: { id: a.appointmentId as Id<"appointments"> },
+            status: a.status,
+          });
+          summary =
+            a.status === "completed"
+              ? "Marqué la cita como completada."
+              : "Marqué la cita como que el cliente no asistió.";
+        }
+        break;
+      }
+      case "answerReschedule": {
+        requireAuthed(isAnon);
+        const a = pending.args;
+        await ctx.runQuery(internal.aiAgentHelpers.assertAppointmentActor, {
+          userId: callerId,
+          appointmentId: a.appointmentId,
+          requiredActor: "any",
+        });
+        await ctx.runMutation(api.appointments.answerRescheduleRequest, {
+          appointment: { id: a.appointmentId as Id<"appointments"> },
+          accepted: a.accept,
+          answeredBy: a.answeredBy,
+        });
+        summary = a.accept
+          ? "Listo, el cambio de hora quedó confirmado."
+          : "Listo, rechacé la solicitud de cambio de hora.";
+        break;
+      }
+      case "createService": {
+        requireAuthed(isAnon);
+        const a = pending.args;
+        await ctx.runMutation(api.services.create, {
+          name: a.name,
+          price: a.price,
+          duration: a.durationMinutes,
+          barbershopId: a.barbershopId as Id<"barbershops">,
+        });
+        summary = `Listo, creé el servicio "${a.name}".`;
+        break;
+      }
+      case "updateService": {
+        requireAuthed(isAnon);
+        const a = pending.args;
+        const data: {
+          name?: string;
+          price?: number;
+          duration?: number;
+          barbershopId: Id<"barbershops">;
+        } = { barbershopId: a.barbershopId as Id<"barbershops"> };
+        if (a.name !== undefined) data.name = a.name;
+        if (a.price !== undefined) data.price = a.price;
+        if (a.durationMinutes !== undefined) data.duration = a.durationMinutes;
+        await ctx.runMutation(api.services.update, {
+          id: a.serviceId as Id<"services">,
+          data,
+        });
+        summary = "Listo, actualicé el servicio.";
+        break;
+      }
+      case "deleteService": {
+        requireAuthed(isAnon);
+        const a = pending.args;
+        await ctx.runMutation(api.services.deleteService, {
+          barbershop: { id: a.barbershopId as Id<"barbershops"> },
+          service: { id: a.serviceId as Id<"services"> },
+          force: true,
+        });
+        summary = "Listo, eliminé el servicio.";
+        break;
+      }
+      case "updateBarberSchedule": {
+        requireAuthed(isAnon);
+        const a = pending.args;
+        await ctx.runMutation(api.barbershopMembers.updateBarberSchedule, {
+          barbershopMemberId: a.barbershopMemberId as Id<"barbershopMembers">,
+          availability: a.availability.map((d) => ({
+            weekDay: { day: d.day, isActive: d.isActive },
+            openAt: d.openAt,
+            closeAt: d.closeAt,
+            lunchStart: d.lunchStart,
+            lunchEnd: d.lunchEnd,
+          })),
+        });
+        summary = "Listo, actualicé el horario.";
+        break;
+      }
+      case "inviteMember": {
+        requireAuthed(isAnon);
+        const a = pending.args;
+        await ctx.runAction(api.invitations.invite, {
+          email: a.email,
+          roles: [a.role],
+        });
+        summary = `Listo, envié la invitación a ${a.email}.`;
+        break;
+      }
+      case "removeMember": {
+        requireAuthed(isAnon);
+        const a = pending.args;
+        if (a.kind === "barber") {
+          await ctx.runMutation(
+            api.barbershopMembers.removeBarberFromBarbershop,
+            {
+              id: a.barbershopMemberId as Id<"barbershopMembers">,
+              force: true,
+            },
+          );
+        } else {
+          await ctx.runMutation(
+            api.barbershopMembers.removeStaffFromBarbershop,
+            { id: a.barbershopMemberId as Id<"barbershopMembers"> },
+          );
+        }
+        summary = "Listo, quité a la persona del equipo.";
+        break;
+      }
+      default:
+        throw new ConvexError("Esa acción no está soportada.");
     }
 
     await saveMessage(ctx, components.agent, {
@@ -364,6 +529,12 @@ export const confirmPendingAction = zAction({
       userId: callerId,
       message: { role: "assistant", content: summary },
       agentName: "Pana",
+    });
+
+    await track(ctx, {
+      distinctId: callerId,
+      event: "ai_action_confirmed",
+      properties: { action: pending.action, isAnon },
     });
   },
 });
@@ -400,12 +571,12 @@ export const rejectPendingAction = zAction({
 export const getPanaAccess = zQuery({
   args: z.object({}),
   handler: async (ctx) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await getUserId(ctx);
 
-    if (!user?.userId) {
+    if (!userId) {
       return { isShopMember: false, canManage: true, isOwner: false };
     }
 
-    return await resolvePanaAccessForUserId(ctx, user.userId);
+    return await resolvePanaAccessForUserId(ctx, userId);
   },
 });

@@ -9,12 +9,12 @@ import { CREDIT_PRODUCT_KEYS, PLAN_PRODUCT_KEYS } from "./plans";
 export const polar = new Polar(components.polar, {
   getUserInfo: async (ctx) => {
     const user = (await ctx.runQuery(api.auth.getCurrentUser, {})) as {
-      userId: string;
+      id: string;
       email: string;
     };
 
     return {
-      userId: user.userId,
+      userId: user.id,
       email: user.email,
     };
   },

@@ -47,7 +47,7 @@ import {
   servicesByIdsQueryOptions,
   useServicesByBarbershopId,
 } from "@/hooks/use-services";
-import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { useSession } from "@/hooks/use-session";
 
 const DashboardHeader = lazy(() =>
   import("@/components/barbershops/dashboard-header").then((module) => ({
@@ -95,18 +95,16 @@ export const Route = createFileRoute(
   staleTime: cacheTime.low,
   gcTime: cacheTime.medium,
   loader: async ({ context, deps }) => {
-    const user = await context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
+    const userId = context.userId;
 
-    if (user?.userId) {
+    if (userId) {
       const barbershop = await context.queryClient.ensureQueryData(
-        barbershopByMemberUserIdQueryOptions(user.userId),
+        barbershopByMemberUserIdQueryOptions(userId),
       );
 
       await Promise.all([
-        context.queryClient.ensureQueryData(isBarberQueryOptions(user.userId)),
-        context.queryClient.ensureQueryData(isStaffQueryOptions(user.userId)),
+        context.queryClient.ensureQueryData(isBarberQueryOptions(userId)),
+        context.queryClient.ensureQueryData(isStaffQueryOptions(userId)),
       ]);
 
       if (barbershop?._id) {
@@ -126,7 +124,7 @@ export const Route = createFileRoute(
             barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
           ),
           context.queryClient.ensureQueryData(
-            barberByUserIdQueryOptions(user.userId),
+            barberByUserIdQueryOptions(userId),
           ),
           context.queryClient.ensureQueryData(
             requestRescheduleQueryOptions(barbershop._id),
@@ -173,9 +171,7 @@ function RouteComponent() {
   const { date } = Route.useSearch();
 
   const { data: session } = useSession();
-  const { data: barbershop } = useBarbershopByMemberUserId(
-    session?.userId ?? "",
-  );
+  const { data: barbershop } = useBarbershopByMemberUserId(session?.id ?? "");
   const { data: barbershopMembers } = useBarbershopMembersByBarbershopId(
     barbershop?._id!,
   );
@@ -187,12 +183,10 @@ function RouteComponent() {
     date,
   });
   const { canCreateStaffAppointments } = useBarbershopPlan(barbershop?._id!);
-  const { data: isBarber } = useIsBarber(session?.userId!);
-  const { data: isStaff } = useIsStaff(session?.userId!);
+  const { data: isBarber } = useIsBarber(session?.id!);
+  const { data: isStaff } = useIsStaff(session?.id!);
 
-  const isOwner = session?.userId
-    ? barbershop?.ownerId === session.userId
-    : false;
+  const isOwner = session?.id ? barbershop?.ownerId === session.id : false;
 
   return (
     <BorderContainer className="space-y-4">

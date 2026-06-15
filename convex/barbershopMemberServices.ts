@@ -4,13 +4,9 @@ import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zInternalMutation, zMutation, zQuery } from ".";
-import { authComponent } from "./auth";
-import {
-  assertCanManageTeam,
-  getBarbershopMemberByUserId,
-  getBetterAuthUser,
-} from "./authz";
+import { assertCanManageTeam, getBarbershopMemberByUserId } from "./authz";
 import { errorMessages } from "./errors";
+import { getUserId, requireUserId } from "./identity";
 import { rateLimitOrThrow } from "./ratelimit";
 import { barbershopMembers, barbershops, services } from "./schema";
 
@@ -91,17 +87,14 @@ export const getBarbersForService = zQuery({
 
         if (!member || !member.isActive) return null;
 
-        const [profile, betterAuthUser] = await Promise.all([
-          ctx.db.get(member.userProfileDataId),
-          getBetterAuthUser(ctx, member.userProfileDataId),
-        ]);
+        const profile = await ctx.db.get(member.userProfileDataId);
 
         return {
           ...member,
           name: profile?.name ?? "",
           email: profile?.email ?? "",
           phoneNumber: profile?.phoneNumber ?? "",
-          avatarUrl: betterAuthUser?.image ?? "",
+          avatarUrl: profile?.image ?? "",
         };
       }),
     );
@@ -150,13 +143,9 @@ export const setBarberServices = zMutation({
     services: z.array(services.tools.id),
   }),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await requireUserId(ctx);
 
-    if (!user?.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    await rateLimitOrThrow(ctx, "setBarberServices", user._id);
+    await rateLimitOrThrow(ctx, "setBarberServices", userId);
 
     const member = await ctx.db.get(args.barbershopMember.id);
 
@@ -164,7 +153,7 @@ export const setBarberServices = zMutation({
       throw new ConvexError(errorMessages.notFound("miembro de barbería"));
     }
 
-    await assertCanManageTeam(ctx, member.barbershopId, user.userId);
+    await assertCanManageTeam(ctx, member.barbershopId, userId);
 
     if (!member.roles.includes("barber")) {
       throw new ConvexError("El miembro seleccionado no es un barbero");
@@ -234,20 +223,16 @@ export const addServiceToBarber = zMutation({
     service: services.tools.id,
   }),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await requireUserId(ctx);
 
-    if (!user?.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    await rateLimitOrThrow(ctx, "addServiceToBarber", user._id);
+    await rateLimitOrThrow(ctx, "addServiceToBarber", userId);
 
     const member = await ctx.db.get(args.barbershopMember.id);
     if (!member) {
       throw new ConvexError(errorMessages.notFound("miembro de barbería"));
     }
 
-    await assertCanManageTeam(ctx, member.barbershopId, user.userId);
+    await assertCanManageTeam(ctx, member.barbershopId, userId);
 
     const service = await ctx.db.get(args.service.id);
     if (!service) {
@@ -291,20 +276,16 @@ export const removeServiceFromBarber = zMutation({
     service: services.tools.id,
   }),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await requireUserId(ctx);
 
-    if (!user?.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    await rateLimitOrThrow(ctx, "removeServiceFromBarber", user._id);
+    await rateLimitOrThrow(ctx, "removeServiceFromBarber", userId);
 
     const member = await ctx.db.get(args.barbershopMember.id);
     if (!member) {
       throw new ConvexError(errorMessages.notFound("miembro de barbería"));
     }
 
-    await assertCanManageTeam(ctx, member.barbershopId, user.userId);
+    await assertCanManageTeam(ctx, member.barbershopId, userId);
 
     const service = await ctx.db.get(args.service.id);
     if (!service) {
@@ -384,13 +365,13 @@ export const assignAllServicesToBarber = zInternalMutation({
 export const getMyServices = zQuery({
   args: barbershops.tools.id,
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await getUserId(ctx);
 
-    if (!user?.userId) {
+    if (!userId) {
       return [];
     }
 
-    const member = await getBarbershopMemberByUserId(ctx, args.id, user.userId);
+    const member = await getBarbershopMemberByUserId(ctx, args.id, userId);
 
     if (!member || !member.roles.includes("barber")) {
       return [];

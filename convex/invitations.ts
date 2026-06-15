@@ -1,107 +1,143 @@
-import { InviteLinks } from "convex-invite-links";
+import type { Locale } from "@workos-inc/node";
 import { ConvexError } from "convex/values";
+import { zid } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
-import { zMutation, zQuery } from ".";
-import { components, internal } from "./_generated/api";
+import { zAction, zInternalMutation, zInternalQuery } from ".";
+import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import type { MutationCtx } from "./_generated/server";
+import type { ActionCtx } from "./_generated/server";
 import { assertBarberInviteAllowed, assertStaffInviteAllowed } from "./acl";
-import { authComponent } from "./auth";
+import { authkit } from "./auth.config";
 import { assertCanManageTeam, assertOwner } from "./authz";
 import { getByUserIdFn } from "./barbershopMembers";
 import { errorMessages } from "./errors";
-import { siteUrl } from "./notificationCopy";
+import { requireUserId } from "./identity";
+import { inviteBarberSchema } from "./invitationsSchema";
 import { rateLimitOrThrow } from "./ratelimit";
 import { getProfileByEmail, getProfileByUserId } from "./userProfileData";
-import { formatPhoneNumber } from "./utils";
-
-const INVITATION_EXPIRATION_MS = 1000 * 60 * 60 * 24 * 5;
-
-export const invites = new InviteLinks(components.inviteLinks, {
-  defaultExpiryMs: INVITATION_EXPIRATION_MS,
-  baseUrl: siteUrl(),
-});
 
 /**
- * App-specific data carried on each invite's `metadata`. The invite token is
- * the value used in the `/invitations/$code` link; the barbershop relation and
- * roles live here so acceptance can rebuild the `barbershopMembers` row. Invites
- * are scoped to the barbershop via the component's group feature
- * (`groupId === barbershop._id`).
+ * Team invitations are WorkOS Organization Invitations. The barbershop is
+ * mirrored 1:1 to a WorkOS organization (`barbershops.workosOrganizationId`,
+ * `externalId = barbershopId`), so sending an invite, hosting acceptance and
+ * the invitation's expiry are all owned by WorkOS. Acceptance flips the
+ * invitee's org membership to `active`, which arrives as an
+ * `organization_membership.updated` webhook and is mirrored into
+ * `barbershopMembers` by {@link syncWorkosMembership} (see `convex/auth.ts`).
+ *
+ * `barbershopMembers` remains the source of truth for app authorization; WorkOS
+ * roles mirror it via these slugs:
+ *   barber → `member`, staff → `staff`, owner → `admin` (set on shop creation).
  */
-type InviteMeta = {
-  roles: ("barber" | "staff")[];
-  phone: string;
-  barbershopId: Id<"barbershops">;
-  inviterUserId: string;
+
+const INVITATION_EXPIRATION_DAYS = 5;
+const FALLBACK_INVITE_LOCALE: Locale = "es-419";
+const MEMBERSHIP_SYNC_MAX_ATTEMPTS = 5;
+const MEMBERSHIP_SYNC_RETRY_MS = 2_000;
+
+const APP_ROLE_TO_SLUG = {
+  barber: "member",
+  staff: "staff",
+  owner: "admin",
+} as const;
+
+const SLUG_TO_APP_ROLE: Record<string, "barber" | "staff" | "owner"> = {
+  member: "barber",
+  staff: "staff",
+  admin: "owner",
 };
 
-export const inviteBarberSchema = z.object({
-  phone: z.string(),
-  email: z.string(),
-  roles: z.array(z.enum(["barber", "staff"])).length(1),
-});
-
 /**
- * Revoke an expired invite and issue a fresh one with the same recipient and
- * metadata, then re-send the notification. Used when a recipient opens an
- * expired link or tries to accept one.
+ * Resolve the invitee's preferred locale for the WorkOS-hosted email, falling
+ * back to LATAM Spanish. `User.locale` is already a valid WorkOS locale.
  */
-async function renewExpiredInvite(
-  ctx: MutationCtx,
-  inv: { inviteId: string; email?: string; metadata?: unknown },
-): Promise<void> {
-  const meta = (inv.metadata ?? {}) as InviteMeta;
+async function resolveInviteLocale(email: string): Promise<Locale> {
+  try {
+    const { data } = await authkit.workos.userManagement.listUsers({ email });
+    const locale = data[0]?.locale;
 
-  if (!inv.email || !meta.barbershopId) {
-    return;
+    if (locale) {
+      return locale as Locale;
+    }
+  } catch {
+    // Fall through to the LATAM Spanish default.
   }
 
-  await invites.revokeInvite(ctx, { inviteId: inv.inviteId });
-
-  const expiresAt = Date.now() + INVITATION_EXPIRATION_MS;
-
-  const { token } = await invites.makeInvite(ctx, {
-    email: inv.email,
-    groupId: meta.barbershopId,
-    expiresAt,
-    createdBy: meta.inviterUserId,
-    metadata: meta,
-  });
-
-  await ctx.scheduler.runAfter(0, internal.notifications.createBarberInvited, {
-    barbershopId: meta.barbershopId,
-    email: inv.email,
-    code: token,
-    inviterUserId: meta.inviterUserId,
-    roles: meta.roles,
-    expiresAt,
-    phone: meta.phone,
-  });
+  return FALLBACK_INVITE_LOCALE;
 }
 
-export const invite = zMutation({
+/**
+ * Resolve the barbershop's WorkOS organization id. Org sync on shop creation is
+ * fire-and-forget and may have failed silently — get-or-create by `externalId`
+ * so an invite never dead-ends, persisting the id back to Convex.
+ */
+async function ensureOrganization(
+  ctx: ActionCtx,
+  prepared: {
+    barbershopId: Id<"barbershops">;
+    barbershopName: string;
+    organizationId: string | null;
+    ownerUserId: string;
+  },
+): Promise<string> {
+  if (prepared.organizationId) {
+    return prepared.organizationId;
+  }
+
+  let organizationId: string;
+
+  try {
+    const existing =
+      await authkit.workos.organizations.getOrganizationByExternalId(
+        prepared.barbershopId,
+      );
+    organizationId = existing.id;
+  } catch {
+    const created = await authkit.workos.organizations.createOrganization({
+      name: prepared.barbershopName,
+      externalId: prepared.barbershopId,
+      metadata: { barbershopId: prepared.barbershopId },
+    });
+
+    await authkit.workos.userManagement.createOrganizationMembership({
+      organizationId: created.id,
+      userId: prepared.ownerUserId,
+      roleSlug: APP_ROLE_TO_SLUG.owner,
+    });
+
+    organizationId = created.id;
+  }
+
+  await ctx.runMutation(internal.barbershops.setWorkosOrganizationId, {
+    id: prepared.barbershopId,
+    workosOrganizationId: organizationId,
+  });
+
+  return organizationId;
+}
+
+/**
+ * Server-authoritative invite checks (caller auth, barbershop resolution, role
+ * + plan gating, duplicate-member guard). Runs in a mutation so it can read the
+ * DB; the public {@link invite} action consumes its result before calling WorkOS.
+ */
+export const prepareInvite = zInternalMutation({
   args: inviteBarberSchema,
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await requireUserId(ctx);
 
-    if (!user || !user.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
+    await rateLimitOrThrow(ctx, "inviteBarbershopMember", userId);
 
-    await rateLimitOrThrow(ctx, "inviteBarbershopMember", user._id);
-
-    // Try to find barbershop via ownership first, then via membership (for staff)
+    // Owner first, then membership (staff invite barbers on behalf of the shop).
     let barbershop = await ctx.db
       .query("barbershops")
-      // biome-ignore lint/style/noNonNullAssertion: already checked
-      .withIndex("by_ownerId", (q) => q.eq("ownerId", user.userId!))
+      .withIndex("by_ownerId", (q) => q.eq("ownerId", userId))
       .first();
 
     if (!barbershop) {
-      // Staff member — find barbershop through membership
-      const membership = await getByUserIdFn(ctx, { userId: user.userId });
+      const membership = await getByUserIdFn(ctx, { userId });
+
       if (membership) {
         barbershop = await ctx.db.get(membership.barbershopId);
       }
@@ -111,16 +147,18 @@ export const invite = zMutation({
       throw new ConvexError(errorMessages.notFound("barbería"));
     }
 
-    const isInvitingStaff = args.roles.includes("staff");
-    const isInvitingBarber = args.roles.includes("barber");
+    const role: "barber" | "staff" = args.roles.includes("staff")
+      ? "staff"
+      : "barber";
 
-    if (isInvitingStaff) {
-      // Only owner can invite staff
-      await assertOwner(ctx, barbershop._id, user.userId);
+    // Authorization is authoritative and must fail before plan gating, so an
+    // unauthorized caller can't observe entitlement state (or get a plan error
+    // instead of a permission error) via a concurrent race.
+    if (role === "staff") {
+      await assertOwner(ctx, barbershop._id, userId);
       await assertStaffInviteAllowed(ctx, barbershop._id, barbershop.ownerId);
-    } else if (isInvitingBarber) {
-      // Owner or staff can invite barbers
-      await assertCanManageTeam(ctx, barbershop._id, user.userId);
+    } else {
+      await assertCanManageTeam(ctx, barbershop._id, userId);
       await assertBarberInviteAllowed(ctx, barbershop._id, barbershop.ownerId);
     }
 
@@ -142,263 +180,244 @@ export const invite = zMutation({
       }
     }
 
-    // `listInvites` excludes claimed/revoked/expired by default, so any match
-    // here is an active (pending) invite for this email.
-    const activeInvites = await invites.listInvites(ctx, {
-      groupId: barbershop._id,
+    return {
+      barbershopId: barbershop._id,
+      barbershopName: barbershop.name,
+      organizationId: barbershop.workosOrganizationId ?? null,
+      ownerUserId: barbershop.ownerId,
+      email,
+      roleSlug: APP_ROLE_TO_SLUG[role],
+      inviterUserId: userId,
+    };
+  },
+});
+
+export const invite = zAction({
+  args: inviteBarberSchema,
+  handler: async (ctx, args) => {
+    const prepared = await ctx.runMutation(
+      internal.invitations.prepareInvite,
+      args,
+    );
+
+    const organizationId = await ensureOrganization(ctx, prepared);
+
+    const existing = await authkit.workos.userManagement.listInvitations({
+      organizationId,
+      email: prepared.email,
     });
 
-    if (activeInvites.some((i) => i.email?.toLowerCase() === email)) {
+    if (existing.data.some((inv) => inv.state === "pending")) {
       throw new ConvexError(
         "Ya existe una invitación activa para este correo.",
       );
     }
 
-    const expiresAt = Date.now() + INVITATION_EXPIRATION_MS;
+    const locale = await resolveInviteLocale(prepared.email);
 
-    await invites.upsertGroup(ctx, {
-      groupId: barbershop._id,
-      name: barbershop.name,
+    await authkit.workos.userManagement.sendInvitation({
+      email: prepared.email,
+      organizationId,
+      roleSlug: prepared.roleSlug,
+      inviterUserId: prepared.inviterUserId,
+      expiresInDays: INVITATION_EXPIRATION_DAYS,
+      locale,
     });
+  },
+});
 
-    const { token } = await invites.makeInvite(ctx, {
-      email,
-      groupId: barbershop._id,
-      expiresAt,
-      createdBy: user.userId,
-      metadata: {
-        roles: args.roles,
-        phone: formatPhoneNumber(args.phone),
-        barbershopId: barbershop._id,
-        inviterUserId: user.userId,
-      } satisfies InviteMeta,
-    });
+/**
+ * Assert the caller can manage the barbershop's team and resolve its WorkOS
+ * organization id. Shared by the list/revoke/resend actions.
+ */
+export const getManageableOrganization = zInternalQuery({
+  args: z.object({ barbershopId: zid("barbershops") }),
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx);
 
-    await ctx.scheduler.runAfter(
-      0,
-      internal.notifications.createBarberInvited,
-      {
-        barbershopId: barbershop._id,
-        email,
-        code: token,
-        inviterUserId: user.userId,
-        roles: args.roles,
-        expiresAt,
-        phone: args.phone,
-      },
+    const barbershop = await ctx.db.get(args.barbershopId);
+
+    if (!barbershop) {
+      throw new ConvexError(errorMessages.notFound("barbería"));
+    }
+
+    await assertCanManageTeam(ctx, args.barbershopId, userId);
+
+    return { organizationId: barbershop.workosOrganizationId ?? null };
+  },
+});
+
+export const listInvitations = zAction({
+  args: z.object({ barbershopId: zid("barbershops") }),
+  handler: async (ctx, args) => {
+    const { organizationId } = await ctx.runQuery(
+      internal.invitations.getManageableOrganization,
+      { barbershopId: args.barbershopId },
     );
 
-    return token;
-  },
-});
-
-export const getByCode = zQuery({
-  args: z.object({ code: z.string() }),
-  handler: async (ctx, args) => {
-    const inv = await invites.getInviteByToken(ctx, { token: args.code });
-
-    if (!inv) {
-      return null;
+    if (!organizationId) {
+      return [];
     }
 
-    const meta = (inv.metadata ?? {}) as InviteMeta;
-    const now = Date.now();
+    const result = await authkit.workos.userManagement.listInvitations({
+      organizationId,
+    });
 
-    let status: "pending" | "accepted" | "denied" | "expired" = "pending";
-    if (inv.claimedAt) {
-      status = "accepted";
-    } else if (inv.revokedAt) {
-      status = "denied";
-    }
-
-    const isExpired =
-      !inv.claimedAt &&
-      !inv.revokedAt &&
-      !!inv.expiresAt &&
-      now > inv.expiresAt;
-
-    const barbershop = meta.barbershopId
-      ? await ctx.db.get(meta.barbershopId)
-      : null;
-
-    return {
+    return result.data.map((inv) => ({
+      id: inv.id,
       email: inv.email,
-      roles: meta.roles ?? [],
-      status,
-      isExpired,
-      barbershopName: barbershop?.name,
-    };
+      role: inv.roleSlug
+        ? (SLUG_TO_APP_ROLE[inv.roleSlug] ?? "barber")
+        : "barber",
+      state: inv.state,
+      expiresAt: inv.expiresAt,
+    }));
   },
 });
 
-export const validate = zMutation({
-  args: z.object({ code: z.string() }),
-  handler: async (ctx, args) => {
-    const inv = await invites.getInviteByToken(ctx, { token: args.code });
-
-    if (!inv) {
-      throw new ConvexError(errorMessages.notFound("invitación"));
-    }
-
-    if (inv.claimedAt) {
-      return { status: "accepted" as const };
-    }
-
-    if (inv.revokedAt) {
-      return { status: "denied" as const };
-    }
-
-    const isExpired = !!inv.expiresAt && inv.expiresAt <= Date.now();
-
-    if (!isExpired) {
-      return { status: "pending" as const };
-    }
-
-    await renewExpiredInvite(ctx, inv);
-
-    return { status: "pending" as const };
-  },
-});
-
-export const answer = zMutation({
+export const revokeInvitation = zAction({
   args: z.object({
-    code: z.string(),
-    answer: z.enum(["accept", "deny"]),
+    barbershopId: zid("barbershops"),
+    invitationId: z.string(),
   }),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const { organizationId } = await ctx.runQuery(
+      internal.invitations.getManageableOrganization,
+      { barbershopId: args.barbershopId },
+    );
 
-    if (!user || !user.userId) {
+    const invitation = await authkit.workos.userManagement.getInvitation(
+      args.invitationId,
+    );
+
+    if (!organizationId || invitation.organizationId !== organizationId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    await rateLimitOrThrow(ctx, "answerInvitation", `${user._id}-${args.code}`);
+    await authkit.workos.userManagement.revokeInvitation(args.invitationId);
+  },
+});
 
-    const inv = await invites.getInviteByToken(ctx, { token: args.code });
+export const resendInvitation = zAction({
+  args: z.object({
+    barbershopId: zid("barbershops"),
+    invitationId: z.string(),
+  }),
+  handler: async (ctx, args) => {
+    const { organizationId } = await ctx.runQuery(
+      internal.invitations.getManageableOrganization,
+      { barbershopId: args.barbershopId },
+    );
 
-    if (!inv) {
-      throw new ConvexError(errorMessages.notFound("invitación"));
+    const invitation = await authkit.workos.userManagement.getInvitation(
+      args.invitationId,
+    );
+
+    if (!organizationId || invitation.organizationId !== organizationId) {
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
-    if (inv.claimedAt || inv.revokedAt) {
-      throw new ConvexError("La invitación ya fue gestionada.");
-    }
+    const locale = await resolveInviteLocale(invitation.email);
 
-    switch (args.answer) {
-      case "accept": {
-        if (inv.expiresAt && inv.expiresAt <= Date.now()) {
-          await renewExpiredInvite(ctx, inv);
+    await authkit.workos.userManagement.resendInvitation(args.invitationId, {
+      locale,
+    });
+  },
+});
 
-          throw new ConvexError(
-            "La invitación ha expirado. Se ha reenviado un nuevo enlace.",
-          );
-        }
+/**
+ * Mirror an active WorkOS organization membership into `barbershopMembers`.
+ * Scheduled from the `organization_membership.*` webhook. Idempotent: merges
+ * roles into an existing row, enforces barber↔staff exclusivity, and
+ * auto-assigns services to new barbers. The membership webhook can outrun the
+ * `user.created` webhook (no profile yet) or the org-id write, so it retries a
+ * bounded number of times before giving up.
+ */
+export const syncWorkosMembership = zInternalMutation({
+  args: z.object({
+    organizationId: z.string(),
+    userId: z.string(),
+    roleSlug: z.string(),
+    attempt: z.number(),
+  }),
+  handler: async (ctx, args) => {
+    const barbershop = await ctx.db
+      .query("barbershops")
+      .withIndex("by_workosOrganizationId", (q) =>
+        q.eq("workosOrganizationId", args.organizationId),
+      )
+      .unique();
 
-        const profile = await getProfileByUserId(ctx, user.userId ?? "");
+    const profile = await getProfileByUserId(ctx, args.userId);
 
-        if (!profile) {
-          throw new ConvexError(errorMessages.notFound("perfil de usuario"));
-        }
-
-        // Claim marks the invite as used and adds the user to the barbershop
-        // group. If we throw afterwards (e.g. a role conflict), the whole
-        // mutation transaction — including this claim — rolls back.
-        const result = await invites.claimInvite(ctx, {
-          token: args.code,
-          userId: user.userId,
-          email: profile.email,
-        });
-
-        if (!result.ok) {
-          switch (result.reason) {
-            case "email_mismatch":
-              throw new ConvexError(
-                "Esta invitación no corresponde a tu cuenta.",
-              );
-            case "already_claimed":
-            case "revoked":
-              throw new ConvexError("La invitación ya fue gestionada.");
-            case "expired":
-              await renewExpiredInvite(ctx, inv);
-              throw new ConvexError(
-                "La invitación ha expirado. Se ha reenviado un nuevo enlace.",
-              );
-            default:
-              throw new ConvexError(errorMessages.notFound("invitación"));
-          }
-        }
-
-        const meta = (result.metadata ?? inv.metadata ?? {}) as InviteMeta;
-        const barbershopId =
-          (result.groupId as Id<"barbershops"> | undefined) ??
-          meta.barbershopId;
-
-        const existingMember = await ctx.db
-          .query("barbershopMembers")
-          .withIndex("by_barbershopId", (q) =>
-            q.eq("barbershopId", barbershopId),
-          )
-          .filter((q) => q.eq(q.field("userProfileDataId"), profile._id))
-          .first();
-
-        if (existingMember) {
-          // Validate role exclusivity: barber can't become staff and vice versa
-          const isInvitingStaff = meta.roles.includes("staff");
-          const isInvitingBarber = meta.roles.includes("barber");
-
-          if (isInvitingStaff && existingMember.roles.includes("barber")) {
-            throw new ConvexError(
-              "No puedes ser recepcionista si ya eres barbero en esta barbería.",
-            );
-          }
-
-          if (isInvitingBarber && existingMember.roles.includes("staff")) {
-            throw new ConvexError(
-              "No puedes ser barbero si ya eres recepcionista en esta barbería.",
-            );
-          }
-
-          // Merge invitation roles into the existing member's roles
-          const wasAlreadyBarber = existingMember.roles.includes("barber");
-          const mergedRoles = [
-            ...new Set([...existingMember.roles, ...meta.roles]),
-          ];
-          await ctx.db.patch(existingMember._id, { roles: mergedRoles });
-
-          // If the barber role was newly added, auto-assign all services
-          if (!wasAlreadyBarber && mergedRoles.includes("barber")) {
-            await ctx.runMutation(
-              internal.barbershopMemberServices.assignAllServicesToBarber,
-              { id: existingMember._id },
-            );
-          }
-
-          return existingMember._id;
-        }
-
-        const memberId = await ctx.db.insert("barbershopMembers", {
-          barbershopId,
-          userProfileDataId: profile._id,
-          roles: meta.roles,
-          isActive: true,
-          joinedAt: Date.now(),
-        });
-
-        // Only assign all services for barbers, not for staff
-        if (meta.roles.includes("barber")) {
-          await ctx.runMutation(
-            internal.barbershopMemberServices.assignAllServicesToBarber,
-            { id: memberId },
-          );
-        }
-
-        break;
+    if (!barbershop || !profile) {
+      if (args.attempt < MEMBERSHIP_SYNC_MAX_ATTEMPTS) {
+        await ctx.scheduler.runAfter(
+          MEMBERSHIP_SYNC_RETRY_MS,
+          internal.invitations.syncWorkosMembership,
+          { ...args, attempt: args.attempt + 1 },
+        );
       }
-      case "deny":
-        await invites.revokeInviteByToken(ctx, { token: args.code });
-        break;
-      default:
-        throw new ConvexError("Respuesta inválida.");
+
+      return;
+    }
+
+    // The owner's local row is authored synchronously by `barbershops.create`.
+    if (args.userId === barbershop.ownerId) {
+      return;
+    }
+
+    const appRole = SLUG_TO_APP_ROLE[args.roleSlug];
+
+    // Only barber/staff are provisioned through invitations.
+    if (appRole !== "barber" && appRole !== "staff") {
+      return;
+    }
+
+    const existingMember = await ctx.db
+      .query("barbershopMembers")
+      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", barbershop._id))
+      .filter((q) => q.eq(q.field("userProfileDataId"), profile._id))
+      .first();
+
+    if (existingMember) {
+      // Barber and staff are mutually exclusive within a barbershop.
+      if (appRole === "staff" && existingMember.roles.includes("barber")) {
+        return;
+      }
+
+      if (appRole === "barber" && existingMember.roles.includes("staff")) {
+        return;
+      }
+
+      const wasAlreadyBarber = existingMember.roles.includes("barber");
+      const roles = [...new Set([...existingMember.roles, appRole])];
+
+      await ctx.db.patch(existingMember._id, { roles, isActive: true });
+
+      if (!wasAlreadyBarber && appRole === "barber") {
+        await ctx.runMutation(
+          internal.barbershopMemberServices.assignAllServicesToBarber,
+          { id: existingMember._id },
+        );
+      }
+
+      return;
+    }
+
+    const memberId = await ctx.db.insert("barbershopMembers", {
+      barbershopId: barbershop._id,
+      userProfileDataId: profile._id,
+      roles: [appRole],
+      isActive: true,
+      joinedAt: Date.now(),
+    });
+
+    if (appRole === "barber") {
+      await ctx.runMutation(
+        internal.barbershopMemberServices.assignAllServicesToBarber,
+        { id: memberId },
+      );
     }
   },
 });

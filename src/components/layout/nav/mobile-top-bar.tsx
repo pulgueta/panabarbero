@@ -5,12 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { APP_NAME } from "@/config";
 import { useNavRoutes } from "@/hooks/use-nav-routes";
+import { ThemeToggler } from "../theme-toggler";
 
-const ThemeToggler = lazy(() =>
-  import("@/components/layout/theme-toggler").then((mod) => ({
-    default: mod.ThemeToggler,
-  })),
-);
 const UserAvatar = lazy(() =>
   import("@/components/layout/user-avatar").then((mod) => ({
     default: mod.UserAvatar,
@@ -47,7 +43,9 @@ export function MobileTopBar() {
       </Link>
 
       <div className="flex items-center gap-1.5">
-        {user?.userId ? (
+        <ThemeToggler />
+
+        {user?.id ? (
           <>
             <Suspense fallback={<Skeleton className="size-9" />}>
               <NotificationsBell />
@@ -55,7 +53,7 @@ export function MobileTopBar() {
             <Suspense fallback={<Skeleton className="size-8" />}>
               <UserAvatar
                 user={{
-                  userId: user.userId,
+                  id: user.id,
                   email: user.email,
                   name: user.name,
                   image: user.image,
@@ -68,9 +66,6 @@ export function MobileTopBar() {
             Iniciar sesión
           </Button>
         )}
-        <Suspense fallback={<Skeleton className="size-9" />}>
-          <ThemeToggler />
-        </Suspense>
       </div>
     </header>
   );

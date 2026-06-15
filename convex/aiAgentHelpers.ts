@@ -1,13 +1,23 @@
+import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zInternalQuery } from ".";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { getByUserIdFn } from "./barbershopMembers";
+import { getBarbershopMemberByUserId, memberHasAnyRole } from "./authz";
+import { getByUserIdFn, getEffectiveSchedule } from "./barbershopMembers";
+import { errorMessages } from "./errors";
+import { unreads } from "./notifications";
 import { getLimitsForProductKey } from "./plans";
 import { polar } from "./polar";
 import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
+
+const ACTIVE_APPOINTMENT_STATUSES: Doc<"appointments">["status"][] = [
+  "pending",
+  "confirmed",
+  "rescheduled",
+];
 
 export const getAppointmentsByUserId = zInternalQuery({
   args: z.object({
@@ -49,8 +59,9 @@ export const getReviewsForBarbershop = zInternalQuery({
 /**
  * In-app notifications for a given user, used by the `getMyNotifications`
  * agent tool. Takes an explicit `userId` (the agent's resolved caller id)
- * instead of relying on `safeGetAuthUser`, since the agent runs inside a
- * scheduled action that does not carry the caller's auth context.
+ * instead of reading `ctx.auth`, since the agent runs inside a scheduled
+ * action that does not carry the caller's auth context. Returns the read
+ * watermark so the tool can derive per-row `isRead`.
  */
 export const getNotificationsByUserId = zInternalQuery({
   args: z.object({
@@ -59,21 +70,26 @@ export const getNotificationsByUserId = zInternalQuery({
     onlyUnread: z.boolean(),
   }),
   handler: async (ctx, args) => {
-    if (args.onlyUnread) {
-      return await ctx.db
-        .query("inAppNotifications")
-        .withIndex("by_user_unread", (q) =>
-          q.eq("userId", args.userId).eq("readAt", undefined),
-        )
-        .order("desc")
-        .take(args.numItems);
-    }
+    const lastRead = await unreads.getLastRead(ctx, {
+      userId: args.userId,
+      channelId: args.userId,
+    });
 
-    return await ctx.db
-      .query("inAppNotifications")
-      .withIndex("by_user_created", (q) => q.eq("userId", args.userId))
-      .order("desc")
-      .take(args.numItems);
+    const notifications = args.onlyUnread
+      ? await ctx.db
+          .query("inAppNotifications")
+          .withIndex("by_user_created", (q) =>
+            q.eq("userId", args.userId).gt("_creationTime", lastRead ?? 0),
+          )
+          .order("desc")
+          .take(args.numItems)
+      : await ctx.db
+          .query("inAppNotifications")
+          .withIndex("by_user_created", (q) => q.eq("userId", args.userId))
+          .order("desc")
+          .take(args.numItems);
+
+    return { notifications, lastRead };
   },
 });
 
@@ -239,5 +255,243 @@ export const getPanaEntitlement = zInternalQuery({
     );
 
     return { isShopMember, canManage };
+  },
+});
+
+/**
+ * Lightweight management context for the AI agent's *propose* tools (which run
+ * in a no-auth scheduled action and only carry the resolved callerId). Returns
+ * the caller's membership, roles and the plan flags that gate management
+ * actions, so a propose tool can soft-reject before drawing a confirmation card.
+ * The authoritative gate is always the mutation called at confirm time.
+ */
+export const getAgentActorContext = zInternalQuery({
+  args: z.object({ userId: z.string() }),
+  handler: async (ctx, args) => {
+    const member = await getByUserIdFn(ctx, { userId: args.userId });
+
+    if (!member) return { isMember: false as const };
+
+    const barbershop = await ctx.db.get(member.barbershopId);
+    const subscription = barbershop
+      ? await polar.getCurrentSubscription(ctx, { userId: barbershop.ownerId })
+      : null;
+    const limits = getLimitsForProductKey(subscription?.productKey);
+
+    return {
+      isMember: true as const,
+      memberId: member._id as string,
+      barbershopId: member.barbershopId as string,
+      barbershopName: barbershop?.name ?? "",
+      roles: member.roles,
+      isOwner: member.roles.includes("owner"),
+      canManageTeam:
+        member.roles.includes("owner") || member.roles.includes("staff"),
+      panaManagement: limits.panaManagement,
+      staffAppointmentsAllowed: limits.staffCanCreateAppointments,
+    };
+  },
+});
+
+/**
+ * One-shot barbershop context for the `getMyBarbershop` tool. Returns the
+ * caller's own shop — id, services (+ids), active barbers (+memberIds), weekly
+ * hours, the caller's memberId and roles — so a team member never re-discovers
+ * a shop they already belong to with searchBarbershops → getBarbershopDetails →
+ * listBarbersForService.
+ */
+export const getMyBarbershopData = zInternalQuery({
+  args: z.object({ userId: z.string() }),
+  handler: async (ctx, args) => {
+    const member = await getByUserIdFn(ctx, { userId: args.userId });
+
+    if (!member) return { isMember: false as const };
+
+    const barbershop = await ctx.db.get(member.barbershopId);
+
+    if (!barbershop) return { isMember: false as const };
+
+    const [services, members, subscription] = await Promise.all([
+      ctx.db
+        .query("services")
+        .withIndex("by_barbershopId", (q) =>
+          q.eq("barbershopId", barbershop._id),
+        )
+        .collect(),
+      ctx.db
+        .query("barbershopMembers")
+        .withIndex("by_barbershopId", (q) =>
+          q.eq("barbershopId", barbershop._id),
+        )
+        .filter((q) => q.eq(q.field("isActive"), true))
+        .collect(),
+      polar.getCurrentSubscription(ctx, { userId: barbershop.ownerId }),
+    ]);
+
+    const limits = getLimitsForProductKey(subscription?.productKey);
+
+    const barbers = await Promise.all(
+      members
+        .filter((m) => m.roles.includes("barber"))
+        .map(async (m) => {
+          const profile = await ctx.db.get(m.userProfileDataId);
+          return {
+            barbershopMemberId: m._id as string,
+            name: profile?.name ?? "",
+            isOwner: m.roles.includes("owner"),
+          };
+        }),
+    );
+
+    return {
+      isMember: true as const,
+      barbershopId: barbershop._id as string,
+      name: barbershop.name,
+      city: barbershop.city,
+      myMemberId: member._id as string,
+      roles: member.roles,
+      canManage: limits.panaManagement,
+      staffAppointmentsAllowed: limits.staffCanCreateAppointments,
+      availability: barbershop.availability.map((a) => ({
+        day: a.weekDay.day,
+        isOpen: a.weekDay.isActive,
+        openAt: a.openAt,
+        closeAt: a.closeAt,
+      })),
+      services: services.map((s) => ({
+        serviceId: s._id as string,
+        name: s.name,
+        price: s.price,
+        durationMinutes: s.duration,
+      })),
+      barbers,
+    };
+  },
+});
+
+/**
+ * Effective weekly schedule for a barber, for the `getBarberSchedule` tool and
+ * the schedule-edit flow. Returns the barber's own override if any, otherwise
+ * the shop's hours, plus whether it's a custom override.
+ */
+export const getBarberScheduleData = zInternalQuery({
+  args: z.object({ barbershopMemberId: z.string() }),
+  handler: async (ctx, args) => {
+    const memberId = args.barbershopMemberId as Id<"barbershopMembers">;
+    const member = await ctx.db.get(memberId);
+
+    if (!member) return { found: false as const };
+
+    const schedule = await getEffectiveSchedule(ctx, memberId);
+    const profile = await ctx.db.get(member.userProfileDataId);
+
+    return {
+      found: true as const,
+      barberName: profile?.name ?? "",
+      isCustom: !!(member.availability && member.availability.length > 0),
+      schedule,
+    };
+  },
+});
+
+/**
+ * Confirm-time authorization gate for appointment write actions. The args of
+ * `confirmPendingAction` are client-controlled, so the propose-time check is
+ * only UX — this re-verifies, with the server-resolved callerId, that the
+ * caller may act on the appointment as the customer ("customer"), as a shop
+ * member ("shop"), or either ("any"). Throws `ConvexError` otherwise.
+ */
+export const assertAppointmentActor = zInternalQuery({
+  args: z.object({
+    userId: z.string(),
+    appointmentId: z.string(),
+    requiredActor: z.enum(["customer", "shop", "any"]),
+  }),
+  handler: async (ctx, args) => {
+    const appt = await ctx.db.get(args.appointmentId as Id<"appointments">);
+
+    if (!appt || appt.deletedAt) {
+      throw new ConvexError(errorMessages.notFound("cita"));
+    }
+
+    const isCustomer = appt.userId === args.userId;
+
+    let isShop = false;
+    const member = await getBarbershopMemberByUserId(
+      ctx,
+      appt.barbershopId,
+      args.userId,
+    );
+    isShop =
+      !!member &&
+      member.isActive &&
+      memberHasAnyRole(member, ["owner", "barber", "staff"]);
+
+    const allowed =
+      args.requiredActor === "customer"
+        ? isCustomer
+        : args.requiredActor === "shop"
+          ? isShop
+          : isCustomer || isShop;
+
+    if (!allowed) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    return { ok: true as const };
+  },
+});
+
+/**
+ * Count of future, still-active appointments that a destructive management
+ * action would cancel. Lets a propose tool warn the user ("esto cancela N
+ * citas") inside the confirmation card before they approve.
+ */
+export const countImpactedByService = zInternalQuery({
+  args: z.object({ serviceId: z.string() }),
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const impacted = await ctx.db
+      .query("appointments")
+      .withIndex("by_serviceId", (q) =>
+        q.eq("serviceId", args.serviceId as Id<"services">),
+      )
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("deletedAt"), undefined),
+          q.gte(q.field("date"), now),
+        ),
+      )
+      .collect();
+
+    return impacted.filter((a) =>
+      ACTIVE_APPOINTMENT_STATUSES.includes(a.status),
+    ).length;
+  },
+});
+
+export const countImpactedByMember = zInternalQuery({
+  args: z.object({ barbershopMemberId: z.string() }),
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const impacted = await ctx.db
+      .query("appointments")
+      .withIndex("by_barbershopMemberId", (q) =>
+        q.eq(
+          "barbershopMemberId",
+          args.barbershopMemberId as Id<"barbershopMembers">,
+        ),
+      )
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("deletedAt"), undefined),
+          q.gte(q.field("date"), now),
+        ),
+      )
+      .collect();
+
+    return impacted.filter((a) =>
+      ACTIVE_APPOINTMENT_STATUSES.includes(a.status),
+    ).length;
   },
 });

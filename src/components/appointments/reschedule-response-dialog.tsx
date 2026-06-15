@@ -57,7 +57,7 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
   } = useAppointmentActions();
 
   const requesterUserId = appointment.rescheduleRequestedByUserId;
-  const isRequester = requesterUserId && requesterUserId === session?.userId;
+  const isRequester = requesterUserId && requesterUserId === session?.id;
   const hasPendingProposal = Boolean(appointment.proposedDate);
   const canRespond = hasPendingProposal && !isRequester;
 

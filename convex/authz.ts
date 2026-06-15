@@ -1,5 +1,4 @@
 import { ConvexError } from "convex/values";
-import { components } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { errorMessages } from "./errors";
@@ -336,49 +335,4 @@ export async function isOwnerOfShop(
   userId: string,
 ): Promise<boolean> {
   return hasShopRole(ctx, barbershopId, userId, "owner");
-}
-
-export async function getBetterAuthUser(
-  ctx: QueryCtx | MutationCtx,
-  userProfileDataId: Id<"userProfileData">,
-): Promise<{
-  // @ts-expect-error - user is a BetterAuth user
-  _id: Id<"user">;
-  _creationTime: number;
-  image?: string | null | undefined | undefined;
-  userId?: string | null | undefined | undefined;
-  twoFactorEnabled?: boolean | null | undefined | undefined;
-  isAnonymous?: boolean | null | undefined | undefined;
-  username?: string | null | undefined | undefined;
-  displayUsername?: string | null | undefined | undefined;
-  phoneNumber?: string | null | undefined | undefined;
-  phoneNumberVerified?: boolean | null | undefined | undefined;
-  createdAt: number;
-  updatedAt: number;
-  email: string;
-  emailVerified: boolean;
-  name: string;
-} | null> {
-  const userProfile = await ctx.db.get(userProfileDataId);
-
-  if (!userProfile) {
-    return null;
-  }
-
-  const user = await ctx.runQuery(components.betterAuth.adapter.findOne, {
-    model: "user",
-    where: [
-      {
-        field: "_id",
-        operator: "eq",
-        value: userProfile.userId,
-      },
-    ],
-  });
-
-  if (!user?.userId) {
-    return null;
-  }
-
-  return user;
 }

@@ -99,6 +99,55 @@ export function toColombiaDateKey(ts: number): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 }
 
+const DATE_KEY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_HHMM_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/**
+ * Converts a Colombia-local calendar date ("YYYY-MM-DD") to the epoch ms at
+ * 00:00 Colombia time (UTC-5). Mirrors the web booking UI's `startOfDay(date)`
+ * for Colombian users, so the AI agent and the UI resolve the same day for an
+ * availability lookup. The model only ever produces a date string — never an
+ * epoch timestamp it would have to compute by hand.
+ */
+export function colombiaDateKeyToMs(dateKey: string): number {
+  if (!DATE_KEY_REGEX.test(dateKey)) {
+    throw new Error(`Fecha inválida: "${dateKey}". Usa el formato YYYY-MM-DD.`);
+  }
+
+  const [y, m, d] = dateKey.split("-").map(Number);
+
+  // Colombia is UTC-5, so local midnight is 05:00 UTC.
+  // `-COLOMBIA_UTC_OFFSET_HOURS` is `+5`.
+  return Date.UTC(y, m - 1, d, -COLOMBIA_UTC_OFFSET_HOURS, 0, 0, 0);
+}
+
+/**
+ * Converts a Colombia-local date ("YYYY-MM-DD") + 24h time ("HH:MM") to epoch
+ * ms. Mirrors the web booking UI's chosen-slot `combined.getTime()` for
+ * Colombian users, so an agent-prepared booking lands on the exact same instant
+ * a slot picker would. `Date.UTC` absorbs the +5h offset overflow into the next
+ * UTC day correctly (e.g. 20:00 Colombia → 01:00 UTC next day).
+ */
+export function colombiaDateTimeToMs(
+  dateKey: string,
+  timeHHMM: string,
+): number {
+  if (!DATE_KEY_REGEX.test(dateKey)) {
+    throw new Error(`Fecha inválida: "${dateKey}". Usa el formato YYYY-MM-DD.`);
+  }
+
+  if (!TIME_HHMM_REGEX.test(timeHHMM)) {
+    throw new Error(
+      `Hora inválida: "${timeHHMM}". Usa el formato HH:MM (24h).`,
+    );
+  }
+
+  const [y, m, d] = dateKey.split("-").map(Number);
+  const [hh, mm] = timeHHMM.split(":").map(Number);
+
+  return Date.UTC(y, m - 1, d, hh - COLOMBIA_UTC_OFFSET_HOURS, mm, 0, 0);
+}
+
 /** Checks whether an appointment time range fits within open hours. */
 export function withinOpenHours(
   openAt: string | undefined,

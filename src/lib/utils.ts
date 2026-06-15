@@ -1,7 +1,6 @@
 import type { Barbershop, BarbershopMetadata, Review } from "@convex/schema";
 import type { ClassValue } from "clsx";
 import { clsx } from "clsx";
-import { ConvexError } from "convex/values";
 import type {
   DetailedHTMLProps,
   MetaHTMLAttributes,
@@ -9,7 +8,7 @@ import type {
 } from "react";
 import { twMerge } from "tailwind-merge";
 
-import { env } from "@/env";
+import { clientEnv } from "@/env/client";
 import { getLogoUrl } from "@/hooks/use-upload";
 
 export function cn(...inputs: ClassValue[]) {
@@ -39,7 +38,7 @@ export function getCanonicalUrl(path: string): string {
  * Generate OG image URL
  */
 function getOgImageUrl(customImage?: string | null): string {
-  return customImage ?? `${env.VITE_STORAGE_URL}/panabarbero-og.png`;
+  return customImage ?? `${clientEnv.VITE_STORAGE_URL}/panabarbero-og.png`;
 }
 
 /**
@@ -231,7 +230,7 @@ export function websiteStructuredData(): ScriptHTMLAttributes<HTMLScriptElement>
         url: baseUrl,
         logo: {
           "@type": "ImageObject",
-          url: `${env.VITE_STORAGE_URL}/panabarbero-logo.png`,
+          url: `${clientEnv.VITE_STORAGE_URL}/panabarbero-logo.png`,
         },
         sameAs: ["https://dub.sh/z11b1Xb", "https://dub.sh/f48mIt9"],
         contactPoint: {
@@ -340,15 +339,6 @@ const usdFormatter = new Intl.NumberFormat("es-CO", {
 export function formatCurrency(amount: number, currency = "COP"): string {
   if (currency === "USD") return usdFormatter.format(amount);
   return currencyFormatter.format(amount);
-}
-
-export function isAuthError(error: unknown) {
-  const message =
-    (error instanceof ConvexError && error.data) ||
-    (error instanceof Error && error.message) ||
-    "";
-
-  return /auth/i.test(message);
 }
 
 const longDateFormatter = new Intl.DateTimeFormat("es-CO", {

@@ -1,3 +1,4 @@
+import type { Barbershop } from "@convex/schema";
 import type { FC, ReactElement } from "react";
 
 import {
@@ -13,11 +14,13 @@ import { InviteBarberForm } from "./invite-barber-form";
 
 interface InviteBarberDialogProps {
   trigger: ReactElement;
+  barbershopId: Barbershop["_id"];
   canInviteStaff?: boolean;
 }
 
 export const InviteBarberDialog: FC<InviteBarberDialogProps> = ({
   trigger,
+  barbershopId,
   canInviteStaff = false,
 }) => {
   return (
@@ -32,7 +35,10 @@ export const InviteBarberDialog: FC<InviteBarberDialogProps> = ({
         </ResponsiveModalHeader>
 
         <ResponsiveModalFooter>
-          <InviteBarberForm canInviteStaff={canInviteStaff} />
+          <InviteBarberForm
+            barbershopId={barbershopId}
+            canInviteStaff={canInviteStaff}
+          />
         </ResponsiveModalFooter>
       </ResponsiveModalContent>
     </ResponsiveModal>

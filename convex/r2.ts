@@ -1,12 +1,10 @@
 import { R2 } from "@convex-dev/r2";
-import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zAction, zMutation } from ".";
 import { components } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
-import { authComponent } from "./auth";
-import { errorMessages } from "./errors";
+import { requireUserId } from "./identity";
 import { rateLimitOrThrow } from "./ratelimit";
 
 export const r2 = new R2(components.r2);
@@ -20,11 +18,7 @@ export const {
   onSyncMetadata,
 } = r2.clientApi<DataModel>({
   checkUpload: async (ctx) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
-
-    if (!user) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
+    await requireUserId(ctx);
   },
 });
 
@@ -59,11 +53,7 @@ export const upload = zAction({
     key: z.string(),
   }),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
-
-    if (!user) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
+    await requireUserId(ctx);
 
     return await r2.store(ctx, args.file, {
       key: args.key,

@@ -15,6 +15,7 @@ import {
   useIsStaff,
 } from "@/hooks/use-barbershop-members";
 import {
+  useLastRead,
   useNotificationActions,
   useNotificationsPage,
   useUnreadNotificationsCount,
@@ -45,7 +46,7 @@ const NotificationsAllPageBody: FC<PageBodyProps> = ({
     cursor,
     numItems: PAGE_SIZE,
   });
-  const { markReadMutation } = useNotificationActions();
+  const { data: lastRead } = useLastRead();
 
   const visible = useMemo<InAppNotification[]>(
     () => (page && "page" in page ? (page.page as InAppNotification[]) : []),
@@ -103,7 +104,7 @@ const NotificationsAllPageBody: FC<PageBodyProps> = ({
                       notification={notification}
                       usesBarberCalendar={usesBarberCalendar}
                       density="comfortable"
-                      onMarkRead={(id) => markReadMutation.mutate({ id })}
+                      isUnread={notification._creationTime > (lastRead ?? 0)}
                     />
                   </li>
                 ))}
@@ -156,7 +157,7 @@ const NotificationsUnreadPageBody: FC<PageBodyProps> = ({
     cursor,
     numItems: PAGE_SIZE,
   });
-  const { markReadMutation } = useNotificationActions();
+  const { data: lastRead } = useLastRead();
 
   const visible = useMemo<InAppNotification[]>(
     () => (page && "page" in page ? (page.page as InAppNotification[]) : []),
@@ -214,7 +215,7 @@ const NotificationsUnreadPageBody: FC<PageBodyProps> = ({
                       notification={notification}
                       usesBarberCalendar={usesBarberCalendar}
                       density="comfortable"
-                      onMarkRead={(id) => markReadMutation.mutate({ id })}
+                      isUnread={notification._creationTime > (lastRead ?? 0)}
                     />
                   </li>
                 ))}
@@ -262,9 +263,9 @@ export const NotificationsTab = () => {
   const [cursorStack, setCursorStack] = useState<Array<string | null>>([]);
 
   const { data: user } = useSession();
-  const { data: isBarber } = useIsBarber(user?.userId ?? "");
-  const { data: isStaff } = useIsStaff(user?.userId ?? "");
-  const { data: isOwner } = useIsOwner(user?.userId ?? "");
+  const { data: isBarber } = useIsBarber(user?.id ?? "");
+  const { data: isStaff } = useIsStaff(user?.id ?? "");
+  const { data: isOwner } = useIsOwner(user?.id ?? "");
   const usesBarberCalendar = Boolean(isBarber || isStaff || isOwner);
 
   const { data: unread } = useUnreadNotificationsCount();
@@ -308,7 +309,7 @@ export const NotificationsTab = () => {
                 Sin leer
                 {unread ? (
                   <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 font-medium text-[11px] text-primary-foreground tabular-nums">
-                    {unread === 99 || unread === "99+" ? "99+" : unread}
+                    {unread > 99 ? "99+" : unread}
                   </span>
                 ) : null}
               </TabsTrigger>

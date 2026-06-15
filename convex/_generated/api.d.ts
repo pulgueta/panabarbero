@@ -14,6 +14,8 @@ import type * as aiAgent from "../aiAgent.js";
 import type * as aiAgentHelpers from "../aiAgentHelpers.js";
 import type * as aiAgentTools from "../aiAgentTools.js";
 import type * as aiChat from "../aiChat.js";
+import type * as aiStream from "../aiStream.js";
+import type * as analytics from "../analytics.js";
 import type * as appointments from "../appointments.js";
 import type * as auth from "../auth.js";
 import type * as authz from "../authz.js";
@@ -28,20 +30,25 @@ import type * as emails from "../emails.js";
 import type * as errors from "../errors.js";
 import type * as geospatial from "../geospatial.js";
 import type * as http from "../http.js";
+import type * as identity from "../identity.js";
 import type * as index from "../index.js";
 import type * as invitations from "../invitations.js";
+import type * as invitationsSchema from "../invitationsSchema.js";
 import type * as migrations from "../migrations.js";
 import type * as notificationCopy from "../notificationCopy.js";
 import type * as notificationSubjects from "../notificationSubjects.js";
 import type * as notifications from "../notifications.js";
 import type * as plans from "../plans.js";
 import type * as polar from "../polar.js";
+import type * as posthog from "../posthog.js";
 import type * as r2 from "../r2.js";
 import type * as ratelimit from "../ratelimit.js";
 import type * as services from "../services.js";
+import type * as tracing from "../tracing.js";
 import type * as twilio from "../twilio.js";
 import type * as userProfileData from "../userProfileData.js";
 import type * as utils from "../utils.js";
+import type * as workosOrgs from "../workosOrgs.js";
 
 import type {
   ApiFromModules,
@@ -56,6 +63,8 @@ declare const fullApi: ApiFromModules<{
   aiAgentHelpers: typeof aiAgentHelpers;
   aiAgentTools: typeof aiAgentTools;
   aiChat: typeof aiChat;
+  aiStream: typeof aiStream;
+  analytics: typeof analytics;
   appointments: typeof appointments;
   auth: typeof auth;
   authz: typeof authz;
@@ -70,20 +79,25 @@ declare const fullApi: ApiFromModules<{
   errors: typeof errors;
   geospatial: typeof geospatial;
   http: typeof http;
+  identity: typeof identity;
   index: typeof index;
   invitations: typeof invitations;
+  invitationsSchema: typeof invitationsSchema;
   migrations: typeof migrations;
   notificationCopy: typeof notificationCopy;
   notificationSubjects: typeof notificationSubjects;
   notifications: typeof notifications;
   plans: typeof plans;
   polar: typeof polar;
+  posthog: typeof posthog;
   r2: typeof r2;
   ratelimit: typeof ratelimit;
   services: typeof services;
+  tracing: typeof tracing;
   twilio: typeof twilio;
   userProfileData: typeof userProfileData;
   utils: typeof utils;
+  workosOrgs: typeof workosOrgs;
 }>;
 
 /**
@@ -113,16 +127,16 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {
-  betterAuth: import("@convex-dev/better-auth/_generated/component.js").ComponentApi<"betterAuth">;
+  workOSAuthKit: import("@convex-dev/workos-authkit/_generated/component.js").ComponentApi<"workOSAuthKit">;
   twilio: import("@convex-dev/twilio/_generated/component.js").ComponentApi<"twilio">;
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
-  resend: import("@convex-dev/resend/_generated/component.js").ComponentApi<"resend">;
   r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
   migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
   polar: import("@convex-dev/polar/_generated/component.js").ComponentApi<"polar">;
+  posthog: import("@posthog/convex/_generated/component.js").ComponentApi<"posthog">;
+  unreadTracking: import("convex-unread-tracking/_generated/component.js").ComponentApi<"unreadTracking">;
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
   geospatial: import("@convex-dev/geospatial/_generated/component.js").ComponentApi<"geospatial">;
-  inviteLinks: import("convex-invite-links/_generated/component.js").ComponentApi<"inviteLinks">;
   aggregateCompletedAppointments: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateCompletedAppointments">;
   aggregateSmsSent: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateSmsSent">;
   aggregateEmailsSent: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateEmailsSent">;

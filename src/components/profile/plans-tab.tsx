@@ -29,7 +29,14 @@ export const PlansTab: FC = () => {
   const { data: products } = usePricingPlans();
   const { data: session } = useSession();
   const { data: subscription } = useSubscription();
-  const { data: barbershop } = useBarbershopByOwnerId(session?.userId ?? "");
+  const { data: barbershop } = useBarbershopByOwnerId(session?.id ?? "");
+
+  const checkoutMetadata = {
+    ...(barbershop?._id ? { barbershopId: barbershop._id } : {}),
+    ...(barbershop?.workosOrganizationId
+      ? { workosOrganizationId: barbershop.workosOrganizationId }
+      : {}),
+  };
 
   return (
     <div className="space-y-8">
@@ -41,7 +48,8 @@ export const PlansTab: FC = () => {
             <PricingCard
               product={subscription?.product}
               products={products}
-              userId={session?.userId ?? undefined}
+              userId={session?.id ?? undefined}
+              metadata={checkoutMetadata}
             />
           </Suspense>
         )}
@@ -50,14 +58,17 @@ export const PlansTab: FC = () => {
           <Suspense
             fallback={<Skeleton className="h-full w-full rounded-xl" />}
           >
-            <ExtraCreditsCards barbershopId={barbershop._id} />
+            <ExtraCreditsCards
+              barbershopId={barbershop._id}
+              workosOrganizationId={barbershop.workosOrganizationId}
+            />
           </Suspense>
         )}
       </div>
 
       <Separator />
 
-      <PricingCards />
+      <PricingCards metadata={checkoutMetadata} />
     </div>
   );
 };

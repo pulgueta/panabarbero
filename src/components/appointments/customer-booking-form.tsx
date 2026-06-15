@@ -4,16 +4,16 @@ import type {
   Service,
 } from "@convex/schema";
 import { formatPhoneNumber } from "@convex/utils";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarIcon, ClockIcon } from "@phosphor-icons/react";
+import { revalidateLogic } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { es } from "date-fns/locale";
 import type { FC } from "react";
 import { Suspense, useEffect, useId, useState, useTransition } from "react";
-import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
+import { useAppForm } from "@/components/form/use-form";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -71,6 +71,15 @@ interface CustomerBookingFormProps {
   initialServiceId?: Service["_id"];
 }
 
+interface BookingFormValues {
+  date: number | undefined;
+  customerName: string;
+  contactPhone: string;
+  contactEmail: string | undefined;
+  notes: string;
+  barbershopMemberId: BarbershopMemberWithName["_id"] | undefined;
+}
+
 export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
   barbershop,
   services,
@@ -82,10 +91,8 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
   const haptic = useWebHaptics();
 
   const formIds = {
-    form: useId(),
     customerName: useId(),
     date: useId(),
-    startTime: useId(),
     contactPhone: useId(),
     alternateContactPhone: useId(),
     contactEmail: useId(),
@@ -97,7 +104,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
 
   const { data: user } = useSession();
   // biome-ignore lint/style/noNonNullAssertion: profile data is preloaded for authenticated booking routes
-  const { data: userProfile } = useProfile(user?.userId!);
+  const { data: userProfile } = useProfile(user?.id!);
 
   const storeService = useServicesStore();
   const effectiveServiceId = (storeService._id || initialServiceId) as
@@ -126,189 +133,196 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
     ? formatPhoneNumber(userProfile.phoneNumber)
     : "";
   const profileEmail = userProfile?.email?.trim() ?? "";
+  // Fall back to the WorkOS-derived session name, which is available even in the
+  // post-signup window before the profile row is written. When neither source
+  // has a name (e.g. social login without a name), expose an editable input so
+  // the customer can still satisfy the required `customerName` field.
+  const resolvedCustomerName = userProfile?.name ?? user?.name ?? "";
+  const hasResolvedName = Boolean(resolvedCustomerName);
   const [useAlternatePhone, setUseAlternatePhone] = useState(false);
   const [useAlternateEmail, setUseAlternateEmail] = useState(false);
 
-  const form = useForm({
-    resolver: zodResolver(appointmentFormSchema),
-    defaultValues: {
-      date: undefined,
-      customerName: userProfile?.name,
-      contactPhone: profilePhone,
-      contactEmail: profileEmail || undefined,
-      notes: "",
-      barbershopMemberId:
-        availableBarbers?.length === 1 ? availableBarbers[0]?._id : undefined,
+  const [isPending, startTransition] = useTransition();
+  const [selectedSlotTime, setSelectedSlotTime] = useState<string | undefined>(
+    undefined,
+  );
+
+  const defaultValues: BookingFormValues = {
+    date: undefined,
+    customerName: resolvedCustomerName,
+    contactPhone: profilePhone,
+    contactEmail: profileEmail || undefined,
+    notes: "",
+    barbershopMemberId:
+      availableBarbers?.length === 1 ? availableBarbers[0]?._id : undefined,
+  };
+
+  const form = useAppForm({
+    onSubmitInvalid: () => {
+      haptic.trigger("error");
+    },
+    validationLogic: revalidateLogic({
+      mode: "submit",
+      modeAfterSubmission: "change",
+    }),
+    validators: {
+      // @ts-expect-error - zod's coerce method returns an unknown input type
+      onSubmit: appointmentFormSchema,
+    },
+    defaultValues,
+    onSubmit: async ({ value }) => {
+      const { date, barbershopMemberId } = value;
+
+      if (date === undefined || !barbershopMemberId || !effectiveServiceId) {
+        haptic.trigger("error");
+        toast.error("Selecciona servicio, barbero, fecha y hora.");
+        return;
+      }
+
+      const schedule = scheduleForDate(date);
+      const validation = validateAppointmentTime(schedule, date);
+
+      if (!validation.valid) {
+        toast.error(validation.error);
+        return;
+      }
+
+      try {
+        await createAppointment({
+          appointment: {
+            customerName: value.customerName,
+            date,
+            contactPhone: value.contactPhone,
+            contactEmail: value.contactEmail?.trim() || undefined,
+            notes: value.notes,
+            barbershopId: barbershop._id,
+            barbershopMemberId,
+            serviceId: effectiveServiceId,
+            isStaffCreated: false,
+          },
+        });
+
+        resetBookingForm();
+        haptic.trigger("success");
+
+        toast.custom(
+          (toastId) => (
+            <div className="flex flex-col gap-3 rounded-lg border bg-background p-4 shadow-lg">
+              <p className="font-semibold">¡Cita reservada exitosamente!</p>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    toast.dismiss(toastId);
+                    navigate({
+                      to: "/barbershops/$barbershopUuid",
+                      params: { barbershopUuid },
+                    });
+                  }}
+                >
+                  Volver a la barbería
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    toast.dismiss(toastId);
+                    navigate({
+                      to: "/profile",
+                      search: (prev) => ({ ...prev, tab: "appointments" }),
+                    });
+                  }}
+                >
+                  Ver mis citas
+                </Button>
+              </div>
+            </div>
+          ),
+          { duration: Number.POSITIVE_INFINITY },
+        );
+      } catch (error) {
+        haptic.trigger("error");
+        toast.error(getConvexErrorMessage(error));
+      }
     },
   });
+
+  const resetBookingForm = () => {
+    setUseAlternatePhone(false);
+    setUseAlternateEmail(false);
+    setSelectedSlotTime(undefined);
+    form.reset(defaultValues);
+  };
 
   useEffect(() => {
     if (!profilePhone || useAlternatePhone) {
       return;
     }
-    form.setValue("contactPhone", profilePhone);
+    form.setFieldValue("contactPhone", profilePhone, { dontUpdateMeta: true });
   }, [profilePhone, useAlternatePhone, form]);
 
   useEffect(() => {
     if (!profileEmail || useAlternateEmail) {
       return;
     }
-    form.setValue("contactEmail", profileEmail);
+    form.setFieldValue("contactEmail", profileEmail, { dontUpdateMeta: true });
   }, [profileEmail, useAlternateEmail, form]);
 
-  // Auto-select when the available barber list narrows to exactly 1
+  // Keep the barber selection consistent with the service's available barbers:
+  // auto-select when exactly one is available, and clear a stale selection that
+  // the newly-filtered list no longer contains (otherwise onSubmit would still
+  // send a barber the UI already shows as "Barbero no disponible").
   useEffect(() => {
-    if (availableBarbers?.length === 1) {
-      form.setValue("barbershopMemberId", availableBarbers[0]?._id);
-    }
-  }, [availableBarbers, form]);
+    const currentId = form.state.values.barbershopMemberId;
+    const onlyBarberId =
+      availableBarbers?.length === 1 ? availableBarbers[0]?._id : undefined;
 
-  const [isPending, startTransition] = useTransition();
-  const [selectedSlotTime, setSelectedSlotTime] = useState<string | undefined>(
-    undefined,
-  );
-  const watchedDate = form.watch("date") as number | undefined;
-  const watchedBarber = form.watch("barbershopMemberId") as string | undefined;
-  const watchedCustomerName = form.watch("customerName");
-  const watchedContactPhone = form.watch("contactPhone");
-  const watchedContactEmail = form.watch("contactEmail");
-  const watchedNotes = form.watch("notes");
-
-  const canShowSlots = !!(watchedDate && watchedBarber && effectiveServiceId);
-  const normalizedDate = watchedDate
-    ? startOfDay(watchedDate).getTime()
-    : undefined;
-
-  const effectiveService = services.find((s) => s._id === effectiveServiceId);
-
-  // Reset the chosen slot when the barber or service changes. Done as a
-  // render-phase adjustment (not an effect) so there's no extra render showing
-  // the stale slot against the new barber/service.
-  const slotKey = `${watchedBarber ?? ""}|${effectiveServiceId ?? ""}`;
-  const [prevSlotKey, setPrevSlotKey] = useState(slotKey);
-  if (slotKey !== prevSlotKey) {
-    setPrevSlotKey(slotKey);
-    setSelectedSlotTime(undefined);
-  }
-
-  const onSubmit = form.handleSubmit(async (formData) => {
-    const schedule = scheduleForDate(formData.date);
-    const validation = validateAppointmentTime(schedule, formData.date);
-
-    if (!validation.valid) {
-      toast.error(validation.error);
+    if (onlyBarberId) {
+      if (currentId !== onlyBarberId) {
+        form.setFieldValue("barbershopMemberId", onlyBarberId, {
+          dontUpdateMeta: true,
+        });
+        setSelectedSlotTime(undefined);
+      }
       return;
     }
 
-    try {
-      await createAppointment({
-        appointment: {
-          ...formData,
-          contactPhone: formData.contactPhone,
-          contactEmail: formData.contactEmail?.trim() || undefined,
-          barbershopId: barbershop._id,
-          barbershopMemberId: formData.barbershopMemberId,
-          serviceId: effectiveServiceId,
-          isStaffCreated: false,
-        },
+    if (
+      currentId &&
+      availableBarbers &&
+      !availableBarbers.some((b) => b?._id === currentId)
+    ) {
+      form.setFieldValue("barbershopMemberId", undefined, {
+        dontUpdateMeta: true,
       });
-
-      setUseAlternatePhone(false);
-      setUseAlternateEmail(false);
-      form.reset({
-        date: undefined,
-        customerName: userProfile?.name,
-        contactPhone: profilePhone,
-        contactEmail: profileEmail || undefined,
-        notes: "",
-        barbershopMemberId:
-          availableBarbers?.length === 1 ? availableBarbers[0]?._id : undefined,
-      });
-      haptic.trigger("success");
-
-      toast.custom(
-        (toastId) => (
-          <div className="flex flex-col gap-3 rounded-lg border bg-background p-4 shadow-lg">
-            <p className="font-semibold">¡Cita reservada exitosamente!</p>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  toast.dismiss(toastId);
-                  navigate({
-                    to: "/barbershops/$barbershopUuid",
-                    params: { barbershopUuid },
-                  });
-                }}
-              >
-                Volver a la barbería
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => {
-                  toast.dismiss(toastId);
-                  navigate({
-                    to: "/profile",
-                    search: (prev) => ({ ...prev, tab: "appointments" }),
-                  });
-                }}
-              >
-                Ver mis citas
-              </Button>
-            </div>
-          </div>
-        ),
-        { duration: Number.POSITIVE_INFINITY },
-      );
-    } catch (error) {
-      haptic.trigger("error");
-      toast.error(getConvexErrorMessage(error));
+      setSelectedSlotTime(undefined);
     }
-  });
+  }, [availableBarbers, form]);
 
-  const emptySlotHint = !watchedDate
-    ? "Selecciona una fecha para ver los horarios disponibles."
-    : !watchedBarber
-      ? "Elige un barbero para cargar sus horarios."
-      : "Elige un servicio para ver la disponibilidad.";
+  const effectiveService = services.find((s) => s._id === effectiveServiceId);
 
-  const selectedBarberName =
-    availableBarbers?.find((b) => b?._id === watchedBarber)?.name ?? null;
-
-  const appointmentDateTimeLabel =
-    watchedDate !== undefined ? formatLongDateTime(watchedDate) : null;
-
-  const timeRangeLabel =
-    selectedSlotTime && effectiveService
-      ? `${selectedSlotTime} – ${addMinutesToTime(
-          selectedSlotTime,
-          effectiveService.duration,
-        )} (${effectiveService.duration} min)`
-      : null;
-
-  const phoneSummaryRaw = watchedContactPhone?.trim() ?? "";
-  const phoneSummaryLabel =
-    phoneSummaryRaw === ""
-      ? null
-      : formatPhoneNumber(phoneSummaryRaw) || phoneSummaryRaw;
+  // Reset the chosen slot when the service changes. Done as a render-phase
+  // adjustment (not an effect) so there's no extra render showing the stale
+  // slot against the new service. Barber changes reset the slot at the point
+  // of change (select handler / auto-select effect).
+  const [prevServiceId, setPrevServiceId] = useState(effectiveServiceId);
+  if (effectiveServiceId !== prevServiceId) {
+    setPrevServiceId(effectiveServiceId);
+    setSelectedSlotTime(undefined);
+  }
 
   const pendingLabel = "Pendiente";
 
   return (
     <form
-      id={formIds.form}
-      onSubmit={onSubmit}
+      onSubmit={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        form.handleSubmit();
+      }}
       className="space-y-6"
       suppressHydrationWarning
     >
-      {/* Hidden fields for pre-filled customer data */}
-      <Controller
-        name="customerName"
-        control={form.control}
-        render={({ field }) => <Input {...field} type="hidden" />}
-      />
-
       <section
         aria-labelledby="booking-service-heading"
         className="grid grid-cols-1 gap-4 md:grid-cols-2"
@@ -380,21 +394,21 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
           </Field>
         </div>
 
-        <Controller
-          name="barbershopMemberId"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={formIds.barbershopMemberId}>
-                Barbero
-              </FieldLabel>
+        <form.AppField name="barbershopMemberId">
+          {(field) => {
+            const isInvalid = field.state.meta.errors.length > 0;
 
-              {availableBarbers?.length === 0 ? (
-                <span className="text-muted-foreground text-sm">
-                  No hay barberos disponibles para este servicio.
-                </span>
-              ) : availableBarbers?.length === 1 ? (
-                <>
+            return (
+              <Field data-invalid={isInvalid}>
+                <FieldLabel htmlFor={formIds.barbershopMemberId}>
+                  Barbero
+                </FieldLabel>
+
+                {availableBarbers?.length === 0 ? (
+                  <span className="text-muted-foreground text-sm">
+                    No hay barberos disponibles para este servicio.
+                  </span>
+                ) : availableBarbers?.length === 1 ? (
                   <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
                     <Avatar size="default">
                       <AvatarFallback>
@@ -406,53 +420,56 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                       {availableBarbers[0]?.name}
                     </span>
                   </div>
-                  <Input {...field} type="hidden" />
-                </>
-              ) : (
-                <Suspense fallback={<Skeleton className="h-11 w-full" />}>
-                  <Select
-                    value={field.value}
-                    onValueChange={(value) => {
-                      startTransition(() => {
-                        field.onChange(value);
-                      });
-                    }}
-                    aria-invalid={fieldState.invalid}
-                  >
-                    <SelectTrigger
-                      id={formIds.barbershopMemberId}
-                      className="h-11 w-full"
+                ) : (
+                  <Suspense fallback={<Skeleton className="h-11 w-full" />}>
+                    <Select
+                      value={field.state.value}
+                      onValueChange={(value) => {
+                        startTransition(() => {
+                          field.handleChange(
+                            value as BarbershopMemberWithName["_id"],
+                          );
+                          setSelectedSlotTime(undefined);
+                        });
+                      }}
+                      aria-invalid={isInvalid}
                     >
-                      <SelectValue placeholder="Selecciona un barbero">
-                        {field.value
-                          ? (availableBarbers?.find(
-                              (b) => String(b?._id) === String(field.value),
-                            )?.name ?? "Barbero no disponible")
-                          : undefined}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableBarbers?.map((barber) => (
-                        <SelectItem key={barber?._id} value={barber?._id}>
-                          <div className="flex items-center gap-2">
-                            <Avatar size="sm">
-                              <AvatarFallback>
-                                {barber?.name.slice(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            {barber?.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Suspense>
-              )}
+                      <SelectTrigger
+                        id={formIds.barbershopMemberId}
+                        className="h-11 w-full"
+                      >
+                        <SelectValue placeholder="Selecciona un barbero">
+                          {field.state.value
+                            ? (availableBarbers?.find(
+                                (b) =>
+                                  String(b?._id) === String(field.state.value),
+                              )?.name ?? "Barbero no disponible")
+                            : undefined}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableBarbers?.map((barber) => (
+                          <SelectItem key={barber?._id} value={barber?._id}>
+                            <div className="flex items-center gap-2">
+                              <Avatar size="sm">
+                                <AvatarFallback>
+                                  {barber?.name.slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              {barber?.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Suspense>
+                )}
 
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
+              </Field>
+            );
+          }}
+        </form.AppField>
       </section>
 
       <Separator />
@@ -464,27 +481,47 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
         >
           Contacto
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Controller
-            name="contactPhone"
-            control={form.control}
-            render={({ field, fieldState }) => {
-              const hasSavedPhone = Boolean(profilePhone);
-              const phoneDisabled = hasSavedPhone && !useAlternatePhone;
+        {!hasResolvedName && (
+          <form.AppField name="customerName">
+            {(field) => {
+              const isInvalid = field.state.meta.errors.length > 0;
 
               return (
-                <Field data-invalid={fieldState.invalid}>
+                <Field data-invalid={isInvalid}>
+                  <FieldLabel htmlFor={formIds.customerName}>Nombre</FieldLabel>
+                  <Input
+                    id={formIds.customerName}
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    placeholder="Tu nombre completo"
+                    aria-invalid={isInvalid}
+                  />
+                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                </Field>
+              );
+            }}
+          </form.AppField>
+        )}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <form.AppField name="contactPhone">
+            {(field) => {
+              const hasSavedPhone = Boolean(profilePhone);
+              const phoneDisabled = hasSavedPhone && !useAlternatePhone;
+              const isInvalid = field.state.meta.errors.length > 0;
+
+              return (
+                <Field data-invalid={isInvalid}>
                   <FieldLabel htmlFor={formIds.contactPhone}>
                     Teléfono
                   </FieldLabel>
                   <PhoneInput
                     id={formIds.contactPhone}
-                    value={field.value ?? ""}
-                    onChange={field.onChange}
+                    value={field.state.value}
+                    onChange={field.handleChange}
                     defaultCountry="CO"
                     placeholder="311 987 1234"
                     disabled={phoneDisabled}
-                    aria-invalid={fieldState.invalid}
+                    aria-invalid={isInvalid}
                   />
                   {hasSavedPhone ? (
                     <div className="mt-2 flex gap-2">
@@ -495,11 +532,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                         onCheckedChange={(checked) => {
                           const useAlt = checked === true;
                           setUseAlternatePhone(useAlt);
-                          if (useAlt) {
-                            form.setValue("contactPhone", "");
-                          } else {
-                            form.setValue("contactPhone", profilePhone);
-                          }
+                          field.handleChange(useAlt ? "" : profilePhone);
                         }}
                         disabled={isCreatingAppointment}
                       />
@@ -511,29 +544,26 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                       </FieldLabel>
                     </div>
                   ) : null}
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
+                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
                 </Field>
               );
             }}
-          />
-          <Controller
-            name="contactEmail"
-            control={form.control}
-            render={({ field, fieldState }) => {
+          </form.AppField>
+          <form.AppField name="contactEmail">
+            {(field) => {
               const hasSavedEmail = Boolean(profileEmail);
               const emailDisabled = hasSavedEmail && !useAlternateEmail;
+              const isInvalid = field.state.meta.errors.length > 0;
 
               return (
-                <Field data-invalid={fieldState.invalid}>
+                <Field data-invalid={isInvalid}>
                   <FieldLabel htmlFor={formIds.contactEmail}>Correo</FieldLabel>
                   <Input
                     id={formIds.contactEmail}
                     type="email"
-                    value={field.value ?? ""}
+                    value={field.state.value ?? ""}
                     onChange={(e) =>
-                      field.onChange(
+                      field.handleChange(
                         e.target.value.trim() === ""
                           ? undefined
                           : e.target.value,
@@ -541,7 +571,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                     }
                     placeholder="tu@correo.com"
                     disabled={emailDisabled}
-                    aria-invalid={fieldState.invalid}
+                    aria-invalid={isInvalid}
                   />
                   {hasSavedEmail ? (
                     <div className="mt-2 flex gap-2">
@@ -552,17 +582,9 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                         onCheckedChange={(checked) => {
                           const useAlt = checked === true;
                           setUseAlternateEmail(useAlt);
-                          if (useAlt) {
-                            form.setValue("contactEmail", undefined, {
-                              shouldValidate: true,
-                            });
-                          } else {
-                            form.setValue(
-                              "contactEmail",
-                              profileEmail || undefined,
-                              { shouldValidate: true },
-                            );
-                          }
+                          field.handleChange(
+                            useAlt ? undefined : profileEmail || undefined,
+                          );
                         }}
                         disabled={isCreatingAppointment}
                       />
@@ -574,13 +596,11 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                       </FieldLabel>
                     </div>
                   ) : null}
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
+                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
                 </Field>
               );
             }}
-          />
+          </form.AppField>
         </div>
       </section>
 
@@ -595,115 +615,144 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
         </h2>
 
         <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
-          <Controller
-            name="date"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid} suppressHydrationWarning>
-                <FieldLabel htmlFor={formIds.date}>Día</FieldLabel>
-                <Popover>
-                  <PopoverTrigger
-                    render={
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className={cn(
-                          "h-11 w-full justify-start pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground",
-                        )}
-                      >
-                        {field.value ? (
-                          <span className="text-sm" suppressHydrationWarning>
-                            {formatLongDate(field.value as number)}
-                          </span>
-                        ) : (
-                          <span className="text-sm">Selecciona una fecha</span>
-                        )}
-                        <CalendarIcon className="ml-auto size-4 opacity-50" />
-                      </Button>
-                    }
-                  />
-                  <PopoverContent
-                    className="w-auto p-0"
-                    align="start"
-                    suppressHydrationWarning
-                  >
-                    <Calendar
-                      mode="single"
-                      selected={toDate(field.value as number | undefined)}
-                      onSelect={(date) => {
-                        if (!date) {
-                          field.onChange(undefined);
-                          setSelectedSlotTime(undefined);
-                          return;
-                        }
-                        const combined = startOfDay(date);
-                        startTransition(() => {
-                          field.onChange(combined.getTime());
-                          setSelectedSlotTime(undefined);
-                        });
-                      }}
-                      disabled={disableDay}
-                      className="bg-transparent [--cell-size:--spacing(12)]"
-                      captionLayout="label"
-                      locale={es}
+          <form.AppField name="date">
+            {(field) => {
+              const isInvalid = field.state.meta.errors.length > 0;
+
+              return (
+                <Field data-invalid={isInvalid} suppressHydrationWarning>
+                  <FieldLabel htmlFor={formIds.date}>Día</FieldLabel>
+                  <Popover>
+                    <PopoverTrigger
+                      nativeButton={false}
+                      render={
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={cn(
+                            "h-11 w-full justify-start pl-3 text-left font-normal",
+                            !field.state.value && "text-muted-foreground",
+                          )}
+                        >
+                          {field.state.value ? (
+                            <span className="text-sm" suppressHydrationWarning>
+                              {formatLongDate(field.state.value)}
+                            </span>
+                          ) : (
+                            <span className="text-sm">
+                              Selecciona una fecha
+                            </span>
+                          )}
+                          <CalendarIcon className="ml-auto size-4 opacity-50" />
+                        </Button>
+                      }
                     />
-                  </PopoverContent>
-                </Popover>
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
+                    <PopoverContent
+                      className="w-auto p-0"
+                      align="start"
+                      suppressHydrationWarning
+                    >
+                      <Calendar
+                        mode="single"
+                        selected={toDate(field.state.value)}
+                        onSelect={(date) => {
+                          if (!date) {
+                            field.handleChange(undefined);
+                            setSelectedSlotTime(undefined);
+                            return;
+                          }
+                          const combined = startOfDay(date);
+                          startTransition(() => {
+                            field.handleChange(combined.getTime());
+                            setSelectedSlotTime(undefined);
+                          });
+                        }}
+                        disabled={disableDay}
+                        className="bg-transparent [--cell-size:--spacing(12)]"
+                        captionLayout="label"
+                        locale={es}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                </Field>
+              );
+            }}
+          </form.AppField>
+
+          <form.AppField name="date">
+            {(dateField) => (
+              <Field>
+                <FieldLabel className="inline-flex items-center gap-1.5">
+                  <ClockIcon className="size-3.5 opacity-70" />
+                  Hora
+                </FieldLabel>
+                <form.Subscribe
+                  selector={(state) => state.values.barbershopMemberId}
+                >
+                  {(barberId) => {
+                    const dateValue = dateField.state.value;
+                    const normalizedDate = dateValue
+                      ? startOfDay(dateValue).getTime()
+                      : undefined;
+
+                    if (
+                      dateValue &&
+                      normalizedDate &&
+                      barberId &&
+                      effectiveServiceId
+                    ) {
+                      return (
+                        <Suspense
+                          fallback={
+                            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                              {Array.from({ length: 8 }).map((_, i) => (
+                                <Skeleton
+                                  key={`slot-skeleton-${i.toString()}`}
+                                  className="h-9 w-full"
+                                />
+                              ))}
+                            </div>
+                          }
+                        >
+                          <TimeSlotPicker
+                            barbershopId={barbershop._id}
+                            barbershopMemberId={barberId}
+                            serviceId={effectiveServiceId}
+                            date={normalizedDate}
+                            value={selectedSlotTime}
+                            isPending={isPending}
+                            onChange={(slotTime, slotMinutes) => {
+                              setSelectedSlotTime(slotTime);
+                              const dateObj = dateWithTimeOfDay(
+                                normalizedDate,
+                                slotMinutes,
+                              );
+                              dateField.handleChange(dateObj.getTime());
+                            }}
+                          />
+                        </Suspense>
+                      );
+                    }
+
+                    const emptySlotHint = !dateValue
+                      ? "Selecciona una fecha para ver los horarios disponibles."
+                      : !barberId
+                        ? "Elige un barbero para cargar sus horarios."
+                        : "Elige un servicio para ver la disponibilidad.";
+
+                    return (
+                      <div className="rounded-lg border border-border/60 bg-background/50 px-3 py-6 text-center">
+                        <p className="text-muted-foreground text-sm leading-relaxed">
+                          {emptySlotHint}
+                        </p>
+                      </div>
+                    );
+                  }}
+                </form.Subscribe>
               </Field>
             )}
-          />
-
-          <Field>
-            <FieldLabel className="inline-flex items-center gap-1.5">
-              <ClockIcon className="size-3.5 opacity-70" />
-              Hora
-            </FieldLabel>
-            {canShowSlots && normalizedDate ? (
-              <Suspense
-                fallback={
-                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                    {Array.from({ length: 8 }).map((_, i) => (
-                      <Skeleton
-                        key={`slot-skeleton-${i.toString()}`}
-                        className="h-9 w-full"
-                      />
-                    ))}
-                  </div>
-                }
-              >
-                <TimeSlotPicker
-                  barbershopId={barbershop._id}
-                  barbershopMemberId={
-                    watchedBarber as BarbershopMemberWithName["_id"]
-                  }
-                  serviceId={effectiveServiceId}
-                  date={normalizedDate}
-                  value={selectedSlotTime}
-                  isPending={isPending}
-                  onChange={(slotTime, slotMinutes) => {
-                    setSelectedSlotTime(slotTime);
-                    const dateObj = dateWithTimeOfDay(
-                      normalizedDate ?? Date.now(),
-                      slotMinutes,
-                    );
-                    form.setValue("date", dateObj.getTime(), {
-                      shouldValidate: true,
-                    });
-                  }}
-                />
-              </Suspense>
-            ) : (
-              <div className="rounded-lg border border-border/60 bg-background/50 px-3 py-6 text-center">
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  {emptySlotHint}
-                </p>
-              </div>
-            )}
-          </Field>
+          </form.AppField>
         </div>
       </section>
 
@@ -717,26 +766,31 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
           Notas para el barbero{" "}
           <span className="font-normal text-muted-foreground">(opcional)</span>
         </h2>
-        <Controller
-          name="notes"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={formIds.notes} className="sr-only">
-                Notas
-              </FieldLabel>
-              <Textarea
-                {...field}
-                id={formIds.notes}
-                aria-invalid={fieldState.invalid}
-                placeholder="Ej.: corte con cero, degradado medio-alto, poco producto…"
-                rows={3}
-                className="min-h-22 resize-y"
-              />
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
+        <form.AppField name="notes">
+          {(field) => {
+            const isInvalid = field.state.meta.errors.length > 0;
+
+            return (
+              <Field data-invalid={isInvalid}>
+                <FieldLabel htmlFor={formIds.notes} className="sr-only">
+                  Notas
+                </FieldLabel>
+                <Textarea
+                  id={formIds.notes}
+                  name={field.name}
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  aria-invalid={isInvalid}
+                  placeholder="Ej.: corte con cero, degradado medio-alto, poco producto…"
+                  rows={3}
+                  className="min-h-22 resize-y"
+                />
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
+              </Field>
+            );
+          }}
+        </form.AppField>
       </section>
 
       <Separator />
@@ -753,109 +807,165 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
             Confirma que los datos sean correctos antes de enviar la solicitud.
           </p>
         </div>
-        <Card size="sm" className="shadow-none ring-border/80">
-          <CardContent className="grid gap-4 pt-2 pb-4 sm:grid-cols-2">
-            <div className="min-w-0 sm:col-span-2">
-              <CardDescription className="text-xs">Barbería</CardDescription>
-              <p className="mt-0.5 font-medium text-foreground text-sm">
-                {barbershop.name}
-              </p>
-            </div>
-            <div className="min-w-0">
-              <CardDescription className="text-xs">Servicio</CardDescription>
-              <p
-                className={cn(
-                  "mt-0.5 text-sm",
-                  effectiveService
-                    ? "font-medium text-foreground"
-                    : "text-muted-foreground",
-                )}
-              >
-                {effectiveService
-                  ? `${effectiveService.name} · ${formatCurrency(effectiveService.price)} · ${effectiveService.duration} min`
-                  : pendingLabel}
-              </p>
-            </div>
-            <div className="min-w-0">
-              <CardDescription className="text-xs">Barbero</CardDescription>
-              <p
-                className={cn(
-                  "mt-0.5 text-sm",
-                  selectedBarberName
-                    ? "font-medium text-foreground"
-                    : "text-muted-foreground",
-                )}
-              >
-                {selectedBarberName ?? pendingLabel}
-              </p>
-            </div>
-            <div className="min-w-0 sm:col-span-2">
-              <CardDescription className="text-xs">
-                Fecha y hora
-              </CardDescription>
-              <p
-                className={cn(
-                  "mt-0.5 text-sm",
-                  appointmentDateTimeLabel
-                    ? "font-medium text-foreground"
-                    : "text-muted-foreground",
-                )}
-                suppressHydrationWarning
-              >
-                {appointmentDateTimeLabel ?? pendingLabel}
-              </p>
-              {timeRangeLabel ? (
-                <p className="mt-1 text-muted-foreground text-xs">
-                  Franja: {timeRangeLabel}
-                </p>
-              ) : null}
-            </div>
-            <div className="min-w-0">
-              <CardDescription className="text-xs">Cliente</CardDescription>
-              <p
-                className={cn(
-                  "mt-0.5 text-sm",
-                  watchedCustomerName?.trim()
-                    ? "font-medium text-foreground"
-                    : "text-muted-foreground",
-                )}
-              >
-                {watchedCustomerName?.trim() || pendingLabel}
-              </p>
-            </div>
-            <div className="min-w-0">
-              <CardDescription className="text-xs">Teléfono</CardDescription>
-              <p
-                className={cn(
-                  "mt-0.5 break-all text-sm",
-                  phoneSummaryLabel
-                    ? "font-medium text-foreground"
-                    : "text-muted-foreground",
-                )}
-              >
-                {phoneSummaryLabel ?? pendingLabel}
-              </p>
-            </div>
-            {watchedContactEmail?.trim() ? (
-              <div className="min-w-0 sm:col-span-2">
-                <CardDescription className="text-xs">Correo</CardDescription>
-                <p className="mt-0.5 break-all font-medium text-foreground text-sm">
-                  {watchedContactEmail.trim()}
-                </p>
-              </div>
-            ) : null}
-            {watchedNotes?.trim() ? (
-              <div className="min-w-0 sm:col-span-2">
-                <CardDescription className="text-xs">
-                  Notas para el barbero
-                </CardDescription>
-                <p className="mt-0.5 whitespace-pre-wrap text-foreground text-sm">
-                  {watchedNotes.trim()}
-                </p>
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
+        <form.Subscribe
+          selector={(state) =>
+            [
+              state.values.date,
+              state.values.barbershopMemberId,
+              state.values.customerName,
+              state.values.contactPhone,
+              state.values.contactEmail,
+              state.values.notes,
+            ] as const
+          }
+        >
+          {([
+            date,
+            barberId,
+            customerName,
+            contactPhone,
+            contactEmail,
+            notes,
+          ]) => {
+            const selectedBarberName =
+              availableBarbers?.find((b) => b?._id === barberId)?.name ?? null;
+
+            const appointmentDateTimeLabel =
+              date !== undefined ? formatLongDateTime(date) : null;
+
+            const timeRangeLabel =
+              selectedSlotTime && effectiveService
+                ? `${selectedSlotTime} – ${addMinutesToTime(
+                    selectedSlotTime,
+                    effectiveService.duration,
+                  )} (${effectiveService.duration} min)`
+                : null;
+
+            const phoneSummaryRaw = contactPhone?.trim() ?? "";
+            const phoneSummaryLabel =
+              phoneSummaryRaw === ""
+                ? null
+                : formatPhoneNumber(phoneSummaryRaw) || phoneSummaryRaw;
+
+            return (
+              <Card size="sm" className="shadow-none ring-border/80">
+                <CardContent className="grid gap-4 pt-2 pb-4 sm:grid-cols-2">
+                  <div className="min-w-0 sm:col-span-2">
+                    <CardDescription className="text-xs">
+                      Barbería
+                    </CardDescription>
+                    <p className="mt-0.5 font-medium text-foreground text-sm">
+                      {barbershop.name}
+                    </p>
+                  </div>
+                  <div className="min-w-0">
+                    <CardDescription className="text-xs">
+                      Servicio
+                    </CardDescription>
+                    <p
+                      className={cn(
+                        "mt-0.5 text-sm",
+                        effectiveService
+                          ? "font-medium text-foreground"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {effectiveService
+                        ? `${effectiveService.name} · ${formatCurrency(effectiveService.price)} · ${effectiveService.duration} min`
+                        : pendingLabel}
+                    </p>
+                  </div>
+                  <div className="min-w-0">
+                    <CardDescription className="text-xs">
+                      Barbero
+                    </CardDescription>
+                    <p
+                      className={cn(
+                        "mt-0.5 text-sm",
+                        selectedBarberName
+                          ? "font-medium text-foreground"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {selectedBarberName ?? pendingLabel}
+                    </p>
+                  </div>
+                  <div className="min-w-0 sm:col-span-2">
+                    <CardDescription className="text-xs">
+                      Fecha y hora
+                    </CardDescription>
+                    <p
+                      className={cn(
+                        "mt-0.5 text-sm",
+                        appointmentDateTimeLabel
+                          ? "font-medium text-foreground"
+                          : "text-muted-foreground",
+                      )}
+                      suppressHydrationWarning
+                    >
+                      {appointmentDateTimeLabel ?? pendingLabel}
+                    </p>
+                    {timeRangeLabel ? (
+                      <p className="mt-1 text-muted-foreground text-xs">
+                        Franja: {timeRangeLabel}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="min-w-0">
+                    <CardDescription className="text-xs">
+                      Cliente
+                    </CardDescription>
+                    <p
+                      className={cn(
+                        "mt-0.5 text-sm",
+                        customerName?.trim()
+                          ? "font-medium text-foreground"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {customerName?.trim() || pendingLabel}
+                    </p>
+                  </div>
+                  <div className="min-w-0">
+                    <CardDescription className="text-xs">
+                      Teléfono
+                    </CardDescription>
+                    <p
+                      className={cn(
+                        "mt-0.5 break-all text-sm",
+                        phoneSummaryLabel
+                          ? "font-medium text-foreground"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {phoneSummaryLabel ?? pendingLabel}
+                    </p>
+                  </div>
+                  {contactEmail?.trim() ? (
+                    <div className="min-w-0 sm:col-span-2">
+                      <CardDescription className="text-xs">
+                        Correo
+                      </CardDescription>
+                      <p className="mt-0.5 break-all font-medium text-foreground text-sm">
+                        {contactEmail.trim()}
+                      </p>
+                    </div>
+                  ) : null}
+                  {notes?.trim() ? (
+                    <div className="min-w-0 sm:col-span-2">
+                      <CardDescription className="text-xs">
+                        Notas para el barbero
+                      </CardDescription>
+                      <p className="mt-0.5 whitespace-pre-wrap text-foreground text-sm">
+                        {notes.trim()}
+                      </p>
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+            );
+          }}
+        </form.Subscribe>
       </section>
 
       <div className="flex flex-col-reverse gap-4 sm:flex-row sm:justify-end">
@@ -864,19 +974,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
           variant="outline"
           className="sm:min-w-36"
           onClick={() => {
-            setUseAlternatePhone(false);
-            setUseAlternateEmail(false);
-            form.reset({
-              date: undefined,
-              customerName: userProfile?.name,
-              contactPhone: profilePhone,
-              contactEmail: profileEmail || undefined,
-              notes: "",
-              barbershopMemberId:
-                availableBarbers?.length === 1
-                  ? availableBarbers[0]?._id
-                  : undefined,
-            });
+            resetBookingForm();
             navigate({
               to: "/barbershops/$barbershopUuid",
               params: { barbershopUuid },
@@ -887,9 +985,8 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
         </Button>
         <Button
           type="submit"
-          form={formIds.form}
           disabled={
-            isCreatingAppointment || !availableBarbers?.length || !user?.userId
+            isCreatingAppointment || !availableBarbers?.length || !user?.id
           }
           className="sm:min-w-44"
         >
@@ -898,7 +995,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
         </Button>
       </div>
 
-      {!user?.userId && (
+      {!user?.id && (
         <p className="text-right text-muted-foreground text-sm">
           Para reservar una cita, debes iniciar sesión.
         </p>

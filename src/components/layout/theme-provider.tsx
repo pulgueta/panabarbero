@@ -90,6 +90,14 @@ const ThemeContext = createContext<ThemeContextValue>({
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [userTheme, setUserTheme] = useState<UserTheme>(getStoredUserTheme);
 
+  // Re-apply the documentElement classes after mount: when React regenerates
+  // the tree (hydration mismatch recovery) or the error boundary re-renders
+  // RootDocument, <html> is rendered without className and the classes set by
+  // the inline ScriptOnce are wiped — flipping the app to light mode.
+  useEffect(() => {
+    handleThemeChange(userTheme);
+  }, [userTheme]);
+
   useEffect(() => {
     if (userTheme !== "system") return;
 

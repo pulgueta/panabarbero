@@ -1,0 +1,54 @@
+diff --git a/dist/cjs/load-matches.cjs b/dist/cjs/load-matches.cjs
+index c09976a80c2c112b7dac6f941e643c81eeaf8d52..267f8c109aba3783ea4387a9ed8dff00a2c73df5 100644
+--- a/dist/cjs/load-matches.cjs
++++ b/dist/cjs/load-matches.cjs
+@@ -469,12 +469,14 @@ const loadRouteMatch = async (inner, matchPromises, index) => {
+ 			if (prevMatch.status === "success" && !inner.sync && !prevMatch.preload && shouldReloadInBackground) return prevMatch;
+ 			await prevMatch._nonReactive.loaderPromise;
+ 			const match = inner.router.getMatch(matchId);
++			if (!match) return inner.matches[index];
+ 			const error = match._nonReactive.error || match.error;
+ 			if (error) handleRedirectAndNotFound(inner, match, error);
+ 			if (match.status === "pending") await handleLoader(preload, prevMatch, previousRouteMatchId, match, route);
+ 		} else {
+ 			const nextPreload = preload && !inner.router.stores.matchStores.has(matchId);
+ 			const match = inner.router.getMatch(matchId);
++			if (!match) return inner.matches[index];
+ 			match._nonReactive.loaderPromise = require_utils.createControlledPromise();
+ 			if (nextPreload !== match.preload) inner.updateMatch(matchId, (prev) => ({
+ 				...prev,
+@@ -484,6 +486,7 @@ const loadRouteMatch = async (inner, matchPromises, index) => {
+ 		}
+ 	}
+ 	const match = inner.router.getMatch(matchId);
++	if (!match) return inner.matches[index];
+ 	if (!loaderIsRunningAsync) {
+ 		match._nonReactive.loaderPromise?.resolve();
+ 		match._nonReactive.loadPromise?.resolve();
+diff --git a/dist/esm/load-matches.js b/dist/esm/load-matches.js
+index bcea2e0d88d037a01b93bf36dd6e643f98028e83..07260e6aec27af624cd1b30f7fd0d2b9ce98aea4 100644
+--- a/dist/esm/load-matches.js
++++ b/dist/esm/load-matches.js
+@@ -469,12 +469,14 @@ const loadRouteMatch = async (inner, matchPromises, index) => {
+ 			if (prevMatch.status === "success" && !inner.sync && !prevMatch.preload && shouldReloadInBackground) return prevMatch;
+ 			await prevMatch._nonReactive.loaderPromise;
+ 			const match = inner.router.getMatch(matchId);
++			if (!match) return inner.matches[index];
+ 			const error = match._nonReactive.error || match.error;
+ 			if (error) handleRedirectAndNotFound(inner, match, error);
+ 			if (match.status === "pending") await handleLoader(preload, prevMatch, previousRouteMatchId, match, route);
+ 		} else {
+ 			const nextPreload = preload && !inner.router.stores.matchStores.has(matchId);
+ 			const match = inner.router.getMatch(matchId);
++			if (!match) return inner.matches[index];
+ 			match._nonReactive.loaderPromise = createControlledPromise();
+ 			if (nextPreload !== match.preload) inner.updateMatch(matchId, (prev) => ({
+ 				...prev,
+@@ -484,6 +486,7 @@ const loadRouteMatch = async (inner, matchPromises, index) => {
+ 		}
+ 	}
+ 	const match = inner.router.getMatch(matchId);
++	if (!match) return inner.matches[index];
+ 	if (!loaderIsRunningAsync) {
+ 		match._nonReactive.loaderPromise?.resolve();
+ 		match._nonReactive.loadPromise?.resolve();

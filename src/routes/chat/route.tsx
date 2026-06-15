@@ -24,7 +24,7 @@ import { cacheTime } from "@/config/cache";
 import { getPanaAccessQueryOptions } from "@/hooks/billing/use-pana-access";
 import { useAnonId } from "@/hooks/use-anon-id";
 import { myThreadsQueryOptions, useMyThreads } from "@/hooks/use-chat";
-import { getSessionQueryOptions, useSession } from "@/hooks/use-session";
+import { useSession } from "@/hooks/use-session";
 import { chatViewTransition } from "@/lib/chat-view-transition";
 import { cn } from "@/lib/utils";
 
@@ -33,15 +33,11 @@ export const Route = createFileRoute("/chat")({
   ssr: "data-only",
   staleTime: cacheTime.high,
   gcTime: cacheTime.extreme,
-  loader: async ({ context }) => {
-    const user = await context.queryClient.ensureQueryData(
-      getSessionQueryOptions(),
-    );
+  loader: ({ context }) => {
+    const userId = context.userId;
 
-    if (user?.userId) {
-      void context.queryClient.prefetchQuery(
-        myThreadsQueryOptions(user.userId),
-      );
+    if (userId) {
+      void context.queryClient.prefetchQuery(myThreadsQueryOptions(userId));
       void context.queryClient.prefetchQuery(getPanaAccessQueryOptions());
     }
   },
@@ -63,7 +59,7 @@ function ChatShell() {
 
   const { data: user } = useSession();
   const anonId = useAnonId();
-  const userId = user?.userId ?? anonId;
+  const userId = user?.id ?? anonId;
 
   const { data: threadsData, isPending } = useMyThreads(userId);
   const threads = threadsData?.page ?? [];

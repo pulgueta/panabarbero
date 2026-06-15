@@ -4,7 +4,11 @@ import { usePricingPlans } from "@/hooks/billing/use-pricing";
 import { useSession } from "@/hooks/use-session";
 import { PricingCard } from "./pricing-card";
 
-export const PricingCards: FC = () => {
+interface PricingCardsProps {
+  metadata?: Record<string, string>;
+}
+
+export const PricingCards: FC<PricingCardsProps> = ({ metadata }) => {
   const { data: products } = usePricingPlans();
   const { data: session } = useSession();
 
@@ -19,8 +23,9 @@ export const PricingCards: FC = () => {
           <PricingCard
             key={product.id}
             product={product}
-            userId={session?.userId ?? undefined}
+            userId={session?.id ?? undefined}
             products={products}
+            metadata={metadata}
           />
         );
       })}

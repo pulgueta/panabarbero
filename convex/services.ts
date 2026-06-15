@@ -5,24 +5,20 @@ import { z } from "zod";
 
 import { zMutation, zQuery } from ".";
 import { internal } from "./_generated/api";
-import { authComponent } from "./auth";
 import { assertCanManageServices, assertCanManageTeam } from "./authz";
 import { errorMessages } from "./errors";
+import { requireUserId } from "./identity";
 import { rateLimitOrThrow } from "./ratelimit";
 import { appointments, barbershops, services } from "./schema";
 
 export const create = zMutation({
   args: services.tools.insert,
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
-
-    if (!user?.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
+    const userId = await requireUserId(ctx);
 
     await Promise.all([
-      rateLimitOrThrow(ctx, "createService", user._id),
-      assertCanManageServices(ctx, args.barbershopId, user.userId),
+      rateLimitOrThrow(ctx, "createService", userId),
+      assertCanManageServices(ctx, args.barbershopId, userId),
     ]);
 
     const barbershop = await ctx.db.get(args.barbershopId);
@@ -95,20 +91,16 @@ export const getByIds = zQuery({
 export const update = zMutation({
   args: services.tools.update,
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
+    const userId = await requireUserId(ctx);
 
-    if (!user?.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    await rateLimitOrThrow(ctx, "updateService", user._id);
+    await rateLimitOrThrow(ctx, "updateService", userId);
 
     if (!args.data.barbershopId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 
     // Only owners and staff can edit services (not barbers — business decision)
-    await assertCanManageTeam(ctx, args.data.barbershopId, user.userId);
+    await assertCanManageTeam(ctx, args.data.barbershopId, userId);
 
     await ctx.db.patch(args.id, args.data);
   },
@@ -128,15 +120,11 @@ export const deleteService = zMutation({
     force: z.boolean().optional(),
   }),
   handler: async (ctx, args) => {
-    const user = await authComponent.safeGetAuthUser(ctx);
-
-    if (!user?.userId) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
+    const userId = await requireUserId(ctx);
 
     await Promise.all([
-      rateLimitOrThrow(ctx, "deleteService", user._id),
-      assertCanManageTeam(ctx, args.barbershop.id, user.userId),
+      rateLimitOrThrow(ctx, "deleteService", userId),
+      assertCanManageTeam(ctx, args.barbershop.id, userId),
     ]);
 
     const service = await ctx.db.get(args.service.id);

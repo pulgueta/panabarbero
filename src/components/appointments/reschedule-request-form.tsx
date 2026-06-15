@@ -1,11 +1,13 @@
 import type { Appointment } from "@convex/schema";
 import { CalendarIcon, ClockCounterClockwiseIcon } from "@phosphor-icons/react";
+import { revalidateLogic } from "@tanstack/react-form";
 import { es } from "date-fns/locale";
 import type { FC } from "react";
-import type { UseFormReturn } from "react-hook-form";
-import { Controller } from "react-hook-form";
-import type { output } from "zod";
+import { useId } from "react";
+import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
+import { useAppForm } from "@/components/form/use-form";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -21,18 +23,20 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import type { rescheduleRequestFormSchema } from "@/lib/schemas";
+import { ResponsiveModalFooter } from "@/components/ui/responsive-modal";
+import {
+  useAppointmentActions,
+  useAppointmentFormMetadata,
+} from "@/hooks/use-appointments";
+import { getConvexErrorMessage } from "@/lib/convex-errors";
+import { validateAppointmentTime } from "@/lib/schedule-utils";
+import { rescheduleRequestFormSchema } from "@/lib/schemas";
 import { cn, formatLongDate, formatTimeOfDay, toDate } from "@/lib/utils";
 
 interface RescheduleRequestFormProps {
-  disableDay: (day: Date) => boolean;
-  form: UseFormReturn<output<typeof rescheduleRequestFormSchema>>;
-  formIds: {
-    form: string;
-    date: string;
-    time: string;
-  };
   appointment: Appointment;
+  to?: "barber" | "customer";
+  onSuccess?: () => void;
 }
 
 function timeInputValue(value: number | undefined): string {
@@ -71,18 +75,78 @@ function combineDayAndCurrentTimeMs(
 }
 
 export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
-  formIds,
-  disableDay,
-  form,
   appointment,
+  to,
+  onSuccess,
 }) => {
+  const timeId = useId();
+
+  const haptic = useWebHaptics();
+
+  const { disableDay, scheduleForDate } = useAppointmentFormMetadata(
+    appointment.barbershopId,
+  );
+
+  const {
+    requestRescheduleMutation: { mutateAsync: rescheduleRequest },
+  } = useAppointmentActions();
+
+  const form = useAppForm({
+    onSubmitInvalid: () => {
+      haptic.trigger("error");
+    },
+    validationLogic: revalidateLogic({
+      mode: "submit",
+      modeAfterSubmission: "change",
+    }),
+    validators: {
+      // @ts-expect-error - zod's coerce method returns an unknown input type
+      onSubmit: rescheduleRequestFormSchema,
+    },
+    defaultValues: {
+      date: undefined as number | undefined,
+    },
+    onSubmit: async ({ value }) => {
+      const timestamp = Number(value.date);
+
+      const schedule = scheduleForDate(timestamp);
+      const validation = validateAppointmentTime(schedule, timestamp);
+
+      if (!validation.valid) {
+        toast.error(validation.error);
+        return;
+      }
+
+      try {
+        await rescheduleRequest({
+          appointmentId: { id: appointment._id },
+          proposedDate: timestamp,
+        });
+
+        haptic.trigger("success");
+        toast.success(
+          `Solicitud enviada al ${to === "barber" ? "barbero" : "cliente"}.`,
+        );
+        form.reset();
+        onSuccess?.();
+      } catch (error) {
+        haptic.trigger("error");
+        toast.error(getConvexErrorMessage(error));
+        return;
+      }
+    },
+  });
+
   const originalDay = formatLongDate(appointment.date);
   const originalTime = formatTimeOfDay(appointment.date);
 
   return (
     <form
-      id={formIds.form}
-      onSubmit={(e) => e.preventDefault()}
+      onSubmit={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        form.handleSubmit();
+      }}
       className="space-y-4"
       suppressHydrationWarning
     >
@@ -100,98 +164,102 @@ export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
         </div>
       </div>
       <FieldGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Controller
-          name="date"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel>Fecha propuesta</FieldLabel>
-              <Popover>
-                <PopoverTrigger
-                  nativeButton={false}
-                  render={
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-[240px] pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground",
-                      )}
+        <form.AppField name="date">
+          {(field) => {
+            const errors = field.state.meta.errors as unknown as Array<{
+              message?: string;
+            }>;
+            const isInvalid = errors.length > 0;
+
+            return (
+              <>
+                <Field data-invalid={isInvalid}>
+                  <FieldLabel>Fecha propuesta</FieldLabel>
+                  <Popover>
+                    <PopoverTrigger
+                      nativeButton={false}
+                      render={
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-[240px] pl-3 text-left font-normal",
+                            !field.state.value && "text-muted-foreground",
+                          )}
+                          suppressHydrationWarning
+                        >
+                          {field.state.value ? (
+                            formatLongDate(field.state.value)
+                          ) : (
+                            <span>Seleccione una fecha</span>
+                          )}
+                          <CalendarIcon className="ml-auto size-4 opacity-50" />
+                        </Button>
+                      }
+                    />
+                    <PopoverContent
+                      className="w-auto p-0"
+                      align="center"
                       suppressHydrationWarning
                     >
-                      {field.value ? (
-                        formatLongDate(field.value as number)
-                      ) : (
-                        <span>Seleccione una fecha</span>
-                      )}
-                      <CalendarIcon className="ml-auto size-4 opacity-50" />
-                    </Button>
-                  }
-                />
-                <PopoverContent
-                  className="w-auto p-0"
-                  align="center"
-                  suppressHydrationWarning
-                >
-                  <Calendar
-                    mode="single"
-                    selected={toDate(field.value as number | undefined)}
-                    onSelect={(day) => {
-                      if (!day) {
-                        field.onChange(undefined);
-                        return;
-                      }
-                      field.onChange(
-                        combineDayAndCurrentTimeMs(
-                          day,
-                          field.value as number | undefined,
-                        ),
-                      );
-                    }}
-                    disabled={disableDay}
-                    className="bg-transparent [--cell-size:--spacing(12)]"
-                    captionLayout="label"
-                    locale={es}
-                  />
-                </PopoverContent>
-              </Popover>
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
+                      <Calendar
+                        mode="single"
+                        selected={toDate(field.state.value)}
+                        onSelect={(day) => {
+                          if (!day) {
+                            field.handleChange(undefined);
+                            return;
+                          }
+                          field.handleChange(
+                            combineDayAndCurrentTimeMs(day, field.state.value),
+                          );
+                        }}
+                        disabled={disableDay}
+                        className="bg-transparent [--cell-size:--spacing(12)]"
+                        captionLayout="label"
+                        locale={es}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {isInvalid && <FieldError errors={errors} />}
+                </Field>
 
-        <Controller
-          name="date"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={formIds.time}>Hora propuesta</FieldLabel>
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center justify-center pl-3 text-muted-foreground peer-disabled:opacity-50">
-                  <ClockCounterClockwiseIcon className="size-4" />
-                  <span className="sr-only">Hora</span>
-                </div>
-                <Input
-                  type="time"
-                  id={formIds.time}
-                  suppressHydrationWarning
-                  value={timeInputValue(field.value as number | undefined)}
-                  onChange={(e) => {
-                    const time = e.target.value;
-                    if (!time) return;
-                    field.onChange(
-                      combineDateAndTimeMs(
-                        field.value as number | undefined,
-                        time,
-                      ),
-                    );
-                  }}
-                  className="peer appearance-none bg-background pl-9 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-                />
-              </div>
-            </Field>
-          )}
-        />
+                <Field data-invalid={isInvalid}>
+                  <FieldLabel htmlFor={timeId}>Hora propuesta</FieldLabel>
+                  <div className="relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center justify-center pl-3 text-muted-foreground peer-disabled:opacity-50">
+                      <ClockCounterClockwiseIcon className="size-4" />
+                      <span className="sr-only">Hora</span>
+                    </div>
+                    <Input
+                      type="time"
+                      id={timeId}
+                      suppressHydrationWarning
+                      value={timeInputValue(field.state.value)}
+                      disabled={field.state.value === undefined}
+                      onChange={(e) => {
+                        const time = e.target.value;
+                        // Ignore time edits until a day is chosen, otherwise
+                        // combineDateAndTimeMs would silently assign today.
+                        if (!time || field.state.value === undefined) return;
+                        field.handleChange(
+                          combineDateAndTimeMs(field.state.value, time),
+                        );
+                      }}
+                      className="peer appearance-none bg-background pl-9 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                    />
+                  </div>
+                </Field>
+              </>
+            );
+          }}
+        </form.AppField>
       </FieldGroup>
+
+      <ResponsiveModalFooter>
+        <form.AppForm>
+          <form.SubmitButton label="Enviar solicitud" />
+        </form.AppForm>
+      </ResponsiveModalFooter>
     </form>
   );
 };
