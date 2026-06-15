@@ -27,15 +27,19 @@ export const createOrganizationForBarbershop = zInternalAction({
           metadata: { barbershopId: args.barbershopId },
         });
 
+      // Persist the link immediately so a later membership failure can't orphan
+      // the WorkOS org (rename/delete/deactivate flows only run when the
+      // barbershop has a workosOrganizationId). The invite path also recovers
+      // this via getOrganizationByExternalId.
+      await ctx.runMutation(internal.barbershops.setWorkosOrganizationId, {
+        id: args.barbershopId,
+        workosOrganizationId: organization.id,
+      });
+
       await authkit.workos.userManagement.createOrganizationMembership({
         organizationId: organization.id,
         userId: args.ownerUserId,
         roleSlug: "admin",
-      });
-
-      await ctx.runMutation(internal.barbershops.setWorkosOrganizationId, {
-        id: args.barbershopId,
-        workosOrganizationId: organization.id,
       });
     } catch (error) {
       await trackException(ctx, error, args.ownerUserId, {

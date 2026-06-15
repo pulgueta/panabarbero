@@ -382,7 +382,6 @@ export const confirmPendingAction = zAction({
         await ctx.runMutation(api.appointments.requestReschedule, {
           appointmentId: { id: a.appointmentId as Id<"appointments"> },
           proposedDate: a.proposedDate,
-          requestedByUserId: callerId,
         });
         summary = "Solicitud de reagendamiento enviada al barbero.";
         break;

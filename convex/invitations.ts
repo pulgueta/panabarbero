@@ -151,16 +151,15 @@ export const prepareInvite = zInternalMutation({
       ? "staff"
       : "barber";
 
+    // Authorization is authoritative and must fail before plan gating, so an
+    // unauthorized caller can't observe entitlement state (or get a plan error
+    // instead of a permission error) via a concurrent race.
     if (role === "staff") {
-      await Promise.all([
-        assertOwner(ctx, barbershop._id, userId),
-        assertStaffInviteAllowed(ctx, barbershop._id, barbershop.ownerId),
-      ]);
+      await assertOwner(ctx, barbershop._id, userId);
+      await assertStaffInviteAllowed(ctx, barbershop._id, barbershop.ownerId);
     } else {
-      await Promise.all([
-        assertCanManageTeam(ctx, barbershop._id, userId),
-        assertBarberInviteAllowed(ctx, barbershop._id, barbershop.ownerId),
-      ]);
+      await assertCanManageTeam(ctx, barbershop._id, userId);
+      await assertBarberInviteAllowed(ctx, barbershop._id, barbershop.ownerId);
     }
 
     const email = args.email.toLowerCase().trim();

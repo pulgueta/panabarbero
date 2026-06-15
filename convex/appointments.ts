@@ -665,7 +665,6 @@ export const requestReschedule = zMutation({
   args: z.object({
     appointmentId: appointments.tools.id,
     proposedDate: z.number(),
-    requestedByUserId: z.string(),
   }),
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
@@ -688,7 +687,7 @@ export const requestReschedule = zMutation({
     await ctx.db.patch(appointmentId, {
       status: "pending",
       proposedDate: args.proposedDate,
-      rescheduleRequestedByUserId: args.requestedByUserId,
+      rescheduleRequestedByUserId: userId,
     });
 
     const requesterProfile = await getProfileByUserId(ctx, userId);

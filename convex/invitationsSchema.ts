@@ -7,6 +7,6 @@ import { z } from "zod";
  * throw "Missing environment variables" when evaluated in the browser.
  */
 export const inviteBarberSchema = z.object({
-  email: z.string(),
+  email: z.email(),
   roles: z.array(z.enum(["barber", "staff"])).length(1),
 });

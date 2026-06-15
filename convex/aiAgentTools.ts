@@ -1299,6 +1299,28 @@ const proposeUpdateBarberSchedule = createTool({
   execute: async (ctx, input): Promise<Proposal> => {
     const userId = requireAuthUserId(ctx.userId);
 
+    // updateBarberSchedule replaces the whole availability array, so a partial
+    // submission would silently wipe the omitted days. Enforce the complete,
+    // duplicate-free week the tool description promises before proposing.
+    const expectedDays = [
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+      "sunday",
+    ] as const;
+    const providedDays = new Set(input.availability.map((d) => d.day));
+    if (
+      providedDays.size !== expectedDays.length ||
+      !expectedDays.every((d) => providedDays.has(d))
+    ) {
+      throw new Error(
+        "Debes incluir los 7 días de la semana (monday a sunday), sin duplicados.",
+      );
+    }
+
     const actor = await ctx.runQuery(
       internal.aiAgentHelpers.getAgentActorContext,
       { userId },

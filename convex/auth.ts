@@ -105,19 +105,18 @@ export const { authKitEvent } = authkit.events({
       await ctx.scheduler.runAfter(0, internal.emails.sendWelcomeEmail, {
         to: email,
       });
-    }
 
-    await Promise.all([
-      identifyUser(ctx, userId, {
-        email,
-        name: fullName(firstName, lastName),
-      }),
-      track(ctx, {
+      await track(ctx, {
         distinctId: userId,
         event: "user_signed_up",
         properties: { email },
-      }),
-    ]);
+      });
+    }
+
+    await identifyUser(ctx, userId, {
+      email,
+      name: fullName(firstName, lastName),
+    });
   },
   "user.updated": async (ctx, event) => {
     const { id: userId, email, firstName, lastName } = event.data;
