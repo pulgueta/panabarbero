@@ -141,6 +141,9 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
             listeners={{
               onChange: ({ value }) => {
                 setLocationState(value || undefined);
+                // Clear both the form field and the shared store so the global
+                // filter can't keep a city that doesn't belong to the new state.
+                setLocationCity(undefined);
                 form.setFieldValue("city", "");
               },
             }}

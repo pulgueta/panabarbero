@@ -184,28 +184,7 @@ export function ChatView({ threadId }: ChatViewProps) {
       >
         <Conversation>
           <ConversationContent>
-            {results.length === 0 ? (
-              threadId ? (
-                // A thread always has at least the first user message, so empty
-                // results here means the first page is still loading (or the
-                // anon id hasn't resolved yet). Show a skeleton instead of the
-                // "empty chat" state so navigating into a thread never flashes
-                // as if it had no messages.
-                <ChatMessagesSkeleton />
-              ) : (
-                <ConversationEmptyState
-                  description="Pregúntame por barberías cercanas, disponibilidad o gestiona tus citas."
-                  icon={
-                    <ChatCircleIcon
-                      aria-hidden="true"
-                      className="size-8"
-                      weight="bold"
-                    />
-                  }
-                  title="¿En qué te ayudo?"
-                />
-              )
-            ) : (
+            {results.length ? (
               results.map((message) => (
                 <MessageItem
                   isStreaming={
@@ -218,7 +197,20 @@ export function ChatView({ threadId }: ChatViewProps) {
                   onReject={handleReject}
                 />
               ))
+            ) : (
+              <ConversationEmptyState
+                description="Pregúntame por barberías cercanas, disponibilidad o gestiona tus citas."
+                icon={
+                  <ChatCircleIcon
+                    aria-hidden="true"
+                    className="size-8"
+                    weight="bold"
+                  />
+                }
+                title="¿En qué te ayudo?"
+              />
             )}
+
             {status === "CanLoadMore" && (
               <div className="flex justify-center pb-2">
                 <Button onClick={handleLoadMore} size="sm" variant="ghost">

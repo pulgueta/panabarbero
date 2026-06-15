@@ -91,6 +91,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
   const haptic = useWebHaptics();
 
   const formIds = {
+    customerName: useId(),
     date: useId(),
     contactPhone: useId(),
     alternateContactPhone: useId(),
@@ -132,6 +133,12 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
     ? formatPhoneNumber(userProfile.phoneNumber)
     : "";
   const profileEmail = userProfile?.email?.trim() ?? "";
+  // Fall back to the WorkOS-derived session name, which is available even in the
+  // post-signup window before the profile row is written. When neither source
+  // has a name (e.g. social login without a name), expose an editable input so
+  // the customer can still satisfy the required `customerName` field.
+  const resolvedCustomerName = userProfile?.name ?? user?.name ?? "";
+  const hasResolvedName = Boolean(resolvedCustomerName);
   const [useAlternatePhone, setUseAlternatePhone] = useState(false);
   const [useAlternateEmail, setUseAlternateEmail] = useState(false);
 
@@ -142,7 +149,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
 
   const defaultValues: BookingFormValues = {
     date: undefined,
-    customerName: userProfile?.name ?? "",
+    customerName: resolvedCustomerName,
     contactPhone: profilePhone,
     contactEmail: profileEmail || undefined,
     notes: "",
@@ -261,22 +268,35 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
     form.setFieldValue("contactEmail", profileEmail, { dontUpdateMeta: true });
   }, [profileEmail, useAlternateEmail, form]);
 
-  // Auto-select when the available barber list narrows to exactly 1
+  // Keep the barber selection consistent with the service's available barbers:
+  // auto-select when exactly one is available, and clear a stale selection that
+  // the newly-filtered list no longer contains (otherwise onSubmit would still
+  // send a barber the UI already shows as "Barbero no disponible").
   useEffect(() => {
-    if (availableBarbers?.length !== 1) {
+    const currentId = form.state.values.barbershopMemberId;
+    const onlyBarberId =
+      availableBarbers?.length === 1 ? availableBarbers[0]?._id : undefined;
+
+    if (onlyBarberId) {
+      if (currentId !== onlyBarberId) {
+        form.setFieldValue("barbershopMemberId", onlyBarberId, {
+          dontUpdateMeta: true,
+        });
+        setSelectedSlotTime(undefined);
+      }
       return;
     }
-    const onlyBarberId = availableBarbers[0]?._id;
+
     if (
-      !onlyBarberId ||
-      form.state.values.barbershopMemberId === onlyBarberId
+      currentId &&
+      availableBarbers &&
+      !availableBarbers.some((b) => b?._id === currentId)
     ) {
-      return;
+      form.setFieldValue("barbershopMemberId", undefined, {
+        dontUpdateMeta: true,
+      });
+      setSelectedSlotTime(undefined);
     }
-    form.setFieldValue("barbershopMemberId", onlyBarberId, {
-      dontUpdateMeta: true,
-    });
-    setSelectedSlotTime(undefined);
   }, [availableBarbers, form]);
 
   const effectiveService = services.find((s) => s._id === effectiveServiceId);
@@ -461,6 +481,27 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
         >
           Contacto
         </h2>
+        {!hasResolvedName && (
+          <form.AppField name="customerName">
+            {(field) => {
+              const isInvalid = field.state.meta.errors.length > 0;
+
+              return (
+                <Field data-invalid={isInvalid}>
+                  <FieldLabel htmlFor={formIds.customerName}>Nombre</FieldLabel>
+                  <Input
+                    id={formIds.customerName}
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    placeholder="Tu nombre completo"
+                    aria-invalid={isInvalid}
+                  />
+                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                </Field>
+              );
+            }}
+          </form.AppField>
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
           <form.AppField name="contactPhone">
             {(field) => {

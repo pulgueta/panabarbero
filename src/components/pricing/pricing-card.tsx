@@ -56,7 +56,7 @@ export const PricingCard: FC<PricingCardProps> = ({
     false;
 
   return (
-    <Card className="flex min-h-115 flex-col">
+    <Card className="flex h-full max-h-none min-h-115 flex-col">
       <CardHeader>
         <CardTitle>{product?.name}</CardTitle>
         {product?.description ? (
@@ -66,11 +66,11 @@ export const PricingCard: FC<PricingCardProps> = ({
       <CardContent className="flex flex-1 flex-col gap-4">
         <div className="flex items-end gap-2">
           <span className="font-semibold text-3xl">
-            {formatCurrency((copPrices?.priceAmount ?? 0) / 100)}
+            {(copPrices?.priceAmount ?? 0) === 0
+              ? "Gratis"
+              : formatCurrency((copPrices?.priceAmount ?? 0) / 100)}
           </span>
-          {product?.isRecurring &&
-            copPrices?.priceAmount &&
-            copPrices.priceAmount > 0 && (
+          {product?.isRecurring && (copPrices?.priceAmount ?? 0) > 0 && (
               <span className="text-muted-foreground text-sm">
                 {product?.recurringInterval === "year" ? "Anual" : "Mensual"}
               </span>

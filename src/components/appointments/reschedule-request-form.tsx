@@ -28,7 +28,6 @@ import {
   useAppointmentActions,
   useAppointmentFormMetadata,
 } from "@/hooks/use-appointments";
-import { useSession } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 import { validateAppointmentTime } from "@/lib/schedule-utils";
 import { rescheduleRequestFormSchema } from "@/lib/schemas";
@@ -84,7 +83,6 @@ export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
 
   const haptic = useWebHaptics();
 
-  const { data: session } = useSession();
   const { disableDay, scheduleForDate } = useAppointmentFormMetadata(
     appointment.barbershopId,
   );
@@ -123,7 +121,6 @@ export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
         await rescheduleRequest({
           appointmentId: { id: appointment._id },
           proposedDate: timestamp,
-          requestedByUserId: session?.id ?? "",
         });
 
         haptic.trigger("success");
@@ -238,9 +235,12 @@ export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
                       id={timeId}
                       suppressHydrationWarning
                       value={timeInputValue(field.state.value)}
+                      disabled={field.state.value === undefined}
                       onChange={(e) => {
                         const time = e.target.value;
-                        if (!time) return;
+                        // Ignore time edits until a day is chosen, otherwise
+                        // combineDateAndTimeMs would silently assign today.
+                        if (!time || field.state.value === undefined) return;
                         field.handleChange(
                           combineDateAndTimeMs(field.state.value, time),
                         );
