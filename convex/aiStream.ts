@@ -174,10 +174,17 @@ Hechos:`,
       const cleaned = text.trim();
       if (!cleaned || cleaned.toUpperCase().startsWith("NADA")) return;
 
+      // Defense in depth: never persist contact identifiers (emails, phone-like
+      // digit runs, UUIDs) to durable memory, even if the model ignores the
+      // prompt or the exchange was crafted to inject them.
+      const sensitivePattern =
+        /[\w.+-]+@[\w.-]+\.\w+|(?:\D*\d){7,}|\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i;
+
       const facts = cleaned
         .split("\n")
         .map((l) => l.replace(/^[-•*\d.)\s]+/, "").trim())
-        .filter((l) => l.length > 3)
+        .filter((l) => l.length > 3 && l.length <= 240)
+        .filter((l) => !sensitivePattern.test(l))
         .slice(0, 3);
 
       for (const fact of facts) {
