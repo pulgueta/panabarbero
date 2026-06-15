@@ -14,6 +14,7 @@ import type * as aiAgent from "../aiAgent.js";
 import type * as aiAgentHelpers from "../aiAgentHelpers.js";
 import type * as aiAgentTools from "../aiAgentTools.js";
 import type * as aiChat from "../aiChat.js";
+import type * as aiRag from "../aiRag.js";
 import type * as aiStream from "../aiStream.js";
 import type * as analytics from "../analytics.js";
 import type * as appointments from "../appointments.js";
@@ -63,6 +64,7 @@ declare const fullApi: ApiFromModules<{
   aiAgentHelpers: typeof aiAgentHelpers;
   aiAgentTools: typeof aiAgentTools;
   aiChat: typeof aiChat;
+  aiRag: typeof aiRag;
   aiStream: typeof aiStream;
   analytics: typeof analytics;
   appointments: typeof appointments;
@@ -136,6 +138,7 @@ export declare const components: {
   posthog: import("@posthog/convex/_generated/component.js").ComponentApi<"posthog">;
   unreadTracking: import("convex-unread-tracking/_generated/component.js").ComponentApi<"unreadTracking">;
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
+  rag: import("@convex-dev/rag/_generated/component.js").ComponentApi<"rag">;
   geospatial: import("@convex-dev/geospatial/_generated/component.js").ComponentApi<"geospatial">;
   aggregateCompletedAppointments: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateCompletedAppointments">;
   aggregateSmsSent: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateSmsSent">;

@@ -17,7 +17,8 @@ import {
   ToolInput,
   ToolOutput,
 } from "@/components/ui/ai/tool";
-import { type Proposal, ProposalCard, proposalSchema } from "./proposal-card";
+import type { Proposal } from "./proposal-card";
+import { ProposalCard, proposalSchema } from "./proposal-card";
 
 const THINKING_PHRASES = [
   "Pensando…",
@@ -41,8 +42,14 @@ function pickThinkingPhrase(seed: string): string {
 interface MessageItemProps {
   message: UIMessage;
   isStreaming?: boolean;
-  onConfirm: (proposal: Proposal) => void;
-  onReject: () => void;
+  /**
+   * Whether this is the last message in the thread. A proposal card only shows
+   * its buttons while it's the last message — once any message follows it (the
+   * confirmation, rejection, or a new turn), the decision is already made.
+   */
+  isLastMessage: boolean;
+  onConfirm: (proposal: Proposal) => Promise<void>;
+  onReject: () => Promise<void>;
 }
 
 const MessageTextPart = memo(function MessageTextPart({
@@ -99,6 +106,7 @@ function ToolOutputContent({ part }: { part: ToolUIPart }): ReactNode {
 export function MessageItem({
   message,
   isStreaming = false,
+  isLastMessage,
   onConfirm,
   onReject,
 }: MessageItemProps) {
@@ -161,6 +169,7 @@ export function MessageItem({
                 )}
                 {proposal && (
                   <ProposalCard
+                    isActive={isLastMessage}
                     onConfirm={onConfirm}
                     onReject={onReject}
                     proposal={proposal}

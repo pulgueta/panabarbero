@@ -39,6 +39,54 @@ function formatRolesEs(roles: ShopRole[]): string {
   return `${labels.slice(0, -1).join(", ")} y ${labels[labels.length - 1]}`;
 }
 
+/** Colombia-local `YYYY-MM-DD` (weekday) for `today + days`. */
+function colombiaDayOffset(
+  nowMs: number,
+  days: number,
+): { key: string; weekday: string } {
+  const shifted = new Date(nowMs + COLOMBIA_OFFSET_MS);
+  shifted.setUTCDate(shifted.getUTCDate() + days);
+  const y = shifted.getUTCFullYear();
+  const m = String(shifted.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(shifted.getUTCDate()).padStart(2, "0");
+  return { key: `${y}-${m}-${d}`, weekday: WEEKDAYS_ES[shifted.getUTCDay()] };
+}
+
+/**
+ * Pre-computes the relative dates the model would otherwise have to reason about
+ * (and gets wrong on a small/fast model): today, tomorrow, each upcoming
+ * weekday, next week, the weekend. The agent just reads the right row instead of
+ * doing calendar math or — worse — asking the user to confirm a derivable date.
+ */
+function buildRelativeDateGuide(nowMs: number): string {
+  const shifted = new Date(nowMs + COLOMBIA_OFFSET_MS);
+  const todayDow = shifted.getUTCDay();
+
+  const fmt = (days: number) => {
+    const { key, weekday } = colombiaDayOffset(nowMs, days);
+    return `${key} (${weekday})`;
+  };
+
+  // Next occurrence of each weekday, strictly after today (0 → +7, never today).
+  const nextWeekday = (targetDow: number) => {
+    const ahead = (targetDow - todayDow + 7) % 7 || 7;
+    return fmt(ahead);
+  };
+
+  const saturday = nextWeekday(6);
+  const sunday = nextWeekday(0);
+
+  return `Fechas relativas YA CALCULADAS (hora Colombia) — pásalas tal cual a las herramientas; NO las recalcules ni le pidas al usuario que confirme un día que está aquí:
+- hoy = ${fmt(0)}
+- mañana = ${fmt(1)}
+- pasado mañana = ${fmt(2)}
+- en una semana / la otra semana / la semana que viene = ${fmt(7)}
+- en dos semanas = ${fmt(14)}
+- este fin de semana = ${saturday} y ${sunday}
+- próximo lunes = ${nextWeekday(1)} · próximo martes = ${nextWeekday(2)} · próximo miércoles = ${nextWeekday(3)} · próximo jueves = ${nextWeekday(4)} · próximo viernes = ${nextWeekday(5)} · próximo sábado = ${saturday} · próximo domingo = ${sunday}
+Si el usuario solo nombra la semana ("la otra semana") sin un día, no preguntes el día a secas: ofrécele los días de esa semana en que la barbería abre y deja que elija.`;
+}
+
 /** Static agent persona and rules — does not change per request. */
 const PAN_AGENT_INSTRUCTIONS_STATIC = `Eres "Pana", el asistente virtual de PanaBarbero — la plataforma colombiana pa' descubrir barberías, ver disponibilidad, reservar citas y gestionar una barbería. Vives dentro del chat de la app y atiendes a quien te escriba, como un parcero que se sabe la plataforma de memoria.
 
@@ -69,6 +117,7 @@ Eres autónomo. Tu meta es llegar a la tarjeta de confirmación con la MENOR fri
 - "Con cualquier barbero" / "el que esté libre" = elige tú el primer barbero con cupo; no preguntes cuál.
 - Una sola confirmación: la TARJETA. No pidas "¿confirmo?" en texto ni antes ni después de preparar la acción. Prepárala y deja que el usuario apruebe en la tarjeta.
 - Solo pregunta cuando de verdad falta un dato que no puedes deducir: qué servicio (si hay varios y no lo dijo), el nombre y celular del cliente cuando reservas POR otra persona, o la hora cuando es vaga ("por la tarde") — y aun así, mejor consulta la disponibilidad y ofrécele los cupos que encajan en vez de interrogar. Pide lo que falte UNA vez, claro y junto.
+- NO PIERDAS el hilo: recuerda siempre la petición original (qué quiere, dónde, qué servicio, qué día). Cuando pidas un dato intermedio (la hora, el celular) y el usuario te lo dé, RETOMA esa misma petición y termínala —no la reinicies ni cambies de tema—. Si el usuario solo responde con un dato suelto ("22", "a las 3", "sí"), interprétalo en el contexto de lo último que le propusiste.
 
 # Cómo trabajas — herramientas y datos
 NUNCA inventes información. Cada dato que des —barberías, precios, horarios, barberos, citas, cupos, reseñas— sale de una herramienta. Si no lo consultaste, no lo sabes y no lo afirmas.
@@ -233,7 +282,8 @@ export function buildPanaSystemPrompt({
   const mm = String(shifted.getUTCMinutes()).padStart(2, "0");
 
   const dateBlock = `Fecha y hora local en Colombia: ${weekday}, ${dateKey}, ${hh}:${mm}
-Zona horaria: America/Bogota (UTC-5)`;
+Zona horaria: America/Bogota (UTC-5)
+${buildRelativeDateGuide(nowMs)}`;
 
   let sessionBlock: string;
   if (isAnon) {

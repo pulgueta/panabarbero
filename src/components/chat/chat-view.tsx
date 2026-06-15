@@ -141,10 +141,27 @@ export function ChatView({ threadId }: ChatViewProps) {
             ? error.message
             : "No se pudo completar la acción.",
         );
+        // Re-throw so the card resets its in-flight state and keeps the buttons.
+        throw error;
       }
     },
     [handleConfirm],
   );
+
+  const handleRejectWithToast = useCallback(async () => {
+    try {
+      await handleReject();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "No se pudo cancelar la acción.",
+      );
+      throw error;
+    }
+  }, [handleReject]);
+
+  const lastMessageKey = results.at(-1)?.key;
 
   return (
     <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col">
@@ -187,6 +204,7 @@ export function ChatView({ threadId }: ChatViewProps) {
             {results.length ? (
               results.map((message) => (
                 <MessageItem
+                  isLastMessage={message.key === lastMessageKey}
                   isStreaming={
                     message.role === "assistant" &&
                     message.status === "streaming"
@@ -194,7 +212,7 @@ export function ChatView({ threadId }: ChatViewProps) {
                   key={message.key}
                   message={message}
                   onConfirm={handleConfirmWithToast}
-                  onReject={handleReject}
+                  onReject={handleRejectWithToast}
                 />
               ))
             ) : (

@@ -66,6 +66,11 @@ export const create = zMutation({
       }
     }
 
+    // Refresh the shop's Pana knowledge base (no-op unless on the premium plan).
+    await ctx.scheduler.runAfter(0, internal.aiRag.reindexShopKnowledge, {
+      barbershopId: args.barbershopId,
+    });
+
     return serviceId;
   },
 });
@@ -103,6 +108,10 @@ export const update = zMutation({
     await assertCanManageTeam(ctx, args.data.barbershopId, userId);
 
     await ctx.db.patch(args.id, args.data);
+
+    await ctx.scheduler.runAfter(0, internal.aiRag.reindexShopKnowledge, {
+      barbershopId: args.data.barbershopId,
+    });
   },
 });
 
@@ -202,6 +211,10 @@ export const deleteService = zMutation({
       ...assignments.map((assignment) => ctx.db.delete(assignment._id)),
       ctx.db.delete(args.service.id),
     ]);
+
+    await ctx.scheduler.runAfter(0, internal.aiRag.reindexShopKnowledge, {
+      barbershopId: args.barbershop.id,
+    });
   },
 });
 

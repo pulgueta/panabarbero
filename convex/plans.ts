@@ -61,6 +61,16 @@ export interface PlanLimits {
   staffCanCreateAppointments: boolean;
   /** Whether shop members can manage their barbershop through the Pana chat. */
   panaManagement: boolean;
+  /**
+   * Whether Pana keeps a per-user memory (RAG): it learns durable facts from
+   * past conversations and recalls them in future chats. Paid plans only.
+   */
+  panaMemory: boolean;
+  /**
+   * Whether Pana can ground answers in the barbershop's own knowledge base
+   * (services, hours, policies) via RAG. Highest tier only.
+   */
+  panaKnowledgeBase: boolean;
 }
 
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
@@ -71,6 +81,8 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxEmailPerMonth: 50,
     staffCanCreateAppointments: false,
     panaManagement: false,
+    panaMemory: false,
+    panaKnowledgeBase: false,
   },
   pro: {
     maxInvitedBarbers: 5,
@@ -79,6 +91,8 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxEmailPerMonth: 500,
     staffCanCreateAppointments: true,
     panaManagement: true,
+    panaMemory: true,
+    panaKnowledgeBase: false,
   },
   premium: {
     maxInvitedBarbers: 10,
@@ -87,6 +101,8 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxEmailPerMonth: 1500,
     staffCanCreateAppointments: true,
     panaManagement: true,
+    panaMemory: true,
+    panaKnowledgeBase: true,
   },
 };
 

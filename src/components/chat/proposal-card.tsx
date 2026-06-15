@@ -1,4 +1,4 @@
-import { CheckIcon, XIcon } from "@phosphor-icons/react";
+import { CheckIcon, SpinnerIcon, XIcon } from "@phosphor-icons/react";
 import { useCallback, useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -27,25 +27,45 @@ export type Proposal = z.infer<typeof proposalSchema>;
 
 interface ProposalCardProps {
   proposal: Proposal;
-  onConfirm: (proposal: Proposal) => void;
-  onReject: () => void;
+  /**
+   * Whether this proposal is still awaiting a decision. A proposal is "decided"
+   * the moment any message follows it — confirming appends the confirmation
+   * message, rejecting appends the rejection, and either way the buttons go
+   * away. The decision lives in the conversation itself, so it survives reloads
+   * without any extra state.
+   */
+  isActive: boolean;
+  onConfirm: (proposal: Proposal) => Promise<void>;
+  onReject: () => Promise<void>;
 }
 
 export function ProposalCard({
   proposal,
+  isActive,
   onConfirm,
   onReject,
 }: ProposalCardProps) {
-  const [decided, setDecided] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleConfirm = useCallback(() => {
-    setDecided(true);
-    onConfirm(proposal);
+  const handleConfirm = useCallback(async () => {
+    setSubmitting(true);
+    try {
+      // On success the action appends its confirmation message, so this card
+      // stops being the last message and the buttons disappear on their own.
+      // On failure the parent toasts and we re-enable the buttons for a retry.
+      await onConfirm(proposal);
+    } catch {
+      setSubmitting(false);
+    }
   }, [proposal, onConfirm]);
 
-  const handleReject = useCallback(() => {
-    setDecided(true);
-    onReject();
+  const handleReject = useCallback(async () => {
+    setSubmitting(true);
+    try {
+      await onReject();
+    } catch {
+      setSubmitting(false);
+    }
   }, [onReject]);
 
   return (
@@ -53,10 +73,11 @@ export function ProposalCard({
       <AlertDescription className="text-sm leading-relaxed">
         {proposal.summary}
       </AlertDescription>
-      {!decided && (
+      {isActive && (
         <div className="flex items-center justify-end gap-2">
           <Button
             className="h-8"
+            disabled={submitting}
             onClick={handleReject}
             size="sm"
             variant="outline"
@@ -64,8 +85,17 @@ export function ProposalCard({
             <XIcon className="size-3.5" />
             Cancelar
           </Button>
-          <Button className="h-8" onClick={handleConfirm} size="sm">
-            <CheckIcon className="size-3.5" />
+          <Button
+            className="h-8"
+            disabled={submitting}
+            onClick={handleConfirm}
+            size="sm"
+          >
+            {submitting ? (
+              <SpinnerIcon className="size-3.5 animate-spin" />
+            ) : (
+              <CheckIcon className="size-3.5" />
+            )}
             Confirmar
           </Button>
         </div>

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { zInternalAction } from ".";
 import { components, internal } from "./_generated/api";
 import { buildPanaSystemPrompt, PANA_MODEL_ID, panaAgent } from "./aiAgent";
+import { rag, retrievePanaContext, userMemoryNamespace } from "./aiRag";
 import { trackException } from "./analytics";
 import { aiTelemetry } from "./tracing";
 
@@ -67,8 +68,10 @@ export const streamResponse = zInternalAction({
     threadId: z.string(),
     promptMessageId: z.string(),
     callerId: z.string(),
+    /** The user's latest message text — RAG query + distillation source. */
+    prompt: z.string().optional(),
   }),
-  handler: async (ctx, { threadId, promptMessageId, callerId }) => {
+  handler: async (ctx, { threadId, promptMessageId, callerId, prompt }) => {
     const isAnon = callerId.startsWith(ANON_PREFIX);
     const [profile, management, member] = isAnon
       ? [null, null, null]
@@ -84,13 +87,27 @@ export const streamResponse = zInternalAction({
           }),
         ]);
 
-    const system = buildPanaSystemPrompt({
-      profile,
-      isAnon,
-      nowMs: Date.now(),
-      management,
-      member,
-    });
+    // Paid plans only: pull the caller's remembered facts (and, on premium,
+    // their shop's knowledge base) and append them to the system prompt.
+    const ragContext =
+      management && prompt
+        ? await retrievePanaContext(ctx, {
+            userId: callerId,
+            query: prompt,
+            barbershopId: management.barbershopId,
+            memory: management.panaMemory,
+            knowledgeBase: management.panaKnowledgeBase,
+          })
+        : "";
+
+    const system =
+      buildPanaSystemPrompt({
+        profile,
+        isAnon,
+        nowMs: Date.now(),
+        management,
+        member,
+      }) + ragContext;
 
     const result = await panaAgent.streamText(
       ctx,
@@ -107,5 +124,70 @@ export const streamResponse = zInternalAction({
       { saveStreamDeltas: { chunking: "word", throttleMs: 100 } },
     );
     await result.consumeStream();
+
+    // Learn from the exchange (paid plans). Best-effort, in the background.
+    if (management?.panaMemory && prompt) {
+      let assistantText = "";
+      try {
+        assistantText = await result.text;
+      } catch {
+        assistantText = "";
+      }
+      if (assistantText.trim()) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.aiStream.distillAndRememberTurn,
+          { userId: callerId, userText: prompt, assistantText },
+        );
+      }
+    }
+  },
+});
+
+/**
+ * Extracts 0–3 durable, user-specific facts from one chat exchange and stores
+ * them in the user's RAG memory namespace so future chats can recall them.
+ * Runs after the response streams (paid plans only). Best-effort: any failure
+ * is swallowed so it never affects the conversation. Node runtime because it
+ * calls the gateway model (like `generateThreadTitle`).
+ */
+export const distillAndRememberTurn = zInternalAction({
+  args: z.object({
+    userId: z.string(),
+    userText: z.string(),
+    assistantText: z.string(),
+  }),
+  handler: async (ctx, { userId, userText, assistantText }) => {
+    try {
+      const { text } = await generateText({
+        model: gateway(PANA_MODEL_ID),
+        prompt: `Eres la memoria de "Pana", asistente de una app de barberías. Del siguiente intercambio, extrae HECHOS DURADEROS y útiles sobre el usuario que valga la pena recordar para futuras conversaciones: sus preferencias (barbero, servicio u horario habitual), su barbería y rol, decisiones o ajustes que hizo. NO incluyas datos efímeros (una fecha puntual ya resuelta), ni cosas obvias, ni información sensible (teléfonos, correos). Si no hay nada que valga la pena, responde EXACTAMENTE "NADA".
+
+Devuelve de 0 a 3 hechos, uno por línea, en español, en tercera persona, concisos. Sin viñetas ni numeración.
+
+Usuario: ${userText}
+Pana: ${assistantText}
+
+Hechos:`,
+      });
+
+      const cleaned = text.trim();
+      if (!cleaned || cleaned.toUpperCase().startsWith("NADA")) return;
+
+      const facts = cleaned
+        .split("\n")
+        .map((l) => l.replace(/^[-•*\d.)\s]+/, "").trim())
+        .filter((l) => l.length > 3)
+        .slice(0, 3);
+
+      for (const fact of facts) {
+        await rag.add(ctx, {
+          namespace: userMemoryNamespace(userId),
+          text: fact,
+        });
+      }
+    } catch (e) {
+      trackException(ctx, e, `distill:${userId}`);
+    }
   },
 });
