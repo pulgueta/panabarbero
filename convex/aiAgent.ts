@@ -67,14 +67,21 @@ function buildRelativeDateGuide(nowMs: number): string {
     return `${key} (${weekday})`;
   };
 
-  // Next occurrence of each weekday, strictly after today (0 → +7, never today).
-  const nextWeekday = (targetDow: number) => {
-    const ahead = (targetDow - todayDow + 7) % 7 || 7;
-    return fmt(ahead);
+  // Days until the next `targetDow`. Strict (default) skips today (1..7);
+  // non-strict returns 0 when today already is that weekday.
+  const daysUntil = (targetDow: number, strict = true) => {
+    const ahead = (targetDow - todayDow + 7) % 7;
+    return ahead === 0 && strict ? 7 : ahead;
   };
-
-  const saturday = nextWeekday(6);
-  const sunday = nextWeekday(0);
+  // "Próximo <día>" = strictly the next one (today never counts).
+  const nextWeekday = (targetDow: number) => fmt(daysUntil(targetDow));
+  // "Este fin de semana" must include today when today already is the weekend:
+  // Saturday → today + tomorrow, Sunday → today, otherwise the upcoming Sat & Sun.
+  // (Using nextWeekday here pointed Sat/Sun requests at the *following* weekend.)
+  const thisWeekend =
+    todayDow === 0
+      ? fmt(0)
+      : `${fmt(daysUntil(6, false))} y ${fmt(daysUntil(0, false))}`;
 
   return `Fechas relativas YA CALCULADAS (hora Colombia) — pásalas tal cual a las herramientas; NO las recalcules ni le pidas al usuario que confirme un día que está aquí:
 - hoy = ${fmt(0)}
@@ -82,8 +89,8 @@ function buildRelativeDateGuide(nowMs: number): string {
 - pasado mañana = ${fmt(2)}
 - en una semana / la otra semana / la semana que viene = ${fmt(7)}
 - en dos semanas = ${fmt(14)}
-- este fin de semana = ${saturday} y ${sunday}
-- próximo lunes = ${nextWeekday(1)} · próximo martes = ${nextWeekday(2)} · próximo miércoles = ${nextWeekday(3)} · próximo jueves = ${nextWeekday(4)} · próximo viernes = ${nextWeekday(5)} · próximo sábado = ${saturday} · próximo domingo = ${sunday}
+- este fin de semana = ${thisWeekend}
+- próximo lunes = ${nextWeekday(1)} · próximo martes = ${nextWeekday(2)} · próximo miércoles = ${nextWeekday(3)} · próximo jueves = ${nextWeekday(4)} · próximo viernes = ${nextWeekday(5)} · próximo sábado = ${nextWeekday(6)} · próximo domingo = ${nextWeekday(0)}
 Si el usuario solo nombra la semana ("la otra semana") sin un día, no preguntes el día a secas: ofrécele los días de esa semana en que la barbería abre y deja que elija.`;
 }
 
