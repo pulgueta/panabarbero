@@ -29,7 +29,8 @@
     "next/router.d.ts",
     "next/dist/client/router.d.ts"
   ],
-  "typescript.tsdk": "node_modules/typescript/lib",
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
+  "typescript.native-preview.tsdk": "node_modules/@typescript/native-preview",
   "[json]": {
     "editor.defaultFormatter": "biomejs.biome"
   },

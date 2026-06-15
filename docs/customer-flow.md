@@ -1,283 +1,171 @@
-# Customer Flow - Smoke Tests
+# Customer Flow — Smoke Tests
 
-## Customer/End-User Appointment & Discovery Flows
+Discovery, booking, reschedule and review flows for **end users with no
+barbershop membership** ("customers"). Customers are plain authenticated users —
+there is **no `customer` role**. See `user-flow.md` for the shared auth/profile
+flows this builds on.
 
-### 1. **Browse Barbershops Flow**
+> **Ground truth corrections vs. older drafts:**
+> - The booking route is **`/barbershops/$barbershopUuid/book`**, not
+>   `/appointments/create` (that route does not exist).
+> - Booking **requires sign-in to submit**. The route is public, but the
+>   "Confirmar cita" button is disabled while logged out and shows _"Para
+>   reservar una cita, debes iniciar sesión."_ There is no anonymous booking
+>   path through the UI.
+> - New appointments are created with status **`confirmed`**, not `pending`.
+> - The **review system is schema-only and not wired to the UI yet** — see §11.
 
-- Navigate to barbershops listing page (`/barbershops`)
-- View available barbershops with grid/list layout
-- Search barbershops by name using search bar
-- Filter by city/state location
-- View barbershop preview (name, address, rating)
-- See number of reviews and average rating
-- Pagination works when many barbershops exist
-- Loading state shows while fetching
-- No barbershops message when none exist
+---
 
-### 2. **View Barbershop Details**
+## Customer Discovery & Appointment Flows
 
-- Navigate to specific barbershop page (`/barbershops/:uuid`)
-- View barbershop header with banner image
-- View barbershop name and full address
-- View contact phone number
-- View barbershop description
-- View business hours for each day
-- View lunch break times (if configured)
-- View all available services with prices and durations
-- View all barbers working at the barbershop
-- View each barber's name and assigned services
-- View social media links (Instagram, Facebook, TikTok, Twitter, YouTube)
-- View website link (if available)
-- View all customer reviews and ratings
-- See review breakdown by stars
-- See average rating
+### 1. Browse Barbershops (`/barbershops`)
 
-### 3. **Create Appointment Flow (Unauthenticated)**
+- Navigate to the barbershops listing page
+- View available barbershops (grid/list)
+- Search by name; filter by city/state location
+- View preview (name, address, rating, review count)
+- Loading skeleton while fetching; empty state when none match
 
-- Navigate to create appointment page (`/appointments/create`)
-- If not logged in, prompted to login or signup
-- Login/signup with email and password
-- Return to create appointment flow
-- Continue with authenticated flow
+### 2. View Barbershop Details (`/barbershops/$barbershopUuid`)
 
-### 4. **Create Appointment Flow (Authenticated)**
+- Banner image, name, full address, contact phone, description
+- Business hours per day (including lunch breaks where configured)
+- Services with prices and durations
+- Barbers working at the shop and the services each one offers
+- Social links (Instagram, Facebook, TikTok, Twitter/X, YouTube) and website
+- Reviews and aggregate rating (when present — see §11)
+- A CTA to start booking (`/barbershops/$barbershopUuid/book`)
 
-- Navigate to create appointment page (`/appointments/create`)
-- **Step 1: Select Barbershop**
-  - Choose from list or search barbershop
-  - View selected barbershop details
-  - Can change selection
-- **Step 2: Select Barber**
-  - View all available barbers at selected barbershop
-  - See barber name and services offered
-  - Select barber
-  - Can change selection
-- **Step 3: Select Service**
-  - View services offered by selected barber
-  - See service name, price, and duration
-  - Select service
-  - Can change selection
-- **Step 4: Choose Date & Time**
-  - Calendar view shows available dates
-  - Unavailable dates are grayed out
-  - Click date to see available time slots
-  - Available times respect:
-    - Barbershop opening hours
-    - Barbershop closing hours
-    - Lunch break times
-    - Grace period between appointments
-    - Service duration
-  - Select available time slot
-  - Can change date/time
-- **Step 5: Enter Customer Info**
-  - Enter customer name (pre-filled with profile name if available)
-  - Enter contact phone (pre-filled if available)
-  - Enter contact email (optional)
-  - Add appointment notes (optional)
-  - View appointment summary
-- **Confirmation:**
-  - Successfully create appointment
-  - See confirmation message
-  - View appointment details (barber, service, date, time, location)
-  - Receive confirmation email
-  - Receive confirmation SMS (if SMS enabled and phone provided)
+### 3. Start Booking (`/barbershops/$barbershopUuid/book`)
 
-### 5. **Create Appointment - Error Scenarios**
+Route: `src/routes/barbershops/$barbershopUuid/book.tsx` →
+`CustomerBookingForm` (`src/components/appointments/customer-booking-form.tsx`).
 
-- **Validation Errors:**
-  - Empty customer name — see error
-  - Invalid phone number — see error
-  - Invalid email format — see error
-- **Availability Errors:**
-  - Selected time no longer available — see error
-  - Date in the past — disabled/error
-  - Barbershop is closed on selected date — see error
-- **Business Rule Errors:**
-  - Appointment would overlap with lunch break — see error
-  - Service duration doesn't fit before closing — see error
+- The route is **public** and loads services, barbers and availability for SSR
+- If **not signed in**: the form renders, but "Confirmar cita" is disabled and
+  the helper text reads _"Debes iniciar sesión para poder reservar."_
+- If **signed in**: the user's profile pre-fills name/phone/email
 
-### 6. **View My Appointments**
+### 4. Booking Form Steps (single page, top-to-bottom)
 
-- Navigate to profile page (`/profile`)
-- Click on "Appointments" tab
-- View list of all personal appointments
-- See appointment status (pending, confirmed, completed, cancelled, rescheduled, no-show)
-- See appointment details (barbershop, barber, service, date, time)
-- Filter/sort appointments by status
-- Separate upcoming and past appointments (tabs or visual indicator)
-- Click on appointment to view full details
+- **Select service** — dropdown of shop services with price + duration; this
+  filters which barbers are available
+- **Select barber** — only barbers who offer the chosen service; auto-selected
+  when only one qualifies
+- **Contact info** — name (pre-filled from profile), phone (required,
+  pre-filled, overridable), email (optional, pre-filled, overridable)
+- **Date & time** — calendar (past dates and closed days disabled) + time-slot
+  picker in 30-min intervals
+- **Notes** — optional note for the barber
+- **Summary & confirm** — review then submit "Confirmar cita"
 
-### 7. **View Appointment Details**
+On submit, `convex/appointments.ts` `create` validates server-side:
+- Service and barber exist and belong to the shop
+- Day is active in the shop's availability
+- Slot is within opening/closing hours
+- Slot does **not** overlap the lunch break
+- Slot does **not** overlap an existing `pending`/`confirmed`/`rescheduled`
+  appointment for that barber
+- Created appointment status is **`confirmed`**
+- Two scheduler tasks are queued: a reminder **30 min before** and a
+  "leave a review" prompt **30 min after**
 
-- Click on an appointment to expand/view details
-- See full appointment information:
-  - Barbershop name and address
-  - Barber name
-  - Service name and price
-  - Date and time
-  - Appointment status
-  - Notes (if any)
-  - Grace period information
-- See available actions based on status:
-  - Pending appointment: Cancel, Request Reschedule
-  - Confirmed appointment: Cancel, Request Reschedule
-  - Cancelled appointment: No actions
-  - Completed appointment: Leave Review (if not reviewed)
-  - Rescheduled appointment: View new date/time, Accept/Decline reschedule
+### 5. Booking — Error Scenarios
 
-### 8. **Cancel Appointment Flow**
+- **Validation:** empty/invalid name, phone, or email surface inline errors
+- **Availability:** a slot taken between load and submit → Convex error toast;
+  past dates and closed days are disabled in the picker
+- **Business rules:** overlap with lunch break or another appointment is rejected
+  server-side with a `ConvexError` surfaced via `getConvexErrorMessage`
 
-- Open an appointment (pending or confirmed)
-- Click "Cancel Appointment" button
-- Confirmation dialog appears asking to confirm
-- See cancellation reason (optional)
-- Confirm cancellation
-- Appointment status changes to "cancelled"
-- Receive cancellation confirmation email
-- Receive cancellation SMS (if SMS enabled)
-- Cannot cancel already cancelled appointment
+### 6. View My Appointments (`/profile?tab=appointments`)
 
-### 9. **Request Appointment Reschedule Flow**
+`AppointmentsTab` (`src/components/profile/appointments-tab.tsx`), rendered only
+for users with **no membership**.
 
-- Open an upcoming appointment (pending or confirmed)
-- Click "Request Reschedule" button
-- See reschedule request form
-- **Select New Date & Time:**
-  - Calendar shows available dates
-  - Select new date
-  - Select new time
-  - Available times respect barbershop hours and schedule
-  - Time must be at least X hours in future (if configured)
-- **Add Optional Notes:**
-  - Enter reason for reschedule (optional)
-  - Add message to barber (optional)
-- **Submit Request:**
-  - Submit reschedule request
-  - See "Reschedule Requested" status
-  - Receive email confirmation of request sent
-  - Barber receives notification of reschedule request
+- Appointments shown as `AppointmentCard`s in a paginated grid (9 per page,
+  cursor-based Next/Previous)
+- Each card shows: barbershop name, date/time, service, and a status badge
+- Status values (exact, from schema): `pending`, `confirmed`, `cancelled`,
+  `completed`, `no-show`, `rescheduled`, `denied`
+- Status labels (`src/lib/appointment-utils.ts`): Pendiente, Confirmada,
+  Cancelada, Completada, No asistió, Reagendada, Denegada
 
-### 10. **Respond to Reschedule Response Flow**
+### 7. Appointment Card Actions (by state)
 
-- View appointment with pending reschedule response
-- If barber **approved reschedule:**
-  - See new date/time in appointment
-  - Button to accept reschedule proposal
-  - Click "Accept" to confirm new time
-  - Appointment updated with new date/time
-  - Receive confirmation of accepted reschedule
-  - Original appointment slot becomes available
-- If barber **proposed different time:**
-  - See proposed new date/time
-  - Button to accept proposal
-  - Button to decline and request new time
-  - Accept: appointment updated to proposed time
-  - Decline: reschedule flow restarts
+`src/components/appointments/appointment-card.tsx`:
 
-### 11. **Leave Review Flow**
+- **Upcoming & not completed/cancelled/denied** → "Reagendar" (request reschedule)
+- **Has a pending `proposedDate`** → "Ver solicitud" (respond to a reschedule)
+- **Completed / cancelled / denied, or in the past** → "Eliminar" (soft-delete
+  the card; sets `deletedAt`)
+- A `confirmed` appointment can be cancelled via the cancel dialog
+  (`cancel-appointment-dialog.tsx`)
 
-- Navigate to profile page (`/profile`)
-- View completed appointments
-- Find appointment without review
-- Click "Leave Review" button
-- **Review Form:**
-  - Select rating (1-5 stars)
-  - Enter optional review comment
-  - Confirm review submission
-- **After Submission:**
-  - See "Review Posted" confirmation
-  - Review appears on barbershop profile
-  - Review visible in customer's profile
+### 8. Cancel Appointment
 
-### 12. **View Barbershop Reviews**
+- Open a `pending` or `confirmed` appointment → cancel dialog
+- Optional cancellation reason (stored in notes)
+- `convex/appointments.ts` `cancel` sets status `cancelled`, frees the slot,
+  cancels scheduled notifications, and notifies the other party (email/SMS/in-app
+  per preferences)
 
-- Navigate to barbershop detail page (`/barbershops/:uuid`)
-- Scroll to reviews section
-- See all customer reviews with:
-  - Customer name/anonymous
-  - Star rating (1-5)
-  - Review comment
-  - Review date
-- See rating breakdown (count by stars)
-- See average rating
-- See total number of reviews
-- Reviews sorted by most recent
-- Pagination if many reviews
+### 9. Request a Reschedule
 
-### 13. **Account Settings & Preferences**
+`reschedule-request-form.tsx` → `requestReschedule`:
 
-- Navigate to profile page (`/profile`)
-- Click on "Account" tab
-- **View Profile Information:**
-  - See email address
-  - See name
-  - See phone number
-- **Update Information:**
-  - Edit name
-  - Edit phone number
-  - Cannot change email (or requires verification)
-  - Save changes
-- **Notification Preferences:**
-  - Toggle email notifications on/off
-  - Toggle SMS notifications on/off
-  - Save preferences
-- **Subscription Status:**
-  - See current subscription status (Free tier)
-  - See "Upgrade" CTA if applicable
+- Pick a new proposed date/time (same availability validation as booking)
+- Appointment status becomes **`pending`** with `proposedDate` and
+  `rescheduleRequestedByUserId` recorded
+- A reschedule-request notification is sent to the barber/shop
+- Cannot reschedule a completed/cancelled/denied appointment, an already-pending
+  one, or one in the past
 
-### 14. **Notification Scenarios**
+### 10. Respond to a Reschedule (other party proposed/decided)
 
-- **Appointment Created Email:**
-  - Sent immediately after booking
-  - Contains: barber name, service, date, time, location
-  - Includes link to appointment details
-- **Appointment Confirmed Email:**
-  - Sent when barber confirms appointment
-  - Contains updated status
-- **Reschedule Request Email:**
-  - Sent when barber proposes new time
-  - Contains original and proposed times
-  - Includes accept/decline links
-- **Cancellation Email:**
-  - Sent when appointment is cancelled
-  - Contains reason (if provided)
-- **Reminder Emails:**
-  - Pre-appointment reminder (24 hours before?)
-  - Post-appointment reminder (for review)
-- **SMS Notifications:**
-  - Same scenarios as email
-  - Sent only if SMS notifications enabled
-  - Sent only if phone number provided
+`reschedule-response-dialog.tsx` → `answerRescheduleRequest`. Only the **non-
+requester** can answer.
 
-### 15. **Search & Discovery**
+- **Accept** → appointment `date` set to `proposedDate`, status `rescheduled`,
+  notifications re-scheduled for the new time, acceptance notification sent
+- **Deny** → status `denied`, proposed fields cleared, denial notification sent;
+  the appointment keeps its original date and must be re-requested
 
-- **Search by Barbershop Name:**
-  - Type barbershop name in search
-  - See matching results
-  - Search is case-insensitive
-  - Search shows partial matches
-- **Search by Location:**
-  - Filter by city
-  - Filter by state
-  - Combined filters work together
-- **Sort & Filter:**
-  - Sort by rating
-  - Sort by most recent
-  - Filter by distance (if location enabled)
+### 11. Reviews (⚠ schema-only — not yet in the UI)
 
-### 16. **Edge Cases & Error Handling**
+- A `reviews` table exists in `convex/schema.ts`
+  (`{ uuid, rating, comment?, userId, barbershopId }`)
+- **There is currently no mutation to create a review and no review UI** in the
+  customer flow. The "leave a review" scheduler prompt exists, but the
+  submission path is not wired up.
+- Treat any "leave review" step as **aspirational** until the create-review
+  mutation and form land. Aggregate rating/review display on the barbershop
+  detail page reads from this table when populated.
 
-- **No Availability:**
-  - Barbershop fully booked — see "No Available Times" message
-  - Barber fully booked — see "Barber Not Available" message
-- **Inactive Barbershop:**
-  - Cannot create appointment at inactive barbershop
-  - See "This barbershop is currently unavailable" message
-- **Deleted Appointment:**
-  - Cannot view deleted appointment
-  - See "Appointment not found" message
-- **Expired Reschedule Request:**
-  - Reschedule expires after X days
-  - Cannot respond to expired request
-  - See "Request has expired" message
+### 12. Account Settings & Preferences
 
+See `user-flow.md` §5–6. Customers can edit name, phone, profile photo and
+email/SMS notification preferences. Email is read-only.
+
+### 13. Notification Scenarios
+
+Sent via the `usesend` email pipeline + Twilio SMS + in-app inbox, gated by the
+user's notification preferences and the shop's monthly quota
+(`convex/notifications.ts`, `convex/acl.ts`):
+
+- **Appointment created** — to customer & barber (email/SMS/in-app)
+- **Reminder** — to customer, 30 min before (scheduler)
+- **Review prompt** — 30 min after (scheduler)
+- **Cancelled** — to the opposite party, with reason if provided
+- **Reschedule request** — to the opposite party
+- **Reschedule decision (accepted/denied)** — to the opposite party
+
+Email templates live in `emails/emails/appointments/`.
+
+### 14. Edge Cases & Error Handling
+
+- **No availability:** no selectable slots for the chosen barber/day
+- **Inactive barbershop:** not bookable (shop must be `isActive`)
+- **Soft-deleted appointment:** not viewable (filtered by `deletedAt`)
+- **Stale slot:** a slot taken between load and submit is rejected server-side

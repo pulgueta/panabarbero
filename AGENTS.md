@@ -76,9 +76,15 @@ export function useThing(id: Thing["_id"]) {
 
 export function useThingActions() {
   return {
-    updateThing: useMutation({ mutationFn: useConvexMutation(api.things.update) }),
+    updateThingMutation: useMutation({ mutationFn: useConvexMutation(api.things.update) }),
   };
 }
+
+const { updateThingMutation: {
+  mutateAsync: updateThing,
+  isPending: isUpdatingThing,
+  // ...rest
+} } = useThingActions();
 ```
 
 Loaders prefer `context.userId` over re-fetching the session. **Block** the
@@ -143,27 +149,6 @@ const form = useAppForm({
 //   <form.AppField name="x">{(field) => <field.TextField label="…" />}</form.AppField>
 //   <form.AppForm><form.SubmitButton label="…" /></form.AppForm>
 ```
-
-**React-correctness rules (these are why RHF was dropped):**
-
-- **Never recreate `watch()`.** For render-time derived UI (slot generation,
-  conditional fields) use a narrow `<form.Subscribe selector={(s) => [s.values.a, s.values.b] as const}>`.
-  Subscriptions must be **narrow but complete** — selecting too little leaves
-  stale UI; selecting whole `state` re-renders the whole form.
-- Side effects on field change use field/form `listeners`, not `useEffect`
-  mirroring form state. When you must seed from async data, use
-  `form.setFieldValue(name, v, { dontUpdateMeta: true })`.
-- A zod schema with `z.coerce` produces an `unknown` input type that TanStack's
-  validator types reject — annotate the validator line with
-  `// @ts-expect-error - zod's coerce method returns an unknown input type`
-  (precedent in every migrated form).
-- Complex widgets (PhoneInput, Calendar, TimeSlotPicker, RadioGroup) render
-  inline in the `AppField` render-prop using `field.state.value` /
-  `field.handleChange` / `field.state.meta.errors`, wrapped in `<Field>` +
-  `<FieldError errors={field.state.meta.errors.map((e) => ({ message: String(e) }))} />`.
-
-**Relations:** §1.4 (the mutation the form submits to), §1.5 (validation
-schemas), `tanstack-form` docs at <https://tanstack.com/form/latest/docs>.
 
 ### 1.4 Convex functions
 
@@ -324,7 +309,23 @@ Convex agent skills for common tasks can be installed by running `pnpm dlx conve
   flag pre-existing dead code instead of deleting it. Every changed line traces
   to the task.
 
-## 7. Goal-driven execution & required gates
+## 7. Committing
+
+When asked to commit, group files by relevance and relationship — one commit per logical unit (e.g. Convex backend changes together, UI components together, config/docs together). Never bundle unrelated files into a single commit.
+
+Commit messages must be short: `type(scope): brief description` — no body, no bullet points. The diff is the documentation. Examples:
+
+```
+feat(appointments): add reschedule request form
+fix(auth): seed initialAuth before hydration
+chore(convex): update schema validators
+```
+
+Types: `feat`, `fix`, `refactor`, `chore`, `docs`, `style`, `test`. Keep scope tight (the domain/folder, not the whole app).
+
+---
+
+## 8. Goal-driven execution & required gates
 
 Turn the task into a verifiable goal and loop until it passes ("add validation"
 → "write tests for invalid inputs, then make them pass"). Before you call a task
@@ -345,8 +346,8 @@ done, run:
 Useful commands:
 
 ```sh
-pnpm dev                                   # convex dev + vite (port 3000, tunnel at localhost.panabarbero.com)
-pnpx convex dev --once                      # one-shot push to grandiose-sturgeon-51
+pnpm dev                                   # convex dev + vite
+pnpx convex dev --once                      # one-shot push to Convex Cloud
 pnpx convex env list                        # deployment env vars (compare with .env.local on auth issues)
 pnpx convex data <table> --limit N          # inspect a table; --component inviteLinks for invite tokens
 pnpm doctor:diff                           # react-doctor on the diff

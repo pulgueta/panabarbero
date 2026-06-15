@@ -1,543 +1,211 @@
-# Barber Owner Flow - Smoke Tests
+# Barbershop Owner Flow — Smoke Tests
 
-## Barbershop Owner/Manager Business & Administrative Flows
+Business and administrative flows for the **owner** role, plus the **staff**
+(recepcionista) persona where it overlaps. Read `barber-flow.md` for the barber
+persona and `customer-flow.md` for the booking experience an owner manages.
 
-### 1. **Create Barbershop Flow**
-- [ ] Navigate to profile or create barbershop page
-- [ ] Click "Create New Barbershop" button
-- [ ] **Step 1: Basic Information**
-  - [ ] Enter barbershop name (required)
-  - [ ] Enter description (optional)
-  - [ ] Upload banner image (optional)
-- [ ] **Step 2: Location Information**
-  - [ ] Enter full street address (required)
-  - [ ] Enter additional address details (optional)
-  - [ ] Enter city (required)
-  - [ ] Enter state (required)
-  - [ ] Enter zip code (optional)
-  - [ ] Set coordinates/map location (optional)
-- [ ] **Step 3: Contact Information**
-  - [ ] Enter contact phone number (required)
-  - [ ] Enter website URL (optional)
-  - [ ] Enter contact email (optional)
-- [ ] **Step 4: Business Rules**
-  - [ ] Set default grace period in minutes (optional, default 5)
-- [ ] **Review & Create:**
-  - [ ] Review all information
-  - [ ] Create barbershop
-- [ ] **After Creation:**
-  - [ ] Barbershop appears in profile
-  - [ ] Owner assigned "owner" role
-  - [ ] Barbershop is marked as "active"
-  - [ ] Default to free plan
-  - [ ] Redirect to barbershop dashboard
+> **Ground truth corrections vs. older drafts:**
+> - Creating a barbershop **requires an active Polar subscription**
+>   (`assertIsSubscribed`). It is not free-tier by default.
+> - `ownerIsBarber` is a **creation-time decision** that sets whether the owner
+>   also attends clients (roles `["owner","barber"]` vs `["owner"]`).
+> - A new barbershop starts **inactive** (`isActive: false`) and activates when
+>   its first service is created.
+> - Team invitations are **WorkOS Organization Invitations** (hosted accept +
+>   webhook sync) — no in-app invite codes.
+> - Plan limits below come from `convex/plans.ts` and are enforced in
+>   `convex/acl.ts`.
 
-### 2. **Access Barbershop Management**
-- [ ] Navigate to profile page (`/profile`)
-- [ ] See all owned/managed barbershops under "My Barbershops"
-- [ ] Click on barbershop name
-- [ ] Navigate to barbershop dashboard
-- [ ] See tabs: Appointments, Barbers, Services, Settings
-- [ ] See barbershop status (Active/Inactive)
-- [ ] See quick stats (appointments this month, completed, rating)
+---
 
-### 3. **Update General Barbershop Information**
-- [ ] Navigate to barbershop → Settings tab
-- [ ] Go to "General Information" section
-- [ ] **Edit Information:**
-  - [ ] Update barbershop name
-  - [ ] Update description
-  - [ ] Update or change banner image
-  - [ ] Delete current banner image
-- [ ] **Validation:**
-  - [ ] Name cannot be empty
-  - [ ] Name must be unique (or allowed duplicates?)
-  - [ ] Image must be valid format/size
-- [ ] **Save Changes:**
-  - [ ] Click "Save Changes" button
-  - [ ] See confirmation message
-  - [ ] Changes reflected immediately on barbershop profile page
+## Owner Business & Administrative Flows
 
-### 4. **Update Address & Location Information**
-- [ ] Navigate to barbershop → Settings tab
-- [ ] Go to "Address" section
-- [ ] **Edit Address:**
-  - [ ] Update full street address
-  - [ ] Update address details/apt/suite
-  - [ ] Update city
-  - [ ] Update state
-  - [ ] Update zip code
-- [ ] **Edit Location Coordinates:**
-  - [ ] Set latitude/longitude manually
-  - [ ] Or use map picker to select location
-  - [ ] Preview location on map
-- [ ] **Validation:**
-  - [ ] City and state are required
-  - [ ] Coordinates validation (if auto-geocoding)
-- [ ] **Save Changes:**
-  - [ ] Click "Save" button
-  - [ ] Changes reflected on barbershop profile
+### 1. Create a Barbershop
 
-### 5. **Update Contact Information**
-- [ ] Navigate to barbershop → Settings tab
-- [ ] Go to "Contact" section
-- [ ] **Update Phone:**
-  - [ ] Update contact phone number
-  - [ ] Validate phone format
-- [ ] **Update Email:**
-  - [ ] Update business contact email
-  - [ ] Validate email format
-- [ ] **Update Website:**
-  - [ ] Enter website URL
-  - [ ] Validate URL format
-- [ ] **Save Changes:**
-  - [ ] Click "Save" button
-  - [ ] Confirmation message
+`convex/barbershops.ts` `create` + `src/components/barbershops/create-barbershop-form.tsx`.
 
-### 6. **Set & Update Business Hours/Availability**
-- [ ] Navigate to barbershop → Settings tab
-- [ ] Go to "Availability" section
-- [ ] **For Each Day of Week (Monday-Sunday):**
-  - [ ] Toggle "Active/Inactive" for the day
-  - [ ] Set opening time (HH:MM format)
-  - [ ] Set closing time (HH:MM format)
-  - [ ] Set lunch break start time (optional)
-  - [ ] Set lunch break end time (optional)
-  - [ ] Validate closing time is after opening time
-  - [ ] Validate lunch times fall within business hours
-- [ ] **Grace Period:**
-  - [ ] Set grace period in minutes (buffer between appointments)
-  - [ ] Default value shown
-- [ ] **Save Changes:**
-  - [ ] Click "Save" button
-  - [ ] Confirmation message
-- [ ] **Effect on Appointments:**
-  - [ ] New appointments respect availability
-  - [ ] Time slots outside hours are unavailable
-  - [ ] Lunch break times become unavailable
-  - [ ] Existing appointments not affected
+- [ ] **Requires an active Polar subscription** — `assertIsSubscribed(ctx, userId)`
+      throws `subscriptionRequired` otherwise
+- [ ] Fields: `name` (≥3 chars), `address.fullAddress`, `address.details?`,
+      `city`, `state`, `zipCode?`, `contactPhone?`, `gracePeriodMinutes`
+      (default 5), `availability` (per-day open/close + optional lunch),
+      `ownerIsBarber` (boolean)
+- [ ] **Role assignment:** `ownerIsBarber` → `["owner","barber"]` (owner attends
+      clients) else `["owner"]` (admin-only)
+- [ ] **Post-signup race fallback:** if the `userProfileData` row is missing,
+      `create` provisions it inline from `authkit.getAuthUser()`
+- [ ] On success: schedules WorkOS org creation
+      (`internal.workosOrgs.createOrganizationForBarbershop`), tracks
+      `barbershop_created`, and the shop starts **inactive** until the first
+      service exists
 
-### 7. **Manage Social Media Links**
-- [ ] Navigate to barbershop → Settings tab
-- [ ] Go to "Social Media" section
-- [ ] **Add/Update Social Links:**
-  - [ ] TikTok URL
-  - [ ] Instagram URL
-  - [ ] Facebook URL
-  - [ ] Twitter/X URL
-  - [ ] YouTube URL
-- [ ] **Validation:**
-  - [ ] Valid URL format
-  - [ ] Optional fields can be empty
-- [ ] **Save Changes:**
-  - [ ] Click "Save" button
-  - [ ] See confirmation
-- [ ] **Verification:**
-  - [ ] Links appear on public barbershop profile
-  - [ ] Links are clickable
+### 2. Access Barbershop Management
 
-### 8. **Manage Additional Business Information**
-- [ ] Navigate to barbershop → Settings tab
-- [ ] Go to "Additional Info" or "Metadata" section
-- [ ] **Update Metadata:**
-  - [ ] Website URL (if different from contact)
-  - [ ] Additional contact email
-  - [ ] Completed appointments count (auto-tracked or manual?)
-  - [ ] Rating (auto-calculated)
-  - [ ] Reviews count (auto-tracked)
-- [ ] **Save Changes:**
-  - [ ] Click "Save" button
+All under `src/routes/_authedRoutes/profile/barbershops/`. Access is gated at the
+loader via `barbershopMemberRolesQueryOptions(userId)`:
 
-### 9. **Invite Barber/Staff Member**
-- [ ] Navigate to barbershop → "Barbers" tab
-- [ ] Click "Invite Barber" or "Add Staff Member" button
-- [ ] **Invitation Form:**
-  - [ ] Enter barber email address (required)
-  - [ ] Enter barber phone number (required)
-  - [ ] Select roles (checkboxes: barber, owner?)
-  - [ ] Set invitation expiry (default 7 days)
-  - [ ] Add optional message
-- [ ] **Validation:**
-  - [ ] Valid email format
-  - [ ] Valid phone format
-  - [ ] Cannot invite already-member email
-  - [ ] Check plan limits (free: 0, pro: 5, premium: 10 invited barbers)
-- [ ] **Send Invitation:**
-  - [ ] Click "Send Invitation" button
-  - [ ] See "Invitation Sent" confirmation
-  - [ ] Barber receives invitation email with code/link
-- [ ] **After Invitation:**
-  - [ ] See "Pending" invitation in barbers list
-  - [ ] See invitation code and expiry date
-  - [ ] Can resend or cancel invitation
+| Page | Access | Purpose |
+|---|---|---|
+| `appointments/` | owner / barber / staff | Calendar + table of appointments, reschedule handling, staff booking (plan-gated) |
+| `services/` | owner / staff | Create / edit / delete services |
+| `team/` | owner / staff | Barberos, Recepcionistas, Invitaciones tabs |
+| `settings/` | **owner only** | Shop info, address, hours, status, owner-barber toggle |
 
-### 10. **Manage Plan Limits for Barber Invitations**
-- [ ] **Free Plan:**
-  - [ ] Cannot invite barbers (max: 0)
-  - [ ] See "Upgrade to invite barbers" CTA
-  - [ ] Can only work alone as owner
-- [ ] **Pro Plan:**
-  - [ ] Can invite up to 5 barbers
-  - [ ] See count of invited vs available slots
-  - [ ] Cannot exceed 5 (error on 6th invite)
-  - [ ] See "Upgrade to Premium for more barbers" if at limit
-- [ ] **Premium Plan:**
-  - [ ] Can invite up to 10 barbers
-  - [ ] See count of invited vs available slots
+Non-members are redirected to `/profile/barbershops/appointments`.
 
-### 11. **Manage Barber Memberships**
-- [ ] Navigate to barbershop → "Barbers" tab
-- [ ] View list of all current barbers/staff:
-  - [ ] Accepted members
-  - [ ] Pending invitations
-- [ ] **For Each Member:**
-  - [ ] See name, email, phone
-  - [ ] See roles (barber/owner)
-  - [ ] See status (active/inactive)
-  - [ ] See join date
-  - [ ] See number of completed appointments
-- [ ] **Actions:**
-  - [ ] Click on member to view profile/details
-  - [ ] **Deactivate Member:**
-    - [ ] Click "Deactivate" or status toggle
-    - [ ] Confirm deactivation
-    - [ ] Member status changes to "inactive"
-    - [ ] Cannot book new appointments through this member
-    - [ ] Existing appointments not affected
-  - [ ] **Reactivate Member:**
-    - [ ] Reactivate previously inactive member
-    - [ ] Member status changes to "active"
-  - [ ] **Remove Member:**
-    - [ ] Click "Remove" button
-    - [ ] Confirm permanent removal
-    - [ ] Member removed from barbershop
-    - [ ] Cannot undo removal
+### 3–8. Update Shop Settings (`settings/`, owner only)
 
-### 12. **Create Service**
-- [ ] Navigate to barbershop → "Services" tab
-- [ ] Click "Create Service" or "Add New Service" button
-- [ ] **Service Creation Form:**
-  - [ ] Enter service name (required)
-  - [ ] Enter service price (required)
-    - [ ] Minimum: $1,000 CO
-    - [ ] Validation shows minimum amount
-  - [ ] Enter service duration (required)
-    - [ ] In minutes
-    - [ ] Minimum: 5 minutes
-    - [ ] Maximum: 480 minutes (8 hours)
-    - [ ] Validation shows range
-  - [ ] Optional description or notes
-- [ ] **Save Service:**
-  - [ ] Click "Save" or "Create Service" button
-  - [ ] See "Service Created" confirmation
-- [ ] **After Creation:**
-  - [ ] Service appears in services list
-  - [ ] Service available for appointments
-  - [ ] All barbers see this service initially
-  - [ ] Barbers can opt-in to offer this service
+Editable via `barbershops.update` (+ helper mutations). Each section:
 
-### 13. **Edit Service**
-- [ ] Navigate to barbershop → "Services" tab
-- [ ] Click edit icon/button next to service
-- [ ] **Edit Form:**
-  - [ ] Update service name
-  - [ ] Update service price
-  - [ ] Update service duration
-  - [ ] Update description
-- [ ] **Validation:**
-  - [ ] Same as creation (min price, min/max duration)
-  - [ ] Cannot leave required fields empty
-- [ ] **Save Changes:**
-  - [ ] Click "Save Changes" button
-  - [ ] See confirmation message
-- [ ] **Effect:**
-  - [ ] Changes apply to new appointments only
-  - [ ] Existing appointments keep original service details
-  - [ ] Service information updated on public profile
+- [ ] **General:** `name`, `description`, logo/banner
+      (`setLogoKey` / `removeLogoKey`)
+- [ ] **Address & location:** `address.fullAddress`, `address.details`, `city`,
+      `state`, `zipCode`, plus `latitude`/`longitude`
+- [ ] **Contact:** `contactPhone` (auto-formatted)
+- [ ] **Business hours / availability:** per day toggle active, open/close times,
+      optional lunch start/end via `updateDayAvailability` (single day) or
+      `updateAvailability` (full array). Closing after opening; lunch within
+      hours
+- [ ] **Grace period:** `gracePeriodMinutes` buffer between appointments
+- [ ] **Social links:** Instagram, Facebook, TikTok, Twitter/X, YouTube, website
+- [ ] **Activate / deactivate:** toggle `isActive` (syncs the WorkOS org state).
+      Inactive shops are not bookable and not shown to customers
+- [ ] **Owner-barber toggle** (`OwnerRoleToggle`): add/remove the `barber` role on
+      the owner's own membership to start/stop attending clients
 
-### 14. **Delete Service**
-- [ ] Navigate to barbershop → "Services" tab
-- [ ] Click delete/trash icon on service
-- [ ] **Delete Confirmation:**
-  - [ ] Confirm deletion request
-  - [ ] If service has upcoming appointments:
-    - [ ] See warning: "This service has X upcoming appointments"
-    - [ ] Warn that appointments will be affected
-  - [ ] Option to cancel or confirm delete
-- [ ] **After Deletion:**
-  - [ ] Service removed from services list
-  - [ ] Service no longer available for new appointments
-  - [ ] Existing appointments status TBD (soft delete? kept?)
-  - [ ] Service unavailable for all barbers
+### 9. Invite a Team Member (`team/`)
 
-### 15. **Manage Barber Service Assignments**
-- [ ] Navigate to barbershop → "Barbers" tab
-- [ ] Click on a barber's name
-- [ ] See "Services" section/modal
-- [ ] **View Assigned Services:**
-  - [ ] See all services offered at barbershop
-  - [ ] See which ones barber offers (checked)
-  - [ ] See which ones barber doesn't offer (unchecked)
-- [ ] **Add Service to Barber:**
-  - [ ] Check checkbox next to service
-  - [ ] Service immediately added
-  - [ ] Barber can accept appointments for this service
-- [ ] **Remove Service from Barber:**
-  - [ ] Uncheck checkbox next to service
-  - [ ] Service immediately removed
-  - [ ] Cannot create new appointments for this service
-  - [ ] Existing appointments not affected
-- [ ] **Save/Confirm:**
-  - [ ] Changes may auto-save or require explicit save
-  - [ ] See confirmation message
+`convex/invitations.ts` `invite` action. **WorkOS Organization Invitations** —
+no codes, hosted acceptance, webhook sync. App role → WorkOS slug:
+`barber → member`, `staff → staff`, `owner → admin`.
 
-### 16. **View All Appointments**
-- [ ] Navigate to barbershop → "Appointments" tab
-- [ ] View appointments in calendar or table:
-  - [ ] **Calendar View:**
-    - [ ] Monthly calendar showing appointment slots
-    - [ ] Color-coded by status
-    - [ ] Click date to see details
-  - [ ] **Table View:**
-    - [ ] List of appointments with columns
-    - [ ] Sortable by date, status, customer, barber
-- [ ] **Filter Options:**
-  - [ ] Filter by status (pending, confirmed, completed, cancelled, no-show, rescheduled)
-  - [ ] Filter by barber
-  - [ ] Filter by date range
-  - [ ] Filter by customer name
-- [ ] **View Details:**
-  - [ ] Click appointment to expand/open details modal
-  - [ ] See full appointment information
-  - [ ] See available actions for current status
+- [ ] Enter the invitee's email and choose role(s) (`barber` or `staff`)
+- [ ] **Server-authoritative gating** (`prepareInvite`):
+  - [ ] Caller owns the shop (owner; staff may invite barbers)
+  - [ ] Inviting **staff** is owner-only and plan-gated
+        (`assertStaffInviteAllowed`)
+  - [ ] Inviting **barber** is plan-gated (`assertBarberInviteAllowed`)
+  - [ ] Email is not already a member
+- [ ] WorkOS sends the hosted invitation email
+- [ ] Invitee accepts on WorkOS → `organization_membership.updated` webhook →
+      `syncWorkosMembership` creates the `barbershopMembers` row
+- [ ] On a new barber, all shop services auto-assign
+      (`assignAllServicesToBarber`)
+- [ ] **Invitaciones tab** lists/resends/revokes invitations by querying the
+      WorkOS API directly (no Convex invitations table); revoke/resend require
+      `assertCanManageTeam`
 
-### 17. **Manage Individual Appointments**
-- [ ] Open appointment details
-- [ ] **View Appointment:**
-  - [ ] Customer name and contact info
-  - [ ] Barber assigned
-  - [ ] Service name and price
-  - [ ] Date and time
-  - [ ] Appointment status
-  - [ ] Notes (if any)
-  - [ ] Grace period info
-- [ ] **Actions Based on Status:**
-  - [ ] **Pending:** Confirm, Cancel, Add to Calendar
-  - [ ] **Confirmed:** Mark Completed, Cancel, Respond to Reschedule
-  - [ ] **Completed:** View Details, Leave Internal Note
-  - [ ] **Cancelled:** View Details
-  - [ ] **No-show:** Rebook/Contact Customer
-- [ ] **Perform Actions:**
-  - [ ] Confirm pending appointment
-  - [ ] Mark as completed
-  - [ ] Cancel appointment
-  - [ ] Mark as no-show
-  - [ ] Respond to reschedule requests
-  - [ ] Add/update appointment notes
+### 10. Plan Limits (source: `convex/plans.ts`, enforced in `convex/acl.ts`)
 
-### 18. **Handle Appointment Reschedule Requests**
-- [ ] View appointment with customer reschedule request
-- [ ] See customer's requested date/time and message
-- [ ] **Option 1: Accept Reschedule Request**
-  - [ ] Click "Accept Reschedule" button
-  - [ ] Confirm acceptance
-  - [ ] Appointment updated to customer's requested time
-  - [ ] Customer receives acceptance notification
-  - [ ] Original time slot becomes available
-- [ ] **Option 2: Propose Different Date/Time**
-  - [ ] Click "Propose New Time" button
-  - [ ] **Proposal Form:**
-    - [ ] Select new date
-    - [ ] Select new time
-    - [ ] Available times respect business hours
-    - [ ] Available times respect other appointments
-    - [ ] Add optional message to customer
-    - [ ] Confirm proposal
-  - [ ] **After Proposal:**
-    - [ ] Customer receives proposal notification
-    - [ ] Appointment shows "Reschedule Pending"
-    - [ ] Customer can accept, decline, or counter-propose
-- [ ] **Option 3: Deny Reschedule Request**
-  - [ ] Click "Deny" button
-  - [ ] Add optional reason/message
-  - [ ] Customer receives denial notification
-  - [ ] Appointment remains at original time
+Polar product → plan key: `independiente → free`,
+`barberiaMonthly`/`barberiaYearly → pro`,
+`barberiaProfMonthly`/`barberiaProfYearly → premium`. **Limits are always checked
+against the owner's plan**, even when staff perform the action.
 
-### 19. **Create Staff Appointments**
-- [ ] **Plan Feature:**
-  - [ ] Free: Cannot create staff appointments
-  - [ ] Pro: Can create appointments on behalf of customers
-  - [ ] Premium: Can create appointments on behalf of customers
-- [ ] **If Pro/Premium Plan:**
-  - [ ] Navigate to "Create Appointment" section
-  - [ ] Select barbershop
-  - [ ] Select barber
-  - [ ] Select service
-  - [ ] Select date & time
-  - [ ] **Enter Customer Info:**
-    - [ ] Customer name
-    - [ ] Customer phone
-    - [ ] Customer email (optional)
-    - [ ] Appointment notes
-  - [ ] Create appointment
-  - [ ] Appointment status: Confirmed (since staff created)
-  - [ ] Customer receives notification
-- [ ] **If Free Plan:**
-  - [ ] See "Upgrade to Pro to create appointments" message
-  - [ ] CTA to upgrade plan
+| Limit | Free | Pro | Premium |
+|---|---|---|---|
+| `maxInvitedBarbers` | 2 | 5 | 10 |
+| `maxStaff` | 0 | 1 | 3 |
+| `maxSmsPerMonth` | 200 | 1,000 | 3,000 |
+| `maxEmailPerMonth` | 50 | 500 | 1,500 |
+| `staffCanCreateAppointments` | ❌ | ✅ | ✅ |
+| `panaManagement` (AI agent) | ❌ | ✅ | ✅ |
 
-### 20. **View Business Metrics & Analytics**
-- [ ] Navigate to barbershop dashboard
-- [ ] See key metrics for current month:
-  - [ ] Total appointments
-  - [ ] Completed appointments
-  - [ ] Cancelled appointments
-  - [ ] No-show appointments
-  - [ ] Average rating
-  - [ ] Review count
-- [ ] **Per-Barber Stats (if multiple barbers):**
-  - [ ] Completed appointments per barber
-  - [ ] Average rating per barber
-- [ ] **Revenue Metrics (if applicable):**
-  - [ ] Total revenue this month
-  - [ ] Revenue per service
-  - [ ] Revenue per barber
+- [ ] **Free:** can invite up to 2 barbers; **0 staff** (staff invites rejected
+      outright); no staff-created appointments; no Pana management
+- [ ] **Pro / Premium:** raise the caps above and unlock staff booking + Pana
+      management
 
-### 21. **View Customer Reviews**
-- [ ] Navigate to barbershop profile (public view) or dashboard
-- [ ] View all customer reviews section
-- [ ] See:
-  - [ ] Customer name or "Anonymous"
-  - [ ] Star rating (1-5)
-  - [ ] Review comment
-  - [ ] Review date
-- [ ] **Rating Breakdown:**
-  - [ ] Count of 5-star, 4-star, 3-star, 2-star, 1-star reviews
-  - [ ] Average rating calculation
-  - [ ] Total number of reviews
-- [ ] **Respond to Reviews (if feature available):**
-  - [ ] Click "Reply" on review
-  - [ ] Add owner response
-  - [ ] Publish response
-  - [ ] Customer sees response on their review
+### 11. Manage Team Members
 
-### 22. **Monitor Subscription & Plan Status**
-- [ ] Navigate to barbershop → Settings or Billing section
-- [ ] **View Current Plan:**
-  - [ ] See plan tier (Free/Pro/Premium)
-  - [ ] See plan name and price
-  - [ ] See renewal date (if paid)
-  - [ ] See features included in plan
-- [ ] **View Usage:**
-  - [ ] SMS sent this month vs limit
-  - [ ] Emails sent this month vs limit
-  - [ ] Barbers invited vs limit
-- [ ] **Upgrade Plan:**
-  - [ ] Click "Upgrade" button
-  - [ ] See pricing page
-  - [ ] Select plan to upgrade to
-  - [ ] Complete payment
-  - [ ] Plan changes immediately
+- [ ] **Barberos tab:** barber members + their service assignments
+- [ ] **Recepcionistas tab:** staff members
+- [ ] **Invitaciones tab:** pending WorkOS invitations (resend/revoke)
+- [ ] Role merges respect barber↔staff exclusivity in `syncWorkosMembership`
 
-### 23. **Monitor SMS/Email Usage**
-- [ ] Navigate to barbershop → Settings or "Usage" section
-- [ ] **SMS Usage:**
-  - [ ] See SMS sent this month
-  - [ ] See SMS limit for plan
-  - [ ] See SMS limit percentage used
-  - [ ] See when limit resets (start of month)
-  - [ ] See warning when approaching limit
-- [ ] **Email Usage:**
-  - [ ] See emails sent this month
-  - [ ] See email limit for plan
-  - [ ] See email limit percentage used
-  - [ ] See when limit resets
-- [ ] **Upgrade:**
-  - [ ] See "Upgrade Plan" CTA when limit exceeded
-  - [ ] Can upgrade to higher tier for more quota
+### 12–14. Services (`services/`, owner / staff)
 
-### 24. **Manage Barbershop Activation/Deactivation**
-- [ ] Navigate to barbershop → Settings tab
-- [ ] Go to "Status" or "General" section
-- [ ] **View Status:**
-  - [ ] See current status (Active/Inactive)
-- [ ] **Deactivate Barbershop:**
-  - [ ] Click "Deactivate Barbershop" button
-  - [ ] Confirm deactivation
-  - [ ] See warning about effects:
-    - [ ] Barbershop not visible to customers
-    - [ ] Cannot create new appointments
-    - [ ] Existing appointments not affected
-  - [ ] Deactivation confirmed
-  - [ ] Status changes to "Inactive"
-- [ ] **Reactivate Barbershop:**
-  - [ ] Click "Activate Barbershop" button
-  - [ ] Confirm reactivation
-  - [ ] Status changes to "Active"
-  - [ ] Visible to customers again
+`convex/services.ts`. Validation (schema): `name` 3–255, `price` ≥ 1000 (COP),
+`duration` 5–480 minutes.
 
-### 25. **View Public Barbershop Profile**
-- [ ] Navigate to public barbershop page (as customer would see)
-- [ ] Verify all information is correct and up-to-date:
-  - [ ] Name, address, phone
-  - [ ] Business hours
-  - [ ] Services and prices
-  - [ ] Barbers and their services
-  - [ ] Reviews and ratings
-  - [ ] Social media links
-  - [ ] Banner image
-- [ ] Compare with settings to ensure all changes reflected
+- [ ] **Create** (`services.create`) — gated by `assertCanManageServices`
+      (owner/barber/staff); **auto-activates the barbershop** when it is the first
+      service; auto-assigns the service to the owner when the owner is the only
+      active barber
+- [ ] **Edit** — same validation; changes apply to new appointments (existing
+      keep their snapshot)
+- [ ] **Delete** — confirmation surfaces any impacted upcoming appointments
 
-### 26. **Email & SMS Notification Scenarios**
-- [ ] **New Appointment Created:**
-  - [ ] Owner/barber receives email
-  - [ ] Owner/barber receives SMS (if enabled)
-  - [ ] Contains: customer name, service, date, time
-  - [ ] Subject mentions "Nueva cita" or similar
-- [ ] **Reschedule Request:**
-  - [ ] Owner/barber receives email
-  - [ ] Contains: customer proposed time, original time, message
-  - [ ] Includes action links
-- [ ] **Appointment Confirmation:**
-  - [ ] Customer receives confirmation (handled by system)
-- [ ] **Appointment Cancellation:**
-  - [ ] Customer receives cancellation email
-  - [ ] Contains reason (if provided)
+### 15. Assign Services to Barbers
 
-### 27. **Plan Upgrade/Downgrade Scenarios**
-- [ ] **Free → Pro Upgrade:**
-  - [ ] Can now invite up to 5 barbers
-  - [ ] Can create staff appointments
-  - [ ] SMS/Email limits increased
-  - [ ] Existing barbershop settings preserved
-- [ ] **Pro → Premium Upgrade:**
-  - [ ] Can now invite up to 10 barbers (vs 5)
-  - [ ] SMS/Email limits unlimited
-  - [ ] All Pro features included
-- [ ] **Downgrade (if allowed):**
-  - [ ] Warning about feature loss
-  - [ ] Warning about data/settings affected
-  - [ ] Requires confirmation
+`convex/barbershopMemberServices.ts`. Only owner/staff may assign; the target
+member must have the `barber` role.
 
-### 28. **Error Handling & Edge Cases**
-- [ ] **Plan Limit Exceeded:**
-  - [ ] Cannot invite 6th barber on Pro plan
-  - [ ] See "Plan limit reached" error
-  - [ ] CTA to upgrade
-- [ ] **Expired Invitation:**
-  - [ ] Cannot use invitation after expiry
-  - [ ] Can resend or create new invitation
-- [ ] **Inactive Barbershop:**
-  - [ ] Cannot create appointments
-  - [ ] Cannot invite barbers
-  - [ ] See "Activate barbershop" CTA
-- [ ] **Double Booking:**
-  - [ ] Cannot create appointment at overlapping time
-  - [ ] See "Time slot already booked" error
-- [ ] **Invalid Service Duration:**
-  - [ ] Cannot create appointment if service won't fit in time slot
-  - [ ] See "Service duration too long" error
-- [ ] **Network/API Errors:**
-  - [ ] Error messages shown
-  - [ ] Retry option available
-  - [ ] No data loss on failure
+- [ ] `setBarberServices` — replace a barber's full service list
+- [ ] `addServiceToBarber` / `removeServiceFromBarber` — single service
+- [ ] New barbers get **all** services auto-assigned on join (no manual step)
+
+### 16–18. Appointments Management (`appointments/`)
+
+- [ ] Calendar + table; filter/sort by status, barber, date, customer
+- [ ] Open an appointment for full details and status-appropriate actions
+- [ ] Lifecycle mutations: `setStatus` (completed/no-show/cancelled), `cancel`,
+      `requestReschedule`, `answerRescheduleRequest` (see `barber-flow.md` §5–7)
+- [ ] Reschedule handling mirrors the barber flow (accept → `rescheduled`,
+      deny → `denied`); counter-propose = deny + new request
+
+### 19. Staff / On-behalf Appointments
+
+`CreateAppointmentForm` (`src/components/appointments/create-appointment-form.tsx`).
+
+- [ ] Gated by `assertCanCreateStaffAppointment` — **pro/premium only**; free plan
+      hides the "Crear cita" button and the mutation rejects
+- [ ] Owner/staff pick barbershop → barber → service → date/time → customer info
+      and create the appointment with `isStaffCreated: true`
+
+### 20. Business Metrics
+
+- [ ] Completed appointments increment barbershop metrics on `setStatus`
+      (`completed`)
+- [ ] Dashboard surfaces month-to-date counts and rating/review aggregates when
+      present (reviews are schema-only today — see `customer-flow.md` §11)
+
+### 21. Reviews
+
+- [ ] Reviews are stored in the `reviews` table and surfaced on the public
+      barbershop detail page when populated
+- [ ] **No owner-reply feature exists**, and there is no in-app review-creation
+      path yet (schema-only) — do not test a "respond to review" flow
+
+### 22–23. Subscription, Plan & Usage
+
+- [ ] Owners view subscription/plan status in the **Planes** profile tab
+- [ ] SMS/email usage is metered monthly against the plan quota
+      (`isSmsLimitNotExceeded` / `isEmailLimitNotExceeded`), with purchased
+      credits added on top
+- [ ] Upgrading raises the caps in §10; the subscription is a Polar product
+
+### 24. Activate / Deactivate Barbershop
+
+- [ ] Toggle `isActive` in settings; deactivation hides the shop from customers
+      and blocks new bookings, syncs the WorkOS org, and leaves existing
+      appointments untouched
+
+### 25. View Public Profile
+
+- [ ] Verify the public `/barbershops/$barbershopUuid` page reflects all settings
+      (info, hours, services, barbers, social links, banner)
+
+### 26. Notification Scenarios
+
+- [ ] Owners/barbers receive new-appointment, reschedule-request and cancellation
+      notifications per their preferences and the shop's quota (see
+      `customer-flow.md` §13)
+
+### 27. Error Handling & Edge Cases
+
+- [ ] **Subscription required:** cannot create a barbershop without an active plan
+- [ ] **Plan limit reached:** barber/staff invites beyond the cap are rejected
+- [ ] **Staff on free plan:** blocked entirely (`maxStaff: 0`)
+- [ ] **Inactive shop:** no bookings; activate first
+- [ ] **Double booking / invalid time / service won't fit:** rejected server-side

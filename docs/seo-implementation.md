@@ -1,15 +1,20 @@
 # SEO Implementation Summary
 
-## Overview
-Comprehensive SEO implementation for PanaBarbero following TanStack Start best practices. Includes canonical URLs, structured data (JSON-LD), dynamic sitemaps, robots.txt, and enhanced meta tags across all public routes.
+SEO implementation for PanaBarbero following TanStack Start patterns: canonical
+URLs, structured data (JSON-LD), a sitemap, robots.txt, an `llms.txt`, and
+enhanced meta tags across public routes.
+
+> **Accuracy note:** this file is verified against the current code. Where an
+> earlier draft was wrong, the correction is called out inline. Most SEO helpers
+> live in `src/lib/utils.ts`.
 
 ---
 
-## 1. Enhanced SEO Utilities (`src/lib/utils.ts`)
+## 1. SEO Utilities (`src/lib/utils.ts`)
 
-### Core Functions
+### Meta-tag helpers
 
-#### `seo()` - Generic SEO Meta Tags
+#### `seo()` — generic meta tags
 ```typescript
 seo({
   title: string
@@ -19,372 +24,198 @@ seo({
   ogType?: string // default: "website"
 })
 ```
-- Returns meta tags for title, description, Open Graph, and Twitter Card
-- Supports custom canonical URLs and custom OG images
-- Used for static pages and dynamic route titles
+- Returns an array of `<meta>` tag descriptors (title, description, Open Graph,
+  Twitter Card)
+- Twitter handles are hard-coded to `@panabarbero`
+  (`twitter:creator`, `twitter:site`)
 
-#### `barbershopSeo()` - Barbershop-Specific Meta Tags
-```typescript
-barbershopSeo(barbershop: Barbershop | null, metadata?: BarbershopMetadata | null)
-```
-- Generates SEO tags with barbershop name, description, and ratings
-- Includes Open Graph locality/region for local business
-- Shows rating and review count in title when available
-- Used for barbershop detail pages
+#### `barbershopSeo(barbershop: Barbershop | null)` — barbershop meta tags
+- **Single argument.** The `metadata` parameter and the rating-in-title logic are
+  **commented out** in the current code — do not document a `metadata` arg as
+  functional.
+- Generates name/description-based tags and OG locality/region for local business
 
-#### `barbershopStructuredData()` - BarberShop JSON-LD Schema
-```typescript
-barbershopStructuredData(
-  barbershop: Barbershop,
-  metadata?: BarbershopMetadata | null,
-  reviews?: Review[]
-)
-```
-- Generates structured data for search engines and LLMs
-- Includes: address, opening hours, contact info, ratings, reviews
-- Limited to 10 most recent reviews
-- Supports social media links and website metadata
+#### `barbershopStructuredData(barbershop, metadata?, reviews?)` — `BarberShop` JSON-LD
+- Address, opening hours, contact, aggregate rating, up to 10 reviews, social
+  links
 
-#### `organizationStructuredData()` - Organization Schema
-- For homepage Organization representation
-- Includes company name, logo, description, contact, and social links
-- Helps search engines understand brand
+### Structured-data helpers
 
-#### `breadcrumbStructuredData()` - Breadcrumb Navigation
-```typescript
-breadcrumbStructuredData(items: Array<{ name: string; url: string }>)
-```
-- Generates breadcrumb list for navigation hierarchy
-- Useful for multi-level pages
+| Function | Output | Used on |
+|---|---|---|
+| `websiteStructuredData()` | `WebSite` + `Organization` JSON-LD | `/` |
+| `softwareApplicationStructuredData()` | `SoftwareApplication` JSON-LD | `/`, `/ai` |
+| `faqStructuredData()` | `FAQPage` JSON-LD | `/` (homepage FAQs) |
+| `barbershopStructuredData()` | `BarberShop` JSON-LD | barbershop detail |
+| `breadcrumbStructuredData(items)` | `BreadcrumbList` JSON-LD | listing + detail |
 
-### Helper Functions
+> **Correction:** there is **no `organizationStructuredData()`** export. The
+> homepage uses **`websiteStructuredData()`** (which embeds the Organization).
 
-| Function | Purpose |
-|----------|---------|
-| `getBaseUrl()` | Returns production/local domain |
-| `getCanonicalUrl(path)` | Generates full canonical URL |
-| `getOgImageUrl(customImage?)` | Returns OG image (custom or default) |
+### URL/base helpers
+
+| Function | Exported? | Purpose |
+|---|---|---|
+| `getBaseUrl()` | yes | Returns the prod/local base URL (see §6) |
+| `getCanonicalUrl(path)` | yes | Full canonical URL for a path |
+| `getOgImageUrl(customImage?)` | **no — module-private** | Resolves the OG image (used internally) |
+
+> **Correction:** `getOgImageUrl()` is **not exported**; do not reference it as a
+> public helper.
 
 ---
 
 ## 2. Dynamic Routes
 
 ### Sitemap (`src/routes/sitemap[.]xml.ts`)
-
-**Features:**
-- ✅ Auto-discovers all public pages and barbershops
-- ✅ Includes change frequency and priority for each page
-- ✅ Updates daily as new barbershops are added
-- ✅ Cached for 24 hours
-- ✅ Graceful fallback to static sitemap on errors
-
-**Included Pages:**
-- Home `/` (priority: 1.0, daily)
-- Barbershops listing `/barbershops` (priority: 0.9, daily)
-- Pricing `/pricing` (priority: 0.8, weekly)
-- Privacy policy (priority: 0.5, monthly)
-- Terms of service (priority: 0.5, monthly)
-- Individual barbershops `/barbershops/:uuid` (priority: 0.7, weekly)
-
-**Access:** `https://www.panabarbero.com/sitemap.xml`
+- **Static pages only** — `/` (daily, 1.0), `/ai` (weekly, 0.8), `/pricing`
+  (weekly, 0.8), `/privacy-policy` (monthly, 0.5), `/tos` (monthly, 0.5)
+- Cached 24h, graceful fallback on error
+- **Correction:** the sitemap does **not** currently enumerate `/barbershops` or
+  individual `/barbershops/:uuid` URLs. (Adding dynamic barbershop URLs is a
+  reasonable enhancement, but it is not implemented today.)
+- Access: `https://www.panabarbero.com/sitemap.xml`
 
 ### Robots.txt (`src/routes/robots[.]txt.ts`)
+- Allows public pages; **disallows** `/profile`, `/appointments`, `/invitations`,
+  query params (`/*?*`) and underscore paths (`/_*`)
+- **Blocks** these agents entirely with `Disallow: /` — `AhrefsBot`, `SemrushBot`,
+  `DotBot`, `MJ12bot`, `Nmap`, `sqlmap`
+- **Correction:** these bots are **fully blocked**, not rate-limited. There are
+  **no `crawl-delay` values** in the output.
+- Cached 7 days; references the sitemap
+- Access: `https://www.panabarbero.com/robots.txt`
 
-**Rules:**
-- ✅ Allow all public pages
-- ✅ Disallow private routes: `/profile`, `/appointments`, `/invitations`
-- ✅ Disallow query parameters to prevent duplicate content
-- ✅ Rate limiting for aggressive crawlers (10s delay for AhrefsBot, SemrushBot, etc.)
-- ✅ Block known malicious bots (Nmap, sqlmap, etc.)
-- ✅ Cached for 7 days
-
-**Access:** `https://www.panabarbero.com/robots.txt`
+### llms.txt (`src/routes/llms[.]txt.ts`)
+- Markdown summary for LLM discovery (description, features, key data, contact)
+- Cached 24h
+- **This route was previously undocumented** — it exists and is part of the SEO
+  surface.
 
 ---
 
-## 3. Route-Level SEO Implementations
+## 3. Route-Level SEO
 
-### Home Page (`/`)
-```typescript
-head: () => ({
-  meta: seo({
-    title: "PanaBarbero - Descubre barberías y reserva citas",
-    description: "Encuentra barberías, reserva citas y gestiona tu barbería con PanaBarbero.",
-    canonical: getCanonicalUrl("/"),
-  }),
-  scripts: [organizationStructuredData()],
-})
-```
-- Organization JSON-LD schema
-- Canonical URL link
-- Optimized for brand recognition
+| Route | File | SEO applied |
+|---|---|---|
+| `/` | `index.tsx` | `seo()` + canonical + `websiteStructuredData()` + `softwareApplicationStructuredData()` + `faqStructuredData()` + breadcrumb + keywords |
+| `/ai` | `ai.tsx` | `seo()` + canonical + `softwareApplicationStructuredData()` |
+| `/chat` | `chat/index.tsx` | `seo()` + canonical |
+| `/pricing` | `pricing.tsx` | `seo()` + canonical |
+| `/barbershops` | `barbershops/index.tsx` | dynamic title by city/state + `seo()` + canonical + breadcrumb |
+| `/barbershops/$barbershopUuid` | `barbershops/$barbershopUuid/index.tsx` | `barbershopSeo()` + canonical + `barbershopStructuredData()` + breadcrumb |
+| `/privacy-policy` | `privacy-policy.tsx` | `seo()` + canonical |
+| `/tos` | `tos.tsx` | `seo()` + canonical |
 
-### Appointment Creation (`/appointments/create`)
-```typescript
-head: () => ({
-  meta: seo({
-    title: "Agendar Cita - PanaBarbero",
-    description: "Busca y agenda citas con las mejores barberías cerca de ti.",
-    canonical: getCanonicalUrl("/appointments/create"),
-  }),
-  links: [{ rel: "canonical", href: getCanonicalUrl("/appointments/create") }],
-})
-```
-- Public booking interface
-- Canonical URL prevents duplicate content
-- Improves discoverability for appointment scheduling searches
-
-### Barbershop Listing (`/barbershops`)
-```typescript
-head: ({ loaderData }) => {
-  const location = loaderData?.deps?.city && loaderData?.deps?.state
-    ? ` en ${city}, ${state}`
-    : "";
-  return {
-    meta: seo({
-      title: `Barberías${location} - PanaBarbero`,
-      description: `Descubre barberías${location} en PanaBarbero...`,
-      canonical: getCanonicalUrl("/barbershops"),
-    }),
-  };
-}
-```
-- Dynamic titles based on city/state filter
-- Improves ranking for location-based searches
-
-### Barbershop Detail (`/barbershops/:uuid`)
-```typescript
-head: ({ match }) => {
-  const barbershop = match.context.seoBarbershop;
-  const metadata = match.context.seoMetadata;
-  const reviews = match.context.seoReviews;
-
-  return {
-    meta: barbershopSeo(barbershop, metadata),
-    links: [{ rel: "canonical", href: getCanonicalUrl(...) }],
-    scripts: [barbershopStructuredData(barbershop, metadata, reviews)],
-  };
-}
-```
-- BarberShop structured data with ratings and reviews
-- Rich snippets in search results
-- Canonical URL prevents duplicate content
-
-### Pricing Page (`/pricing`)
-- Separate meta tags for plan information
-- Canonical URL
-
-### Static Pages (Privacy Policy, Terms)
-- Custom meta tags for each legal page
-- Canonical URLs
+> **Corrections:**
+> - The barbershop detail route is **`barbershops/$barbershopUuid/index.tsx`**
+>   (a directory with `index.tsx`), not `$barbershopUuid.tsx`.
+> - There is **no `/appointments/create` route.** The booking page is
+>   **`/barbershops/$barbershopUuid/book`** and currently has **no `head()` SEO**
+>   (it is a public but non-indexed booking form).
+> - `/ai` and `/chat` also carry SEO and were previously undocumented.
 
 ---
 
 ## 4. Canonical URLs
 
-**Implemented on all public pages:**
-```typescript
-links: [{ rel: "canonical", href: getCanonicalUrl("/path") }]
-```
-
-**Benefits:**
-- ✅ Prevents duplicate content issues
-- ✅ Consolidates link equity to canonical version
-- ✅ Clarifies preferred URL for search engines
+Public pages set `links: [{ rel: "canonical", href: getCanonicalUrl("/path") }]`
+to consolidate link equity and declare the preferred URL.
 
 ---
 
 ## 5. Structured Data (JSON-LD)
 
-### BarberShop Schema
-Includes:
-- Business name, description, address
-- Opening hours (including lunch breaks)
-- Contact information (phone, email, website)
-- Aggregate rating and review count
-- Individual reviews (up to 10)
-- Social media links
-- Price range indicator
+### `BarberShop` schema (detail page)
+Business name, description, address, opening hours (incl. lunch breaks), contact
+(phone/email/website), aggregate rating + review count, up to 10 reviews, social
+links, price-range indicator.
 
-**Benefits:**
-- Rich snippets in Google Search
-- Local business card in Maps
-- Better visibility to LLMs and AI assistants
-
-### Example Output
 ```json
 {
   "@context": "https://schema.org",
   "@type": "BarberShop",
-  "name": "Barbería El Corte",
-  "description": "...",
+  "name": "Barbería El Pana",
   "url": "https://www.panabarbero.com/barbershops/...",
   "telephone": "+57...",
   "address": {
     "@type": "PostalAddress",
-    "streetAddress": "...",
-    "addressLocality": "Bogotá",
-    "addressRegion": "Cundinamarca",
-    "postalCode": "110111",
+    "addressLocality": "Medellín",
+    "addressRegion": "Antioquia",
     "addressCountry": "CO"
   },
   "openingHoursSpecification": [...],
-  "aggregateRating": {
-    "@type": "AggregateRating",
-    "ratingValue": "4.8",
-    "reviewCount": "25",
-    "bestRating": "5",
-    "worstRating": "1"
-  },
+  "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "reviewCount": "25" },
   "review": [...]
 }
 ```
 
----
+> Reviews are **schema-only** today (no in-app review creation) — `aggregateRating`
+> and `review` only render when the `reviews` table is populated. See
+> `customer-flow.md` §11.
 
-## 6. Meta Tags Summary
-
-### Open Graph Tags (Social Sharing)
-- `og:type` - Content type (website, business.business)
-- `og:title` - Page title for social media
-- `og:description` - Preview description
-- `og:image` - Thumbnail for sharing
-- `og:url` - Canonical URL
-- `og:locality`, `og:region` - Location info for barbershops
-
-### Twitter Card Tags
-- `twitter:card` - Card type (summary_large_image)
-- `twitter:title` - Tweet title
-- `twitter:description` - Tweet description
-- `twitter:image` - Tweet image
-- `twitter:creator` - @panabarbero
-- `twitter:site` - @panabarbero
-
-### Standard Meta Tags
-- `title` - Page title (60 chars recommended)
-- `description` - Meta description (160 chars recommended)
-- `robots` - Crawl instructions (indexed on public pages)
+### `WebSite` + `Organization`, `SoftwareApplication`, `FAQPage`
+Rendered on the homepage (and `SoftwareApplication` also on `/ai`) for brand and
+rich-result coverage.
 
 ---
 
-## 7. Environment Handling
+## 6. Environment Handling
 
-**Production:**
-```
-Domain: https://www.panabarbero.com
-```
+`getBaseUrl()` decides the base URL from `process.env.NODE_ENV`:
 
-**Local/Development:**
+```typescript
+const isProduction = process.env.NODE_ENV === "production";
+const baseUrl = isProduction
+  ? "https://www.panabarbero.com"   // note the www subdomain
+  : "http://localhost:3000";
 ```
-Domain: http://localhost:3000
-```
-
-Both environments share the same code; domain is determined by `process.env.NODE_ENV`.
 
 ---
 
-## 8. Crawler Behavior
+## 7. Crawler Behaviour (robots.txt)
 
-### Allowed Crawlers
-- Googlebot
-- Bingbot
-- DuckDuckGo
-- Good reputation crawlers
-- **Rate limit:** Standard (crawl-delay: 0)
-
-### Rate-Limited Crawlers
-- AhrefsBot
-- SemrushBot
-- Moz Bot
-- DotBot
-- **Rate limit:** 10 second delay between requests
-
-### Blocked Crawlers
-- Nmap
-- sqlmap
-- Other known malicious bots
+- **Allowed:** Googlebot, Bingbot, and other reputable crawlers (no crawl-delay)
+- **Blocked (`Disallow: /`):** AhrefsBot, SemrushBot, DotBot, MJ12bot, Nmap,
+  sqlmap
 
 ---
 
-## 9. Testing the SEO Implementation
+## 8. Verifying the SEO Implementation
 
-### Verify Sitemap
 ```bash
 curl https://www.panabarbero.com/sitemap.xml
-```
-
-### Verify Robots.txt
-```bash
 curl https://www.panabarbero.com/robots.txt
+curl https://www.panabarbero.com/llms.txt
 ```
 
-### Validate Structured Data
-Use Google's Rich Results Test:
-```
-https://search.google.com/test/rich-results
-```
-
-### Check Meta Tags
-Use browser DevTools:
-```
-Inspect → Head → meta tags
-```
-
-### Preview Social Sharing
-- [Facebook Open Graph Debugger](https://developers.facebook.com/tools/debug/)
-- [Twitter Card Validator](https://cards-dev.twitter.com/validator)
+- Validate JSON-LD: https://search.google.com/test/rich-results
+- Inspect `<head>` meta tags in DevTools
+- Preview social cards: Facebook OG debugger / Twitter Card validator
 
 ---
 
-## 10. Best Practices Implemented
+## 9. Possible Enhancements (not implemented)
 
-✅ **Canonical URLs** - Prevent duplicate content
-✅ **Structured Data** - Help search engines understand content
-✅ **Sitemaps** - Ensure all pages are discoverable
-✅ **Robots.txt** - Guide crawlers appropriately
-✅ **Meta Tags** - Improve CTR in search results
-✅ **Social Tags** - Better sharing on social media
-✅ **Responsive Design** - Already provided by TanStack Start
-✅ **SSR Enabled** - Crawlers receive fully rendered HTML
-✅ **Fast Performance** - TanStack Start optimized
-✅ **Mobile Friendly** - Built-in Tailwind responsive
+- [ ] Add dynamic `/barbershops` and `/barbershops/:uuid` URLs to the sitemap
+- [ ] Wire up review creation so `aggregateRating`/`review` populate naturally
+- [ ] Restore the `metadata` argument in `barbershopSeo()` (currently commented out)
+- [ ] Add booking-page SEO if the booking flow should be discoverable
 
 ---
 
-## 11. Next Steps (Optional Enhancements)
+## Files Involved
 
-- [ ] Add `itemprop` markup for reviews
-- [ ] Implement local business FAQPage schema
-- [ ] Add appointment schema for booking pages
-- [ ] Set up Google Search Console
-- [ ] Monitor Core Web Vitals
-- [ ] Track rankings with Nozzle.io or similar
-- [ ] Implement hreflang tags for multi-language (if needed)
-
----
-
-## Files Modified
-
-| File | Changes |
-|------|---------|
-| `src/lib/utils.ts` | Added SEO utilities |
-| `src/routes/__root.tsx` | Added canonical, sitemap reference |
-| `src/routes/index.tsx` | Added head, organization schema |
-| `src/routes/pricing.tsx` | Added head with canonical |
-| `src/routes/barbershops/index.tsx` | Added dynamic head |
-| `src/routes/barbershops/$barbershopUuid.tsx` | Added structured data |
-| `src/routes/privacy-policy.tsx` | Added head with canonical |
-| `src/routes/tos.tsx` | Added head with canonical |
-| `src/routes/sitemap[.]xml.ts` | New dynamic sitemap |
-| `src/routes/robots[.]txt.ts` | New dynamic robots.txt |
-
----
-
-## Code Quality
-
-- ✅ No bloat - Utilities are DRY and reusable
-- ✅ Type-safe - Full TypeScript support
-- ✅ Production-ready - Includes error handling and fallbacks
-- ✅ Cached appropriately - Robots.txt (7 days), sitemap (24 hours)
-- ✅ Spanish localized - All text in es-CO
-- ✅ Follows TanStack Start patterns - Uses `head()` and loaders correctly
+| File | Role |
+|---|---|
+| `src/lib/utils.ts` | SEO helpers (`seo`, `barbershopSeo`, `*StructuredData`, URL helpers) |
+| `src/routes/__root.tsx` | canonical + sitemap reference |
+| `src/routes/index.tsx` | website/software/FAQ structured data |
+| `src/routes/ai.tsx`, `src/routes/chat/index.tsx` | `seo()` + canonical |
+| `src/routes/pricing.tsx` | `seo()` + canonical |
+| `src/routes/barbershops/index.tsx` | dynamic listing head |
+| `src/routes/barbershops/$barbershopUuid/index.tsx` | barbershop structured data |
+| `src/routes/privacy-policy.tsx`, `src/routes/tos.tsx` | `seo()` + canonical |
+| `src/routes/sitemap[.]xml.ts` | dynamic sitemap (static pages) |
+| `src/routes/robots[.]txt.ts` | robots.txt with bot blocks |
+| `src/routes/llms[.]txt.ts` | llms.txt for LLM discovery |
