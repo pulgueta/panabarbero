@@ -495,6 +495,11 @@ export const updateDayAvailability = zMutation({
       availability: newAvailability,
     });
 
+    // Keep the shop's Pana knowledge base in sync (no-op unless premium).
+    await ctx.scheduler.runAfter(0, internal.aiRag.reindexShopKnowledge, {
+      barbershopId: args.barbershop.id,
+    });
+
     return updated;
   },
 });
@@ -517,6 +522,11 @@ export const updateAvailability = zMutation({
 
     await ctx.db.patch(args.barbershop.id, {
       availability: args.data.availability,
+    });
+
+    // Keep the shop's Pana knowledge base in sync (no-op unless premium).
+    await ctx.scheduler.runAfter(0, internal.aiRag.reindexShopKnowledge, {
+      barbershopId: args.barbershop.id,
     });
   },
 });
@@ -549,6 +559,11 @@ export const update = zMutation({
     };
 
     await ctx.db.patch(args.id, dataToUpdate);
+
+    // Keep the shop's Pana knowledge base in sync (no-op unless premium).
+    await ctx.scheduler.runAfter(0, internal.aiRag.reindexShopKnowledge, {
+      barbershopId: args.id,
+    });
 
     if (
       data.name &&

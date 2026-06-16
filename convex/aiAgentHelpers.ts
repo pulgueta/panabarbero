@@ -221,11 +221,28 @@ export const getMembersByBarbershopId = zInternalQuery({
 export async function resolvePanaAccessForUserId(
   ctx: QueryCtx | MutationCtx,
   userId: string,
-): Promise<{ isShopMember: boolean; canManage: boolean; isOwner: boolean }> {
+): Promise<{
+  isShopMember: boolean;
+  canManage: boolean;
+  isOwner: boolean;
+  /** RAG: per-user memory (pro + premium). */
+  panaMemory: boolean;
+  /** RAG: barbershop knowledge base (premium only). */
+  panaKnowledgeBase: boolean;
+  /** The caller's barbershop, when they're a member — namespace for shop RAG. */
+  barbershopId: string | null;
+}> {
   const member = await getByUserIdFn(ctx, { userId });
 
   if (!member?.roles || member.roles.length === 0) {
-    return { isShopMember: false, canManage: true, isOwner: false };
+    return {
+      isShopMember: false,
+      canManage: true,
+      isOwner: false,
+      panaMemory: false,
+      panaKnowledgeBase: false,
+      barbershopId: null,
+    };
   }
 
   const barbershop = await ctx.db.get(member.barbershopId);
@@ -238,6 +255,9 @@ export async function resolvePanaAccessForUserId(
     isShopMember: true,
     canManage: limits.panaManagement,
     isOwner: member.roles.includes("owner"),
+    panaMemory: limits.panaMemory,
+    panaKnowledgeBase: limits.panaKnowledgeBase,
+    barbershopId: member.barbershopId as string,
   };
 }
 
@@ -249,12 +269,21 @@ export async function resolvePanaAccessForUserId(
 export const getPanaEntitlement = zInternalQuery({
   args: z.object({ userId: z.string() }),
   handler: async (ctx, args) => {
-    const { isShopMember, canManage } = await resolvePanaAccessForUserId(
-      ctx,
-      args.userId,
-    );
+    const {
+      isShopMember,
+      canManage,
+      panaMemory,
+      panaKnowledgeBase,
+      barbershopId,
+    } = await resolvePanaAccessForUserId(ctx, args.userId);
 
-    return { isShopMember, canManage };
+    return {
+      isShopMember,
+      canManage,
+      panaMemory,
+      panaKnowledgeBase,
+      barbershopId,
+    };
   },
 });
 

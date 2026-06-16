@@ -4,6 +4,7 @@ import geospatial from "@convex-dev/geospatial/convex.config";
 import migrations from "@convex-dev/migrations/convex.config";
 import polar from "@convex-dev/polar/convex.config";
 import r2 from "@convex-dev/r2/convex.config";
+import rag from "@convex-dev/rag/convex.config";
 import rateLimiter from "@convex-dev/rate-limiter/convex.config";
 import twilio from "@convex-dev/twilio/convex.config";
 import authkit from "@convex-dev/workos-authkit/convex.config";
@@ -37,6 +38,7 @@ app.use(posthog, {
 });
 app.use(unreads);
 app.use(agent);
+app.use(rag);
 app.use(geospatial);
 app.use(aggregate, { name: "aggregateCompletedAppointments" });
 app.use(aggregate, { name: "aggregateSmsSent" });

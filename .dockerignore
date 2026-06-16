@@ -1,9 +1,0 @@
-.claude
-.agents
-node_modules
-docs
-.github
-.cursor
-doctor.config.ts
-*.md
-.env.example

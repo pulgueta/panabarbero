@@ -93,6 +93,7 @@ export const createThreadAndSend = zMutation({
         threadId,
         promptMessageId: messageId,
         callerId,
+        prompt: args.prompt,
       }),
       ctx.scheduler.runAfter(0, internal.aiStream.generateThreadTitle, {
         threadId,
@@ -186,6 +187,7 @@ export const sendMessage = zMutation({
       threadId: args.threadId,
       promptMessageId: messageId,
       callerId,
+      prompt: args.prompt,
     });
   },
 });
@@ -524,6 +526,16 @@ export const confirmPendingAction = zAction({
         throw new ConvexError("Esa acción no está soportada.");
     }
 
+    // Confirming posts the user's "Confirmar" as a new turn, then Pana's
+    // acknowledgment. A user message advances the thread to a new turn (an
+    // assistant message would just merge into the proposal's own turn), so the
+    // proposal stops being the last message and its buttons disappear. The
+    // decision lives in the conversation itself — no separate state needed.
+    await saveMessage(ctx, components.agent, {
+      threadId: args.threadId,
+      userId: callerId,
+      message: { role: "user", content: "Confirmar" },
+    });
     await saveMessage(ctx, components.agent, {
       threadId: args.threadId,
       userId: callerId,
@@ -548,6 +560,13 @@ export const rejectPendingAction = zAction({
     const callerId = await resolveCallerId(ctx, args.userId);
     await authorizeThreadAccess(ctx, args.threadId, callerId);
 
+    // Same as confirm: the user's "Cancelar" advances the thread to a new turn,
+    // retiring the proposal card's buttons.
+    await saveMessage(ctx, components.agent, {
+      threadId: args.threadId,
+      userId: callerId,
+      message: { role: "user", content: "Cancelar" },
+    });
     await saveMessage(ctx, components.agent, {
       threadId: args.threadId,
       userId: callerId,

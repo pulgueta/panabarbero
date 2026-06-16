@@ -33,6 +33,9 @@ importers:
       '@convex-dev/r2':
         specifier: 0.10.1
         version: 0.10.1(@standard-schema/spec@1.1.0)(convex@1.40.0(react@19.2.7))(hono@4.12.25)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.9.3)(zod@4.4.3)
+      '@convex-dev/rag':
+        specifier: ^0.7.5
+        version: 0.7.5(convex-helpers@0.1.118(@standard-schema/spec@1.1.0)(convex@1.40.0(react@19.2.7))(hono@4.12.25)(react@19.2.7)(typescript@5.9.3)(zod@4.4.3))(convex@1.40.0(react@19.2.7))(zod@4.4.3)
       '@convex-dev/rate-limiter':
         specifier: 0.3.2
         version: 0.3.2(convex@1.40.0(react@19.2.7))(react@19.2.7)
@@ -798,6 +801,12 @@ packages:
         optional: true
       vue:
         optional: true
+
+  '@convex-dev/rag@0.7.5':
+    resolution: {integrity: sha512-u48NNcYdnBpGaAYq9GAbqEsCgFlKbaTj3Fc3cA+mNFis1flpy3Zz4eP2XdDavuyf/cNYE1dbxbnU20OcTvekOA==}
+    peerDependencies:
+      convex: ^1.24.8
+      convex-helpers: ^0.1.94
 
   '@convex-dev/rate-limiter@0.3.2':
     resolution: {integrity: sha512-+oBPsBfFbzdxiF/9XaaTQmVnvDlvEfg/c69/v8LxTbw4VLuiflIKlfnPQL8OS0azXQQ11hcPWHmU8ytFmHKDXA==}
@@ -7733,6 +7742,15 @@ snapshots:
       - hono
       - supports-color
       - typescript
+      - zod
+
+  '@convex-dev/rag@0.7.5(convex-helpers@0.1.118(@standard-schema/spec@1.1.0)(convex@1.40.0(react@19.2.7))(hono@4.12.25)(react@19.2.7)(typescript@5.9.3)(zod@4.4.3))(convex@1.40.0(react@19.2.7))(zod@4.4.3)':
+    dependencies:
+      '@convex-dev/workpool': 0.4.7(convex-helpers@0.1.118(@standard-schema/spec@1.1.0)(convex@1.40.0(react@19.2.7))(hono@4.12.25)(react@19.2.7)(typescript@5.9.3)(zod@4.4.3))(convex@1.40.0(react@19.2.7))
+      ai: 6.0.198(zod@4.4.3)
+      convex: 1.40.0(react@19.2.7)
+      convex-helpers: 0.1.118(@standard-schema/spec@1.1.0)(convex@1.40.0(react@19.2.7))(hono@4.12.25)(react@19.2.7)(typescript@5.9.3)(zod@4.4.3)
+    transitivePeerDependencies:
       - zod
 
   '@convex-dev/rate-limiter@0.3.2(convex@1.40.0(react@19.2.7))(react@19.2.7)':
