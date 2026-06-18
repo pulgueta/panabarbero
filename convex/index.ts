@@ -1,4 +1,4 @@
-import { NoOp } from "convex-helpers/server/customFunctions";
+import { customCtx, NoOp } from "convex-helpers/server/customFunctions";
 import {
   zCustomAction,
   zCustomMutation,
@@ -10,6 +10,7 @@ import { defineTable } from "convex/server";
 import type { GenericId } from "convex/values";
 import { z } from "zod";
 
+import type { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
 import {
   action,
   internalAction,
@@ -18,6 +19,7 @@ import {
   mutation,
   query,
 } from "./_generated/server";
+import { requireUserId } from "./identity";
 
 export const zQuery = zCustomQuery(query, NoOp);
 export const zInternalQuery = zCustomQuery(internalQuery, NoOp);
@@ -25,6 +27,19 @@ export const zMutation = zCustomMutation(mutation, NoOp);
 export const zInternalMutation = zCustomMutation(internalMutation, NoOp);
 export const zAction = zCustomAction(action, NoOp);
 export const zInternalAction = zCustomAction(internalAction, NoOp);
+
+export const zAuthQuery = zCustomQuery(
+  query,
+  customCtx(async (ctx: QueryCtx) => ({ userId: await requireUserId(ctx) })),
+);
+export const zAuthMutation = zCustomMutation(
+  mutation,
+  customCtx(async (ctx: MutationCtx) => ({ userId: await requireUserId(ctx) })),
+);
+export const zAuthAction = zCustomAction(
+  action,
+  customCtx(async (ctx: ActionCtx) => ({ userId: await requireUserId(ctx) })),
+);
 
 function jsonSafeZid<TableName extends string>(
   tableName: TableName,

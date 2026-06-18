@@ -3,10 +3,10 @@
 import { ConvexError } from "convex/values";
 import { z } from "zod";
 
-import { zInternalMutation, zMutation, zQuery } from ".";
+import { zAuthMutation, zInternalMutation, zQuery } from ".";
 import { assertCanManageTeam, getBarbershopMemberByUserId } from "./authz";
 import { errorMessages } from "./errors";
-import { getUserId, requireUserId } from "./identity";
+import { getUserId } from "./identity";
 import { rateLimitOrThrow } from "./ratelimit";
 import { barbershopMembers, barbershops, services } from "./schema";
 
@@ -137,13 +137,13 @@ export const getServicesWithBarberAssignments = zQuery({
  * Set the services that a barber can perform
  * Owners and staff can assign services to barbers
  */
-export const setBarberServices = zMutation({
+export const setBarberServices = zAuthMutation({
   args: z.object({
     barbershopMember: barbershopMembers.tools.id,
     services: z.array(services.tools.id),
   }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await rateLimitOrThrow(ctx, "setBarberServices", userId);
 
@@ -217,13 +217,13 @@ export const setBarberServices = zMutation({
 /**
  * Add a service to a barber's available services
  */
-export const addServiceToBarber = zMutation({
+export const addServiceToBarber = zAuthMutation({
   args: z.object({
     barbershopMember: barbershopMembers.tools.id,
     service: services.tools.id,
   }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await rateLimitOrThrow(ctx, "addServiceToBarber", userId);
 
@@ -270,13 +270,13 @@ export const addServiceToBarber = zMutation({
 /**
  * Remove a service from a barber's available services
  */
-export const removeServiceFromBarber = zMutation({
+export const removeServiceFromBarber = zAuthMutation({
   args: z.object({
     barbershopMember: barbershopMembers.tools.id,
     service: services.tools.id,
   }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await rateLimitOrThrow(ctx, "removeServiceFromBarber", userId);
 

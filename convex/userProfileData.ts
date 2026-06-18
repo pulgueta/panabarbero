@@ -1,7 +1,7 @@
 import { ConvexError } from "convex/values";
 import { z } from "zod";
 
-import { zInternalMutation, zMutation, zQuery } from ".";
+import { zAuthMutation, zInternalMutation, zQuery } from ".";
 import { api } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { errorMessages } from "./errors";
@@ -60,10 +60,10 @@ export const getMyProfile = zQuery({
   },
 });
 
-export const updateName = zMutation({
+export const updateName = zAuthMutation({
   args: userProfileData.schema.pick({ name: true }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await rateLimitOrThrow(ctx, "updateName", userId);
 
@@ -79,7 +79,7 @@ export const updateName = zMutation({
   },
 });
 
-export const updatePhoneNumber = zMutation({
+export const updatePhoneNumber = zAuthMutation({
   args: z
     .object({
       phoneNumber: z.string().optional(),
@@ -91,7 +91,7 @@ export const updatePhoneNumber = zMutation({
       { message: "Indica un número de teléfono o elige quitar." },
     ),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await rateLimitOrThrow(ctx, "updatePhoneNumber", userId);
 
@@ -115,14 +115,14 @@ export const updatePhoneNumber = zMutation({
   },
 });
 
-export const updateNotificationPreference = zMutation({
+export const updateNotificationPreference = zAuthMutation({
   args: z.object({
     type: z.enum(["email", "sms"]),
     enabled: z.boolean(),
     userId: z.string(),
   }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     if (userId !== args.userId) {
       throw new ConvexError(errorMessages.unauthorized);
@@ -141,13 +141,13 @@ export const updateNotificationPreference = zMutation({
   },
 });
 
-export const setProfilePhotoKey = zMutation({
+export const setProfilePhotoKey = zAuthMutation({
   args: z.object({
     imageUrl: z.string(),
     previousKey: z.string().optional(),
   }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await rateLimitOrThrow(ctx, "setProfilePhotoKey", userId);
 
@@ -171,12 +171,12 @@ export const setProfilePhotoKey = zMutation({
   },
 });
 
-export const removeProfilePhoto = zMutation({
+export const removeProfilePhoto = zAuthMutation({
   args: z.object({
     previousKey: z.string().optional(),
   }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await rateLimitOrThrow(ctx, "removeProfilePhoto", userId);
 
