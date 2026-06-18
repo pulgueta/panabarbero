@@ -71,10 +71,10 @@ export const PricingCard: FC<PricingCardProps> = ({
               : formatCurrency((copPrices?.priceAmount ?? 0) / 100)}
           </span>
           {product?.isRecurring && (copPrices?.priceAmount ?? 0) > 0 && (
-              <span className="text-muted-foreground text-sm">
-                {product?.recurringInterval === "year" ? "Anual" : "Mensual"}
-              </span>
-            )}
+            <span className="text-muted-foreground text-sm">
+              {product?.recurringInterval === "year" ? "Anual" : "Mensual"}
+            </span>
+          )}
         </div>
         <ul className="space-y-2 text-muted-foreground text-sm">
           {product?.benefits?.map((benefit) => (
