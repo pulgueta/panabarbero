@@ -135,7 +135,6 @@ export const services = zodTable("services", (id) => ({
 }));
 
 export const reviews = zodTable("reviews", (id) => ({
-  uuid: z.uuidv4().default(crypto.randomUUID()),
   rating: z.number(),
   comment: z.string().optional(),
   userId: z.string(),

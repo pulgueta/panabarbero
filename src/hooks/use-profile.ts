@@ -1,5 +1,9 @@
-import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
+import {
+  convexQuery,
+  useConvexAction,
+  useConvexMutation,
+} from "@convex-dev/react-query";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 
 export function profileQueryOptions(userId?: string) {
@@ -52,4 +56,11 @@ export function useProfileActions() {
     updatePhoneNumberMutation,
     updateNotificationPreferenceMutation,
   };
+}
+
+export function useAccountActions() {
+  const deleteAccountMutation = useMutation({
+    mutationFn: useConvexAction(api.workosOrgs.deleteCurrentUser),
+  });
+  return { deleteAccountMutation };
 }

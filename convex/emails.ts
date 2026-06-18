@@ -4,9 +4,12 @@ import { ConvexError } from "convex/values";
 import { render } from "react-email";
 import { UseSend } from "usesend-js";
 import { z } from "zod";
+import { zInternalAction } from ".";
 import {
+  AccountDeletedEmail,
   AppointmentCancelledEmail,
   AppointmentCreatedEmail,
+  AppointmentReassignedEmail,
   AppointmentReminderEmail,
   AppointmentRescheduleRequestEmail,
   PastAppointmentReminderEmail,
@@ -14,7 +17,7 @@ import {
   RescheduleRequestDeniedEmail,
   WelcomeEmail,
 } from "../emails/emails";
-import { zInternalAction } from ".";
+import { siteUrl } from "./notificationCopy";
 import { subjects } from "./notifications";
 
 export const from = "Soporte de PanaBarbero <contacto@mail.panabarbero.com>";
@@ -212,6 +215,100 @@ export const sendAppointmentCreatedToBarberEmail = zInternalAction({
       subject: args.subject,
       html,
     });
+  },
+});
+
+export const sendAppointmentReassignedEmails = zInternalAction({
+  args: z.object({
+    notifications: z.array(
+      z.object({
+        to: z.string(),
+        barbershopName: z.string(),
+        newBarberName: z.string(),
+      }),
+    ),
+  }),
+  handler: async (_ctx, args) => {
+    for (const n of args.notifications) {
+      const subject = `Tu cita en ${n.barbershopName} ha sido reasignada`;
+      const html = await render(
+        AppointmentReassignedEmail({
+          barbershopName: n.barbershopName,
+          newBarberName: n.newBarberName,
+        }),
+      );
+      await sendEmail({ to: n.to, subject, html });
+    }
+  },
+});
+
+export const sendMemberDepartureSummaryToOwner = zInternalAction({
+  args: z.object({
+    to: z.string(),
+    barberName: z.string(),
+    barbershopName: z.string(),
+    reassignedCount: z.number(),
+    cancelledCount: z.number(),
+  }),
+  handler: async (_ctx, args) => {
+    const subject = `Miembro de ${args.barbershopName} eliminó su cuenta`;
+    const parts: string[] = [
+      `El miembro ${args.barberName} de ${args.barbershopName} ha eliminado su cuenta en PanaBarbero.`,
+    ];
+    if (args.reassignedCount > 0) {
+      parts.push(
+        `${args.reassignedCount} cita(s) fueron reasignadas automáticamente a otros barberos disponibles.`,
+      );
+    }
+    if (args.cancelledCount > 0) {
+      parts.push(
+        `${args.cancelledCount} cita(s) fueron canceladas por falta de disponibilidad. Los clientes fueron notificados.`,
+      );
+    }
+    if (args.reassignedCount === 0 && args.cancelledCount === 0) {
+      parts.push("No había citas futuras pendientes afectadas.");
+    }
+    parts.push(
+      "Revisa el panel de tu barbería para ver el estado actualizado de las citas.",
+    );
+
+    const html = await render(
+      AccountDeletedEmail({
+        subject,
+        body: parts.join(" "),
+        url: siteUrl(),
+      }),
+    );
+    await sendEmail({ to: args.to, subject, html });
+  },
+});
+
+export const sendAccountDeletedNotifications = zInternalAction({
+  args: z.object({
+    notifications: z.array(
+      z.object({
+        to: z.string(),
+        barbershopName: z.string(),
+        affectedAs: z.enum(["staff", "customer"]),
+      }),
+    ),
+  }),
+  handler: async (_ctx, args) => {
+    for (const notification of args.notifications) {
+      const isStaff = notification.affectedAs === "staff";
+      const subject = isStaff
+        ? `Barbería ${notification.barbershopName} eliminada`
+        : "Tu cita ha sido cancelada";
+      const body = isStaff
+        ? `Lamentamos informarte que la barbería ${notification.barbershopName} ha cerrado su cuenta y ha sido eliminada de PanaBarbero. Los registros de membresía del equipo han sido eliminados. Si tienes alguna pregunta, contáctanos.`
+        : `Lamentamos informarte que tu cita en la barbería ${notification.barbershopName} ha sido cancelada, ya que la barbería ha cerrado su cuenta en PanaBarbero. Te invitamos a explorar otras barberías disponibles en nuestra plataforma.`;
+
+      const html = await render(
+        AccountDeletedEmail({ subject, body, url: siteUrl() }),
+      );
+
+      await sendEmail({ to: notification.to, subject, html });
+    }
   },
 });
 

@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { zMutation, zQuery } from ".";
 import { internal } from "./_generated/api";
+import { track } from "./analytics";
 import { assertCanManageServices, assertCanManageTeam } from "./authz";
 import { errorMessages } from "./errors";
 import { requireUserId } from "./identity";
@@ -65,6 +66,19 @@ export const create = zMutation({
         });
       }
     }
+
+    await track(ctx, {
+      distinctId: userId,
+      event: "service_created",
+      properties: {
+        serviceId,
+        serviceName: args.name,
+        servicePrice: args.price,
+        durationMinutes: args.duration,
+        barbershopId: args.barbershopId,
+      },
+      groups: { barbershop: args.barbershopId },
+    });
 
     // Refresh the shop's Pana knowledge base (no-op unless on the premium plan).
     await ctx.scheduler.runAfter(0, internal.aiRag.reindexShopKnowledge, {

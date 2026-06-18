@@ -247,16 +247,18 @@ function ProfilePage() {
     // left-most tab, while Perfil stays the default for direct /profile visits.
     const base = [tabs.notifications, tabs.account];
 
-    // Owners (whether or not they're barbers) see Plans and Danger tabs
+    // Owners see Plans tab
     if (rolesData?.isOwner) {
       base.push(tabs.plans);
-      base.push(tabs.danger);
     }
 
     // Non-barber, non-owner, non-staff users (customers) see their appointment history
     if (!isBarber && !isOwner && !isStaff) {
       base.push(tabs.appointments);
     }
+
+    // All authenticated users can delete their account
+    base.push(tabs.danger);
 
     return base;
   }, [isBarber, isOwner, isStaff, rolesData?.isOwner]);
@@ -305,13 +307,16 @@ function ProfilePage() {
             </TabsContent>
           </Suspense>
 
-          {rolesData?.isOwner && (
-            <Suspense fallback={<ProfileTabSkeleton />}>
-              <TabsContent value={tabs.danger.value} className="pt-2">
-                <DangerTab barbershopId={barbershop?._id} />
-              </TabsContent>
-            </Suspense>
-          )}
+          <Suspense fallback={<ProfileTabSkeleton />}>
+            <TabsContent value={tabs.danger.value} className="pt-2">
+              <DangerTab
+                barbershopId={barbershop?._id}
+                isOwner={!!rolesData?.isOwner}
+                isBarber={!!isBarber}
+                isStaff={!!isStaff}
+              />
+            </TabsContent>
+          </Suspense>
 
           {rolesData?.isOwner && (
             <Suspense fallback={<ProfileTabSkeleton />}>

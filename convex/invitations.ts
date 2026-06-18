@@ -8,6 +8,7 @@ import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { ActionCtx } from "./_generated/server";
 import { assertBarberInviteAllowed, assertStaffInviteAllowed } from "./acl";
+import { track } from "./analytics";
 import { authkit } from "./auth.config";
 import { assertCanManageTeam, assertOwner } from "./authz";
 import { getByUserIdFn } from "./barbershopMembers";
@@ -223,6 +224,16 @@ export const invite = zAction({
       expiresInDays: INVITATION_EXPIRATION_DAYS,
       locale,
     });
+
+    await track(ctx, {
+      distinctId: prepared.inviterUserId,
+      event: "member_invited",
+      properties: {
+        barbershopId: prepared.barbershopId,
+        role: args.roles[0],
+      },
+      groups: { barbershop: prepared.barbershopId },
+    });
   },
 });
 
@@ -402,6 +413,16 @@ export const syncWorkosMembership = zInternalMutation({
         );
       }
 
+      await track(ctx, {
+        distinctId: args.userId,
+        event: "member_joined",
+        properties: {
+          barbershopId: barbershop._id,
+          role: appRole,
+        },
+        groups: { barbershop: barbershop._id },
+      });
+
       return;
     }
 
@@ -419,5 +440,15 @@ export const syncWorkosMembership = zInternalMutation({
         { id: memberId },
       );
     }
+
+    await track(ctx, {
+      distinctId: args.userId,
+      event: "member_joined",
+      properties: {
+        barbershopId: barbershop._id,
+        role: appRole,
+      },
+      groups: { barbershop: barbershop._id },
+    });
   },
 });

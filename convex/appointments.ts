@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 
-import { convexToZod } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
+import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import { zInternalMutation, zInternalQuery, zMutation, zQuery } from ".";
@@ -312,7 +312,14 @@ export const create = zMutation({
         barbershopId: appointment.barbershopId,
         source: "web",
         isStaffCreated: isStaffCreatingAppointment,
+        serviceId: appointment.serviceId,
+        serviceName: service.name,
+        servicePrice: service.price,
+        durationMinutes: service.duration,
+        barberId: appointment.barbershopMemberId,
+        customerType: contactEmail ? "registered" : "anonymous",
       },
+      groups: { barbershop: appointment.barbershopId },
     });
   },
 });
@@ -493,6 +500,18 @@ export const setStatus = zMutation({
             appointmentId: appointmentId,
           },
         );
+
+        await track(ctx, {
+          distinctId: userId,
+          event: "appointment_completed",
+          properties: {
+            appointmentId,
+            barbershopId: appt.barbershopId,
+            serviceId: appt.serviceId,
+            barberId: appt.barbershopMemberId,
+          },
+          groups: { barbershop: appt.barbershopId },
+        });
         break;
 
       case "no-show":
@@ -503,6 +522,17 @@ export const setStatus = zMutation({
           pastReminderNotificationId: undefined,
         });
 
+        await track(ctx, {
+          distinctId: userId,
+          event: "appointment_no_show",
+          properties: {
+            appointmentId,
+            barbershopId: appt.barbershopId,
+            serviceId: appt.serviceId,
+            barberId: appt.barbershopMemberId,
+          },
+          groups: { barbershop: appt.barbershopId },
+        });
         break;
 
       case "cancelled":
@@ -656,7 +686,11 @@ export const cancel = zMutation({
         appointmentId,
         barbershopId: appt.barbershopId,
         cancelledBy: args.cancelledBy,
+        serviceId: appt.serviceId,
+        barberId: appt.barbershopMemberId,
+        reason: args.reason,
       },
+      groups: { barbershop: appt.barbershopId },
     });
   },
 });
@@ -739,7 +773,12 @@ export const requestReschedule = zMutation({
       properties: {
         appointmentId,
         barbershopId: appt.barbershopId,
+        requestedBy: isCustomerRequest ? "customer" : "barber",
+        proposedDate: args.proposedDate,
+        serviceId: appt.serviceId,
+        barberId: appt.barbershopMemberId,
       },
+      groups: { barbershop: appt.barbershopId },
     });
 
     return true;
@@ -964,7 +1003,10 @@ export const answerRescheduleRequest = zMutation({
         appointmentId: args.appointment.id,
         barbershopId: appt.barbershopId,
         accepted: args.accepted,
+        barberId: appt.barbershopMemberId,
+        serviceId: appt.serviceId,
       },
+      groups: { barbershop: appt.barbershopId },
     });
   },
 });
@@ -1318,7 +1360,13 @@ export const agentBook = zInternalMutation({
         appointmentId,
         barbershopId: args.barbershopId,
         source: "agent",
+        serviceId: args.serviceId,
+        serviceName: service.name,
+        servicePrice: service.price,
+        durationMinutes: service.duration,
+        barberId: args.barbershopMemberId,
       },
+      groups: { barbershop: args.barbershopId },
     });
 
     return appointmentId;

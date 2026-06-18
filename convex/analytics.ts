@@ -7,10 +7,15 @@ type AnalyticsCtx = MutationCtx | ActionCtx;
 export type AppEventName =
   | "user_signed_up"
   | "appointment_created"
+  | "appointment_completed"
+  | "appointment_no_show"
   | "appointment_cancelled"
   | "appointment_reschedule_requested"
   | "appointment_reschedule_decided"
   | "barbershop_created"
+  | "service_created"
+  | "member_invited"
+  | "member_joined"
   | "ai_thread_started"
   | "ai_action_confirmed";
 
@@ -42,6 +47,19 @@ export async function identifyUser(
   properties?: Record<string, unknown>,
 ): Promise<void> {
   await posthog.identify(ctx, { distinctId, properties });
+}
+
+/** Register or update barbershop group properties in PostHog. */
+export async function groupIdentifyBarbershop(
+  ctx: AnalyticsCtx,
+  barbershopId: string,
+  properties: Record<string, unknown>,
+): Promise<void> {
+  await posthog.groupIdentify(ctx, {
+    groupType: "barbershop",
+    groupKey: barbershopId,
+    properties,
+  });
 }
 
 export async function trackException(

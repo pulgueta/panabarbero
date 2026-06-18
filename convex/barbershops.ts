@@ -8,7 +8,7 @@ import { zInternalMutation, zMutation, zQuery } from ".";
 import { api, internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { assertIsSubscribed } from "./acl";
-import { track } from "./analytics";
+import { groupIdentifyBarbershop, track } from "./analytics";
 import { authkit } from "./auth.config";
 import { assertOwner } from "./authz";
 import { errorMessages } from "./errors";
@@ -121,7 +121,21 @@ export const create = zMutation({
     await track(ctx, {
       distinctId: userId,
       event: "barbershop_created",
-      properties: { barbershopId, name: barbershop.name },
+      properties: {
+        barbershopId,
+        name: barbershop.name,
+        city: barbershop.city,
+        state: barbershop.state,
+        ownerIsBarber,
+      },
+      groups: { barbershop: barbershopId },
+    });
+
+    await groupIdentifyBarbershop(ctx, barbershopId, {
+      name: barbershop.name,
+      city: barbershop.city,
+      state: barbershop.state,
+      ownerIsBarber,
     });
 
     return barbershopId;

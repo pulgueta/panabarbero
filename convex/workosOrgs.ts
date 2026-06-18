@@ -1,10 +1,12 @@
+import { ConvexError } from "convex/values";
 import { zid } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
-import { zInternalAction } from ".";
+import { zAction, zInternalAction } from ".";
 import { internal } from "./_generated/api";
 import { trackException } from "./analytics";
 import { authkit } from "./auth.config";
+import { requireUserId } from "./identity";
 
 /**
  * WorkOS Organization lifecycle sync. Barbershops are the source of truth:
@@ -132,6 +134,28 @@ export const removeOrganizationMembership = zInternalAction({
         operation: "remove_membership",
         workosOrganizationId: args.workosOrganizationId,
       });
+    }
+  },
+});
+
+/**
+ * Delete the currently authenticated user from WorkOS. The `user.deleted`
+ * webhook fires asynchronously and runs the full data-cascade in auth.ts.
+ */
+export const deleteCurrentUser = zAction({
+  args: z.object({}),
+  handler: async (ctx) => {
+    const userId = await requireUserId(ctx);
+
+    try {
+      await authkit.workos.userManagement.deleteUser(userId);
+    } catch (error) {
+      if ((error as { status?: number }).status === 404) {
+        return;
+      }
+      throw new ConvexError(
+        "No se pudo eliminar la cuenta. Inténtalo de nuevo.",
+      );
     }
   },
 });
