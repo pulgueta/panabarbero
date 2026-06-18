@@ -1,6 +1,6 @@
 # Política de Privacidad
 
-_Última actualización: 12 de marzo de 2026_
+_Última actualización: 16 de junio de 2026_
 
 ## 1. Introducción
 
@@ -12,10 +12,10 @@ Recopilamos los siguientes tipos de información:
 
 ### 2.1 Información proporcionada directamente
 
-- **Nombre completo:** Proporcionado durante el registro o a través de su proveedor de autenticación (OAuth).
-- **Correo electrónico:** Para la creación de cuenta, comunicaciones y notificaciones.
+- **Nombre completo:** Proporcionado durante el registro o transmitido por su proveedor de autenticación OAuth (por ejemplo, Google) a través de WorkOS AuthKit.
+- **Correo electrónico:** Para la creación de cuenta, comunicaciones y notificaciones. Es recopilado y gestionado por WorkOS en el momento del registro.
 - **Número de teléfono:** Para contacto y funcionalidades de la plataforma.
-- **Imagen de perfil:** Obtenida a través de proveedores de autenticación OAuth (Google, etc.) cuando el usuario inicia sesión con dichos servicios.
+- **Imagen de perfil:** Obtenida desde su proveedor OAuth (Google, etc.) a través de WorkOS AuthKit cuando inicia sesión con dichos servicios.
 
 ### 2.2 Información recopilada automáticamente
 
@@ -23,7 +23,11 @@ Recopilamos los siguientes tipos de información:
 - **Datos de uso:** Información sobre cómo interactúa con la plataforma (páginas visitadas, funcionalidades utilizadas, tiempo de uso).
 - **Información del dispositivo:** Tipo de navegador, sistema operativo y dirección IP.
 
-### 2.3 Información de pago
+### 2.3 Información de autenticación
+
+El proceso de registro, inicio de sesión y gestión de sesiones es gestionado exclusivamente por [WorkOS AuthKit](https://workos.com), nuestro proveedor de identidad. WorkOS recopila y almacena las credenciales de acceso (contraseñas cifradas), tokens de sesión y los datos de identidad provenientes de proveedores OAuth. PanaBarbero no almacena contraseñas ni tokens de autenticación en sus propios servidores; únicamente recibe un identificador de usuario y los datos de perfil básicos (nombre, correo electrónico, imagen) que WorkOS nos transmite de forma segura.
+
+### 2.4 Información de pago
 
 La información de pago (tarjetas de crédito, datos bancarios, etc.) es recopilada y procesada exclusivamente por [Polar](https://polar.sh), nuestro proveedor de pagos. PanaBarbero no almacena, procesa ni tiene acceso a su información financiera.
 
@@ -46,13 +50,13 @@ Utilizamos únicamente **Cloudflare Web Analytics** para medir el rendimiento de
 
 ## 5. Almacenamiento de Datos
 
-Los datos personales se almacenan en los servidores de [Convex](https://convex.dev), nuestro proveedor de base de datos en la nube. Convex implementa medidas de seguridad estándar de la industria, incluyendo cifrado en tránsito y en reposo, para proteger su información.
+Los datos de identidad (credenciales, sesiones, membresías de organización) se almacenan en los servidores de [WorkOS](https://workos.com), nuestro proveedor de autenticación. Los datos de la aplicación (perfil, citas, barberías, servicios) se almacenan en los servidores de [Convex](https://convex.dev), nuestro proveedor de base de datos en la nube. Ambos proveedores implementan medidas de seguridad estándar de la industria, incluyendo cifrado en tránsito y en reposo.
 
 ## 6. Compartición de Datos con Terceros
 
 PanaBarbero no vende, alquila ni comparte su información personal con terceros con fines comerciales. Solo compartimos información en los siguientes casos:
 
-- **Proveedores de servicio:** Compartimos datos necesarios con nuestros proveedores tecnológicos (Convex, Polar, Vercel) exclusivamente para la prestación del servicio.
+- **Proveedores de servicio:** Compartimos datos necesarios con nuestros proveedores tecnológicos (WorkOS, Convex, Polar, Vercel) exclusivamente para la prestación del servicio. En particular, WorkOS recibe sus datos de identidad para gestionar la autenticación; Convex almacena los datos de aplicación; Polar procesa la información de suscripción.
 - **Información de citas:** Cuando agenda una cita, su nombre y datos de contacto se comparten con la barbería correspondiente para la prestación del servicio.
 - **Obligaciones legales:** Podemos divulgar información cuando sea requerido por ley, regulación, proceso legal o solicitud gubernamental aplicable en Colombia.
 
@@ -74,14 +78,28 @@ Implementamos medidas de seguridad técnicas y organizativas para proteger su in
 
 - Cifrado de datos en tránsito mediante HTTPS/TLS.
 - Cifrado de datos en reposo en nuestra base de datos.
-- Autenticación segura con soporte de proveedores OAuth.
+- Autenticación segura gestionada por WorkOS AuthKit, con soporte de proveedores OAuth y almacenamiento de credenciales cifradas fuera de nuestros servidores.
 - Acceso restringido a datos personales por parte del equipo.
 
 Sin embargo, ningún método de transmisión por Internet o almacenamiento electrónico es 100% seguro. Aunque nos esforzamos por proteger su información, no podemos garantizar seguridad absoluta.
 
-## 9. Retención de Datos
+## 9. Retención de Datos y Eliminación de Cuenta
 
-Conservamos su información personal mientras su cuenta esté activa o mientras sea necesario para proporcionarle los servicios. Si elimina su cuenta, procederemos a eliminar sus datos personales dentro de un plazo razonable, salvo que la ley colombiana nos obligue a conservarlos por un período determinado.
+Conservamos su información personal mientras su cuenta esté activa o mientras sea necesario para proporcionarle los servicios.
+
+**Al eliminar su cuenta**, los siguientes datos son eliminados de forma inmediata e irreversible:
+
+- Su perfil de usuario (nombre, correo electrónico, teléfono e imagen).
+- Sus reseñas publicadas en la plataforma.
+- Sus notificaciones dentro de la aplicación.
+- Si es **propietario de una barbería**: la barbería completa con todos sus servicios, citas, membresías del equipo, metadatos y registros financieros asociados.
+- Si es **miembro del equipo**: su membresía y las asignaciones de servicio correspondientes.
+
+**Datos que pueden ser retenidos:**
+
+- Los registros de citas en las que usted participó como cliente en barberías de terceros pueden ser conservados por dichas barberías con fines operativos y de historial. Estos registros contienen únicamente la información de contacto que usted proporcionó al momento de agendar (nombre, teléfono, correo electrónico) y no están vinculados a su cuenta una vez eliminada.
+
+Lo anterior aplica salvo que la ley colombiana nos obligue a conservar ciertos datos por un período determinado.
 
 ## 10. Menores de Edad
 
