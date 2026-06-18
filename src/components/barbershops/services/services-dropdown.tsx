@@ -33,7 +33,7 @@ export const ServicesDropdown: FC<ServicesDropdownProps> = ({ services }) => {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        nativeButton={false}
+        nativeButton
         render={
           <Button
             variant="outline"

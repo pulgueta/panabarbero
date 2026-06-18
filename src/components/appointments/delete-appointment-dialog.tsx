@@ -57,7 +57,7 @@ export const DeleteAppointmentDialog: FC<DeleteAppointmentDialogProps> = ({
 
   return (
     <ResponsiveModal open={open} onOpenChange={onOpenChange}>
-      <ResponsiveModalTrigger nativeButton={false} render={trigger} />
+      <ResponsiveModalTrigger nativeButton render={trigger} />
       <ResponsiveModalContent>
         <ResponsiveModalHeader>
           <ResponsiveModalTitle>Eliminar cita</ResponsiveModalTitle>

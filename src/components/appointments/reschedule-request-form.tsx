@@ -177,7 +177,7 @@ export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
                   <FieldLabel>Fecha propuesta</FieldLabel>
                   <Popover>
                     <PopoverTrigger
-                      nativeButton={false}
+                      nativeButton
                       render={
                         <Button
                           variant="outline"
