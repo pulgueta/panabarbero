@@ -1,14 +1,12 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: early return */
 
-import { paginationOptsValidator } from "convex/server";
-import { ConvexError } from "convex/values";
-import { convexToZod, zid } from "convex-helpers/server/zod4";
+import { zid } from "convex-helpers/server/zod4";
 import { UnreadTracking } from "convex-unread-tracking";
+import { ConvexError } from "convex/values";
 import { z } from "zod";
 
-import { zInternalMutation, zMutation, zQuery } from ".";
+import { zInternalMutation } from ".";
 import { components, internal } from "./_generated/api";
-import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import {
   incrementEmailSent,
@@ -17,14 +15,13 @@ import {
   isSmsLimitNotExceeded,
 } from "./acl";
 import { errorMessages } from "./errors";
-import { getUserId, requireUserId } from "./identity";
 import {
   buildNotificationCopy,
   buildSmsBody,
   type NotificationCopy,
 } from "./notificationCopy";
 import { subjects } from "./notificationSubjects";
-import type { UserProfileData } from "./schema";
+import type { Barbershop, InAppNotification, UserProfileData } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
 
 export { subjects };
@@ -66,7 +63,7 @@ async function scheduleSmsWithQuota(
   opts: {
     to: string;
     body: string;
-    barbershopId?: Id<"barbershops">;
+    barbershopId?: Barbershop["_id"];
   },
 ): Promise<void> {
   if (opts.barbershopId) {
@@ -99,7 +96,7 @@ async function scheduleSmsWithQuota(
  */
 async function scheduleEmailWithQuota(
   ctx: MutationCtx,
-  barbershopId: Id<"barbershops"> | undefined,
+  barbershopId: Barbershop["_id"] | undefined,
   send: () => Promise<unknown>,
 ): Promise<void> {
   if (barbershopId) {
@@ -124,7 +121,7 @@ async function recordInApp(
   opts: {
     userId: string;
     copy: NotificationCopy;
-    payload?: Doc<"inAppNotifications">["payload"];
+    payload?: InAppNotification["payload"];
   },
 ): Promise<void> {
   if (!opts.userId || opts.userId === "user_does_not_exist") {
@@ -813,137 +810,5 @@ export const createServiceDeletedCancellation = zInternalMutation({
         },
       });
     }
-  },
-});
-
-/* ------------------------------------------------------------------------- */
-/*  In-app notification inbox — public queries/mutations                     */
-/* ------------------------------------------------------------------------- */
-
-const INBOX_RECENT_LIMIT = 5;
-
-/** Most recent 5 notifications for the current user. Used by the header popover. */
-export const listRecent = zQuery({
-  args: z.object({}),
-  handler: async (ctx) => {
-    const userId = await getUserId(ctx);
-
-    if (!userId) {
-      return [];
-    }
-
-    return await ctx.db
-      .query("inAppNotifications")
-      .withIndex("by_user_created", (q) => q.eq("userId", userId))
-      .order("desc")
-      .take(INBOX_RECENT_LIMIT);
-  },
-});
-
-/** Paginated notifications list for the profile "Notificaciones" tab. */
-export const list = zQuery({
-  args: z.object({
-    paginationOpts: convexToZod(paginationOptsValidator),
-  }),
-  handler: async (ctx, args) => {
-    const userId = await getUserId(ctx);
-
-    if (!userId) {
-      return { page: [], isDone: true, continueCursor: "" } as const;
-    }
-
-    return await ctx.db
-      .query("inAppNotifications")
-      .withIndex("by_user_created", (q) => q.eq("userId", userId))
-      .order("desc")
-      .paginate(args.paginationOpts);
-  },
-});
-
-/** Paginated unread notifications for the "Sin leer" tab in the profile inbox. */
-export const listUnread = zQuery({
-  args: z.object({
-    paginationOpts: convexToZod(paginationOptsValidator),
-  }),
-  handler: async (ctx, args) => {
-    const userId = await getUserId(ctx);
-
-    if (!userId) {
-      return { page: [], isDone: true, continueCursor: "" } as const;
-    }
-
-    const lastRead = await unreads.getLastRead(ctx, {
-      userId,
-      channelId: userId,
-    });
-
-    return await ctx.db
-      .query("inAppNotifications")
-      .withIndex("by_user_created", (q) =>
-        q.eq("userId", userId).gt("_creationTime", lastRead ?? 0),
-      )
-      .order("desc")
-      .paginate(args.paginationOpts);
-  },
-});
-
-/** Count of notifications the current user has not yet read. Used for the bell badge. */
-export const unreadCount = zQuery({
-  args: z.object({}),
-  handler: async (ctx) => {
-    const userId = await getUserId(ctx);
-
-    if (!userId) {
-      return 0;
-    }
-
-    return await unreads.getUnreadCount(ctx, {
-      userId,
-      channelId: userId,
-    });
-  },
-});
-
-/**
- * Read watermark for the current user's inbox. Rows with `_creationTime`
- * greater than this are unread — used by the client for per-row styling.
- */
-export const getLastRead = zQuery({
-  args: z.object({}),
-  handler: async (ctx) => {
-    const userId = await getUserId(ctx);
-
-    if (!userId) {
-      return null;
-    }
-
-    return await unreads.getLastRead(ctx, {
-      userId,
-      channelId: userId,
-    });
-  },
-});
-
-const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
-
-/** Daily cron target: prune unread-tracking bookkeeping older than 90 days. */
-export const cleanupUnreads = zInternalMutation({
-  args: z.object({}),
-  handler: async (ctx) => {
-    await unreads.cleanup(ctx, { olderThanMs: NINETY_DAYS_MS });
-  },
-});
-
-/** Mark every notification belonging to the current user as read. */
-export const markAllRead = zMutation({
-  args: z.object({}),
-  handler: async (ctx) => {
-    const userId = await requireUserId(ctx);
-
-    await unreads.markReadUpTo(ctx, {
-      userId,
-      channelId: userId,
-      timestamp: Date.now(),
-    });
   },
 });
