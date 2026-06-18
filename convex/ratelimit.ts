@@ -173,13 +173,13 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     kind: "fixed window",
     period: 5 * 1000,
     rate: 1,
-    capacity: 3,
+    capacity: 5,
   },
   aiSendMessageAnon: {
     kind: "fixed window",
     period: 15 * 1000,
     rate: 1,
-    capacity: 1,
+    capacity: 3,
   },
   aiTokenUsage: {
     kind: "token bucket",
