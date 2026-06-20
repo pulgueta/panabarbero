@@ -48,7 +48,7 @@ crons.interval(
 crons.interval(
   "Cleanup unread-tracking data",
   { hours: 24 },
-  internal.notifications.cleanupUnreads,
+  internal.inAppNotifications.cleanupUnreads,
 );
 
 export default crons;

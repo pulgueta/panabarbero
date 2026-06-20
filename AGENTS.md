@@ -16,6 +16,9 @@ PanaBarbero is a barbershop marketplace + management app: **TanStack Start
 manager is **pnpm only** (never npm/bun/yarn). All user-facing copy is
 **Spanish (es-CO)**.
 
+> [!IMPORTANT]
+> Keep `AGENTS.md` updated with project status.
+
 ---
 
 ## 0. The discipline (read before editing anything)

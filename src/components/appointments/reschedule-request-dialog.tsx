@@ -41,7 +41,7 @@ export const RescheduleRequestDialog: FC<RescheduleRequestDialogProps> = ({
 
   return (
     <ResponsiveModal open={isOpen} onOpenChange={handleOpenChange}>
-      <ResponsiveModalTrigger nativeButton={false} render={trigger} />
+      <ResponsiveModalTrigger nativeButton render={trigger} />
       <ResponsiveModalContent>
         <ResponsiveModalHeader>
           <ResponsiveModalTitle>{headLabel}</ResponsiveModalTitle>

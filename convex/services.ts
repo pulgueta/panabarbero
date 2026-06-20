@@ -3,19 +3,18 @@
 import { ConvexError } from "convex/values";
 import { z } from "zod";
 
-import { zMutation, zQuery } from ".";
+import { zAuthMutation, zQuery } from ".";
 import { internal } from "./_generated/api";
 import { track } from "./analytics";
 import { assertCanManageServices, assertCanManageTeam } from "./authz";
 import { errorMessages } from "./errors";
-import { requireUserId } from "./identity";
 import { rateLimitOrThrow } from "./ratelimit";
 import { appointments, barbershops, services } from "./schema";
 
-export const create = zMutation({
+export const create = zAuthMutation({
   args: services.tools.insert,
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await Promise.all([
       rateLimitOrThrow(ctx, "createService", userId),
@@ -107,10 +106,10 @@ export const getByIds = zQuery({
   },
 });
 
-export const update = zMutation({
+export const update = zAuthMutation({
   args: services.tools.update,
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await rateLimitOrThrow(ctx, "updateService", userId);
 
@@ -136,14 +135,14 @@ export const update = zMutation({
  *   throws ConvexError with message "WILL_CANCEL:N" where N is count of impacted appointments.
  * - If `force` is true: cancels/soft-deletes all impacted appointments, notifies customers, then deletes service.
  */
-export const deleteService = zMutation({
+export const deleteService = zAuthMutation({
   args: z.object({
     barbershop: barbershops.tools.id,
     service: services.tools.id,
     force: z.boolean().optional(),
   }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await Promise.all([
       rateLimitOrThrow(ctx, "deleteService", userId),

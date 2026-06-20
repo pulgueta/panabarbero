@@ -1247,6 +1247,7 @@ function CropperImpl(props: CropperImplProps) {
       } else if (event.touches.length === 1) {
         const firstTouch = event.touches[0];
         if (firstTouch) {
+          // @ts-expect-error: extra field for base-ui
           onDragStart(getTouchPoint(firstTouch));
         }
       }
@@ -1305,6 +1306,7 @@ function CropperImpl(props: CropperImplProps) {
     ref: composedRef,
     props: mergeProps<"div">(
       {
+        // @ts-expect-error: extra field for base-ui
         "data-slot": "cropper",
         tabIndex: 0,
         className: cn(
@@ -1583,6 +1585,7 @@ function CropperImage(props: CropperImageProps) {
     ref: composedRef,
     props: mergeProps<"img">(
       {
+        // @ts-expect-error: extra field for base-ui
         "data-slot": "cropper-image",
         className: cn(
           cropperMediaVariants({
@@ -1651,6 +1654,7 @@ function CropperArea(props: CropperAreaProps) {
     enabled: cropSize != null,
     props: mergeProps<"div">(
       {
+        // @ts-expect-error: extra field for base-ui
         "data-slot": "cropper-area",
         className: cn(
           cropperAreaVariants({

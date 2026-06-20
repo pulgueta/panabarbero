@@ -3,9 +3,8 @@ import { ConvexError } from "convex/values";
 import { zid } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
-import { zAction, zInternalMutation, zInternalQuery } from ".";
+import { zAuthAction, zInternalMutation, zInternalQuery } from ".";
 import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
 import type { ActionCtx } from "./_generated/server";
 import { assertBarberInviteAllowed, assertStaffInviteAllowed } from "./acl";
 import { track } from "./analytics";
@@ -16,6 +15,7 @@ import { errorMessages } from "./errors";
 import { requireUserId } from "./identity";
 import { inviteBarberSchema } from "./invitationsSchema";
 import { rateLimitOrThrow } from "./ratelimit";
+import type { Barbershop } from "./schema";
 import { getProfileByEmail, getProfileByUserId } from "./userProfileData";
 
 /**
@@ -76,7 +76,7 @@ async function resolveInviteLocale(email: string): Promise<Locale> {
 async function ensureOrganization(
   ctx: ActionCtx,
   prepared: {
-    barbershopId: Id<"barbershops">;
+    barbershopId: Barbershop["_id"];
     barbershopName: string;
     organizationId: string | null;
     ownerUserId: string;
@@ -193,7 +193,7 @@ export const prepareInvite = zInternalMutation({
   },
 });
 
-export const invite = zAction({
+export const invite = zAuthAction({
   args: inviteBarberSchema,
   handler: async (ctx, args) => {
     const prepared = await ctx.runMutation(
@@ -258,7 +258,7 @@ export const getManageableOrganization = zInternalQuery({
   },
 });
 
-export const listInvitations = zAction({
+export const listInvitations = zAuthAction({
   args: z.object({ barbershopId: zid("barbershops") }),
   handler: async (ctx, args) => {
     const { organizationId } = await ctx.runQuery(
@@ -286,7 +286,7 @@ export const listInvitations = zAction({
   },
 });
 
-export const revokeInvitation = zAction({
+export const revokeInvitation = zAuthAction({
   args: z.object({
     barbershopId: zid("barbershops"),
     invitationId: z.string(),
@@ -309,7 +309,7 @@ export const revokeInvitation = zAction({
   },
 });
 
-export const resendInvitation = zAction({
+export const resendInvitation = zAuthAction({
   args: z.object({
     barbershopId: zid("barbershops"),
     invitationId: z.string(),

@@ -44,7 +44,7 @@ export const CancelAppointmentDialog: FC<CancelAppointmentDialogProps> = ({
       open={open ?? internalOpen}
       onOpenChange={handleOpenChange}
     >
-      <ResponsiveModalTrigger nativeButton={false} render={trigger} />
+      <ResponsiveModalTrigger nativeButton render={trigger} />
       <ResponsiveModalContent>
         <ResponsiveModalHeader>
           <ResponsiveModalTitle>Cancelar cita</ResponsiveModalTitle>

@@ -4,28 +4,27 @@ import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
 import { convexToZod, zid } from "convex-helpers/server/zod4";
 import { z } from "zod";
-import { zInternalMutation, zMutation, zQuery } from ".";
+import { zAuthMutation, zInternalMutation, zQuery } from ".";
 import { api, internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { assertIsSubscribed } from "./acl";
 import { groupIdentifyBarbershop, track } from "./analytics";
 import { authkit } from "./auth.config";
 import { assertOwner } from "./authz";
+import { cascadeDeleteBarbershop } from "./barbershopCascade";
 import { errorMessages } from "./errors";
-import { barbershopGeospatial } from "./geospatial";
-import { requireUserId } from "./identity";
 import { rateLimitOrThrow } from "./ratelimit";
 import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
 import { DAY_MAP, formatPhoneNumber } from "./utils";
 
-export const create = zMutation({
+export const create = zAuthMutation({
   args: z.object({
     barbershop: barbershops.tools.insert.omit({ uuid: true }),
     ownerIsBarber: z.boolean(),
   }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await Promise.all([
       assertIsSubscribed(ctx, userId),
@@ -294,120 +293,20 @@ export const getServicesPaginated = zQuery({
   },
 });
 
-export const deleteCascade = zMutation({
+export const deleteCascade = zAuthMutation({
   args: barbershops.tools.id,
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await rateLimitOrThrow(ctx, "deleteBarbershopCascade", userId);
 
-    const [barbershop, appointments] = await Promise.all([
-      ctx.db.get(args.id),
-      ctx.db
-        .query("appointments")
-        .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-        .collect(),
-    ]);
+    const barbershop = await ctx.db.get(args.id);
 
     if (!barbershop || barbershop.ownerId !== userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    if (barbershop.workosOrganizationId) {
-      await ctx.scheduler.runAfter(0, internal.workosOrgs.deleteOrganization, {
-        workosOrganizationId: barbershop.workosOrganizationId,
-      });
-    }
-
-    // Cancel pending scheduled notifications before deleting appointment rows.
-    await Promise.all(
-      appointments.flatMap((appointment) =>
-        [
-          appointment.upcomingNotificationId,
-          appointment.pastReminderNotificationId,
-        ]
-          .filter(Boolean)
-          .map(async (id) => {
-            try {
-              await ctx.scheduler.cancel(id!);
-            } catch {
-              // Already completed, failed, or cancelled — safe to ignore
-            }
-          }),
-      ),
-    );
-
-    await Promise.all(
-      appointments.map((appointment) => ctx.db.delete(appointment._id)),
-    );
-
-    const [
-      services,
-      assignments,
-      members,
-      reviews,
-      metadata,
-      usageRows,
-      extraCreditsRow,
-      creditPurchasesRows,
-    ] = await Promise.all([
-      ctx.db
-        .query("services")
-        .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-        .collect(),
-      ctx.db
-        .query("barbershopMemberServices")
-        .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-        .collect(),
-      ctx.db
-        .query("barbershopMembers")
-        .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-        .collect(),
-      ctx.db
-        .query("reviews")
-        .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-        .collect(),
-      ctx.db
-        .query("barbershopMetadata")
-        .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-        .unique(),
-      ctx.db
-        .query("usage")
-        .withIndex("by_barbershop_month", (q) => q.eq("barbershopId", args.id))
-        .collect(),
-      ctx.db
-        .query("extraCredits")
-        .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-        .unique(),
-      ctx.db
-        .query("creditPurchases")
-        .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-        .collect(),
-    ]);
-
-    if (barbershop.logoKey) {
-      try {
-        await ctx.runMutation(api.r2.deleteR2Object, {
-          key: barbershop.logoKey,
-        });
-      } catch {
-        // Non-fatal: object may already be gone
-      }
-    }
-
-    await Promise.all([
-      ...services.map((service) => ctx.db.delete(service._id)),
-      ...assignments.map((assignment) => ctx.db.delete(assignment._id)),
-      ...members.map((member) => ctx.db.delete(member._id)),
-      ...reviews.map((review) => ctx.db.delete(review._id)),
-      ...(metadata?._id ? [ctx.db.delete(metadata._id)] : []),
-      ...usageRows.map((row) => ctx.db.delete(row._id)),
-      ...(extraCreditsRow ? [ctx.db.delete(extraCreditsRow._id)] : []),
-      ...creditPurchasesRows.map((row) => ctx.db.delete(row._id)),
-      barbershopGeospatial.remove(ctx, args.id),
-    ]);
-
-    await ctx.db.delete(args.id);
+    await cascadeDeleteBarbershop(ctx, barbershop);
   },
 });
 
@@ -472,10 +371,10 @@ export const updateDayAvailabilitySchema = z.object({
   lunchEnd: z.string().optional(),
 });
 
-export const updateDayAvailability = zMutation({
+export const updateDayAvailability = zAuthMutation({
   args: updateDayAvailabilitySchema,
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await rateLimitOrThrow(ctx, "updateBarbershopDayAvailability", userId);
 
@@ -518,13 +417,13 @@ export const updateDayAvailability = zMutation({
   },
 });
 
-export const updateAvailability = zMutation({
+export const updateAvailability = zAuthMutation({
   args: z.object({
     barbershop: barbershops.tools.id,
     data: barbershops.insertSchema.pick({ availability: true }),
   }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await rateLimitOrThrow(ctx, "updateBarbershopAvailability", userId);
 
@@ -545,10 +444,10 @@ export const updateAvailability = zMutation({
   },
 });
 
-export const update = zMutation({
+export const update = zAuthMutation({
   args: barbershops.tools.update,
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     if (userId !== args.data.ownerId) {
       throw new ConvexError(errorMessages.unauthorized);
@@ -713,13 +612,13 @@ export const getByName = zQuery({
   },
 });
 
-export const setLogoKey = zMutation({
+export const setLogoKey = zAuthMutation({
   args: z.object({
     barbershopId: barbershops.tools.id.shape.id,
     logoKey: z.string(),
   }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await Promise.all([
       assertOwner(ctx, args.barbershopId, userId),
@@ -746,12 +645,12 @@ export const setLogoKey = zMutation({
   },
 });
 
-export const removeLogoKey = zMutation({
+export const removeLogoKey = zAuthMutation({
   args: z.object({
     barbershopId: barbershops.tools.id.shape.id,
   }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await Promise.all([
       assertOwner(ctx, args.barbershopId, userId),

@@ -44,7 +44,7 @@ export const NotificationsBell = () => {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        nativeButton={false}
+        nativeButton
         render={
           <Button
             variant="outline"

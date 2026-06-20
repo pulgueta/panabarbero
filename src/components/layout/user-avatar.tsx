@@ -34,7 +34,7 @@ export function UserAvatar({ user }: UserAvatarProps) {
   return (
     <Popover>
       <PopoverTrigger
-        nativeButton={false}
+        nativeButton
         render={
           <Button
             variant="ghost"

@@ -5,9 +5,8 @@ import { ConvexError } from "convex/values";
 import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
-import { zInternalMutation, zInternalQuery, zMutation, zQuery } from ".";
+import { zAuthMutation, zInternalMutation, zInternalQuery, zQuery } from ".";
 import { internal } from "./_generated/api";
-import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { assertCanCreateStaffAppointment } from "./acl";
 import { track } from "./analytics";
@@ -19,9 +18,9 @@ import {
 } from "./authz";
 import { getEffectiveSchedule } from "./barbershopMembers";
 import { errorMessages } from "./errors";
-import { getUserId, requireUserId } from "./identity";
+import { getUserId } from "./identity";
 import { rateLimitOrThrow } from "./ratelimit";
-import type { UserProfileData } from "./schema";
+import type { Appointment, UserProfileData } from "./schema";
 import {
   appointments,
   barbershopMembers,
@@ -65,7 +64,7 @@ const createAppointmentArgs = z.object({
 
 async function cancelScheduledNotifications(
   ctx: MutationCtx,
-  appointment: Doc<"appointments">,
+  appointment: Appointment,
 ) {
   const ids = [
     appointment.upcomingNotificationId,
@@ -83,10 +82,10 @@ async function cancelScheduledNotifications(
   );
 }
 
-export const create = zMutation({
+export const create = zAuthMutation({
   args: createAppointmentArgs,
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await rateLimitOrThrow(ctx, "createAppointment", userId);
 
@@ -439,10 +438,10 @@ export const setStatusSchema = z.object({
   status: z.enum(["completed", "no-show", "cancelled"]),
 });
 
-export const setStatus = zMutation({
+export const setStatus = zAuthMutation({
   args: setStatusSchema,
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await rateLimitOrThrow(ctx, "setAppointmentStatus", userId);
 
@@ -560,12 +559,12 @@ export const setStatus = zMutation({
   },
 });
 
-export const deleteAppointment = zMutation({
+export const deleteAppointment = zAuthMutation({
   args: z.object({
     appointmentId: appointments.tools.id,
   }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await rateLimitOrThrow(ctx, "deleteAppointment", userId);
     const appointmentId = args.appointmentId.id;
@@ -619,7 +618,7 @@ export const deleteAppointment = zMutation({
   },
 });
 
-export const cancel = zMutation({
+export const cancel = zAuthMutation({
   args: z.object({
     appointmentId: appointments.tools.id,
     cancelledByUserId: z.string(),
@@ -627,7 +626,7 @@ export const cancel = zMutation({
     cancelledBy: z.enum(["customer", "barber"]),
   }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await rateLimitOrThrow(ctx, "cancelAppointment", userId);
 
@@ -695,13 +694,13 @@ export const cancel = zMutation({
   },
 });
 
-export const requestReschedule = zMutation({
+export const requestReschedule = zAuthMutation({
   args: z.object({
     appointmentId: appointments.tools.id,
     proposedDate: z.number(),
   }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     const appointmentId = args.appointmentId.id;
     await rateLimitOrThrow(
@@ -843,14 +842,14 @@ export const notifyUpcoming = zInternalMutation({
   },
 });
 
-export const answerRescheduleRequest = zMutation({
+export const answerRescheduleRequest = zAuthMutation({
   args: z.object({
     appointment: appointments.tools.id,
     accepted: z.boolean(),
     answeredBy: z.enum(["customer", "barber"]),
   }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await rateLimitOrThrow(
       ctx,

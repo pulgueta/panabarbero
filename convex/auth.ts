@@ -1,13 +1,12 @@
 import { z } from "zod";
 
 import { zQuery } from ".";
-import { api, internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
 import { identifyUser, track } from "./analytics";
 import { authkit } from "./auth.config";
 import { assertShopRole } from "./authz";
-import { barbershopGeospatial } from "./geospatial";
+import { cascadeDeleteBarbershop } from "./barbershopCascade";
 import { getUserId } from "./identity";
 import { getLimitsForProductKey, getTierForProductKey } from "./plans";
 import { polar } from "./polar";
@@ -133,10 +132,10 @@ async function handleBarberDeparture(
   const barberName = memberProfile?.name ?? "el barbero";
 
   const reassignedItems: Array<{
-    appointmentId: Id<"appointments">;
+    appointmentId: Appointment["_id"];
     newBarberName: string;
   }> = [];
-  const cancelledIds: Array<Id<"appointments">> = [];
+  const cancelledIds: Array<Appointment["_id"]> = [];
 
   for (const appt of upcomingAppointments) {
     const newBarber = await findAvailableBarberForSlot(
@@ -365,72 +364,10 @@ export const { authKitEvent } = authkit.events({
       .collect();
 
     for (const barbershop of ownedBarbershops) {
-      const [
-        appointments,
-        members,
-        services,
-        assignments,
-        shopReviews,
-        metadata,
-        usageRows,
-        extraCreditsRow,
-        creditPurchasesRows,
-      ] = await Promise.all([
-        ctx.db
-          .query("appointments")
-          .withIndex("by_barbershopId", (q) =>
-            q.eq("barbershopId", barbershop._id),
-          )
-          .collect(),
-        ctx.db
-          .query("barbershopMembers")
-          .withIndex("by_barbershopId", (q) =>
-            q.eq("barbershopId", barbershop._id),
-          )
-          .collect(),
-        ctx.db
-          .query("services")
-          .withIndex("by_barbershopId", (q) =>
-            q.eq("barbershopId", barbershop._id),
-          )
-          .collect(),
-        ctx.db
-          .query("barbershopMemberServices")
-          .withIndex("by_barbershopId", (q) =>
-            q.eq("barbershopId", barbershop._id),
-          )
-          .collect(),
-        ctx.db
-          .query("reviews")
-          .withIndex("by_barbershopId", (q) =>
-            q.eq("barbershopId", barbershop._id),
-          )
-          .collect(),
-        ctx.db
-          .query("barbershopMetadata")
-          .withIndex("by_barbershopId", (q) =>
-            q.eq("barbershopId", barbershop._id),
-          )
-          .unique(),
-        ctx.db
-          .query("usage")
-          .withIndex("by_barbershop_month", (q) =>
-            q.eq("barbershopId", barbershop._id),
-          )
-          .collect(),
-        ctx.db
-          .query("extraCredits")
-          .withIndex("by_barbershopId", (q) =>
-            q.eq("barbershopId", barbershop._id),
-          )
-          .unique(),
-        ctx.db
-          .query("creditPurchases")
-          .withIndex("by_barbershopId", (q) =>
-            q.eq("barbershopId", barbershop._id),
-          )
-          .collect(),
-      ]);
+      const { appointments, members } = await cascadeDeleteBarbershop(
+        ctx,
+        barbershop,
+      );
 
       // Collect non-owner member emails (staff/barbers whose workplace is closing)
       for (const member of members) {
@@ -462,58 +399,6 @@ export const { authKitEvent } = authkit.events({
           });
         }
       }
-
-      // Cancel pending scheduled notifications before deleting appointment rows
-      const scheduledIds = appointments.flatMap((appt) =>
-        [appt.upcomingNotificationId, appt.pastReminderNotificationId].filter(
-          (id): id is NonNullable<typeof id> => id != null,
-        ),
-      );
-
-      await Promise.all(
-        scheduledIds.map(async (id) => {
-          try {
-            await ctx.scheduler.cancel(id);
-          } catch {
-            // Already completed or cancelled — safe to ignore
-          }
-        }),
-      );
-
-      if (barbershop.logoKey) {
-        try {
-          await ctx.runMutation(api.r2.deleteR2Object, {
-            key: barbershop.logoKey,
-          });
-        } catch {
-          // Non-fatal: object may already be gone
-        }
-      }
-
-      if (barbershop.workosOrganizationId) {
-        await ctx.scheduler.runAfter(
-          0,
-          internal.workosOrgs.deleteOrganization,
-          {
-            workosOrganizationId: barbershop.workosOrganizationId,
-          },
-        );
-      }
-
-      await Promise.all([
-        ...appointments.map((a) => ctx.db.delete(a._id)),
-        ...services.map((s) => ctx.db.delete(s._id)),
-        ...assignments.map((a) => ctx.db.delete(a._id)),
-        ...members.map((m) => ctx.db.delete(m._id)),
-        ...shopReviews.map((r) => ctx.db.delete(r._id)),
-        ...(metadata ? [ctx.db.delete(metadata._id)] : []),
-        ...usageRows.map((r) => ctx.db.delete(r._id)),
-        ...(extraCreditsRow ? [ctx.db.delete(extraCreditsRow._id)] : []),
-        ...creditPurchasesRows.map((r) => ctx.db.delete(r._id)),
-        barbershopGeospatial.remove(ctx, barbershop._id),
-      ]);
-
-      await ctx.db.delete(barbershop._id);
     }
 
     // 2. Handle memberships where user was barber/staff at other shops:

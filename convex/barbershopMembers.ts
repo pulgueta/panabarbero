@@ -3,15 +3,14 @@
 import { ConvexError } from "convex/values";
 import { z } from "zod";
 
-import { zInternalMutation, zMutation, zQuery } from ".";
+import { zAuthMutation, zInternalMutation, zQuery } from ".";
 import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { assertCanManageShop, assertShopRole } from "./authz";
 import { errorMessages } from "./errors";
 import { getUserId, requireUserId } from "./identity";
 import { rateLimitOrThrow } from "./ratelimit";
-import type { Barbershop } from "./schema";
+import type { Barbershop, BarbershopMember } from "./schema";
 import { barbershopMembers, barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
 import { parseTimeToMinutes } from "./utils";
@@ -58,10 +57,10 @@ export const getByBarbershopId = zQuery({
   },
 });
 
-export const update = zMutation({
+export const update = zAuthMutation({
   args: barbershopMembers.tools.update,
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await rateLimitOrThrow(ctx, "updateBarbershopMember", userId);
 
@@ -80,13 +79,13 @@ export const deleteMember = zInternalMutation({
   },
 });
 
-export const removeBarberFromBarbershop = zMutation({
+export const removeBarberFromBarbershop = zAuthMutation({
   args: z.object({
     ...barbershopMembers.tools.id.shape,
     force: z.boolean().optional(),
   }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await rateLimitOrThrow(ctx, "removeBarberFromBarbershop", userId);
 
@@ -249,10 +248,10 @@ export const getStaffByBarbershopId = zQuery({
   },
 });
 
-export const removeStaffFromBarbershop = zMutation({
+export const removeStaffFromBarbershop = zAuthMutation({
   args: barbershopMembers.tools.id,
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await rateLimitOrThrow(ctx, "removeStaffFromBarbershop", userId);
 
@@ -398,7 +397,7 @@ export const isMember = zQuery({
  * Accepts an optional `reassignments` map to move future appointments to
  * another barber before removing the role.
  */
-export const toggleBarberRole = zMutation({
+export const toggleBarberRole = zAuthMutation({
   args: z.object({
     barbershopId: barbershops.tools.id.shape.id,
     addBarberRole: z.boolean(),
@@ -412,7 +411,7 @@ export const toggleBarberRole = zMutation({
       .optional(),
   }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await rateLimitOrThrow(ctx, "toggleBarberRole", userId);
 
@@ -491,7 +490,7 @@ export const toggleBarberRole = zMutation({
       const targetMembers = await Promise.all(
         args.reassignments.map((reassignment) => {
           const targetMemberId =
-            reassignment.targetBarbershopMemberId as Id<"barbershopMembers">;
+            reassignment.targetBarbershopMemberId as BarbershopMember["_id"];
           return ctx.db.get(targetMemberId);
         }),
       );
@@ -636,7 +635,7 @@ export const getByUserIdFn = async (
  */
 export async function getEffectiveSchedule(
   ctx: QueryCtx | MutationCtx,
-  barbershopMemberId: Id<"barbershopMembers">,
+  barbershopMemberId: BarbershopMember["_id"],
 ): Promise<Barbershop["availability"]> {
   const member = await ctx.db.get(barbershopMemberId);
 
@@ -675,13 +674,13 @@ export const getBarberSchedule = zQuery({
   },
 });
 
-export const updateBarberSchedule = zMutation({
+export const updateBarberSchedule = zAuthMutation({
   args: z.object({
     barbershopMemberId: barbershopMembers.tools.id.shape.id,
     availability: barbershops.insertSchema.shape.availability,
   }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     const member = await ctx.db.get(args.barbershopMemberId);
 
@@ -760,12 +759,12 @@ export const updateBarberSchedule = zMutation({
   },
 });
 
-export const resetBarberSchedule = zMutation({
+export const resetBarberSchedule = zAuthMutation({
   args: z.object({
     barbershopMemberId: barbershopMembers.tools.id.shape.id,
   }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     const member = await ctx.db.get(args.barbershopMemberId);
 

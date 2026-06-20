@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/ai/prompt-input";
 import { Suggestion, Suggestions } from "@/components/ui/ai/suggestion";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { usePanaAccess } from "@/hooks/billing/use-pana-access";
 import { useAnonId } from "@/hooks/use-anon-id";
 import {
@@ -282,26 +281,6 @@ export function ChatView({ threadId }: ChatViewProps) {
             </PromptInputFooter>
           </PromptInput>
         </div>
-      </div>
-    </div>
-  );
-}
-
-/** Placeholder message bubbles shown while a thread's first page loads. */
-function ChatMessagesSkeleton() {
-  return (
-    <div aria-hidden="true" className="flex flex-col gap-4 py-2">
-      <div className="flex justify-end">
-        <Skeleton className="h-10 w-48 rounded-2xl" />
-      </div>
-      <div className="flex justify-start">
-        <Skeleton className="h-20 w-64 rounded-2xl" />
-      </div>
-      <div className="flex justify-end">
-        <Skeleton className="h-10 w-40 rounded-2xl" />
-      </div>
-      <div className="flex justify-start">
-        <Skeleton className="h-16 w-56 rounded-2xl" />
       </div>
     </div>
   );

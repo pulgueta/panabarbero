@@ -22,8 +22,8 @@ import type {
 } from "react";
 import {
   createContext,
-  useCallback,
   use,
+  useCallback,
   useEffect,
   useId,
   useMemo,
@@ -660,6 +660,7 @@ function FileUpload(props: FileUploadProps) {
     render: asChild ? (children as ReactElement) : undefined,
     props: mergeProps<"div">(
       {
+        // @ts-expect-error: extra field for base-ui
         "data-disabled": disabled ? "" : undefined,
         "data-slot": "file-upload",
         dir,
@@ -886,6 +887,7 @@ function FileUploadDropzone(props: FileUploadDropzoneProps) {
         "aria-controls": `${context.inputId} ${context.listId}`,
         "aria-disabled": context.disabled,
         "aria-invalid": invalid,
+        // @ts-expect-error: extra field for base-ui
         "data-disabled": context.disabled ? "" : undefined,
         "data-dragging": dragOver ? "" : undefined,
         "data-invalid": invalid ? "" : undefined,
@@ -937,6 +939,7 @@ function FileUploadList(props: FileUploadListProps) {
         role: "list",
         id: context.listId,
         "aria-orientation": orientation,
+        // @ts-expect-error: extra field for base-ui
         "data-orientation": orientation,
         "data-slot": "file-upload-list",
         "data-state": shouldRender ? "active" : "inactive",
@@ -1029,6 +1032,7 @@ function FileUploadItem(props: FileUploadItemProps) {
           fileState?.error ? messageId : ""
         }`,
         "aria-labelledby": nameId,
+        // @ts-expect-error: extra field for base-ui
         "data-slot": "file-upload-item",
         dir: context.dir,
         className: cn(
@@ -1103,6 +1107,7 @@ function FileUploadItemPreview(props: FileUploadItemPreviewProps) {
     props: mergeProps<"div">(
       {
         "aria-labelledby": itemContext.nameId,
+        // @ts-expect-error: extra field for base-ui
         "data-slot": "file-upload-preview",
         className: cn(
           "relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded border bg-accent/50 [&>svg]:size-10",
@@ -1145,6 +1150,7 @@ function FileUploadItemMetadata(props: FileUploadItemMetadataProps) {
     enabled: itemContext.fileState != null,
     props: mergeProps<"div">(
       {
+        // @ts-expect-error: extra field for base-ui
         "data-slot": "file-upload-metadata",
         dir: context.dir,
         className: cn("flex min-w-0 flex-1 flex-col", className),
@@ -1218,6 +1224,7 @@ function FileUploadItemDelete(props: FileUploadItemDeleteProps) {
         type: "button",
         "aria-controls": itemContext.id,
         "aria-describedby": itemContext.nameId,
+        // @ts-expect-error: extra field for base-ui
         "data-slot": "file-upload-item-delete",
         onClick,
       },

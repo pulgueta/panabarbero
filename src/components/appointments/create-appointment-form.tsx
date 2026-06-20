@@ -463,7 +463,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
               <FieldLabel htmlFor={formIds.date}>Fecha</FieldLabel>
               <Popover>
                 <PopoverTrigger
-                  nativeButton={false}
+                  nativeButton
                   render={
                     <Button
                       variant="outline"

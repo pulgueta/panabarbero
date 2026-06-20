@@ -1,12 +1,11 @@
 import { ConvexError } from "convex/values";
 import { z } from "zod";
 
-import { zInternalMutation, zMutation, zQuery } from ".";
+import { zAuthMutation, zInternalMutation, zQuery } from ".";
 import { completedAppointmentsAggregate } from "./aggregates";
 import { assertOwner } from "./authz";
 import { errorMessages } from "./errors";
 import { barbershopGeospatial } from "./geospatial";
-import { requireUserId } from "./identity";
 import { rateLimitOrThrow } from "./ratelimit";
 import { appointments, barbershops } from "./schema";
 
@@ -79,14 +78,14 @@ export const getLocation = zQuery({
 });
 
 /** Owner-only: set (or move) the barbershop's location. */
-export const setLocation = zMutation({
+export const setLocation = zAuthMutation({
   args: z.object({
     barbershopId: barbershops.tools.id.shape.id,
     latitude: z.number().min(-90).max(90),
     longitude: z.number().min(-180).max(180),
   }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await Promise.all([
       assertOwner(ctx, args.barbershopId, userId),
@@ -116,12 +115,12 @@ export const setLocation = zMutation({
 });
 
 /** Owner-only: clear the barbershop's location. */
-export const removeLocation = zMutation({
+export const removeLocation = zAuthMutation({
   args: z.object({
     barbershopId: barbershops.tools.id.shape.id,
   }),
   handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
+    const { userId } = ctx;
 
     await Promise.all([
       assertOwner(ctx, args.barbershopId, userId),
