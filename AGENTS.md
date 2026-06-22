@@ -1,3 +1,11 @@
+
+# AGENTS.md
+
+PanaBarbero is a barbershop marketplace + management app: **TanStack Start (SSR) + Convex + WorkOS AuthKit + Polar + Tailwind v4 / Base UI**. Package manager is **pnpm only**. All user-facing copy is **Spanish (es-CO)**.
+
+> [!IMPORTANT]
+> Keep `AGENTS.md` updated with project status.
+
 <!-- intent-skills:start -->
 ## Skill Loading
 
@@ -9,29 +17,20 @@ Before substantial work:
 - Multiple matches: prefer the most specific local skill for the package or concern you are changing; load additional skills only when the task spans multiple packages or concerns.
 <!-- intent-skills:end -->
 
-# AGENTS.md
-
-PanaBarbero is a barbershop marketplace + management app: **TanStack Start
-(SSR) + Convex + WorkOS AuthKit + Polar + Tailwind v4 / Base UI**. Package
-manager is **pnpm only** (never npm/bun/yarn). All user-facing copy is
-**Spanish (es-CO)**.
-
-> [!IMPORTANT]
-> Keep `AGENTS.md` updated with project status.
-
 ---
 
 ## 0. The discipline (read before editing anything)
 
 This codebase has had three full backend migrations (auth, notifications,
-analytics — see `UPDATE.md`) and carries **pnpm patches** and
+analytics) and carries a **pnpm patch** (`@tanstack/router-core`) and
 **strict-evaluation config** that punish blind edits. Before you change a file:
 
 1. **Research before code.** Read the file, its imports, its callers, and the
-   relation links below. If the change touches Convex, **read
-   `convex/_generated/ai/guidelines.md` first** — those rules override training
-   priors. If it touches a third-party SDK, read the installed source under
-   `node_modules/.pnpm/<pkg>/...` rather than guessing the API.
+   relation links below. If the change touches Convex, **read the
+   `convex-functions` skill first** (or `convex/_generated/ai/guidelines.md`,
+   present only after `pnpm dlx convex ai-files install`) — those rules override
+   training priors. If it touches a third-party SDK, read the installed source
+   under `node_modules/.pnpm/<pkg>/...` rather than guessing the API.
 2. **State assumptions; surface tradeoffs.** If two interpretations exist,
    name them. If a simpler path exists, say so. If something is unclear, stop
    and ask — do not paper over confusion with defensive code.
@@ -41,8 +40,9 @@ analytics — see `UPDATE.md`) and carries **pnpm patches** and
    delete it.
 4. **Examine edge cases.** Auth latency, SSR/client hydration parity, empty
    states, post-signup race windows (profile row may not exist yet), plan/role
-   gating, optimistic-update rollback. The "Landmines" in `UPDATE.md` are real;
-   re-read them when working anywhere near auth, Convex components, or `"use node"`.
+   gating, optimistic-update rollback. The landmines around auth (§2), Convex
+   components (§1.4), and `"use node"` files are real; re-read those sections
+   when working near them.
 5. **Goal-driven verification.** Turn the task into a checkable goal and loop
    until it passes. The required gates are in §7.
 
@@ -155,7 +155,8 @@ const form = useAppForm({
 
 ### 1.4 Convex functions
 
-- **Always** read `convex/_generated/ai/guidelines.md` before writing Convex.
+- **Always** read the `convex-functions` skill before writing Convex;
+  `convex/_generated/ai/guidelines.md` exists only after `convex ai-files install`.
 - Functions are built with the **zod-validated custom wrappers** in
   `convex/index.ts`: `zQuery`, `zMutation`, `zAction`, and their
   `zInternal*` counterparts. Use the `internal*` variants for anything not
@@ -173,7 +174,12 @@ const form = useAppForm({
   directly. `"use node"` files (`aiStream.ts`, `tracing.ts`) must stay node;
   importing them from an isolate file breaks codegen (`performance is not defined`).
 - **Components are bundled from `dist/`.** Patching a component's `src` alone
-  does nothing (see the workos-authkit landmine in `UPDATE.md`).
+  does nothing — the patch must target the built `dist/` output.
+- **Reviews backend** (`convex/convex.config.ts`): a 4th `@convex-dev/aggregate`
+  instance `aggregateReviewRatings` (running average rating) and a
+  `@convex-dev/workpool` pool `reviewModerationWorkpool` (async review moderation).
+  Functions live in `convex/reviews.ts`; the gateway-LLM moderation action is in
+  `convex/reviewModeration.ts` (a `"use node"` file — see §3).
 
 **Relations:** §1.1 (the hook that reads it), §2 (identity), §3 (roles/plans
 that gate it), `convex-functions` / `convex-security-check` skills.
@@ -190,7 +196,8 @@ rules. Prefer `crypto.randomUUID()` over nanoid for any generated id.
 ## 2. Authentication (the highest-risk subsystem)
 
 WorkOS AuthKit (`@workos/authkit-tanstack-react-start` 0.6.0 +
-`@convex-dev/workos-authkit` 0.2.6, pnpm-patched).
+`@convex-dev/workos-authkit` 0.2.7). The only remaining pnpm patch is
+`@tanstack/router-core`.
 
 - **The client must boot with auth already known.** `AuthKitProvider` is seeded
   with `initialAuth` via `SeededAuthKitProvider` in `src/router.tsx`, which
@@ -235,13 +242,28 @@ without an account/membership. Acquisition:
 | **staff** (recepcionista) | Accepting an invitation whose role is `staff`. | Inviting staff requires the owner's plan to allow it (`assertStaffInviteAllowed` — pro/premium only; free plan rejects with "límite de personal"). |
 | **customer** | Plain signup. No membership row. | Booking needs name + phone; email optional. |
 
-Invitations: `convex/invitations.ts` (`invite`, `getByCode`, `answer`) backed by
-the `convex-invite-links` component (tokens are `inv_…`; read them from the
-`inviteLinks` component's `invites` table). Per-role flows: owner manages
-shop/services/team/appointments; barber sees assigned appointments + availability;
-staff books on behalf of clients (plan-gated); customer books + manages own
-appointments. **Relations:** §1.4 (the assertions), §2 (membership keys off the
-WorkOS user id), §4 (which persona to drive for each flow).
+Invitations: backed by **WorkOS Organization Invitations** (`convex/invitations.ts`
+
+- `convex/workosOrgs.ts`; the old `convex-invite-links` component and `inviteLinks`
+table are gone). Each barbershop maps to a WorkOS org (`externalId = barbershopId`);
+`invite` calls `userManagement.sendInvitation` with a `roleSlug`, acceptance is
+**hosted** by WorkOS, and an `organization_membership.updated` webhook is mirrored
+into `barbershopMembers` by `syncWorkosMembership`. Role slugs are
+`member` (barber) / `admin` (owner) / `staff`.
+
+Reviews: customers can leave a review **only after a completed appointment**, via a
+single-use review code minted on the appointment at completion (there is no other
+entry point — see `convex/reviews.ts`). A submitted review is moderated
+asynchronously by the same gateway LLM the chat uses (DeepSeek via Vercel AI
+Gateway, `convex/reviewModeration.ts`) before it publishes; only abusive content is
+hidden, honest negative opinions stay published. Visibility is timestamp-based on
+the backend (`publishedAt`/`flaggedAt`); the client only sees a derived `status`.
+
+Per-role flows: owner manages shop/services/team/appointments; barber sees assigned
+appointments + availability; staff books on behalf of clients (plan-gated); customer
+books, manages own appointments + leaves reviews. **Relations:** §1.4 (the
+assertions), §2 (membership keys off the WorkOS user id), §4 (which persona to drive
+for each flow).
 
 ---
 
@@ -277,6 +299,28 @@ Notes that will bite you if ignored:
 - These are **throwaway dev creds with zero production access**; they are
   intentionally in this committed file. Do **not** add real WorkOS/Polar/Convex
   secrets here — those live in `.env.local` / `pnpx convex env`.
+- **Reviews flow:** any new Customer persona can exercise reviews — complete an
+  appointment for them as Owner/Barber, then leave the review as that Customer via
+  the single-use review code (see §3).
+
+### Creating more test users (mail.tm parity)
+
+Need another persona? Mint a fresh mail.tm inbox so it matches the four above
+(API docs: <https://docs.mail.tm/llms.txt>). Accounts do **not** expire, but
+**messages expire after 7 days** — poll within a week of any verification/reset
+email. Rate limit is **~8 req/s/IP — space requests out**.
+
+1. `GET https://api.mail.tm/domains` → pick an available domain.
+2. `POST https://api.mail.tm/accounts` with `{ address, password }` → creates the
+   inbox.
+3. `POST https://api.mail.tm/token` with `{ address, password }` → bearer token,
+   then `GET /messages` → `GET /messages/{id}` to read the 6-digit
+   verification/reset code from the subject/body.
+4. **Parity note:** mail.tm passwords that start with `-` break naive CLI typing,
+   so when a generated password begins with `-`, reset the **WorkOS app password**
+   to a dash-free value and record **both** columns in the table — "App (WorkOS)
+   password" (what you type into the login form) and "mail.tm inbox password"
+   (what the mail.tm API/poller needs) — exactly like the staff/customer rows do.
 
 **Relations:** §2 (login mechanics), §3 (what each role can do), agent-browser
 skill, "Browser review workflow" in project memory.
@@ -318,7 +362,7 @@ When asked to commit, group files by relevance and relationship — one commit p
 
 Commit messages must be short: `type(scope): brief description` — no body, no bullet points. The diff is the documentation. Examples:
 
-```
+```sh
 feat(appointments): add reschedule request form
 fix(auth): seed initialAuth before hydration
 chore(convex): update schema validators
@@ -352,7 +396,7 @@ Useful commands:
 pnpm dev                                   # convex dev + vite
 pnpx convex dev --once                      # one-shot push to Convex Cloud
 pnpx convex env list                        # deployment env vars (compare with .env.local on auth issues)
-pnpx convex data <table> --limit N          # inspect a table; --component inviteLinks for invite tokens
+pnpx convex data <table> --limit N          # inspect a table
 pnpm doctor:diff                           # react-doctor on the diff
 ```
 
