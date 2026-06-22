@@ -1,5 +1,6 @@
 import { vOnCompleteArgs, Workpool } from "@convex-dev/workpool";
 import { ConvexError, v } from "convex/values";
+import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import {
@@ -10,13 +11,12 @@ import {
   zQuery,
 } from ".";
 import { components, internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
-import { internalMutation } from "./_generated/server";
 import { getBarbershopRatingValue, reviewRatingsAggregate } from "./aggregates";
 import { track } from "./analytics";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
+import type { Review } from "./schema";
 import { barbershops, reviews } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
 
@@ -43,7 +43,7 @@ export const reviewModerationWorkpool = new Workpool(
  * a review that is already published is left untouched. Visibility is keyed on
  * the `publishedAt` timestamp, never a boolean.
  */
-async function publishReview(ctx: MutationCtx, reviewId: Id<"reviews">) {
+async function publishReview(ctx: MutationCtx, reviewId: Review["_id"]) {
   const review = await ctx.db.get(reviewId);
 
   if (!review || review.publishedAt) {
@@ -71,7 +71,7 @@ async function publishReview(ctx: MutationCtx, reviewId: Id<"reviews">) {
  */
 async function settleReview(
   ctx: MutationCtx,
-  reviewId: Id<"reviews">,
+  reviewId: Review["_id"],
   comment: string | undefined,
 ) {
   if (!comment) {
@@ -496,11 +496,12 @@ export const applyModeration = zInternalMutation({
  * badge and can edit + resubmit to re-moderate. `success`/`canceled` are no-ops
  * (the action already resolved the review on success).
  *
- * Raw `internalMutation` rather than the zod wrapper because the Workpool
- * dictates the argument validator through `vOnCompleteArgs`.
+ * The Workpool dictates the argument validator through `vOnCompleteArgs` (a
+ * Convex validator); `convexToZod` bridges it into the zod wrapper so this stays
+ * consistent with every other function in the file.
  */
-export const onModerationComplete = internalMutation({
-  args: vOnCompleteArgs(v.object({ reviewId: v.id("reviews") })),
+export const onModerationComplete = zInternalMutation({
+  args: convexToZod(vOnCompleteArgs(v.object({ reviewId: v.id("reviews") }))),
   handler: async (ctx, { context, result }) => {
     if (result.kind !== "failed") {
       return;

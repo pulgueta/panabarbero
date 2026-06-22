@@ -6,7 +6,6 @@
  */
 
 import { ConvexError } from "convex/values";
-import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { usageTriggers } from "./aggregates";
 import { getExtraCredits } from "./credits";
@@ -19,6 +18,7 @@ import {
   type PlanTier,
 } from "./plans";
 import { polar } from "./polar";
+import type { Barbershop } from "./schema";
 
 /**
  * Fetch the active Polar subscription for a given `userId`.
@@ -76,7 +76,7 @@ export async function assertIsSubscribed(
  */
 export async function assertCanCreateStaffAppointment(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
 ): Promise<void> {
   const barbershop = await ctx.db.get(barbershopId);
 
@@ -102,7 +102,7 @@ export async function assertCanCreateStaffAppointment(
  */
 export async function assertBarberInviteAllowed(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
   ownerUserId: string,
 ): Promise<void> {
   const limits = await getUserPlanLimits(ctx, ownerUserId);
@@ -140,7 +140,7 @@ export async function assertBarberInviteAllowed(
  */
 export async function assertStaffInviteAllowed(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
   ownerUserId: string,
 ): Promise<void> {
   const limits = await getUserPlanLimits(ctx, ownerUserId);
@@ -171,7 +171,7 @@ export async function assertStaffInviteAllowed(
 
 export async function getUsageRow(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
   month: string,
 ) {
   return ctx.db
@@ -190,7 +190,7 @@ export async function getUsageRow(
  */
 export async function isSmsLimitNotExceeded(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
 ): Promise<boolean> {
   const barbershop = await ctx.db.get(barbershopId);
 
@@ -229,7 +229,7 @@ export async function isSmsLimitNotExceeded(
  */
 export async function isEmailLimitNotExceeded(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
 ): Promise<boolean> {
   const barbershop = await ctx.db.get(barbershopId);
 
@@ -277,7 +277,7 @@ export async function isEmailLimitNotExceeded(
  */
 export async function incrementSmsSent(
   ctx: MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
 ): Promise<void> {
   const month = getCurrentYearMonth();
   const existing = await getUsageRow(ctx, barbershopId, month);
@@ -326,7 +326,7 @@ export async function incrementSmsSent(
  */
 export async function incrementEmailSent(
   ctx: MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
 ): Promise<void> {
   const month = getCurrentYearMonth();
   const existing = await getUsageRow(ctx, barbershopId, month);

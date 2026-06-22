@@ -2,7 +2,6 @@ import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zInternalQuery } from ".";
-import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { getBarbershopMemberByUserId, memberHasAnyRole } from "./authz";
 import { getByUserIdFn, getEffectiveSchedule } from "./barbershopMembers";
@@ -10,10 +9,16 @@ import { errorMessages } from "./errors";
 import { unreads } from "./notifications";
 import { getLimitsForProductKey } from "./plans";
 import { polar } from "./polar";
+import type {
+  Appointment,
+  Barbershop,
+  BarbershopMember,
+  Service,
+} from "./schema";
 import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
 
-const ACTIVE_APPOINTMENT_STATUSES: Doc<"appointments">["status"][] = [
+const ACTIVE_APPOINTMENT_STATUSES: Appointment["status"][] = [
   "pending",
   "confirmed",
   "rescheduled",
@@ -49,7 +54,7 @@ export const getReviewsForBarbershop = zInternalQuery({
     return await ctx.db
       .query("reviews")
       .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId as Id<"barbershops">),
+        q.eq("barbershopId", args.barbershopId as Barbershop["_id"]),
       )
       .order("desc")
       .take(args.limit);
@@ -175,7 +180,7 @@ export const getAppointmentsByMemberId = zInternalQuery({
       .withIndex("by_barbershopMemberId", (q) =>
         q.eq(
           "barbershopMemberId",
-          args.barbershopMemberId as Id<"barbershopMembers">,
+          args.barbershopMemberId as BarbershopMember["_id"],
         ),
       )
       .order("desc")
@@ -406,7 +411,7 @@ export const getMyBarbershopData = zInternalQuery({
 export const getBarberScheduleData = zInternalQuery({
   args: z.object({ barbershopMemberId: z.string() }),
   handler: async (ctx, args) => {
-    const memberId = args.barbershopMemberId as Id<"barbershopMembers">;
+    const memberId = args.barbershopMemberId as BarbershopMember["_id"];
     const member = await ctx.db.get(memberId);
 
     if (!member) return { found: false as const };
@@ -437,7 +442,7 @@ export const assertAppointmentActor = zInternalQuery({
     requiredActor: z.enum(["customer", "shop", "any"]),
   }),
   handler: async (ctx, args) => {
-    const appt = await ctx.db.get(args.appointmentId as Id<"appointments">);
+    const appt = await ctx.db.get(args.appointmentId as Appointment["_id"]);
 
     if (!appt || appt.deletedAt) {
       throw new ConvexError(errorMessages.notFound("cita"));
@@ -483,7 +488,7 @@ export const countImpactedByService = zInternalQuery({
     const impacted = await ctx.db
       .query("appointments")
       .withIndex("by_serviceId", (q) =>
-        q.eq("serviceId", args.serviceId as Id<"services">),
+        q.eq("serviceId", args.serviceId as Service["_id"]),
       )
       .filter((q) =>
         q.and(
@@ -508,7 +513,7 @@ export const countImpactedByMember = zInternalQuery({
       .withIndex("by_barbershopMemberId", (q) =>
         q.eq(
           "barbershopMemberId",
-          args.barbershopMemberId as Id<"barbershopMembers">,
+          args.barbershopMemberId as BarbershopMember["_id"],
         ),
       )
       .filter((q) =>

@@ -17,8 +17,9 @@ import { DirectAggregate, TableAggregate } from "@convex-dev/aggregate";
 import { Triggers } from "convex-helpers/server/triggers";
 
 import { components } from "./_generated/api";
-import type { DataModel, Id } from "./_generated/dataModel";
+import type { DataModel } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
+import type { Appointment, Barbershop, Review } from "./schema";
 
 /**
  * Counts completed appointments per barbershop.
@@ -28,9 +29,9 @@ import type { QueryCtx } from "./_generated/server";
  * Id:        appointmentId (unique tie-breaker)
  */
 export const completedAppointmentsAggregate = new DirectAggregate<{
-  Namespace: Id<"barbershops">;
+  Namespace: Barbershop["_id"];
   Key: number;
-  Id: Id<"appointments">;
+  Id: Appointment["_id"];
 }>(components.aggregateCompletedAppointments);
 
 /**
@@ -41,7 +42,7 @@ export const completedAppointmentsAggregate = new DirectAggregate<{
  * sumValue:  smsSent
  */
 export const smsUsageAggregate = new TableAggregate<{
-  Namespace: Id<"barbershops">;
+  Namespace: Barbershop["_id"];
   Key: string;
   DataModel: DataModel;
   TableName: "usage";
@@ -59,7 +60,7 @@ export const smsUsageAggregate = new TableAggregate<{
  * sumValue:  emailsSent
  */
 export const emailUsageAggregate = new TableAggregate<{
-  Namespace: Id<"barbershops">;
+  Namespace: Barbershop["_id"];
   Key: string;
   DataModel: DataModel;
   TableName: "usage";
@@ -83,9 +84,9 @@ export const emailUsageAggregate = new TableAggregate<{
  * sumValue:  rating (1-5)
  */
 export const reviewRatingsAggregate = new DirectAggregate<{
-  Namespace: Id<"barbershops">;
+  Namespace: Barbershop["_id"];
   Key: number;
-  Id: Id<"reviews">;
+  Id: Review["_id"];
 }>(components.aggregateReviewRatings);
 
 /**
@@ -95,7 +96,7 @@ export const reviewRatingsAggregate = new DirectAggregate<{
  */
 export async function getBarbershopRatingValue(
   ctx: QueryCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
 ) {
   const [sum, count] = await Promise.all([
     reviewRatingsAggregate.sum(ctx, { namespace: barbershopId }),
