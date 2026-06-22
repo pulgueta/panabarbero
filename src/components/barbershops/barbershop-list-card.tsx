@@ -13,11 +13,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { StarRating } from "@/components/ui/star-rating";
 import { getLogoUrl } from "@/hooks/use-upload";
 import { isCurrentlyOpen } from "@/lib/schedule-utils";
 
 interface BarbershopListCardProps {
-  barbershop: Barbershop;
+  barbershop: Barbershop & { averageRating?: number; reviewCount?: number };
   showAddress?: boolean;
 }
 
@@ -119,13 +120,24 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
           {showAddress ? "Ver servicios" : "Ver barbería"}
         </Button>
 
-        {/* <BarbershopRating
-          value={barbershop.metadata?.rating ?? 0}
-          readOnly
+        <div
+          className="flex items-center gap-1.5"
           style={{
             viewTransitionName: `barbershop-${barbershop.uuid}-rating`,
           }}
-        /> */}
+        >
+          <StarRating
+            readOnly
+            value={barbershop.averageRating ?? 0}
+            starClassName="size-4"
+          />
+
+          {(barbershop.reviewCount ?? 0) > 0 && (
+            <span className="text-muted-foreground text-xs">
+              ({barbershop.reviewCount})
+            </span>
+          )}
+        </div>
       </CardFooter>
     </Card>
   );

@@ -5,6 +5,7 @@ import {
   coerce,
   email,
   literal,
+  number,
   object,
   string,
   url,
@@ -25,6 +26,16 @@ import {
 export const tokenSchema = object({
   token: string().min(1, "El token es requerido"),
 });
+
+export const reviewSchema = object({
+  rating: number()
+    .int("La calificación debe ser un número entero")
+    .min(1, "Selecciona una calificación de 1 a 5 estrellas")
+    .max(5, "Selecciona una calificación de 1 a 5 estrellas"),
+  comment: string().max(500, "Máximo 500 caracteres").optional(),
+});
+
+export type ReviewSchema = output<typeof reviewSchema>;
 
 const day = zodEnum([
   "monday",

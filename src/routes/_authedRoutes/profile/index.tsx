@@ -47,6 +47,10 @@ import {
   unreadNotificationsPageQueryOptions,
 } from "@/hooks/use-notifications";
 import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
+import {
+  myReviewsNeedingAttentionCountQueryOptions,
+  useMyReviewsNeedingAttentionCount,
+} from "@/hooks/use-reviews";
 import { servicesByIdsQueryOptions } from "@/hooks/use-services";
 import { useSession } from "@/hooks/use-session";
 
@@ -78,6 +82,11 @@ const PlansTab = lazy(() =>
 const NotificationsTab = lazy(() =>
   import("@/components/profile/notifications-tab").then((mod) => ({
     default: mod.NotificationsTab,
+  })),
+);
+const ReviewsTab = lazy(() =>
+  import("@/components/profile/reviews-tab").then((mod) => ({
+    default: mod.ReviewsTab,
   })),
 );
 
@@ -184,6 +193,9 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
         unreadNotificationsPageQueryOptions({ cursor: null, numItems: 20 }),
       );
       void context.queryClient.prefetchQuery(recentNotificationsQueryOptions());
+      void context.queryClient.prefetchQuery(
+        myReviewsNeedingAttentionCountQueryOptions(),
+      );
 
       if (appointments) {
         void context.queryClient.prefetchQuery(
@@ -215,6 +227,7 @@ function ProfilePage() {
   const { data: appointments, isFetching: isFetchingAppointments } =
     useAppointmentsByUser(user?.id!, cursor);
   const { data: profile } = useProfile(user?.id!);
+  const { data: reviewsNeedingAttention } = useMyReviewsNeedingAttentionCount();
 
   const onTabChange = (value: string) => {
     haptics.trigger("light");
@@ -245,7 +258,7 @@ function ProfilePage() {
   const tabsToRender = useMemo(() => {
     // Notificaciones sits first so the bell popover lands the user on a familiar
     // left-most tab, while Perfil stays the default for direct /profile visits.
-    const base = [tabs.notifications, tabs.account];
+    const base = [tabs.notifications, tabs.account, tabs.reviews];
 
     // Owners see Plans tab
     if (rolesData?.isOwner) {
@@ -284,9 +297,17 @@ function ProfilePage() {
               <TabsTrigger
                 key={tabOption.value}
                 value={tabOption.value}
-                className="text-xs sm:min-w-max sm:text-sm"
+                className="gap-1.5 text-xs sm:min-w-max sm:text-sm"
               >
                 {tabOption.label}
+                {tabOption.value === tabs.reviews.value &&
+                reviewsNeedingAttention ? (
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 font-medium text-[11px] text-primary-foreground tabular-nums">
+                    {reviewsNeedingAttention > 99
+                      ? "99+"
+                      : reviewsNeedingAttention}
+                  </span>
+                ) : null}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -347,16 +368,11 @@ function ProfilePage() {
             </TabsContent>
           </Suspense>
 
-          {/* <Activity mode={activeTab === "reviews" ? "visible" : "hidden"}>
-            <TabsContent value="reviews" className="pt-2">
-              <ReviewsTab
-                reviews={reviews}
-                appointments={appointments}
-                // @ts-expect-error - barbershops is defined
-                barbershops={barbershops}
-              />
+          <Suspense fallback={<ProfileTabSkeleton />}>
+            <TabsContent value={tabs.reviews.value} className="pt-2">
+              <ReviewsTab />
             </TabsContent>
-          </Activity> */}
+          </Suspense>
         </Tabs>
       </div>
     </BorderContainer>

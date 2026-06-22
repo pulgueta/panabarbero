@@ -8,6 +8,7 @@ import { visible } from "@tanstack/react-start/hydration";
 import { lazy, Suspense } from "react";
 
 import { BarberTeamSection } from "@/components/barbershops/barber-team-section";
+import { BarbershopReviews } from "@/components/barbershops/barbershop-reviews";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ServicesSkeleton } from "@/components/layout/skeleton/services-skeleton";
@@ -35,6 +36,10 @@ import {
   useBarbershopMembersByBarbershopId,
 } from "@/hooks/use-barbershop-members";
 import { profileQueryOptions } from "@/hooks/use-profile";
+import {
+  barbershopRatingQueryOptions,
+  reviewsByBarbershopQueryOptions,
+} from "@/hooks/use-reviews";
 import {
   servicesQueryOptions,
   useServicesFromBarbershop,
@@ -103,6 +108,12 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
       void context.queryClient.prefetchQuery(
         barbershopLocationQueryOptions(barbershop._id),
       );
+      void context.queryClient.prefetchQuery(
+        reviewsByBarbershopQueryOptions(barbershop._id, 6),
+      );
+      void context.queryClient.prefetchQuery(
+        barbershopRatingQueryOptions(barbershop._id),
+      );
       for (const barbershopMember of barbershopMembers) {
         void context.queryClient.prefetchQuery(
           servicesForBarberQueryOptions(barbershopMember._id),
@@ -165,6 +176,17 @@ function RouteComponent() {
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
   const { data: barbershopMembers } = useBarbershopMembersByBarbershopId(
     barbershop?._id!,
+  );
+
+  const reviewsSkeleton = (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <Skeleton
+          key={`review-skeleton-${i.toString()}`}
+          className="h-28 w-full rounded-xl"
+        />
+      ))}
+    </div>
   );
 
   return (
@@ -261,6 +283,27 @@ function RouteComponent() {
                 }
               >
                 <BarberTeamSection barbers={barbershopMembers} />
+              </Hydrate>
+            </section>
+          </>
+        )}
+
+        {barbershop?._id && (
+          <>
+            <Separator className="my-6" />
+
+            <section className="space-y-4">
+              <h2 className="text-balance font-semibold text-xl tracking-tight">
+                Reseñas
+              </h2>
+
+              <Hydrate
+                when={visible({ rootMargin: "200px" })}
+                fallback={reviewsSkeleton}
+              >
+                <Suspense fallback={reviewsSkeleton}>
+                  <BarbershopReviews barbershopId={barbershop._id} />
+                </Suspense>
               </Hydrate>
             </section>
           </>
