@@ -213,16 +213,22 @@ export const getActive = zQuery({
 
     const withRatings = await Promise.all(
       barbershops.map(async (barbershop) => {
-        const services = await ctx.runQuery(api.barbershops.getServices, {
-          id: barbershop._id,
-        });
+        // Read services directly off the index rather than `ctx.runQuery` — a
+        // cross-function call spins a fresh sub-transaction per row, which is the
+        // real fan-out cost here. Ratings stay on the aggregate
+        // (`getBarbershopRatingValue`, O(log n)): that aggregate already *is* the
+        // denormalized rating read model, so there is nothing to copy onto the doc.
+        const [services, { average, count }] = await Promise.all([
+          ctx.db
+            .query("services")
+            .withIndex("by_barbershopId", (q) =>
+              q.eq("barbershopId", barbershop._id),
+            )
+            .collect(),
+          getBarbershopRatingValue(ctx, barbershop._id),
+        ]);
 
         barbershop.services = services.map((service) => service._id);
-
-        const { average, count } = await getBarbershopRatingValue(
-          ctx,
-          barbershop._id,
-        );
 
         return { ...barbershop, averageRating: average, reviewCount: count };
       }),
