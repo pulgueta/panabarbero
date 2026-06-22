@@ -62,35 +62,39 @@ export const StarRating: FC<StarRatingProps> = ({
     );
   }
 
+  // Read-only display: a real text label for screen readers, with the composed
+  // fractional stars marked decorative (`aria-hidden`). Cleaner than `role="img"`
+  // — AT announces "Calificación 4.3 de 5", not an image.
   return (
-    <div
-      role="img"
-      aria-label={ariaLabel ?? `Calificación ${value.toFixed(1)} de 5`}
-      className={cn("flex items-center gap-0.5", className)}
-    >
-      {STARS.map((n) => {
-        const fraction = Math.max(0, Math.min(1, value - (n - 1)));
+    <div className={cn("flex items-center gap-0.5", className)}>
+      <span className="sr-only">
+        {ariaLabel ?? `Calificación ${value.toFixed(1)} de 5`}
+      </span>
+      <span aria-hidden="true" className="flex items-center gap-0.5">
+        {STARS.map((n) => {
+          const fraction = Math.max(0, Math.min(1, value - (n - 1)));
 
-        return (
-          <span key={n} className="relative inline-flex">
-            <StarIcon
-              weight="regular"
-              className={cn(starClassName, "text-muted-foreground")}
-            />
-            {fraction > 0 && (
-              <span
-                className="absolute inset-0 overflow-hidden"
-                style={{ width: `${fraction * 100}%` }}
-              >
-                <StarIcon
-                  weight="fill"
-                  className={cn(starClassName, "text-amber-500")}
-                />
-              </span>
-            )}
-          </span>
-        );
-      })}
+          return (
+            <span key={n} className="relative inline-flex">
+              <StarIcon
+                weight="regular"
+                className={cn(starClassName, "text-muted-foreground")}
+              />
+              {fraction > 0 && (
+                <span
+                  className="absolute inset-0 overflow-hidden"
+                  style={{ width: `${fraction * 100}%` }}
+                >
+                  <StarIcon
+                    weight="fill"
+                    className={cn(starClassName, "text-amber-500")}
+                  />
+                </span>
+              )}
+            </span>
+          );
+        })}
+      </span>
     </div>
   );
 };
