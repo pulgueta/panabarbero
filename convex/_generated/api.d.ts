@@ -46,6 +46,8 @@ import type * as polar from "../polar.js";
 import type * as posthog from "../posthog.js";
 import type * as r2 from "../r2.js";
 import type * as ratelimit from "../ratelimit.js";
+import type * as reviewModeration from "../reviewModeration.js";
+import type * as reviews from "../reviews.js";
 import type * as services from "../services.js";
 import type * as tracing from "../tracing.js";
 import type * as twilio from "../twilio.js";
@@ -98,6 +100,8 @@ declare const fullApi: ApiFromModules<{
   posthog: typeof posthog;
   r2: typeof r2;
   ratelimit: typeof ratelimit;
+  reviewModeration: typeof reviewModeration;
+  reviews: typeof reviews;
   services: typeof services;
   tracing: typeof tracing;
   twilio: typeof twilio;
@@ -147,4 +151,6 @@ export declare const components: {
   aggregateCompletedAppointments: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateCompletedAppointments">;
   aggregateSmsSent: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateSmsSent">;
   aggregateEmailsSent: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateEmailsSent">;
+  aggregateReviewRatings: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateReviewRatings">;
+  reviewModerationWorkpool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"reviewModerationWorkpool">;
 };

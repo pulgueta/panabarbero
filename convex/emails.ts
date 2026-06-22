@@ -4,7 +4,6 @@ import { ConvexError } from "convex/values";
 import { render } from "react-email";
 import { UseSend } from "usesend-js";
 import { z } from "zod";
-import { zInternalAction } from ".";
 import {
   AccountDeletedEmail,
   AppointmentCancelledEmail,
@@ -15,8 +14,10 @@ import {
   PastAppointmentReminderEmail,
   RescheduleRequestAcceptEmail,
   RescheduleRequestDeniedEmail,
+  ReviewInviteEmail,
   WelcomeEmail,
 } from "../emails/emails";
+import { zInternalAction } from ".";
 import { siteUrl } from "./notificationCopy";
 import { subjects } from "./notifications";
 
@@ -51,6 +52,29 @@ export const sendPastAppointmentReminderEmail = zInternalAction({
     await sendEmail({
       to: args.to,
       subject: subjects.past_appointment_reminder,
+      html,
+    });
+  },
+});
+
+export const sendReviewInviteEmail = zInternalAction({
+  args: {
+    body: z.string(),
+    to: z.string(),
+    url: z.string(),
+  },
+  handler: async (_ctx, args) => {
+    const html = await render(
+      ReviewInviteEmail({
+        subject: subjects.review_invite,
+        body: args.body,
+        url: args.url,
+      }),
+    );
+
+    await sendEmail({
+      to: args.to,
+      subject: subjects.review_invite,
       html,
     });
   },

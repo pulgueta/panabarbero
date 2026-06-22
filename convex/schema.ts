@@ -135,10 +135,31 @@ export const services = zodTable("services", (id) => ({
 }));
 
 export const reviews = zodTable("reviews", (id) => ({
-  rating: z.number(),
-  comment: z.string().optional(),
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().max(500).optional(),
   userId: z.string(),
   barbershopId: id("barbershops"),
+  /** The completed appointment this review is tied to (one review per visit). */
+  appointmentId: id("appointments"),
+  serviceId: id("services"),
+  /** Service name snapshot — survives later service renames/deletion. */
+  serviceName: z.string(),
+  /** Reviewer display-name snapshot at submission time. */
+  authorName: z.string(),
+  /**
+   * Set once AI moderation clears the review. A review is public (shown in the
+   * barbershop feed) and counted in the rating aggregate IFF this is set and
+   * `flaggedAt` is not. Timestamp instead of a boolean, by design.
+   */
+  publishedAt: z.number().optional(),
+  /**
+   * Set when AI moderation flags the comment as abusive/hateful/defamatory.
+   * Flagged reviews stay unpublished and surface in the author's "Reseñas" tab
+   * for correction or deletion.
+   */
+  flaggedAt: z.number().optional(),
+  /** Short Spanish explanation shown to the author when a review is flagged. */
+  moderationReason: z.string().optional(),
 }));
 
 export const appointments = zodTable("appointments", (id) => ({
@@ -185,6 +206,13 @@ export const appointments = zodTable("appointments", (id) => ({
   deletedAt: z.number().optional(),
   upcomingNotificationId: id("_scheduled_functions").optional(),
   pastReminderNotificationId: id("_scheduled_functions").optional(),
+  /**
+   * Single-use review token minted when this appointment is marked completed
+   * (only for authenticated customers). Consumed when the review is created.
+   */
+  reviewCode: z.uuidv4().optional(),
+  reviewCodeIssuedAt: z.number().optional(),
+  reviewCodeRedeemedAt: z.number().optional(),
 }));
 
 export const barbershopMemberServices = zodTable(
@@ -244,6 +272,8 @@ export const notificationKinds = [
   "team_invited",
   "barber_removed_cancellation",
   "service_deleted_cancellation",
+  "review_invite",
+  "review_needs_attention",
 ] as const;
 
 export const notificationKindSchema = z.enum(notificationKinds);
@@ -267,6 +297,9 @@ export const inAppNotifications = zodTable("inAppNotifications", (id) => ({
       serviceName: z.string().optional(),
       invitationCode: z.string().optional(),
       notes: z.string().optional(),
+      reviewId: id("reviews").optional(),
+      barbershopUuid: z.string().optional(),
+      reviewCode: z.string().optional(),
     })
     .optional(),
 }));
@@ -325,7 +358,9 @@ export default defineSchema({
   reviews: reviews
     .table()
     .index("by_userId", ["userId"])
-    .index("by_barbershopId", ["barbershopId"]),
+    .index("by_barbershopId", ["barbershopId"])
+    .index("by_barbershopId_published", ["barbershopId", "publishedAt"])
+    .index("by_appointmentId", ["appointmentId"]),
 
   appointments: appointments
     .table()
@@ -336,7 +371,8 @@ export default defineSchema({
     .index("by_barbershopMemberId", ["barbershopMemberId"])
     .index("by_status", ["status"])
     .index("by_date", ["date"])
-    .index("by_deletedAt", ["deletedAt"]),
+    .index("by_deletedAt", ["deletedAt"])
+    .index("by_reviewCode", ["reviewCode"]),
 
   barbershopMemberServices: barbershopMemberServices
     .table()

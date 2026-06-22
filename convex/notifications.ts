@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: early return */
 
+import { ConvexError } from "convex/values";
 import { zid } from "convex-helpers/server/zod4";
 import { UnreadTracking } from "convex-unread-tracking";
-import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zInternalMutation } from ".";
@@ -657,6 +657,113 @@ export const createPastAppointmentReminder = zInternalMutation({
     await recordInApp(ctx, {
       userId: barberProfile.userId,
       copy,
+    });
+  },
+});
+
+/**
+ * Invite an authenticated customer to review a completed visit, across their
+ * enabled channels (email + SMS + in-app). Carries the single-use review code
+ * in the deep link and the in-app payload.
+ */
+export const createReviewInvite = zInternalMutation({
+  args: z.object({
+    customerUserId: z.string(),
+    barbershopId: zid("barbershops"),
+    barbershopUuid: z.string(),
+    barbershopName: z.string(),
+    reviewCode: z.string(),
+    serviceName: z.string(),
+    to: z.string().optional(),
+    receiverPhoneNumber: z.string().optional(),
+  }),
+  handler: async (ctx, args) => {
+    let customerProfile: UserProfileData | null = null;
+
+    if (args.customerUserId !== "user_does_not_exist") {
+      customerProfile = await getProfileByUserId(ctx, args.customerUserId);
+    }
+
+    const copy = buildNotificationCopy({
+      kind: "review_invite",
+      barbershopName: args.barbershopName,
+      barbershopUuid: args.barbershopUuid,
+      reviewCode: args.reviewCode,
+      serviceName: args.serviceName,
+    });
+    const body = copy.description;
+    const smsBody = buildSmsBody(copy);
+
+    const to = resolveCustomerEmail(args.to, customerProfile?.email);
+    const emailEnabled = isCustomerEmailEnabled(customerProfile);
+
+    if (emailEnabled && to) {
+      await scheduleEmailWithQuota(ctx, args.barbershopId, () =>
+        ctx.scheduler.runAfter(0, internal.emails.sendReviewInviteEmail, {
+          to,
+          body,
+          url: copy.href,
+        }),
+      );
+    }
+
+    const phoneNumber =
+      customerProfile?.phoneNumber || args.receiverPhoneNumber;
+    const smsEnabled = customerProfile
+      ? isNotificationEnabled("sms", customerProfile.notificationsPreferences)
+      : !!phoneNumber;
+
+    if (smsEnabled && phoneNumber) {
+      await scheduleSmsWithQuota(ctx, {
+        body: smsBody,
+        to: phoneNumber,
+        barbershopId: args.barbershopId,
+      });
+    }
+
+    if (customerProfile?.userId) {
+      await recordInApp(ctx, {
+        userId: customerProfile.userId,
+        copy,
+        payload: {
+          barbershopId: args.barbershopId,
+          barbershopName: args.barbershopName,
+          barbershopUuid: args.barbershopUuid,
+          reviewCode: args.reviewCode,
+          serviceName: args.serviceName,
+        },
+      });
+    }
+  },
+});
+
+/**
+ * In-app-only notice that a submitted review was flagged by moderation and
+ * needs the author's attention. Drives the "Reseñas" tab alert badge.
+ */
+export const createReviewNeedsAttention = zInternalMutation({
+  args: z.object({
+    reviewId: zid("reviews"),
+  }),
+  handler: async (ctx, args) => {
+    const review = await ctx.db.get(args.reviewId);
+
+    if (!review) {
+      return;
+    }
+
+    const barbershop = await ctx.db.get(review.barbershopId);
+
+    const copy = buildNotificationCopy({ kind: "review_needs_attention" });
+
+    await recordInApp(ctx, {
+      userId: review.userId,
+      copy,
+      payload: {
+        reviewId: review._id,
+        barbershopId: review.barbershopId,
+        barbershopName: barbershop?.name,
+      },
     });
   },
 });
