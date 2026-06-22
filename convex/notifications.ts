@@ -672,7 +672,7 @@ export const createReviewInvite = zInternalMutation({
     barbershopId: zid("barbershops"),
     barbershopUuid: z.string(),
     barbershopName: z.string(),
-    reviewCode: z.string(),
+    reviewCode: z.uuidv4(),
     serviceName: z.string(),
     to: z.string().optional(),
     receiverPhoneNumber: z.string().optional(),
