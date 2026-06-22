@@ -29,6 +29,7 @@
     "@convex-dev/react-query": "0.1.0",
     "@convex-dev/twilio": "0.2.1",
     "@convex-dev/workos-authkit": "^0.2.6",
+    "@convex-dev/workpool": "^0.4.7",
     "@fontsource-variable/geist": "5.2.9",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/exporter-trace-otlp-http": "^0.218.0",

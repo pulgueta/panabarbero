@@ -47,6 +47,9 @@ importers:
       '@convex-dev/workos-authkit':
         specifier: ^0.2.6
         version: 0.2.7(@standard-schema/spec@1.1.0)(@workos-inc/authkit-react@0.16.1(react@19.2.7))(@workos-inc/node@10.3.0)(convex@1.40.0(react@19.2.7))(hono@4.12.25)(react@19.2.7)(typescript@5.9.3)(zod@4.4.3)
+      '@convex-dev/workpool':
+        specifier: ^0.4.7
+        version: 0.4.7(convex-helpers@0.1.118(@standard-schema/spec@1.1.0)(convex@1.40.0(react@19.2.7))(hono@4.12.25)(react@19.2.7)(typescript@5.9.3)(zod@4.4.3))(convex@1.40.0(react@19.2.7))
       '@fontsource-variable/geist':
         specifier: 5.2.9
         version: 5.2.9
