@@ -29,6 +29,7 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/review")({
   component: RouteComponent,
   pendingComponent: LoadingComponent,
   validateSearch: searchSchema,
+  loaderDeps: ({ search }) => ({ code: search.code }),
   ssr: "data-only",
   staleTime: cacheTime.low,
   gcTime: cacheTime.medium,
@@ -38,7 +39,6 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/review")({
       throw redirect({ to: "/login" });
     }
   },
-  loaderDeps: ({ search }) => ({ code: search.code }),
   loader: async ({ context, params, deps }) => {
     // Cheap guard first: validate the single-use code. An invalid/used/foreign
     // code costs exactly this one query, then bounces — nothing else is fetched.
