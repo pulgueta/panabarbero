@@ -276,7 +276,7 @@ export const getByBarbershop = zQuery({
   handler: async (ctx, args) => {
     const rows = await ctx.db
       .query("reviews")
-      .withIndex("by_barbershopId_published", (q) =>
+      .withIndex("by_barbershopId_and_publishedAt", (q) =>
         q.eq("barbershopId", args.barbershopId).gt("publishedAt", 0),
       )
       .order("desc")
@@ -300,6 +300,17 @@ export const getBarbershopRating = zQuery({
   handler: (ctx, args) => getBarbershopRatingValue(ctx, args.barbershopId),
 });
 
+/**
+ * Cap on the profile "Reseñas" tab. A customer's own reviews are naturally
+ * bounded by their completed-appointment history, so this ceiling is invisible
+ * in practice; it only guards the pathological case. Plain `.take()` (not
+ * pagination) because the tab groups the *whole* set by moderation status
+ * (`flagged`/`pending`/`published`) — status is timestamp-derived, not
+ * page-ordered, so a cursor would scatter flagged reviews across pages and bury
+ * the "Necesitan tu atención" surface.
+ */
+const MY_REVIEWS_LIMIT = 100;
+
 /** The authenticated user's own reviews (every state), newest first. */
 export const getMine = zAuthQuery({
   args: z.object({}),
@@ -310,7 +321,7 @@ export const getMine = zAuthQuery({
       .query("reviews")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .order("desc")
-      .collect();
+      .take(MY_REVIEWS_LIMIT);
 
     return await Promise.all(
       rows.map(async (review) => {
@@ -342,12 +353,17 @@ export const countMineNeedingAttention = zAuthQuery({
   handler: async (ctx) => {
     const { userId } = ctx;
 
-    const rows = await ctx.db
+    // Read only the flagged rows via the composite index — `flaggedAt` is sparse,
+    // so `gt(..., 0)` returns just the (naturally tiny, self-clearing) set that
+    // needs attention instead of scanning every review the user has ever left.
+    const flagged = await ctx.db
       .query("reviews")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .withIndex("by_userId_and_flaggedAt", (q) =>
+        q.eq("userId", userId).gt("flaggedAt", 0),
+      )
       .collect();
 
-    return rows.filter((review) => review.flaggedAt).length;
+    return flagged.length;
   },
 });
 

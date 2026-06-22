@@ -358,8 +358,9 @@ export default defineSchema({
   reviews: reviews
     .table()
     .index("by_userId", ["userId"])
+    .index("by_userId_and_flaggedAt", ["userId", "flaggedAt"])
     .index("by_barbershopId", ["barbershopId"])
-    .index("by_barbershopId_published", ["barbershopId", "publishedAt"])
+    .index("by_barbershopId_and_publishedAt", ["barbershopId", "publishedAt"])
     .index("by_appointmentId", ["appointmentId"]),
 
   appointments: appointments
