@@ -1,6 +1,6 @@
 # Política de Privacidad
 
-_Última actualización: 16 de junio de 2026_
+_Última actualización: 20 de junio de 2026_
 
 ## 1. Introducción
 
@@ -40,6 +40,7 @@ Utilizamos la información recopilada para:
 - Facilitar la reserva y gestión de citas.
 - Proporcionar a las barberías herramientas de administración y gestión.
 - Enviar notificaciones relacionadas con sus citas y actividad en la plataforma.
+- Moderar el contenido de las reseñas. El contenido de las reseñas (calificación y comentario) se procesa mediante un sistema automatizado de moderación con inteligencia artificial para detectar lenguaje de odio, difamación o desinformación, a través de un proveedor de IA ([Vercel AI Gateway](https://vercel.com)).
 - Mejorar la plataforma mediante análisis de uso y comportamiento.
 - Prevenir fraudes y garantizar la seguridad de la plataforma.
 - Cumplir con obligaciones legales aplicables en Colombia.
