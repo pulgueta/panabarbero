@@ -29,12 +29,6 @@ export const create = zInternalMutation({
 export const getByBarbershopId = zQuery({
   args: barbershops.tools.id.shape,
   handler: async (ctx, args) => {
-    const userId = await getUserId(ctx);
-
-    if (!userId) {
-      return [];
-    }
-
     const members = await ctx.db
       .query("barbershopMembers")
       .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))

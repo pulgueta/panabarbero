@@ -3,6 +3,7 @@ import { z } from "zod";
 import { zQuery } from ".";
 import { internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
+import { reviewRatingsAggregate } from "./aggregates";
 import { identifyUser, track } from "./analytics";
 import { authkit } from "./auth.config";
 import { assertShopRole } from "./authz";
@@ -427,7 +428,19 @@ export const { authKitEvent } = authkit.events({
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .collect();
 
-    await Promise.all(userReviews.map((r) => ctx.db.delete(r._id)));
+    await Promise.all(
+      userReviews.map(async (r) => {
+        if (r.publishedAt) {
+          await reviewRatingsAggregate.deleteIfExists(ctx, {
+            namespace: r.barbershopId,
+            key: r._creationTime,
+            id: r._id,
+          });
+        }
+
+        await ctx.db.delete(r._id);
+      }),
+    );
 
     // 4. Delete user's in-app notifications
     const userNotifications = await ctx.db

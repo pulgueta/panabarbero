@@ -1,8 +1,12 @@
 import { ConvexError } from "convex/values";
-import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { errorMessages } from "./errors";
-import type { Appointment, BarbershopMember } from "./schema";
+import type {
+  Appointment,
+  Barbershop,
+  BarbershopMember,
+  UserProfileData,
+} from "./schema";
 
 export type Role = "owner" | "barber" | "staff";
 
@@ -11,8 +15,8 @@ export type Role = "owner" | "barber" | "staff";
  */
 export async function getBarbershopMember(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
-  userProfileDataId: Id<"userProfileData">,
+  barbershopId: Barbershop["_id"],
+  userProfileDataId: UserProfileData["_id"],
 ) {
   return await ctx.db
     .query("barbershopMembers")
@@ -26,7 +30,7 @@ export async function getBarbershopMember(
  */
 export async function getBarbershopMemberByUserId(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
   userId: string,
 ) {
   const userProfile = await ctx.db
@@ -74,7 +78,7 @@ export function memberHasAllRoles(
  */
 export async function assertShopRole(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
   userId: string,
   requiredRoles: Role | Role[],
 ) {
@@ -106,7 +110,7 @@ export async function assertShopRole(
  */
 export async function hasShopRole(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
   userId: string,
   requiredRoles: Role | Role[],
 ): Promise<boolean> {
@@ -128,7 +132,7 @@ export async function hasShopRole(
  */
 export async function assertOwner(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
   userId: string,
 ) {
   return assertShopRole(ctx, barbershopId, userId, "owner");
@@ -139,7 +143,7 @@ export async function assertOwner(
  */
 export async function assertBarber(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
   userId: string,
 ) {
   return assertShopRole(ctx, barbershopId, userId, "barber");
@@ -150,7 +154,7 @@ export async function assertBarber(
  */
 export async function assertStaff(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
   userId: string,
 ) {
   return assertShopRole(ctx, barbershopId, userId, "staff");
@@ -161,7 +165,7 @@ export async function assertStaff(
  */
 export async function isStaffInShop(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
   userId: string,
 ): Promise<boolean> {
   return hasShopRole(ctx, barbershopId, userId, "staff");
@@ -173,7 +177,7 @@ export async function isStaffInShop(
  */
 export async function assertCanManageTeam(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
   userId: string,
 ) {
   return assertShopRole(ctx, barbershopId, userId, ["owner", "staff"]);
@@ -184,7 +188,7 @@ export async function assertCanManageTeam(
  */
 export async function assertCanManageShop(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
   userId: string,
 ) {
   return assertShopRole(ctx, barbershopId, userId, "owner");
@@ -196,7 +200,7 @@ export async function assertCanManageShop(
  */
 export async function assertCanManageServices(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
   userId: string,
 ) {
   return assertShopRole(ctx, barbershopId, userId, [
@@ -211,7 +215,7 @@ export async function assertCanManageServices(
  */
 export async function assertCanManageAppointments(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
   userId: string,
 ) {
   return assertShopRole(ctx, barbershopId, userId, "barber");
@@ -223,7 +227,7 @@ export async function assertCanManageAppointments(
  */
 export async function assertShopMember(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
   userId: string,
 ): Promise<BarbershopMember> {
   const member = await getBarbershopMemberByUserId(ctx, barbershopId, userId);
@@ -245,7 +249,7 @@ export async function assertShopMember(
  */
 export async function assertCanViewAppointments(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
   userId: string,
 ) {
   return assertShopRole(ctx, barbershopId, userId, [
@@ -319,7 +323,7 @@ export async function canViewAppointment(
  */
 export async function isBarberInShop(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
   userId: string,
 ): Promise<boolean> {
   return hasShopRole(ctx, barbershopId, userId, "barber");
@@ -331,7 +335,7 @@ export async function isBarberInShop(
  */
 export async function isOwnerOfShop(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
   userId: string,
 ): Promise<boolean> {
   return hasShopRole(ctx, barbershopId, userId, "owner");

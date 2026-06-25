@@ -4,10 +4,10 @@ import { z } from "zod";
 
 import { zInternalAction, zInternalQuery } from ".";
 import { components, internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
 import type { ActionCtx } from "./_generated/server";
 import { getLimitsForProductKey } from "./plans";
 import { polar } from "./polar";
+import type { Barbershop } from "./schema";
 
 /**
  * Pana's retrieval-augmented memory (paid plans only). Two kinds of knowledge,
@@ -117,7 +117,7 @@ ${sections.join("\n\n")}`;
 export const getShopKnowledgeData = zInternalQuery({
   args: z.object({ barbershopId: z.string() }),
   handler: async (ctx, args) => {
-    const barbershopId = args.barbershopId as Id<"barbershops">;
+    const barbershopId = args.barbershopId as Barbershop["_id"];
     const shop = await ctx.db.get(barbershopId);
     if (!shop) return null;
 

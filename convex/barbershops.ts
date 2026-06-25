@@ -8,6 +8,7 @@ import { zAuthMutation, zInternalMutation, zQuery } from ".";
 import { api, internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { assertIsSubscribed } from "./acl";
+import { getBarbershopRatingValue } from "./aggregates";
 import { groupIdentifyBarbershop, track } from "./analytics";
 import { authkit } from "./auth.config";
 import { assertOwner } from "./authz";
@@ -210,30 +211,30 @@ export const getActive = zQuery({
       .order("asc")
       .collect();
 
-    await Promise.all(
+    const withRatings = await Promise.all(
       barbershops.map(async (barbershop) => {
-        // if (barbershop.bannerUrl) {
-        //   const isAlreadyUrl = /^https?:\/\//i.test(barbershop.bannerUrl);
-
-        //   if (!isAlreadyUrl) {
-        //     try {
-        //       const url = await r2.getUrl(barbershop.bannerUrl);
-        //       barbershop.bannerUrl = url === null ? undefined : url;
-        //     } catch (error) {
-        //       console.error(error);
-        //     }
-        //   }
-        // }
-
-        const services = await ctx.runQuery(api.barbershops.getServices, {
-          id: barbershop._id,
-        });
+        // Read services directly off the index rather than `ctx.runQuery` — a
+        // cross-function call spins a fresh sub-transaction per row, which is the
+        // real fan-out cost here. Ratings stay on the aggregate
+        // (`getBarbershopRatingValue`, O(log n)): that aggregate already *is* the
+        // denormalized rating read model, so there is nothing to copy onto the doc.
+        const [services, { average, count }] = await Promise.all([
+          ctx.db
+            .query("services")
+            .withIndex("by_barbershopId", (q) =>
+              q.eq("barbershopId", barbershop._id),
+            )
+            .collect(),
+          getBarbershopRatingValue(ctx, barbershop._id),
+        ]);
 
         barbershop.services = services.map((service) => service._id);
+
+        return { ...barbershop, averageRating: average, reviewCount: count };
       }),
     );
 
-    return barbershops.filter((barbershop) => barbershop.services?.length);
+    return withRatings.filter((barbershop) => barbershop.services?.length);
   },
 });
 

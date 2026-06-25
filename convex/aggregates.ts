@@ -17,7 +17,9 @@ import { DirectAggregate, TableAggregate } from "@convex-dev/aggregate";
 import { Triggers } from "convex-helpers/server/triggers";
 
 import { components } from "./_generated/api";
-import type { DataModel, Id } from "./_generated/dataModel";
+import type { DataModel } from "./_generated/dataModel";
+import type { QueryCtx } from "./_generated/server";
+import type { Appointment, Barbershop, Review } from "./schema";
 
 /**
  * Counts completed appointments per barbershop.
@@ -27,9 +29,9 @@ import type { DataModel, Id } from "./_generated/dataModel";
  * Id:        appointmentId (unique tie-breaker)
  */
 export const completedAppointmentsAggregate = new DirectAggregate<{
-  Namespace: Id<"barbershops">;
+  Namespace: Barbershop["_id"];
   Key: number;
-  Id: Id<"appointments">;
+  Id: Appointment["_id"];
 }>(components.aggregateCompletedAppointments);
 
 /**
@@ -40,7 +42,7 @@ export const completedAppointmentsAggregate = new DirectAggregate<{
  * sumValue:  smsSent
  */
 export const smsUsageAggregate = new TableAggregate<{
-  Namespace: Id<"barbershops">;
+  Namespace: Barbershop["_id"];
   Key: string;
   DataModel: DataModel;
   TableName: "usage";
@@ -58,7 +60,7 @@ export const smsUsageAggregate = new TableAggregate<{
  * sumValue:  emailsSent
  */
 export const emailUsageAggregate = new TableAggregate<{
-  Namespace: Id<"barbershops">;
+  Namespace: Barbershop["_id"];
   Key: string;
   DataModel: DataModel;
   TableName: "usage";
@@ -67,6 +69,42 @@ export const emailUsageAggregate = new TableAggregate<{
   sortKey: (doc) => doc.month,
   sumValue: (doc) => doc.emailsSent,
 });
+
+/**
+ * Sums review ratings per barbershop so the average (sum / count) and the
+ * published-review count are read in O(log n) for the card + detail page.
+ *
+ * Maintained manually (DirectAggregate): entries are inserted only when a
+ * review is PUBLISHED (moderation cleared) and removed when it is unpublished
+ * or deleted, so pending/flagged reviews never affect the public rating.
+ *
+ * Namespace: barbershopId
+ * Key:       review _creationTime (id disambiguates ties)
+ * Id:        reviewId
+ * sumValue:  rating (1-5)
+ */
+export const reviewRatingsAggregate = new DirectAggregate<{
+  Namespace: Barbershop["_id"];
+  Key: number;
+  Id: Review["_id"];
+}>(components.aggregateReviewRatings);
+
+/**
+ * Average rating + published-review count for one barbershop, read from the
+ * rating aggregate in O(log n). Single source of truth for both the listing
+ * card (`getActive`) and the detail page (`getBarbershopRating`).
+ */
+export async function getBarbershopRatingValue(
+  ctx: QueryCtx,
+  barbershopId: Barbershop["_id"],
+) {
+  const [sum, count] = await Promise.all([
+    reviewRatingsAggregate.sum(ctx, { namespace: barbershopId }),
+    reviewRatingsAggregate.count(ctx, { namespace: barbershopId }),
+  ]);
+
+  return { average: count > 0 ? sum / count : 0, count };
+}
 
 /**
  * Triggers that keep `smsUsageAggregate` and `emailUsageAggregate` in sync

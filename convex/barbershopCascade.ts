@@ -1,5 +1,6 @@
 import { api, internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
+import { reviewRatingsAggregate } from "./aggregates";
 import { barbershopGeospatial } from "./geospatial";
 import type { Appointment, Barbershop, BarbershopMember } from "./schema";
 
@@ -112,7 +113,18 @@ export async function cascadeDeleteBarbershop(
     ...services.map((service) => ctx.db.delete(service._id)),
     ...assignments.map((assignment) => ctx.db.delete(assignment._id)),
     ...members.map((member) => ctx.db.delete(member._id)),
-    ...reviews.map((review) => ctx.db.delete(review._id)),
+    ...reviews.flatMap((review) =>
+      review.publishedAt
+        ? [
+            reviewRatingsAggregate.deleteIfExists(ctx, {
+              namespace: barbershopId,
+              key: review._creationTime,
+              id: review._id,
+            }),
+            ctx.db.delete(review._id),
+          ]
+        : [ctx.db.delete(review._id)],
+    ),
     ...(metadata ? [ctx.db.delete(metadata._id)] : []),
     ...usageRows.map((row) => ctx.db.delete(row._id)),
     ...(extraCreditsRow ? [ctx.db.delete(extraCreditsRow._id)] : []),

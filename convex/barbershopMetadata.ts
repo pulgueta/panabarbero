@@ -20,19 +20,6 @@ export const createInitial = zInternalMutation({
   },
 });
 
-export const increaseBarbershopRating = zInternalMutation({
-  args: barbershops.tools.id,
-  handler: async (ctx, args) => {
-    // TODO: Implement aggregate component for rating
-
-    const barbershop = await ctx.db.get(args.id);
-
-    if (!barbershop) {
-      throw new ConvexError(errorMessages.notFound("barbershop"));
-    }
-  },
-});
-
 export const decrementCompletedAppointments = zInternalMutation({
   args: z.object({
     barbershopId: barbershops.tools.id.shape.id,

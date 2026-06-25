@@ -6,18 +6,18 @@
 import { ConvexError } from "convex/values";
 import { z } from "zod";
 import { zInternalMutation, zQuery } from ".";
-import type { Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { getUsageRow, getUserPlanLimits } from "./acl";
 import { assertShopRole } from "./authz";
 import { errorMessages } from "./errors";
 import { getUserId } from "./identity";
 import { getCurrentYearMonth } from "./plans";
+import type { Barbershop } from "./schema";
 import { barbershops } from "./schema";
 
 export async function getExtraCredits(
   ctx: QueryCtx | MutationCtx,
-  barbershopId: Id<"barbershops">,
+  barbershopId: Barbershop["_id"],
 ) {
   return ctx.db
     .query("extraCredits")

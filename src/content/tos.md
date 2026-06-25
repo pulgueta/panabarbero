@@ -1,6 +1,6 @@
 # Términos de Servicio
 
-_Última actualización: 16 de junio de 2026_
+_Última actualización: 20 de junio de 2026_
 
 ## 1. Introducción
 
@@ -46,7 +46,7 @@ Al usar PanaBarbero, usted se compromete a:
 
 - No utilizar la plataforma para fines ilegales o no autorizados.
 - No intentar acceder a cuentas de otros usuarios sin autorización.
-- No publicar contenido falso, engañoso, difamatorio u ofensivo.
+- No publicar contenido falso, engañoso, difamatorio u ofensivo, incluyendo en las reseñas de barberías.
 - No interferir con el funcionamiento normal de la plataforma.
 - No realizar ingeniería inversa, descompilar o intentar extraer el código fuente de la plataforma.
 - No utilizar bots, scrapers o herramientas automatizadas para acceder a la plataforma sin autorización expresa.
@@ -55,7 +55,7 @@ Al usar PanaBarbero, usted se compromete a:
 
 Los usuarios y barberías pueden publicar contenido en la plataforma (fotos, descripciones, reseñas, etc.). Usted conserva la propiedad de su contenido, pero al publicarlo otorga a PanaBarbero una licencia no exclusiva, mundial, libre de regalías para usar, mostrar, reproducir y distribuir dicho contenido en la plataforma con el fin de prestar el servicio.
 
-Nos reservamos el derecho de eliminar cualquier contenido que viole estos Términos o que consideremos inapropiado, sin previo aviso.
+Nos reservamos el derecho de eliminar cualquier contenido que viole estos Términos o que consideremos inapropiado, sin previo aviso. Las reseñas publicadas por los clientes se rigen, además, por las normas específicas de la sección §13.
 
 ## 9. Propiedad Intelectual
 
@@ -102,20 +102,32 @@ Al eliminar su cuenta como miembro del equipo de una barbería:
 - El propietario de la barbería recibirá un correo resumen indicando las citas reasignadas y las citas canceladas.
 - Se recomienda **informar previamente al propietario** de la barbería para coordinar la reasignación de clientes antes de eliminar la cuenta.
 
-## 13. Modificaciones a los Términos
+## 13. Reseñas y opiniones de clientes
+
+PanaBarbero permite a los clientes dejar reseñas sobre los servicios recibidos en las barberías. La publicación de reseñas se rige por las siguientes normas:
+
+- **Solo clientes verificados.** Únicamente los clientes autenticados que hayan completado un servicio pueden dejar una reseña, y exclusivamente mediante un enlace de un solo uso generado para esa cita.
+- **Las reseñas reflejan la opinión del cliente.** El contenido de cada reseña expresa el punto de vista personal de su autor y no constituye una opinión, recomendación ni declaración de PanaBarbero.
+- **Crítica honesta, sin abusos.** Se permite la crítica honesta y respetuosa sobre la experiencia recibida. Queda prohibido el contenido difamatorio, de odio, acosador o engañoso.
+- **Moderación automatizada.** Las reseñas se revisan mediante un sistema automatizado de moderación con inteligencia artificial. El contenido marcado por dicho sistema no se publica hasta que su autor lo corrija o lo elimine.
+- **Inmutabilidad.** Una reseña publicada no puede modificarse; el autor únicamente puede eliminarla.
+- **Cumplimiento de las normas.** PanaBarbero puede ocultar o eliminar cualquier reseña o contenido que incumpla estas normas.
+- **Responsabilidad.** PanaBarbero no es responsable por las opiniones publicadas por los usuarios en las reseñas.
+
+## 14. Modificaciones a los Términos
 
 Nos reservamos el derecho de modificar estos Términos en cualquier momento. Los cambios serán notificados a través de la plataforma o por correo electrónico. El uso continuado de la plataforma después de la notificación de cambios constituye la aceptación de los nuevos Términos.
 
-## 14. Ley Aplicable y Jurisdicción
+## 15. Ley Aplicable y Jurisdicción
 
 Estos Términos se rigen por las leyes de la República de Colombia. Cualquier disputa que surja en relación con estos Términos será sometida a la jurisdicción de los tribunales competentes de Barrancabermeja, Santander, Colombia.
 
-## 15. Contacto
+## 16. Contacto
 
 Si tiene preguntas o inquietudes sobre estos Términos de Servicio, puede contactarnos a través de:
 
-- Correo electrónico: [roariasaf@gmail.com](mailto:roariasaf@gmail.com)
+- Correo electrónico: [soporte@panabarbero.com](mailto:soporte@panabarbero.com)
 
 ---
 
-_Proveedores tecnológicos de terceros referenciados en estos Términos: [WorkOS](https://workos.com) (autenticación), [Polar](https://polar.sh) (pagos), [Convex](https://convex.dev) (base de datos), [Vercel](https://vercel.com) (infraestructura)._
+_Proveedores tecnológicos de terceros referenciados en estos Términos: [WorkOS](https://workos.com) (autenticación), [Polar](https://polar.sh) (pagos), [Convex](https://convex.dev) (base de datos), [Railway](https://railway.com) (infraestructura)._

@@ -13,6 +13,9 @@ export const deepLinks = {
   customerAppointments: () => `${siteUrl()}/profile?tab=appointments`,
   barberAppointments: () => `${siteUrl()}/profile/barbershops/appointments`,
   invitation: (code: string) => `${siteUrl()}/invitations/${code}`,
+  review: (barbershopUuid: string, code: string) =>
+    `${siteUrl()}/barbershops/${barbershopUuid}/review?code=${code}`,
+  customerReviews: () => `${siteUrl()}/profile?tab=reviews`,
 };
 
 export type BaseInput = { barbershopName?: string };
@@ -63,6 +66,16 @@ export type NotificationInput =
       kind: "service_deleted_cancellation";
       barbershopName: string;
       serviceName: string;
+    }
+  | {
+      kind: "review_invite";
+      barbershopName: string;
+      barbershopUuid: string;
+      reviewCode: string;
+      serviceName: string;
+    }
+  | {
+      kind: "review_needs_attention";
     };
 
 export interface NotificationCopy {
@@ -186,6 +199,23 @@ export function buildNotificationCopy(
         title: subjects.appointment_cancelled,
         description: `Tu cita en ${input.barbershopName} ha sido cancelada porque el servicio "${input.serviceName}" ya no está disponible.`,
         href: deepLinks.customerAppointments(),
+      };
+    }
+    case "review_invite": {
+      return {
+        kind: "review_invite",
+        title: subjects.review_invite,
+        description: `¿Cómo te fue en ${input.barbershopName}? Déjale una reseña sobre tu ${input.serviceName}.`,
+        href: deepLinks.review(input.barbershopUuid, input.reviewCode),
+      };
+    }
+    case "review_needs_attention": {
+      return {
+        kind: "review_needs_attention",
+        title: subjects.review_needs_attention,
+        description:
+          "Tu reseña no cumple nuestras normas de comunidad. Edítala o elimínala desde tu perfil para resolverlo.",
+        href: deepLinks.customerReviews(),
       };
     }
     default: {

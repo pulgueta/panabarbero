@@ -4,6 +4,7 @@ import type { FC } from "react";
 import { AppointmentNotification } from "./variants/appointment-notification";
 import { CancellationNotification } from "./variants/cancellation-notification";
 import { RescheduleNotification } from "./variants/reschedule-notification";
+import { ReviewNotification } from "./variants/review-notification";
 import { TeamInviteNotification } from "./variants/team-invite-notification";
 
 export interface NotificationRendererProps {
@@ -54,6 +55,10 @@ export const NotificationRenderer: FC<NotificationRendererProps> = ({
 
     case "team_invited":
       return <TeamInviteNotification {...shared} />;
+
+    case "review_invite":
+    case "review_needs_attention":
+      return <ReviewNotification {...shared} kind={notification.kind} />;
 
     default: {
       const _exhaustive: never = notification.kind;

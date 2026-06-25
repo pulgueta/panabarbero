@@ -5,20 +5,25 @@ import {
   syncStreams,
   vStreamArgs,
 } from "@convex-dev/agent";
-import { convexToZod } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
+import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import { zAction, zMutation, zQuery } from ".";
 import { api, components, internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
 import { panaAgent } from "./aiAgent";
 import { resolvePanaAccessForUserId } from "./aiAgentHelpers";
 import { track } from "./analytics";
 import { getUserId } from "./identity";
 import { rateLimiter } from "./ratelimit";
+import type {
+  Appointment,
+  Barbershop,
+  BarbershopMember,
+  Service,
+} from "./schema";
 
 const ANON_PREFIX = "anon:";
 
@@ -323,9 +328,9 @@ export const confirmPendingAction = zAction({
         const a = pending.args;
         await ctx.runMutation(internal.appointments.agentBook, {
           userId: callerId,
-          barbershopId: a.barbershopId as Id<"barbershops">,
-          serviceId: a.serviceId as Id<"services">,
-          barbershopMemberId: a.barbershopMemberId as Id<"barbershopMembers">,
+          barbershopId: a.barbershopId as Barbershop["_id"],
+          serviceId: a.serviceId as Service["_id"],
+          barbershopMemberId: a.barbershopMemberId as BarbershopMember["_id"],
           date: a.date,
           customerName: a.customerName,
           contactPhone: a.contactPhone,
@@ -342,9 +347,9 @@ export const confirmPendingAction = zAction({
         // requireUserId(ctx.auth) — the authoritative gate.
         await ctx.runMutation(api.appointments.create, {
           appointment: {
-            barbershopId: a.barbershopId as Id<"barbershops">,
-            serviceId: a.serviceId as Id<"services">,
-            barbershopMemberId: a.barbershopMemberId as Id<"barbershopMembers">,
+            barbershopId: a.barbershopId as Barbershop["_id"],
+            serviceId: a.serviceId as Service["_id"],
+            barbershopMemberId: a.barbershopMemberId as BarbershopMember["_id"],
             date: a.date,
             customerName: a.customerName,
             contactPhone: a.contactPhone,
@@ -365,7 +370,7 @@ export const confirmPendingAction = zAction({
           requiredActor: "customer",
         });
         await ctx.runMutation(api.appointments.cancel, {
-          appointmentId: { id: a.appointmentId as Id<"appointments"> },
+          appointmentId: { id: a.appointmentId as Appointment["_id"] },
           cancelledByUserId: callerId,
           reason: a.reason,
           cancelledBy: "customer",
@@ -382,7 +387,7 @@ export const confirmPendingAction = zAction({
           requiredActor: "customer",
         });
         await ctx.runMutation(api.appointments.requestReschedule, {
-          appointmentId: { id: a.appointmentId as Id<"appointments"> },
+          appointmentId: { id: a.appointmentId as Appointment["_id"] },
           proposedDate: a.proposedDate,
         });
         summary = "Solicitud de reagendamiento enviada al barbero.";
@@ -398,7 +403,7 @@ export const confirmPendingAction = zAction({
         });
         if (a.status === "cancelled") {
           await ctx.runMutation(api.appointments.cancel, {
-            appointmentId: { id: a.appointmentId as Id<"appointments"> },
+            appointmentId: { id: a.appointmentId as Appointment["_id"] },
             cancelledByUserId: callerId,
             reason: a.reason ?? "Cancelada por la barbería",
             cancelledBy: "barber",
@@ -406,7 +411,7 @@ export const confirmPendingAction = zAction({
           summary = "Listo, cancelé la cita y el cliente queda avisado.";
         } else {
           await ctx.runMutation(api.appointments.setStatus, {
-            appointment: { id: a.appointmentId as Id<"appointments"> },
+            appointment: { id: a.appointmentId as Appointment["_id"] },
             status: a.status,
           });
           summary =
@@ -425,7 +430,7 @@ export const confirmPendingAction = zAction({
           requiredActor: "any",
         });
         await ctx.runMutation(api.appointments.answerRescheduleRequest, {
-          appointment: { id: a.appointmentId as Id<"appointments"> },
+          appointment: { id: a.appointmentId as Appointment["_id"] },
           accepted: a.accept,
           answeredBy: a.answeredBy,
         });
@@ -441,7 +446,7 @@ export const confirmPendingAction = zAction({
           name: a.name,
           price: a.price,
           duration: a.durationMinutes,
-          barbershopId: a.barbershopId as Id<"barbershops">,
+          barbershopId: a.barbershopId as Barbershop["_id"],
         });
         summary = `Listo, creé el servicio "${a.name}".`;
         break;
@@ -453,13 +458,13 @@ export const confirmPendingAction = zAction({
           name?: string;
           price?: number;
           duration?: number;
-          barbershopId: Id<"barbershops">;
-        } = { barbershopId: a.barbershopId as Id<"barbershops"> };
+          barbershopId: Barbershop["_id"];
+        } = { barbershopId: a.barbershopId as Barbershop["_id"] };
         if (a.name !== undefined) data.name = a.name;
         if (a.price !== undefined) data.price = a.price;
         if (a.durationMinutes !== undefined) data.duration = a.durationMinutes;
         await ctx.runMutation(api.services.update, {
-          id: a.serviceId as Id<"services">,
+          id: a.serviceId as Service["_id"],
           data,
         });
         summary = "Listo, actualicé el servicio.";
@@ -469,8 +474,8 @@ export const confirmPendingAction = zAction({
         requireAuthed(isAnon);
         const a = pending.args;
         await ctx.runMutation(api.services.deleteService, {
-          barbershop: { id: a.barbershopId as Id<"barbershops"> },
-          service: { id: a.serviceId as Id<"services"> },
+          barbershop: { id: a.barbershopId as Barbershop["_id"] },
+          service: { id: a.serviceId as Service["_id"] },
           force: true,
         });
         summary = "Listo, eliminé el servicio.";
@@ -480,7 +485,7 @@ export const confirmPendingAction = zAction({
         requireAuthed(isAnon);
         const a = pending.args;
         await ctx.runMutation(api.barbershopMembers.updateBarberSchedule, {
-          barbershopMemberId: a.barbershopMemberId as Id<"barbershopMembers">,
+          barbershopMemberId: a.barbershopMemberId as BarbershopMember["_id"],
           availability: a.availability.map((d) => ({
             weekDay: { day: d.day, isActive: d.isActive },
             openAt: d.openAt,
@@ -509,14 +514,14 @@ export const confirmPendingAction = zAction({
           await ctx.runMutation(
             api.barbershopMembers.removeBarberFromBarbershop,
             {
-              id: a.barbershopMemberId as Id<"barbershopMembers">,
+              id: a.barbershopMemberId as BarbershopMember["_id"],
               force: true,
             },
           );
         } else {
           await ctx.runMutation(
             api.barbershopMembers.removeStaffFromBarbershop,
-            { id: a.barbershopMemberId as Id<"barbershopMembers"> },
+            { id: a.barbershopMemberId as BarbershopMember["_id"] },
           );
         }
         summary = "Listo, quité a la persona del equipo.";

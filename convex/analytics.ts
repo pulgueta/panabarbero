@@ -17,7 +17,13 @@ export type AppEventName =
   | "member_invited"
   | "member_joined"
   | "ai_thread_started"
-  | "ai_action_confirmed";
+  | "ai_action_confirmed"
+  | "review_invite_sent"
+  | "review_created"
+  | "review_published"
+  | "review_flagged"
+  | "review_updated"
+  | "review_deleted";
 
 /** Capture a product event. No-op when there is no distinct id to attribute it to. */
 export async function track(

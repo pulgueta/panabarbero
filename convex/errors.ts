@@ -5,6 +5,8 @@ export const errorMessages = {
     "La barbería no está abierta en el horario seleccionado.",
   appointmentUnavailableHours:
     "La barbería no atiende durante el horario seleccionado.",
+  cannotRescheduleCompleted:
+    "No puedes reprogramar una cita que ya fue completada.",
   notFound: (resource: string) => `El recurso "${resource}" no fue encontrado`,
   barbershopClosedOnSelectedDay:
     "La barbería no está abierta en el día seleccionado",
@@ -25,4 +27,12 @@ export const errorMessages = {
   smsLimitExceeded: "Has alcanzado el límite de SMS para este mes.",
   emailLimitExceeded: "Has alcanzado el límite de correos para este mes.",
   invalidPhoneNumber: "El número de teléfono no es válido.",
+
+  // Reviews
+  reviewInvalidCode: "El enlace de reseña no es válido o ya fue utilizado.",
+  reviewAlreadyExists: "Ya dejaste una reseña para esta visita.",
+  reviewNotCompleted:
+    "Solo puedes reseñar una visita que haya sido completada.",
+  reviewImmutable:
+    "Una reseña publicada no se puede modificar; solo eliminarla.",
 } as const;
