@@ -1,5 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: We need to assert non-null values because the hooks return undefined if the data is not loaded */
 
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
@@ -47,10 +48,7 @@ import {
   unreadNotificationsPageQueryOptions,
 } from "@/hooks/use-notifications";
 import { profileQueryOptions, useProfile } from "@/hooks/use-profile";
-import {
-  myReviewsNeedingAttentionCountQueryOptions,
-  useMyReviewsNeedingAttentionCount,
-} from "@/hooks/use-reviews";
+import { myReviewsNeedingAttentionCountQueryOptions } from "@/hooks/use-reviews";
 import { servicesByIdsQueryOptions } from "@/hooks/use-services";
 import { useSession } from "@/hooks/use-session";
 
@@ -227,7 +225,13 @@ function ProfilePage() {
   const { data: appointments, isFetching: isFetchingAppointments } =
     useAppointmentsByUser(user?.id!, cursor);
   const { data: profile } = useProfile(user?.id!);
-  const { data: reviewsNeedingAttention } = useMyReviewsNeedingAttentionCount();
+  // Non-suspense read: the loader only *streams* this badge count
+  // (`void prefetchQuery`), so consuming it with `useSuspenseQuery` would let a
+  // non-critical tab badge suspend the whole profile shell on slow paths. Plain
+  // `useQuery` degrades gracefully — shell paints immediately, badge fills in.
+  const { data: reviewsNeedingAttention = 0 } = useQuery(
+    myReviewsNeedingAttentionCountQueryOptions(),
+  );
 
   const onTabChange = (value: string) => {
     haptics.trigger("light");

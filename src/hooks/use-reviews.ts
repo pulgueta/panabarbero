@@ -44,11 +44,6 @@ export function useMyReviews() {
   return useSuspenseQuery(myReviewsQueryOptions());
 }
 
-/** Count of the user's flagged reviews — drives the profile tab alert badge. */
-export function useMyReviewsNeedingAttentionCount() {
-  return useSuspenseQuery(myReviewsNeedingAttentionCountQueryOptions());
-}
-
 export function useReviewActions() {
   const createReviewMutation = useMutation({
     mutationFn: useConvexMutation(api.reviews.create),
