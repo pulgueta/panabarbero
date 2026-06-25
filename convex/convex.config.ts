@@ -7,12 +7,12 @@ import r2 from "@convex-dev/r2/convex.config";
 import rag from "@convex-dev/rag/convex.config";
 import rateLimiter from "@convex-dev/rate-limiter/convex.config";
 import twilio from "@convex-dev/twilio/convex.config";
-import workpool from "@convex-dev/workpool/convex.config";
 import authkit from "@convex-dev/workos-authkit/convex.config";
+import workpool from "@convex-dev/workpool/convex.config";
 import posthog from "@posthog/convex/convex.config";
+import unreads from "convex-unread-tracking/convex.config";
 import { defineApp } from "convex/server";
 import { v } from "convex/values";
-import unreads from "convex-unread-tracking/convex.config";
 
 const app = defineApp({
   env: {
