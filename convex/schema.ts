@@ -187,8 +187,12 @@ export const appointments = zodTable("appointments", (id) => ({
     .string({
       error: "El teléfono de contacto es requerido",
     })
+    // create() normalizes via formatPhoneNumber to E.164 (e.g. +57XXXXXXXXXX =
+    // 13 chars, up to 16 for other country codes), so the stored value is
+    // longer than 10. Pinning exactly 10 rejected every insert; allow the
+    // E.164 range instead.
     .min(10, "El teléfono debe tener al menos 10 caracteres")
-    .max(10, "El teléfono debe tener menos de 10 caracteres"),
+    .max(16, "El teléfono no es válido"),
   contactEmail: z.string().optional(),
   status: z
     .enum([
