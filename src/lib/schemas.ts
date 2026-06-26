@@ -138,7 +138,12 @@ export const appointmentFormSchema = object({
   contactEmail: email().or(zodUndefined()),
   notes: string().optional(),
   barbershopMemberId: zodAny(),
-  serviceId: zodAny(),
+  // serviceId is managed outside the form (service store / URL param) and is
+  // never registered as a form field, so it is absent from the submitted
+  // values. Under Zod 4 a bare `z.any()` rejects an *absent* key as
+  // "nonoptional", which silently failed every booking submit (no field UI →
+  // no visible error). Mark it optional so the shared schema tolerates it.
+  serviceId: zodAny().optional(),
 });
 
 export type ServiceFormData = output<typeof serviceFormSchema>;

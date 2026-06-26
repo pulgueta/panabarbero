@@ -131,6 +131,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
   const form = useAppForm({
     onSubmitInvalid: () => {
       haptic.trigger("error");
+      toast.error("Revisa los datos del formulario e inténtalo de nuevo.");
     },
     validationLogic: revalidateLogic({
       mode: "submit",
