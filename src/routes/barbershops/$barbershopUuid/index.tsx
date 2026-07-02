@@ -7,8 +7,6 @@ import { Hydrate } from "@tanstack/react-start";
 import { visible } from "@tanstack/react-start/hydration";
 import { lazy, Suspense } from "react";
 
-import { BarberTeamSection } from "@/components/barbershops/barber-team-section";
-import { BarbershopReviews } from "@/components/barbershops/barbershop-reviews";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ServicesSkeleton } from "@/components/layout/skeleton/services-skeleton";
@@ -71,6 +69,18 @@ const BarbershopLocationSection = lazy(() =>
       default: module.BarbershopLocationSection,
     }),
   ),
+);
+
+const BarberTeamSection = lazy(() =>
+  import("@/components/barbershops/barber-team-section").then((module) => ({
+    default: module.BarberTeamSection,
+  })),
+);
+
+const BarbershopReviews = lazy(() =>
+  import("@/components/barbershops/barbershop-reviews").then((module) => ({
+    default: module.BarbershopReviews,
+  })),
 );
 
 export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
@@ -288,6 +298,18 @@ function RouteComponent() {
           </>
         )}
 
+        {/* Heavy interactive map, below the fold: keep it code-split via lazy()
+            and defer hydration (and therefore the chunk download) until it
+            scrolls into view. */}
+        {barbershop?._id && (
+          <Hydrate when={visible({ rootMargin: "200px" })} split={false}>
+            <BarbershopLocationSection
+              barbershopId={barbershop._id}
+              barbershopName={barbershop.name}
+            />
+          </Hydrate>
+        )}
+
         {barbershop?._id && (
           <>
             <Separator className="my-6" />
@@ -307,18 +329,6 @@ function RouteComponent() {
               </Hydrate>
             </section>
           </>
-        )}
-
-        {/* Heavy interactive map, below the fold: keep it code-split via lazy()
-            and defer hydration (and therefore the chunk download) until it
-            scrolls into view. */}
-        {barbershop?._id && (
-          <Hydrate when={visible({ rootMargin: "200px" })} split={false}>
-            <BarbershopLocationSection
-              barbershopId={barbershop._id}
-              barbershopName={barbershop.name}
-            />
-          </Hydrate>
         )}
       </main>
     </BorderContainer>
