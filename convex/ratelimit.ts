@@ -5,6 +5,7 @@ import { components } from "./_generated/api";
 import { errorMessages } from "./errors";
 
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
+  authWrite: { kind: "fixed window", rate: 10, period: 60 * MINUTE },
   requestReschedule: { kind: "fixed window", rate: 1, period: 30 * MINUTE },
   createAppointment: {
     kind: "token bucket",
@@ -195,7 +196,7 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
   },
 });
 
-type RateLimitName = keyof NonNullable<typeof rateLimiter.limits>;
+export type RateLimitName = keyof NonNullable<typeof rateLimiter.limits>;
 
 export const rateLimitOrThrow = async (
   ctx: RunMutationCtx,
