@@ -11,13 +11,19 @@
  * and the retention rollup — both documented, both through the wrapped db.
  */
 
+import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
+import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
-import { zAuthMutation } from ".";
-import type { MutationCtx } from "./_generated/server";
+import { zAuthMutation, zAuthQuery, zInternalQuery } from ".";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { assertInventoryAllowed } from "./acl";
-import { inventoryTriggers } from "./aggregates";
+import {
+  inventoryMovementsAggregate,
+  inventoryTriggers,
+  inventoryValueAggregate,
+} from "./aggregates";
 import { track } from "./analytics";
 import { authz, barbershopScope } from "./authz";
 import { errorMessages } from "./errors";
@@ -29,7 +35,13 @@ import type {
   InventoryMovement,
   InventoryMovementType,
 } from "./schema";
-import { barbershops, inventoryItems, services } from "./schema";
+import {
+  barbershops,
+  inventoryCategories,
+  inventoryItems,
+  services,
+} from "./schema";
+import { colombiaDateKeyToMs, toColombiaDateKey } from "./utils";
 
 // ---------------------------------------------------------------------------
 // Movement effects matrix
@@ -968,5 +980,414 @@ export const setServiceRecipe = zAuthMutation({
         quantity: line.quantity,
       });
     }
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Queries — every read path is indexed; ledger reads are always paginated
+// ---------------------------------------------------------------------------
+
+/**
+ * Viewers need at least `inventory:consume` (barbers get the reduced view).
+ * Returns whether the caller may see costs/valuation (`inventory:manage`).
+ */
+async function assertCanViewInventory(
+  ctx: QueryCtx | MutationCtx,
+  barbershopId: Barbershop["_id"],
+  userId: string,
+): Promise<{ canManage: boolean }> {
+  await assertInventoryAllowed(ctx, barbershopId);
+
+  const scope = barbershopScope(barbershopId);
+  const [canManage, canConsume] = await Promise.all([
+    authz.can(ctx, userId, "inventory:manage", scope),
+    authz.can(ctx, userId, "inventory:consume", scope),
+  ]);
+
+  if (!canManage && !canConsume) {
+    throw new ConvexError(errorMessages.unauthorized);
+  }
+
+  return { canManage };
+}
+
+/**
+ * The dashboard spine: active items joined with their summed balances in one
+ * live subscription. Costs and valuation are included only for managers —
+ * barbers get the reduced shape by design.
+ */
+export const getInventoryOverview = zAuthQuery({
+  args: z.object({ barbershop: barbershops.tools.id }),
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+    const { canManage } = await assertCanViewInventory(
+      ctx,
+      args.barbershop.id,
+      userId,
+    );
+
+    const [items, levels] = await Promise.all([
+      ctx.db
+        .query("inventoryItems")
+        .withIndex("by_barbershopId", (q) =>
+          q.eq("barbershopId", args.barbershop.id),
+        )
+        .collect(),
+      ctx.db
+        .query("inventoryLevels")
+        .withIndex("by_barbershopId", (q) =>
+          q.eq("barbershopId", args.barbershop.id),
+        )
+        .collect(),
+    ]);
+
+    const balances = new Map<string, { onHand: number; reserved: number }>();
+
+    for (const level of levels) {
+      const current = balances.get(level.itemId) ?? { onHand: 0, reserved: 0 };
+      current.onHand += level.onHand;
+      current.reserved += level.reserved;
+      balances.set(level.itemId, current);
+    }
+
+    const rows = items
+      .filter((item) => item.deletedAt === undefined)
+      .map((item) => {
+        const balance = balances.get(item._id) ?? { onHand: 0, reserved: 0 };
+
+        return {
+          _id: item._id,
+          name: item.name,
+          sku: item.sku,
+          category: item.category,
+          unit: item.unit,
+          isSellable: item.isSellable,
+          reorderPoint: item.reorderPoint,
+          reorderQuantity: item.reorderQuantity,
+          imageKey: item.imageKey,
+          onHand: balance.onHand,
+          reserved: balance.reserved,
+          available: balance.onHand - balance.reserved,
+          belowReorder: balance.onHand <= item.reorderPoint,
+          ...(canManage
+            ? {
+                unitCost: item.unitCost,
+                salePrice: item.salePrice,
+                allowNegativeStock: item.allowNegativeStock,
+                value: balance.onHand * item.unitCost,
+              }
+            : {}),
+        };
+      });
+
+    return { rows, canManage };
+  },
+});
+
+export const listItems = zAuthQuery({
+  args: z.object({
+    barbershop: barbershops.tools.id,
+    category: z.enum(inventoryCategories).optional(),
+    paginationOpts: convexToZod(paginationOptsValidator),
+  }),
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+
+    await assertCanViewInventory(ctx, args.barbershop.id, userId);
+
+    const category = args.category;
+    const query = category
+      ? ctx.db
+          .query("inventoryItems")
+          .withIndex("by_barbershopId_and_category", (q) =>
+            q.eq("barbershopId", args.barbershop.id).eq("category", category),
+          )
+      : ctx.db
+          .query("inventoryItems")
+          .withIndex("by_barbershopId", (q) =>
+            q.eq("barbershopId", args.barbershop.id),
+          );
+
+    return await query.order("desc").paginate(args.paginationOpts);
+  },
+});
+
+export const getItem = zAuthQuery({
+  args: z.object({ item: inventoryItems.tools.id }),
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+    const item = await ctx.db.get(args.item.id);
+
+    if (!item) {
+      throw new ConvexError(errorMessages.notFound("producto"));
+    }
+
+    const { canManage } = await assertCanViewInventory(
+      ctx,
+      item.barbershopId,
+      userId,
+    );
+
+    const levels = await ctx.db
+      .query("inventoryLevels")
+      .withIndex("by_itemId", (q) => q.eq("itemId", item._id))
+      .collect();
+
+    if (!canManage) {
+      const { unitCost: _uc, salePrice: _sp, ...reduced } = item;
+
+      return {
+        item: reduced,
+        levels: levels.map(({ unitCost: _luc, ...level }) => level),
+      };
+    }
+
+    return { item, levels };
+  },
+});
+
+/** The restock list: levels flagged below their reorder point, item-joined. */
+export const listLowStock = zAuthQuery({
+  args: z.object({ barbershop: barbershops.tools.id }),
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+
+    await assertCanViewInventory(ctx, args.barbershop.id, userId);
+
+    const levels = await ctx.db
+      .query("inventoryLevels")
+      .withIndex("by_barbershopId_and_belowReorder", (q) =>
+        q.eq("barbershopId", args.barbershop.id).eq("belowReorder", true),
+      )
+      .collect();
+
+    const rows = await Promise.all(
+      levels.map(async (level) => {
+        const item = await ctx.db.get(level.itemId);
+
+        if (!item || item.deletedAt !== undefined) {
+          return null;
+        }
+
+        return {
+          itemId: item._id,
+          name: item.name,
+          unit: item.unit,
+          category: item.category,
+          onHand: level.onHand,
+          reserved: level.reserved,
+          reorderPoint: item.reorderPoint,
+          reorderQuantity: item.reorderQuantity,
+        };
+      }),
+    );
+
+    return rows.filter((row) => row !== null);
+  },
+});
+
+/** Immutable ledger history for one item — always paginated. Managers only. */
+export const listMovements = zAuthQuery({
+  args: z.object({
+    item: inventoryItems.tools.id,
+    paginationOpts: convexToZod(paginationOptsValidator),
+  }),
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+    const item = await ctx.db.get(args.item.id);
+
+    if (!item) {
+      throw new ConvexError(errorMessages.notFound("producto"));
+    }
+
+    await Promise.all([
+      assertInventoryAllowed(ctx, item.barbershopId),
+      authz.require(
+        ctx,
+        userId,
+        "inventory:manage",
+        barbershopScope(item.barbershopId),
+      ),
+    ]);
+
+    return await ctx.db
+      .query("inventoryMovements")
+      .withIndex("by_itemId", (q) => q.eq("itemId", item._id))
+      .order("desc")
+      .paginate(args.paginationOpts);
+  },
+});
+
+/** Total inventory value, O(log n) from the aggregate. Managers only. */
+export const getValuation = zAuthQuery({
+  args: z.object({ barbershop: barbershops.tools.id }),
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+
+    await Promise.all([
+      assertInventoryAllowed(ctx, args.barbershop.id),
+      authz.require(
+        ctx,
+        userId,
+        "inventory:manage",
+        barbershopScope(args.barbershop.id),
+      ),
+    ]);
+
+    const [totalValue, levelCount] = await Promise.all([
+      inventoryValueAggregate.sum(ctx, { namespace: args.barbershop.id }),
+      inventoryValueAggregate.count(ctx, { namespace: args.barbershop.id }),
+    ]);
+
+    return { totalValue, levelCount };
+  },
+});
+
+/**
+ * Units moved in a Bogotá-local calendar month, summed from the movements
+ * aggregate via [type, time] prefix bounds — no ledger scan. Managers only.
+ */
+export const getMonthlyConsumption = zAuthQuery({
+  args: z.object({
+    barbershop: barbershops.tools.id,
+    /** "YYYY-MM" (America/Bogota). Defaults to the current month. */
+    month: z
+      .string()
+      .regex(/^\d{4}-\d{2}$/, { error: "Usa el formato YYYY-MM" })
+      .optional(),
+  }),
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+
+    await Promise.all([
+      assertInventoryAllowed(ctx, args.barbershop.id),
+      authz.require(
+        ctx,
+        userId,
+        "inventory:manage",
+        barbershopScope(args.barbershop.id),
+      ),
+    ]);
+
+    const month = args.month ?? toColombiaDateKey(Date.now()).slice(0, 7);
+    const [year, monthNumber] = month.split("-").map(Number);
+    const nextMonth =
+      monthNumber === 12
+        ? `${year + 1}-01`
+        : `${year}-${String(monthNumber + 1).padStart(2, "0")}`;
+    const startMs = colombiaDateKeyToMs(`${month}-01`);
+    const endMs = colombiaDateKeyToMs(`${nextMonth}-01`);
+
+    const boundsFor = (type: InventoryMovementType) => ({
+      lower: { key: [type, startMs] as [string, number], inclusive: true },
+      upper: { key: [type, endMs] as [string, number], inclusive: false },
+    });
+
+    const [consumed, sold, received, wasted] = await Promise.all([
+      inventoryMovementsAggregate.sum(ctx, {
+        namespace: args.barbershop.id,
+        bounds: boundsFor("consumption"),
+      }),
+      inventoryMovementsAggregate.sum(ctx, {
+        namespace: args.barbershop.id,
+        bounds: boundsFor("sale"),
+      }),
+      inventoryMovementsAggregate.sum(ctx, {
+        namespace: args.barbershop.id,
+        bounds: boundsFor("receipt"),
+      }),
+      inventoryMovementsAggregate.sum(ctx, {
+        namespace: args.barbershop.id,
+        bounds: boundsFor("waste"),
+      }),
+    ]);
+
+    return { month, consumed, sold, received, wasted };
+  },
+});
+
+export const getServiceRecipe = zAuthQuery({
+  args: z.object({ service: services.tools.id }),
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+    const service = await ctx.db.get(args.service.id);
+
+    if (!service) {
+      throw new ConvexError(errorMessages.notFound("servicio"));
+    }
+
+    await assertCanViewInventory(ctx, service.barbershopId, userId);
+
+    const lines = await ctx.db
+      .query("serviceInventoryUsage")
+      .withIndex("by_serviceId", (q) => q.eq("serviceId", service._id))
+      .collect();
+
+    return await Promise.all(
+      lines.map(async (line) => {
+        const item = await ctx.db.get(line.itemId);
+
+        return {
+          itemId: line.itemId,
+          quantity: line.quantity,
+          name: item?.name ?? "",
+          unit: item?.unit ?? "unit",
+          isArchived: item?.deletedAt !== undefined,
+        };
+      }),
+    );
+  },
+});
+
+/**
+ * Drift detector: recomputes both balances from the ledger via the effects
+ * matrix and compares them to the level docs. Convex atomicity means this
+ * should never report drift — it exists as the repair/verification path.
+ */
+export const reconcileItem = zInternalQuery({
+  args: z.object({ itemId: inventoryItems.tools.id.shape.id }),
+  handler: async (ctx, args) => {
+    const [movements, levels] = await Promise.all([
+      ctx.db
+        .query("inventoryMovements")
+        .withIndex("by_itemId", (q) => q.eq("itemId", args.itemId))
+        .collect(),
+      ctx.db
+        .query("inventoryLevels")
+        .withIndex("by_itemId", (q) => q.eq("itemId", args.itemId))
+        .collect(),
+    ]);
+
+    const computed = new Map<
+      string | undefined,
+      { onHand: number; reserved: number }
+    >();
+
+    for (const movement of movements) {
+      const effects = movementEffects(movement.type, movement.quantity);
+      const balance = computed.get(movement.locationId) ?? {
+        onHand: 0,
+        reserved: 0,
+      };
+      balance.onHand += effects.onHandDelta;
+      balance.reserved += effects.reservedDelta;
+      computed.set(movement.locationId, balance);
+    }
+
+    return levels.map((level) => {
+      const ledger = computed.get(level.locationId) ?? {
+        onHand: 0,
+        reserved: 0,
+      };
+
+      return {
+        levelId: level._id,
+        locationId: level.locationId,
+        level: { onHand: level.onHand, reserved: level.reserved },
+        ledger,
+        drift:
+          level.onHand !== ledger.onHand || level.reserved !== ledger.reserved,
+      };
+    });
   },
 });
