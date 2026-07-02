@@ -194,6 +194,55 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     rate: 2_000,
     capacity: 6_000,
   },
+  createInventoryItem: {
+    kind: "token bucket",
+    rate: 10,
+    period: MINUTE,
+    capacity: 10,
+  },
+  updateInventoryItem: {
+    kind: "token bucket",
+    rate: 10,
+    period: MINUTE,
+    capacity: 10,
+  },
+  archiveInventoryItem: { kind: "fixed window", rate: 5, period: 10 * MINUTE },
+  receiveStock: {
+    kind: "token bucket",
+    rate: 10,
+    period: MINUTE,
+    capacity: 10,
+  },
+  adjustStock: {
+    kind: "token bucket",
+    rate: 10,
+    period: MINUTE,
+    capacity: 10,
+  },
+  recordConsumption: {
+    kind: "token bucket",
+    rate: 30,
+    period: MINUTE,
+    capacity: 15,
+  },
+  recordSale: {
+    kind: "token bucket",
+    rate: 30,
+    period: MINUTE,
+    capacity: 15,
+  },
+  reserveStock: {
+    kind: "token bucket",
+    rate: 10,
+    period: MINUTE,
+    capacity: 10,
+  },
+  setServiceRecipe: {
+    kind: "token bucket",
+    rate: 10,
+    period: MINUTE,
+    capacity: 10,
+  },
 });
 
 export type RateLimitName = keyof NonNullable<typeof rateLimiter.limits>;

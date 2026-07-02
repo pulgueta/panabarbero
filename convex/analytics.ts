@@ -23,7 +23,14 @@ export type AppEventName =
   | "review_published"
   | "review_flagged"
   | "review_updated"
-  | "review_deleted";
+  | "review_deleted"
+  | "inventory_item_created"
+  | "inventory_item_archived"
+  | "stock_received"
+  | "stock_adjusted"
+  | "stock_consumed"
+  | "stock_reserved"
+  | "product_sold";
 
 /** Capture a product event. No-op when there is no distinct id to attribute it to. */
 export async function track(

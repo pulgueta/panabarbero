@@ -1,0 +1,972 @@
+/**
+ * Inventory domain — items, running balances and the append-only movement
+ * ledger. See `docs/inventory-design.md`.
+ *
+ * The invariant that shapes this file: `inventoryLevels.onHand` (and
+ * `.reserved`) must equal the signed sum of the item's ledger per the
+ * `movementEffects` matrix. It holds because `recordMovement` is the ONLY
+ * code path that writes levels and movements, and it appends the ledger row,
+ * patches the level and updates the aggregates in one serializable mutation.
+ * The sole sanctioned exceptions are the cost/reorder fan-out in `updateItem`
+ * and the retention rollup — both documented, both through the wrapped db.
+ */
+
+import { ConvexError } from "convex/values";
+import { z } from "zod";
+
+import { zAuthMutation } from ".";
+import type { MutationCtx } from "./_generated/server";
+import { assertInventoryAllowed } from "./acl";
+import { inventoryTriggers } from "./aggregates";
+import { track } from "./analytics";
+import { authz, barbershopScope } from "./authz";
+import { errorMessages } from "./errors";
+import type {
+  Appointment,
+  Barbershop,
+  InventoryItem,
+  InventoryLevel,
+  InventoryMovement,
+  InventoryMovementType,
+} from "./schema";
+import { barbershops, inventoryItems, services } from "./schema";
+
+// ---------------------------------------------------------------------------
+// Movement effects matrix
+// ---------------------------------------------------------------------------
+
+type MovementEffects = { onHandDelta: number; reservedDelta: number };
+
+/**
+ * Single source of truth for how each movement type touches the running
+ * balances. `quantity` is a positive magnitude for every type except
+ * `adjustment`, which carries the signed delta.
+ */
+export function movementEffects(
+  type: InventoryMovementType,
+  quantity: number,
+): MovementEffects {
+  switch (type) {
+    case "receipt":
+    case "return":
+    case "transfer_in":
+      return { onHandDelta: quantity, reservedDelta: 0 };
+    case "sale":
+    case "consumption":
+    case "waste":
+    case "transfer_out":
+      return { onHandDelta: -quantity, reservedDelta: 0 };
+    case "adjustment":
+      return { onHandDelta: quantity, reservedDelta: 0 };
+    case "reservation":
+      return { onHandDelta: 0, reservedDelta: quantity };
+    case "release":
+      return { onHandDelta: 0, reservedDelta: -quantity };
+    default:
+      throw new ConvexError(
+        errorMessages.notFound(`tipo de movimiento ${type satisfies never}`),
+      );
+  }
+}
+
+const ONHAND_DECREMENTS: ReadonlySet<InventoryMovementType> = new Set([
+  "sale",
+  "consumption",
+  "waste",
+  "transfer_out",
+]);
+
+// ---------------------------------------------------------------------------
+// recordMovement — the single funnel
+// ---------------------------------------------------------------------------
+
+export async function getLevelForItem(
+  ctx: MutationCtx,
+  itemId: InventoryItem["_id"],
+  locationId?: string,
+): Promise<InventoryLevel | null> {
+  const levels = await ctx.db
+    .query("inventoryLevels")
+    .withIndex("by_itemId", (q) => q.eq("itemId", itemId))
+    .collect();
+
+  return levels.find((level) => level.locationId === locationId) ?? null;
+}
+
+type RecordMovementArgs = {
+  barbershopId: Barbershop["_id"];
+  itemId: InventoryItem["_id"];
+  type: InventoryMovementType;
+  /** Positive magnitude; signed only for `adjustment`. */
+  quantity: number;
+  actorUserId: string;
+  /** Receipt only: incoming unit cost feeding the weighted moving average. */
+  unitCost?: number;
+  reason?: string;
+  locationId?: string;
+  relatedAppointmentId?: Appointment["_id"];
+  idempotencyKey?: string;
+  /**
+   * Lifecycle paths (appointment hooks) must never throw over stock: clamp
+   * the quantity to what the balances allow and note the shortfall in the
+   * movement reason instead of rejecting.
+   */
+  clampToAvailable?: boolean;
+};
+
+type RecordMovementResult = {
+  movementId: InventoryMovement["_id"] | null;
+  /** Quantity actually applied after clamping (0 = skipped no-op). */
+  quantityApplied: number;
+  onHand: number;
+  reserved: number;
+  belowReorder: boolean;
+};
+
+export async function recordMovement(
+  ctx: MutationCtx,
+  args: RecordMovementArgs,
+): Promise<RecordMovementResult> {
+  // 1. Idempotency: webhook/import retries must not double-count.
+  if (args.idempotencyKey) {
+    const existing = await ctx.db
+      .query("inventoryMovements")
+      .withIndex("by_idempotencyKey", (q) =>
+        q.eq("idempotencyKey", args.idempotencyKey),
+      )
+      .unique();
+
+    if (existing) {
+      const level = await getLevelForItem(ctx, args.itemId, args.locationId);
+
+      return {
+        movementId: existing._id,
+        quantityApplied: 0,
+        onHand: level?.onHand ?? 0,
+        reserved: level?.reserved ?? 0,
+        belowReorder: level?.belowReorder ?? false,
+      };
+    }
+  }
+
+  // 2. Item — archived items only accept corrective movements.
+  const item = await ctx.db.get(args.itemId);
+
+  if (!item) {
+    throw new ConvexError(errorMessages.notFound("producto"));
+  }
+
+  if (item.barbershopId !== args.barbershopId) {
+    throw new ConvexError(errorMessages.unauthorized);
+  }
+
+  if (
+    item.deletedAt !== undefined &&
+    args.type !== "adjustment" &&
+    args.type !== "return" &&
+    args.type !== "release"
+  ) {
+    throw new ConvexError(errorMessages.itemArchived);
+  }
+
+  if (args.type !== "adjustment" && args.quantity <= 0) {
+    throw new ConvexError(errorMessages.invalidQuantity);
+  }
+
+  // 3. Level — lazily created on first movement. Uniqueness of
+  //    (itemId, locationId) is race-free: the index range read joins the
+  //    transaction's read set, so concurrent creators OCC-conflict.
+  const db = inventoryTriggers.wrapDB(ctx).db;
+  let level = await getLevelForItem(ctx, args.itemId, args.locationId);
+
+  if (!level) {
+    const levelId = await db.insert("inventoryLevels", {
+      barbershopId: args.barbershopId,
+      itemId: args.itemId,
+      locationId: args.locationId,
+      onHand: 0,
+      reserved: 0,
+      unitCost: item.unitCost,
+      belowReorder: 0 <= item.reorderPoint,
+    });
+
+    // biome-ignore lint/style/noNonNullAssertion: row was inserted in this transaction
+    level = (await ctx.db.get(levelId))!;
+  }
+
+  // 4. Availability checks per the effects matrix, inside this transaction —
+  //    two barbers consuming the last blade cannot both pass (OCC retries the
+  //    loser, which then fails the check cleanly).
+  const available = level.onHand - level.reserved;
+  let quantity = args.quantity;
+  let shortfall = 0;
+
+  if (ONHAND_DECREMENTS.has(args.type) && !item.allowNegativeStock) {
+    if (available < quantity) {
+      if (!args.clampToAvailable) {
+        throw new ConvexError(errorMessages.insufficientStock);
+      }
+
+      const applied = Math.max(0, available);
+      shortfall = quantity - applied;
+      quantity = applied;
+    }
+  } else if (args.type === "reservation" && !item.allowNegativeStock) {
+    if (available < quantity) {
+      if (!args.clampToAvailable) {
+        throw new ConvexError(errorMessages.insufficientStock);
+      }
+
+      const applied = Math.max(0, available);
+      shortfall = quantity - applied;
+      quantity = applied;
+    }
+  } else if (args.type === "release") {
+    // Releases never throw and never over-release (ledger-derived caps).
+    quantity = Math.min(quantity, level.reserved);
+  } else if (args.type === "adjustment") {
+    if (!item.allowNegativeStock && level.onHand + quantity < level.reserved) {
+      throw new ConvexError(errorMessages.insufficientStock);
+    }
+  }
+
+  // No-op after clamping (or a zero adjustment): write nothing.
+  if (quantity === 0) {
+    return {
+      movementId: null,
+      quantityApplied: 0,
+      onHand: level.onHand,
+      reserved: level.reserved,
+      belowReorder: level.belowReorder,
+    };
+  }
+
+  // 5. Valuation — weighted moving average on receipt; a receipt onto a
+  //    non-positive balance resets the cost to the incoming one.
+  let unitCost = level.unitCost;
+  let unitCostAtTime = level.unitCost;
+
+  if (args.type === "receipt") {
+    const incoming = args.unitCost ?? item.unitCost;
+    unitCostAtTime = incoming;
+    unitCost =
+      level.onHand <= 0
+        ? incoming
+        : Math.round(
+            (level.onHand * level.unitCost + quantity * incoming) /
+              (level.onHand + quantity),
+          );
+
+    if (unitCost !== item.unitCost) {
+      await ctx.db.patch(item._id, { unitCost });
+    }
+  }
+
+  // 6. Apply — level patch + ledger append through the trigger-wrapped db.
+  const effects = movementEffects(args.type, quantity);
+  const onHand = level.onHand + effects.onHandDelta;
+  const reserved = Math.max(0, level.reserved + effects.reservedDelta);
+  const belowReorder = onHand <= item.reorderPoint;
+
+  const levelPatch: Partial<InventoryLevel> = {
+    onHand,
+    reserved,
+    unitCost,
+    belowReorder,
+  };
+
+  // Hysteresis: recovery above the reorder point re-arms the alert. The
+  // downward-crossing dispatch itself ships with the low_stock notification
+  // kind (design §6) and slots in right here.
+  if (onHand > item.reorderPoint && level.lowStockAlertedAt !== undefined) {
+    levelPatch.lowStockAlertedAt = undefined;
+  }
+
+  await db.patch(level._id, levelPatch);
+
+  const reason =
+    shortfall > 0
+      ? [args.reason, `faltante: ${shortfall}`].filter(Boolean).join(" — ")
+      : args.reason;
+
+  const movementId = await db.insert("inventoryMovements", {
+    barbershopId: args.barbershopId,
+    itemId: args.itemId,
+    itemName: item.name,
+    locationId: args.locationId,
+    type: args.type,
+    quantity: args.type === "adjustment" ? quantity : Math.abs(quantity),
+    unitCostAtTime,
+    balanceAfter: onHand,
+    reason,
+    actorUserId: args.actorUserId,
+    relatedAppointmentId: args.relatedAppointmentId,
+    idempotencyKey: args.idempotencyKey,
+  });
+
+  return {
+    movementId,
+    quantityApplied: quantity,
+    onHand,
+    reserved,
+    belowReorder,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Guards shared by the public mutations
+// ---------------------------------------------------------------------------
+
+async function assertCanManageInventory(
+  ctx: MutationCtx,
+  barbershopId: Barbershop["_id"],
+  userId: string,
+): Promise<void> {
+  await Promise.all([
+    assertInventoryAllowed(ctx, barbershopId),
+    authz.require(
+      ctx,
+      userId,
+      "inventory:manage",
+      barbershopScope(barbershopId),
+    ),
+  ]);
+}
+
+async function assertCanRecordConsumption(
+  ctx: MutationCtx,
+  barbershopId: Barbershop["_id"],
+  userId: string,
+): Promise<void> {
+  await Promise.all([
+    assertInventoryAllowed(ctx, barbershopId),
+    authz.require(
+      ctx,
+      userId,
+      "inventory:consume",
+      barbershopScope(barbershopId),
+    ),
+  ]);
+}
+
+async function requireItemInShop(
+  ctx: MutationCtx,
+  itemId: InventoryItem["_id"],
+): Promise<InventoryItem> {
+  const item = await ctx.db.get(itemId);
+
+  if (!item) {
+    throw new ConvexError(errorMessages.notFound("producto"));
+  }
+
+  return item;
+}
+
+const quantitySchema = z.coerce
+  .number({ error: "La cantidad es requerida" })
+  .int({ error: "La cantidad debe ser un número entero" })
+  .min(1, { error: "La cantidad debe ser mayor a 0" })
+  .max(100_000, { error: "La cantidad es demasiado grande" });
+
+const reasonSchema = z
+  .string()
+  .max(300, { error: "El motivo debe tener menos de 300 caracteres" });
+
+// ---------------------------------------------------------------------------
+// Catalog mutations
+// ---------------------------------------------------------------------------
+
+export const createItem = zAuthMutation({
+  args: inventoryItems.tools.insert,
+  ratelimit: "createInventoryItem",
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+
+    await assertCanManageInventory(ctx, args.barbershopId, userId);
+
+    if (args.isSellable && args.salePrice === undefined) {
+      throw new ConvexError(errorMessages.salePriceRequired);
+    }
+
+    const itemId = await ctx.db.insert("inventoryItems", {
+      ...args,
+      deletedAt: undefined,
+    });
+
+    // Every item gets its level row up front so the dashboard join is total.
+    const db = inventoryTriggers.wrapDB(ctx).db;
+
+    await db.insert("inventoryLevels", {
+      barbershopId: args.barbershopId,
+      itemId,
+      onHand: 0,
+      reserved: 0,
+      unitCost: args.unitCost,
+      belowReorder: 0 <= args.reorderPoint,
+    });
+
+    await track(ctx, {
+      distinctId: userId,
+      event: "inventory_item_created",
+      properties: {
+        itemId,
+        barbershopId: args.barbershopId,
+        category: args.category,
+        isSellable: args.isSellable,
+      },
+      groups: { barbershop: args.barbershopId },
+    });
+
+    return itemId;
+  },
+});
+
+export const updateItem = zAuthMutation({
+  args: inventoryItems.tools.update,
+  ratelimit: "updateInventoryItem",
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+
+    if (!args.data.barbershopId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    await assertCanManageInventory(ctx, args.data.barbershopId, userId);
+
+    const item = await requireItemInShop(ctx, args.id);
+
+    if (item.barbershopId !== args.data.barbershopId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    // Archival has its own 2-step mutation; ignore deletedAt here.
+    const { deletedAt: _deletedAt, ...data } = args.data;
+
+    if (
+      (data.isSellable ?? item.isSellable) &&
+      (data.salePrice ?? item.salePrice) === undefined
+    ) {
+      throw new ConvexError(errorMessages.salePriceRequired);
+    }
+
+    await ctx.db.patch(item._id, data);
+
+    // Sanctioned fan-out (see aggregates.ts): cost and reorder-point changes
+    // must reach the level docs through the wrapped db so the valuation
+    // aggregate replaces and the low-stock flag stays truthful.
+    const costChanged =
+      data.unitCost !== undefined && data.unitCost !== item.unitCost;
+    const reorderChanged =
+      data.reorderPoint !== undefined &&
+      data.reorderPoint !== item.reorderPoint;
+
+    if (costChanged || reorderChanged) {
+      const db = inventoryTriggers.wrapDB(ctx).db;
+      const levels = await ctx.db
+        .query("inventoryLevels")
+        .withIndex("by_itemId", (q) => q.eq("itemId", item._id))
+        .collect();
+
+      for (const level of levels) {
+        const patch: Partial<InventoryLevel> = {};
+
+        if (costChanged) {
+          patch.unitCost = data.unitCost;
+        }
+
+        if (reorderChanged && data.reorderPoint !== undefined) {
+          const belowReorder = level.onHand <= data.reorderPoint;
+          patch.belowReorder = belowReorder;
+
+          if (!belowReorder && level.lowStockAlertedAt !== undefined) {
+            patch.lowStockAlertedAt = undefined;
+          }
+        }
+
+        await db.patch(level._id, patch);
+
+        if (costChanged && data.unitCost !== undefined) {
+          // Zero-quantity audit row: the ledger records the cost change.
+          await db.insert("inventoryMovements", {
+            barbershopId: item.barbershopId,
+            itemId: item._id,
+            itemName: data.name ?? item.name,
+            locationId: level.locationId,
+            type: "adjustment",
+            quantity: 0,
+            unitCostAtTime: data.unitCost,
+            balanceAfter: level.onHand,
+            reason: "Cambio de costo manual",
+            actorUserId: userId,
+          });
+        }
+      }
+    }
+  },
+});
+
+export const archiveItem = zAuthMutation({
+  args: z.object({
+    item: inventoryItems.tools.id,
+    barbershop: barbershops.tools.id,
+    force: z.boolean().optional(),
+  }),
+  ratelimit: "archiveInventoryItem",
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+
+    await assertCanManageInventory(ctx, args.barbershop.id, userId);
+
+    const item = await requireItemInShop(ctx, args.item.id);
+
+    if (item.barbershopId !== args.barbershop.id) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    if (item.deletedAt !== undefined) {
+      return;
+    }
+
+    const [levels, recipeLines] = await Promise.all([
+      ctx.db
+        .query("inventoryLevels")
+        .withIndex("by_itemId", (q) => q.eq("itemId", item._id))
+        .collect(),
+      ctx.db
+        .query("serviceInventoryUsage")
+        .withIndex("by_itemId", (q) => q.eq("itemId", item._id))
+        .collect(),
+    ]);
+
+    const reservedTotal = levels.reduce(
+      (sum, level) => sum + level.reserved,
+      0,
+    );
+    const impacted = recipeLines.length + (reservedTotal > 0 ? 1 : 0);
+
+    // 2-step destructive confirmation (delete-service-dialog contract).
+    if (!args.force && impacted > 0) {
+      throw new ConvexError(`WILL_RELEASE:${impacted}`);
+    }
+
+    // Free trapped holds and detach recipes before archiving.
+    for (const level of levels) {
+      if (level.reserved > 0) {
+        await recordMovement(ctx, {
+          barbershopId: item.barbershopId,
+          itemId: item._id,
+          type: "release",
+          quantity: level.reserved,
+          locationId: level.locationId,
+          reason: "Producto archivado",
+          actorUserId: userId,
+        });
+      }
+    }
+
+    await Promise.all(recipeLines.map((line) => ctx.db.delete(line._id)));
+
+    await ctx.db.patch(item._id, { deletedAt: Date.now() });
+
+    await track(ctx, {
+      distinctId: userId,
+      event: "inventory_item_archived",
+      properties: { itemId: item._id, barbershopId: item.barbershopId },
+      groups: { barbershop: item.barbershopId },
+    });
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Stock mutations — thin wrappers over recordMovement
+// ---------------------------------------------------------------------------
+
+export const receiveStock = zAuthMutation({
+  args: z.object({
+    item: inventoryItems.tools.id,
+    quantity: quantitySchema,
+    unitCost: z.coerce.number().int().min(0).optional(),
+    reason: reasonSchema.optional(),
+    idempotencyKey: z.string().optional(),
+  }),
+  ratelimit: "receiveStock",
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+    const item = await requireItemInShop(ctx, args.item.id);
+
+    await assertCanManageInventory(ctx, item.barbershopId, userId);
+
+    const result = await recordMovement(ctx, {
+      barbershopId: item.barbershopId,
+      itemId: item._id,
+      type: "receipt",
+      quantity: args.quantity,
+      unitCost: args.unitCost,
+      reason: args.reason,
+      idempotencyKey: args.idempotencyKey,
+      actorUserId: userId,
+    });
+
+    await track(ctx, {
+      distinctId: userId,
+      event: "stock_received",
+      properties: {
+        itemId: item._id,
+        barbershopId: item.barbershopId,
+        quantity: result.quantityApplied,
+      },
+      groups: { barbershop: item.barbershopId },
+    });
+
+    return result;
+  },
+});
+
+export const receiveStockBatch = zAuthMutation({
+  args: z.object({
+    barbershop: barbershops.tools.id,
+    lines: z
+      .array(
+        z.object({
+          item: inventoryItems.tools.id,
+          quantity: quantitySchema,
+          unitCost: z.coerce.number().int().min(0).optional(),
+        }),
+      )
+      .min(1, { error: "Agrega al menos un producto" })
+      .max(50, { error: "Máximo 50 productos por recepción" }),
+    reason: reasonSchema.optional(),
+    idempotencyKey: z.string().optional(),
+  }),
+  ratelimit: "receiveStock",
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+
+    await assertCanManageInventory(ctx, args.barbershop.id, userId);
+
+    // One atomic mutation: either the whole delivery lands or none of it.
+    for (const [index, line] of args.lines.entries()) {
+      await recordMovement(ctx, {
+        barbershopId: args.barbershop.id,
+        itemId: line.item.id,
+        type: "receipt",
+        quantity: line.quantity,
+        unitCost: line.unitCost,
+        reason: args.reason,
+        idempotencyKey: args.idempotencyKey
+          ? `${args.idempotencyKey}:${index}`
+          : undefined,
+        actorUserId: userId,
+      });
+    }
+
+    await track(ctx, {
+      distinctId: userId,
+      event: "stock_received",
+      properties: {
+        barbershopId: args.barbershop.id,
+        lineCount: args.lines.length,
+        batch: true,
+      },
+      groups: { barbershop: args.barbershop.id },
+    });
+  },
+});
+
+export const adjustStock = zAuthMutation({
+  args: z
+    .object({
+      item: inventoryItems.tools.id,
+      /** Signed correction applied to onHand. */
+      delta: z.coerce.number().int().optional(),
+      /** Physical count: the delta is computed server-side so the ledger stays truthful. */
+      absoluteCount: z.coerce.number().int().min(0).optional(),
+      reason: reasonSchema.min(3, {
+        error: "El motivo debe tener al menos 3 caracteres",
+      }),
+    })
+    .refine(
+      (value) =>
+        (value.delta === undefined) !== (value.absoluteCount === undefined),
+      { error: "Indica el ajuste o el conteo físico, no ambos" },
+    ),
+  ratelimit: "adjustStock",
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+    const item = await requireItemInShop(ctx, args.item.id);
+
+    await assertCanManageInventory(ctx, item.barbershopId, userId);
+
+    let delta = args.delta ?? 0;
+
+    if (args.absoluteCount !== undefined) {
+      const level = await getLevelForItem(ctx, item._id);
+      delta = args.absoluteCount - (level?.onHand ?? 0);
+    }
+
+    const result = await recordMovement(ctx, {
+      barbershopId: item.barbershopId,
+      itemId: item._id,
+      type: "adjustment",
+      quantity: delta,
+      reason: args.reason,
+      actorUserId: userId,
+    });
+
+    await track(ctx, {
+      distinctId: userId,
+      event: "stock_adjusted",
+      properties: {
+        itemId: item._id,
+        barbershopId: item.barbershopId,
+        delta,
+      },
+      groups: { barbershop: item.barbershopId },
+    });
+
+    return result;
+  },
+});
+
+export const recordConsumption = zAuthMutation({
+  args: z.object({
+    item: inventoryItems.tools.id,
+    quantity: quantitySchema,
+    reason: reasonSchema.optional(),
+  }),
+  ratelimit: "recordConsumption",
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+    const item = await requireItemInShop(ctx, args.item.id);
+
+    await assertCanRecordConsumption(ctx, item.barbershopId, userId);
+
+    const result = await recordMovement(ctx, {
+      barbershopId: item.barbershopId,
+      itemId: item._id,
+      type: "consumption",
+      quantity: args.quantity,
+      reason: args.reason,
+      actorUserId: userId,
+    });
+
+    await track(ctx, {
+      distinctId: userId,
+      event: "stock_consumed",
+      properties: {
+        itemId: item._id,
+        barbershopId: item.barbershopId,
+        quantity: result.quantityApplied,
+      },
+      groups: { barbershop: item.barbershopId },
+    });
+
+    return result;
+  },
+});
+
+export const recordSale = zAuthMutation({
+  args: z.object({
+    item: inventoryItems.tools.id,
+    quantity: quantitySchema,
+  }),
+  ratelimit: "recordSale",
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+    const item = await requireItemInShop(ctx, args.item.id);
+
+    await assertCanRecordConsumption(ctx, item.barbershopId, userId);
+
+    if (!item.isSellable) {
+      throw new ConvexError(errorMessages.itemNotSellable);
+    }
+
+    const result = await recordMovement(ctx, {
+      barbershopId: item.barbershopId,
+      itemId: item._id,
+      type: "sale",
+      quantity: args.quantity,
+      actorUserId: userId,
+    });
+
+    await track(ctx, {
+      distinctId: userId,
+      event: "product_sold",
+      properties: {
+        itemId: item._id,
+        barbershopId: item.barbershopId,
+        quantity: result.quantityApplied,
+        revenue: result.quantityApplied * (item.salePrice ?? 0),
+      },
+      groups: { barbershop: item.barbershopId },
+    });
+
+    return result;
+  },
+});
+
+export const recordWaste = zAuthMutation({
+  args: z.object({
+    item: inventoryItems.tools.id,
+    quantity: quantitySchema,
+    reason: reasonSchema.min(3, {
+      error: "El motivo debe tener al menos 3 caracteres",
+    }),
+  }),
+  ratelimit: "adjustStock",
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+    const item = await requireItemInShop(ctx, args.item.id);
+
+    await assertCanManageInventory(ctx, item.barbershopId, userId);
+
+    const result = await recordMovement(ctx, {
+      barbershopId: item.barbershopId,
+      itemId: item._id,
+      type: "waste",
+      quantity: args.quantity,
+      reason: args.reason,
+      actorUserId: userId,
+    });
+
+    await track(ctx, {
+      distinctId: userId,
+      event: "stock_adjusted",
+      properties: {
+        itemId: item._id,
+        barbershopId: item.barbershopId,
+        delta: -result.quantityApplied,
+        kind: "waste",
+      },
+      groups: { barbershop: item.barbershopId },
+    });
+
+    return result;
+  },
+});
+
+export const reserveStock = zAuthMutation({
+  args: z.object({
+    item: inventoryItems.tools.id,
+    quantity: quantitySchema,
+    reason: reasonSchema.optional(),
+  }),
+  ratelimit: "reserveStock",
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+    const item = await requireItemInShop(ctx, args.item.id);
+
+    await assertCanManageInventory(ctx, item.barbershopId, userId);
+
+    const result = await recordMovement(ctx, {
+      barbershopId: item.barbershopId,
+      itemId: item._id,
+      type: "reservation",
+      quantity: args.quantity,
+      reason: args.reason,
+      actorUserId: userId,
+    });
+
+    await track(ctx, {
+      distinctId: userId,
+      event: "stock_reserved",
+      properties: {
+        itemId: item._id,
+        barbershopId: item.barbershopId,
+        quantity: result.quantityApplied,
+      },
+      groups: { barbershop: item.barbershopId },
+    });
+
+    return result;
+  },
+});
+
+export const releaseStock = zAuthMutation({
+  args: z.object({
+    item: inventoryItems.tools.id,
+    quantity: quantitySchema,
+    reason: reasonSchema.optional(),
+  }),
+  ratelimit: "reserveStock",
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+    const item = await requireItemInShop(ctx, args.item.id);
+
+    await assertCanManageInventory(ctx, item.barbershopId, userId);
+
+    return await recordMovement(ctx, {
+      barbershopId: item.barbershopId,
+      itemId: item._id,
+      type: "release",
+      quantity: args.quantity,
+      reason: args.reason,
+      actorUserId: userId,
+    });
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Service recipes
+// ---------------------------------------------------------------------------
+
+export const setServiceRecipe = zAuthMutation({
+  args: z.object({
+    service: services.tools.id,
+    lines: z
+      .array(
+        z.object({
+          item: inventoryItems.tools.id,
+          quantity: quantitySchema,
+        }),
+      )
+      .max(20, { error: "Máximo 20 productos por servicio" }),
+  }),
+  ratelimit: "setServiceRecipe",
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+
+    const service = await ctx.db.get(args.service.id);
+
+    if (!service) {
+      throw new ConvexError(errorMessages.notFound("servicio"));
+    }
+
+    await assertCanManageInventory(ctx, service.barbershopId, userId);
+
+    const itemIds = args.lines.map((line) => line.item.id);
+
+    if (new Set(itemIds).size !== itemIds.length) {
+      throw new ConvexError(errorMessages.duplicateRecipeItem);
+    }
+
+    for (const line of args.lines) {
+      const item = await requireItemInShop(ctx, line.item.id);
+
+      if (item.barbershopId !== service.barbershopId) {
+        throw new ConvexError(errorMessages.unauthorized);
+      }
+
+      if (item.deletedAt !== undefined) {
+        throw new ConvexError(errorMessages.itemArchived);
+      }
+    }
+
+    // Replace atomically: the recipe is small and edited as a whole.
+    const existing = await ctx.db
+      .query("serviceInventoryUsage")
+      .withIndex("by_serviceId", (q) => q.eq("serviceId", service._id))
+      .collect();
+
+    await Promise.all(existing.map((line) => ctx.db.delete(line._id)));
+
+    for (const line of args.lines) {
+      await ctx.db.insert("serviceInventoryUsage", {
+        barbershopId: service.barbershopId,
+        serviceId: service._id,
+        itemId: line.item.id,
+        quantity: line.quantity,
+      });
+    }
+  },
+});

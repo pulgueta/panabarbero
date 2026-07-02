@@ -40,4 +40,8 @@ export const errorMessages = {
   insufficientStock: "No hay stock suficiente para completar esta operación.",
   itemArchived: "Este producto está archivado.",
   itemNotSellable: "Este producto no está marcado para la venta.",
+  invalidQuantity: "La cantidad debe ser mayor a 0.",
+  salePriceRequired:
+    "El precio de venta es requerido para productos vendibles.",
+  duplicateRecipeItem: "No repitas productos en la receta.",
 } as const;
