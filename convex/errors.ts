@@ -35,4 +35,9 @@ export const errorMessages = {
     "Solo puedes reseñar una visita que haya sido completada.",
   reviewImmutable:
     "Una reseña publicada no se puede modificar; solo eliminarla.",
+
+  // Inventory
+  insufficientStock: "No hay stock suficiente para completar esta operación.",
+  itemArchived: "Este producto está archivado.",
+  itemNotSellable: "Este producto no está marcado para la venta.",
 } as const;
