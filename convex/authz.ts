@@ -1,4 +1,5 @@
 import { ConvexError } from "convex/values";
+import { components } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { errorMessages } from "./errors";
 import type {
@@ -9,6 +10,89 @@ import type {
 } from "./schema";
 
 export type Role = "owner" | "barber" | "staff";
+
+import { Authz, definePermissions, defineRoles } from "@djpanda/convex-authz";
+
+const permissions = definePermissions({
+  inventory: {
+    manage: true,
+    consume: true,
+  },
+});
+
+const roles = defineRoles(permissions, {
+  owner: { inventory: ["manage", "consume"] },
+  staff: { inventory: ["manage", "consume"] },
+  barber: { inventory: ["consume"] },
+});
+
+/**
+ * Component-based permission checks (first consumer: the inventory domain).
+ * `barbershopMembers` remains the source of truth for membership; the
+ * component mirrors it via the sync helpers below, which must be called at
+ * every membership lifecycle write site.
+ */
+export const authz = new Authz(components.authz, {
+  permissions,
+  roles,
+  tenantId: "panabarbero",
+});
+
+export function barbershopScope(barbershopId: Barbershop["_id"]) {
+  return { type: "barbershop", id: barbershopId };
+}
+
+export async function getMemberWorkosUserId(
+  ctx: QueryCtx | MutationCtx,
+  member: BarbershopMember,
+): Promise<string | null> {
+  const profile = await ctx.db.get(member.userProfileDataId);
+
+  return profile?.userId ?? null;
+}
+
+/**
+ * Diff-mirror a member's effective roles into the authz component.
+ * Inactive members hold no scoped roles: pass `nextRoles: []` on deactivation
+ * and the full role set on (re)activation.
+ */
+export async function syncMemberAuthz(
+  ctx: MutationCtx,
+  opts: {
+    userId: string;
+    barbershopId: Barbershop["_id"];
+    previousRoles: Role[];
+    nextRoles: Role[];
+  },
+): Promise<void> {
+  const scope = barbershopScope(opts.barbershopId);
+  const added = opts.nextRoles.filter(
+    (role) => !opts.previousRoles.includes(role),
+  );
+  const removed = opts.previousRoles.filter(
+    (role) => !opts.nextRoles.includes(role),
+  );
+
+  for (const role of added) {
+    await authz.assignRole(ctx, opts.userId, role, scope);
+  }
+
+  for (const role of removed) {
+    await authz.revokeRole(ctx, opts.userId, role, scope);
+  }
+}
+
+/** Revoke every scoped role a user holds in a barbershop (member removed). */
+export async function revokeMemberAuthz(
+  ctx: MutationCtx,
+  opts: { userId: string; barbershopId: Barbershop["_id"] },
+): Promise<void> {
+  await authz.revokeAllRoles(
+    ctx,
+    opts.userId,
+    barbershopScope(opts.barbershopId),
+  );
+}
 
 /**
  * Get a barbershop member by their user profile data ID and barbershop ID

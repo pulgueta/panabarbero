@@ -10,10 +10,11 @@ import twilio from "@convex-dev/twilio/convex.config";
 import workflow from "@convex-dev/workflow/convex.config";
 import authkit from "@convex-dev/workos-authkit/convex.config";
 import workpool from "@convex-dev/workpool/convex.config";
+import authz from "@djpanda/convex-authz/convex.config";
 import posthog from "@posthog/convex/convex.config";
-import unreads from "convex-unread-tracking/convex.config";
 import { defineApp } from "convex/server";
 import { v } from "convex/values";
+import unreads from "convex-unread-tracking/convex.config";
 
 const app = defineApp({
   env: {
@@ -24,6 +25,7 @@ const app = defineApp({
   },
 });
 app.use(authkit);
+app.use(authz);
 app.use(twilio);
 app.use(rateLimiter);
 app.use(r2);

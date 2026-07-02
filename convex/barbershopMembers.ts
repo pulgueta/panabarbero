@@ -6,7 +6,15 @@ import { z } from "zod";
 import { zAuthMutation, zInternalMutation, zQuery } from ".";
 import { internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { assertCanManageShop, assertShopRole } from "./authz";
+import {
+  assertCanManageShop,
+  assertShopRole,
+  authz,
+  barbershopScope,
+  getMemberWorkosUserId,
+  revokeMemberAuthz,
+  syncMemberAuthz,
+} from "./authz";
 import { errorMessages } from "./errors";
 import { getUserId, requireUserId } from "./identity";
 import { rateLimitOrThrow } from "./ratelimit";
@@ -21,6 +29,18 @@ export const create = zInternalMutation({
     await requireUserId(ctx);
 
     const barbershopMemberId = await ctx.db.insert("barbershopMembers", args);
+
+    // Mirror the new membership into the authz component.
+    const profile = await ctx.db.get(args.userProfileDataId);
+
+    if (profile?.userId && args.isActive) {
+      await syncMemberAuthz(ctx, {
+        userId: profile.userId,
+        barbershopId: args.barbershopId,
+        previousRoles: [],
+        nextRoles: args.roles,
+      });
+    }
 
     return barbershopMemberId;
   },
@@ -58,7 +78,29 @@ export const update = zAuthMutation({
 
     await rateLimitOrThrow(ctx, "updateBarbershopMember", userId);
 
+    const existing = await ctx.db.get(args.id);
+
     const updatedBarbershopMember = await ctx.db.patch(args.id, args.data);
+
+    // Mirror role/activation changes into the authz component.
+    if (
+      existing &&
+      (args.data.roles !== undefined || args.data.isActive !== undefined)
+    ) {
+      const workosUserId = await getMemberWorkosUserId(ctx, existing);
+
+      if (workosUserId) {
+        const nextRoles = args.data.roles ?? existing.roles;
+        const nextActive = args.data.isActive ?? existing.isActive;
+
+        await syncMemberAuthz(ctx, {
+          userId: workosUserId,
+          barbershopId: existing.barbershopId,
+          previousRoles: existing.isActive ? existing.roles : [],
+          nextRoles: nextActive ? nextRoles : [],
+        });
+      }
+    }
 
     return updatedBarbershopMember;
   },
@@ -69,7 +111,20 @@ export const deleteMember = zInternalMutation({
   handler: async (ctx, args) => {
     await requireUserId(ctx);
 
+    const member = await ctx.db.get(args.id);
+
     await ctx.db.delete(args.id);
+
+    if (member) {
+      const workosUserId = await getMemberWorkosUserId(ctx, member);
+
+      if (workosUserId) {
+        await revokeMemberAuthz(ctx, {
+          userId: workosUserId,
+          barbershopId: member.barbershopId,
+        });
+      }
+    }
   },
 });
 
@@ -188,6 +243,13 @@ export const removeBarberFromBarbershop = zAuthMutation({
       ctx.db.delete(args.id),
     ]);
 
+    if (barberProfile?.userId) {
+      await revokeMemberAuthz(ctx, {
+        userId: barberProfile.userId,
+        barbershopId: member.barbershopId,
+      });
+    }
+
     if (barbershop?.workosOrganizationId && barberProfile?.userId) {
       await ctx.scheduler.runAfter(
         0,
@@ -267,6 +329,13 @@ export const removeStaffFromBarbershop = zAuthMutation({
     ]);
 
     await ctx.db.delete(args.id);
+
+    if (staffProfile?.userId) {
+      await revokeMemberAuthz(ctx, {
+        userId: staffProfile.userId,
+        barbershopId: member.barbershopId,
+      });
+    }
 
     if (barbershop?.workosOrganizationId && staffProfile?.userId) {
       await ctx.scheduler.runAfter(
@@ -436,6 +505,13 @@ export const toggleBarberRole = zAuthMutation({
         roles: [...member.roles, "barber"],
       });
 
+      await authz.assignRole(
+        ctx,
+        userId,
+        "barber",
+        barbershopScope(member.barbershopId),
+      );
+
       return { status: "added" as const };
     }
 
@@ -550,6 +626,13 @@ export const toggleBarberRole = zAuthMutation({
         roles: member.roles.filter((r) => r !== "barber"),
       }),
     ]);
+
+    await authz.revokeRole(
+      ctx,
+      userId,
+      "barber",
+      barbershopScope(member.barbershopId),
+    );
 
     return { status: "removed" as const };
   },

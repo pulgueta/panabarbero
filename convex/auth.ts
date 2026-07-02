@@ -6,7 +6,7 @@ import type { MutationCtx } from "./_generated/server";
 import { reviewRatingsAggregate } from "./aggregates";
 import { identifyUser, track } from "./analytics";
 import { authkit } from "./auth.config";
-import { assertShopRole } from "./authz";
+import { assertShopRole, authz, revokeMemberAuthz } from "./authz";
 import { cascadeDeleteBarbershop } from "./barbershopCascade";
 import { getUserId } from "./identity";
 import { getLimitsForProductKey, getTierForProductKey } from "./plans";
@@ -291,6 +291,10 @@ async function removeMembership(
   if (member) {
     await handleBarberDeparture(ctx, member, barbershop);
     await ctx.db.delete(member._id);
+    await revokeMemberAuthz(ctx, {
+      userId: membership.userId,
+      barbershopId: barbershop._id,
+    });
   }
 }
 
@@ -421,6 +425,9 @@ export const { authKitEvent } = authkit.events({
       }
       await ctx.db.delete(memberRow._id);
     }
+
+    // Mirror: drop every scoped authz role this user held anywhere.
+    await authz.revokeAllRoles(ctx, userId);
 
     // 3. Delete user's own reviews
     const userReviews = await ctx.db

@@ -1,6 +1,7 @@
 import { api, internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
 import { reviewRatingsAggregate } from "./aggregates";
+import { getMemberWorkosUserId, revokeMemberAuthz } from "./authz";
 import { barbershopGeospatial } from "./geospatial";
 import type { Appointment, Barbershop, BarbershopMember } from "./schema";
 
@@ -106,6 +107,15 @@ export async function cascadeDeleteBarbershop(
     await ctx.scheduler.runAfter(0, internal.workosOrgs.deleteOrganization, {
       workosOrganizationId: barbershop.workosOrganizationId,
     });
+  }
+
+  // Mirror: drop the members' scoped authz roles before their rows go away.
+  for (const member of members) {
+    const workosUserId = await getMemberWorkosUserId(ctx, member);
+
+    if (workosUserId) {
+      await revokeMemberAuthz(ctx, { userId: workosUserId, barbershopId });
+    }
   }
 
   await Promise.all([
