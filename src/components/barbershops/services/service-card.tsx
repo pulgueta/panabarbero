@@ -25,6 +25,11 @@ const ServiceDialog = lazy(() =>
     default: module.ServiceDialog,
   })),
 );
+const ServiceRecipeDialog = lazy(() =>
+  import("@/components/inventory/service-recipe-dialog").then((module) => ({
+    default: module.ServiceRecipeDialog,
+  })),
+);
 
 interface ServiceCardProps {
   service: Service;
@@ -44,6 +49,14 @@ export const ServiceCard: FC<ServiceCardProps> = ({ service, canManage }) => {
 
       {canManage && (
         <CardFooter className="justify-end gap-2">
+          <Suspense fallback={null}>
+            <ServiceRecipeDialog
+              serviceId={service._id}
+              barbershopId={service.barbershopId}
+              trigger={<Button variant="outline">Insumos</Button>}
+            />
+          </Suspense>
+
           <Suspense
             fallback={
               <Button disabled variant="outline">

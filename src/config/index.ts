@@ -4,6 +4,7 @@ import {
   CurrencyDollarIcon,
   GearSixIcon,
   HouseIcon,
+  PackageIcon,
   ScissorsIcon,
   SparkleIcon,
   UserIcon,
@@ -58,6 +59,11 @@ export const authenticatedRoutes = {
       icon: CalendarIcon,
     },
     {
+      label: "Inventario",
+      to: "/profile/barbershops/inventory",
+      icon: PackageIcon,
+    },
+    {
       label: "Pana",
       to: "/chat",
       icon: ChatCircleIcon,
@@ -85,6 +91,11 @@ export const authenticatedRoutes = {
       icon: ScissorsIcon,
     },
     {
+      label: "Inventario",
+      to: "/profile/barbershops/inventory",
+      icon: PackageIcon,
+    },
+    {
       label: "Pana",
       to: "/chat",
       icon: ChatCircleIcon,
@@ -105,6 +116,11 @@ export const authenticatedRoutes = {
       label: "Servicios",
       to: "/profile/barbershops/services",
       icon: ScissorsIcon,
+    },
+    {
+      label: "Inventario",
+      to: "/profile/barbershops/inventory",
+      icon: PackageIcon,
     },
     {
       label: "Equipo",

@@ -85,6 +85,17 @@ http.route({
         });
       }
 
+      case "inventory-item": {
+        const key = await r2.store(ctx, blob, {
+          key: `assets/inventory/${crypto.randomUUID()}`,
+        });
+
+        return new Response(JSON.stringify(key), {
+          status: 200,
+          headers,
+        });
+      }
+
       default:
         throw new ConvexError(errorMessages.notFound("archivo"));
     }
