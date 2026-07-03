@@ -186,8 +186,8 @@ importers:
         specifier: 19.2.7
         version: 19.2.7(react@19.2.7)
       react-email:
-        specifier: 6.6.5
-        version: 6.6.5(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: 6.6.6
+        version: 6.6.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react-phone-number-input:
         specifier: ^3.4.17
         version: 3.4.17(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -207,8 +207,8 @@ importers:
         specifier: 11.1.2
         version: 11.1.2
       shadcn:
-        specifier: 4.12.0
-        version: 4.12.0(typescript@5.9.3)
+        specifier: 4.13.0
+        version: 4.13.0(typescript@5.9.3)
       sonner:
         specifier: 2.0.7
         version: 2.0.7(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -277,8 +277,8 @@ importers:
         specifier: 6.0.2
         version: 6.0.2(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
       react-doctor:
-        specifier: ^0.5.8
-        version: 0.5.8(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.218.0(@opentelemetry/api@1.9.1))(eslint@10.6.0(jiti@2.7.0))
+        specifier: ^0.6.2
+        version: 0.6.2(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.218.0(@opentelemetry/api@1.9.1))(eslint@10.6.0(jiti@2.7.0))
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2461,8 +2461,8 @@ packages:
       react: ^18.0 || ^19.0 || ^19.0.0-rc
       react-dom: ^18.0 || ^19.0 || ^19.0.0-rc
 
-  '@react-email/render@2.0.9':
-    resolution: {integrity: sha512-M89LiXy2q+9tmQ4VMR0rYGuEe6NJ6HhZsSxBMoLwIia5fVOLcZQcZe2GEO0nAkLZspDjEhn7mtMRPmeMKECEdQ==}
+  '@react-email/render@2.0.10':
+    resolution: {integrity: sha512-QbgVvXeYenVi0LqkO+upcZzbyrD5Tz2wwCV+6CSzgo6ZsvwHLjf0x5Sr1C7DepcMhjYo++maJWRbcSoKMXKr1g==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
       react: ^18.0 || ^19.0 || ^19.0.0-rc
@@ -4134,8 +4134,8 @@ packages:
     resolution: {integrity: sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA==}
     engines: {node: '>=6'}
 
-  deslop-js@0.5.8:
-    resolution: {integrity: sha512-Vq9D2x4dAIW24zcH55DTrl3/vi13UNKfXgw0yj7ULTssZ6KOdw/oyBHtlvE94KFC9yYEhgFTrGjaqqZKvV9pwA==}
+  deslop-js@0.6.2:
+    resolution: {integrity: sha512-3+wV56jJd4zx6Mob2nQ4B8nIF4J12Xc2iCagNE9kdVTzMbNEIe99vwfaxrgdFC+RQ1NHXfjUkR3C4HVYnLLSfg==}
 
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
@@ -5532,8 +5532,8 @@ packages:
   oxc-resolver@11.22.0:
     resolution: {integrity: sha512-F3VuQRlu5uaMN9ffo2ufEa8D/SKykx1a2KaLtBa2JEmbtulRaTZKwQrrLsNLGfvBeLW8M/J0CE47KN3s0VdcmQ==}
 
-  oxlint-plugin-react-doctor@0.5.8:
-    resolution: {integrity: sha512-L0jveKAMbqF1qAqA2Ksu8aH0/Q8FDQxLwXmHYgALa2XlsxEUuamJ+1Da2MhPWJ2ahn+ekFbnWK20qixxD+fw6A==}
+  oxlint-plugin-react-doctor@0.6.2:
+    resolution: {integrity: sha512-8+YU8hwSPmS2dglPxLGRTSpaSHA5A2L0x7zU/7G+dp9V779jrpHiYMhJ5Ga9JUa0VtECHfpY+xUOYSt1IEP3YA==}
     engines: {node: ^20.19.0 || >=22.13.0}
 
   oxlint@1.66.0:
@@ -5772,8 +5772,8 @@ packages:
     peerDependencies:
       react: '>=16.8.0'
 
-  react-doctor@0.5.8:
-    resolution: {integrity: sha512-gDXDQ+48KeFq2jkVgsUhQ67oQ+kUMdnIaA+YeS9VXXZFXSg9wxY5dDxurEpILSh8RwO06W8p6uCnTR+wn5B/GA==}
+  react-doctor@0.6.2:
+    resolution: {integrity: sha512-uPFyoWhRvAG6vc7uLVbf2wg7ox0R8y+SgOAhAfAcs1soP4sIPwl4gEuWCNbAir/QIGcb5xrwFJvCM30WmgmeUg==}
     engines: {node: ^20.19.0 || >=22.13.0}
     hasBin: true
 
@@ -5782,8 +5782,8 @@ packages:
     peerDependencies:
       react: ^19.2.7
 
-  react-email@6.6.5:
-    resolution: {integrity: sha512-IO2NXS17K5xEn9v8QVt28g8Nl6D4gmaKZZc61tOGiZla4X2F+veWjuSKCJC7HDIuEtZXF27chHo9sE6Mtey6tQ==}
+  react-email@6.6.6:
+    resolution: {integrity: sha512-4eYmISIQbmEzibkl8pW+ZQHIFMwUVqZQRpTDYj6Ow7kk/gpUjtA95ggxoXji8pRq/y76tOhe7D3vNUJkZWO58g==}
     engines: {node: '>=20.0.0'}
     hasBin: true
     peerDependencies:
@@ -6006,8 +6006,8 @@ packages:
   setprototypeof@1.2.0:
     resolution: {integrity: sha512-E5LDX7Wrp85Kil5bhZv46j8jOeboKq5JMmYM3gVGdGH8xFpPWXUMsNrlODCrkoxMEeNi/XZIwuRvY4XNwYMJpw==}
 
-  shadcn@4.12.0:
-    resolution: {integrity: sha512-o781ieQziCnXH2FKsEqxp1fnbHdbgAPO9inTSPeZ59hQfsZXuMGp3ul8oFSV5KQS4nbUK9b+DrDE6C7OvfKKQQ==}
+  shadcn@4.13.0:
+    resolution: {integrity: sha512-5fuJ4jI/GcPeA/iTL4cJivCZuYQGXz/N3bIzyd+Gd/FM6xUCy2MxGG+LaDQuw2cjNy9zGPSFPTEmI048UwPTZA==}
     engines: {node: '>=20.18.1'}
     hasBin: true
 
@@ -6247,11 +6247,6 @@ packages:
 
   typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
-    engines: {node: '>=14.17'}
-    hasBin: true
-
-  typescript@6.0.3:
-    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -7105,7 +7100,7 @@ snapshots:
     dependencies:
       '@babel/code-frame': 7.29.7
       '@babel/generator': 7.29.7
-      '@babel/parser': 7.27.0
+      '@babel/parser': 7.29.7
       '@babel/template': 7.29.7
       '@babel/types': 7.29.7
       debug: 4.4.3
@@ -8527,7 +8522,7 @@ snapshots:
       react-dom: 19.2.7(react@19.2.7)
       react-promise-suspense: 0.3.4
 
-  '@react-email/render@2.0.9(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@react-email/render@2.0.10(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       html-to-text: 9.0.5
       prettier: 3.9.4
@@ -10143,14 +10138,14 @@ snapshots:
 
   dequal@2.0.3: {}
 
-  deslop-js@0.5.8:
+  deslop-js@0.6.2:
     dependencies:
       '@oxc-project/types': 0.132.0
       fast-glob: 3.3.3
       minimatch: 10.2.5
       oxc-parser: 0.132.0
       oxc-resolver: 11.22.0
-      typescript: 6.0.3
+      typescript: 5.9.3
 
   detect-libc@2.1.2: {}
 
@@ -11916,7 +11911,7 @@ snapshots:
       '@oxc-resolver/binding-win32-arm64-msvc': 11.22.0
       '@oxc-resolver/binding-win32-x64-msvc': 11.22.0
 
-  oxlint-plugin-react-doctor@0.5.8:
+  oxlint-plugin-react-doctor@0.6.2:
     dependencies:
       '@typescript-eslint/types': 8.62.1
       eslint-scope: 9.1.2
@@ -12156,24 +12151,25 @@ snapshots:
       date-fns-jalali: 4.1.0-0
       react: 19.2.7
 
-  react-doctor@0.5.8(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.218.0(@opentelemetry/api@1.9.1))(eslint@10.6.0(jiti@2.7.0)):
+  react-doctor@0.6.2(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.218.0(@opentelemetry/api@1.9.1))(eslint@10.6.0(jiti@2.7.0)):
     dependencies:
       '@babel/code-frame': 7.29.7
       '@sentry/node': 10.62.0(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.218.0(@opentelemetry/api@1.9.1))
       agent-install: 0.0.5
       conf: 15.1.0
       confbox: 0.2.4
-      deslop-js: 0.5.8
+      deslop-js: 0.6.2
       eslint-plugin-react-hooks: 7.1.1(eslint@10.6.0(jiti@2.7.0))
       jiti: 2.7.0
       magicast: 0.5.3
       oxlint: 1.66.0
-      oxlint-plugin-react-doctor: 0.5.8
+      oxlint-plugin-react-doctor: 0.6.2
       prompts: 2.4.2
       typescript: 5.9.3
       vscode-languageserver: 9.0.1
       vscode-languageserver-textdocument: 1.0.12
       vscode-uri: 3.1.0
+      yaml: 2.9.0
     transitivePeerDependencies:
       - '@opentelemetry/core'
       - '@opentelemetry/exporter-trace-otlp-http'
@@ -12186,11 +12182,11 @@ snapshots:
       react: 19.2.7
       scheduler: 0.27.0
 
-  react-email@6.6.5(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
+  react-email@6.6.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:
       '@babel/parser': 7.27.0
       '@babel/traverse': 7.27.0
-      '@react-email/render': 2.0.9(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@react-email/render': 2.0.10(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       chokidar: 4.0.3
       commander: 13.1.0
       conf: 15.1.0
@@ -12508,7 +12504,7 @@ snapshots:
 
   setprototypeof@1.2.0: {}
 
-  shadcn@4.12.0(typescript@5.9.3):
+  shadcn@4.13.0(typescript@5.9.3):
     dependencies:
       '@babel/core': 7.29.7
       '@babel/parser': 7.29.7
@@ -12826,8 +12822,6 @@ snapshots:
       mime-types: 3.0.2
 
   typescript@5.9.3: {}
-
-  typescript@6.0.3: {}
 
   ufo@1.6.4: {}
 
