@@ -278,6 +278,7 @@ export const notificationKinds = [
   "service_deleted_cancellation",
   "review_invite",
   "review_needs_attention",
+  "low_stock",
 ] as const;
 
 export const notificationKindSchema = z.enum(notificationKinds);
@@ -304,6 +305,9 @@ export const inAppNotifications = zodTable("inAppNotifications", (id) => ({
       reviewId: id("reviews").optional(),
       barbershopUuid: z.string().optional(),
       reviewCode: z.string().optional(),
+      itemName: z.string().optional(),
+      itemUnit: z.string().optional(),
+      remaining: z.number().optional(),
     })
     .optional(),
 }));

@@ -17,6 +17,7 @@ import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import { zAuthMutation, zAuthQuery, zInternalQuery } from ".";
+import { internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { assertInventoryAllowed, isInventoryAllowed } from "./acl";
 import {
@@ -287,14 +288,35 @@ export async function recordMovement(
     belowReorder,
   };
 
-  // Hysteresis: recovery above the reorder point re-arms the alert. The
-  // downward-crossing dispatch itself ships with the low_stock notification
-  // kind (design §6) and slots in right here.
-  if (onHand > item.reorderPoint && level.lowStockAlertedAt !== undefined) {
+  // Hysteresis: alert exactly once per downward crossing of the reorder
+  // point; recovery strictly above it clears the stamp and re-arms the alert.
+  const crossedDown =
+    belowReorder &&
+    !level.belowReorder &&
+    level.lowStockAlertedAt === undefined &&
+    item.deletedAt === undefined;
+
+  if (crossedDown) {
+    levelPatch.lowStockAlertedAt = Date.now();
+  } else if (
+    onHand > item.reorderPoint &&
+    level.lowStockAlertedAt !== undefined
+  ) {
     levelPatch.lowStockAlertedAt = undefined;
   }
 
   await db.patch(level._id, levelPatch);
+
+  if (crossedDown) {
+    await ctx.runMutation(internal.notifications.createLowStock, {
+      barbershopId: args.barbershopId,
+      itemId: item._id,
+      itemName: item.name,
+      remaining: onHand,
+      unit: item.unit,
+      reorderPoint: item.reorderPoint,
+    });
+  }
 
   const reason =
     shortfall > 0
@@ -481,6 +503,7 @@ export const updateItem = zAuthMutation({
 
       for (const level of levels) {
         const patch: Partial<InventoryLevel> = {};
+        let crossedDown = false;
 
         if (costChanged) {
           patch.unitCost = data.unitCost;
@@ -493,9 +516,30 @@ export const updateItem = zAuthMutation({
           if (!belowReorder && level.lowStockAlertedAt !== undefined) {
             patch.lowStockAlertedAt = undefined;
           }
+
+          // A raised reorder point can itself cross the threshold.
+          crossedDown =
+            belowReorder &&
+            !level.belowReorder &&
+            level.lowStockAlertedAt === undefined;
+
+          if (crossedDown) {
+            patch.lowStockAlertedAt = Date.now();
+          }
         }
 
         await db.patch(level._id, patch);
+
+        if (crossedDown && data.reorderPoint !== undefined) {
+          await ctx.runMutation(internal.notifications.createLowStock, {
+            barbershopId: item.barbershopId,
+            itemId: item._id,
+            itemName: data.name ?? item.name,
+            remaining: level.onHand,
+            unit: item.unit,
+            reorderPoint: data.reorderPoint,
+          });
+        }
 
         if (costChanged && data.unitCost !== undefined) {
           // Zero-quantity audit row: the ledger records the cost change.

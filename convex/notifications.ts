@@ -919,3 +919,81 @@ export const createServiceDeletedCancellation = zInternalMutation({
     }
   },
 });
+
+/**
+ * Low-stock alert for the shop owner. Fired once per downward crossing of the
+ * reorder point (hysteresis lives on `inventoryLevels.lowStockAlertedAt` —
+ * see `recordMovement` in `convex/inventory.ts`).
+ */
+export const createLowStock = zInternalMutation({
+  args: z.object({
+    barbershopId: zid("barbershops"),
+    itemId: zid("inventoryItems"),
+    itemName: z.string(),
+    remaining: z.number(),
+    unit: z.string(),
+    reorderPoint: z.number(),
+  }),
+  handler: async (ctx, args) => {
+    const barbershop = await ctx.db.get(args.barbershopId);
+
+    if (!barbershop) {
+      return;
+    }
+
+    const ownerProfile = await getProfileByUserId(ctx, barbershop.ownerId);
+
+    if (!ownerProfile) {
+      return;
+    }
+
+    const copy = buildNotificationCopy({
+      kind: "low_stock",
+      itemName: args.itemName,
+      remaining: args.remaining,
+      unit: args.unit,
+      reorderPoint: args.reorderPoint,
+      barbershopName: barbershop.name,
+    });
+    const smsBody = buildSmsBody(copy);
+
+    if (
+      isNotificationEnabled("email", ownerProfile.notificationsPreferences) &&
+      ownerProfile.email
+    ) {
+      await scheduleEmailWithQuota(ctx, barbershop._id, () =>
+        ctx.scheduler.runAfter(0, internal.emails.sendLowStockEmail, {
+          to: ownerProfile.email,
+          itemName: args.itemName,
+          remaining: args.remaining,
+          unit: args.unit,
+          reorderPoint: args.reorderPoint,
+          barbershopName: barbershop.name,
+        }),
+      );
+    }
+
+    if (
+      isNotificationEnabled("sms", ownerProfile.notificationsPreferences) &&
+      ownerProfile.phoneNumber
+    ) {
+      await scheduleSmsWithQuota(ctx, {
+        body: smsBody,
+        to: ownerProfile.phoneNumber,
+        barbershopId: barbershop._id,
+      });
+    }
+
+    await recordInApp(ctx, {
+      userId: ownerProfile.userId,
+      copy,
+      payload: {
+        barbershopId: barbershop._id,
+        barbershopName: barbershop.name,
+        itemName: args.itemName,
+        itemUnit: args.unit,
+        remaining: args.remaining,
+      },
+    });
+  },
+});
