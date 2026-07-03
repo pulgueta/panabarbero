@@ -2,7 +2,8 @@ import type { ReactDoctorConfig } from "react-doctor/api";
 
 export default {
   ignore: {
-    files: ["node_modules", "convex/_generated", ".agents/**", ".claude/**"],
+    // Design system ignored due to out-of-the-box configuration and working by default.
+    files: ["node_modules", "convex/_generated", ".output/**", ".agents/**", ".claude/**", "src/components/ui/**"],
 
     // Rules silenced everywhere — each is either a verified false positive for
     // this stack (TanStack Start + Convex + react-hook-form) or a family the
