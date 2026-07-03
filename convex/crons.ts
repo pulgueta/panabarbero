@@ -51,4 +51,10 @@ crons.interval(
   internal.inAppNotifications.cleanupUnreads,
 );
 
+crons.interval(
+  "Rollup old inventory movements",
+  { hours: 24 * 7 },
+  internal.inventory.rollupOldMovements,
+);
+
 export default crons;

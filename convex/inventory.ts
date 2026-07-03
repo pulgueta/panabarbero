@@ -11,12 +11,17 @@
  * and the retention rollup — both documented, both through the wrapped db.
  */
 
+import { convexToZod } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
-import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
-import { zAuthMutation, zAuthQuery, zInternalQuery } from ".";
+import {
+  zAuthMutation,
+  zAuthQuery,
+  zInternalMutation,
+  zInternalQuery,
+} from ".";
 import { internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { assertInventoryAllowed, isInventoryAllowed } from "./acl";
@@ -1567,6 +1572,70 @@ export const getServiceRecipe = zAuthQuery({
         };
       }),
     );
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Retention — the ledger is append-only but not immortal
+// ---------------------------------------------------------------------------
+
+const MOVEMENT_RETENTION_MS = 365 * 24 * 60 * 60 * 1000;
+const ROLLUP_BATCH_SIZE = 500;
+
+/**
+ * Folds movements older than 12 months into `inventoryMovementSummaries`
+ * (per item × Bogotá-month × type) and prunes the raw rows THROUGH the
+ * trigger-wrapped db, so the movements aggregate stays consistent with live
+ * rows by construction. Periods inside the horizon read the aggregate;
+ * older periods read the summaries. Batched; the weekly cron catches up.
+ */
+export const rollupOldMovements = zInternalMutation({
+  args: z.object({}),
+  handler: async (ctx) => {
+    const horizon = Date.now() - MOVEMENT_RETENTION_MS;
+
+    const oldMovements = await ctx.db
+      .query("inventoryMovements")
+      .withIndex("by_creation_time", (q) => q.lt("_creationTime", horizon))
+      .take(ROLLUP_BATCH_SIZE);
+
+    const db = inventoryTriggers.wrapDB(ctx).db;
+
+    for (const movement of oldMovements) {
+      const month = toColombiaDateKey(movement._creationTime).slice(0, 7);
+
+      const summaries = await ctx.db
+        .query("inventoryMovementSummaries")
+        .withIndex("by_itemId_and_month", (q) =>
+          q.eq("itemId", movement.itemId).eq("month", month),
+        )
+        .collect();
+      const summary = summaries.find((row) => row.type === movement.type);
+
+      // `quantity` is signed for adjustments, a magnitude otherwise — the
+      // summary keeps the same semantics per type.
+      if (summary) {
+        await ctx.db.patch(summary._id, {
+          totalQuantity: summary.totalQuantity + movement.quantity,
+          totalCost:
+            summary.totalCost + movement.quantity * movement.unitCostAtTime,
+        });
+      } else {
+        await ctx.db.insert("inventoryMovementSummaries", {
+          barbershopId: movement.barbershopId,
+          itemId: movement.itemId,
+          itemName: movement.itemName,
+          month,
+          type: movement.type,
+          totalQuantity: movement.quantity,
+          totalCost: movement.quantity * movement.unitCostAtTime,
+        });
+      }
+
+      await db.delete(movement._id);
+    }
+
+    return { rolledUp: oldMovements.length };
   },
 });
 
