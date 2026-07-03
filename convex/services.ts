@@ -220,8 +220,15 @@ export const deleteService = zAuthMutation({
         .collect(),
     ]);
 
+    // A deleted service takes its inventory recipe with it.
+    const recipeLines = await ctx.db
+      .query("serviceInventoryUsage")
+      .withIndex("by_serviceId", (q) => q.eq("serviceId", args.service.id))
+      .collect();
+
     await Promise.all([
       ...assignments.map((assignment) => ctx.db.delete(assignment._id)),
+      ...recipeLines.map((line) => ctx.db.delete(line._id)),
       ctx.db.delete(args.service.id),
     ]);
 

@@ -1,6 +1,6 @@
 import { api, internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
-import { reviewRatingsAggregate } from "./aggregates";
+import { inventoryTriggers, reviewRatingsAggregate } from "./aggregates";
 import { getMemberWorkosUserId, revokeMemberAuthz } from "./authz";
 import { barbershopGeospatial } from "./geospatial";
 import type { Appointment, Barbershop, BarbershopMember } from "./schema";
@@ -117,6 +117,60 @@ export async function cascadeDeleteBarbershop(
       await revokeMemberAuthz(ctx, { userId: workosUserId, barbershopId });
     }
   }
+
+  // Inventory teardown: levels/movements go through the trigger-wrapped db so
+  // the aggregates don't leak; item photos are removed from R2.
+  const [inventoryItemRows, levelRows, movementRows, recipeRows, summaryRows] =
+    await Promise.all([
+      ctx.db
+        .query("inventoryItems")
+        .withIndex("by_barbershopId", (q) => q.eq("barbershopId", barbershopId))
+        .collect(),
+      ctx.db
+        .query("inventoryLevels")
+        .withIndex("by_barbershopId", (q) => q.eq("barbershopId", barbershopId))
+        .collect(),
+      ctx.db
+        .query("inventoryMovements")
+        .withIndex("by_barbershopId", (q) => q.eq("barbershopId", barbershopId))
+        .collect(),
+      ctx.db
+        .query("serviceInventoryUsage")
+        .withIndex("by_barbershopId", (q) => q.eq("barbershopId", barbershopId))
+        .collect(),
+      ctx.db
+        .query("inventoryMovementSummaries")
+        .withIndex("by_barbershopId_and_month", (q) =>
+          q.eq("barbershopId", barbershopId),
+        )
+        .collect(),
+    ]);
+
+  for (const item of inventoryItemRows) {
+    if (item.imageKey) {
+      try {
+        await ctx.runMutation(api.r2.deleteR2Object, { key: item.imageKey });
+      } catch {
+        // Non-fatal: object may already be gone
+      }
+    }
+  }
+
+  const inventoryDb = inventoryTriggers.wrapDB(ctx).db;
+
+  for (const level of levelRows) {
+    await inventoryDb.delete(level._id);
+  }
+
+  for (const movement of movementRows) {
+    await inventoryDb.delete(movement._id);
+  }
+
+  await Promise.all([
+    ...inventoryItemRows.map((item) => ctx.db.delete(item._id)),
+    ...recipeRows.map((line) => ctx.db.delete(line._id)),
+    ...summaryRows.map((summary) => ctx.db.delete(summary._id)),
+  ]);
 
   await Promise.all([
     ...appointments.map((appointment) => ctx.db.delete(appointment._id)),

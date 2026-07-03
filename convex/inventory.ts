@@ -18,7 +18,7 @@ import { z } from "zod";
 
 import { zAuthMutation, zAuthQuery, zInternalQuery } from ".";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { assertInventoryAllowed } from "./acl";
+import { assertInventoryAllowed, isInventoryAllowed } from "./acl";
 import {
   inventoryMovementsAggregate,
   inventoryTriggers,
@@ -982,6 +982,193 @@ export const setServiceRecipe = zAuthMutation({
     }
   },
 });
+
+// ---------------------------------------------------------------------------
+// Appointment lifecycle hooks (design §3.5)
+//
+// The ledger IS the reservation state: outstanding(appointment, item) =
+// Σ reservation − Σ release over movements with that relatedAppointmentId.
+// IRON RULE: these helpers never throw — a booking or completion must not
+// fail over stock. They clamp, skip archived items, and no-op for shops
+// whose plan lacks inventory.
+// ---------------------------------------------------------------------------
+
+type AppointmentStockContext = Pick<
+  Appointment,
+  "_id" | "barbershopId" | "serviceId" | "userId"
+>;
+
+async function movementsForAppointment(
+  ctx: MutationCtx,
+  appointmentId: Appointment["_id"],
+): Promise<InventoryMovement[]> {
+  return await ctx.db
+    .query("inventoryMovements")
+    .withIndex("by_relatedAppointmentId", (q) =>
+      q.eq("relatedAppointmentId", appointmentId),
+    )
+    .collect();
+}
+
+function outstandingFrom(movements: InventoryMovement[]) {
+  const outstanding = new Map<
+    string,
+    { itemId: InventoryItem["_id"]; locationId?: string; quantity: number }
+  >();
+
+  for (const movement of movements) {
+    if (movement.type !== "reservation" && movement.type !== "release") {
+      continue;
+    }
+
+    const key = `${movement.itemId}:${movement.locationId ?? ""}`;
+    const entry = outstanding.get(key) ?? {
+      itemId: movement.itemId,
+      locationId: movement.locationId,
+      quantity: 0,
+    };
+
+    entry.quantity +=
+      movement.type === "reservation" ? movement.quantity : -movement.quantity;
+    outstanding.set(key, entry);
+  }
+
+  return [...outstanding.values()].filter((entry) => entry.quantity > 0);
+}
+
+/** Reserve the service's recipe on booking (both `create` and `agentBook`). */
+export async function reserveForAppointment(
+  ctx: MutationCtx,
+  appointment: AppointmentStockContext,
+): Promise<void> {
+  if (!(await isInventoryAllowed(ctx, appointment.barbershopId))) {
+    return;
+  }
+
+  // Idempotent: any prior lifecycle movement means this booking already ran.
+  const prior = await ctx.db
+    .query("inventoryMovements")
+    .withIndex("by_relatedAppointmentId", (q) =>
+      q.eq("relatedAppointmentId", appointment._id),
+    )
+    .first();
+
+  if (prior) {
+    return;
+  }
+
+  const recipe = await ctx.db
+    .query("serviceInventoryUsage")
+    .withIndex("by_serviceId", (q) => q.eq("serviceId", appointment.serviceId))
+    .collect();
+
+  for (const line of recipe) {
+    const item = await ctx.db.get(line.itemId);
+
+    if (!item || item.deletedAt !== undefined) {
+      continue;
+    }
+
+    // Partial reservations are fine: release/consume work from outstanding.
+    await recordMovement(ctx, {
+      barbershopId: appointment.barbershopId,
+      itemId: line.itemId,
+      type: "reservation",
+      quantity: line.quantity,
+      relatedAppointmentId: appointment._id,
+      reason: "Reserva por cita",
+      actorUserId: appointment.userId,
+      clampToAvailable: true,
+    });
+  }
+}
+
+/**
+ * Free every outstanding hold for the appointment. Runs on all four exit
+ * paths (cancel, no-show, denied reschedule, delete) and — for the
+ * hard-deleting `setStatus("cancelled")` — BEFORE the row disappears.
+ * Deliberately not plan-gated: releasing holds must always work.
+ */
+export async function releaseForAppointment(
+  ctx: MutationCtx,
+  appointment: AppointmentStockContext,
+  reason = "Liberación por cita cancelada",
+): Promise<void> {
+  const movements = await movementsForAppointment(ctx, appointment._id);
+
+  for (const entry of outstandingFrom(movements)) {
+    await recordMovement(ctx, {
+      barbershopId: appointment.barbershopId,
+      itemId: entry.itemId,
+      type: "release",
+      quantity: entry.quantity,
+      locationId: entry.locationId,
+      relatedAppointmentId: appointment._id,
+      reason,
+      actorUserId: appointment.userId,
+      clampToAvailable: true,
+    });
+  }
+}
+
+/**
+ * Completion: release the holds, then consume the CURRENT recipe (clamped to
+ * onHand for strict items, shortfall noted in the reason — the
+ * completed-but-stock-changed race never blocks the barber).
+ */
+export async function consumeForAppointment(
+  ctx: MutationCtx,
+  appointment: AppointmentStockContext,
+): Promise<void> {
+  const movements = await movementsForAppointment(ctx, appointment._id);
+
+  // Idempotent: a completed appointment consumes at most once.
+  if (movements.some((movement) => movement.type === "consumption")) {
+    return;
+  }
+
+  for (const entry of outstandingFrom(movements)) {
+    await recordMovement(ctx, {
+      barbershopId: appointment.barbershopId,
+      itemId: entry.itemId,
+      type: "release",
+      quantity: entry.quantity,
+      locationId: entry.locationId,
+      relatedAppointmentId: appointment._id,
+      reason: "Liberación por cita completada",
+      actorUserId: appointment.userId,
+      clampToAvailable: true,
+    });
+  }
+
+  if (!(await isInventoryAllowed(ctx, appointment.barbershopId))) {
+    return;
+  }
+
+  const recipe = await ctx.db
+    .query("serviceInventoryUsage")
+    .withIndex("by_serviceId", (q) => q.eq("serviceId", appointment.serviceId))
+    .collect();
+
+  for (const line of recipe) {
+    const item = await ctx.db.get(line.itemId);
+
+    if (!item || item.deletedAt !== undefined) {
+      continue;
+    }
+
+    await recordMovement(ctx, {
+      barbershopId: appointment.barbershopId,
+      itemId: line.itemId,
+      type: "consumption",
+      quantity: line.quantity,
+      relatedAppointmentId: appointment._id,
+      reason: "Consumo por servicio",
+      actorUserId: appointment.userId,
+      clampToAvailable: true,
+    });
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Queries — every read path is indexed; ledger reads are always paginated
