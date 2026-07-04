@@ -14,13 +14,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 import { useTheme } from "./theme-provider";
 
 interface ThemeTogglerProps {
-  size?: "sm" | "icon" | "lg";
+  size?: ButtonProps["size"];
+  variant?: ButtonProps["variant"];
+  className?: string;
 }
 
-export const ThemeToggler: FC<ThemeTogglerProps> = ({ size = "icon" }) => {
+export const ThemeToggler: FC<ThemeTogglerProps> = ({
+  size = "icon",
+  variant = "outline",
+  className,
+}) => {
   const { userTheme, setTheme } = useTheme();
 
   return (
@@ -28,9 +35,9 @@ export const ThemeToggler: FC<ThemeTogglerProps> = ({ size = "icon" }) => {
       <DropdownMenuTrigger
         render={
           <Button
-            variant="outline"
-            size={size as ButtonProps["size"]}
-            className="gap-2"
+            variant={variant}
+            size={size}
+            className={cn("gap-2", className)}
           >
             {userTheme === "system" ? (
               <>

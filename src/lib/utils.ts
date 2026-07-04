@@ -439,3 +439,16 @@ export function endOfDay(date: number | Date): Date {
   d.setHours(23, 59, 59, 999);
   return d;
 }
+
+/** Up-to-2-letter avatar initials from a name, falling back to the email. */
+export function getInitials(name?: string | null, email?: string): string {
+  if (name) {
+    return name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  }
+  return email?.[0]?.toUpperCase() ?? "U";
+}
