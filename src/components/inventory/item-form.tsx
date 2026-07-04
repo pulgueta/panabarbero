@@ -28,6 +28,7 @@ import { Label } from "@/components/ui/label";
 import { useInventoryActions } from "@/hooks/use-inventory";
 import { getLogoUrl, useUpload } from "@/hooks/use-upload";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
+import { parseNonNegativeInteger } from "@/lib/inventory-form";
 
 const ACCEPTED_TYPES = "image/png,image/jpeg,image/webp,image/avif";
 
@@ -118,15 +119,19 @@ export const ItemForm: FC<ItemFormProps> = ({
           category: value.category,
           unit: value.unit,
           isSellable: value.isSellable,
-          unitCost: Number(value.unitCost),
+          unitCost:
+            parseNonNegativeInteger(value.unitCost) ??
+            (itemId ? (initialValues?.unitCost ?? 0) : 0),
           salePrice:
             value.isSellable && value.salePrice !== undefined
-              ? Number(value.salePrice)
+              ? (parseNonNegativeInteger(value.salePrice) ?? undefined)
               : undefined,
-          reorderPoint: Number(value.reorderPoint),
+          reorderPoint:
+            parseNonNegativeInteger(value.reorderPoint) ??
+            (itemId ? (initialValues?.reorderPoint ?? 0) : 0),
           reorderQuantity:
             value.reorderQuantity !== undefined
-              ? Number(value.reorderQuantity)
+              ? (parseNonNegativeInteger(value.reorderQuantity) ?? undefined)
               : undefined,
           allowNegativeStock: value.allowNegativeStock,
           imageKey,
@@ -226,7 +231,21 @@ export const ItemForm: FC<ItemFormProps> = ({
                 description="En pesos"
                 placeholder="5000"
                 type="number"
+                min={0}
                 className="w-full tabular-nums"
+                value={field.state.value ?? ""}
+                onChange={(e) => {
+                  const raw = e.target.value;
+
+                  if (raw === "") {
+                    field.handleChange(
+                      itemId ? (undefined as unknown as number) : 0,
+                    );
+                    return;
+                  }
+
+                  field.handleChange(Number(raw));
+                }}
               />
             )}
           </form.AppField>
@@ -255,7 +274,21 @@ export const ItemForm: FC<ItemFormProps> = ({
                 description="Alerta de bajo stock"
                 placeholder="5"
                 type="number"
+                min={0}
                 className="w-full tabular-nums"
+                value={field.state.value ?? ""}
+                onChange={(e) => {
+                  const raw = e.target.value;
+
+                  if (raw === "") {
+                    field.handleChange(
+                      itemId ? (undefined as unknown as number) : 0,
+                    );
+                    return;
+                  }
+
+                  field.handleChange(Number(raw));
+                }}
               />
             )}
           </form.AppField>
@@ -338,7 +371,11 @@ export const ItemForm: FC<ItemFormProps> = ({
       </FieldGroup>
 
       <form.AppForm>
-        <form.SubmitButton label="Guardar" className="w-full" />
+        <form.SubmitButton
+          label="Guardar"
+          className="w-full"
+          forceEnabled={photoFile !== null}
+        />
       </form.AppForm>
     </form>
   );

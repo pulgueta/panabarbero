@@ -55,7 +55,10 @@ export const StockAdjustFormFields: FC<StockAdjustFormFieldsProps> = ({
         }
       >
         <SelectTrigger id="stock-operation" className="w-full">
-          <SelectValue />
+          <SelectValue>
+            {operationOptions.find((option) => option.value === operation)
+              ?.label ?? "Selecciona una operación"}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {operationOptions.map((option) => (

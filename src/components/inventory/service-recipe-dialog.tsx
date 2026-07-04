@@ -33,6 +33,10 @@ import {
   useServiceRecipe,
 } from "@/hooks/use-inventory";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
+import {
+  invalidQuantityMessage,
+  parsePositiveIntegerQuantity,
+} from "@/lib/inventory-form";
 
 const MAX_RECIPE_LINES = 20;
 
@@ -99,12 +103,26 @@ const ServiceRecipeEditor: FC<ServiceRecipeEditorProps> = ({
   };
 
   const onSave = async () => {
+    const validatedLines: RecipeLine[] = [];
+
+    for (const line of currentLines) {
+      const quantity = parsePositiveIntegerQuantity(line.quantity);
+
+      if (!quantity) {
+        haptic.trigger("error");
+        toast.error(invalidQuantityMessage);
+        return;
+      }
+
+      validatedLines.push({ itemId: line.itemId, quantity });
+    }
+
     try {
       await setServiceRecipe({
         service: { id: serviceId },
-        lines: currentLines.map((line) => ({
+        lines: validatedLines.map((line) => ({
           item: { id: line.itemId },
-          quantity: Number(line.quantity),
+          quantity: line.quantity,
         })),
       });
 
@@ -147,7 +165,9 @@ const ServiceRecipeEditor: FC<ServiceRecipeEditorProps> = ({
                   }
                 >
                   <SelectTrigger className="flex-1" aria-label="Producto">
-                    <SelectValue placeholder="Selecciona un producto" />
+                    <SelectValue placeholder="Selecciona un producto">
+                      {lineItem?.name ?? "Selecciona un producto"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {[...(lineItem ? [lineItem] : []), ...availableItems].map(

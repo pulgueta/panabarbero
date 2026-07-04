@@ -4,10 +4,16 @@ import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
 import { useAppForm } from "@/components/form/use-form";
-import { inventoryUnitSuffixes } from "@/components/inventory/labels";
+import { formatInventoryStockSuffix } from "@/components/inventory/labels";
 import type { InventoryOverviewRow } from "@/hooks/use-inventory";
 import { useInventoryActions } from "@/hooks/use-inventory";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
+import {
+  invalidQuantityMessage,
+  parseNonNegativeInteger,
+  parsePositiveIntegerQuantity,
+  parseSignedInteger,
+} from "@/lib/inventory-form";
 
 type StockOperation = "receive" | "consume" | "sale" | "adjust" | "waste";
 
@@ -100,10 +106,18 @@ export function useStockAdjustDialog({
 
       try {
         switch (operation) {
-          case "receive":
+          case "receive": {
+            const quantity = parsePositiveIntegerQuantity(value.quantity);
+
+            if (!quantity) {
+              haptic.trigger("error");
+              toast.error(invalidQuantityMessage);
+              return;
+            }
+
             await receiveStock({
               item: { id: item._id },
-              quantity: Number(value.quantity),
+              quantity,
               unitCost:
                 value.unitCost !== undefined
                   ? Number(value.unitCost)
@@ -111,41 +125,95 @@ export function useStockAdjustDialog({
               reason: reason || undefined,
             });
             break;
-          case "consume":
+          }
+          case "consume": {
+            const quantity = parsePositiveIntegerQuantity(value.quantity);
+
+            if (!quantity) {
+              haptic.trigger("error");
+              toast.error(invalidQuantityMessage);
+              return;
+            }
+
             await recordConsumption({
               item: { id: item._id },
-              quantity: Number(value.quantity),
+              quantity,
               reason: reason || undefined,
             });
             break;
-          case "sale":
+          }
+          case "sale": {
+            const quantity = parsePositiveIntegerQuantity(value.quantity);
+
+            if (!quantity) {
+              haptic.trigger("error");
+              toast.error(invalidQuantityMessage);
+              return;
+            }
+
             await recordSale({
               item: { id: item._id },
-              quantity: Number(value.quantity),
+              quantity,
             });
             break;
+          }
           case "adjust":
             if (countMode) {
+              const counted = parseNonNegativeInteger(value.counted);
+
+              if (counted === null) {
+                haptic.trigger("error");
+                toast.error(
+                  "Ingresa un conteo físico válido (número entero mayor o igual a 0).",
+                );
+                return;
+              }
+
               await adjustStock({
                 item: { id: item._id },
-                absoluteCount: Number(value.counted),
+                absoluteCount: counted,
                 reason,
               });
             } else {
+              const delta = parseSignedInteger(value.delta);
+
+              if (delta === null) {
+                haptic.trigger("error");
+                toast.error(
+                  "El ajuste debe ser un número entero distinto de cero.",
+                );
+                return;
+              }
+
+              if (delta === 0) {
+                haptic.trigger("error");
+                toast.error("El ajuste debe ser distinto de cero.");
+                return;
+              }
+
               await adjustStock({
                 item: { id: item._id },
-                delta: Number(value.delta),
+                delta,
                 reason,
               });
             }
             break;
-          case "waste":
+          case "waste": {
+            const quantity = parsePositiveIntegerQuantity(value.quantity);
+
+            if (!quantity) {
+              haptic.trigger("error");
+              toast.error(invalidQuantityMessage);
+              return;
+            }
+
             await recordWaste({
               item: { id: item._id },
-              quantity: Number(value.quantity),
+              quantity,
               reason,
             });
             break;
+          }
         }
 
         haptic.trigger("success");
@@ -159,12 +227,22 @@ export function useStockAdjustDialog({
     },
   });
 
-  useHotkey("Control+Enter", () => form.handleSubmit(), {
-    preventDefault: true,
-    stopPropagation: true,
-  });
+  useHotkey(
+    "Control+Enter",
+    () => {
+      if (!internalOpen) {
+        return;
+      }
 
-  const unitSuffix = inventoryUnitSuffixes[item.unit];
+      form.handleSubmit();
+    },
+    {
+      preventDefault: true,
+      stopPropagation: true,
+    },
+  );
+
+  const unitSuffix = formatInventoryStockSuffix(item.onHand, item.unit);
 
   return {
     form,

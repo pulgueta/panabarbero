@@ -64,7 +64,11 @@ export const StockAdjustDialog: FC<StockAdjustDialogProps> = ({
             <StockAdjustFormFields form={form} item={item} {...dialogFields} />
 
             <form.AppForm>
-              <form.SubmitButton label="Registrar" className="w-full" />
+              <form.SubmitButton
+                label="Registrar"
+                className="w-full"
+                requireDirty={false}
+              />
             </form.AppForm>
           </form>
         </ResponsiveModalFooter>
