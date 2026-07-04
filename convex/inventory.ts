@@ -28,7 +28,6 @@ import { assertInventoryAllowed, isInventoryAllowed } from "./acl";
 import {
   inventoryMovementsAggregate,
   inventoryTriggers,
-  inventoryValueAggregate,
 } from "./aggregates";
 import { track } from "./analytics";
 import { authz, barbershopScope } from "./authz";
@@ -155,6 +154,13 @@ export async function recordMovement(
       .unique();
 
     if (existing) {
+      if (
+        existing.barbershopId !== args.barbershopId ||
+        existing.itemId !== args.itemId
+      ) {
+        throw new ConvexError(errorMessages.idempotencyKeyConflict);
+      }
+
       const level = await getLevelForItem(ctx, args.itemId, args.locationId);
 
       return {
@@ -610,7 +616,7 @@ export const archiveItem = zAuthMutation({
       throw new ConvexError(`WILL_RELEASE:${impacted}`);
     }
 
-    // Free trapped holds and detach recipes before archiving.
+    // Free trapped holds, write off on-hand stock, and detach recipes.
     for (const level of levels) {
       if (level.reserved > 0) {
         await recordMovement(ctx, {
@@ -620,6 +626,18 @@ export const archiveItem = zAuthMutation({
           quantity: level.reserved,
           locationId: level.locationId,
           reason: "Producto archivado",
+          actorUserId: userId,
+        });
+      }
+
+      if (level.onHand > 0) {
+        await recordMovement(ctx, {
+          barbershopId: item.barbershopId,
+          itemId: item._id,
+          type: "adjustment",
+          quantity: -level.onHand,
+          locationId: level.locationId,
+          reason: "Producto archivado — baja de stock",
           actorUserId: userId,
         });
       }
@@ -1329,7 +1347,11 @@ export const listItems = zAuthQuery({
   handler: async (ctx, args) => {
     const { userId } = ctx;
 
-    await assertCanViewInventory(ctx, args.barbershop.id, userId);
+    const { canManage } = await assertCanViewInventory(
+      ctx,
+      args.barbershop.id,
+      userId,
+    );
 
     const category = args.category;
     const query = category
@@ -1344,7 +1366,23 @@ export const listItems = zAuthQuery({
             q.eq("barbershopId", args.barbershop.id),
           );
 
-    return await query.order("desc").paginate(args.paginationOpts);
+    const page = await query
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .order("desc")
+      .paginate(args.paginationOpts);
+
+    if (canManage) {
+      return page;
+    }
+
+    return {
+      ...page,
+      page: page.page.map((item) => {
+        const { unitCost: _uc, salePrice: _sp, ...reduced } = item;
+
+        return reduced;
+      }),
+    };
   },
 });
 
@@ -1470,10 +1508,45 @@ export const getValuation = zAuthQuery({
       ),
     ]);
 
-    const [totalValue, levelCount] = await Promise.all([
-      inventoryValueAggregate.sum(ctx, { namespace: args.barbershop.id }),
-      inventoryValueAggregate.count(ctx, { namespace: args.barbershop.id }),
+    const [items, levels] = await Promise.all([
+      ctx.db
+        .query("inventoryItems")
+        .withIndex("by_barbershopId", (q) =>
+          q.eq("barbershopId", args.barbershop.id),
+        )
+        .collect(),
+      ctx.db
+        .query("inventoryLevels")
+        .withIndex("by_barbershopId", (q) =>
+          q.eq("barbershopId", args.barbershop.id),
+        )
+        .collect(),
     ]);
+
+    const balances = new Map<string, number>();
+
+    for (const level of levels) {
+      balances.set(
+        level.itemId,
+        (balances.get(level.itemId) ?? 0) + level.onHand,
+      );
+    }
+
+    let totalValue = 0;
+    let levelCount = 0;
+
+    for (const item of items) {
+      if (item.deletedAt !== undefined) {
+        continue;
+      }
+
+      const onHand = balances.get(item._id) ?? 0;
+
+      if (onHand > 0) {
+        totalValue += onHand * item.unitCost;
+        levelCount += 1;
+      }
+    }
 
     return { totalValue, levelCount };
   },
