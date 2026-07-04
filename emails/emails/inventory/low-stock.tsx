@@ -1,35 +1,36 @@
 import {
-    Body,
-    Button,
-    Container,
-    Head,
-    Html,
-    pixelBasedPreset,
-    Preview,
-    Section,
-    Tailwind,
-    Text,
+  Body,
+  Button,
+  Container,
+  Head,
+  Html,
+  pixelBasedPreset,
+  Preview,
+  Section,
+  Tailwind,
+  Text,
 } from "react-email";
 
 import { tailwindConfig } from "../../tailwind-config";
+import { Footer } from "../components/footer";
 import { Header } from "../components/header";
 
 export interface LowStockEmailProps {
   subject: string;
   itemName: string;
-  remaining: number;
-  unitLabel: string;
+  remainingPhrase: string;
   reorderPoint: number;
   barbershopName: string;
+  inventoryUrl: string;
 }
 
 export const LowStockEmail = ({
   subject = "Inventario bajo",
   itemName,
-  remaining,
-  unitLabel,
+  remainingPhrase,
   reorderPoint,
   barbershopName,
+  inventoryUrl,
 }: LowStockEmailProps) => {
   return (
     <Html lang="es" dir="ltr">
@@ -46,21 +47,21 @@ export const LowStockEmail = ({
             <Header />
 
             <Text className="mb-4 text-pretty">
-              «{itemName}» está por agotarse en {barbershopName}: quedan{" "}
-              {remaining} {unitLabel} y el punto de pedido es {reorderPoint}.
-              Programa un reabastecimiento para no quedarte sin stock.
+              «{itemName}» está por agotarse en {barbershopName}: {remainingPhrase}{" "}
+              (punto de pedido: {reorderPoint}). Programa un reabastecimiento para
+              no quedarte sin stock.
             </Text>
 
             <Section className="mb-4 flex w-full items-center justify-center">
               <Button
-                href="https://www.panabarbero.com/profile/barbershops/inventory"
+                href={inventoryUrl}
                 className="rounded-md bg-primary px-4 py-2 text-primary-foreground text-sm"
               >
                 Ver inventario
               </Button>
             </Section>
 
-            {/* <Footer /> */}
+            <Footer />
           </Container>
         </Body>
       </Tailwind>

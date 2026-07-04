@@ -19,7 +19,11 @@ import {
   WelcomeEmail,
 } from "../emails/emails";
 import { zInternalAction } from ".";
-import { inventoryUnitLabels, siteUrl } from "./notificationCopy";
+import {
+  deepLinks,
+  formatLowStockRemaining,
+  siteUrl,
+} from "./notificationCopy";
 import { subjects } from "./notifications";
 
 export const from = "Soporte de PanaBarbero <contacto@mail.panabarbero.com>";
@@ -366,10 +370,10 @@ export const sendLowStockEmail = zInternalAction({
       LowStockEmail({
         subject: subjects.low_stock,
         itemName: args.itemName,
-        remaining: args.remaining,
-        unitLabel: inventoryUnitLabels[args.unit] ?? args.unit,
+        remainingPhrase: formatLowStockRemaining(args.remaining, args.unit),
         reorderPoint: args.reorderPoint,
         barbershopName: args.barbershopName,
+        inventoryUrl: deepLinks.inventory(),
       }),
     );
 

@@ -28,6 +28,32 @@ export const inventoryUnitLabels: Record<string, string> = {
   pack: "paquetes",
 };
 
+const inventoryUnitWords: Record<
+  string,
+  { singular: string; plural: string }
+> = {
+  unit: { singular: "unidad", plural: "unidades" },
+  ml: { singular: "ml", plural: "ml" },
+  g: { singular: "g", plural: "g" },
+  box: { singular: "caja", plural: "cajas" },
+  pack: { singular: "paquete", plural: "paquetes" },
+};
+
+/** es-CO phrase for remaining stock ("queda 1 unidad" / "quedan 3 cajas"). */
+export function formatLowStockRemaining(
+  remaining: number,
+  unit: string,
+): string {
+  const forms = inventoryUnitWords[unit] ?? {
+    singular: unit,
+    plural: unit,
+  };
+  const unitWord = remaining === 1 ? forms.singular : forms.plural;
+  const verb = remaining === 1 ? "queda" : "quedan";
+
+  return `${verb} ${remaining} ${unitWord}`;
+}
+
 export type BaseInput = { barbershopName?: string };
 
 export type NotificationInput =
@@ -237,11 +263,15 @@ export function buildNotificationCopy(
       };
     }
     case "low_stock": {
-      const unitLabel = inventoryUnitLabels[input.unit] ?? input.unit;
+      const remainingPhrase = formatLowStockRemaining(
+        input.remaining,
+        input.unit,
+      );
+
       return {
         kind: "low_stock",
         title: subjects.low_stock,
-        description: `«${input.itemName}» está por agotarse en ${input.barbershopName ?? "tu barbería"}: quedan ${input.remaining} ${unitLabel} (punto de pedido: ${input.reorderPoint}).`,
+        description: `«${input.itemName}» está por agotarse en ${input.barbershopName ?? "tu barbería"}: ${remainingPhrase} (punto de pedido: ${input.reorderPoint}).`,
         href: deepLinks.inventory(),
       };
     }
