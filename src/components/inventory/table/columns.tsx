@@ -124,7 +124,9 @@ export function getInventoryTableColumns(
 
         return (
           <div className="text-center">
-            <Badge variant={variant}>{label}</Badge>
+            <Badge variant={variant} className="text-center">
+              {label}
+            </Badge>
           </div>
         );
       },
