@@ -371,14 +371,63 @@ const InventoryDashboard: FC<InventoryDashboardProps> = ({ barbershopId }) => {
 
 function RouteComponent() {
   const { data: user } = useSession();
-  const { data: rolesData } = useBarbershopMemberRoles(user?.id!);
+  const userId = user?.id ?? "";
+  const { data: rolesData } = useBarbershopMemberRoles(userId);
   const { data: barbershop, isLoading: isLoadingBarbershop } =
-    useBarbershopByMemberUserId(user?.id!);
-  const { planLimits, isLoading: isLoadingPlan } = useBarbershopPlan(
-    barbershop?._id!,
-  );
+    useBarbershopByMemberUserId(userId);
 
   const canManageRoles = Boolean(rolesData?.isOwner || rolesData?.isStaff);
+
+  if (isLoadingBarbershop || !barbershop?._id) {
+    return (
+      <BorderContainer className="space-y-4">
+        <section className="flex w-full flex-col gap-4">
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <Suspense fallback={<DashboardHeaderSkeleton />}>
+              <DashboardHeader
+                title="Inventario"
+                description="Controla el stock, los costos y el consumo de tus productos."
+              />
+            </Suspense>
+          </div>
+
+          {isLoadingBarbershop ? (
+            <Skeleton className="h-64 w-full" />
+          ) : (
+            <Empty>
+              <EmptyHeader>
+                <EmptyTitle>No tienes una barbería asociada.</EmptyTitle>
+                <EmptyDescription>
+                  Crea o únete a una barbería para gestionar inventario.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          )}
+        </section>
+      </BorderContainer>
+    );
+  }
+
+  return (
+    <InventoryRouteBody
+      barbershop={barbershop}
+      canManageRoles={canManageRoles}
+    />
+  );
+}
+
+interface InventoryRouteBodyProps {
+  barbershop: Barbershop;
+  canManageRoles: boolean;
+}
+
+const InventoryRouteBody: FC<InventoryRouteBodyProps> = ({
+  barbershop,
+  canManageRoles,
+}) => {
+  const { planLimits, isLoading: isLoadingPlan } = useBarbershopPlan(
+    barbershop._id,
+  );
   const inventoryEnabled = planLimits.inventoryEnabled;
 
   return (
@@ -400,35 +449,30 @@ function RouteComponent() {
               </Button>
             }
           >
-            {barbershop?._id &&
-              !isLoadingBarbershop &&
-              inventoryEnabled &&
-              canManageRoles && (
-                <ItemDialog
-                  barbershopId={barbershop._id}
-                  trigger={
-                    <Button variant="outline">
-                      <PlusIcon />
-                      Nuevo producto
-                    </Button>
-                  }
-                />
-              )}
+            {inventoryEnabled && canManageRoles && (
+              <ItemDialog
+                barbershopId={barbershop._id}
+                trigger={
+                  <Button variant="outline">
+                    <PlusIcon />
+                    Nuevo producto
+                  </Button>
+                }
+              />
+            )}
           </Suspense>
         </div>
 
-        {isLoadingPlan || isLoadingBarbershop ? (
+        {isLoadingPlan ? (
           <Skeleton className="h-64 w-full" />
         ) : !inventoryEnabled ? (
           <InventoryUpsell />
         ) : (
-          barbershop?._id && (
-            <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-              <InventoryDashboard barbershopId={barbershop._id} />
-            </Suspense>
-          )
+          <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+            <InventoryDashboard barbershopId={barbershop._id} />
+          </Suspense>
         )}
       </section>
     </BorderContainer>
   );
-}
+};

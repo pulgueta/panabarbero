@@ -574,7 +574,10 @@ export default defineSchema({
     .table()
     .index("by_itemId", ["itemId"])
     .index("by_barbershopId", ["barbershopId"])
-    .index("by_idempotencyKey", ["idempotencyKey"])
+    .index("by_barbershopId_and_idempotencyKey", [
+      "barbershopId",
+      "idempotencyKey",
+    ])
     .index("by_relatedAppointmentId", ["relatedAppointmentId"]),
 
   serviceInventoryUsage: serviceInventoryUsage

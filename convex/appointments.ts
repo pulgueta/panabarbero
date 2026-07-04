@@ -12,6 +12,7 @@ import { assertCanCreateStaffAppointment } from "./acl";
 import { track } from "./analytics";
 import { authkit } from "./auth.config";
 import {
+  assertCanMutateAppointment,
   assertShopRole,
   getBarbershopMemberByUserId,
   memberHasAnyRole,
@@ -701,6 +702,21 @@ export const cancel = zAuthMutation({
 
     if (appt.deletedAt) {
       throw new ConvexError(errorMessages.notFound("cita"));
+    }
+
+    if (args.cancelledByUserId !== userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    await assertCanMutateAppointment(ctx, appt, userId);
+
+    const isCustomerCancellation = appt.userId === userId;
+
+    if (
+      (isCustomerCancellation && args.cancelledBy !== "customer") ||
+      (!isCustomerCancellation && args.cancelledBy !== "barber")
+    ) {
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     await cancelScheduledNotifications(ctx, appt);

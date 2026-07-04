@@ -28,6 +28,7 @@ import { assertInventoryAllowed, isInventoryAllowed } from "./acl";
 import {
   inventoryMovementsAggregate,
   inventoryTriggers,
+  inventoryValueAggregate,
 } from "./aggregates";
 import { track } from "./analytics";
 import { authz, barbershopScope } from "./authz";
@@ -148,8 +149,10 @@ export async function recordMovement(
   if (args.idempotencyKey) {
     const existing = await ctx.db
       .query("inventoryMovements")
-      .withIndex("by_idempotencyKey", (q) =>
-        q.eq("idempotencyKey", args.idempotencyKey),
+      .withIndex("by_barbershopId_and_idempotencyKey", (q) =>
+        q
+          .eq("barbershopId", args.barbershopId)
+          .eq("idempotencyKey", args.idempotencyKey),
       )
       .unique();
 
@@ -1508,45 +1511,10 @@ export const getValuation = zAuthQuery({
       ),
     ]);
 
-    const [items, levels] = await Promise.all([
-      ctx.db
-        .query("inventoryItems")
-        .withIndex("by_barbershopId", (q) =>
-          q.eq("barbershopId", args.barbershop.id),
-        )
-        .collect(),
-      ctx.db
-        .query("inventoryLevels")
-        .withIndex("by_barbershopId", (q) =>
-          q.eq("barbershopId", args.barbershop.id),
-        )
-        .collect(),
+    const [totalValue, levelCount] = await Promise.all([
+      inventoryValueAggregate.sum(ctx, { namespace: args.barbershop.id }),
+      inventoryValueAggregate.count(ctx, { namespace: args.barbershop.id }),
     ]);
-
-    const balances = new Map<string, number>();
-
-    for (const level of levels) {
-      balances.set(
-        level.itemId,
-        (balances.get(level.itemId) ?? 0) + level.onHand,
-      );
-    }
-
-    let totalValue = 0;
-    let levelCount = 0;
-
-    for (const item of items) {
-      if (item.deletedAt !== undefined) {
-        continue;
-      }
-
-      const onHand = balances.get(item._id) ?? 0;
-
-      if (onHand > 0) {
-        totalValue += onHand * item.unitCost;
-        levelCount += 1;
-      }
-    }
 
     return { totalValue, levelCount };
   },
