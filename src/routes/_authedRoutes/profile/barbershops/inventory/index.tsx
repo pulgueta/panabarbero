@@ -7,9 +7,8 @@ import type { FC } from "react";
 import { lazy, Suspense, useMemo, useState } from "react";
 
 import { DashboardHeaderSkeleton } from "@/components/barbershops/dashboard-header.skeleton";
+import { DashboardPending } from "@/components/dashboard/dashboard-pending";
 import { getInventoryTableColumns } from "@/components/inventory/table/columns";
-import { BorderContainer } from "@/components/layout/border-container";
-import { LoadingComponent } from "@/components/layout/loading-component";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -93,8 +92,9 @@ export const Route = createFileRoute(
   "/_authedRoutes/profile/barbershops/inventory/",
 )({
   component: RouteComponent,
-  pendingComponent: LoadingComponent,
+  pendingComponent: DashboardPending,
   ssr: "data-only",
+  staticData: { breadcrumb: "Inventario" },
   staleTime: cacheTime.low,
   gcTime: cacheTime.medium,
   loader: async (opts) => {
@@ -380,31 +380,29 @@ function RouteComponent() {
 
   if (isLoadingBarbershop || !barbershop?._id) {
     return (
-      <BorderContainer className="space-y-4">
-        <section className="flex w-full flex-col gap-4">
-          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-            <Suspense fallback={<DashboardHeaderSkeleton />}>
-              <DashboardHeader
-                title="Inventario"
-                description="Controla el stock, los costos y el consumo de tus productos."
-              />
-            </Suspense>
-          </div>
+      <section className="space-y-6">
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <Suspense fallback={<DashboardHeaderSkeleton />}>
+            <DashboardHeader
+              title="Inventario"
+              description="Controla el stock, los costos y el consumo de tus productos."
+            />
+          </Suspense>
+        </div>
 
-          {isLoadingBarbershop ? (
-            <Skeleton className="h-64 w-full" />
-          ) : (
-            <Empty>
-              <EmptyHeader>
-                <EmptyTitle>No tienes una barbería asociada.</EmptyTitle>
-                <EmptyDescription>
-                  Crea o únete a una barbería para gestionar inventario.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          )}
-        </section>
-      </BorderContainer>
+        {isLoadingBarbershop ? (
+          <Skeleton className="h-64 w-full" />
+        ) : (
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>No tienes una barbería asociada.</EmptyTitle>
+              <EmptyDescription>
+                Crea o únete a una barbería para gestionar inventario.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        )}
+      </section>
     );
   }
 
@@ -431,48 +429,46 @@ const InventoryRouteBody: FC<InventoryRouteBodyProps> = ({
   const inventoryEnabled = planLimits.inventoryEnabled;
 
   return (
-    <BorderContainer className="space-y-4">
-      <section className="flex w-full flex-col gap-4">
-        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <Suspense fallback={<DashboardHeaderSkeleton />}>
-            <DashboardHeader
-              title="Inventario"
-              description="Controla el stock, los costos y el consumo de tus productos."
+    <section className="space-y-6">
+      <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <Suspense fallback={<DashboardHeaderSkeleton />}>
+          <DashboardHeader
+            title="Inventario"
+            description="Controla el stock, los costos y el consumo de tus productos."
+          />
+        </Suspense>
+
+        <Suspense
+          fallback={
+            <Button disabled variant="outline">
+              <PlusIcon />
+              Nuevo producto
+            </Button>
+          }
+        >
+          {inventoryEnabled && canManageRoles && (
+            <ItemDialog
+              barbershopId={barbershop._id}
+              trigger={
+                <Button variant="outline">
+                  <PlusIcon />
+                  Nuevo producto
+                </Button>
+              }
             />
-          </Suspense>
+          )}
+        </Suspense>
+      </div>
 
-          <Suspense
-            fallback={
-              <Button disabled variant="outline">
-                <PlusIcon />
-                Nuevo producto
-              </Button>
-            }
-          >
-            {inventoryEnabled && canManageRoles && (
-              <ItemDialog
-                barbershopId={barbershop._id}
-                trigger={
-                  <Button variant="outline">
-                    <PlusIcon />
-                    Nuevo producto
-                  </Button>
-                }
-              />
-            )}
-          </Suspense>
-        </div>
-
-        {isLoadingPlan ? (
-          <Skeleton className="h-64 w-full" />
-        ) : !inventoryEnabled ? (
-          <InventoryUpsell />
-        ) : (
-          <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-            <InventoryDashboard barbershopId={barbershop._id} />
-          </Suspense>
-        )}
-      </section>
-    </BorderContainer>
+      {isLoadingPlan ? (
+        <Skeleton className="h-64 w-full" />
+      ) : !inventoryEnabled ? (
+        <InventoryUpsell />
+      ) : (
+        <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+          <InventoryDashboard barbershopId={barbershop._id} />
+        </Suspense>
+      )}
+    </section>
   );
 };

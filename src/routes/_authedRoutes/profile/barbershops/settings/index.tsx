@@ -8,8 +8,7 @@ import { useWebHaptics } from "web-haptics/react";
 
 import { DashboardHeaderSkeleton } from "@/components/barbershops/dashboard-header.skeleton";
 import { SettingsCard } from "@/components/barbershops/settings/settings-card";
-import { BorderContainer } from "@/components/layout/border-container";
-import { LoadingComponent } from "@/components/layout/loading-component";
+import { DashboardPending } from "@/components/dashboard/dashboard-pending";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -86,8 +85,9 @@ export const Route = createFileRoute(
   "/_authedRoutes/profile/barbershops/settings/",
 )({
   component: SettingsPage,
-  pendingComponent: LoadingComponent,
+  pendingComponent: DashboardPending,
   ssr: "data-only",
+  staticData: { breadcrumb: "Ajustes" },
   staleTime: cacheTime.high,
   gcTime: cacheTime.extreme,
   loader: async (opts) => {
@@ -155,11 +155,11 @@ function SettingsPage() {
   };
 
   return (
-    <BorderContainer>
+    <section className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <Suspense fallback={<DashboardHeaderSkeleton />}>
           <DashboardHeader
-            title="Configuración"
+            title="Ajustes"
             description="Administra el perfil público y la operación de tu barbería."
           />
         </Suspense>
@@ -314,6 +314,6 @@ function SettingsPage() {
           </section>
         </div>
       )}
-    </BorderContainer>
+    </section>
   );
 }

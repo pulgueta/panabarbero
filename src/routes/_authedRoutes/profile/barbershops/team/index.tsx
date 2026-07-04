@@ -11,8 +11,7 @@ import { lazy, Suspense } from "react";
 import { z } from "zod";
 
 import { DashboardHeaderSkeleton } from "@/components/barbershops/dashboard-header.skeleton";
-import { BorderContainer } from "@/components/layout/border-container";
-import { LoadingComponent } from "@/components/layout/loading-component";
+import { DashboardPending } from "@/components/dashboard/dashboard-pending";
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -79,9 +78,10 @@ export const Route = createFileRoute(
   "/_authedRoutes/profile/barbershops/team/",
 )({
   component: RouteComponent,
-  pendingComponent: LoadingComponent,
+  pendingComponent: DashboardPending,
   validateSearch: searchSchema,
   ssr: "data-only",
+  staticData: { breadcrumb: "Equipo" },
   staleTime: cacheTime.high,
   gcTime: cacheTime.extreme,
   loader: async (opts) => {
@@ -152,127 +152,125 @@ function RouteComponent() {
   const isStaffOverLimit = maxStaff !== null && staffCount > maxStaff;
 
   return (
-    <BorderContainer className="space-y-4">
-      <section className="flex w-full flex-col gap-4">
-        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <Suspense fallback={<DashboardHeaderSkeleton />}>
-            <DashboardHeader
-              title="Equipo"
-              description="Gestiona tu equipo de barberos y recepcionistas."
-            />
-          </Suspense>
+    <section className="space-y-6">
+      <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <Suspense fallback={<DashboardHeaderSkeleton />}>
+          <DashboardHeader
+            title="Equipo"
+            description="Gestiona tu equipo de barberos y recepcionistas."
+          />
+        </Suspense>
 
-          <Suspense
-            fallback={
-              <Button disabled variant="outline">
-                <UserPlusIcon />
-                Invitar
-              </Button>
-            }
-          >
-            {(isOwner || isStaff) && (
-              <InviteBarberDialog
-                barbershopId={barbershop?._id!}
-                canInviteStaff={isOwner}
-                trigger={
-                  <Button variant="outline">
-                    <UserPlusIcon />
-                    Invitar
-                  </Button>
-                }
-              />
-            )}
-          </Suspense>
-        </div>
-
-        <Tabs
-          value={tab}
-          onValueChange={(value) =>
-            navigate({
-              search: {
-                tab: value as "barberos" | "staff" | "invitaciones",
-              },
-            })
+        <Suspense
+          fallback={
+            <Button disabled variant="outline">
+              <UserPlusIcon />
+              Invitar
+            </Button>
           }
         >
-          <TabsList>
-            <TabsTrigger value="barberos">Barberos</TabsTrigger>
-            <TabsTrigger value="staff">Recepcionistas</TabsTrigger>
-            <TabsTrigger value="invitaciones">Invitaciones</TabsTrigger>
-          </TabsList>
+          {(isOwner || isStaff) && (
+            <InviteBarberDialog
+              barbershopId={barbershop?._id!}
+              canInviteStaff={isOwner}
+              trigger={
+                <Button variant="outline">
+                  <UserPlusIcon />
+                  Invitar
+                </Button>
+              }
+            />
+          )}
+        </Suspense>
+      </div>
 
-          <TabsContent value="barberos">
-            <Suspense fallback={<ProfileTabSkeleton />}>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {services &&
-                  barbershopMembers?.map((barbershopMember) => (
-                    <MemberCard
-                      key={barbershopMember._id}
-                      member={barbershopMember}
-                      services={services}
-                      isOwner={isOwner}
-                    />
-                  ))}
-              </div>
+      <Tabs
+        value={tab}
+        onValueChange={(value) =>
+          navigate({
+            search: {
+              tab: value as "barberos" | "staff" | "invitaciones",
+            },
+          })
+        }
+      >
+        <TabsList>
+          <TabsTrigger value="barberos">Barberos</TabsTrigger>
+          <TabsTrigger value="staff">Recepcionistas</TabsTrigger>
+          <TabsTrigger value="invitaciones">Invitaciones</TabsTrigger>
+        </TabsList>
 
-              {barbershopMembers?.length < 1 && (
-                <Empty>
-                  <EmptyHeader>
-                    <EmptyTitle>No hay barberos registrados.</EmptyTitle>
-                    <EmptyDescription>
-                      Cuando agregues barberos a tu equipo, podrás verlos aquí.
-                    </EmptyDescription>
-                  </EmptyHeader>
-                </Empty>
-              )}
-            </Suspense>
-          </TabsContent>
-
-          <TabsContent value="staff">
-            <Suspense fallback={<ProfileTabSkeleton />}>
-              {isStaffOverLimit && isOwner && (
-                <Alert variant="destructive" className="mb-4">
-                  <WarningIcon className="size-4" />
-                  <AlertTitle>Límite de recepcionistas excedido</AlertTitle>
-                  <AlertDescription>
-                    Tu plan permite {maxStaff}{" "}
-                    {maxStaff === 1 ? "recepcionista" : "recepcionistas"} pero
-                    tienes {staffCount}. Mejora tu plan o elimina miembros para
-                    cumplir con el límite.
-                  </AlertDescription>
-                </Alert>
-              )}
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {staffMembers?.map((staffMember) => (
+        <TabsContent value="barberos">
+          <Suspense fallback={<ProfileTabSkeleton />}>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {services &&
+                barbershopMembers?.map((barbershopMember) => (
                   <MemberCard
-                    key={staffMember._id}
-                    member={staffMember}
+                    key={barbershopMember._id}
+                    member={barbershopMember}
+                    services={services}
                     isOwner={isOwner}
                   />
                 ))}
-              </div>
+            </div>
 
-              {staffMembers?.length < 1 && (
-                <Empty>
-                  <EmptyHeader>
-                    <EmptyTitle>No hay recepcionistas registrados.</EmptyTitle>
-                    <EmptyDescription>
-                      Cuando agregues recepcionistas a tu equipo, podrás verlos
-                      aquí.
-                    </EmptyDescription>
-                  </EmptyHeader>
-                </Empty>
-              )}
-            </Suspense>
-          </TabsContent>
+            {barbershopMembers?.length < 1 && (
+              <Empty>
+                <EmptyHeader>
+                  <EmptyTitle>No hay barberos registrados.</EmptyTitle>
+                  <EmptyDescription>
+                    Cuando agregues barberos a tu equipo, podrás verlos aquí.
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            )}
+          </Suspense>
+        </TabsContent>
 
-          <TabsContent value="invitaciones">
-            <Suspense fallback={<ProfileTabSkeleton />}>
-              <InvitationsList barbershopId={barbershop?._id!} />
-            </Suspense>
-          </TabsContent>
-        </Tabs>
-      </section>
-    </BorderContainer>
+        <TabsContent value="staff">
+          <Suspense fallback={<ProfileTabSkeleton />}>
+            {isStaffOverLimit && isOwner && (
+              <Alert variant="destructive" className="mb-4">
+                <WarningIcon className="size-4" />
+                <AlertTitle>Límite de recepcionistas excedido</AlertTitle>
+                <AlertDescription>
+                  Tu plan permite {maxStaff}{" "}
+                  {maxStaff === 1 ? "recepcionista" : "recepcionistas"} pero
+                  tienes {staffCount}. Mejora tu plan o elimina miembros para
+                  cumplir con el límite.
+                </AlertDescription>
+              </Alert>
+            )}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {staffMembers?.map((staffMember) => (
+                <MemberCard
+                  key={staffMember._id}
+                  member={staffMember}
+                  isOwner={isOwner}
+                />
+              ))}
+            </div>
+
+            {staffMembers?.length < 1 && (
+              <Empty>
+                <EmptyHeader>
+                  <EmptyTitle>No hay recepcionistas registrados.</EmptyTitle>
+                  <EmptyDescription>
+                    Cuando agregues recepcionistas a tu equipo, podrás verlos
+                    aquí.
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            )}
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="invitaciones">
+          <Suspense fallback={<ProfileTabSkeleton />}>
+            <InvitationsList barbershopId={barbershop?._id!} />
+          </Suspense>
+        </TabsContent>
+      </Tabs>
+    </section>
   );
 }

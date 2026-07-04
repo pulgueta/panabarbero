@@ -30,6 +30,8 @@ import { Route as BarbershopsBarbershopUuidIndexRouteImport } from './routes/bar
 import { Route as AuthedRoutesProfileIndexRouteImport } from './routes/_authedRoutes/profile/index'
 import { Route as BarbershopsBarbershopUuidReviewRouteImport } from './routes/barbershops/$barbershopUuid/review'
 import { Route as BarbershopsBarbershopUuidBookRouteImport } from './routes/barbershops/$barbershopUuid/book'
+import { Route as AuthedRoutesProfileBarbershopsRouteRouteImport } from './routes/_authedRoutes/profile/barbershops/route'
+import { Route as AuthedRoutesProfileBarbershopsIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/index'
 import { Route as AuthedRoutesProfileBarbershopsTeamIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/team/index'
 import { Route as AuthedRoutesProfileBarbershopsSettingsIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/settings/index'
 import { Route as AuthedRoutesProfileBarbershopsServicesIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/services/index'
@@ -143,35 +145,47 @@ const BarbershopsBarbershopUuidBookRoute =
     path: '/barbershops/$barbershopUuid/book',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthedRoutesProfileBarbershopsRouteRoute =
+  AuthedRoutesProfileBarbershopsRouteRouteImport.update({
+    id: '/profile/barbershops',
+    path: '/profile/barbershops',
+    getParentRoute: () => AuthedRoutesRouteRoute,
+  } as any)
+const AuthedRoutesProfileBarbershopsIndexRoute =
+  AuthedRoutesProfileBarbershopsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthedRoutesProfileBarbershopsRouteRoute,
+  } as any)
 const AuthedRoutesProfileBarbershopsTeamIndexRoute =
   AuthedRoutesProfileBarbershopsTeamIndexRouteImport.update({
-    id: '/profile/barbershops/team/',
-    path: '/profile/barbershops/team/',
-    getParentRoute: () => AuthedRoutesRouteRoute,
+    id: '/team/',
+    path: '/team/',
+    getParentRoute: () => AuthedRoutesProfileBarbershopsRouteRoute,
   } as any)
 const AuthedRoutesProfileBarbershopsSettingsIndexRoute =
   AuthedRoutesProfileBarbershopsSettingsIndexRouteImport.update({
-    id: '/profile/barbershops/settings/',
-    path: '/profile/barbershops/settings/',
-    getParentRoute: () => AuthedRoutesRouteRoute,
+    id: '/settings/',
+    path: '/settings/',
+    getParentRoute: () => AuthedRoutesProfileBarbershopsRouteRoute,
   } as any)
 const AuthedRoutesProfileBarbershopsServicesIndexRoute =
   AuthedRoutesProfileBarbershopsServicesIndexRouteImport.update({
-    id: '/profile/barbershops/services/',
-    path: '/profile/barbershops/services/',
-    getParentRoute: () => AuthedRoutesRouteRoute,
+    id: '/services/',
+    path: '/services/',
+    getParentRoute: () => AuthedRoutesProfileBarbershopsRouteRoute,
   } as any)
 const AuthedRoutesProfileBarbershopsInventoryIndexRoute =
   AuthedRoutesProfileBarbershopsInventoryIndexRouteImport.update({
-    id: '/profile/barbershops/inventory/',
-    path: '/profile/barbershops/inventory/',
-    getParentRoute: () => AuthedRoutesRouteRoute,
+    id: '/inventory/',
+    path: '/inventory/',
+    getParentRoute: () => AuthedRoutesProfileBarbershopsRouteRoute,
   } as any)
 const AuthedRoutesProfileBarbershopsAppointmentsIndexRoute =
   AuthedRoutesProfileBarbershopsAppointmentsIndexRouteImport.update({
-    id: '/profile/barbershops/appointments/',
-    path: '/profile/barbershops/appointments/',
-    getParentRoute: () => AuthedRoutesRouteRoute,
+    id: '/appointments/',
+    path: '/appointments/',
+    getParentRoute: () => AuthedRoutesProfileBarbershopsRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -190,10 +204,12 @@ export interface FileRoutesByFullPath {
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/barbershops/': typeof BarbershopsIndexRoute
   '/chat/': typeof ChatIndexRoute
+  '/profile/barbershops': typeof AuthedRoutesProfileBarbershopsRouteRouteWithChildren
   '/barbershops/$barbershopUuid/book': typeof BarbershopsBarbershopUuidBookRoute
   '/barbershops/$barbershopUuid/review': typeof BarbershopsBarbershopUuidReviewRoute
   '/profile/': typeof AuthedRoutesProfileIndexRoute
   '/barbershops/$barbershopUuid/': typeof BarbershopsBarbershopUuidIndexRoute
+  '/profile/barbershops/': typeof AuthedRoutesProfileBarbershopsIndexRoute
   '/profile/barbershops/appointments/': typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
   '/profile/barbershops/inventory/': typeof AuthedRoutesProfileBarbershopsInventoryIndexRoute
   '/profile/barbershops/services/': typeof AuthedRoutesProfileBarbershopsServicesIndexRoute
@@ -219,6 +235,7 @@ export interface FileRoutesByTo {
   '/barbershops/$barbershopUuid/review': typeof BarbershopsBarbershopUuidReviewRoute
   '/profile': typeof AuthedRoutesProfileIndexRoute
   '/barbershops/$barbershopUuid': typeof BarbershopsBarbershopUuidIndexRoute
+  '/profile/barbershops': typeof AuthedRoutesProfileBarbershopsIndexRoute
   '/profile/barbershops/appointments': typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
   '/profile/barbershops/inventory': typeof AuthedRoutesProfileBarbershopsInventoryIndexRoute
   '/profile/barbershops/services': typeof AuthedRoutesProfileBarbershopsServicesIndexRoute
@@ -244,10 +261,12 @@ export interface FileRoutesById {
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/barbershops/': typeof BarbershopsIndexRoute
   '/chat/': typeof ChatIndexRoute
+  '/_authedRoutes/profile/barbershops': typeof AuthedRoutesProfileBarbershopsRouteRouteWithChildren
   '/barbershops/$barbershopUuid/book': typeof BarbershopsBarbershopUuidBookRoute
   '/barbershops/$barbershopUuid/review': typeof BarbershopsBarbershopUuidReviewRoute
   '/_authedRoutes/profile/': typeof AuthedRoutesProfileIndexRoute
   '/barbershops/$barbershopUuid/': typeof BarbershopsBarbershopUuidIndexRoute
+  '/_authedRoutes/profile/barbershops/': typeof AuthedRoutesProfileBarbershopsIndexRoute
   '/_authedRoutes/profile/barbershops/appointments/': typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
   '/_authedRoutes/profile/barbershops/inventory/': typeof AuthedRoutesProfileBarbershopsInventoryIndexRoute
   '/_authedRoutes/profile/barbershops/services/': typeof AuthedRoutesProfileBarbershopsServicesIndexRoute
@@ -272,10 +291,12 @@ export interface FileRouteTypes {
     | '/chat/$threadId'
     | '/barbershops/'
     | '/chat/'
+    | '/profile/barbershops'
     | '/barbershops/$barbershopUuid/book'
     | '/barbershops/$barbershopUuid/review'
     | '/profile/'
     | '/barbershops/$barbershopUuid/'
+    | '/profile/barbershops/'
     | '/profile/barbershops/appointments/'
     | '/profile/barbershops/inventory/'
     | '/profile/barbershops/services/'
@@ -301,6 +322,7 @@ export interface FileRouteTypes {
     | '/barbershops/$barbershopUuid/review'
     | '/profile'
     | '/barbershops/$barbershopUuid'
+    | '/profile/barbershops'
     | '/profile/barbershops/appointments'
     | '/profile/barbershops/inventory'
     | '/profile/barbershops/services'
@@ -325,10 +347,12 @@ export interface FileRouteTypes {
     | '/chat/$threadId'
     | '/barbershops/'
     | '/chat/'
+    | '/_authedRoutes/profile/barbershops'
     | '/barbershops/$barbershopUuid/book'
     | '/barbershops/$barbershopUuid/review'
     | '/_authedRoutes/profile/'
     | '/barbershops/$barbershopUuid/'
+    | '/_authedRoutes/profile/barbershops/'
     | '/_authedRoutes/profile/barbershops/appointments/'
     | '/_authedRoutes/profile/barbershops/inventory/'
     | '/_authedRoutes/profile/barbershops/services/'
@@ -504,40 +528,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BarbershopsBarbershopUuidBookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authedRoutes/profile/barbershops': {
+      id: '/_authedRoutes/profile/barbershops'
+      path: '/profile/barbershops'
+      fullPath: '/profile/barbershops'
+      preLoaderRoute: typeof AuthedRoutesProfileBarbershopsRouteRouteImport
+      parentRoute: typeof AuthedRoutesRouteRoute
+    }
+    '/_authedRoutes/profile/barbershops/': {
+      id: '/_authedRoutes/profile/barbershops/'
+      path: '/'
+      fullPath: '/profile/barbershops/'
+      preLoaderRoute: typeof AuthedRoutesProfileBarbershopsIndexRouteImport
+      parentRoute: typeof AuthedRoutesProfileBarbershopsRouteRoute
+    }
     '/_authedRoutes/profile/barbershops/team/': {
       id: '/_authedRoutes/profile/barbershops/team/'
-      path: '/profile/barbershops/team'
+      path: '/team'
       fullPath: '/profile/barbershops/team/'
       preLoaderRoute: typeof AuthedRoutesProfileBarbershopsTeamIndexRouteImport
-      parentRoute: typeof AuthedRoutesRouteRoute
+      parentRoute: typeof AuthedRoutesProfileBarbershopsRouteRoute
     }
     '/_authedRoutes/profile/barbershops/settings/': {
       id: '/_authedRoutes/profile/barbershops/settings/'
-      path: '/profile/barbershops/settings'
+      path: '/settings'
       fullPath: '/profile/barbershops/settings/'
       preLoaderRoute: typeof AuthedRoutesProfileBarbershopsSettingsIndexRouteImport
-      parentRoute: typeof AuthedRoutesRouteRoute
+      parentRoute: typeof AuthedRoutesProfileBarbershopsRouteRoute
     }
     '/_authedRoutes/profile/barbershops/services/': {
       id: '/_authedRoutes/profile/barbershops/services/'
-      path: '/profile/barbershops/services'
+      path: '/services'
       fullPath: '/profile/barbershops/services/'
       preLoaderRoute: typeof AuthedRoutesProfileBarbershopsServicesIndexRouteImport
-      parentRoute: typeof AuthedRoutesRouteRoute
+      parentRoute: typeof AuthedRoutesProfileBarbershopsRouteRoute
     }
     '/_authedRoutes/profile/barbershops/inventory/': {
       id: '/_authedRoutes/profile/barbershops/inventory/'
-      path: '/profile/barbershops/inventory'
+      path: '/inventory'
       fullPath: '/profile/barbershops/inventory/'
       preLoaderRoute: typeof AuthedRoutesProfileBarbershopsInventoryIndexRouteImport
-      parentRoute: typeof AuthedRoutesRouteRoute
+      parentRoute: typeof AuthedRoutesProfileBarbershopsRouteRoute
     }
     '/_authedRoutes/profile/barbershops/appointments/': {
       id: '/_authedRoutes/profile/barbershops/appointments/'
-      path: '/profile/barbershops/appointments'
+      path: '/appointments'
       fullPath: '/profile/barbershops/appointments/'
       preLoaderRoute: typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRouteImport
-      parentRoute: typeof AuthedRoutesRouteRoute
+      parentRoute: typeof AuthedRoutesProfileBarbershopsRouteRoute
     }
   }
 }
@@ -556,8 +594,8 @@ const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
   AuthRouteRouteChildren,
 )
 
-interface AuthedRoutesRouteRouteChildren {
-  AuthedRoutesProfileIndexRoute: typeof AuthedRoutesProfileIndexRoute
+interface AuthedRoutesProfileBarbershopsRouteRouteChildren {
+  AuthedRoutesProfileBarbershopsIndexRoute: typeof AuthedRoutesProfileBarbershopsIndexRoute
   AuthedRoutesProfileBarbershopsAppointmentsIndexRoute: typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
   AuthedRoutesProfileBarbershopsInventoryIndexRoute: typeof AuthedRoutesProfileBarbershopsInventoryIndexRoute
   AuthedRoutesProfileBarbershopsServicesIndexRoute: typeof AuthedRoutesProfileBarbershopsServicesIndexRoute
@@ -565,18 +603,36 @@ interface AuthedRoutesRouteRouteChildren {
   AuthedRoutesProfileBarbershopsTeamIndexRoute: typeof AuthedRoutesProfileBarbershopsTeamIndexRoute
 }
 
+const AuthedRoutesProfileBarbershopsRouteRouteChildren: AuthedRoutesProfileBarbershopsRouteRouteChildren =
+  {
+    AuthedRoutesProfileBarbershopsIndexRoute:
+      AuthedRoutesProfileBarbershopsIndexRoute,
+    AuthedRoutesProfileBarbershopsAppointmentsIndexRoute:
+      AuthedRoutesProfileBarbershopsAppointmentsIndexRoute,
+    AuthedRoutesProfileBarbershopsInventoryIndexRoute:
+      AuthedRoutesProfileBarbershopsInventoryIndexRoute,
+    AuthedRoutesProfileBarbershopsServicesIndexRoute:
+      AuthedRoutesProfileBarbershopsServicesIndexRoute,
+    AuthedRoutesProfileBarbershopsSettingsIndexRoute:
+      AuthedRoutesProfileBarbershopsSettingsIndexRoute,
+    AuthedRoutesProfileBarbershopsTeamIndexRoute:
+      AuthedRoutesProfileBarbershopsTeamIndexRoute,
+  }
+
+const AuthedRoutesProfileBarbershopsRouteRouteWithChildren =
+  AuthedRoutesProfileBarbershopsRouteRoute._addFileChildren(
+    AuthedRoutesProfileBarbershopsRouteRouteChildren,
+  )
+
+interface AuthedRoutesRouteRouteChildren {
+  AuthedRoutesProfileBarbershopsRouteRoute: typeof AuthedRoutesProfileBarbershopsRouteRouteWithChildren
+  AuthedRoutesProfileIndexRoute: typeof AuthedRoutesProfileIndexRoute
+}
+
 const AuthedRoutesRouteRouteChildren: AuthedRoutesRouteRouteChildren = {
+  AuthedRoutesProfileBarbershopsRouteRoute:
+    AuthedRoutesProfileBarbershopsRouteRouteWithChildren,
   AuthedRoutesProfileIndexRoute: AuthedRoutesProfileIndexRoute,
-  AuthedRoutesProfileBarbershopsAppointmentsIndexRoute:
-    AuthedRoutesProfileBarbershopsAppointmentsIndexRoute,
-  AuthedRoutesProfileBarbershopsInventoryIndexRoute:
-    AuthedRoutesProfileBarbershopsInventoryIndexRoute,
-  AuthedRoutesProfileBarbershopsServicesIndexRoute:
-    AuthedRoutesProfileBarbershopsServicesIndexRoute,
-  AuthedRoutesProfileBarbershopsSettingsIndexRoute:
-    AuthedRoutesProfileBarbershopsSettingsIndexRoute,
-  AuthedRoutesProfileBarbershopsTeamIndexRoute:
-    AuthedRoutesProfileBarbershopsTeamIndexRoute,
 }
 
 const AuthedRoutesRouteRouteWithChildren =

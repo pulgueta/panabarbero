@@ -6,8 +6,7 @@ import { lazy, Suspense, useState } from "react";
 
 import { DashboardHeaderSkeleton } from "@/components/barbershops/dashboard-header.skeleton";
 import { ServiceCard } from "@/components/barbershops/services/service-card";
-import { BorderContainer } from "@/components/layout/border-container";
-import { LoadingComponent } from "@/components/layout/loading-component";
+import { DashboardPending } from "@/components/dashboard/dashboard-pending";
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,8 +46,9 @@ export const Route = createFileRoute(
   "/_authedRoutes/profile/barbershops/services/",
 )({
   component: RouteComponent,
-  pendingComponent: LoadingComponent,
+  pendingComponent: DashboardPending,
   ssr: "data-only",
+  staticData: { breadcrumb: "Servicios" },
   staleTime: cacheTime.high,
   gcTime: cacheTime.extreme,
   loader: async (opts) => {
@@ -103,91 +103,89 @@ function RouteComponent() {
   const canGoPrevious = cursorStack.length > 0;
 
   return (
-    <BorderContainer className="space-y-4">
-      <section className="flex w-full flex-col gap-4">
-        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <Suspense fallback={<DashboardHeaderSkeleton />}>
-            <DashboardHeader
-              title="Servicios"
-              description="Crea, edita y elimina los servicios que ofreces."
-            />
-          </Suspense>
-
-          <Suspense
-            fallback={
-              <Button disabled variant="outline">
-                <PlusIcon />
-                Agregar servicio
-              </Button>
-            }
-          >
-            {barbershop?._id &&
-              !isLoadingBarbershop &&
-              (rolesData?.isOwner || rolesData?.isStaff) && (
-                <ServiceDialog
-                  barbershopId={barbershop._id}
-                  trigger={
-                    <Button variant="outline">
-                      <PlusIcon />
-                      Agregar servicio
-                    </Button>
-                  }
-                />
-              )}
-          </Suspense>
-        </div>
-
-        <Suspense fallback={<ProfileTabSkeleton />}>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {services?.map((service) => (
-              <ServiceCard
-                key={service._id}
-                service={service}
-                canManage={rolesData?.isOwner! || rolesData?.isStaff!}
-              />
-            ))}
-          </div>
-
-          {services?.length === 0 && (
-            <Empty>
-              <EmptyHeader>
-                <EmptyTitle>
-                  No hay servicios disponibles para esta barbería.
-                </EmptyTitle>
-                <EmptyDescription>
-                  Cuando agregues un servicio, podrás verlo aquí.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          )}
+    <section className="space-y-6">
+      <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <Suspense fallback={<DashboardHeaderSkeleton />}>
+          <DashboardHeader
+            title="Servicios"
+            description="Crea, edita y elimina los servicios que ofreces."
+          />
         </Suspense>
 
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            variant="outline"
-            disabled={isFetchingServices || !canGoPrevious}
-            onClick={() => {
-              setCursorStack((prev) => {
-                const updated = [...prev];
-                const previousCursor = updated.pop() ?? null;
-                setCursor(previousCursor);
-                return updated;
-              });
-            }}
-          >
-            Anterior
-          </Button>
-          <Button
-            disabled={isFetchingServices || !hasNextPage}
-            onClick={() => {
-              setCursorStack((prev) => [...prev, cursor]);
-              setCursor(servicesResult?.continueCursor ?? null);
-            }}
-          >
-            Siguiente
-          </Button>
+        <Suspense
+          fallback={
+            <Button disabled variant="outline">
+              <PlusIcon />
+              Agregar servicio
+            </Button>
+          }
+        >
+          {barbershop?._id &&
+            !isLoadingBarbershop &&
+            (rolesData?.isOwner || rolesData?.isStaff) && (
+              <ServiceDialog
+                barbershopId={barbershop._id}
+                trigger={
+                  <Button variant="outline">
+                    <PlusIcon />
+                    Agregar servicio
+                  </Button>
+                }
+              />
+            )}
+        </Suspense>
+      </div>
+
+      <Suspense fallback={<ProfileTabSkeleton />}>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {services?.map((service) => (
+            <ServiceCard
+              key={service._id}
+              service={service}
+              canManage={rolesData?.isOwner! || rolesData?.isStaff!}
+            />
+          ))}
         </div>
-      </section>
-    </BorderContainer>
+
+        {services?.length === 0 && (
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>
+                No hay servicios disponibles para esta barbería.
+              </EmptyTitle>
+              <EmptyDescription>
+                Cuando agregues un servicio, podrás verlo aquí.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        )}
+      </Suspense>
+
+      <div className="flex items-center justify-end gap-2">
+        <Button
+          variant="outline"
+          disabled={isFetchingServices || !canGoPrevious}
+          onClick={() => {
+            setCursorStack((prev) => {
+              const updated = [...prev];
+              const previousCursor = updated.pop() ?? null;
+              setCursor(previousCursor);
+              return updated;
+            });
+          }}
+        >
+          Anterior
+        </Button>
+        <Button
+          disabled={isFetchingServices || !hasNextPage}
+          onClick={() => {
+            setCursorStack((prev) => [...prev, cursor]);
+            setCursor(servicesResult?.continueCursor ?? null);
+          }}
+        >
+          Siguiente
+        </Button>
+      </div>
+    </section>
   );
 }

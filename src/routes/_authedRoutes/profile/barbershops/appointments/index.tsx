@@ -11,8 +11,7 @@ import {
   rescheduledAppointmentRequestsTableColumns,
 } from "@/components/appointments/table/columns";
 import { DashboardHeaderSkeleton } from "@/components/barbershops/dashboard-header.skeleton";
-import { BorderContainer } from "@/components/layout/border-container";
-import { LoadingComponent } from "@/components/layout/loading-component";
+import { DashboardPending } from "@/components/dashboard/dashboard-pending";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -88,10 +87,11 @@ export const Route = createFileRoute(
   "/_authedRoutes/profile/barbershops/appointments/",
 )({
   component: RouteComponent,
-  pendingComponent: LoadingComponent,
+  pendingComponent: DashboardPending,
   validateSearch: dateSchema,
   loaderDeps: ({ search }) => search,
   ssr: "data-only",
+  staticData: { breadcrumb: "Citas" },
   staleTime: cacheTime.low,
   gcTime: cacheTime.medium,
   loader: async ({ context, deps }) => {
@@ -189,7 +189,7 @@ function RouteComponent() {
   const isOwner = session?.id ? barbershop?.ownerId === session.id : false;
 
   return (
-    <BorderContainer className="space-y-4">
+    <section className="space-y-6">
       <Suspense fallback={<DashboardHeaderSkeleton />}>
         <DashboardHeader
           title="Citas"
@@ -292,6 +292,6 @@ function RouteComponent() {
           />
         </Suspense>
       </div>
-    </BorderContainer>
+    </section>
   );
 }
