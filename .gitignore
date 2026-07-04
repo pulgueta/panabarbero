@@ -97,3 +97,5 @@ android
 
 # Contains live MCP bearer tokens
 .codex/config.toml
+
+.playwright*
