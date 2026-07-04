@@ -35,6 +35,7 @@ import type * as http from "../http.js";
 import type * as identity from "../identity.js";
 import type * as inAppNotifications from "../inAppNotifications.js";
 import type * as index from "../index.js";
+import type * as inventory from "../inventory.js";
 import type * as invitations from "../invitations.js";
 import type * as invitationsSchema from "../invitationsSchema.js";
 import type * as migrations from "../migrations.js";
@@ -89,6 +90,7 @@ declare const fullApi: ApiFromModules<{
   identity: typeof identity;
   inAppNotifications: typeof inAppNotifications;
   index: typeof index;
+  inventory: typeof inventory;
   invitations: typeof invitations;
   invitationsSchema: typeof invitationsSchema;
   migrations: typeof migrations;
@@ -138,6 +140,7 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   workOSAuthKit: import("@convex-dev/workos-authkit/_generated/component.js").ComponentApi<"workOSAuthKit">;
+  authz: import("@djpanda/convex-authz/_generated/component.js").ComponentApi<"authz">;
   twilio: import("@convex-dev/twilio/_generated/component.js").ComponentApi<"twilio">;
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
   r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
@@ -152,5 +155,8 @@ export declare const components: {
   aggregateSmsSent: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateSmsSent">;
   aggregateEmailsSent: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateEmailsSent">;
   aggregateReviewRatings: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateReviewRatings">;
+  aggregateInventoryValue: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateInventoryValue">;
+  aggregateInventoryMovements: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateInventoryMovements">;
+  workflow: import("@convex-dev/workflow/_generated/component.js").ComponentApi<"workflow">;
   reviewModerationWorkpool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"reviewModerationWorkpool">;
 };

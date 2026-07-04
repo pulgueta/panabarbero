@@ -117,3 +117,63 @@ export const usageTriggers = new Triggers<DataModel>();
 
 usageTriggers.register("usage", smsUsageAggregate.trigger());
 usageTriggers.register("usage", emailUsageAggregate.trigger());
+
+/**
+ * Total inventory valuation per barbershop: Σ (onHand × unitCost) over
+ * `inventoryLevels` docs, read in O(log n). `unitCost` is denormalized onto
+ * the level doc precisely so this sumValue lives entirely on the aggregated
+ * document — cost changes must patch the level through `inventoryTriggers`
+ * or the valuation silently goes stale.
+ *
+ * Namespace: barbershopId
+ * Key:       itemId (string) — allows per-item bounds if ever needed
+ * sumValue:  onHand * unitCost
+ */
+export const inventoryValueAggregate = new TableAggregate<{
+  Namespace: Barbershop["_id"];
+  Key: string;
+  DataModel: DataModel;
+  TableName: "inventoryLevels";
+}>(components.aggregateInventoryValue, {
+  namespace: (doc) => doc.barbershopId,
+  sortKey: (doc) => doc.itemId,
+  sumValue: (doc) => doc.onHand * doc.unitCost,
+});
+
+/**
+ * Units moved per (type, time) per barbershop over the movements ledger —
+ * answers "consumed/sold/received this period" via prefix + range bounds,
+ * with Bogotá-local period boundaries computed at query time.
+ *
+ * Namespace: barbershopId
+ * Key:       [movement type, _creationTime]
+ * sumValue:  |quantity|
+ */
+export const inventoryMovementsAggregate = new TableAggregate<{
+  Namespace: Barbershop["_id"];
+  Key: [string, number];
+  DataModel: DataModel;
+  TableName: "inventoryMovements";
+}>(components.aggregateInventoryMovements, {
+  namespace: (doc) => doc.barbershopId,
+  sortKey: (doc) => [doc.type, doc._creationTime],
+  sumValue: (doc) => Math.abs(doc.quantity),
+});
+
+/**
+ * Triggers that keep both inventory aggregates in sync. EVERY write to
+ * `inventoryLevels` or `inventoryMovements` must go through
+ * `inventoryTriggers.wrapDB(ctx).db` — a plain `ctx.db` write silently
+ * desyncs the aggregates. Sanctioned writers: `recordMovement` and the
+ * cost fan-out + retention rollup in `convex/inventory.ts`.
+ */
+export const inventoryTriggers = new Triggers<DataModel>();
+
+inventoryTriggers.register(
+  "inventoryLevels",
+  inventoryValueAggregate.trigger(),
+);
+inventoryTriggers.register(
+  "inventoryMovements",
+  inventoryMovementsAggregate.trigger(),
+);

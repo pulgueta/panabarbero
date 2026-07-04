@@ -32,6 +32,10 @@ export const SelectField: FC<SelectFieldProps> = ({
 
   const isInvalid = field.state.meta.isTouched && errors.length > 0;
 
+  const selectedLabel = options.find(
+    (option) => option.value === field.state.value,
+  )?.label;
+
   return (
     <Field data-invalid={isInvalid}>
       <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
@@ -47,7 +51,9 @@ export const SelectField: FC<SelectFieldProps> = ({
           aria-invalid={isInvalid}
           className={cn(className)}
         >
-          <SelectValue placeholder={placeholder ?? "Selecciona una opción"} />
+          <SelectValue placeholder={placeholder ?? "Selecciona una opción"}>
+            {selectedLabel}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {options.map((option) => (

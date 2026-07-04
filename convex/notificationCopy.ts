@@ -16,7 +16,43 @@ export const deepLinks = {
   review: (barbershopUuid: string, code: string) =>
     `${siteUrl()}/barbershops/${barbershopUuid}/review?code=${code}`,
   customerReviews: () => `${siteUrl()}/profile?tab=reviews`,
+  inventory: () => `${siteUrl()}/profile/barbershops/inventory`,
 };
+
+/** Display labels for inventory units in notification copy. */
+export const inventoryUnitLabels: Record<string, string> = {
+  unit: "unidades",
+  ml: "ml",
+  g: "g",
+  box: "cajas",
+  pack: "paquetes",
+};
+
+const inventoryUnitWords: Record<
+  string,
+  { singular: string; plural: string }
+> = {
+  unit: { singular: "unidad", plural: "unidades" },
+  ml: { singular: "ml", plural: "ml" },
+  g: { singular: "g", plural: "g" },
+  box: { singular: "caja", plural: "cajas" },
+  pack: { singular: "paquete", plural: "paquetes" },
+};
+
+/** es-CO phrase for remaining stock ("queda 1 unidad" / "quedan 3 cajas"). */
+export function formatLowStockRemaining(
+  remaining: number,
+  unit: string,
+): string {
+  const forms = inventoryUnitWords[unit] ?? {
+    singular: unit,
+    plural: unit,
+  };
+  const unitWord = remaining === 1 ? forms.singular : forms.plural;
+  const verb = remaining === 1 ? "queda" : "quedan";
+
+  return `${verb} ${remaining} ${unitWord}`;
+}
 
 export type BaseInput = { barbershopName?: string };
 
@@ -76,6 +112,14 @@ export type NotificationInput =
     }
   | {
       kind: "review_needs_attention";
+    }
+  | {
+      kind: "low_stock";
+      itemName: string;
+      remaining: number;
+      unit: string;
+      reorderPoint: number;
+      barbershopName?: string;
     };
 
 export interface NotificationCopy {
@@ -216,6 +260,19 @@ export function buildNotificationCopy(
         description:
           "Tu reseña no cumple nuestras normas de comunidad. Edítala o elimínala desde tu perfil para resolverlo.",
         href: deepLinks.customerReviews(),
+      };
+    }
+    case "low_stock": {
+      const remainingPhrase = formatLowStockRemaining(
+        input.remaining,
+        input.unit,
+      );
+
+      return {
+        kind: "low_stock",
+        title: subjects.low_stock,
+        description: `«${input.itemName}» está por agotarse en ${input.barbershopName ?? "tu barbería"}: ${remainingPhrase} (punto de pedido: ${input.reorderPoint}).`,
+        href: deepLinks.inventory(),
       };
     }
     default: {

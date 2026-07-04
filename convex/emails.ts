@@ -11,6 +11,7 @@ import {
   AppointmentReassignedEmail,
   AppointmentReminderEmail,
   AppointmentRescheduleRequestEmail,
+  LowStockEmail,
   PastAppointmentReminderEmail,
   RescheduleRequestAcceptEmail,
   RescheduleRequestDeniedEmail,
@@ -18,7 +19,11 @@ import {
   WelcomeEmail,
 } from "../emails/emails";
 import { zInternalAction } from ".";
-import { siteUrl } from "./notificationCopy";
+import {
+  deepLinks,
+  formatLowStockRemaining,
+  siteUrl,
+} from "./notificationCopy";
 import { subjects } from "./notifications";
 
 export const from = "Soporte de PanaBarbero <contacto@mail.panabarbero.com>";
@@ -346,6 +351,35 @@ export const sendWelcomeEmail = zInternalAction({
     await sendEmail({
       to: args.to,
       subject: "¡Bienvenido a PanaBarbero!",
+      html,
+    });
+  },
+});
+
+export const sendLowStockEmail = zInternalAction({
+  args: z.object({
+    to: z.string(),
+    itemName: z.string(),
+    remaining: z.number(),
+    unit: z.string(),
+    reorderPoint: z.number(),
+    barbershopName: z.string(),
+  }),
+  handler: async (_ctx, args) => {
+    const html = await render(
+      LowStockEmail({
+        subject: subjects.low_stock,
+        itemName: args.itemName,
+        remainingPhrase: formatLowStockRemaining(args.remaining, args.unit),
+        reorderPoint: args.reorderPoint,
+        barbershopName: args.barbershopName,
+        inventoryUrl: deepLinks.inventory(),
+      }),
+    );
+
+    await sendEmail({
+      to: args.to,
+      subject: subjects.low_stock,
       html,
     });
   },

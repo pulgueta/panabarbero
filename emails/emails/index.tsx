@@ -5,6 +5,7 @@ export * from "./appointments/appointment-reschedule-request";
 export * from "./appointments/past-appointment-reminder";
 export * from "./appointments/reschedule-request-accept";
 export * from "./appointments/reschedule-request-denied";
+export * from "./inventory/low-stock";
 export * from "./reviews/review-invite";
 export * from "./account-deleted";
 export * from "./appointment-reassigned";

@@ -5,7 +5,7 @@
       "source": "vercel-labs/agent-browser",
       "sourceType": "github",
       "skillPath": "skills/agent-browser/SKILL.md",
-      "computedHash": "228f87d57035100d9dc6efcfc05aafd4b6e3962adacaa04b8217ab2fadb15dc8"
+      "computedHash": "ecc7641aea05f85ca3b11e7759d32aaf52fe05946ab4b63739c7bf78a41237a2"
     },
     "convex": {
       "source": "get-convex/agent-skills",
@@ -29,7 +29,7 @@
       "source": "pbakaus/impeccable",
       "sourceType": "github",
       "skillPath": ".agents/skills/impeccable/SKILL.md",
-      "computedHash": "40d665906d86d9c8a7e28ffd24ea0da3497c9b549c9ae8ff624087ede2adb20b"
+      "computedHash": "1e310d65fb286f8bd22c193f48e4aef8dc6c8b9caa6816eecca582b8faa5a096"
     },
     "thermo-nuclear-code-quality-review": {
       "source": "cursor/plugins",
@@ -65,7 +65,7 @@
       "source": "lochie/web-haptics",
       "sourceType": "github",
       "skillPath": "SKILL.md",
-      "computedHash": "a6dce0fce9dc37f4dac87cd9ed2dc0e32e1ec3a5d8c860e1af07fee670295b7b"
+      "computedHash": "951e72beb4da0d70ed690623992c229b8db637da14a25bfb6cee13f9a425c12a"
     },
     "writing-guidelines": {
       "source": "vercel-labs/agent-skills",

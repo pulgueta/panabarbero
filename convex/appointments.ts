@@ -12,6 +12,7 @@ import { assertCanCreateStaffAppointment } from "./acl";
 import { track } from "./analytics";
 import { authkit } from "./auth.config";
 import {
+  assertCanMutateAppointment,
   assertShopRole,
   getBarbershopMemberByUserId,
   memberHasAnyRole,
@@ -19,6 +20,11 @@ import {
 import { getEffectiveSchedule } from "./barbershopMembers";
 import { errorMessages } from "./errors";
 import { getUserId } from "./identity";
+import {
+  consumeForAppointment,
+  releaseForAppointment,
+  reserveForAppointment,
+} from "./inventory";
 import { rateLimitOrThrow } from "./ratelimit";
 import type { Appointment, UserProfileData } from "./schema";
 import {
@@ -249,6 +255,14 @@ export const create = zAuthMutation({
       userId: appointmentUserId,
       status: "confirmed",
       createdBy: createdByMemberId,
+    });
+
+    // Reserve the service's inventory recipe (never throws, plan-gated no-op).
+    await reserveForAppointment(ctx, {
+      _id: appointmentId,
+      barbershopId: appointment.barbershopId,
+      serviceId: appointment.serviceId,
+      userId: appointmentUserId,
     });
 
     if (!isStaffCreatingAppointment) {
@@ -504,6 +518,9 @@ export const setStatus = zAuthMutation({
           ...(reviewCode ? { reviewCode, reviewCodeIssuedAt: Date.now() } : {}),
         });
 
+        // Release the recipe holds and consume the stock the service used.
+        await consumeForAppointment(ctx, appt);
+
         await ctx.runMutation(
           internal.barbershopMetadata.incrementCompletedAppointments,
           {
@@ -559,6 +576,8 @@ export const setStatus = zAuthMutation({
           pastReminderNotificationId: undefined,
         });
 
+        await releaseForAppointment(ctx, appt);
+
         await track(ctx, {
           distinctId: userId,
           event: "appointment_no_show",
@@ -574,6 +593,10 @@ export const setStatus = zAuthMutation({
 
       case "cancelled":
         await cancelScheduledNotifications(ctx, appt);
+
+        // Must run BEFORE the hard delete below — the ledger lookup needs the
+        // relatedAppointmentId while the doc is still referenced.
+        await releaseForAppointment(ctx, appt);
 
         if (appt.status === "completed") {
           await ctx.runMutation(
@@ -653,6 +676,8 @@ export const deleteAppointment = zAuthMutation({
       upcomingNotificationId: undefined,
       pastReminderNotificationId: undefined,
     });
+
+    await releaseForAppointment(ctx, appointment);
   },
 });
 
@@ -679,6 +704,21 @@ export const cancel = zAuthMutation({
       throw new ConvexError(errorMessages.notFound("cita"));
     }
 
+    if (args.cancelledByUserId !== userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    await assertCanMutateAppointment(ctx, appt, userId);
+
+    const isCustomerCancellation = appt.userId === userId;
+
+    if (
+      (isCustomerCancellation && args.cancelledBy !== "customer") ||
+      (!isCustomerCancellation && args.cancelledBy !== "barber")
+    ) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
     await cancelScheduledNotifications(ctx, appt);
 
     await ctx.db.patch(appointmentId, {
@@ -688,6 +728,8 @@ export const cancel = zAuthMutation({
       upcomingNotificationId: undefined,
       pastReminderNotificationId: undefined,
     });
+
+    await releaseForAppointment(ctx, appt);
 
     switch (args.cancelledBy) {
       case "customer":
@@ -981,6 +1023,11 @@ export const answerRescheduleRequest = zAuthMutation({
         proposedDate: undefined,
         rescheduleRequestedByUserId: undefined,
       });
+
+      // "denied" is a terminal state — free the recipe holds.
+      if (newStatus === "denied") {
+        await releaseForAppointment(ctx, appt);
+      }
     }
 
     const barber = await ctx.db.get(appt.barbershopMemberId);
@@ -1369,6 +1416,14 @@ export const agentBook = zInternalMutation({
       contactEmail: args.contactEmail,
       notes: args.notes,
       status: "confirmed",
+    });
+
+    // Second booking entry point (Pana agent) — reserve here too.
+    await reserveForAppointment(ctx, {
+      _id: appointmentId,
+      barbershopId: args.barbershopId,
+      serviceId: args.serviceId,
+      userId: args.userId,
     });
 
     const isAnon = args.userId.startsWith(ANON_PREFIX);

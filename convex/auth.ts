@@ -6,9 +6,10 @@ import type { MutationCtx } from "./_generated/server";
 import { reviewRatingsAggregate } from "./aggregates";
 import { identifyUser, track } from "./analytics";
 import { authkit } from "./auth.config";
-import { assertShopRole } from "./authz";
+import { assertShopRole, authz, revokeMemberAuthz } from "./authz";
 import { cascadeDeleteBarbershop } from "./barbershopCascade";
 import { getUserId } from "./identity";
+import { releaseForAppointment } from "./inventory";
 import { getLimitsForProductKey, getTierForProductKey } from "./plans";
 import { polar } from "./polar";
 import type { Appointment, Barbershop, BarbershopMember } from "./schema";
@@ -154,6 +155,11 @@ async function handleBarberDeparture(
         newBarberName: newBarberProfile?.name ?? "barbero disponible",
       });
     } else {
+      await releaseForAppointment(
+        ctx,
+        appt,
+        "Cita cancelada porque el barbero ya no pertenece a la barbería.",
+      );
       await ctx.db.patch(appt._id, {
         deletedAt: now,
         status: "cancelled",
@@ -291,6 +297,10 @@ async function removeMembership(
   if (member) {
     await handleBarberDeparture(ctx, member, barbershop);
     await ctx.db.delete(member._id);
+    await revokeMemberAuthz(ctx, {
+      userId: membership.userId,
+      barbershopId: barbershop._id,
+    });
   }
 }
 
@@ -421,6 +431,9 @@ export const { authKitEvent } = authkit.events({
       }
       await ctx.db.delete(memberRow._id);
     }
+
+    // Mirror: drop every scoped authz role this user held anywhere.
+    await authz.revokeAllRoles(ctx, userId);
 
     // 3. Delete user's own reviews
     const userReviews = await ctx.db

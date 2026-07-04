@@ -11,5 +11,11 @@ minimumReleaseAgeExclude:
   - '@cloudflare/vite-plugin@1.42.0'
   - miniflare@4.20260617.0
   - wrangler@4.102.0
+  - '@react-email/render@2.0.10'
+  - deslop-js@0.6.2
+  - oxlint-plugin-react-doctor@0.6.2
+  - react-doctor@0.6.2
+  - react-email@6.6.6
+  - shadcn@4.13.0
 patchedDependencies:
   '@tanstack/router-core@1.171.9': patches/@tanstack__router-core@1.171.9.patch

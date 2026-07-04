@@ -8,6 +8,7 @@ import { internal } from "./_generated/api";
 import { track } from "./analytics";
 import { assertCanManageServices, assertCanManageTeam } from "./authz";
 import { errorMessages } from "./errors";
+import { releaseForAppointment } from "./inventory";
 import { rateLimitOrThrow } from "./ratelimit";
 import { appointments, barbershops, services } from "./schema";
 
@@ -183,19 +184,22 @@ export const deleteService = zAuthMutation({
     }
 
     // If force or no impacted appointments, proceed with deletion
-    // Cancel and soft-delete impacted appointments, notify customers
-    const [barbershop] = await Promise.all([
-      ctx.db.get(args.barbershop.id),
-      ...impactedAppointments.map((appt) =>
-        ctx.db.patch(appt._id, {
-          status: "cancelled",
-          deletedAt: Date.now(),
-          notes: `Servicio "${service.name}" eliminado por la barbería`,
-          proposedDate: undefined,
-          rescheduleRequestedByUserId: undefined,
-        }),
-      ),
-    ]);
+    const barbershop = await ctx.db.get(args.barbershop.id);
+
+    for (const appt of impactedAppointments) {
+      await releaseForAppointment(
+        ctx,
+        appt,
+        `Servicio "${service.name}" eliminado por la barbería`,
+      );
+      await ctx.db.patch(appt._id, {
+        status: "cancelled",
+        deletedAt: Date.now(),
+        notes: `Servicio "${service.name}" eliminado por la barbería`,
+        proposedDate: undefined,
+        rescheduleRequestedByUserId: undefined,
+      });
+    }
 
     // Delete all barber-service assignments for this service
     const [, assignments] = await Promise.all([
@@ -220,8 +224,15 @@ export const deleteService = zAuthMutation({
         .collect(),
     ]);
 
+    // A deleted service takes its inventory recipe with it.
+    const recipeLines = await ctx.db
+      .query("serviceInventoryUsage")
+      .withIndex("by_serviceId", (q) => q.eq("serviceId", args.service.id))
+      .collect();
+
     await Promise.all([
       ...assignments.map((assignment) => ctx.db.delete(assignment._id)),
+      ...recipeLines.map((line) => ctx.db.delete(line._id)),
       ctx.db.delete(args.service.id),
     ]);
 

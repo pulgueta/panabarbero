@@ -278,6 +278,7 @@ export const notificationKinds = [
   "service_deleted_cancellation",
   "review_invite",
   "review_needs_attention",
+  "low_stock",
 ] as const;
 
 export const notificationKindSchema = z.enum(notificationKinds);
@@ -304,6 +305,9 @@ export const inAppNotifications = zodTable("inAppNotifications", (id) => ({
       reviewId: id("reviews").optional(),
       barbershopUuid: z.string().optional(),
       reviewCode: z.string().optional(),
+      itemName: z.string().optional(),
+      itemUnit: z.string().optional(),
+      remaining: z.number().optional(),
     })
     .optional(),
 }));
@@ -325,6 +329,157 @@ export const routeCache = zodTable("routeCache", () => ({
   /** Route polyline as `[longitude, latitude]` pairs. */
   geometry: z.array(z.array(z.number())),
 }));
+
+export const inventoryCategories = [
+  "drink",
+  "blade",
+  "machine",
+  "spray",
+  "alcohol",
+  "tool",
+  "consumable",
+  "retail",
+  "other",
+] as const;
+
+/**
+ * Quantities are ALWAYS integers in the item's unit. Liquids/weights use
+ * integer base units (ml, g) — a 1L bottle is 1000 ml. No floats, no drift.
+ */
+export const inventoryUnits = ["unit", "ml", "g", "box", "pack"] as const;
+
+export const inventoryMovementTypes = [
+  "receipt",
+  "sale",
+  "consumption",
+  "adjustment",
+  "waste",
+  "return",
+  "reservation",
+  "release",
+  "transfer_in",
+  "transfer_out",
+] as const;
+
+export const inventoryMovementTypeSchema = z.enum(inventoryMovementTypes);
+
+/** Item definition — no quantities live here (those are on `inventoryLevels`). */
+export const inventoryItems = zodTable("inventoryItems", (id) => ({
+  barbershopId: id("barbershops"),
+  name: z
+    .string({ error: "El nombre es requerido" })
+    .min(2, { error: "El nombre debe tener al menos 2 caracteres" })
+    .max(120, { error: "El nombre debe tener menos de 120 caracteres" })
+    .trim(),
+  sku: z.string().max(64).trim().optional(),
+  category: z.enum(inventoryCategories, {
+    error: "La categoría es requerida",
+  }),
+  unit: z.enum(inventoryUnits, { error: "La unidad es requerida" }),
+  isSellable: z.boolean().default(false),
+  /** COP integer pesos. Weighted moving average, updated on each receipt. */
+  unitCost: z.coerce
+    .number({ error: "El costo es requerido" })
+    .int({ error: "El costo debe ser un número entero" })
+    .min(0, { error: "El costo no puede ser negativo" }),
+  salePrice: z.coerce
+    .number()
+    .int({ error: "El precio debe ser un número entero" })
+    .min(1000, { error: "El precio debe ser mayor a $1.000" })
+    .optional(),
+  reorderPoint: z.coerce
+    .number()
+    .int({ error: "El punto de pedido debe ser un número entero" })
+    .min(0, { error: "El punto de pedido no puede ser negativo" })
+    .default(0),
+  reorderQuantity: z.coerce.number().int().min(1).optional(),
+  /** Reject stock-decrements below zero by default; per-item opt-in. */
+  allowNegativeStock: z.boolean().default(false),
+  /** R2 object key — never a URL or blob. */
+  imageKey: z.string().optional(),
+  /** Archive = soft delete. Ledger rows and snapshots keep history readable. */
+  deletedAt: z.number().optional(),
+}));
+
+/**
+ * Running balance per (item, location) — the hot O(1) read. Only
+ * `recordMovement` in `convex/inventory.ts` may write these rows, and only
+ * through the trigger-wrapped db so the aggregates stay in sync.
+ * `available = onHand - reserved`, always computed, never stored.
+ */
+export const inventoryLevels = zodTable("inventoryLevels", (id) => ({
+  barbershopId: id("barbershops"),
+  itemId: id("inventoryItems"),
+  /** undefined = main location. Multi-location seam; UI is single-location. */
+  locationId: z.string().optional(),
+  onHand: z.number().int(),
+  reserved: z.number().int().default(0),
+  /** Denormalized from the item so the valuation aggregate's sumValue (onHand * unitCost) lives on this doc. */
+  unitCost: z.number().int().min(0),
+  /** Denormalized: onHand <= item.reorderPoint. */
+  belowReorder: z.boolean(),
+  /** Alert hysteresis: stamped on the downward crossing, cleared on recovery. */
+  lowStockAlertedAt: z.number().optional(),
+}));
+
+/**
+ * Append-only movement ledger — the source of truth, never edited.
+ * `quantity` is a positive magnitude for every type EXCEPT `adjustment`,
+ * which stores the signed delta. Per-balance effects derive from the
+ * `movementEffects` matrix in `convex/inventory.ts`.
+ */
+export const inventoryMovements = zodTable("inventoryMovements", (id) => ({
+  barbershopId: id("barbershops"),
+  itemId: id("inventoryItems"),
+  /** Snapshot — history survives item renames and archival. */
+  itemName: z.string(),
+  locationId: z.string().optional(),
+  type: inventoryMovementTypeSchema,
+  quantity: z.number().int(),
+  /** Cost snapshot at write time — historical valuation survives cost changes. */
+  unitCostAtTime: z.number().int(),
+  /** onHand after applying this movement — O(1) audit and reconcile anchor. */
+  balanceAfter: z.number().int(),
+  reason: z.string().max(300).optional(),
+  actorUserId: z.string(),
+  relatedAppointmentId: id("appointments").optional(),
+  /** Dedupe for webhook/import-originated movements (creditPurchases.orderId pattern). */
+  idempotencyKey: z.string().optional(),
+}));
+
+/**
+ * Per-service consumption recipe: booking auto-reserves these lines,
+ * completion auto-consumes, every cancellation path auto-releases.
+ */
+export const serviceInventoryUsage = zodTable(
+  "serviceInventoryUsage",
+  (id) => ({
+    barbershopId: id("barbershops"),
+    serviceId: id("services"),
+    itemId: id("inventoryItems"),
+    /** In the item's unit. */
+    quantity: z.coerce
+      .number({ error: "La cantidad es requerida" })
+      .int({ error: "La cantidad debe ser un número entero" })
+      .min(1, { error: "La cantidad debe ser mayor a 0" }),
+  }),
+);
+
+/** Retention rollup target: pruned ledger months survive here. Bogotá-local month keys. */
+export const inventoryMovementSummaries = zodTable(
+  "inventoryMovementSummaries",
+  (id) => ({
+    barbershopId: id("barbershops"),
+    itemId: id("inventoryItems"),
+    itemName: z.string(),
+    /** "YYYY-MM", America/Bogota. */
+    month: z.string(),
+    type: inventoryMovementTypeSchema,
+    totalQuantity: z.number().int(),
+    /** Σ quantity * unitCostAtTime over the rolled-up rows. */
+    totalCost: z.number().int(),
+  }),
+);
 
 export default defineSchema({
   userProfileData: userProfileData
@@ -400,6 +555,41 @@ export default defineSchema({
     .index("by_user_created", ["userId"]),
 
   routeCache: routeCache.table().index("by_key", ["key"]),
+
+  inventoryItems: inventoryItems
+    .table()
+    .index("by_barbershopId", ["barbershopId"])
+    .index("by_barbershopId_and_category", ["barbershopId", "category"]),
+
+  inventoryLevels: inventoryLevels
+    .table()
+    .index("by_barbershopId", ["barbershopId"])
+    .index("by_itemId", ["itemId"])
+    .index("by_barbershopId_and_belowReorder", [
+      "barbershopId",
+      "belowReorder",
+    ]),
+
+  inventoryMovements: inventoryMovements
+    .table()
+    .index("by_itemId", ["itemId"])
+    .index("by_barbershopId", ["barbershopId"])
+    .index("by_barbershopId_and_idempotencyKey", [
+      "barbershopId",
+      "idempotencyKey",
+    ])
+    .index("by_relatedAppointmentId", ["relatedAppointmentId"]),
+
+  serviceInventoryUsage: serviceInventoryUsage
+    .table()
+    .index("by_serviceId", ["serviceId"])
+    .index("by_itemId", ["itemId"])
+    .index("by_barbershopId", ["barbershopId"]),
+
+  inventoryMovementSummaries: inventoryMovementSummaries
+    .table()
+    .index("by_barbershopId_and_month", ["barbershopId", "month"])
+    .index("by_itemId_and_month", ["itemId", "month"]),
 });
 
 export type UserProfileData = output<typeof userProfileData.schema>;
@@ -427,3 +617,13 @@ export type CreditPurchase = output<typeof creditPurchases.schema>;
 export type InAppNotification = output<typeof inAppNotifications.schema>;
 export type NotificationKind = (typeof notificationKinds)[number];
 export type RouteCache = output<typeof routeCache.schema>;
+export type InventoryItem = output<typeof inventoryItems.schema>;
+export type InventoryLevel = output<typeof inventoryLevels.schema>;
+export type InventoryMovement = output<typeof inventoryMovements.schema>;
+export type InventoryMovementType = (typeof inventoryMovementTypes)[number];
+export type InventoryCategory = (typeof inventoryCategories)[number];
+export type InventoryUnit = (typeof inventoryUnits)[number];
+export type ServiceInventoryUsage = output<typeof serviceInventoryUsage.schema>;
+export type InventoryMovementSummary = output<
+  typeof inventoryMovementSummaries.schema
+>;

@@ -94,6 +94,47 @@ export async function assertCanCreateStaffAppointment(
 }
 
 /**
+ * Assert the barbershop's plan includes the inventory module (pro / premium).
+ * Always resolved against the **owner's** subscription — staff/barbers hold
+ * no plan of their own.
+ */
+export async function assertInventoryAllowed(
+  ctx: QueryCtx | MutationCtx,
+  barbershopId: Barbershop["_id"],
+): Promise<void> {
+  const barbershop = await ctx.db.get(barbershopId);
+
+  if (!barbershop) {
+    throw new ConvexError(errorMessages.notFound("barbería"));
+  }
+
+  const limits = await getUserPlanLimits(ctx, barbershop.ownerId);
+
+  if (!limits.inventoryEnabled) {
+    throw new ConvexError(errorMessages.planLimitExceeded("inventario"));
+  }
+}
+
+/**
+ * Non-throwing variant of {@link assertInventoryAllowed} for the appointment
+ * lifecycle hooks, which must never fail a booking over inventory gating.
+ */
+export async function isInventoryAllowed(
+  ctx: QueryCtx | MutationCtx,
+  barbershopId: Barbershop["_id"],
+): Promise<boolean> {
+  const barbershop = await ctx.db.get(barbershopId);
+
+  if (!barbershop) {
+    return false;
+  }
+
+  const limits = await getUserPlanLimits(ctx, barbershop.ownerId);
+
+  return limits.inventoryEnabled;
+}
+
+/**
  * Assert the barbershop owner can invite another barber without exceeding the
  * plan limit.
  *

@@ -33,6 +33,7 @@ import { Route as BarbershopsBarbershopUuidBookRouteImport } from './routes/barb
 import { Route as AuthedRoutesProfileBarbershopsTeamIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/team/index'
 import { Route as AuthedRoutesProfileBarbershopsSettingsIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/settings/index'
 import { Route as AuthedRoutesProfileBarbershopsServicesIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/services/index'
+import { Route as AuthedRoutesProfileBarbershopsInventoryIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/inventory/index'
 import { Route as AuthedRoutesProfileBarbershopsAppointmentsIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/appointments/index'
 
 const TosRoute = TosRouteImport.update({
@@ -160,6 +161,12 @@ const AuthedRoutesProfileBarbershopsServicesIndexRoute =
     path: '/profile/barbershops/services/',
     getParentRoute: () => AuthedRoutesRouteRoute,
   } as any)
+const AuthedRoutesProfileBarbershopsInventoryIndexRoute =
+  AuthedRoutesProfileBarbershopsInventoryIndexRouteImport.update({
+    id: '/profile/barbershops/inventory/',
+    path: '/profile/barbershops/inventory/',
+    getParentRoute: () => AuthedRoutesRouteRoute,
+  } as any)
 const AuthedRoutesProfileBarbershopsAppointmentsIndexRoute =
   AuthedRoutesProfileBarbershopsAppointmentsIndexRouteImport.update({
     id: '/profile/barbershops/appointments/',
@@ -188,6 +195,7 @@ export interface FileRoutesByFullPath {
   '/profile/': typeof AuthedRoutesProfileIndexRoute
   '/barbershops/$barbershopUuid/': typeof BarbershopsBarbershopUuidIndexRoute
   '/profile/barbershops/appointments/': typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
+  '/profile/barbershops/inventory/': typeof AuthedRoutesProfileBarbershopsInventoryIndexRoute
   '/profile/barbershops/services/': typeof AuthedRoutesProfileBarbershopsServicesIndexRoute
   '/profile/barbershops/settings/': typeof AuthedRoutesProfileBarbershopsSettingsIndexRoute
   '/profile/barbershops/team/': typeof AuthedRoutesProfileBarbershopsTeamIndexRoute
@@ -212,6 +220,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthedRoutesProfileIndexRoute
   '/barbershops/$barbershopUuid': typeof BarbershopsBarbershopUuidIndexRoute
   '/profile/barbershops/appointments': typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
+  '/profile/barbershops/inventory': typeof AuthedRoutesProfileBarbershopsInventoryIndexRoute
   '/profile/barbershops/services': typeof AuthedRoutesProfileBarbershopsServicesIndexRoute
   '/profile/barbershops/settings': typeof AuthedRoutesProfileBarbershopsSettingsIndexRoute
   '/profile/barbershops/team': typeof AuthedRoutesProfileBarbershopsTeamIndexRoute
@@ -240,6 +249,7 @@ export interface FileRoutesById {
   '/_authedRoutes/profile/': typeof AuthedRoutesProfileIndexRoute
   '/barbershops/$barbershopUuid/': typeof BarbershopsBarbershopUuidIndexRoute
   '/_authedRoutes/profile/barbershops/appointments/': typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
+  '/_authedRoutes/profile/barbershops/inventory/': typeof AuthedRoutesProfileBarbershopsInventoryIndexRoute
   '/_authedRoutes/profile/barbershops/services/': typeof AuthedRoutesProfileBarbershopsServicesIndexRoute
   '/_authedRoutes/profile/barbershops/settings/': typeof AuthedRoutesProfileBarbershopsSettingsIndexRoute
   '/_authedRoutes/profile/barbershops/team/': typeof AuthedRoutesProfileBarbershopsTeamIndexRoute
@@ -267,6 +277,7 @@ export interface FileRouteTypes {
     | '/profile/'
     | '/barbershops/$barbershopUuid/'
     | '/profile/barbershops/appointments/'
+    | '/profile/barbershops/inventory/'
     | '/profile/barbershops/services/'
     | '/profile/barbershops/settings/'
     | '/profile/barbershops/team/'
@@ -291,6 +302,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/barbershops/$barbershopUuid'
     | '/profile/barbershops/appointments'
+    | '/profile/barbershops/inventory'
     | '/profile/barbershops/services'
     | '/profile/barbershops/settings'
     | '/profile/barbershops/team'
@@ -318,6 +330,7 @@ export interface FileRouteTypes {
     | '/_authedRoutes/profile/'
     | '/barbershops/$barbershopUuid/'
     | '/_authedRoutes/profile/barbershops/appointments/'
+    | '/_authedRoutes/profile/barbershops/inventory/'
     | '/_authedRoutes/profile/barbershops/services/'
     | '/_authedRoutes/profile/barbershops/settings/'
     | '/_authedRoutes/profile/barbershops/team/'
@@ -512,6 +525,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedRoutesProfileBarbershopsServicesIndexRouteImport
       parentRoute: typeof AuthedRoutesRouteRoute
     }
+    '/_authedRoutes/profile/barbershops/inventory/': {
+      id: '/_authedRoutes/profile/barbershops/inventory/'
+      path: '/profile/barbershops/inventory'
+      fullPath: '/profile/barbershops/inventory/'
+      preLoaderRoute: typeof AuthedRoutesProfileBarbershopsInventoryIndexRouteImport
+      parentRoute: typeof AuthedRoutesRouteRoute
+    }
     '/_authedRoutes/profile/barbershops/appointments/': {
       id: '/_authedRoutes/profile/barbershops/appointments/'
       path: '/profile/barbershops/appointments'
@@ -539,6 +559,7 @@ const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
 interface AuthedRoutesRouteRouteChildren {
   AuthedRoutesProfileIndexRoute: typeof AuthedRoutesProfileIndexRoute
   AuthedRoutesProfileBarbershopsAppointmentsIndexRoute: typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
+  AuthedRoutesProfileBarbershopsInventoryIndexRoute: typeof AuthedRoutesProfileBarbershopsInventoryIndexRoute
   AuthedRoutesProfileBarbershopsServicesIndexRoute: typeof AuthedRoutesProfileBarbershopsServicesIndexRoute
   AuthedRoutesProfileBarbershopsSettingsIndexRoute: typeof AuthedRoutesProfileBarbershopsSettingsIndexRoute
   AuthedRoutesProfileBarbershopsTeamIndexRoute: typeof AuthedRoutesProfileBarbershopsTeamIndexRoute
@@ -548,6 +569,8 @@ const AuthedRoutesRouteRouteChildren: AuthedRoutesRouteRouteChildren = {
   AuthedRoutesProfileIndexRoute: AuthedRoutesProfileIndexRoute,
   AuthedRoutesProfileBarbershopsAppointmentsIndexRoute:
     AuthedRoutesProfileBarbershopsAppointmentsIndexRoute,
+  AuthedRoutesProfileBarbershopsInventoryIndexRoute:
+    AuthedRoutesProfileBarbershopsInventoryIndexRoute,
   AuthedRoutesProfileBarbershopsServicesIndexRoute:
     AuthedRoutesProfileBarbershopsServicesIndexRoute,
   AuthedRoutesProfileBarbershopsSettingsIndexRoute:

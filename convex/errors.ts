@@ -35,4 +35,15 @@ export const errorMessages = {
     "Solo puedes reseñar una visita que haya sido completada.",
   reviewImmutable:
     "Una reseña publicada no se puede modificar; solo eliminarla.",
+
+  // Inventory
+  insufficientStock: "No hay stock suficiente para completar esta operación.",
+  itemArchived: "Este producto está archivado.",
+  itemNotSellable: "Este producto no está marcado para la venta.",
+  invalidQuantity: "La cantidad debe ser mayor a 0.",
+  idempotencyKeyConflict:
+    "Esta clave de idempotencia ya se usó en otra operación.",
+  salePriceRequired:
+    "El precio de venta es requerido para productos vendibles.",
+  duplicateRecipeItem: "No repitas productos en la receta.",
 } as const;

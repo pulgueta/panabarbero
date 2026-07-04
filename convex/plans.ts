@@ -71,6 +71,8 @@ export interface PlanLimits {
    * (services, hours, policies) via RAG. Highest tier only.
    */
   panaKnowledgeBase: boolean;
+  /** Whether the barbershop can use the inventory module (pro / premium). */
+  inventoryEnabled: boolean;
 }
 
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
@@ -83,6 +85,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     panaManagement: false,
     panaMemory: false,
     panaKnowledgeBase: false,
+    inventoryEnabled: false,
   },
   pro: {
     maxInvitedBarbers: 5,
@@ -93,6 +96,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     panaManagement: true,
     panaMemory: true,
     panaKnowledgeBase: false,
+    inventoryEnabled: true,
   },
   premium: {
     maxInvitedBarbers: 10,
@@ -103,6 +107,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     panaManagement: true,
     panaMemory: true,
     panaKnowledgeBase: true,
+    inventoryEnabled: true,
   },
 };
 
