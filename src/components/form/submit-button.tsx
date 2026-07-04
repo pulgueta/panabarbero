@@ -10,11 +10,17 @@ interface SubmitButtonProps {
   label: string;
   className?: string;
   variant?: ButtonProps["variant"];
+  /** When false, a pristine form can still submit (e.g. stock adjust defaults). */
+  requireDirty?: boolean;
+  /** Enables submit even when the form is pristine (e.g. photo-only edits). */
+  forceEnabled?: boolean;
 }
 
 export const SubmitButton: FC<SubmitButtonProps> = ({
   label,
   className,
+  requireDirty = true,
+  forceEnabled = false,
   ...props
 }) => {
   const form = useFormContext();
@@ -30,7 +36,11 @@ export const SubmitButton: FC<SubmitButtonProps> = ({
       {([canSubmit, isSubmitting, isPristine]) => (
         <Button
           type="submit"
-          disabled={!canSubmit || isPristine || isSubmitting}
+          disabled={
+            !canSubmit ||
+            isSubmitting ||
+            (requireDirty && isPristine && !forceEnabled)
+          }
           className={cn(className)}
           {...props}
         >
