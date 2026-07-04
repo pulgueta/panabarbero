@@ -9,6 +9,7 @@ import { authkit } from "./auth.config";
 import { assertShopRole, authz, revokeMemberAuthz } from "./authz";
 import { cascadeDeleteBarbershop } from "./barbershopCascade";
 import { getUserId } from "./identity";
+import { releaseForAppointment } from "./inventory";
 import { getLimitsForProductKey, getTierForProductKey } from "./plans";
 import { polar } from "./polar";
 import type { Appointment, Barbershop, BarbershopMember } from "./schema";
@@ -154,6 +155,11 @@ async function handleBarberDeparture(
         newBarberName: newBarberProfile?.name ?? "barbero disponible",
       });
     } else {
+      await releaseForAppointment(
+        ctx,
+        appt,
+        "Cita cancelada porque el barbero ya no pertenece a la barbería.",
+      );
       await ctx.db.patch(appt._id, {
         deletedAt: now,
         status: "cancelled",

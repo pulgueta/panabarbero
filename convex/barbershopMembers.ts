@@ -16,6 +16,7 @@ import {
   syncMemberAuthz,
 } from "./authz";
 import { errorMessages } from "./errors";
+import { releaseForAppointment } from "./inventory";
 import { getUserId, requireUserId } from "./identity";
 import { rateLimitOrThrow } from "./ratelimit";
 import type { Barbershop, BarbershopMember } from "./schema";
@@ -213,18 +214,21 @@ export const removeBarberFromBarbershop = zAuthMutation({
     const barberName = barberProfile?.name ?? "el barbero";
     const barbershopName = barbershop?.name ?? "la barbería";
 
-    await Promise.all(
-      activeAppointments.map((appt) =>
-        ctx.db.patch(appt._id, {
-          deletedAt: Date.now(),
-          status: "cancelled",
-          notes:
-            "Cita cancelada porque el barbero ya no pertenece a la barbería",
-          proposedDate: undefined,
-          rescheduleRequestedByUserId: undefined,
-        }),
-      ),
-    );
+    for (const appt of activeAppointments) {
+      await releaseForAppointment(
+        ctx,
+        appt,
+        "Cita cancelada porque el barbero ya no pertenece a la barbería",
+      );
+      await ctx.db.patch(appt._id, {
+        deletedAt: Date.now(),
+        status: "cancelled",
+        notes:
+          "Cita cancelada porque el barbero ya no pertenece a la barbería",
+        proposedDate: undefined,
+        rescheduleRequestedByUserId: undefined,
+      });
+    }
 
     await Promise.all([
       ...activeAppointments.map((appt) =>
@@ -599,26 +603,28 @@ export const toggleBarberRole = zAuthMutation({
     );
 
     // Remove service assignments
-    const [, assignments] = await Promise.all([
-      Promise.all(
-        unreassignedAppointments.map((appt) =>
-          ctx.db.patch(appt._id, {
-            deletedAt: now,
-            status: "cancelled",
-            notes:
-              "Cita cancelada porque el dueño dejó de atender como barbero.",
-            proposedDate: undefined,
-            rescheduleRequestedByUserId: undefined,
-          }),
-        ),
-      ),
-      ctx.db
-        .query("barbershopMemberServices")
-        .withIndex("by_barbershopMemberId", (q) =>
-          q.eq("barbershopMemberId", member._id),
-        )
-        .collect(),
-    ]);
+    for (const appt of unreassignedAppointments) {
+      await releaseForAppointment(
+        ctx,
+        appt,
+        "Cita cancelada porque el dueño dejó de atender como barbero.",
+      );
+      await ctx.db.patch(appt._id, {
+        deletedAt: now,
+        status: "cancelled",
+        notes:
+          "Cita cancelada porque el dueño dejó de atender como barbero.",
+        proposedDate: undefined,
+        rescheduleRequestedByUserId: undefined,
+      });
+    }
+
+    const assignments = await ctx.db
+      .query("barbershopMemberServices")
+      .withIndex("by_barbershopMemberId", (q) =>
+        q.eq("barbershopMemberId", member._id),
+      )
+      .collect();
 
     await Promise.all([
       ...assignments.map((assignment) => ctx.db.delete(assignment._id)),
