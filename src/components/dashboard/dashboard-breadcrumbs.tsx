@@ -13,12 +13,15 @@ import {
 export function DashboardBreadcrumbs() {
   const crumbs = useMatches({
     select: (matches) =>
-      matches
-        .filter((match) => match.staticData.breadcrumb)
-        .map((match) => ({
-          to: match.pathname,
-          label: match.staticData.breadcrumb as string,
-        })),
+      matches.reduce<{ to: string; label: string }[]>((acc, match) => {
+        if (match.staticData.breadcrumb) {
+          acc.push({
+            to: match.pathname,
+            label: match.staticData.breadcrumb as string,
+          });
+        }
+        return acc;
+      }, []),
   });
 
   if (crumbs.length === 0) {
