@@ -35,6 +35,35 @@ export const inventoryUnitSuffixes: Record<InventoryUnit, string> = {
   pack: "paquetes",
 };
 
+const inventoryCountableUnits: Partial<
+  Record<InventoryUnit, { one: string; other: string }>
+> = {
+  box: { one: "caja", other: "cajas" },
+  pack: { one: "paquete", other: "paquetes" },
+};
+
+/** Count-aware unit suffix for stock displays. */
+export function formatInventoryStockSuffix(
+  count: number,
+  unit: InventoryUnit,
+): string {
+  if (unit === "unit") {
+    return "und";
+  }
+
+  if (unit === "ml" || unit === "g") {
+    return unit;
+  }
+
+  const forms = inventoryCountableUnits[unit];
+
+  return forms ? (count === 1 ? forms.one : forms.other) : unit;
+}
+
+export function formatRemainingBalanceLabel(balanceAfter: number): string {
+  return balanceAfter === 1 ? "Quedó" : "Quedaron";
+}
+
 export const inventoryMovementTypeData: Record<
   InventoryMovementType,
   { label: string; variant: BadgeProps["variant"] }

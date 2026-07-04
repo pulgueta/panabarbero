@@ -110,7 +110,7 @@ export function getInventoryTableColumns(
           </p>
           {row.original.reserved > 0 && (
             <p className="text-muted-foreground text-xs">
-              {row.original.reserved} reservadas
+              {row.original.reserved} en reserva
             </p>
           )}
         </div>
@@ -153,7 +153,7 @@ export function getInventoryTableColumns(
   ];
 
   const actionsColumn: ColumnDef<InventoryOverviewRow> = {
-    accessorKey: "actions",
+    id: "actions",
     header: () => <div className="text-center">Acciones</div>,
     cell: ({ row }) =>
       opts.canManage ? (
@@ -161,7 +161,11 @@ export function getInventoryTableColumns(
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
-                <Button variant="outline" size="icon">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label={`Acciones de ${row.original.name}`}
+                >
                   <DotsThreeVerticalIcon />
                 </Button>
               }

@@ -3,6 +3,8 @@ import type { FC, ReactElement } from "react";
 import { useState } from "react";
 
 import {
+  formatInventoryStockSuffix,
+  formatRemainingBalanceLabel,
   inventoryMovementTypeData,
   inventoryUnitSuffixes,
 } from "@/components/inventory/labels";
@@ -86,7 +88,9 @@ const MovementsPage: FC<MovementsPageProps> = ({
             </div>
 
             <span className="shrink-0 text-muted-foreground text-sm tabular-nums">
-              Quedaron {movement.balanceAfter}
+              {formatRemainingBalanceLabel(movement.balanceAfter)}{" "}
+              {movement.balanceAfter}{" "}
+              {formatInventoryStockSuffix(movement.balanceAfter, unit)}
             </span>
           </div>
         );
