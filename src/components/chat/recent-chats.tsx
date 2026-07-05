@@ -2,6 +2,7 @@ import { ChatCircleIcon, NotePencilIcon } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import type { ChatRouteScope } from "@/hooks/use-chat";
 import { chatViewTransition } from "@/lib/chat-view-transition";
 import { buttonVariants } from "../ui/button";
 
@@ -17,6 +18,7 @@ interface RecentChatsProps {
   isLoading: boolean;
   /** Called after navigating — used to close the mobile drawer. */
   onSelect?: () => void;
+  routeScope?: ChatRouteScope;
 }
 
 /**
@@ -29,21 +31,36 @@ export function RecentChats({
   activeThreadId,
   isLoading,
   onSelect,
+  routeScope = "public",
 }: RecentChatsProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="p-2">
-        <Link
-          className={buttonVariants({
-            className: "w-full justify-start",
-          })}
-          onClick={onSelect}
-          to="/chat"
-          viewTransition={chatViewTransition}
-        >
-          <NotePencilIcon className="size-4 shrink-0" weight="bold" />
-          Nuevo chat
-        </Link>
+        {routeScope === "dashboard" ? (
+          <Link
+            className={buttonVariants({
+              className: "w-full justify-start",
+            })}
+            onClick={onSelect}
+            to="/profile/barbershops/pana"
+            viewTransition={chatViewTransition}
+          >
+            <NotePencilIcon className="size-4 shrink-0" weight="bold" />
+            Nuevo chat
+          </Link>
+        ) : (
+          <Link
+            className={buttonVariants({
+              className: "w-full justify-start",
+            })}
+            onClick={onSelect}
+            to="/chat"
+            viewTransition={chatViewTransition}
+          >
+            <NotePencilIcon className="size-4 shrink-0" weight="bold" />
+            Nuevo chat
+          </Link>
+        )}
       </div>
 
       <nav
@@ -60,7 +77,32 @@ export function RecentChats({
           threads.map((thread) => {
             const isActive = thread._id === activeThreadId;
 
-            return (
+            return routeScope === "dashboard" ? (
+              <Link
+                aria-current={isActive ? "page" : undefined}
+                className={buttonVariants({
+                  className: "w-full justify-start",
+                  variant: isActive ? "outline" : "ghost",
+                })}
+                key={thread._id}
+                onClick={onSelect}
+                params={{ threadId: thread._id }}
+                to="/profile/barbershops/pana/$threadId"
+                viewTransition={chatViewTransition}
+              >
+                <ChatCircleIcon
+                  className="size-4 shrink-0"
+                  weight={isActive ? "fill" : "regular"}
+                />
+                {thread.title ? (
+                  <span className="truncate">{thread.title}</span>
+                ) : (
+                  // Title is generated in the background right after the thread
+                  // is created — show a skeleton until it lands.
+                  <Skeleton className="h-4 w-32 max-w-full" />
+                )}
+              </Link>
+            ) : (
               <Link
                 aria-current={isActive ? "page" : undefined}
                 className={buttonVariants({
