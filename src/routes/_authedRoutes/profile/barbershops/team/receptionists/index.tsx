@@ -1,7 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: barbershop is primed by the loader and gated to owners/staff */
 
-import type { Barbershop } from "@convex/schema";
-import { UserPlusIcon, WarningIcon } from "@phosphor-icons/react";
+import { WarningIcon } from "@phosphor-icons/react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 
@@ -13,9 +12,12 @@ import {
   DashboardPageHeading,
   DashboardPageStats,
 } from "@/components/dashboard/dashboard-page";
+import {
+  InviteTeamAction,
+  TeamPending,
+} from "@/components/dashboard/team-page-shared";
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardDescription,
@@ -28,7 +30,6 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cacheTime } from "@/config/cache";
 import { useBarbershopByMemberUserId } from "@/hooks/barbershop/use-barbershop";
 import { useBarbershopMemberRoles } from "@/hooks/barbershop/use-barbershop-member";
@@ -45,12 +46,6 @@ import { useSession } from "@/hooks/use-session";
 const MemberCard = lazy(() =>
   import("@/components/barbers/member-card").then((module) => ({
     default: module.MemberCard,
-  })),
-);
-
-const InviteBarberDialog = lazy(() =>
-  import("@/components/barbers/invite-barber-dialog").then((module) => ({
-    default: module.InviteBarberDialog,
   })),
 );
 
@@ -83,53 +78,6 @@ export const Route = createFileRoute(
     }
   },
 });
-
-function TeamPending() {
-  return (
-    <DashboardPage>
-      <DashboardPageHeader>
-        <div className="space-y-2">
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-4 w-72 max-w-full" />
-        </div>
-        <Skeleton className="h-9 w-24" />
-      </DashboardPageHeader>
-      <DashboardPageContent>
-        <ProfileTabSkeleton />
-      </DashboardPageContent>
-    </DashboardPage>
-  );
-}
-
-function InviteTeamAction({
-  barbershopId,
-  canInviteStaff,
-}: {
-  barbershopId: Barbershop["_id"];
-  canInviteStaff: boolean;
-}) {
-  return (
-    <Suspense
-      fallback={
-        <Button disabled>
-          <UserPlusIcon />
-          Invitar
-        </Button>
-      }
-    >
-      <InviteBarberDialog
-        barbershopId={barbershopId}
-        canInviteStaff={canInviteStaff}
-        trigger={
-          <Button>
-            <UserPlusIcon />
-            Invitar
-          </Button>
-        }
-      />
-    </Suspense>
-  );
-}
 
 function RouteComponent() {
   const { data: user } = useSession();

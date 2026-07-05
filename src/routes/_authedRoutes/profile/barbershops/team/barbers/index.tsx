@@ -1,7 +1,5 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: barbershop is primed by the loader and gated to owners/staff */
 
-import type { Barbershop } from "@convex/schema";
-import { UserPlusIcon } from "@phosphor-icons/react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 
@@ -13,8 +11,11 @@ import {
   DashboardPageHeading,
   DashboardPageStats,
 } from "@/components/dashboard/dashboard-page";
+import {
+  InviteTeamAction,
+  TeamPending,
+} from "@/components/dashboard/team-page-shared";
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardDescription,
@@ -27,7 +28,6 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cacheTime } from "@/config/cache";
 import { useBarbershopByMemberUserId } from "@/hooks/barbershop/use-barbershop";
 import { useBarbershopMemberRoles } from "@/hooks/barbershop/use-barbershop-member";
@@ -49,12 +49,6 @@ const MemberCard = lazy(() =>
   })),
 );
 
-const InviteBarberDialog = lazy(() =>
-  import("@/components/barbers/invite-barber-dialog").then((module) => ({
-    default: module.InviteBarberDialog,
-  })),
-);
-
 export const Route = createFileRoute(
   "/_authedRoutes/profile/barbershops/team/barbers/",
 )({
@@ -67,78 +61,32 @@ export const Route = createFileRoute(
     const barbershop = opts.context.dashboardBarbershop;
     const barbershopMemberRoles = opts.context.dashboardRoles;
 
-    if (!barbershopMemberRoles?.isOwner && !barbershopMemberRoles?.isStaff) {
+    if (
+      !barbershop?._id ||
+      (!barbershopMemberRoles?.isOwner && !barbershopMemberRoles?.isStaff)
+    ) {
       throw redirect({ to: "/profile/barbershops/appointments" });
     }
 
-    if (barbershop?._id) {
-      const [barbershopMembers] = await Promise.all([
-        opts.context.queryClient.ensureQueryData(
-          barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
-        ),
-        opts.context.queryClient.ensureQueryData(
-          servicesQueryOptions(barbershop._id),
-        ),
-      ]);
+    const [barbershopMembers] = await Promise.all([
+      opts.context.queryClient.ensureQueryData(
+        barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+      ),
+      opts.context.queryClient.ensureQueryData(
+        servicesQueryOptions(barbershop._id),
+      ),
+    ]);
 
-      for (const barbershopMember of barbershopMembers) {
-        void opts.context.queryClient.prefetchQuery(
-          servicesForBarberQueryOptions(barbershopMember._id),
-        );
-        void opts.context.queryClient.prefetchQuery(
-          barberScheduleQueryOptions(barbershopMember._id),
-        );
-      }
+    for (const barbershopMember of barbershopMembers) {
+      void opts.context.queryClient.prefetchQuery(
+        servicesForBarberQueryOptions(barbershopMember._id),
+      );
+      void opts.context.queryClient.prefetchQuery(
+        barberScheduleQueryOptions(barbershopMember._id),
+      );
     }
   },
 });
-
-function TeamPending() {
-  return (
-    <DashboardPage>
-      <DashboardPageHeader>
-        <div className="space-y-2">
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-4 w-72 max-w-full" />
-        </div>
-        <Skeleton className="h-9 w-24" />
-      </DashboardPageHeader>
-      <DashboardPageContent>
-        <ProfileTabSkeleton />
-      </DashboardPageContent>
-    </DashboardPage>
-  );
-}
-
-function InviteTeamAction({
-  barbershopId,
-  canInviteStaff,
-}: {
-  barbershopId: Barbershop["_id"];
-  canInviteStaff: boolean;
-}) {
-  return (
-    <Suspense
-      fallback={
-        <Button disabled>
-          <UserPlusIcon />
-          Invitar
-        </Button>
-      }
-    >
-      <InviteBarberDialog
-        barbershopId={barbershopId}
-        canInviteStaff={canInviteStaff}
-        trigger={
-          <Button>
-            <UserPlusIcon />
-            Invitar
-          </Button>
-        }
-      />
-    </Suspense>
-  );
-}
 
 function RouteComponent() {
   const { data: user } = useSession();
