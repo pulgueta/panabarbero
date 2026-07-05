@@ -48,6 +48,7 @@ export const TimeGrid: FC<TimeGridProps> = ({
   showDayHeaders,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const autoScrolledRangeRef = useRef<string | null>(null);
   const [now, setNow] = useState<number | null>(null);
 
   const dayStartMin = startHour * 60;
@@ -72,11 +73,16 @@ export const TimeGrid: FC<TimeGridProps> = ({
     return () => window.clearInterval(id);
   }, []);
 
-  // Scroll the current time into view on mount when today is visible.
+  // Scroll the current time into view once per visible day range — on the
+  // first clock tick and on view/date changes, never on later ticks (which
+  // would yank the grid away from wherever the user scrolled).
   useEffect(() => {
     if (now === null || !scrollRef.current) return;
     const showsToday = days.some((day) => isToday(day));
     if (!showsToday) return;
+    const rangeKey = days.map((day) => day.toDateString()).join("|");
+    if (autoScrolledRangeRef.current === rangeKey) return;
+    autoScrolledRangeRef.current = rangeKey;
     const target = minToTop(minutesOfDay(now)) - HOUR_HEIGHT * 2;
     const reduce = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
@@ -85,8 +91,6 @@ export const TimeGrid: FC<TimeGridProps> = ({
       top: Math.max(0, target),
       behavior: reduce ? "auto" : "smooth",
     });
-    // Only on first clock tick / view change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [days, minToTop, now]);
 
   const nowMin = now === null ? null : minutesOfDay(now);

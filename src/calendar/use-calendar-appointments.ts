@@ -75,12 +75,6 @@ export function useCalendarAppointments({
     [view, date],
   );
 
-  const results = useQueries({
-    queries: dayTimestamps.map((ms) =>
-      calendarDayQueryOptions(barbershopId, ms),
-    ),
-  });
-
   const serviceMap = useMemo(
     () => new Map(services.map((service) => [service._id, service])),
     [services],
@@ -90,36 +84,42 @@ export function useCalendarAppointments({
     [barbers],
   );
 
-  const isLoading = results.some((result) => result.isLoading);
-
-  const events = useMemo(() => {
-    const built: CalendarEvent[] = [];
-    for (const result of results) {
-      for (const appointment of result.data ?? []) {
-        if (
-          barberFilter !== "all" &&
-          appointment.barbershopMemberId !== barberFilter
-        ) {
-          continue;
+  // `useQueries` returns a fresh array every render, so a useMemo over it
+  // never sticks; `combine` output is structurally shared instead, keeping
+  // `events` referentially stable while the underlying data is unchanged.
+  return useQueries({
+    queries: dayTimestamps.map((ms) =>
+      calendarDayQueryOptions(barbershopId, ms),
+    ),
+    combine: (results) => {
+      const built: CalendarEvent[] = [];
+      for (const result of results) {
+        for (const appointment of result.data ?? []) {
+          if (
+            barberFilter !== "all" &&
+            appointment.barbershopMemberId !== barberFilter
+          ) {
+            continue;
+          }
+          const service = serviceMap.get(appointment.serviceId);
+          built.push({
+            id: appointment._id,
+            title: appointment.customerName,
+            start: appointment.date,
+            end: eventEnd(appointment.date, service?.duration),
+            status: appointment.status,
+            barberId: appointment.barbershopMemberId,
+            barberName:
+              barberMap.get(appointment.barbershopMemberId) ?? "Barbero",
+            serviceName: service?.name ?? "Servicio",
+            appointment,
+          });
         }
-        const service = serviceMap.get(appointment.serviceId);
-        built.push({
-          id: appointment._id,
-          title: appointment.customerName,
-          start: appointment.date,
-          end: eventEnd(appointment.date, service?.duration),
-          status: appointment.status,
-          barberId: appointment.barbershopMemberId,
-          barberName:
-            barberMap.get(appointment.barbershopMemberId) ?? "Barbero",
-          serviceName: service?.name ?? "Servicio",
-          appointment,
-        });
       }
-    }
-    return built.sort((a, b) => a.start - b.start);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [barberFilter, serviceMap, barberMap, results]);
-
-  return { events, isLoading };
+      return {
+        events: built.sort((a, b) => a.start - b.start),
+        isLoading: results.some((result) => result.isLoading),
+      };
+    },
+  });
 }
