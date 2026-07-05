@@ -195,10 +195,12 @@ function PanaSidebar({ className, onSelect, threadId }: PanaSidebarProps) {
 
       <nav aria-label="Secciones de Pana" className="grid gap-1 border-b p-2">
         {PANA_NAV.map((item) => {
+          // Chat also covers open threads ($threadId) — matched via the route
+          // param, so /knowledge and /memory never false-positive.
           const isActive =
-            pathname === item.to ||
-            (item.to !== "/profile/barbershops/pana" &&
-              pathname.startsWith(item.to));
+            item.to === "/profile/barbershops/pana"
+              ? pathname === item.to || threadId !== undefined
+              : pathname.startsWith(item.to);
           const Icon = item.icon;
 
           return (
