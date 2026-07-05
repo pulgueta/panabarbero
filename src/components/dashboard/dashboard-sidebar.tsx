@@ -5,10 +5,10 @@ import {
   StorefrontIcon,
   UserIcon,
 } from "@phosphor-icons/react";
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useAuth } from "@workos/authkit-tanstack-react-start/client";
 import type { FC, ReactElement } from "react";
-
+import { useActiveRoute } from "@/components/layout/nav/use-active-route";
 import { ThemeToggler } from "@/components/layout/theme-toggler";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DrawerClose } from "@/components/ui/drawer";
@@ -66,10 +66,10 @@ export const DashboardSidebar: FC<DashboardSidebarProps> = ({
   barbershop,
   user,
 }) => {
-  const pathname = useLocation({ select: (location) => location.pathname });
   const { isMobile } = useSidebar();
 
   const groups = getDashboardNavGroups(role);
+  const activeTo = useActiveRoute(groups.flatMap((group) => group.items));
 
   return (
     <Sidebar collapsible="icon" variant="inset">
@@ -115,7 +115,7 @@ export const DashboardSidebar: FC<DashboardSidebarProps> = ({
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => {
-                  const isActive = pathname.startsWith(item.to);
+                  const isActive = activeTo === item.to;
                   const Icon = item.icon;
 
                   return (
