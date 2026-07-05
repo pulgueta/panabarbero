@@ -312,24 +312,6 @@ export const inAppNotifications = zodTable("inAppNotifications", (id) => ({
     .optional(),
 }));
 
-/**
- * Cache of computed driving routes (OSRM), keyed by quantized
- * origin→destination coordinates so repeat lookups for the same trip are
- * served from Convex instead of re-hitting the routing API.
- */
-export const routeCache = zodTable("routeCache", () => ({
-  /** `${fromLat},${fromLng}->${toLat},${toLng}` with coordinates quantized. */
-  key: z.string(),
-  fromLatitude: z.number(),
-  fromLongitude: z.number(),
-  toLatitude: z.number(),
-  toLongitude: z.number(),
-  distanceMeters: z.number(),
-  durationSeconds: z.number(),
-  /** Route polyline as `[longitude, latitude]` pairs. */
-  geometry: z.array(z.array(z.number())),
-}));
-
 export const inventoryCategories = [
   "drink",
   "blade",
@@ -520,6 +502,13 @@ export default defineSchema({
     .index("by_userId_and_flaggedAt", ["userId", "flaggedAt"])
     .index("by_barbershopId", ["barbershopId"])
     .index("by_barbershopId_and_publishedAt", ["barbershopId", "publishedAt"])
+    .index("by_barbershopId_and_rating", ["barbershopId", "rating"])
+    .index("by_barbershopId_and_flaggedAt", ["barbershopId", "flaggedAt"])
+    .index("by_barbershopId_and_publishedAt_and_flaggedAt", [
+      "barbershopId",
+      "publishedAt",
+      "flaggedAt",
+    ])
     .index("by_appointmentId", ["appointmentId"]),
 
   appointments: appointments
@@ -554,12 +543,16 @@ export default defineSchema({
     .table()
     .index("by_user_created", ["userId"]),
 
-  routeCache: routeCache.table().index("by_key", ["key"]),
-
   inventoryItems: inventoryItems
     .table()
     .index("by_barbershopId", ["barbershopId"])
-    .index("by_barbershopId_and_category", ["barbershopId", "category"]),
+    .index("by_barbershopId_and_category", ["barbershopId", "category"])
+    .index("by_barbershopId_and_deletedAt", ["barbershopId", "deletedAt"])
+    .index("by_barbershopId_and_category_and_deletedAt", [
+      "barbershopId",
+      "category",
+      "deletedAt",
+    ]),
 
   inventoryLevels: inventoryLevels
     .table()
@@ -616,7 +609,6 @@ export type ExtraCredits = output<typeof extraCredits.schema>;
 export type CreditPurchase = output<typeof creditPurchases.schema>;
 export type InAppNotification = output<typeof inAppNotifications.schema>;
 export type NotificationKind = (typeof notificationKinds)[number];
-export type RouteCache = output<typeof routeCache.schema>;
 export type InventoryItem = output<typeof inventoryItems.schema>;
 export type InventoryLevel = output<typeof inventoryLevels.schema>;
 export type InventoryMovement = output<typeof inventoryMovements.schema>;

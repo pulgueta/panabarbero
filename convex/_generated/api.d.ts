@@ -27,7 +27,6 @@ import type * as barbershopMetadata from "../barbershopMetadata.js";
 import type * as barbershops from "../barbershops.js";
 import type * as credits from "../credits.js";
 import type * as crons from "../crons.js";
-import type * as directions from "../directions.js";
 import type * as emails from "../emails.js";
 import type * as errors from "../errors.js";
 import type * as geospatial from "../geospatial.js";
@@ -38,6 +37,7 @@ import type * as index from "../index.js";
 import type * as inventory from "../inventory.js";
 import type * as invitations from "../invitations.js";
 import type * as invitationsSchema from "../invitationsSchema.js";
+import type * as log from "../log.js";
 import type * as migrations from "../migrations.js";
 import type * as notificationCopy from "../notificationCopy.js";
 import type * as notificationSubjects from "../notificationSubjects.js";
@@ -82,7 +82,6 @@ declare const fullApi: ApiFromModules<{
   barbershops: typeof barbershops;
   credits: typeof credits;
   crons: typeof crons;
-  directions: typeof directions;
   emails: typeof emails;
   errors: typeof errors;
   geospatial: typeof geospatial;
@@ -93,6 +92,7 @@ declare const fullApi: ApiFromModules<{
   inventory: typeof inventory;
   invitations: typeof invitations;
   invitationsSchema: typeof invitationsSchema;
+  log: typeof log;
   migrations: typeof migrations;
   notificationCopy: typeof notificationCopy;
   notificationSubjects: typeof notificationSubjects;
@@ -141,6 +141,7 @@ export declare const internal: FilterApi<
 export declare const components: {
   workOSAuthKit: import("@convex-dev/workos-authkit/_generated/component.js").ComponentApi<"workOSAuthKit">;
   authz: import("@djpanda/convex-authz/_generated/component.js").ComponentApi<"authz">;
+  auditLog: import("convex-audit-log/_generated/component.js").ComponentApi<"auditLog">;
   twilio: import("@convex-dev/twilio/_generated/component.js").ComponentApi<"twilio">;
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
   r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
