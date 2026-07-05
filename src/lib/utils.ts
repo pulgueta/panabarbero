@@ -442,9 +442,11 @@ export function endOfDay(date: number | Date): Date {
 
 /** Up-to-2-letter avatar initials from a name, falling back to the email. */
 export function getInitials(name?: string | null, email?: string): string {
-  if (name) {
-    return name
+  const trimmed = name?.trim();
+  if (trimmed) {
+    return trimmed
       .split(" ")
+      .filter(Boolean)
       .map((part) => part[0])
       .join("")
       .toUpperCase()
