@@ -73,12 +73,12 @@ export const StockAdjustFormFields: FC<StockAdjustFormFieldsProps> = ({
     {showQuantity && (
       <form.AppField name="quantity">
         {(field) => (
-          <field.TextField
+          <field.AddonField
             label="Cantidad"
-            description={`En ${unitSuffix}`}
             type="number"
             min={1}
-            className="w-full tabular-nums"
+            addonEnd={unitSuffix}
+            className="tabular-nums"
           />
         )}
       </form.AppField>
@@ -87,13 +87,14 @@ export const StockAdjustFormFields: FC<StockAdjustFormFieldsProps> = ({
     {operation === "receive" && (
       <form.AppField name="unitCost">
         {(field) => (
-          <field.TextField
+          <field.AddonField
             label="Costo unitario"
             description="Opcional — actualiza el costo promedio"
+            addonStart="COP"
             placeholder="5000"
             type="number"
             min={0}
-            className="w-full tabular-nums"
+            className="tabular-nums"
             value={field.state.value ?? ""}
             onChange={(e) =>
               field.handleChange(

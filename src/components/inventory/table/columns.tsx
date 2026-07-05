@@ -1,27 +1,15 @@
-import {
-  ArchiveIcon,
-  ClockCounterClockwiseIcon,
-  DotsThreeVerticalIcon,
-  PackageIcon,
-  PencilSimpleIcon,
-  PlusMinusIcon,
-} from "@phosphor-icons/react";
+import { PackageIcon } from "@phosphor-icons/react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import {
   inventoryCategoryLabels,
   inventoryUnitSuffixes,
 } from "@/components/inventory/labels";
-import { TableHeader } from "@/components/table/header";
+import { DataTableColumnHeader } from "@/components/table/data-table-column-header";
+import { facetedFilterFn } from "@/components/table/data-table-faceted-filter";
+import { DataTableRowActions } from "@/components/table/data-table-row-actions";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import type { InventoryOverviewRow } from "@/hooks/use-inventory";
 import { getLogoUrl } from "@/hooks/use-upload";
 import { formatCurrency } from "@/lib/utils";
@@ -33,13 +21,32 @@ function getStockStatus(row: InventoryOverviewRow): {
   if (row.onHand <= 0) {
     return { label: "Agotado", variant: "destructive" };
   }
-
   if (row.belowReorder) {
     return { label: "Bajo stock", variant: "warning" };
   }
-
   return { label: "En stock", variant: "success" };
 }
+
+/** Facet options for the toolbar (kept in sync with `getStockStatus` labels). */
+export const inventoryStatusOptions = [
+  { value: "En stock", label: "En stock" },
+  { value: "Bajo stock", label: "Bajo stock" },
+  { value: "Agotado", label: "Agotado" },
+];
+
+export const inventoryCategoryOptions = Object.entries(
+  inventoryCategoryLabels,
+).map(([value, label]) => ({ value, label }));
+
+/** Human labels for the column-visibility menu. */
+export const inventoryColumnLabels: Record<string, string> = {
+  name: "Nombre",
+  category: "Categoría",
+  status: "Estado",
+  onHand: "Stock",
+  unitCost: "Costo",
+  value: "Valor",
+};
 
 interface InventoryTableColumnsOpts {
   canManage: boolean;
@@ -53,181 +60,153 @@ interface InventoryTableColumnsOpts {
 export function getInventoryTableColumns(
   opts: InventoryTableColumnsOpts,
 ): ColumnDef<InventoryOverviewRow>[] {
-  const baseColumns: ColumnDef<InventoryOverviewRow>[] = [
+  const columns: ColumnDef<InventoryOverviewRow>[] = [
     {
+      id: "photo",
       accessorKey: "imageKey",
       header: () => <span className="sr-only">Foto</span>,
+      enableSorting: false,
+      enableHiding: false,
       cell: ({ row }) => {
         const imageUrl = getLogoUrl(row.original.imageKey);
-
-        return (
-          <div className="flex justify-center">
-            {imageUrl ? (
-              <img
-                src={imageUrl}
-                alt={row.original.name}
-                className="size-10 rounded-md border object-cover"
-              />
-            ) : (
-              <div className="flex size-10 items-center justify-center rounded-md border bg-muted">
-                <PackageIcon className="size-5 text-muted-foreground" />
-              </div>
-            )}
+        return imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={row.original.name}
+            className="size-10 rounded-md border object-cover"
+          />
+        ) : (
+          <div className="flex size-10 items-center justify-center rounded-md border bg-muted">
+            <PackageIcon className="size-5 text-muted-foreground" />
           </div>
         );
       },
     },
     {
       accessorKey: "name",
-      header: ({ column }) => <TableHeader column={column} header="Nombre" />,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Nombre" />
+      ),
+      enableHiding: false,
       cell: ({ row }) => (
-        <div className="text-center">
-          <p className="font-medium">{row.original.name}</p>
-          {row.original.sku && (
-            <p className="text-muted-foreground text-xs">{row.original.sku}</p>
-          )}
+        <div className="min-w-0">
+          <p className="truncate font-medium">{row.original.name}</p>
+          {row.original.sku ? (
+            <p className="truncate text-muted-foreground text-xs">
+              {row.original.sku}
+            </p>
+          ) : null}
         </div>
       ),
     },
     {
       accessorKey: "category",
       header: ({ column }) => (
-        <TableHeader column={column} header="Categoría" />
+        <DataTableColumnHeader column={column} title="Categoría" />
       ),
-      cell: ({ row }) => (
-        <div className="text-center">
-          {inventoryCategoryLabels[row.original.category]}
-        </div>
+      filterFn: facetedFilterFn,
+      cell: ({ row }) => inventoryCategoryLabels[row.original.category],
+    },
+    {
+      id: "status",
+      accessorFn: (row) => getStockStatus(row).label,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Estado" />
       ),
+      filterFn: facetedFilterFn,
+      cell: ({ row }) => {
+        const { label, variant } = getStockStatus(row.original);
+        return <Badge variant={variant}>{label}</Badge>;
+      },
     },
     {
       accessorKey: "onHand",
-      header: ({ column }) => <TableHeader column={column} header="Stock" />,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Stock" align="end" />
+      ),
       cell: ({ row }) => (
-        <div className="text-center">
-          <p className="tabular-nums">
+        <div className="text-right tabular-nums">
+          <p>
             {row.original.onHand} {inventoryUnitSuffixes[row.original.unit]}
           </p>
-          {row.original.reserved > 0 && (
+          {row.original.reserved > 0 ? (
             <p className="text-muted-foreground text-xs">
               {row.original.reserved} en reserva
             </p>
-          )}
+          ) : null}
         </div>
       ),
     },
-    {
-      accessorKey: "belowReorder",
-      header: ({ column }) => <TableHeader column={column} header="Estado" />,
-      cell: ({ row }) => {
-        const { label, variant } = getStockStatus(row.original);
+  ];
 
-        return (
-          <div className="text-center">
-            <Badge variant={variant} className="text-center">
-              {label}
-            </Badge>
+  if (opts.canManage) {
+    columns.push(
+      {
+        accessorKey: "unitCost",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Costo" align="end" />
+        ),
+        cell: ({ row }) => (
+          <div className="text-right tabular-nums">
+            {formatCurrency(row.original.unitCost ?? 0)}
           </div>
-        );
+        ),
       },
-    },
-  ];
+      {
+        accessorKey: "value",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Valor" align="end" />
+        ),
+        cell: ({ row }) => (
+          <div className="text-right tabular-nums">
+            {formatCurrency(row.original.value ?? 0)}
+          </div>
+        ),
+      },
+    );
+  }
 
-  const managerColumns: ColumnDef<InventoryOverviewRow>[] = [
-    {
-      accessorKey: "unitCost",
-      header: ({ column }) => <TableHeader column={column} header="Costo" />,
-      cell: ({ row }) => (
-        <div className="text-center tabular-nums">
-          {formatCurrency(row.original.unitCost ?? 0)}
-        </div>
-      ),
-    },
-    {
-      accessorKey: "value",
-      header: ({ column }) => <TableHeader column={column} header="Valor" />,
-      cell: ({ row }) => (
-        <div className="text-center tabular-nums">
-          {formatCurrency(row.original.value ?? 0)}
-        </div>
-      ),
-    },
-  ];
-
-  const actionsColumn: ColumnDef<InventoryOverviewRow> = {
+  columns.push({
     id: "actions",
-    header: () => <div className="text-center">Acciones</div>,
+    enableSorting: false,
+    enableHiding: false,
+    header: () => <span className="sr-only">Acciones</span>,
     cell: ({ row }) =>
       opts.canManage ? (
-        <div className="text-center">
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  variant="outline"
-                  size="icon"
-                  aria-label={`Acciones de ${row.original.name}`}
-                >
-                  <DotsThreeVerticalIcon />
-                </Button>
-              }
-            />
-
-            <DropdownMenuContent align="end" className="w-full max-w-56">
-              <DropdownMenuItem
-                onClick={() => opts.onAdjust(row.original)}
-                render={
-                  <Button variant="outline" className="w-full">
-                    <PlusMinusIcon />
-                    Ajustar stock
-                  </Button>
-                }
-              />
-              <DropdownMenuItem
-                onClick={() => opts.onHistory(row.original)}
-                render={
-                  <Button variant="outline" className="w-full">
-                    <ClockCounterClockwiseIcon />
-                    Historial
-                  </Button>
-                }
-              />
-              <DropdownMenuItem
-                onClick={() => opts.onEdit(row.original)}
-                render={
-                  <Button variant="outline" className="w-full">
-                    <PencilSimpleIcon />
-                    Editar
-                  </Button>
-                }
-              />
-
-              <DropdownMenuSeparator />
-
-              <DropdownMenuItem
-                onClick={() => opts.onArchive(row.original)}
-                render={
-                  <Button variant="destructive" className="w-full">
-                    <ArchiveIcon />
-                    Archivar
-                  </Button>
-                }
-              />
-            </DropdownMenuContent>
-          </DropdownMenu>
+        <div className="flex justify-end">
+          <DataTableRowActions
+            label={`Acciones de ${row.original.name}`}
+            actions={[
+              {
+                label: "Ajustar stock",
+                onSelect: () => opts.onAdjust(row.original),
+              },
+              {
+                label: "Historial",
+                onSelect: () => opts.onHistory(row.original),
+              },
+              { label: "Editar", onSelect: () => opts.onEdit(row.original) },
+              {
+                label: "Archivar",
+                variant: "destructive",
+                separatorBefore: true,
+                onSelect: () => opts.onArchive(row.original),
+              },
+            ]}
+          />
         </div>
       ) : (
-        <div className="text-center">
-          <Button variant="outline" onClick={() => opts.onRecord(row.original)}>
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => opts.onRecord(row.original)}
+          >
             Registrar
           </Button>
         </div>
       ),
-  };
+  });
 
-  if (!opts.canManage) {
-    return [...baseColumns, actionsColumn];
-  }
-
-  return [...baseColumns, ...managerColumns, actionsColumn];
+  return columns;
 }

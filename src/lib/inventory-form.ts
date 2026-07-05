@@ -25,9 +25,7 @@ export function parsePositiveIntegerQuantity(
 const NON_NEGATIVE_INTEGER_PATTERN = /^\d+$/;
 
 /** Parses 0+ for physical counts; rejects empty and decimals. */
-export function parseNonNegativeInteger(
-  raw: string | number,
-): number | null {
+export function parseNonNegativeInteger(raw: string | number): number | null {
   const text = String(raw).trim();
 
   if (!NON_NEGATIVE_INTEGER_PATTERN.test(text)) {

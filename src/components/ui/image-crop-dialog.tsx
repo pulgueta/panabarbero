@@ -4,7 +4,7 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import type { FC } from "react";
-import { useCallback, useEffect, useReducer } from "react";
+import { useCallback, useEffect, useReducer, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -99,6 +99,8 @@ interface ImageCropDialogProps {
   onCancel: () => void;
   /** Aspect ratio of the crop area. Defaults to 1 (square). */
   aspectRatio?: number;
+  /** Optional aspect choices shown inside the crop flow. */
+  aspectRatioOptions?: Array<{ label: string; value: number }>;
   /** Shape of the crop overlay. Defaults to "rectangle". */
   shape?: CropperShape;
 }
@@ -166,14 +168,20 @@ export const ImageCropDialog: FC<ImageCropDialogProps> = ({
   onConfirm,
   onCancel,
   aspectRatio = 1,
+  aspectRatioOptions,
   shape = "rectangle",
 }) => {
   const [
     { imageUrl, crop, zoom, rotation, croppedAreaPixels, isProcessing },
     dispatch,
   ] = useReducer(cropReducer, initialCropState);
+  const [activeAspectRatio, setActiveAspectRatio] = useState(aspectRatio);
 
   const open = file !== null;
+
+  useEffect(() => {
+    setActiveAspectRatio(aspectRatio);
+  }, [aspectRatio]);
 
   useEffect(() => {
     if (!file) {
@@ -196,6 +204,12 @@ export const ImageCropDialog: FC<ImageCropDialogProps> = ({
 
   const handleReset = useCallback(() => {
     dispatch({ type: "resetView" });
+  }, []);
+
+  const handleAspectRatioChange = useCallback((value: number) => {
+    setActiveAspectRatio(value);
+    dispatch({ type: "resetView" });
+    dispatch({ type: "setCroppedAreaPixels", croppedAreaPixels: null });
   }, []);
 
   const handleConfirm = useCallback(async () => {
@@ -232,7 +246,7 @@ export const ImageCropDialog: FC<ImageCropDialogProps> = ({
               crop={crop}
               zoom={zoom}
               rotation={rotation}
-              aspectRatio={aspectRatio}
+              aspectRatio={activeAspectRatio}
               minZoom={1}
               maxZoom={5}
               objectFit="contain"
@@ -252,6 +266,25 @@ export const ImageCropDialog: FC<ImageCropDialogProps> = ({
             </Cropper>
           )}
         </div>
+
+        {aspectRatioOptions && aspectRatioOptions.length > 1 ? (
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {aspectRatioOptions.map((option) => (
+              <Button
+                key={option.label}
+                type="button"
+                variant={
+                  option.value === activeAspectRatio ? "secondary" : "outline"
+                }
+                size="sm"
+                onClick={() => handleAspectRatioChange(option.value)}
+                disabled={isProcessing}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </div>
+        ) : null}
 
         <p className="text-center text-muted-foreground text-xs">
           Arrastra para mover · Rueda del ratón o pellizco para hacer zoom

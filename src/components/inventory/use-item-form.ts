@@ -15,7 +15,10 @@ import { useAppForm } from "@/components/form/use-form";
 import { useInventoryActions } from "@/hooks/use-inventory";
 import { getLogoUrl, useUpload } from "@/hooks/use-upload";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
-import { parseNonNegativeInteger } from "@/lib/inventory-form";
+import {
+  parseNonNegativeInteger,
+  parsePositiveIntegerQuantity,
+} from "@/lib/inventory-form";
 
 export interface ItemFormData {
   barbershopId: Barbershop["_id"];
@@ -29,6 +32,8 @@ export interface ItemFormData {
   reorderPoint: number;
   reorderQuantity?: number;
   allowNegativeStock: boolean;
+  /** Create only: optional starting stock, applied as a "receipt" movement. */
+  initialQuantity?: number;
 }
 
 export interface ItemFormProps {
@@ -72,6 +77,7 @@ export function useItemForm({
     reorderPoint: 0,
     reorderQuantity: undefined,
     allowNegativeStock: false,
+    initialQuantity: undefined,
   };
 
   const form = useAppForm({
@@ -139,7 +145,14 @@ export function useItemForm({
 
           onSuccess?.();
         } else {
-          await createItem(data);
+          await createItem({
+            ...data,
+            initialQuantity:
+              value.initialQuantity !== undefined
+                ? (parsePositiveIntegerQuantity(value.initialQuantity) ??
+                  undefined)
+                : undefined,
+          });
 
           haptic.trigger("success");
           toast.success("Producto creado exitosamente");

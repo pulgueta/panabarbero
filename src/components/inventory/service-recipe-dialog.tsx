@@ -51,7 +51,7 @@ interface ServiceRecipeEditorProps {
   onSuccess: () => void;
 }
 
-const ServiceRecipeEditor: FC<ServiceRecipeEditorProps> = ({
+export const ServiceRecipeEditor: FC<ServiceRecipeEditorProps> = ({
   serviceId,
   barbershopId,
   onSuccess,
@@ -236,15 +236,26 @@ const ServiceRecipeEditor: FC<ServiceRecipeEditorProps> = ({
 interface ServiceRecipeDialogProps {
   serviceId: Service["_id"];
   barbershopId: Barbershop["_id"];
-  trigger: ReactElement;
+  /** Omit when driving the modal externally via `open` / `onOpenChange`. */
+  trigger?: ReactElement;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export const ServiceRecipeDialog: FC<ServiceRecipeDialogProps> = ({
   serviceId,
   barbershopId,
   trigger,
+  open: controlledOpen,
+  onOpenChange,
 }) => {
-  const [open, setOpen] = useState<boolean>(false);
+  const [internalOpen, setInternalOpen] = useState<boolean>(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (next: boolean) => {
+    if (!isControlled) setInternalOpen(next);
+    onOpenChange?.(next);
+  };
 
   const { planLimits } = useBarbershopPlan(barbershopId);
 
@@ -256,7 +267,7 @@ export const ServiceRecipeDialog: FC<ServiceRecipeDialogProps> = ({
 
   return (
     <ResponsiveModal open={open} onOpenChange={setOpen}>
-      <ResponsiveModalTrigger render={trigger} />
+      {trigger ? <ResponsiveModalTrigger render={trigger} /> : null}
       <ResponsiveModalContent>
         <ResponsiveModalHeader>
           <ResponsiveModalTitle>Insumos del servicio</ResponsiveModalTitle>

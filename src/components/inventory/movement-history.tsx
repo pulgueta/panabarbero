@@ -1,5 +1,5 @@
 import type { InventoryItem, InventoryUnit } from "@convex/schema";
-import type { FC, ReactElement } from "react";
+import type { ComponentProps, FC, ReactElement } from "react";
 import { useState } from "react";
 
 import {
@@ -21,6 +21,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import type { InventoryOverviewRow } from "@/hooks/use-inventory";
 import { usePaginatedMovements } from "@/hooks/use-inventory";
+import { cn } from "@/lib/utils";
 
 interface MovementsPageProps {
   itemId: InventoryItem["_id"];
@@ -28,6 +29,7 @@ interface MovementsPageProps {
   cursor: string | null;
   isLast: boolean;
   onLoadMore: (cursor: string) => void;
+  numItems?: number;
 }
 
 const MovementsPage: FC<MovementsPageProps> = ({
@@ -36,8 +38,9 @@ const MovementsPage: FC<MovementsPageProps> = ({
   cursor,
   isLast,
   onLoadMore,
+  numItems,
 }) => {
-  const { data, isFetching } = usePaginatedMovements(itemId, cursor);
+  const { data, isFetching } = usePaginatedMovements(itemId, cursor, numItems);
 
   if (!data) {
     return <Skeleton className="h-16 w-full" />;
@@ -112,6 +115,40 @@ const MovementsPage: FC<MovementsPageProps> = ({
   );
 };
 
+interface InventoryMovementListProps extends ComponentProps<"div"> {
+  itemId: InventoryItem["_id"];
+  unit: InventoryUnit;
+  pageSize?: number;
+}
+
+export const InventoryMovementList: FC<InventoryMovementListProps> = ({
+  itemId,
+  unit,
+  pageSize,
+  className,
+  ...props
+}) => {
+  const [cursors, setCursors] = useState<Array<string | null>>([null]);
+
+  return (
+    <div className={cn("space-y-1", className)} {...props}>
+      {cursors.map((cursor, index) => (
+        <MovementsPage
+          key={cursor ?? "first"}
+          itemId={itemId}
+          unit={unit}
+          cursor={cursor}
+          isLast={index === cursors.length - 1}
+          numItems={pageSize}
+          onLoadMore={(nextCursor) =>
+            setCursors((prev) => [...prev, nextCursor])
+          }
+        />
+      ))}
+    </div>
+  );
+};
+
 interface MovementHistoryProps {
   item: InventoryOverviewRow;
   trigger: ReactElement;
@@ -126,14 +163,10 @@ export const MovementHistory: FC<MovementHistoryProps> = ({
   onOpenChange,
 }) => {
   const [internalOpen, setInternalOpen] = useState<boolean>(false);
-  const [cursors, setCursors] = useState<Array<string | null>>([null]);
 
   const handleOpenChange = (nextOpen: boolean) => {
     setInternalOpen(nextOpen);
     onOpenChange?.(nextOpen);
-    if (!nextOpen) {
-      setCursors([null]);
-    }
   };
 
   return (
@@ -150,20 +183,11 @@ export const MovementHistory: FC<MovementHistoryProps> = ({
           </ResponsiveModalDescription>
         </ResponsiveModalHeader>
 
-        <div className="max-h-80 space-y-1 overflow-y-auto">
-          {cursors.map((cursor, index) => (
-            <MovementsPage
-              key={cursor ?? "first"}
-              itemId={item._id}
-              unit={item.unit}
-              cursor={cursor}
-              isLast={index === cursors.length - 1}
-              onLoadMore={(nextCursor) =>
-                setCursors((prev) => [...prev, nextCursor])
-              }
-            />
-          ))}
-        </div>
+        <InventoryMovementList
+          itemId={item._id}
+          unit={item.unit}
+          className="max-h-80 overflow-y-auto"
+        />
       </ResponsiveModalContent>
     </ResponsiveModal>
   );
