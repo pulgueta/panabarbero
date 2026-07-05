@@ -75,10 +75,7 @@ export const Header = () => {
                     >
                       {route.label}
                       {isActive && (
-                        <NavIndicator
-                          layoutId="desktop-nav-indicator"
-                          variant="underline"
-                        />
+                        <NavIndicator layoutId="desktop-nav-indicator" />
                       )}
                     </Link>
                   </li>
