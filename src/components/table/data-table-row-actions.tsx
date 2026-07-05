@@ -24,13 +24,15 @@ export interface RowAction {
  * Data-driven row actions menu. Each section passes its own verbs; there are no
  * per-section component variants. The trigger is the only affordance icon.
  */
+interface DataTableRowActionsProps {
+  label: string;
+  actions: RowAction[];
+}
+
 export function DataTableRowActions({
   label,
   actions,
-}: {
-  label: string;
-  actions: RowAction[];
-}) {
+}: DataTableRowActionsProps) {
   if (actions.length === 0) {
     return null;
   }

@@ -1,8 +1,12 @@
 import { DeviceMobileIcon, MonitorIcon } from "@phosphor-icons/react";
-import { type ReactNode, useState } from "react";
+import { type FC, type PropsWithChildren, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+interface FormPageSlotProps extends PropsWithChildren {
+  className?: string;
+}
 
 /**
  * Layout primitives for forms that live on their own page (per DESIGN.md §9:
@@ -32,13 +36,10 @@ import { cn } from "@/lib/utils";
  * </DashboardPage>
  * ```
  */
-export function FormPageBody({
+export const FormPageBody: FC<FormPageSlotProps> = ({
   children,
   className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+}) => {
   return (
     <div
       data-slot="form-page-body"
@@ -50,16 +51,13 @@ export function FormPageBody({
       {children}
     </div>
   );
-}
+};
 
 /** Left column: the form fields, capped for readable line length. */
-export function FormPageFields({
+export const FormPageFields: FC<FormPageSlotProps> = ({
   children,
   className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+}) => {
   return (
     <div
       data-slot="form-page-fields"
@@ -68,20 +66,20 @@ export function FormPageFields({
       {children}
     </div>
   );
+};
+
+interface FormPageSectionProps extends FormPageSlotProps {
+  title: string;
+  description?: string;
 }
 
 /** A labeled group inside a long form — keeps a dedicated-page form well distributed. */
-export function FormPageSection({
+export const FormPageSection: FC<FormPageSectionProps> = ({
   title,
   description,
   children,
   className,
-}: {
-  title: string;
-  description?: string;
-  children: ReactNode;
-  className?: string;
-}) {
+}) => {
   return (
     <section
       data-slot="form-page-section"
@@ -98,16 +96,13 @@ export function FormPageSection({
       <div className="space-y-4">{children}</div>
     </section>
   );
-}
+};
 
 /** Sticky action bar at the end of the fields column (Cancelar / Guardar). */
-export function FormPageFooter({
+export const FormPageFooter: FC<FormPageSlotProps> = ({
   children,
   className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+}) => {
   return (
     <div
       data-slot="form-page-footer"
@@ -119,6 +114,10 @@ export function FormPageFooter({
       {children}
     </div>
   );
+};
+
+interface FormPagePreviewProps extends FormPageSlotProps {
+  title?: string;
 }
 
 /**
@@ -126,15 +125,11 @@ export function FormPageFooter({
  * width toggle so the author can see the result at phone vs full width
  * ("responsive previews"). On mobile it drops below the fields.
  */
-export function FormPagePreview({
+export const FormPagePreview: FC<FormPagePreviewProps> = ({
   title = "Vista previa",
   children,
   className,
-}: {
-  title?: string;
-  children: ReactNode;
-  className?: string;
-}) {
+}) => {
   const [width, setWidth] = useState<"mobile" | "full">("full");
 
   return (
@@ -183,16 +178,13 @@ export function FormPagePreview({
       </div>
     </aside>
   );
-}
+};
 
 /** Support column for page forms that need operational context but no live preview. */
-export function FormPageAside({
+export const FormPageAside: FC<FormPageSlotProps> = ({
   children,
   className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+}) => {
   return (
     <aside
       data-slot="form-page-aside"
@@ -201,4 +193,4 @@ export function FormPageAside({
       {children}
     </aside>
   );
-}
+};

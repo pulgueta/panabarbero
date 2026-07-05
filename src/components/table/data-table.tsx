@@ -1,6 +1,12 @@
 import type { Table as TanstackTable } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
-import { createContext, type ReactNode, use, useMemo } from "react";
+import {
+  createContext,
+  type PropsWithChildren,
+  type ReactNode,
+  use,
+  useMemo,
+} from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -57,17 +63,18 @@ export function useDataTableContext<TData = unknown>() {
  * </DataTable>
  * ```
  */
+interface DataTableProps<TData> extends PropsWithChildren {
+  table: TanstackTable<TData>;
+  server?: DataTableServer;
+  className?: string;
+}
+
 export function DataTable<TData>({
   table,
   server,
   className,
   children,
-}: {
-  table: TanstackTable<TData>;
-  server?: DataTableServer;
-  className?: string;
-  children: ReactNode;
-}) {
+}: DataTableProps<TData>) {
   const value = useMemo(
     () => ({ table: table as TanstackTable<unknown>, server }),
     [table, server],

@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useFieldContext } from "./form-context";
+import { numberSelectOnFocus, useFieldContext } from "./form-context";
 
 interface TextFieldProps extends ComponentProps<typeof Input> {
   label: string;
@@ -42,12 +42,7 @@ export const TextField: FC<TextFieldProps> = ({
         value={field.state.value}
         onBlur={field.handleBlur}
         onChange={(e) => field.handleChange(e.target.value)}
-        onFocus={(event) => {
-          onFocus?.(event);
-          if (type === "number") {
-            event.currentTarget.select();
-          }
-        }}
+        onFocus={numberSelectOnFocus(type, onFocus)}
         aria-invalid={isInvalid}
         {...props}
       />

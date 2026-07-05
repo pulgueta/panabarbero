@@ -26,15 +26,17 @@ export interface FacetedFilterOption {
  * `getFacetedUniqueValues`. The faceted columns must declare an array-aware
  * `filterFn` (see `facetedFilterFn`).
  */
+interface DataTableFacetedFilterProps {
+  columnId: string;
+  title: string;
+  options: FacetedFilterOption[];
+}
+
 export function DataTableFacetedFilter<TData = unknown>({
   columnId,
   title,
   options,
-}: {
-  columnId: string;
-  title: string;
-  options: FacetedFilterOption[];
-}) {
+}: DataTableFacetedFilterProps) {
   const { table } = useDataTableContext<TData>();
   const column = table.getColumn(columnId);
 

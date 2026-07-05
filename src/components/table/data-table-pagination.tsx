@@ -10,7 +10,11 @@ const plural = (n: number) => (n === 1 ? "resultado" : "resultados");
  * otherwise just a result count. No numbered pages — cursor backends can't
  * random-access.
  */
-export function DataTablePagination({ className }: { className?: string }) {
+interface DataTablePaginationProps {
+  className?: string;
+}
+
+export function DataTablePagination({ className }: DataTablePaginationProps) {
   const { table, server } = useDataTableContext();
 
   if (server) {

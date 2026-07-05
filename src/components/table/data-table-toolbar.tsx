@@ -1,5 +1,5 @@
 import { MagnifyingGlassIcon } from "@phosphor-icons/react";
-import type { ReactNode } from "react";
+import type { PropsWithChildren } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,14 +15,15 @@ import {
 import { cn } from "@/lib/utils";
 import { useDataTableContext } from "./data-table";
 
+interface DataTableToolbarProps extends PropsWithChildren {
+  className?: string;
+}
+
 /** Filter/action row above the table. Compose Search, FacetedFilter, Reset, and ViewOptions inside it. */
 export function DataTableToolbar({
   children,
   className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+}: DataTableToolbarProps) {
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
       {children}

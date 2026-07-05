@@ -13,7 +13,7 @@ import {
   InputGroupInput,
   InputGroupText,
 } from "@/components/ui/input-group";
-import { useFieldContext } from "./form-context";
+import { numberSelectOnFocus, useFieldContext } from "./form-context";
 
 interface AddonFieldProps
   extends Omit<ComponentProps<typeof InputGroupInput>, "prefix"> {
@@ -61,12 +61,7 @@ export const AddonField: FC<AddonFieldProps> = ({
           value={field.state.value}
           onBlur={field.handleBlur}
           onChange={(e) => field.handleChange(e.target.value)}
-          onFocus={(event) => {
-            onFocus?.(event);
-            if (type === "number") {
-              event.currentTarget.select();
-            }
-          }}
+          onFocus={numberSelectOnFocus(type, onFocus)}
           aria-invalid={isInvalid}
           {...props}
         />
