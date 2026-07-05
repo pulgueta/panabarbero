@@ -18,7 +18,10 @@ interface ServiceDialogProps {
   barbershopId: Barbershop["_id"];
   initialValues?: ServiceFormData;
   serviceId?: Service["_id"];
-  trigger: ReactElement;
+  /** Omit when driving the modal externally via `open` / `onOpenChange`. */
+  trigger?: ReactElement;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export const ServiceDialog: FC<ServiceDialogProps> = ({
@@ -26,15 +29,23 @@ export const ServiceDialog: FC<ServiceDialogProps> = ({
   initialValues,
   serviceId,
   trigger,
+  open: controlledOpen,
+  onOpenChange,
 }) => {
-  const [open, setOpen] = useState<boolean>(false);
+  const [internalOpen, setInternalOpen] = useState<boolean>(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (next: boolean) => {
+    if (!isControlled) setInternalOpen(next);
+    onOpenChange?.(next);
+  };
 
   const headLabel = `${initialValues ? "Editar" : "Agregar"} servicio`;
   const description = `${initialValues ? "Actualiza los datos del servicio." : "Define los datos básicos del servicio."}`;
 
   return (
     <ResponsiveModal open={open} onOpenChange={setOpen}>
-      <ResponsiveModalTrigger render={trigger} />
+      {trigger ? <ResponsiveModalTrigger render={trigger} /> : null}
       <ResponsiveModalContent>
         <ResponsiveModalHeader>
           <ResponsiveModalTitle>{headLabel}</ResponsiveModalTitle>
