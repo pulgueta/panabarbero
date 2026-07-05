@@ -1,23 +1,36 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: needed */
+/** biome-ignore-all lint/style/noNonNullAssertion: barbershop is primed by the loader */
 
 import { PlusIcon } from "@phosphor-icons/react";
-import { createFileRoute } from "@tanstack/react-router";
-import { es } from "date-fns/locale";
-import { lazy, Suspense } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Suspense } from "react";
 import { z } from "zod";
 
 import {
-  getAppointmentsTableColumns,
-  rescheduledAppointmentRequestsTableColumns,
-} from "@/components/appointments/table/columns";
-import { DashboardHeaderSkeleton } from "@/components/barbershops/dashboard-header.skeleton";
-import { DashboardPending } from "@/components/dashboard/dashboard-pending";
+  AppointmentsCalendar,
+  CALENDAR_VIEWS,
+  getRangeDayTimestamps,
+} from "@/calendar";
+import { rescheduledAppointmentRequestsTableColumns } from "@/components/appointments/table/columns";
+import {
+  DashboardPage,
+  DashboardPageActions,
+  DashboardPageContent,
+  DashboardPageHeader,
+  DashboardPageHeading,
+} from "@/components/dashboard/dashboard-page";
+import {
+  DataTable,
+  DataTableContent,
+  DataTableSkeleton,
+} from "@/components/table/data-table";
+import { DataTablePagination } from "@/components/table/data-table-pagination";
+import { useDataTable } from "@/components/table/use-data-table";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cacheTime } from "@/config/cache";
 import {
-  barbershopByMemberUserIdQueryOptions,
+  barbershopAvailabilityQueryOptions,
+  useBarbershopAvailability,
   useBarbershopByMemberUserId,
 } from "@/hooks/barbershop/use-barbershop";
 import {
@@ -27,12 +40,10 @@ import {
 import {
   appointmentsByBarbershopQueryOptions,
   requestRescheduleQueryOptions,
-  useAppointmentsByBarbershop,
   useRescheduledAppointmentRequests,
 } from "@/hooks/use-appointments";
 import {
   barberByUserIdQueryOptions,
-  barbersForServiceQueryOptions,
   barbershopMembersByBarbershopIdQueryOptions,
   isBarberQueryOptions,
   isStaffQueryOptions,
@@ -43,32 +54,12 @@ import {
 } from "@/hooks/use-barbershop-members";
 import {
   serviceByAppointmentIdQueryOptions,
-  servicesByIdsQueryOptions,
+  servicesQueryOptions,
   useServicesByBarbershopId,
 } from "@/hooks/use-services";
 import { useSession } from "@/hooks/use-session";
 
-const DashboardHeader = lazy(() =>
-  import("@/components/barbershops/dashboard-header").then((module) => ({
-    default: module.DashboardHeader,
-  })),
-);
-
-const DataTable = lazy(() =>
-  import("@/components/table/data-table").then((module) => ({
-    default: module.DataTable,
-  })),
-) as typeof import("@/components/table/data-table").DataTable;
-
-const CreateAppointmentDialog = lazy(() =>
-  import("@/components/appointments/create-appointment-dialog").then(
-    (module) => ({
-      default: module.CreateAppointmentDialog,
-    }),
-  ),
-);
-
-const dateSchema = z.object({
+const searchSchema = z.object({
   date: z
     .number()
     .optional()
@@ -76,99 +67,91 @@ const dateSchema = z.object({
     .transform((val) => {
       const startOfDay = new Date(val);
       startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(startOfDay);
-      endOfDay.setHours(23, 59, 59, 999);
-
       return startOfDay.getTime();
     }),
+  view: z.enum(CALENDAR_VIEWS).optional().default("week"),
 });
+
+const RESCHEDULE_EMPTY = (
+  <p className="text-muted-foreground text-sm">
+    No hay solicitudes de reagendamiento.
+  </p>
+);
 
 export const Route = createFileRoute(
   "/_authedRoutes/profile/barbershops/appointments/",
 )({
   component: RouteComponent,
-  pendingComponent: DashboardPending,
-  validateSearch: dateSchema,
+  pendingComponent: AppointmentsPending,
+  validateSearch: searchSchema,
   loaderDeps: ({ search }) => search,
   ssr: "data-only",
-  staticData: { breadcrumb: "Citas" },
   staleTime: cacheTime.low,
   gcTime: cacheTime.medium,
   loader: async ({ context, deps }) => {
     const userId = context.userId;
 
-    if (userId) {
-      const barbershop = await context.queryClient.ensureQueryData(
-        barbershopByMemberUserIdQueryOptions(userId),
+    if (!userId) return;
+
+    const barbershop = context.dashboardBarbershop;
+
+    if (!barbershop?._id) return;
+    const barbershopId = barbershop._id;
+
+    // Page spine: everything the route reads via useSuspenseQuery must resolve
+    // before render (plan, members, services, availability, reschedule list).
+    const spinePromise = Promise.all([
+      context.queryClient.ensureQueryData(
+        getBarbershopPlanQueryOptions(barbershopId),
+      ),
+      context.queryClient.ensureQueryData(barberByUserIdQueryOptions(userId)),
+      context.queryClient.ensureQueryData(isBarberQueryOptions(userId)),
+      context.queryClient.ensureQueryData(isStaffQueryOptions(userId)),
+      context.queryClient.ensureQueryData(
+        barbershopAvailabilityQueryOptions(barbershopId),
+      ),
+      context.queryClient.ensureQueryData(servicesQueryOptions(barbershopId)),
+      context.queryClient.ensureQueryData(
+        barbershopMembersByBarbershopIdQueryOptions(barbershopId),
+      ),
+      context.queryClient.ensureQueryData(
+        requestRescheduleQueryOptions(barbershopId),
+      ),
+    ]).then(([, , , , , , members, requests]) => [members, requests] as const);
+
+    // Calendar range: one day-windowed query per visible day, matching
+    // useCalendarAppointments' fan-out so the grid paints without pop-in.
+    const rangePromise = Promise.all(
+      getRangeDayTimestamps(deps.view, new Date(deps.date)).map((ms) =>
+        context.queryClient.ensureQueryData(
+          appointmentsByBarbershopQueryOptions({ id: barbershopId, date: ms }),
+        ),
+      ),
+    );
+
+    const [barbershopMembers, rescheduleRequests] = await Promise.all([
+      spinePromise,
+      rangePromise,
+    ]).then(([spine]) => spine);
+
+    // Leaf drill-downs primed without blocking: the create dialog's per-barber
+    // services and the reschedule table's async service cells.
+    for (const member of barbershopMembers) {
+      void context.queryClient.prefetchQuery(
+        servicesForBarberQueryOptions(member._id),
       );
-
-      await Promise.all([
-        context.queryClient.ensureQueryData(isBarberQueryOptions(userId)),
-        context.queryClient.ensureQueryData(isStaffQueryOptions(userId)),
-      ]);
-
-      if (barbershop?._id) {
-        // Spine: everything the dashboard reads at the page level via
-        // useSuspenseQuery must be resolved before render.
-        const [appointments, barbershopMembers] = await Promise.all([
-          context.queryClient.ensureQueryData(
-            getBarbershopPlanQueryOptions(barbershop._id),
-          ),
-          context.queryClient.ensureQueryData(
-            appointmentsByBarbershopQueryOptions({
-              id: barbershop._id,
-              date: deps.date,
-            }),
-          ),
-          context.queryClient.ensureQueryData(
-            barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
-          ),
-          context.queryClient.ensureQueryData(
-            barberByUserIdQueryOptions(userId),
-          ),
-          context.queryClient.ensureQueryData(
-            requestRescheduleQueryOptions(barbershop._id),
-          ),
-        ]).then(([, appts, members]) => [appts, members] as const);
-
-        // Leaf drill-downs feeding table cells + the create dialog — all
-        // useQuery, or consumed inside their own <Suspense> boundaries. Prime
-        // the cache without blocking the dashboard render.
-        for (const barbershopMember of barbershopMembers) {
-          void context.queryClient.prefetchQuery(
-            servicesForBarberQueryOptions(barbershopMember._id),
-          );
-        }
-
-        if (appointments.length) {
-          const serviceIds = appointments.map(
-            (appointment) => appointment.serviceId,
-          );
-
-          void context.queryClient.prefetchQuery(
-            servicesByIdsQueryOptions(serviceIds),
-          );
-
-          for (const serviceId of new Set(serviceIds)) {
-            void context.queryClient.prefetchQuery(
-              barbersForServiceQueryOptions(serviceId),
-            );
-          }
-
-          for (const appointment of appointments) {
-            void context.queryClient.prefetchQuery(
-              serviceByAppointmentIdQueryOptions(appointment._id),
-            );
-          }
-        }
-      }
+    }
+    for (const request of rescheduleRequests) {
+      void context.queryClient.prefetchQuery(
+        serviceByAppointmentIdQueryOptions(request._id),
+      );
     }
   },
 });
 
 function RouteComponent() {
   const navigate = Route.useNavigate();
-  const { date } = Route.useSearch();
+  const { date, view } = Route.useSearch();
 
   const { data: session } = useSession();
   const { data: barbershop } = useBarbershopByMemberUserId(session?.id ?? "");
@@ -176,122 +159,118 @@ function RouteComponent() {
     barbershop?._id!,
   );
   const { data: services } = useServicesByBarbershopId(barbershop?._id!);
+  const { data: availability } = useBarbershopAvailability(barbershop?._id!);
   const { data: rescheduledAppointmentRequests } =
     useRescheduledAppointmentRequests(barbershop?._id!);
-  const { data: appointments } = useAppointmentsByBarbershop({
-    id: barbershop?._id!,
-    date,
-  });
   const { canCreateStaffAppointments } = useBarbershopPlan(barbershop?._id!);
-  const { data: isBarber } = useIsBarber(session?.id!);
-  const { data: isStaff } = useIsStaff(session?.id!);
+  const { data: isBarber } = useIsBarber(session?.id ?? "");
+  const { data: isStaff } = useIsStaff(session?.id ?? "");
 
   const isOwner = session?.id ? barbershop?.ownerId === session.id : false;
+  const canManage = isStaff || isOwner;
+  const canCreate = canCreateStaffAppointments && (isBarber || isStaff);
+
+  const rescheduleTable = useDataTable({
+    data: rescheduledAppointmentRequests,
+    columns: rescheduledAppointmentRequestsTableColumns,
+    pageSize: 10,
+  });
 
   return (
-    <section className="space-y-6">
-      <Suspense fallback={<DashboardHeaderSkeleton />}>
-        <DashboardHeader
+    <DashboardPage>
+      <DashboardPageHeader>
+        <DashboardPageHeading
           title="Citas"
           description="Administra tus citas y solicitudes de reagendamiento."
         />
-      </Suspense>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="space-y-2" suppressHydrationWarning>
-          <h2 className="font-semibold text-lg">Selecciona un día</h2>
-          <Calendar
-            mode="single"
-            selected={date ? new Date(date) : new Date()}
-            onSelect={(date) => {
-              if (!date) return;
+        {canCreate && (
+          <DashboardPageActions>
+            <Button
+              nativeButton={false}
+              render={<Link to="/profile/barbershops/appointments/new" />}
+            >
+              <PlusIcon />
+              Crear cita
+            </Button>
+          </DashboardPageActions>
+        )}
+      </DashboardPageHeader>
 
-              const startOfDay = new Date(date);
-              startOfDay.setHours(0, 0, 0, 0);
-              const endOfDay = new Date(startOfDay);
-              endOfDay.setHours(23, 59, 59, 999);
+      <DashboardPageContent className="space-y-8">
+        <AppointmentsCalendar
+          barbershopId={barbershop?._id!}
+          services={services}
+          barbers={barbershopMembers}
+          availability={availability}
+          view={view}
+          date={new Date(date)}
+          isBarber={isBarber ?? false}
+          canManage={canManage}
+          canCreate={canCreate}
+          onCreateAppointment={(nextDate) =>
+            navigate({
+              to: "/profile/barbershops/appointments/new",
+              search: { date: nextDate.getTime() },
+            })
+          }
+          onViewChange={(next) =>
+            navigate({ search: (prev) => ({ ...prev, view: next }) })
+          }
+          onDateChange={(next) =>
+            navigate({ search: (prev) => ({ ...prev, date: next.getTime() }) })
+          }
+        />
 
-              navigate({
-                search: { date: startOfDay.getTime() },
-              });
-            }}
-            locale={es}
-            className="mx-auto rounded-lg border border-border [--cell-size:--spacing(11)] md:col-span-1 md:ml-auto md:[--cell-size:--spacing(7)] lg:[--cell-size:--spacing(9)] xl:[--cell-size:--spacing(12)]"
-          />
-        </div>
-
-        <div className="md:col-span-2">
-          <header
-            className="mb-2 flex items-center justify-between gap-1"
-            suppressHydrationWarning
-          >
+        <section className="space-y-3">
+          <header className="space-y-1">
             <h2 className="font-semibold text-lg">
-              {date
-                ? `${appointments.length} cita${appointments.length > 1 || appointments.length === 0 ? "s" : ""} (${new Date(
-                    date,
-                  ).toLocaleDateString("es-CO", {
-                    month: "long",
-                    day: "numeric",
-                  })})`
-                : "No hay día seleccionado"}
+              Solicitudes de reagendamiento
             </h2>
-
-            {barbershop?._id &&
-              canCreateStaffAppointments &&
-              (isBarber || isStaff) && (
-                <Suspense
-                  fallback={
-                    <Button disabled>
-                      <PlusIcon />
-                      Crear cita
-                    </Button>
-                  }
-                >
-                  <CreateAppointmentDialog
-                    trigger={
-                      <Button>
-                        <PlusIcon />
-                        Crear cita
-                      </Button>
-                    }
-                    barbershopId={barbershop._id}
-                    barbers={barbershopMembers}
-                    services={services}
-                    serviceId={undefined}
-                  />
-                </Suspense>
-              )}
+            <p className="text-pretty text-muted-foreground text-sm">
+              Administra las solicitudes de reagendamiento pendientes. Recuerda
+              que solo se puede reagendar el servicio una vez por usuario cada
+              30 minutos.
+            </p>
           </header>
 
-          <Suspense fallback={<Skeleton className="h-32 w-full md:h-64" />}>
-            <DataTable
-              columns={getAppointmentsTableColumns({ isOwner })}
-              data={appointments}
-            />
+          <Suspense fallback={<DataTableSkeleton columns={5} rows={4} />}>
+            <DataTable table={rescheduleTable}>
+              <DataTableContent empty={RESCHEDULE_EMPTY} />
+              <DataTablePagination />
+            </DataTable>
           </Suspense>
+        </section>
+      </DashboardPageContent>
+    </DashboardPage>
+  );
+}
+
+/** Pending frame: heading → calendar toolbar + grid → reschedule table. */
+function AppointmentsPending() {
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <Skeleton className="h-7 w-32" />
+        <Skeleton className="h-4 w-80 max-w-full" />
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-8 w-14" />
+            <Skeleton className="h-8 w-16" />
+            <Skeleton className="h-5 w-40" />
+          </div>
+          <Skeleton className="h-8 w-64" />
         </div>
+        <Skeleton className="h-[60vh] w-full rounded-xl" />
       </div>
 
-      <div>
-        <header className="mb-2 space-y-1">
-          <h2 className="font-semibold text-lg">
-            Solicitudes de reagendamiento
-          </h2>
-
-          <p className="text-pretty text-muted-foreground text-sm">
-            Administra las solicitudes de reagendamiento pendientes. Recuerda
-            que solo se puede reagendar el servicio una vez por usuario cada 30
-            minutos.
-          </p>
-        </header>
-
-        <Suspense fallback={<Skeleton className="h-32 w-full md:h-64" />}>
-          <DataTable
-            columns={rescheduledAppointmentRequestsTableColumns}
-            data={rescheduledAppointmentRequests}
-          />
-        </Suspense>
+      <div className="space-y-3">
+        <Skeleton className="h-6 w-64" />
+        <DataTableSkeleton columns={5} rows={4} />
       </div>
-    </section>
+    </div>
   );
 }

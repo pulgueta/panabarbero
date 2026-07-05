@@ -37,6 +37,11 @@ interface CreateAppointmentDialogProps {
   barbers: BarbershopMemberWithName[];
   barbershopId: Barbershop["_id"];
   trigger: ReactElement;
+  /** Controlled open state — omit to let the trigger manage it internally. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Pre-selects the appointment day (ms) when opened from a calendar slot. */
+  initialDate?: number;
 }
 
 export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
@@ -45,6 +50,9 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   barbers,
   barbershopId,
   trigger,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+  initialDate,
 }) => {
   const formIds = {
     customerName: useId(),
@@ -57,7 +65,9 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
     barbershopMemberId: useId(),
     serviceId: useId(),
   };
-  const [open, setOpen] = useState<boolean>(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState<boolean>(false);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = controlledOnOpenChange ?? setUncontrolledOpen;
   const [selectedBarber, setSelectedBarber] = useState<
     BarbershopMemberWithName | undefined
   >(undefined);
@@ -65,10 +75,10 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
   const navigate = useNavigate();
 
   const { data: user } = useSession();
-  const { data: userProfile } = useProfile(user?.id!);
-  const { data: isBarber } = useIsBarber(user?.id!);
-  const { data: isStaff } = useIsStaff(user?.id!);
-  const { data: currentBarberMember } = useBarberByUserId(user?.id!);
+  const { data: userProfile } = useProfile(user?.id ?? "");
+  const { data: isBarber } = useIsBarber(user?.id ?? "");
+  const { data: isStaff } = useIsStaff(user?.id ?? "");
+  const { data: currentBarberMember } = useBarberByUserId(user?.id ?? "");
   const { data: barberServices } = useServicesForBarber(selectedBarber?._id!);
   // service must come before useBarbersForService so we can use the store selection
   const service = useServicesStore();
@@ -173,6 +183,7 @@ export const CreateAppointmentDialog: FC<CreateAppointmentDialogProps> = ({
                 ? undefined
                 : (userProfile?.email ?? undefined),
               barbershopMemberId: defaultBarberId ?? selectedBarber?._id,
+              date: initialDate,
             }}
             onSuccess={() => {
               setOpen(false);

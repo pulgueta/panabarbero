@@ -103,8 +103,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
   };
 
   const { data: user } = useSession();
-  // biome-ignore lint/style/noNonNullAssertion: profile data is preloaded for authenticated booking routes
-  const { data: userProfile } = useProfile(user?.id!);
+  const { data: userProfile } = useProfile(user?.id ?? "");
 
   const storeService = useServicesStore();
   const effectiveServiceId = (storeService._id || initialServiceId) as
