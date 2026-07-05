@@ -22,6 +22,8 @@ interface TextFieldProps extends ComponentProps<typeof Input> {
 export const TextField: FC<TextFieldProps> = ({
   label,
   description,
+  onFocus,
+  type,
   ...props
 }) => {
   const field = useFieldContext<string>();
@@ -36,9 +38,16 @@ export const TextField: FC<TextFieldProps> = ({
       <Input
         id={field.name}
         name={field.name}
+        type={type}
         value={field.state.value}
         onBlur={field.handleBlur}
         onChange={(e) => field.handleChange(e.target.value)}
+        onFocus={(event) => {
+          onFocus?.(event);
+          if (type === "number") {
+            event.currentTarget.select();
+          }
+        }}
         aria-invalid={isInvalid}
         {...props}
       />
