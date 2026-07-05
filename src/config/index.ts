@@ -83,7 +83,5 @@ export const authenticatedRoutes = {
       icon: UserIcon,
     },
   ],
-  barber: memberNavigation,
-  staff: memberNavigation,
-  owner: memberNavigation,
+  member: memberNavigation,
 };
