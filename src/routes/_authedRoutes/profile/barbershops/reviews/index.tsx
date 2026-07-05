@@ -8,10 +8,7 @@ import {
   DashboardPageHeading,
 } from "@/components/dashboard/dashboard-page";
 import { ReviewsDashboard } from "@/components/reviews/shop/reviews-dashboard";
-import {
-  ReviewsContentSkeleton,
-  ReviewsPending,
-} from "@/components/reviews/shop/reviews-pending";
+import { ReviewsPending } from "@/components/reviews/shop/reviews-pending";
 import {
   Empty,
   EmptyDescription,
@@ -19,13 +16,11 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { cacheTime } from "@/config/cache";
-import { useBarbershopByMemberUserId } from "@/hooks/barbershop/use-barbershop";
 import {
   shopRatingTrendQueryOptions,
   shopReviewBreakdownQueryOptions,
   shopReviewStatsQueryOptions,
 } from "@/hooks/use-reviews";
-import { useSession } from "@/hooks/use-session";
 
 const REVIEWS_DESCRIPTION =
   "Monitorea las reseñas de tus clientes y su moderación.";
@@ -77,9 +72,11 @@ const NoBarbershop: FC = () => (
 );
 
 function RouteComponent() {
-  const { data: user } = useSession();
-  const userId = user?.id ?? "";
-  const { data: barbershop, isLoading } = useBarbershopByMemberUserId(userId);
+  // The loader already resolved the barbershop into route context — reading it
+  // back avoids a second query and the skeleton flash it caused on navigation.
+  const barbershop = Route.useRouteContext({
+    select: (context) => context.dashboardBarbershop,
+  });
 
   return (
     <DashboardPage>
@@ -91,9 +88,7 @@ function RouteComponent() {
       </DashboardPageHeader>
 
       <DashboardPageContent>
-        {isLoading ? (
-          <ReviewsContentSkeleton />
-        ) : barbershop?._id ? (
+        {barbershop?._id ? (
           <ReviewsDashboard barbershopId={barbershop._id} />
         ) : (
           <NoBarbershop />

@@ -38,6 +38,12 @@ interface ReviewsDashboardProps {
 
 const CardSkeleton = () => <Skeleton className="h-52" />;
 
+const TABLE_EMPTY = (
+  <p className="text-muted-foreground text-sm">
+    No hay reseñas que coincidan con este filtro.
+  </p>
+);
+
 /**
  * Owner "Reseñas" analytics surface: KPI strip, star distribution + 6-month
  * trend, per-service / per-barber breakdown, and the paginated, filterable
@@ -148,13 +154,7 @@ export const ReviewsDashboard: FC<ReviewsDashboardProps> = ({
           <DataTableSkeleton columns={7} rows={6} />
         ) : (
           <DataTable table={table} server={{ status, loadMore, pageSize: 20 }}>
-            <DataTableContent
-              empty={
-                <p className="text-muted-foreground text-sm">
-                  No hay reseñas que coincidan con este filtro.
-                </p>
-              }
-            />
+            <DataTableContent empty={TABLE_EMPTY} />
             <DataTablePagination />
           </DataTable>
         )}
