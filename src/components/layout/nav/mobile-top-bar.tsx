@@ -1,6 +1,6 @@
 import { ListIcon, SquaresFourIcon } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,11 @@ export function MobileTopBar() {
   const { trigger } = useWebHaptics();
 
   const isMember = isBarber || isStaff || isOwner;
+  const brandTo = user
+    ? isMember
+      ? "/profile/barbershops/appointments"
+      : "/profile"
+    : "/";
   const groups = getMobileMenuGroups(Boolean(user));
   const activeTo = useActiveRoute(groups.flatMap((group) => group.items));
 
@@ -51,19 +56,25 @@ export function MobileTopBar() {
     setMenuOpen(false);
   };
 
+  // The drawer panel hides itself past `md` via `md:hidden`, but its backdrop
+  // doesn't — without this, rotating a tablet while the menu is open leaves an
+  // invisible modal overlay trapping focus over the desktop page.
+  useEffect(() => {
+    const desktopQuery = window.matchMedia("(min-width: 768px)");
+    const handleChange = (event: MediaQueryListEvent) => {
+      if (event.matches) setMenuOpen(false);
+    };
+    desktopQuery.addEventListener("change", handleChange);
+    return () => desktopQuery.removeEventListener("change", handleChange);
+  }, []);
+
   return (
     <>
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-2 border-b bg-background/80 px-4 backdrop-blur supports-backdrop-filter:bg-background/60 md:hidden">
         <Link
           className="font-bold text-xl tracking-tighter"
-          search={user ? { tab: "account" } : undefined}
-          to={
-            user
-              ? isMember
-                ? "/profile/barbershops/appointments"
-                : "/profile"
-              : "/"
-          }
+          search={navSearch(brandTo)}
+          to={brandTo}
         >
           {APP_NAME}
         </Link>
