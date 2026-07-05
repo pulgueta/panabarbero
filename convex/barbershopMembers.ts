@@ -16,8 +16,8 @@ import {
   syncMemberAuthz,
 } from "./authz";
 import { errorMessages } from "./errors";
-import { releaseForAppointment } from "./inventory";
 import { getUserId, requireUserId } from "./identity";
+import { releaseForAppointment } from "./inventory";
 import { rateLimitOrThrow } from "./ratelimit";
 import type { Barbershop, BarbershopMember } from "./schema";
 import { barbershopMembers, barbershops } from "./schema";
@@ -223,8 +223,7 @@ export const removeBarberFromBarbershop = zAuthMutation({
       await ctx.db.patch(appt._id, {
         deletedAt: Date.now(),
         status: "cancelled",
-        notes:
-          "Cita cancelada porque el barbero ya no pertenece a la barbería",
+        notes: "Cita cancelada porque el barbero ya no pertenece a la barbería",
         proposedDate: undefined,
         rescheduleRequestedByUserId: undefined,
       });
@@ -612,8 +611,7 @@ export const toggleBarberRole = zAuthMutation({
       await ctx.db.patch(appt._id, {
         deletedAt: now,
         status: "cancelled",
-        notes:
-          "Cita cancelada porque el dueño dejó de atender como barbero.",
+        notes: "Cita cancelada porque el dueño dejó de atender como barbero.",
         proposedDate: undefined,
         rescheduleRequestedByUserId: undefined,
       });
