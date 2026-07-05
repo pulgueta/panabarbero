@@ -222,7 +222,7 @@ const DashboardUserMenu: FC<{ user: DashboardUser }> = ({ user }) => {
                 <ThemeToggler
                   size="sm"
                   variant="ghost"
-                  className="w-full justify-start"
+                  className="size-full justify-start"
                 />
               }
             />

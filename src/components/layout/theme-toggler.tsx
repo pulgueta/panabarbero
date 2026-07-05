@@ -4,7 +4,7 @@ import {
   MoonIcon,
   SunIcon,
 } from "@phosphor-icons/react";
-import type { FC } from "react";
+import type { ComponentProps, FC } from "react";
 
 import type { ButtonProps } from "@/components/ui/button";
 import { Button } from "@/components/ui/button";
@@ -17,22 +17,34 @@ import {
 import { cn } from "@/lib/utils";
 import { useTheme } from "./theme-provider";
 
-interface ThemeTogglerProps {
+interface ThemeTogglerProps
+  extends Omit<
+    ComponentProps<typeof DropdownMenuTrigger>,
+    "render" | "children"
+  > {
   size?: ButtonProps["size"];
   variant?: ButtonProps["variant"];
-  className?: string;
 }
 
+/**
+ * Doubles as a menu row: when composed via another primitive's `render` prop
+ * (e.g. `<DropdownMenuItem render={<ThemeToggler .../>}>`), the host's
+ * ref/click/keyboard/ARIA props land here as `...triggerProps` and get
+ * forwarded onto our own trigger so this stays a real, focusable, registered
+ * item instead of an inert nested dropdown.
+ */
 export const ThemeToggler: FC<ThemeTogglerProps> = ({
   size = "icon",
   variant = "outline",
   className,
+  ...triggerProps
 }) => {
   const { userTheme, setTheme } = useTheme();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
+        {...triggerProps}
         render={
           <Button
             variant={variant}
