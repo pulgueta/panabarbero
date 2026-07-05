@@ -107,6 +107,13 @@ const severityVariants: Record<
   critical: "destructive",
 };
 
+const severityLabels: Record<InventoryItemAuditEvent["severity"], string> = {
+  info: "Info",
+  warning: "Atención",
+  error: "Error",
+  critical: "Crítico",
+};
+
 function formatEventDate(timestamp: number) {
   return new Date(timestamp).toLocaleDateString("es-CO", {
     year: "numeric",
@@ -122,8 +129,10 @@ function formatDiff(diff?: string) {
 
   const compact = diff
     .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
+    .flatMap((line) => {
+      const trimmed = line.trim();
+      return trimmed ? [trimmed] : [];
+    })
     .slice(0, 3)
     .join(" · ");
 
@@ -174,7 +183,7 @@ const AuditTrail: FC<AuditTrailProps> = ({ itemId }) => {
                 </p>
               </div>
               <Badge variant={severityVariants[event.severity]}>
-                {event.severity === "warning" ? "Atención" : "Info"}
+                {severityLabels[event.severity]}
               </Badge>
             </div>
 

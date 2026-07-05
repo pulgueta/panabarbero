@@ -27,9 +27,10 @@ export interface ItemFormData {
   category: InventoryCategory;
   unit: InventoryUnit;
   isSellable: boolean;
-  unitCost: number;
+  /** Optional in the form so a cleared input is representable; submit falls back. */
+  unitCost?: number;
   salePrice?: number;
-  reorderPoint: number;
+  reorderPoint?: number;
   reorderQuantity?: number;
   allowNegativeStock: boolean;
   /** Create only: optional starting stock, applied as a "receipt" movement. */
@@ -111,14 +112,14 @@ export function useItemForm({
           unit: value.unit,
           isSellable: value.isSellable,
           unitCost:
-            parseNonNegativeInteger(value.unitCost) ??
+            parseNonNegativeInteger(value.unitCost ?? "") ??
             (itemId ? (initialValues?.unitCost ?? 0) : 0),
           salePrice:
             value.isSellable && value.salePrice !== undefined
               ? (parseNonNegativeInteger(value.salePrice) ?? undefined)
               : undefined,
           reorderPoint:
-            parseNonNegativeInteger(value.reorderPoint) ??
+            parseNonNegativeInteger(value.reorderPoint ?? "") ??
             (itemId ? (initialValues?.reorderPoint ?? 0) : 0),
           reorderQuantity:
             value.reorderQuantity !== undefined

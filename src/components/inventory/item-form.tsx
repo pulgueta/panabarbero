@@ -47,6 +47,11 @@ const ITEM_IMAGE_ASPECT_RATIOS = [
 /** The full form engine — lifted so a dedicated page can compose fields + live preview. */
 export type ItemFormEngine = ReturnType<typeof useItemForm>;
 
+/** Shared by every numeric field: an emptied input maps to `undefined`, not `NaN`. */
+function toOptionalNumber(raw: string): number | undefined {
+  return raw === "" ? undefined : Number(raw);
+}
+
 export const ItemForm: FC<ItemFormProps> = (props) => {
   const { itemId } = props;
   const engine = useItemForm(props);
@@ -135,11 +140,7 @@ export const ItemFormFields: FC<ItemFormFieldsProps> = ({ engine, itemId }) => {
                   className="tabular-nums"
                   value={field.state.value ?? ""}
                   onChange={(e) =>
-                    field.handleChange(
-                      e.target.value === ""
-                        ? undefined
-                        : Number(e.target.value),
-                    )
+                    field.handleChange(toOptionalNumber(e.target.value))
                   }
                 />
               )}
@@ -158,16 +159,9 @@ export const ItemFormFields: FC<ItemFormFieldsProps> = ({ engine, itemId }) => {
               type="number"
               className="tabular-nums"
               value={field.state.value ?? ""}
-              onChange={(e) => {
-                const raw = e.target.value;
-
-                if (raw === "") {
-                  field.handleChange(undefined as unknown as number);
-                  return;
-                }
-
-                field.handleChange(Number(raw));
-              }}
+              onChange={(e) =>
+                field.handleChange(toOptionalNumber(e.target.value))
+              }
             />
           )}
         </form.AppField>
@@ -196,16 +190,9 @@ export const ItemFormFields: FC<ItemFormFieldsProps> = ({ engine, itemId }) => {
               type="number"
               className="w-full tabular-nums"
               value={field.state.value ?? ""}
-              onChange={(e) => {
-                const raw = e.target.value;
-
-                if (raw === "") {
-                  field.handleChange(undefined as unknown as number);
-                  return;
-                }
-
-                field.handleChange(Number(raw));
-              }}
+              onChange={(e) =>
+                field.handleChange(toOptionalNumber(e.target.value))
+              }
             />
           )}
         </form.AppField>
@@ -220,9 +207,7 @@ export const ItemFormFields: FC<ItemFormFieldsProps> = ({ engine, itemId }) => {
               className="w-full tabular-nums"
               value={field.state.value ?? ""}
               onChange={(e) =>
-                field.handleChange(
-                  e.target.value === "" ? undefined : Number(e.target.value),
-                )
+                field.handleChange(toOptionalNumber(e.target.value))
               }
             />
           )}
@@ -246,11 +231,7 @@ export const ItemFormFields: FC<ItemFormFieldsProps> = ({ engine, itemId }) => {
                   className="tabular-nums"
                   value={field.state.value ?? ""}
                   onChange={(e) =>
-                    field.handleChange(
-                      e.target.value === ""
-                        ? undefined
-                        : Number(e.target.value),
-                    )
+                    field.handleChange(toOptionalNumber(e.target.value))
                   }
                 />
               )}

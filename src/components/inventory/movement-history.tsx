@@ -129,6 +129,13 @@ export const InventoryMovementList: FC<InventoryMovementListProps> = ({
   ...props
 }) => {
   const [cursors, setCursors] = useState<Array<string | null>>([null]);
+  // Cursors belong to one item's paginated stream — restart from the first
+  // page when the same mounted list is pointed at another item.
+  const [lastItemId, setLastItemId] = useState(itemId);
+  if (itemId !== lastItemId) {
+    setLastItemId(itemId);
+    setCursors([null]);
+  }
 
   return (
     <div className={cn("space-y-1", className)} {...props}>

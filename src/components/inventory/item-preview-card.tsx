@@ -39,18 +39,22 @@ export const ItemPreviewCard: FC<ItemPreviewCardProps> = ({
   engine,
   showInitialQuantity = true,
 }) => {
-  const { form, photoFile } = engine;
+  const { form, photoFile, imageUrl } = engine;
 
-  const photoUrl = useMemo(
+  const objectUrl = useMemo(
     () => (photoFile ? URL.createObjectURL(photoFile) : null),
     [photoFile],
   );
 
+  // Only object URLs we created get revoked — never the stored image URL.
   useEffect(() => {
     return () => {
-      if (photoUrl) URL.revokeObjectURL(photoUrl);
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [photoUrl]);
+  }, [objectUrl]);
+
+  // A freshly picked file wins over the persisted photo on the edit page.
+  const photoUrl = objectUrl ?? imageUrl;
 
   return (
     <form.Subscribe selector={(state) => state.values}>
