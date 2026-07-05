@@ -87,7 +87,7 @@ export function LocationFirstRun() {
           </div>
         </div>
       ) : (
-        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col items-start gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start gap-3">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <NavigationArrowIcon className="size-4" weight="fill" />
@@ -102,7 +102,7 @@ export function LocationFirstRun() {
             </div>
           </div>
 
-          <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
+          <div className="flex w-full shrink-0 flex-col gap-2 md:w-auto md:flex-row">
             {!failed && (
               <Button disabled={isLocating} onClick={handleUseLocation}>
                 {isLocating && <Spinner />}
