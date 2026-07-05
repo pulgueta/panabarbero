@@ -84,11 +84,11 @@ inventory system already uses:
 | Domain | Funnel call site | Events emitted |
 |---|---|---|
 | Inventory stock | `recordMovement` (`convex/inventory.ts`) — the sole balance writer | `inventory.stock.<type>` (receipt/sale/consumption/adjustment/…) — one call site covers every stock change, incl. the new create-time `initialQuantity` receipt |
-| Inventory catalog | `createItem` / `updateItem` / `archiveItem` | `inventory.item.created|updated|archived` (with `logChange` before/after) |
-| Team | `syncMemberAuthz` / `revokeMemberAuthz` dual-write sites (`convex/authz.ts`) | `team.member.added|role_changed|removed` — logging beside the authz mirror keeps the mirror rule visible |
-| Appointments | `setStatus`, `answerRescheduleRequest`, `cancel` | `appointments.appointment.completed|no_show|cancelled|rescheduled` |
+| Inventory catalog | `createItem` / `updateItem` / `archiveItem` | `inventory.item.created\|updated\|archived` (with `logChange` before/after) |
+| Team | `syncMemberAuthz` / `revokeMemberAuthz` dual-write sites (`convex/authz.ts`) | `team.member.added\|role_changed\|removed` — logging beside the authz mirror keeps the mirror rule visible |
+| Appointments | `setStatus`, `answerRescheduleRequest`, `cancel` | `appointments.appointment.completed\|no_show\|cancelled\|rescheduled` |
 | Settings | each settings mutation (they're already per-section) | `settings.<section>.updated` with diff |
-| Reviews | `applyModeration` (internal) | `reviews.review.published|flagged` |
+| Reviews | `applyModeration` (internal) | `reviews.review.published\|flagged` |
 
 The existing **`inventoryMovements` table stays the operational source of
 truth** for balances (the ledger invariant is untouched). The audit log is the
