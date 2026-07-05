@@ -110,8 +110,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
     | Service["_id"]
     | undefined;
 
-  // biome-ignore lint/style/noNonNullAssertion: query is only consumed when a service is selected
-  const { data: barbersForService } = useBarbersForService(effectiveServiceId!);
+  const { data: barbersForService } = useBarbersForService(effectiveServiceId);
 
   const availableBarbers = effectiveServiceId
     ? (barbersForService ?? barbers)

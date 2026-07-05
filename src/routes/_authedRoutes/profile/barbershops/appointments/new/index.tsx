@@ -92,11 +92,10 @@ export const Route = createFileRoute(
       throw redirect({ to: "/profile/barbershops/appointments" });
     }
 
-    const members = await context.queryClient.ensureQueryData(
-      barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
-    );
-
-    await Promise.all([
+    const [members] = await Promise.all([
+      context.queryClient.ensureQueryData(
+        barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+      ),
       context.queryClient.ensureQueryData(barberByUserIdQueryOptions(userId)),
       context.queryClient.ensureQueryData(isBarberQueryOptions(userId)),
       context.queryClient.ensureQueryData(isStaffQueryOptions(userId)),
@@ -131,11 +130,11 @@ function RouteComponent() {
 
   const service = useServicesStore();
   const effectiveServiceId = service._id as Service["_id"] | undefined;
-  const { data: barbersForService } = useBarbersForService(effectiveServiceId!);
+  const { data: barbersForService } = useBarbersForService(effectiveServiceId);
   const [selectedBarber, setSelectedBarber] = useState<
     BarbershopMemberWithName | undefined
   >(undefined);
-  const { data: barberServices } = useServicesForBarber(selectedBarber?._id!);
+  const { data: barberServices } = useServicesForBarber(selectedBarber?._id);
 
   const isCreatingOnBehalf = isBarber || isStaff;
   const showPhoneField =

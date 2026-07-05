@@ -63,7 +63,7 @@ const searchSchema = z.object({
   date: z
     .number()
     .optional()
-    .default(Date.now())
+    .default(() => Date.now())
     .transform((val) => {
       const startOfDay = new Date(val);
       startOfDay.setHours(0, 0, 0, 0);
