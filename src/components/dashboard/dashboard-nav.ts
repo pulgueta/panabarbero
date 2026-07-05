@@ -97,6 +97,18 @@ const groups: DashboardNavGroup[] = [
             label: "Facturación",
             to: "/profile/barbershops/settings/billing",
           },
+          {
+            label: "Marca",
+            to: "/profile/barbershops/settings/branding",
+          },
+          {
+            label: "Ubicación",
+            to: "/profile/barbershops/settings/location",
+          },
+          {
+            label: "Preferencias",
+            to: "/profile/barbershops/settings/preferences",
+          },
         ],
       },
     ],

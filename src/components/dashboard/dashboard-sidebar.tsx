@@ -173,6 +173,13 @@ const DashboardNavEntry: FC<DashboardNavEntryProps> = ({
   const isActive = isSelfActive || hasActiveChild;
 
   const [open, setOpen] = useState(isActive);
+  // Re-open the group when its entry becomes active after mount (e.g. a
+  // navigation into a nested route while the group was collapsed).
+  const [wasActive, setWasActive] = useState(isActive);
+  if (isActive !== wasActive) {
+    setWasActive(isActive);
+    if (isActive) setOpen(true);
+  }
 
   if (children.length === 0) {
     return (

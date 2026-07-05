@@ -1,6 +1,8 @@
-import type { ComponentProps } from "react";
+import type { ComponentProps, FC } from "react";
 
 import { cn } from "@/lib/utils";
+
+type DashboardPageProps = ComponentProps<"div">;
 
 /**
  * Composable layout for a dashboard section. The shell (`route.tsx`) owns the
@@ -22,7 +24,7 @@ import { cn } from "@/lib/utils";
  * </DashboardPage>
  * ```
  */
-function DashboardPage({ className, ...props }: ComponentProps<"div">) {
+const DashboardPage: FC<DashboardPageProps> = ({ className, ...props }) => {
   return (
     <div
       data-slot="dashboard-page"
@@ -30,7 +32,9 @@ function DashboardPage({ className, ...props }: ComponentProps<"div">) {
       {...props}
     />
   );
-}
+};
+
+type DashboardPageHeaderProps = ComponentProps<"header">;
 
 /**
  * Header row: heading on the left, primary action on the right. Stacks on
@@ -38,10 +42,10 @@ function DashboardPage({ className, ...props }: ComponentProps<"div">) {
  * keeps its top edge aligned with the title rather than centering against a
  * two-line description.
  */
-function DashboardPageHeader({
+const DashboardPageHeader: FC<DashboardPageHeaderProps> = ({
   className,
   ...props
-}: ComponentProps<"header">) {
+}) => {
   return (
     <header
       data-slot="dashboard-page-header"
@@ -52,6 +56,12 @@ function DashboardPageHeader({
       {...props}
     />
   );
+};
+
+interface DashboardPageHeadingProps {
+  title: string;
+  description?: string;
+  className?: string;
 }
 
 /**
@@ -59,15 +69,11 @@ function DashboardPageHeader({
  * dashboard navigations crossfade the heading (matches the names the routes
  * used before this component existed).
  */
-function DashboardPageHeading({
+const DashboardPageHeading: FC<DashboardPageHeadingProps> = ({
   title,
   description,
   className,
-}: {
-  title: string;
-  description?: string;
-  className?: string;
-}) {
+}) => {
   return (
     <div className={cn("min-w-0 space-y-1", className)}>
       <h1
@@ -86,10 +92,15 @@ function DashboardPageHeading({
       ) : null}
     </div>
   );
-}
+};
+
+type DashboardPageActionsProps = ComponentProps<"div">;
 
 /** Right-aligned action slot for the header (a single primary action + optional secondary). */
-function DashboardPageActions({ className, ...props }: ComponentProps<"div">) {
+const DashboardPageActions: FC<DashboardPageActionsProps> = ({
+  className,
+  ...props
+}) => {
   return (
     <div
       data-slot="dashboard-page-actions"
@@ -100,21 +111,31 @@ function DashboardPageActions({ className, ...props }: ComponentProps<"div">) {
       {...props}
     />
   );
-}
+};
+
+type DashboardPageStatsProps = ComponentProps<"div">;
 
 /** KPI strip. Two columns on mobile, four from `lg` up, per DESIGN.md §7. */
-function DashboardPageStats({ className, ...props }: ComponentProps<"div">) {
+const DashboardPageStats: FC<DashboardPageStatsProps> = ({
+  className,
+  ...props
+}) => {
   return (
     <div
       data-slot="dashboard-page-stats"
-      className={cn("grid grid-cols-2 gap-4 lg:grid-cols-3", className)}
+      className={cn("grid grid-cols-2 gap-4 lg:grid-cols-4", className)}
       {...props}
     />
   );
-}
+};
+
+type DashboardPageContentProps = ComponentProps<"div">;
 
 /** Work surface (table / calendar / grid). `min-w-0` keeps wide tables from overflowing the flex/grid parent. */
-function DashboardPageContent({ className, ...props }: ComponentProps<"div">) {
+const DashboardPageContent: FC<DashboardPageContentProps> = ({
+  className,
+  ...props
+}) => {
   return (
     <div
       data-slot="dashboard-page-content"
@@ -122,7 +143,7 @@ function DashboardPageContent({ className, ...props }: ComponentProps<"div">) {
       {...props}
     />
   );
-}
+};
 
 export {
   DashboardPage,
