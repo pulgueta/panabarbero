@@ -1,4 +1,5 @@
 import { AuditLog } from "convex-audit-log";
+import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zAuthQuery } from ".";
@@ -21,15 +22,17 @@ export const getInventoryItemHistory = zAuthQuery({
     const item = await ctx.db.get(args.item.id);
 
     if (!item) {
-      throw new Error(errorMessages.notFound("producto"));
+      throw new ConvexError(errorMessages.notFound("producto"));
     }
 
+    // Audit entries snapshot cost/valuation fields (unitCost, salePrice),
+    // so consume-only barbers must not read them.
     await Promise.all([
       assertInventoryAllowed(ctx, item.barbershopId),
       authz.require(
         ctx,
         ctx.userId,
-        "inventory:consume",
+        "inventory:manage",
         barbershopScope(item.barbershopId),
       ),
     ]);

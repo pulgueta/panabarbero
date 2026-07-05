@@ -638,7 +638,7 @@ export const updateItem = zAuthMutation({
 
         if (costChanged && data.unitCost !== undefined) {
           // Zero-quantity audit row: the ledger records the cost change.
-          await db.insert("inventoryMovements", {
+          const movementId = await db.insert("inventoryMovements", {
             barbershopId: item.barbershopId,
             itemId: item._id,
             itemName: data.name ?? item.name,
@@ -649,6 +649,30 @@ export const updateItem = zAuthMutation({
             balanceAfter: level.onHand,
             reason: "Cambio de costo manual",
             actorUserId: userId,
+          });
+
+          // Ledger rows and movement audit entries stay 1:1 (see recordMovement).
+          await auditLog.logChange(ctx, {
+            action: "inventory.movement.adjustment",
+            actorId: userId,
+            resourceType: "inventory.item",
+            resourceId: item._id,
+            before: {
+              unitCost: level.unitCost,
+              locationId: level.locationId,
+            },
+            after: {
+              unitCost: data.unitCost,
+              locationId: level.locationId,
+              movementId,
+              movementType: "adjustment",
+              quantity: 0,
+              reason: "Cambio de costo manual",
+            },
+            generateDiff: true,
+            severity: "info",
+            tags: inventoryAuditTags(item.barbershopId, item._id),
+            retentionCategory: "inventory",
           });
         }
       }
@@ -1504,11 +1528,13 @@ export const listArchivedItems = zAuthQuery({
     ]);
 
     const [items, levels] = await Promise.all([
+      // gt(0) skips active rows (deletedAt undefined sorts below all numbers).
       ctx.db
         .query("inventoryItems")
-        .withIndex("by_barbershopId", (q) =>
-          q.eq("barbershopId", args.barbershop.id),
+        .withIndex("by_barbershopId_and_deletedAt", (q) =>
+          q.eq("barbershopId", args.barbershop.id).gt("deletedAt", 0),
         )
+        .order("desc")
         .collect(),
       ctx.db
         .query("inventoryLevels")
@@ -1518,7 +1544,10 @@ export const listArchivedItems = zAuthQuery({
         .collect(),
     ]);
 
-    const balances = new Map<string, { onHand: number; reserved: number }>();
+    const balances = new Map<
+      InventoryItem["_id"],
+      { onHand: number; reserved: number }
+    >();
 
     for (const level of levels) {
       const current = balances.get(level.itemId) ?? { onHand: 0, reserved: 0 };
@@ -1527,32 +1556,29 @@ export const listArchivedItems = zAuthQuery({
       balances.set(level.itemId, current);
     }
 
-    return items
-      .filter((item) => item.deletedAt !== undefined)
-      .sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0))
-      .map((item) => {
-        const balance = balances.get(item._id) ?? { onHand: 0, reserved: 0 };
+    return items.map((item) => {
+      const balance = balances.get(item._id) ?? { onHand: 0, reserved: 0 };
 
-        return {
-          _id: item._id,
-          name: item.name,
-          sku: item.sku,
-          category: item.category,
-          unit: item.unit,
-          isSellable: item.isSellable,
-          reorderPoint: item.reorderPoint,
-          reorderQuantity: item.reorderQuantity,
-          imageKey: item.imageKey,
-          deletedAt: item.deletedAt,
-          onHand: balance.onHand,
-          reserved: balance.reserved,
-          available: balance.onHand - balance.reserved,
-          unitCost: item.unitCost,
-          salePrice: item.salePrice,
-          allowNegativeStock: item.allowNegativeStock,
-          value: balance.onHand * item.unitCost,
-        };
-      });
+      return {
+        _id: item._id,
+        name: item.name,
+        sku: item.sku,
+        category: item.category,
+        unit: item.unit,
+        isSellable: item.isSellable,
+        reorderPoint: item.reorderPoint,
+        reorderQuantity: item.reorderQuantity,
+        imageKey: item.imageKey,
+        deletedAt: item.deletedAt,
+        onHand: balance.onHand,
+        reserved: balance.reserved,
+        available: balance.onHand - balance.reserved,
+        unitCost: item.unitCost,
+        salePrice: item.salePrice,
+        allowNegativeStock: item.allowNegativeStock,
+        value: balance.onHand * item.unitCost,
+      };
+    });
   },
 });
 

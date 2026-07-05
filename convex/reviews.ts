@@ -801,8 +801,8 @@ export const getShopRatingTrend = zAuthQuery({
 
 /**
  * Average rating + count grouped by service (snapshot name) and by barber
- * (review → appointment → `barbershopMemberId` → member name). Bounded scan of
- * published reviews; member names are resolved once and cached per member.
+ * (review → appointment → `barbershopMemberId` → member name). Scans published,
+ * unflagged reviews; member names are resolved once and cached per member.
  */
 export const getShopReviewBreakdown = zAuthQuery({
   args: z.object({ barbershop: barbershops.tools.id }),
@@ -812,12 +812,19 @@ export const getShopReviewBreakdown = zAuthQuery({
 
     await assertCanViewReviewAnalytics(ctx, barbershopId, userId);
 
-    const published = await ctx.db
-      .query("reviews")
-      .withIndex("by_barbershopId_and_publishedAt", (q) =>
-        q.eq("barbershopId", barbershopId).gt("publishedAt", 0),
-      )
-      .collect();
+    const published = (
+      await ctx.db
+        .query("reviews")
+        .withIndex("by_barbershopId_and_publishedAt", (q) =>
+          q.eq("barbershopId", barbershopId).gt("publishedAt", 0),
+        )
+        .collect()
+    ).filter((review) => review.flaggedAt === undefined);
+
+    // Resolve every appointment up front instead of one round trip per review.
+    const appointments = await Promise.all(
+      published.map((review) => ctx.db.get(review.appointmentId)),
+    );
 
     const serviceStats = new Map<string, { sum: number; count: number }>();
     const barberStats = new Map<
@@ -826,7 +833,7 @@ export const getShopReviewBreakdown = zAuthQuery({
     >();
     const memberNameCache = new Map<BarbershopMember["_id"], string>();
 
-    for (const review of published) {
+    for (const [index, review] of published.entries()) {
       const service = serviceStats.get(review.serviceName) ?? {
         sum: 0,
         count: 0,
@@ -835,7 +842,7 @@ export const getShopReviewBreakdown = zAuthQuery({
       service.count += 1;
       serviceStats.set(review.serviceName, service);
 
-      const appointment = await ctx.db.get(review.appointmentId);
+      const appointment = appointments[index];
 
       if (!appointment) {
         continue;
