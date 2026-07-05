@@ -36,7 +36,7 @@ const buttonVariants = cva(
     },
     defaultVariants: {
       variant: "default",
-      size: "sm",
+      size: "default",
     },
   },
 );
@@ -47,7 +47,7 @@ export type ButtonProps = ButtonPrimitive.Props &
 export const Button: FC<ButtonProps> = ({
   className,
   variant = "default",
-  size = "sm",
+  size = "default",
   ...props
 }) => (
   <ButtonPrimitive
