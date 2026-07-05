@@ -1,5 +1,3 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: barbershop is primed by the loader and gated to owners */
-
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { BarbershopLogoUploader } from "@/components/barbershops/barbershop-logo-uploader";

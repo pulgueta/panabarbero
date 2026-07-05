@@ -78,9 +78,16 @@ export const BillingPlanCard: FC<BillingPlanCardProps> = ({ barbershopId }) => {
             </span>
           </div>
 
-          <p className="text-pretty text-muted-foreground text-sm">
-            {PLAN_DESCRIPTIONS[planTier]}
-          </p>
+          {isLoading ? (
+            <div className="space-y-1.5">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          ) : (
+            <p className="text-pretty text-muted-foreground text-sm">
+              {PLAN_DESCRIPTIONS[planTier]}
+            </p>
+          )}
 
           <Button
             nativeButton={false}
@@ -101,55 +108,74 @@ export const BillingPlanCard: FC<BillingPlanCardProps> = ({ barbershopId }) => {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
-          <dl className="grid gap-2 text-sm">
-            <div className="flex items-center justify-between gap-3">
-              <dt className="text-muted-foreground">Barberos invitados</dt>
-              <dd className="font-medium tabular-nums">
-                {formatLimit(planLimits.maxInvitedBarbers)}
-              </dd>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt className="text-muted-foreground">Recepcionistas</dt>
-              <dd className="font-medium tabular-nums">
-                {formatLimit(planLimits.maxStaff)}
-              </dd>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt className="text-muted-foreground">SMS mensuales</dt>
-              <dd className="font-medium tabular-nums">
-                {formatLimit(planLimits.maxSmsPerMonth)}
-              </dd>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt className="text-muted-foreground">Emails mensuales</dt>
-              <dd className="font-medium tabular-nums">
-                {formatLimit(planLimits.maxEmailPerMonth)}
-              </dd>
-            </div>
-          </dl>
+          {isLoading ? (
+            <>
+              <div className="grid gap-2">
+                {["barbers", "staff", "sms", "email"].map((row) => (
+                  <Skeleton key={row} className="h-5 w-full" />
+                ))}
+              </div>
+              <div className="grid gap-2">
+                {["inventory", "staff-appts", "pana", "memory", "kb"].map(
+                  (row) => (
+                    <Skeleton key={row} className="h-5 w-full" />
+                  ),
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <dl className="grid gap-2 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-muted-foreground">Barberos invitados</dt>
+                  <dd className="font-medium tabular-nums">
+                    {formatLimit(planLimits.maxInvitedBarbers)}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-muted-foreground">Recepcionistas</dt>
+                  <dd className="font-medium tabular-nums">
+                    {formatLimit(planLimits.maxStaff)}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-muted-foreground">SMS mensuales</dt>
+                  <dd className="font-medium tabular-nums">
+                    {formatLimit(planLimits.maxSmsPerMonth)}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-muted-foreground">Emails mensuales</dt>
+                  <dd className="font-medium tabular-nums">
+                    {formatLimit(planLimits.maxEmailPerMonth)}
+                  </dd>
+                </div>
+              </dl>
 
-          <div className="grid gap-2">
-            <FeatureRow
-              label="Inventario"
-              enabled={planLimits.inventoryEnabled}
-            />
-            <FeatureRow
-              label="Citas creadas por el equipo"
-              enabled={planLimits.staffCanCreateAppointments}
-            />
-            <FeatureRow
-              label="Pana gestiona la barbería"
-              enabled={planLimits.panaManagement}
-            />
-            <FeatureRow
-              label="Memoria de Pana"
-              enabled={planLimits.panaMemory}
-            />
-            <FeatureRow
-              label="Base de conocimiento"
-              enabled={planLimits.panaKnowledgeBase}
-            />
-          </div>
+              <div className="grid gap-2">
+                <FeatureRow
+                  label="Inventario"
+                  enabled={planLimits.inventoryEnabled}
+                />
+                <FeatureRow
+                  label="Citas creadas por el equipo"
+                  enabled={planLimits.staffCanCreateAppointments}
+                />
+                <FeatureRow
+                  label="Pana gestiona la barbería"
+                  enabled={planLimits.panaManagement}
+                />
+                <FeatureRow
+                  label="Memoria de Pana"
+                  enabled={planLimits.panaMemory}
+                />
+                <FeatureRow
+                  label="Base de conocimiento"
+                  enabled={planLimits.panaKnowledgeBase}
+                />
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
