@@ -320,7 +320,13 @@ function FileUpload(props: FileUploadProps) {
 
         case "SET_PROGRESS": {
           const fileState = files.get(action.file);
-          if (fileState) {
+          // Progress is throttled with a trailing call, so a stale update can
+          // land after success/error — never demote a terminal status.
+          if (
+            fileState &&
+            fileState.status !== "success" &&
+            fileState.status !== "error"
+          ) {
             files.set(action.file, {
               ...fileState,
               progress: action.progress,

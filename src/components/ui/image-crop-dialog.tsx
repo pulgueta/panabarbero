@@ -271,7 +271,7 @@ export const ImageCropDialog: FC<ImageCropDialogProps> = ({
           <div className="flex flex-wrap items-center justify-center gap-2">
             {aspectRatioOptions.map((option) => (
               <Button
-                key={option.label}
+                key={option.value}
                 type="button"
                 variant={
                   option.value === activeAspectRatio ? "secondary" : "outline"
