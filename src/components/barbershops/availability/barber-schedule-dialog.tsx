@@ -1,5 +1,5 @@
 import type { Barbershop, BarbershopMemberWithName } from "@convex/schema";
-import type { FC } from "react";
+import type { Dispatch, FC, SetStateAction } from "react";
 import {
   Activity,
   useCallback,
@@ -110,18 +110,220 @@ const validateEntry = (
   };
 };
 
-interface BarberScheduleDialogProps {
-  member: BarbershopMemberWithName;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+type ScheduleDraft = {
+  openAt: string;
+  closeAt: string;
+  lunchStart: string;
+  lunchEnd: string;
+};
+
+function ScheduleSummary({ rows }: { rows: Barbershop["availability"] }) {
+  return (
+    <Activity mode="visible">
+      <div className="rounded-lg border p-4">
+        <h4 className="mb-3 font-semibold text-sm">Horario personalizado</h4>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {rows.map((entry) => {
+            const day = entry.weekDay.day as DayKey;
+
+            return (
+              <div key={day} className="rounded border p-3 text-sm">
+                <p className="font-semibold">{dayLabelMap[day]}</p>
+                {entry.weekDay.isActive ? (
+                  <div className="text-muted-foreground">
+                    <p>
+                      {entry.openAt} – {entry.closeAt}
+                    </p>
+                    {entry.lunchStart && entry.lunchEnd && (
+                      <p className="text-xs">
+                        Pausa: {entry.lunchStart} – {entry.lunchEnd}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">Inactivo</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </Activity>
+  );
 }
 
-export const BarberScheduleDialog: FC<BarberScheduleDialogProps> = ({
-  member,
-  open,
-  onOpenChange,
-}) => {
-  const formIds = {
+function DaySelectionField({
+  selectedDays,
+  onSelectedDaysChange,
+  formError,
+}: {
+  selectedDays: DayKey[];
+  onSelectedDaysChange: (values: string[]) => void;
+  formError: string | null;
+}) {
+  return (
+    <FieldSet className="gap-2">
+      <Field>
+        <ToggleGroup
+          multiple
+          variant="outline"
+          value={selectedDays}
+          onValueChange={onSelectedDaysChange}
+          className="flex flex-wrap justify-start"
+          aria-label="Selecciona los días para aplicar el horario"
+        >
+          {days.map(({ key, label }) => (
+            <ToggleGroupItem
+              key={key}
+              value={key}
+              className="px-3"
+              aria-pressed={selectedDays.includes(key)}
+            >
+              <span className="block md:hidden">{label.slice(0, 3)}</span>
+              <span className="hidden md:block">{label}</span>
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </Field>
+      <FieldDescription>
+        Selecciona los días y define el horario.{" "}
+        <span className="text-muted-foreground">
+          {selectedDays.length}{" "}
+          {selectedDays.length === 1
+            ? "día seleccionado"
+            : "días seleccionados"}
+        </span>
+      </FieldDescription>
+      {formError && <FieldError>{formError}</FieldError>}
+    </FieldSet>
+  );
+}
+
+function TimeRangeFields({
+  formIds,
+  schedule,
+  setSchedule,
+}: {
+  formIds: Pick<
+    ReturnType<typeof useScheduleFieldIds>,
+    "openAt" | "closeAt" | "lunchStart" | "lunchEnd"
+  >;
+  schedule: ScheduleDraft;
+  setSchedule: Dispatch<SetStateAction<ScheduleDraft>>;
+}) {
+  return (
+    <div className="flex w-full flex-col gap-4 md:flex-row">
+      <FieldSet className="w-full">
+        <Field>
+          <FieldLabel htmlFor={formIds.openAt}>Disponible desde</FieldLabel>
+          <Input
+            id={formIds.openAt}
+            type="time"
+            value={schedule.openAt}
+            onChange={(e) =>
+              setSchedule((prev) => ({ ...prev, openAt: e.target.value }))
+            }
+          />
+        </Field>
+      </FieldSet>
+
+      <FieldSet className="w-full">
+        <Field>
+          <FieldLabel htmlFor={formIds.closeAt}>Disponible hasta</FieldLabel>
+          <Input
+            id={formIds.closeAt}
+            type="time"
+            value={schedule.closeAt}
+            onChange={(e) =>
+              setSchedule((prev) => ({ ...prev, closeAt: e.target.value }))
+            }
+          />
+        </Field>
+      </FieldSet>
+    </div>
+  );
+}
+
+function LunchBreakFields({
+  formIds,
+  hasLunch,
+  setHasLunch,
+  schedule,
+  setSchedule,
+}: {
+  formIds: Pick<
+    ReturnType<typeof useScheduleFieldIds>,
+    "disableHours" | "lunchStart" | "lunchEnd"
+  >;
+  hasLunch: boolean;
+  setHasLunch: (value: boolean) => void;
+  schedule: ScheduleDraft;
+  setSchedule: Dispatch<SetStateAction<ScheduleDraft>>;
+}) {
+  return (
+    <>
+      <FieldSet>
+        <Field orientation="horizontal">
+          <Checkbox
+            checked={hasLunch}
+            onCheckedChange={(checked) => setHasLunch(Boolean(checked))}
+            id={formIds.disableHours}
+          />
+          <FieldContent>
+            <FieldLabel htmlFor={formIds.disableHours}>
+              Deshabilitar horas
+            </FieldLabel>
+            <FieldDescription>
+              Los clientes no podrán agendar citas durante el rango
+              seleccionado.
+            </FieldDescription>
+          </FieldContent>
+        </Field>
+      </FieldSet>
+
+      <Activity mode={hasLunch ? "visible" : "hidden"}>
+        <div className="flex w-full flex-col gap-4 md:flex-row">
+          <FieldSet className="w-full">
+            <Field>
+              <FieldLabel htmlFor={formIds.lunchStart}>Inicio</FieldLabel>
+              <Input
+                id={formIds.lunchStart}
+                type="time"
+                value={schedule.lunchStart}
+                onChange={(e) =>
+                  setSchedule((prev) => ({
+                    ...prev,
+                    lunchStart: e.target.value,
+                  }))
+                }
+              />
+            </Field>
+          </FieldSet>
+
+          <FieldSet className="w-full">
+            <Field>
+              <FieldLabel htmlFor={formIds.lunchEnd}>Fin</FieldLabel>
+              <Input
+                id={formIds.lunchEnd}
+                type="time"
+                value={schedule.lunchEnd}
+                onChange={(e) =>
+                  setSchedule((prev) => ({
+                    ...prev,
+                    lunchEnd: e.target.value,
+                  }))
+                }
+              />
+            </Field>
+          </FieldSet>
+        </div>
+      </Activity>
+    </>
+  );
+}
+
+function useScheduleFieldIds() {
+  return {
     customToggle: useId(),
     openAt: useId(),
     closeAt: useId(),
@@ -129,10 +331,20 @@ export const BarberScheduleDialog: FC<BarberScheduleDialogProps> = ({
     lunchEnd: useId(),
     disableHours: useId(),
   };
+}
+
+interface BarberScheduleEditorProps {
+  member: BarbershopMemberWithName;
+  onCancel?: () => void;
+  onSuccess?: () => void;
+}
+
+function useBarberScheduleEditor({
+  member,
+  onSuccess,
+}: Pick<BarberScheduleEditorProps, "member" | "onSuccess">) {
   const haptic = useWebHaptics();
-
   const { data: scheduleData, isLoading } = useBarberSchedule(member._id);
-
   const {
     updateBarberScheduleMutation: {
       mutateAsync: updateSchedule,
@@ -143,9 +355,7 @@ export const BarberScheduleDialog: FC<BarberScheduleDialogProps> = ({
       isPending: isResetting,
     },
   } = useBarbershopMemberActions();
-
   const [isCustom, setIsCustom] = useState(false);
-
   const buildRows = useCallback(
     (avail?: Barbershop["availability"]) =>
       days.map((d) => {
@@ -162,12 +372,11 @@ export const BarberScheduleDialog: FC<BarberScheduleDialogProps> = ({
       }),
     [],
   );
-
   const [rows, setRows] = useState<Barbershop["availability"]>(() =>
     buildRows(scheduleData?.schedule),
   );
   const [selectedDays, setSelectedDays] = useState<DayKey[]>([]);
-  const [schedule, setSchedule] = useState({
+  const [schedule, setSchedule] = useState<ScheduleDraft>({
     openAt: "",
     closeAt: "",
     lunchStart: "",
@@ -178,7 +387,6 @@ export const BarberScheduleDialog: FC<BarberScheduleDialogProps> = ({
 
   useEffect(() => {
     if (!scheduleData) return;
-
     setIsCustom(scheduleData.isCustom);
     setRows(buildRows(scheduleData.schedule));
     setSelectedDays([]);
@@ -201,7 +409,6 @@ export const BarberScheduleDialog: FC<BarberScheduleDialogProps> = ({
     () => buildRows(scheduleData?.schedule),
     [scheduleData, buildRows],
   );
-
   const hasChanges = useMemo(() => {
     if (!isCustom && scheduleData?.isCustom) return true;
     if (isCustom && !scheduleData?.isCustom) return true;
@@ -290,12 +497,11 @@ export const BarberScheduleDialog: FC<BarberScheduleDialogProps> = ({
 
   const handleSave = async () => {
     if (!isCustom) {
-      // Reset to barbershop schedule
       try {
         await resetSchedule({ barbershopMemberId: member._id });
         haptic.trigger("success");
         toast.success("Horario restablecido al de la barbería");
-        onOpenChange(false);
+        onSuccess?.();
       } catch (error) {
         haptic.trigger("error");
         toast.error(getConvexErrorMessage(error));
@@ -311,7 +517,7 @@ export const BarberScheduleDialog: FC<BarberScheduleDialogProps> = ({
       });
       haptic.trigger("success");
       toast.success("Horario del barbero actualizado");
-      onOpenChange(false);
+      onSuccess?.();
     } catch (error) {
       haptic.trigger("error");
       toast.error(
@@ -331,8 +537,175 @@ export const BarberScheduleDialog: FC<BarberScheduleDialogProps> = ({
     }
   };
 
-  const isPending = isUpdating || isResetting;
+  return {
+    applyScheduleToSelectedDays,
+    disableSelectedDays,
+    formError,
+    handleReset,
+    handleSave,
+    handleSelectedDaysChange,
+    hasChanges,
+    hasLunch,
+    isCustom,
+    isLoading,
+    isPending: isUpdating || isResetting,
+    isResetting,
+    rows,
+    schedule,
+    scheduleData,
+    selectedDays,
+    setHasLunch,
+    setIsCustom,
+    setSchedule,
+  };
+}
 
+export const BarberScheduleEditor: FC<BarberScheduleEditorProps> = ({
+  member,
+  onCancel,
+  onSuccess,
+}) => {
+  const formIds = useScheduleFieldIds();
+  const {
+    applyScheduleToSelectedDays,
+    disableSelectedDays,
+    formError,
+    handleReset,
+    handleSave,
+    handleSelectedDaysChange,
+    hasChanges,
+    hasLunch,
+    isCustom,
+    isLoading,
+    isPending,
+    isResetting,
+    rows,
+    schedule,
+    scheduleData,
+    selectedDays,
+    setHasLunch,
+    setIsCustom,
+    setSchedule,
+  } = useBarberScheduleEditor({ member, onSuccess });
+
+  return (
+    <div className="space-y-4">
+      {isLoading ? (
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <Field orientation="horizontal">
+            <Switch
+              id={formIds.customToggle}
+              checked={isCustom}
+              onCheckedChange={(checked) => setIsCustom(Boolean(checked))}
+              disabled={isPending}
+            />
+            <FieldContent>
+              <FieldLabel htmlFor={formIds.customToggle}>
+                Usar horario personalizado
+              </FieldLabel>
+              <FieldDescription>
+                {isCustom
+                  ? "Este barbero tiene su propio horario."
+                  : "Este barbero usa el horario de la barbería."}
+              </FieldDescription>
+            </FieldContent>
+          </Field>
+
+          <Activity mode={isCustom ? "visible" : "hidden"}>
+            <ScheduleSummary rows={rows} />
+          </Activity>
+
+          <Activity mode={isCustom ? "visible" : "hidden"}>
+            <FieldGroup>
+              <DaySelectionField
+                selectedDays={selectedDays}
+                onSelectedDaysChange={handleSelectedDaysChange}
+                formError={formError}
+              />
+
+              <TimeRangeFields
+                formIds={formIds}
+                schedule={schedule}
+                setSchedule={setSchedule}
+              />
+
+              <LunchBreakFields
+                formIds={formIds}
+                hasLunch={hasLunch}
+                setHasLunch={setHasLunch}
+                schedule={schedule}
+                setSchedule={setSchedule}
+              />
+
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={applyScheduleToSelectedDays}
+                  disabled={isPending}
+                >
+                  Aplicar horario
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={disableSelectedDays}
+                  disabled={!selectedDays.length || isPending}
+                >
+                  Desactivar días
+                </Button>
+                {scheduleData?.isCustom && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleReset}
+                    disabled={isPending}
+                  >
+                    {isResetting && <Spinner />}
+                    Usar horario de la barbería
+                  </Button>
+                )}
+              </div>
+            </FieldGroup>
+          </Activity>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            {onCancel ? (
+              <Button variant="outline" onClick={onCancel} disabled={isPending}>
+                Cancelar
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              onClick={handleSave}
+              disabled={isPending || !hasChanges}
+            >
+              {isPending && <Spinner />}
+              Guardar cambios
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+interface BarberScheduleDialogProps {
+  member: BarbershopMemberWithName;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export const BarberScheduleDialog: FC<BarberScheduleDialogProps> = ({
+  member,
+  open,
+  onOpenChange,
+}) => {
   return (
     <>
       <Button variant="outline" onClick={() => onOpenChange(true)}>
@@ -351,254 +724,12 @@ export const BarberScheduleDialog: FC<BarberScheduleDialogProps> = ({
             </ResponsiveModalDescription>
           </ResponsiveModalHeader>
 
-          {isLoading ? (
-            <div className="flex flex-col gap-4 py-4">
-              <Skeleton className="h-8 w-full" />
-              <Skeleton className="h-32 w-full" />
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4 py-4">
-              <Field orientation="horizontal">
-                <Switch
-                  id={formIds.customToggle}
-                  checked={isCustom}
-                  onCheckedChange={(checked) => setIsCustom(Boolean(checked))}
-                  disabled={isPending}
-                />
-                <FieldContent>
-                  <FieldLabel htmlFor={formIds.customToggle}>
-                    Usar horario personalizado
-                  </FieldLabel>
-                  <FieldDescription>
-                    {isCustom
-                      ? "Este barbero tiene su propio horario."
-                      : "Este barbero usa el horario de la barbería."}
-                  </FieldDescription>
-                </FieldContent>
-              </Field>
-
-              {/* Schedule summary (always shown) */}
-              <Activity mode={isCustom ? "visible" : "hidden"}>
-                <div className="rounded-lg border p-4">
-                  <h4 className="mb-3 font-semibold text-sm">
-                    Horario personalizado
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                    {rows.map((entry) => {
-                      const day = entry.weekDay.day as DayKey;
-                      return (
-                        <div key={day} className="rounded border p-3 text-sm">
-                          <p className="font-semibold">{dayLabelMap[day]}</p>
-                          {entry.weekDay.isActive ? (
-                            <div className="text-muted-foreground">
-                              <p>
-                                {entry.openAt} – {entry.closeAt}
-                              </p>
-                              {entry.lunchStart && entry.lunchEnd && (
-                                <p className="text-xs">
-                                  Pausa: {entry.lunchStart} – {entry.lunchEnd}
-                                </p>
-                              )}
-                            </div>
-                          ) : (
-                            <p className="text-muted-foreground">Inactivo</p>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </Activity>
-
-              {/* Editing form (only when custom) */}
-              <Activity mode={isCustom ? "visible" : "hidden"}>
-                <FieldGroup>
-                  <FieldSet className="gap-2">
-                    <Field>
-                      <ToggleGroup
-                        multiple
-                        variant="outline"
-                        value={selectedDays}
-                        onValueChange={handleSelectedDaysChange}
-                        className="flex flex-wrap justify-start"
-                        aria-label="Selecciona los días para aplicar el horario"
-                      >
-                        {days.map(({ key, label }) => (
-                          <ToggleGroupItem
-                            key={key}
-                            value={key}
-                            className="px-3"
-                            aria-pressed={selectedDays.includes(key)}
-                          >
-                            <span className="block md:hidden">
-                              {label.slice(0, 3)}
-                            </span>
-                            <span className="hidden md:block">{label}</span>
-                          </ToggleGroupItem>
-                        ))}
-                      </ToggleGroup>
-                    </Field>
-                    <FieldDescription>
-                      Selecciona los días y define el horario.{" "}
-                      <span className="text-muted-foreground">
-                        {selectedDays.length}{" "}
-                        {selectedDays.length === 1
-                          ? "día seleccionado"
-                          : "días seleccionados"}
-                      </span>
-                    </FieldDescription>
-                    {formError && <FieldError>{formError}</FieldError>}
-                  </FieldSet>
-
-                  <div className="flex w-full flex-col gap-4 md:flex-row">
-                    <FieldSet className="w-full">
-                      <Field>
-                        <FieldLabel htmlFor={formIds.openAt}>
-                          Disponible desde
-                        </FieldLabel>
-                        <Input
-                          id={formIds.openAt}
-                          type="time"
-                          value={schedule.openAt}
-                          onChange={(e) =>
-                            setSchedule((prev) => ({
-                              ...prev,
-                              openAt: e.target.value,
-                            }))
-                          }
-                        />
-                      </Field>
-                    </FieldSet>
-
-                    <FieldSet className="w-full">
-                      <Field>
-                        <FieldLabel htmlFor={formIds.closeAt}>
-                          Disponible hasta
-                        </FieldLabel>
-                        <Input
-                          id={formIds.closeAt}
-                          type="time"
-                          value={schedule.closeAt}
-                          onChange={(e) =>
-                            setSchedule((prev) => ({
-                              ...prev,
-                              closeAt: e.target.value,
-                            }))
-                          }
-                        />
-                      </Field>
-                    </FieldSet>
-                  </div>
-
-                  <FieldSet>
-                    <Field orientation="horizontal">
-                      <Checkbox
-                        checked={hasLunch}
-                        onCheckedChange={(checked) =>
-                          setHasLunch(Boolean(checked))
-                        }
-                        id={formIds.disableHours}
-                      />
-                      <FieldContent>
-                        <FieldLabel htmlFor={formIds.disableHours}>
-                          Deshabilitar horas
-                        </FieldLabel>
-                        <FieldDescription>
-                          Los clientes no podrán agendar citas durante el rango
-                          seleccionado.
-                        </FieldDescription>
-                      </FieldContent>
-                    </Field>
-                  </FieldSet>
-
-                  <Activity mode={hasLunch ? "visible" : "hidden"}>
-                    <div className="flex w-full flex-col gap-4 md:flex-row">
-                      <FieldSet className="w-full">
-                        <Field>
-                          <FieldLabel htmlFor={formIds.lunchStart}>
-                            Inicio
-                          </FieldLabel>
-                          <Input
-                            id={formIds.lunchStart}
-                            type="time"
-                            value={schedule.lunchStart}
-                            onChange={(e) =>
-                              setSchedule((prev) => ({
-                                ...prev,
-                                lunchStart: e.target.value,
-                              }))
-                            }
-                          />
-                        </Field>
-                      </FieldSet>
-
-                      <FieldSet className="w-full">
-                        <Field>
-                          <FieldLabel htmlFor={formIds.lunchEnd}>
-                            Fin
-                          </FieldLabel>
-                          <Input
-                            id={formIds.lunchEnd}
-                            type="time"
-                            value={schedule.lunchEnd}
-                            onChange={(e) =>
-                              setSchedule((prev) => ({
-                                ...prev,
-                                lunchEnd: e.target.value,
-                              }))
-                            }
-                          />
-                        </Field>
-                      </FieldSet>
-                    </div>
-                  </Activity>
-
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={applyScheduleToSelectedDays}
-                      disabled={isPending}
-                    >
-                      Aplicar horario
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={disableSelectedDays}
-                      disabled={!selectedDays.length || isPending}
-                    >
-                      Desactivar días
-                    </Button>
-                    {scheduleData?.isCustom && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleReset}
-                        disabled={isPending}
-                      >
-                        {isResetting && <Spinner />}
-                        Usar horario de la barbería
-                      </Button>
-                    )}
-                  </div>
-                </FieldGroup>
-              </Activity>
-            </div>
-          )}
-
           <ResponsiveModalFooter>
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isPending}
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleSave} disabled={isPending || !hasChanges}>
-              {isPending && <Spinner />}
-              Guardar cambios
-            </Button>
+            <BarberScheduleEditor
+              member={member}
+              onCancel={() => onOpenChange(false)}
+              onSuccess={() => onOpenChange(false)}
+            />
           </ResponsiveModalFooter>
         </ResponsiveModalContent>
       </ResponsiveModal>
