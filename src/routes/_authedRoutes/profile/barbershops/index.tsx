@@ -5,6 +5,6 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 // that renders an empty content area.
 export const Route = createFileRoute("/_authedRoutes/profile/barbershops/")({
   beforeLoad: () => {
-    throw redirect({ to: "/profile/barbershops/appointments" });
+    throw redirect({ to: "/profile/barbershops/appointments", replace: true });
   },
 });

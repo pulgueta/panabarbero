@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
+import { DashboardPending } from "@/components/dashboard/dashboard-pending";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
 import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -16,6 +17,7 @@ import { useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/_authedRoutes/profile/barbershops")({
   component: DashboardLayout,
+  pendingComponent: DashboardPending,
   ssr: "data-only",
   staticData: { breadcrumb: "Panel" },
   loader: async ({ context }) => {
