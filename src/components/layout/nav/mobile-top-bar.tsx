@@ -1,7 +1,6 @@
 import { ListIcon, SquaresFourIcon } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useState } from "react";
-import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -40,7 +39,6 @@ export function MobileTopBar() {
   const { user, isBarber, isStaff, isOwner } = useNavRoutes();
   const [menuOpen, setMenuOpen] = useState(false);
   const navSearch = useNavSearch();
-  const { trigger } = useWebHaptics();
 
   const isMember = isBarber || isStaff || isOwner;
   const brandTo = user
@@ -50,11 +48,6 @@ export function MobileTopBar() {
     : "/";
   const groups = getMobileMenuGroups(Boolean(user));
   const activeTo = useActiveRoute(groups.flatMap((group) => group.items));
-
-  const closeMenu = () => {
-    trigger();
-    setMenuOpen(false);
-  };
 
   // The drawer panel hides itself past `md` via `md:hidden`, but its backdrop
   // doesn't — without this, rotating a tablet while the menu is open leaves an
@@ -166,7 +159,6 @@ export function MobileTopBar() {
                               ? "bg-muted text-primary"
                               : "text-foreground hover:bg-muted",
                           )}
-                          onClick={closeMenu}
                           search={navSearch(item.to)}
                           to={item.to}
                         >

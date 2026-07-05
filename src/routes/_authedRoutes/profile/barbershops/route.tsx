@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
+import { DASHBOARD_GUTTER_X } from "@/components/dashboard/dashboard-gutter";
 import { DashboardPending } from "@/components/dashboard/dashboard-pending";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
 import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar";
@@ -14,21 +15,23 @@ import {
 } from "@/hooks/barbershop/use-barbershop-member";
 import { getBarbershopPlanQueryOptions } from "@/hooks/billing/use-plan";
 import { useSession } from "@/hooks/use-session";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authedRoutes/profile/barbershops")({
   component: DashboardLayout,
   pendingComponent: DashboardPending,
   ssr: "data-only",
   staticData: { breadcrumb: "Panel" },
-  loader: async ({ context }) => {
+  beforeLoad: async ({ context }) => {
     const userId = context.userId;
 
     if (!userId) {
-      return;
+      return {
+        dashboardBarbershop: null,
+        dashboardRoles: null,
+      };
     }
 
-    // The shell (sidebar identity, role-filtered nav) reads these on first
-    // paint; children ensure the same keys, so this adds no extra blocking.
     const [barbershop, roles] = await Promise.all([
       context.queryClient.ensureQueryData(
         barbershopByMemberUserIdQueryOptions(userId),
@@ -45,9 +48,15 @@ export const Route = createFileRoute("/_authedRoutes/profile/barbershops")({
       throw redirect({ to: "/profile", search: { tab: "account" } });
     }
 
-    if (barbershop?._id) {
+    return {
+      dashboardBarbershop: barbershop,
+      dashboardRoles: roles,
+    };
+  },
+  loader: async ({ context }) => {
+    if (context.dashboardBarbershop?._id) {
       void context.queryClient.prefetchQuery(
-        getBarbershopPlanQueryOptions(barbershop._id),
+        getBarbershopPlanQueryOptions(context.dashboardBarbershop._id),
       );
     }
   },
@@ -72,7 +81,7 @@ function DashboardLayout() {
       <SidebarInset>
         <DashboardTopbar />
         <div
-          className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-6"
+          className={cn("w-full flex-1 py-6", DASHBOARD_GUTTER_X)}
           style={{ viewTransitionName: "dashboard-content" }}
         >
           <Outlet />
