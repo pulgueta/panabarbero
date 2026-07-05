@@ -27,7 +27,6 @@ import {
   ResponsiveModal,
   ResponsiveModalContent,
   ResponsiveModalDescription,
-  ResponsiveModalFooter,
   ResponsiveModalHeader,
   ResponsiveModalTitle,
 } from "@/components/ui/responsive-modal";
@@ -724,13 +723,11 @@ export const BarberScheduleDialog: FC<BarberScheduleDialogProps> = ({
             </ResponsiveModalDescription>
           </ResponsiveModalHeader>
 
-          <ResponsiveModalFooter>
-            <BarberScheduleEditor
-              member={member}
-              onCancel={() => onOpenChange(false)}
-              onSuccess={() => onOpenChange(false)}
-            />
-          </ResponsiveModalFooter>
+          <BarberScheduleEditor
+            member={member}
+            onCancel={() => onOpenChange(false)}
+            onSuccess={() => onOpenChange(false)}
+          />
         </ResponsiveModalContent>
       </ResponsiveModal>
     </>

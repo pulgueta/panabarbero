@@ -12,7 +12,6 @@ import {
   ResponsiveModal,
   ResponsiveModalContent,
   ResponsiveModalDescription,
-  ResponsiveModalFooter,
   ResponsiveModalHeader,
   ResponsiveModalTitle,
   ResponsiveModalTrigger,
@@ -140,7 +139,8 @@ export const ManageServicesEditor: FC<ManageServicesEditorProps> = ({
         </p>
       )}
 
-      <ResponsiveModalFooter>
+      {/* Plain flex so the editor stays layout-agnostic outside the dialog. */}
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button
           variant="outline"
           onClick={onCancel}
@@ -154,7 +154,7 @@ export const ManageServicesEditor: FC<ManageServicesEditorProps> = ({
         >
           Guardar cambios
         </Button>
-      </ResponsiveModalFooter>
+      </div>
     </div>
   );
 };
