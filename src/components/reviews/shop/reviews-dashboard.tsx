@@ -12,13 +12,12 @@ import {
 import { DataTablePagination } from "@/components/table/data-table-pagination";
 import { useServerDataTable } from "@/components/table/use-server-data-table";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { ShopReviewRow } from "@/hooks/use-reviews";
 import {
-  type ShopReviewRow,
   useShopRatingTrend,
   useShopReviewBreakdown,
   useShopReviewStats,
 } from "@/hooks/use-reviews";
-
 import { getShopReviewColumns } from "./columns";
 import { RatingDistribution } from "./rating-distribution";
 import { RatingTrend } from "./rating-trend";

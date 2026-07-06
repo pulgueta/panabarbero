@@ -205,7 +205,7 @@ function RouteComponent() {
       </DashboardPageHeader>
 
       <DashboardPageContent>
-        <FormPageBody className="lg:grid-cols-[minmax(0,42rem)_22rem] xl:grid-cols-[minmax(0,42rem)_24rem]">
+        <FormPageBody className="lg:grid-cols-1 xl:grid-cols-[minmax(0,42rem)_22rem] 2xl:grid-cols-[minmax(0,42rem)_24rem]">
           <FormPageFields>
             <CreateAppointmentForm
               barbershopId={barbershop._id}
