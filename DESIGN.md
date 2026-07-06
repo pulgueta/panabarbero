@@ -177,31 +177,43 @@ SaaS frame: **inset layout** — the whole viewport is the `--sidebar` canvas; t
   - Items: h-36, `rounded-lg`, icon 16 + `text-sm font-medium`. States are layered, never color-only: **hover** = subtle `bg-sidebar-accent/60` fill, regular weight, outline icon; **active** = solid `bg-sidebar-accent` fill + a 2-px `bg-sidebar-primary` left indicator bar + bold text + filled icon + `--sidebar-primary` icon/text color (a lightness-tuned red, distinct from `--primary`, kept ≥4.5:1 on `--sidebar-accent` in dark mode — see §1.2/§13).
   - Role visibility: owner = all; staff = Citas, Servicios, Inventario,
     Equipo; barber = Citas, Inventario.
-- **Sheet header** (h-56, `border-b`, sticky top of the sheet): sidebar trigger, breadcrumb trail (Panel › current section, each route opts in via `staticData.breadcrumb`), right side: notifications + avatar (mobile only — desktop identity lives in the sidebar footer). Page-level primary action stays in the page header, not the shell header.
-- **Content**: `max-w-6xl mx-auto w-full px-4 md:px-6 py-6 space-y-6` inside the sheet. Page anatomy: title row (`h1 text-xl` + description + primary action right) → stat row (if any) → work surface (table/calendar/grid). No BorderContainer here — the shell owns the frame. Below `md` the gutter collapses and the sheet goes edge-to-edge (no border/radius).
+- **Sheet header** (h-56, `border-b`, sticky top of the sheet): sidebar trigger (flush to the gutter via `-ml-1`; **no vertical divider before the breadcrumb**), breadcrumb trail (Panel › current section, each route opts in via `staticData.breadcrumb`), right side: notifications + avatar (mobile only — desktop identity lives in the sidebar footer). Page-level primary action stays in the page header, not the shell header. The header uses the shared `DASHBOARD_GUTTER_X` so it shares the content's left/right edges.
+- **Content**: full-width, edge-to-edge inside the sheet — **no `max-w` cap** (the old `max-w-6xl mx-auto` wasted width on wide monitors). The horizontal gutter is the shared `DASHBOARD_GUTTER_X` (`px-4 md:px-6`, in `src/components/dashboard/dashboard-gutter.ts`) used by **both** the sheet header and the content so their edges align at every breakpoint; vertical is `py-6`. Compose page anatomy with the **`DashboardPage`** primitive (`src/components/dashboard/dashboard-page.tsx`): `DashboardPageHeader` (heading + `DashboardPageActions` slot) → `DashboardPageStats` (optional KPI strip) → `DashboardPageContent` (work surface). No BorderContainer — the shell owns the frame. Below `md` the gutter drops to `px-4` and the sheet goes edge-to-edge (no border/radius). An inner block may cap its own width for readability, but the section stays full-width.
+
+### 8.3 Shared dashboard primitives
+
+Four composable primitives carry the dashboard; compose them, don't fork them.
+
+- **`DashboardPage`** (`src/components/dashboard/dashboard-page.tsx`) — page anatomy: `DashboardPageHeader` (`DashboardPageHeading` title+description + `DashboardPageActions` slot) → optional `DashboardPageStats` (KPI strip, `grid-cols-2 lg:grid-cols-4`) → `DashboardPageContent`. The shell owns the gutter; the page owns vertical rhythm (`space-y-6`).
+- **`DataTable`** (`src/components/table/*`) — a compound TanStack-Table system. `useDataTable` for client tables (full list in memory: inventory, services, team); a `server` bag on `<DataTable>` for Convex `usePaginatedQuery` load-more (reviews, large lists). Slots: `DataTableToolbar` (`DataTableSearch` + `DataTableFacetedFilter` + `DataTableReset` + `DataTableViewOptions`) → `DataTableContent` (filter-aware empty) → `DataTablePagination` (load-more **or** prev/next — never numbered pages, cursors can't random-access). `DataTableColumnHeader` (sortable; `align="end"` for numbers), `DataTableRowActions` (data-driven menu). Facet options come from Convex/enums, not TanStack faceting. Never center-align table text (§7); one row-actions menu, right.
+- **`FormPage`** (`src/components/form/form-page.tsx`) — the dedicated-page form layout of §9 (fields column + sticky live preview).
+- **Sidebar nesting** — nav items with `children` (`dashboard-nav.ts`) render as a collapsible sub-menu (`SidebarMenuSub*`): Equipo (Barberos/Recepcionistas/Invitaciones), Ajustes (Perfil/Ubicación/Disponibilidad/Marca/Preferencias/Facturación), Pana (Chat/Conocimiento/Memoria). Active state is longest-prefix-wins so a sub-route lights up its own entry, not just the parent.
+
+**Skeletons.** Every route ships a `pendingComponent` that mirrors the loaded layout so navigation doesn't shift: static elements at their exact height, data-driven containers at a representative height (`DataTableSkeleton` for tables), no full-screen overlay on mobile.
 
 ## 9. Navigation & modal-vs-page
 
 Decision rule for any action:
 
 1. **≤ 6 fields, one step, frequent** → responsive modal (dialog/drawer). Stay in context; the list refreshes behind it.
-2. **> 6 fields, multi-section, or needs its own URL** → dedicated page route under the section.
+2. **> 6 fields, growable, multi-section, or needs its own URL** → dedicated page route under the section, built with the `FormPage*` primitives (`src/components/form/form-page.tsx`): a `FormPageFields` column (grouped by `FormPageSection`, sticky `FormPageFooter` actions) beside a sticky **live-preview** panel (`FormPagePreview`) that mirrors the entity as it is typed and offers a phone/full width toggle. The preview subscribes to the same TanStack Form store — no extra provider.
 3. **Read-only detail** → popover/drawer if glanceable, page if shareable.
 4. **Destructive** → `AlertDialog` confirm, always.
 
-Applied to today's surface:
+Applied to the surface:
 
 | Action | Verdict |
 |---|---|
-| Crear/editar cita | Modal (frequent, few fields) |
+| Crear/editar cita | Creación inline en el calendario (clic en un hueco, prefilled) + página de formulario completo para el flujo largo |
 | Aceptar/rechazar reagendamiento | Inline row actions + confirm |
-| Crear/editar servicio | Modal |
-| Insumos de servicio | Modal (single list) |
-| Crear/editar producto de inventario | Modal today — becomes a page if the form grows past its current field count |
+| Crear/editar servicio | Modal (≤ 6 campos) |
+| Receta de insumos de servicio | **Página** (lista dinámica de líneas) |
+| Crear/editar producto de inventario | **Página con vista previa** (> 6 campos + imagen) |
 | Ajustar stock / historial | Modal (adjust) / drawer (history) |
 | Invitar miembro | Modal (email + rol) |
-| Horario de barbero | Modal (single matrix) |
-| Ajustes de barbería | Page sections (already routed) |
+| Horario de barbero | Modal (matriz por barbero) |
+| Disponibilidad de la barbería | **Página** (`/settings/availability`, matriz de días) |
+| Ajustes de barbería | **Páginas agrupadas** por sección (Perfil · Ubicación · Disponibilidad · Marca · Preferencias · Facturación) |
 
 Minimize hops: an action never opens a modal from a modal; a page never requires returning "up" to see its effect.
 

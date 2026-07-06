@@ -19,9 +19,12 @@ import { useServiceActions } from "@/hooks/use-services";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
 interface DeleteServiceDialogProps {
-  trigger: ReactElement;
+  /** Omit when driving the modal externally via `open` / `onOpenChange`. */
+  trigger?: ReactElement;
   serviceId: Service["_id"];
   barbershopId: Barbershop["_id"];
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 /**
@@ -37,10 +40,14 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
   trigger,
   serviceId,
   barbershopId,
+  open: controlledOpen,
+  onOpenChange,
 }) => {
   const haptic = useWebHaptics();
 
-  const [open, setOpen] = useState<boolean>(false);
+  const [internalOpen, setInternalOpen] = useState<boolean>(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
   const [confirmationStep, setConfirmationStep] = useState<
     "initial" | "confirm_cancellation"
   >("initial");
@@ -55,7 +62,8 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
 
   // Reset state when dialog opens/closes
   const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
+    if (!isControlled) setInternalOpen(newOpen);
+    onOpenChange?.(newOpen);
     if (!newOpen) {
       setConfirmationStep("initial");
       setImpactedCount(0);
@@ -103,7 +111,7 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
 
   return (
     <ResponsiveModal open={open} onOpenChange={handleOpenChange}>
-      <ResponsiveModalTrigger render={trigger} />
+      {trigger ? <ResponsiveModalTrigger render={trigger} /> : null}
       <ResponsiveModalContent>
         <ResponsiveModalHeader>
           <ResponsiveModalTitle>{dialogTitle}</ResponsiveModalTitle>

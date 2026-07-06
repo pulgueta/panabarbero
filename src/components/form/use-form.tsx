@@ -38,6 +38,11 @@ const RadioGroupField = lazy(() =>
     default: module.RadioGroupField,
   })),
 );
+const AddonField = lazy(() =>
+  import("./addon-field").then((module) => ({
+    default: module.AddonField,
+  })),
+);
 const ResetButton = lazy(() =>
   import("./reset-button").then((module) => ({
     default: module.ResetButton,
@@ -58,6 +63,7 @@ export const { useAppForm } = createFormHook({
     SwitchField,
     CheckboxField,
     RadioGroupField,
+    AddonField,
   },
   formComponents: { SubmitButton, ResetButton },
   fieldContext,

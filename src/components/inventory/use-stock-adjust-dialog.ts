@@ -27,6 +27,7 @@ const successMessages: Record<StockOperation, string> = {
 
 interface StockAdjustFormValues {
   quantity: number;
+  packageCount: number;
   delta: number;
   counted: number;
   unitCost?: number;
@@ -65,25 +66,36 @@ export function useStockAdjustDialog({
     recordWasteMutation: { mutateAsync: recordWaste },
   } = useInventoryActions();
 
+  // Durable inventory is reusable — it only gets received and corrected.
+  const isDurable = item.stockBehavior === "durable";
+
   const operationOptions: { value: StockOperation; label: string }[] = canManage
-    ? [
-        { value: "receive", label: "Recibir" },
-        { value: "consume", label: "Consumir" },
-        ...(item.isSellable
-          ? [{ value: "sale" as const, label: "Vender" }]
-          : []),
-        { value: "adjust", label: "Ajustar" },
-        { value: "waste", label: "Merma" },
-      ]
-    : [
-        { value: "consume", label: "Consumir" },
-        ...(item.isSellable
-          ? [{ value: "sale" as const, label: "Vender" }]
-          : []),
-      ];
+    ? isDurable
+      ? [
+          { value: "receive", label: "Recibir" },
+          { value: "adjust", label: "Ajustar" },
+        ]
+      : [
+          { value: "receive", label: "Recibir" },
+          { value: "consume", label: "Consumir" },
+          ...(item.isSellable
+            ? [{ value: "sale" as const, label: "Vender" }]
+            : []),
+          { value: "adjust", label: "Ajustar" },
+          { value: "waste", label: "Merma" },
+        ]
+    : isDurable
+      ? []
+      : [
+          { value: "consume", label: "Consumir" },
+          ...(item.isSellable
+            ? [{ value: "sale" as const, label: "Vender" }]
+            : []),
+        ];
 
   const defaultValues: StockAdjustFormValues = {
     quantity: 1,
+    packageCount: 1,
     delta: 0,
     counted: item.onHand,
     unitCost: undefined,
@@ -107,7 +119,9 @@ export function useStockAdjustDialog({
       try {
         switch (operation) {
           case "receive": {
-            const quantity = parsePositiveIntegerQuantity(value.quantity);
+            const quantity = receivePackageMode
+              ? parsePositiveIntegerQuantity(value.packageCount)
+              : parsePositiveIntegerQuantity(value.quantity);
 
             if (!quantity) {
               haptic.trigger("error");
@@ -117,7 +131,9 @@ export function useStockAdjustDialog({
 
             await receiveStock({
               item: { id: item._id },
-              quantity,
+              quantity: receivePackageMode
+                ? quantity * (item.presentationValue ?? 1)
+                : quantity,
               unitCost:
                 value.unitCost !== undefined
                   ? Number(value.unitCost)
@@ -243,6 +259,18 @@ export function useStockAdjustDialog({
   );
 
   const unitSuffix = formatInventoryStockSuffix(item.onHand, item.unit);
+  const presentationSuffix =
+    item.presentationUnit === "und" ? "und" : item.presentationUnit;
+  const canReceiveByPackage =
+    operation === "receive" &&
+    typeof item.presentationValue === "number" &&
+    item.presentationValue > 0 &&
+    item.presentationUnit !== undefined &&
+    ((item.unit === "ml" && item.presentationUnit === "ml") ||
+      (item.unit === "g" && item.presentationUnit === "g") ||
+      (item.unit === "unit" && item.presentationUnit === "und"));
+  const [receivePackageMode, setReceivePackageMode] =
+    useState<boolean>(canReceiveByPackage);
 
   return {
     form,
@@ -253,6 +281,10 @@ export function useStockAdjustDialog({
     setOperation,
     countMode,
     setCountMode,
+    receivePackageMode,
+    setReceivePackageMode,
+    canReceiveByPackage,
+    presentationSuffix,
     operationOptions,
     unitSuffix,
     reasonRequired: operation === "adjust" || operation === "waste",

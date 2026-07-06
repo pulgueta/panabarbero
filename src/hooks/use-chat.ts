@@ -1,9 +1,9 @@
+import { api } from "@convex/_generated/api";
 import {
   optimisticallySendMessage,
   useUIMessages,
 } from "@convex-dev/agent/react";
 import { convexQuery } from "@convex-dev/react-query";
-import { api } from "@convex/_generated/api";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useAction, useMutation } from "convex/react";
@@ -11,6 +11,8 @@ import { useCallback } from "react";
 
 import type { Proposal } from "@/components/chat/proposal-card";
 import { chatViewTransition } from "@/lib/chat-view-transition";
+
+export type ChatRouteScope = "public" | "dashboard";
 
 export function myThreadsQueryOptions(userId?: string) {
   return convexQuery(api.aiChat.listMyThreads, {
@@ -39,7 +41,10 @@ export function useChatMessages(
   );
 }
 
-export function useSendChatMessage(userId: string | undefined) {
+export function useSendChatMessage(
+  userId: string | undefined,
+  routeScope: ChatRouteScope = "public",
+) {
   const navigate = useNavigate();
   const createThreadAndSend = useMutation(api.aiChat.createThreadAndSend);
   const sendMessage = useMutation(api.aiChat.sendMessage).withOptimisticUpdate(
@@ -59,11 +64,21 @@ export function useSendChatMessage(userId: string | undefined) {
           prompt: trimmed,
           userId,
         });
-        void navigate({
-          to: "/chat/$threadId",
-          params: { threadId: newId },
-          viewTransition: chatViewTransition,
-        });
+
+        if (routeScope === "dashboard") {
+          void navigate({
+            to: "/profile/barbershops/pana/$threadId",
+            params: { threadId: newId },
+            viewTransition: chatViewTransition,
+          });
+        } else {
+          void navigate({
+            to: "/chat/$threadId",
+            params: { threadId: newId },
+            viewTransition: chatViewTransition,
+          });
+        }
+
         return newId;
       }
 
@@ -72,7 +87,7 @@ export function useSendChatMessage(userId: string | undefined) {
       await sendMessage({ threadId, prompt: trimmed, userId });
       return threadId;
     },
-    [userId, createThreadAndSend, sendMessage, navigate],
+    [userId, routeScope, createThreadAndSend, sendMessage, navigate],
   );
 }
 

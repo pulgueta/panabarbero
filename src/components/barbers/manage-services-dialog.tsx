@@ -12,7 +12,6 @@ import {
   ResponsiveModal,
   ResponsiveModalContent,
   ResponsiveModalDescription,
-  ResponsiveModalFooter,
   ResponsiveModalHeader,
   ResponsiveModalTitle,
   ResponsiveModalTrigger,
@@ -20,20 +19,20 @@ import {
 import { useBarbershopMemberActions } from "@/hooks/use-barbershop-members";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
-interface ManageServicesDialogProps {
+interface ManageServicesEditorProps {
   barbershopMember: BarbershopMemberWithName;
   services: Service[];
   currentServices: Service[];
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onCancel?: () => void;
+  onSuccess?: () => void;
 }
 
-export const ManageServicesDialog: FC<ManageServicesDialogProps> = ({
+export const ManageServicesEditor: FC<ManageServicesEditorProps> = ({
   barbershopMember,
   services,
   currentServices,
-  open,
-  onOpenChange,
+  onCancel,
+  onSuccess,
 }) => {
   const dialogId = useId();
 
@@ -82,23 +81,98 @@ export const ManageServicesDialog: FC<ManageServicesDialogProps> = ({
       });
       haptic.trigger("success");
       toast.success("Servicios actualizados correctamente");
+      onSuccess?.();
     } catch (error) {
       haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
     }
   };
 
-  const handleOpenChange = (newOpen: boolean) => {
-    if (newOpen) {
-      setSelectedServices(new Set(currentServices?.map((s) => s._id)));
-    }
-    onOpenChange(newOpen);
-  };
-
-  const isSameServices = selectedServices.size === currentServices.length;
+  const isSameServices =
+    selectedServices.size === currentServices.length &&
+    currentServices.every((service) => selectedServices.has(service._id));
 
   return (
-    <ResponsiveModal open={open} onOpenChange={handleOpenChange}>
+    <div className="space-y-4">
+      <div className="flex justify-between gap-2">
+        <Button variant="outline" onClick={handleSelectAll}>
+          <CheckIcon className="size-3" />
+          Todos
+        </Button>
+        <Button variant="outline" onClick={handleClearAll}>
+          <XIcon className="size-3" />
+          Ninguno
+        </Button>
+      </div>
+
+      <div className="space-y-2">
+        {services.map((service) => {
+          const checkboxId = `${dialogId}-service-${service._id}`;
+
+          return (
+            <div
+              key={service._id}
+              className="flex items-center gap-3 rounded-md border p-3"
+            >
+              <Checkbox
+                id={checkboxId}
+                checked={selectedServices.has(service._id)}
+                onCheckedChange={() => {
+                  haptic.trigger("light");
+                  handleToggleService(service._id);
+                }}
+              />
+              <Label
+                htmlFor={checkboxId}
+                className="flex-1 cursor-pointer font-medium text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                {service.name}
+              </Label>
+            </div>
+          );
+        })}
+      </div>
+
+      {services.length === 0 && (
+        <p className="text-center text-muted-foreground text-sm">
+          No hay servicios creados para esta barbería.
+        </p>
+      )}
+
+      {/* Plain flex so the editor stays layout-agnostic outside the dialog. */}
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <Button
+          variant="outline"
+          onClick={onCancel}
+          disabled={isSettingBarberServices}
+        >
+          Cancelar
+        </Button>
+        <Button
+          onClick={handleSave}
+          disabled={isSettingBarberServices || isSameServices}
+        >
+          Guardar cambios
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+interface ManageServicesDialogProps extends ManageServicesEditorProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export const ManageServicesDialog: FC<ManageServicesDialogProps> = ({
+  barbershopMember,
+  services,
+  currentServices,
+  open,
+  onOpenChange,
+}) => {
+  return (
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
       <ResponsiveModalTrigger
         render={<Button variant="outline">Gestionar servicios</Button>}
       />
@@ -112,68 +186,13 @@ export const ManageServicesDialog: FC<ManageServicesDialogProps> = ({
           </ResponsiveModalDescription>
         </ResponsiveModalHeader>
 
-        <div className="space-y-4">
-          <div className="flex justify-between gap-2">
-            <Button variant="outline" onClick={handleSelectAll}>
-              <CheckIcon className="size-3" />
-              Todos
-            </Button>
-            <Button variant="outline" onClick={handleClearAll}>
-              <XIcon className="size-3" />
-              Ninguno
-            </Button>
-          </div>
-
-          <div className="max-h-[300px] space-y-2 overflow-y-auto pr-2">
-            {services.map((service) => {
-              const checkboxId = `${dialogId}-service-${service._id}`;
-
-              return (
-                <div
-                  key={service._id}
-                  className="flex items-center gap-3 rounded-md border p-3"
-                >
-                  <Checkbox
-                    id={checkboxId}
-                    checked={selectedServices.has(service._id)}
-                    onCheckedChange={() => {
-                      haptic.trigger("light");
-                      handleToggleService(service._id);
-                    }}
-                  />
-                  <Label
-                    htmlFor={checkboxId}
-                    className="flex-1 cursor-pointer font-medium text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    {service.name}
-                  </Label>
-                </div>
-              );
-            })}
-          </div>
-
-          {services.length === 0 && (
-            <p className="text-center text-muted-foreground text-sm">
-              No hay servicios creados para esta barbería.
-            </p>
-          )}
-        </div>
-
-        <ResponsiveModalFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isSettingBarberServices}
-          >
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={isSettingBarberServices || isSameServices}
-          >
-            Guardar cambios
-          </Button>
-        </ResponsiveModalFooter>
+        <ManageServicesEditor
+          barbershopMember={barbershopMember}
+          services={services}
+          currentServices={currentServices}
+          onCancel={() => onOpenChange(false)}
+          onSuccess={() => onOpenChange(false)}
+        />
       </ResponsiveModalContent>
     </ResponsiveModal>
   );

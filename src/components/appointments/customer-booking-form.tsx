@@ -103,16 +103,14 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
   };
 
   const { data: user } = useSession();
-  // biome-ignore lint/style/noNonNullAssertion: profile data is preloaded for authenticated booking routes
-  const { data: userProfile } = useProfile(user?.id!);
+  const { data: userProfile } = useProfile(user?.id ?? "");
 
   const storeService = useServicesStore();
   const effectiveServiceId = (storeService._id || initialServiceId) as
     | Service["_id"]
     | undefined;
 
-  // biome-ignore lint/style/noNonNullAssertion: query is only consumed when a service is selected
-  const { data: barbersForService } = useBarbersForService(effectiveServiceId!);
+  const { data: barbersForService } = useBarbersForService(effectiveServiceId);
 
   const availableBarbers = effectiveServiceId
     ? (barbersForService ?? barbers)

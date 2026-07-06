@@ -1,6 +1,7 @@
 import { vOnCompleteArgs, Workpool } from "@convex-dev/workpool";
-import { ConvexError, v } from "convex/values";
 import { convexToZod } from "convex-helpers/server/zod4";
+import { paginationOptsValidator } from "convex/server";
+import { ConvexError, v } from "convex/values";
 import { z } from "zod";
 
 import {
@@ -11,14 +12,16 @@ import {
   zQuery,
 } from ".";
 import { components, internal } from "./_generated/api";
-import type { MutationCtx } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { getBarbershopRatingValue, reviewRatingsAggregate } from "./aggregates";
 import { track } from "./analytics";
+import { assertShopRole } from "./authz";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
-import type { Review } from "./schema";
+import type { Barbershop, BarbershopMember, Review } from "./schema";
 import { barbershops, reviews } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
+import { colombiaDateKeyToMs, toColombiaDateKey } from "./utils";
 
 /**
  * Async review-comment moderation runs through a Workpool: bounded concurrency
@@ -536,5 +539,383 @@ export const onModerationComplete = zInternalMutation({
       reason:
         "No pudimos revisar tu reseña automáticamente. Edítala y vuelve a enviarla para publicarla.",
     });
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Owner-facing review analytics ("Reseñas" dashboard)
+// ---------------------------------------------------------------------------
+
+/** Star ratings, ascending — the fixed histogram buckets. */
+const STAR_RATINGS = [1, 2, 3, 4, 5] as const;
+
+/** Months of history returned by the rating trend. */
+const TREND_MONTHS = 6;
+
+/** Newest-first cap on the flagged moderation-monitoring panel. */
+const MODERATION_QUEUE_LIMIT = 50;
+
+/**
+ * The review analytics section is management-only (owner + staff) — barbers do
+ * not see the shop-wide moderation surface. Every analytics query below funnels
+ * through this single gate.
+ */
+async function assertCanViewReviewAnalytics(
+  ctx: QueryCtx,
+  barbershopId: Barbershop["_id"],
+  userId: string,
+) {
+  await assertShopRole(ctx, barbershopId, userId, ["owner", "staff"]);
+}
+
+/** Derive the display status from the timestamp pair (single source of truth). */
+function reviewStatus(review: {
+  publishedAt?: number;
+  flaggedAt?: number;
+}): "published" | "flagged" | "pending" {
+  if (review.flaggedAt) {
+    return "flagged";
+  }
+
+  if (review.publishedAt) {
+    return "published";
+  }
+
+  return "pending";
+}
+
+/**
+ * Paginated review feed for the owner dashboard.
+ *
+ * `rating` and `status` are mutually-exclusive single filters (the dashboard
+ * presents one unified filter control); if both are sent, `status` wins. Every
+ * branch resolves to a pure `.withIndex` range — never `.filter` — per the
+ * repo's index-only convention:
+ *   - unfiltered / `rating` / `pending`  → ordered by creation (desc)
+ *   - `published`                        → ordered by publishedAt (desc)
+ *   - `flagged`                          → ordered by flaggedAt (desc)
+ * "pending" (neither published nor flagged) rides the composite
+ * `by_barbershopId_and_publishedAt_and_flaggedAt` with both timestamps unset,
+ * which leaves `_creationTime` as the trailing sort column.
+ */
+export const listForShop = zAuthQuery({
+  args: z.object({
+    barbershop: barbershops.tools.id,
+    rating: z.number().int().min(1).max(5).optional(),
+    status: z.enum(["published", "flagged", "pending"]).optional(),
+    paginationOpts: convexToZod(paginationOptsValidator),
+  }),
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+    const barbershopId = args.barbershop.id;
+
+    await assertCanViewReviewAnalytics(ctx, barbershopId, userId);
+
+    const { rating, status } = args;
+
+    const ordered = (() => {
+      if (status === "published") {
+        return ctx.db
+          .query("reviews")
+          .withIndex("by_barbershopId_and_publishedAt", (q) =>
+            q.eq("barbershopId", barbershopId).gt("publishedAt", 0),
+          )
+          .order("desc");
+      }
+
+      if (status === "flagged") {
+        return ctx.db
+          .query("reviews")
+          .withIndex("by_barbershopId_and_flaggedAt", (q) =>
+            q.eq("barbershopId", barbershopId).gt("flaggedAt", 0),
+          )
+          .order("desc");
+      }
+
+      if (status === "pending") {
+        return ctx.db
+          .query("reviews")
+          .withIndex("by_barbershopId_and_publishedAt_and_flaggedAt", (q) =>
+            q
+              .eq("barbershopId", barbershopId)
+              .eq("publishedAt", undefined)
+              .eq("flaggedAt", undefined),
+          )
+          .order("desc");
+      }
+
+      if (rating !== undefined) {
+        return ctx.db
+          .query("reviews")
+          .withIndex("by_barbershopId_and_rating", (q) =>
+            q.eq("barbershopId", barbershopId).eq("rating", rating),
+          )
+          .order("desc");
+      }
+
+      return ctx.db
+        .query("reviews")
+        .withIndex("by_barbershopId", (q) => q.eq("barbershopId", barbershopId))
+        .order("desc");
+    })();
+
+    const result = await ordered.paginate(args.paginationOpts);
+
+    return {
+      ...result,
+      page: result.page.map((review) => ({
+        _id: review._id,
+        _creationTime: review._creationTime,
+        rating: review.rating,
+        comment: review.comment,
+        authorName: review.authorName,
+        serviceName: review.serviceName,
+        publishedAt: review.publishedAt,
+        flaggedAt: review.flaggedAt,
+        moderationReason: review.moderationReason,
+        status: reviewStatus(review),
+      })),
+    };
+  },
+});
+
+/**
+ * Headline review stats for the dashboard. Average + published total come from
+ * the O(log n) rating aggregate (which only ever holds published, unflagged
+ * reviews). The per-star histogram is a bounded scan of the rating index,
+ * counting published+unflagged rows in JS; `flaggedCount` reads the sparse
+ * flagged index only.
+ */
+export const getShopReviewStats = zAuthQuery({
+  args: z.object({ barbershop: barbershops.tools.id }),
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+    const barbershopId = args.barbershop.id;
+
+    await assertCanViewReviewAnalytics(ctx, barbershopId, userId);
+
+    const [{ average, count }, flagged, perStar] = await Promise.all([
+      getBarbershopRatingValue(ctx, barbershopId),
+      ctx.db
+        .query("reviews")
+        .withIndex("by_barbershopId_and_flaggedAt", (q) =>
+          q.eq("barbershopId", barbershopId).gt("flaggedAt", 0),
+        )
+        .collect(),
+      Promise.all(
+        STAR_RATINGS.map((star) =>
+          ctx.db
+            .query("reviews")
+            .withIndex("by_barbershopId_and_rating", (q) =>
+              q.eq("barbershopId", barbershopId).eq("rating", star),
+            )
+            .collect(),
+        ),
+      ),
+    ]);
+
+    const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } as Record<
+      1 | 2 | 3 | 4 | 5,
+      number
+    >;
+
+    STAR_RATINGS.forEach((star, index) => {
+      distribution[star] = perStar[index].filter(
+        (review) =>
+          review.publishedAt !== undefined && review.flaggedAt === undefined,
+      ).length;
+    });
+
+    return {
+      average,
+      total: count,
+      publishedCount: count,
+      flaggedCount: flagged.length,
+      distribution,
+    };
+  },
+});
+
+/**
+ * Average rating + published-review count per month for the last 6 Bogotá-local
+ * months. Reads the rating aggregate with `_creationTime` bounds per month — no
+ * ledger scan — mirroring `inventory.getMonthlyConsumption`.
+ */
+export const getShopRatingTrend = zAuthQuery({
+  args: z.object({ barbershop: barbershops.tools.id }),
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+    const barbershopId = args.barbershop.id;
+
+    await assertCanViewReviewAnalytics(ctx, barbershopId, userId);
+
+    // Current Bogotá month, then walk back to build the last 6 month keys.
+    const currentMonth = toColombiaDateKey(Date.now()).slice(0, 7);
+    const [currentYear, currentMonthNumber] = currentMonth
+      .split("-")
+      .map(Number);
+    const baseMonthIndex = currentYear * 12 + (currentMonthNumber - 1);
+
+    const monthKeys: string[] = [];
+
+    for (let offset = TREND_MONTHS - 1; offset >= 0; offset--) {
+      const monthIndex = baseMonthIndex - offset;
+      const year = Math.floor(monthIndex / 12);
+      const monthNumber = (monthIndex % 12) + 1;
+
+      monthKeys.push(`${year}-${String(monthNumber).padStart(2, "0")}`);
+    }
+
+    return await Promise.all(
+      monthKeys.map(async (month) => {
+        const [year, monthNumber] = month.split("-").map(Number);
+        const nextMonth =
+          monthNumber === 12
+            ? `${year + 1}-01`
+            : `${year}-${String(monthNumber + 1).padStart(2, "0")}`;
+
+        const bounds = {
+          lower: {
+            key: colombiaDateKeyToMs(`${month}-01`),
+            inclusive: true as const,
+          },
+          upper: {
+            key: colombiaDateKeyToMs(`${nextMonth}-01`),
+            inclusive: false as const,
+          },
+        };
+
+        const [sum, count] = await Promise.all([
+          reviewRatingsAggregate.sum(ctx, { namespace: barbershopId, bounds }),
+          reviewRatingsAggregate.count(ctx, {
+            namespace: barbershopId,
+            bounds,
+          }),
+        ]);
+
+        return { month, average: count > 0 ? sum / count : 0, count };
+      }),
+    );
+  },
+});
+
+/**
+ * Average rating + count grouped by service (snapshot name) and by barber
+ * (review → appointment → `barbershopMemberId` → member name). Scans published,
+ * unflagged reviews; member names are resolved once and cached per member.
+ */
+export const getShopReviewBreakdown = zAuthQuery({
+  args: z.object({ barbershop: barbershops.tools.id }),
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+    const barbershopId = args.barbershop.id;
+
+    await assertCanViewReviewAnalytics(ctx, barbershopId, userId);
+
+    const published = (
+      await ctx.db
+        .query("reviews")
+        .withIndex("by_barbershopId_and_publishedAt", (q) =>
+          q.eq("barbershopId", barbershopId).gt("publishedAt", 0),
+        )
+        .collect()
+    ).filter((review) => review.flaggedAt === undefined);
+
+    // Resolve every appointment up front instead of one round trip per review.
+    const appointments = await Promise.all(
+      published.map((review) => ctx.db.get(review.appointmentId)),
+    );
+
+    const serviceStats = new Map<string, { sum: number; count: number }>();
+    const barberStats = new Map<
+      BarbershopMember["_id"],
+      { sum: number; count: number; name: string }
+    >();
+    const memberNameCache = new Map<BarbershopMember["_id"], string>();
+
+    for (const [index, review] of published.entries()) {
+      const service = serviceStats.get(review.serviceName) ?? {
+        sum: 0,
+        count: 0,
+      };
+      service.sum += review.rating;
+      service.count += 1;
+      serviceStats.set(review.serviceName, service);
+
+      const appointment = appointments[index];
+
+      if (!appointment) {
+        continue;
+      }
+
+      const memberId = appointment.barbershopMemberId;
+      let name = memberNameCache.get(memberId);
+
+      if (name === undefined) {
+        const member = await ctx.db.get(memberId);
+        const profile = member
+          ? await ctx.db.get(member.userProfileDataId)
+          : null;
+        name = profile?.name ?? "Barbero";
+        memberNameCache.set(memberId, name);
+      }
+
+      const barber = barberStats.get(memberId) ?? { sum: 0, count: 0, name };
+      barber.sum += review.rating;
+      barber.count += 1;
+      barberStats.set(memberId, barber);
+    }
+
+    const byService = Array.from(serviceStats.entries())
+      .map(([serviceName, stats]) => ({
+        serviceName,
+        average: stats.count > 0 ? stats.sum / stats.count : 0,
+        count: stats.count,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    const byBarber = Array.from(barberStats.entries())
+      .map(([barbershopMemberId, stats]) => ({
+        barbershopMemberId,
+        name: stats.name,
+        average: stats.count > 0 ? stats.sum / stats.count : 0,
+        count: stats.count,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    return { byService, byBarber };
+  },
+});
+
+/**
+ * Flagged reviews for the shop (newest-flagged first, capped at 50) — feeds the
+ * moderation-monitoring panel. Reads the sparse flagged index only.
+ */
+export const getModerationQueue = zAuthQuery({
+  args: z.object({ barbershop: barbershops.tools.id }),
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+    const barbershopId = args.barbershop.id;
+
+    await assertCanViewReviewAnalytics(ctx, barbershopId, userId);
+
+    const flagged = await ctx.db
+      .query("reviews")
+      .withIndex("by_barbershopId_and_flaggedAt", (q) =>
+        q.eq("barbershopId", barbershopId).gt("flaggedAt", 0),
+      )
+      .order("desc")
+      .take(MODERATION_QUEUE_LIMIT);
+
+    return flagged.map((review) => ({
+      _id: review._id,
+      _creationTime: review._creationTime,
+      rating: review.rating,
+      comment: review.comment,
+      authorName: review.authorName,
+      serviceName: review.serviceName,
+      flaggedAt: review.flaggedAt,
+      moderationReason: review.moderationReason,
+    }));
   },
 });

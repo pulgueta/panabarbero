@@ -1,5 +1,6 @@
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
+import { Throttler, useDebouncer, useThrottler } from "@tanstack/react-pacer";
 import type { VariantProps } from "class-variance-authority";
 import { cva } from "class-variance-authority";
 import type {
@@ -480,12 +481,9 @@ function Cropper(props: CropperProps) {
 
   const store = useMemo<Store>(() => {
     let isBatching = false;
-    let raf: number | null = null;
 
-    function notifyCropAreaChange() {
-      if (raf != null) return;
-      raf = requestAnimationFrame(() => {
-        raf = null;
+    const cropAreaThrottler = new Throttler(
+      () => {
         const s = stateRef.current;
         if (s?.mediaSize && s.cropSize && propsRef.current.onCropAreaChange) {
           const { croppedAreaPercentages, croppedAreaPixels } = getCroppedArea(
@@ -501,7 +499,12 @@ function Cropper(props: CropperProps) {
             croppedAreaPixels,
           );
         }
-      });
+      },
+      { wait: 16 },
+    );
+
+    function notifyCropAreaChange() {
+      cropAreaThrottler.maybeExecute();
     }
 
     return {
@@ -749,28 +752,9 @@ function CropperImpl(props: CropperImplProps) {
   const contentPositionRef = useRef<Point>({ x: 0, y: 0 });
   const lastPinchDistanceRef = useRef(0);
   const lastPinchRotationRef = useRef(0);
-  const rafDragTimeoutRef = useRef<number | null>(null);
-  const rafPinchTimeoutRef = useRef<number | null>(null);
-  const wheelTimerRef = useRef<number | null>(null);
   const isTouchingRef = useRef(false);
   const gestureZoomStartRef = useRef(0);
   const gestureRotationStartRef = useRef(0);
-
-  const onRefsCleanup = useCallback(() => {
-    if (rafDragTimeoutRef.current) {
-      cancelAnimationFrame(rafDragTimeoutRef.current);
-      rafDragTimeoutRef.current = null;
-    }
-    if (rafPinchTimeoutRef.current) {
-      cancelAnimationFrame(rafPinchTimeoutRef.current);
-      rafPinchTimeoutRef.current = null;
-    }
-    if (wheelTimerRef.current) {
-      clearTimeout(wheelTimerRef.current);
-      wheelTimerRef.current = null;
-    }
-    isTouchingRef.current = false;
-  }, []);
 
   const onCacheCleanup = useCallback(() => {
     if (onPositionClampCache.size > MAX_CACHE_SIZE * 1.5) {
@@ -903,53 +887,88 @@ function CropperImpl(props: CropperImplProps) {
     [crop, store],
   );
 
-  const onDrag = useCallback(
+  const dragThrottler = useThrottler(
     ({ x, y }: Point) => {
-      if (rafDragTimeoutRef.current) {
-        cancelAnimationFrame(rafDragTimeoutRef.current);
+      if (!cropSize || !mediaSize) return;
+
+      const offsetX = x - dragStartPositionRef.current.x;
+      const offsetY = y - dragStartPositionRef.current.y;
+
+      if (Math.abs(offsetX) < 2 && Math.abs(offsetY) < 2) {
+        return;
       }
 
-      rafDragTimeoutRef.current = requestAnimationFrame(() => {
-        if (!cropSize || !mediaSize) return;
-        if (x === undefined || y === undefined) return;
+      const requestedPosition = {
+        x: dragStartCropRef.current.x + offsetX,
+        y: dragStartCropRef.current.y + offsetY,
+      };
 
-        const offsetX = x - dragStartPositionRef.current.x;
-        const offsetY = y - dragStartPositionRef.current.y;
+      const newPosition = !context.allowOverflow
+        ? onPositionClamp(
+            requestedPosition,
+            mediaSize,
+            cropSize,
+            zoom,
+            rotation,
+          )
+        : requestedPosition;
 
-        if (Math.abs(offsetX) < 2 && Math.abs(offsetY) < 2) {
-          return;
-        }
-
-        const requestedPosition = {
-          x: dragStartCropRef.current.x + offsetX,
-          y: dragStartCropRef.current.y + offsetY,
-        };
-
-        const newPosition = !context.allowOverflow
-          ? onPositionClamp(
-              requestedPosition,
-              mediaSize,
-              cropSize,
-              zoom,
-              rotation,
-            )
-          : requestedPosition;
-
-        const currentCrop = store.getState().crop;
-        if (
-          Math.abs(newPosition.x - currentCrop.x) > 1 ||
-          Math.abs(newPosition.y - currentCrop.y) > 1
-        ) {
-          store.setState("crop", newPosition);
-        }
-      });
+      const currentCrop = store.getState().crop;
+      if (
+        Math.abs(newPosition.x - currentCrop.x) > 1 ||
+        Math.abs(newPosition.y - currentCrop.y) > 1
+      ) {
+        store.setState("crop", newPosition);
+      }
     },
-    [cropSize, mediaSize, context.allowOverflow, zoom, rotation, store],
+    {
+      wait: 16,
+    },
+  );
+
+  const onDrag = useCallback(
+    (point: Point) => {
+      dragThrottler.maybeExecute(point);
+    },
+    [dragThrottler],
   );
 
   const onMouseMove = useCallback(
     (event: MouseEvent) => onDrag(getMousePoint(event)),
     [getMousePoint, onDrag],
+  );
+
+  const pinchThrottler = useThrottler(
+    ({
+      center,
+      pointA,
+      pointB,
+    }: {
+      center: Point;
+      pointA: Point;
+      pointB: Point;
+    }) => {
+      const distance = getDistanceBetweenPoints(pointA, pointB);
+      const distanceRatio = distance / lastPinchDistanceRef.current;
+
+      if (Math.abs(distanceRatio - 1) > 0.01) {
+        const newZoom = zoom * distanceRatio;
+        onZoomChange(newZoom, center, false);
+        lastPinchDistanceRef.current = distance;
+      }
+
+      const rotationAngle = getRotationBetweenPoints(pointA, pointB);
+      const rotationDiff = rotationAngle - lastPinchRotationRef.current;
+
+      if (Math.abs(rotationDiff) > 0.5) {
+        const newRotation = rotation + rotationDiff;
+        store.setState("rotation", newRotation);
+        lastPinchRotationRef.current = rotationAngle;
+      }
+    },
+    {
+      wait: 16,
+    },
   );
 
   const onTouchMove = useCallback(
@@ -964,29 +983,7 @@ function CropperImpl(props: CropperImplProps) {
           const center = getCenter(pointA, pointB);
           onDrag(center);
 
-          if (rafPinchTimeoutRef.current) {
-            cancelAnimationFrame(rafPinchTimeoutRef.current);
-          }
-
-          rafPinchTimeoutRef.current = requestAnimationFrame(() => {
-            const distance = getDistanceBetweenPoints(pointA, pointB);
-            const distanceRatio = distance / lastPinchDistanceRef.current;
-
-            if (Math.abs(distanceRatio - 1) > 0.01) {
-              const newZoom = zoom * distanceRatio;
-              onZoomChange(newZoom, center, false);
-              lastPinchDistanceRef.current = distance;
-            }
-
-            const rotationAngle = getRotationBetweenPoints(pointA, pointB);
-            const rotationDiff = rotationAngle - lastPinchRotationRef.current;
-
-            if (Math.abs(rotationDiff) > 0.5) {
-              const newRotation = rotation + rotationDiff;
-              store.setState("rotation", newRotation);
-              lastPinchRotationRef.current = rotationAngle;
-            }
-          });
+          pinchThrottler.maybeExecute({ center, pointA, pointB });
         }
       } else if (event.touches.length === 1) {
         const firstTouch = event.touches[0];
@@ -996,7 +993,7 @@ function CropperImpl(props: CropperImplProps) {
         }
       }
     },
-    [getTouchPoint, onDrag, zoom, onZoomChange, rotation, store],
+    [getTouchPoint, onDrag, pinchThrottler],
   );
 
   const onGestureChange = useCallback(
@@ -1055,6 +1052,25 @@ function CropperImpl(props: CropperImplProps) {
     document.removeEventListener("gestureend", onGestureEnd as EventListener);
   }, [onMouseMove, onTouchMove, onGestureChange, onGestureEnd]);
 
+  const wheelEndDebouncer = useDebouncer(
+    () => {
+      store.batch(() => {
+        store.setState("isWheelZooming", false);
+        store.setState("isDragging", false);
+      });
+    },
+    {
+      wait: 250,
+    },
+  );
+
+  const onRefsCleanup = useCallback(() => {
+    dragThrottler.cancel();
+    pinchThrottler.cancel();
+    wheelEndDebouncer.cancel();
+    isTouchingRef.current = false;
+  }, [dragThrottler, pinchThrottler, wheelEndDebouncer]);
+
   const onDragStopped = useCallback(() => {
     isTouchingRef.current = false;
     store.setState("isDragging", false);
@@ -1104,15 +1120,7 @@ function CropperImpl(props: CropperImplProps) {
         }
       });
 
-      if (wheelTimerRef.current) {
-        clearTimeout(wheelTimerRef.current);
-      }
-      wheelTimerRef.current = window.setTimeout(() => {
-        store.batch(() => {
-          store.setState("isWheelZooming", false);
-          store.setState("isDragging", false);
-        });
-      }, 250);
+      wheelEndDebouncer.maybeExecute();
     },
     [
       propsRef,
@@ -1122,6 +1130,7 @@ function CropperImpl(props: CropperImplProps) {
       onZoomChange,
       getWheelDelta,
       store,
+      wheelEndDebouncer,
     ],
   );
 

@@ -12,9 +12,39 @@ export type InventoryMovementRow = FunctionReturnType<
   typeof api.inventory.listMovements
 >["page"][number];
 
+export type ArchivedInventoryRow = FunctionReturnType<
+  typeof api.inventory.listArchivedItems
+>[number];
+
+export type InventoryItemAuditEvent = FunctionReturnType<
+  typeof api.log.getInventoryItemHistory
+>[number];
+
 export function inventoryOverviewQueryOptions(barbershopId: Barbershop["_id"]) {
   return convexQuery(api.inventory.getInventoryOverview, {
     barbershop: { id: barbershopId },
+  });
+}
+
+export function archivedInventoryQueryOptions(barbershopId: Barbershop["_id"]) {
+  return convexQuery(api.inventory.listArchivedItems, {
+    barbershop: { id: barbershopId },
+  });
+}
+
+export function inventoryItemQueryOptions(itemId: InventoryItem["_id"]) {
+  return convexQuery(api.inventory.getItem, {
+    item: { id: itemId },
+  });
+}
+
+export function inventoryItemAuditQueryOptions(
+  itemId: InventoryItem["_id"],
+  limit = 20,
+) {
+  return convexQuery(api.log.getInventoryItemHistory, {
+    item: { id: itemId },
+    limit,
   });
 }
 
@@ -62,6 +92,21 @@ export function useInventoryOverview(barbershopId: Barbershop["_id"]) {
   return useSuspenseQuery(inventoryOverviewQueryOptions(barbershopId));
 }
 
+export function useArchivedInventory(barbershopId: Barbershop["_id"]) {
+  return useSuspenseQuery(archivedInventoryQueryOptions(barbershopId));
+}
+
+export function useInventoryItem(itemId: InventoryItem["_id"]) {
+  return useSuspenseQuery(inventoryItemQueryOptions(itemId));
+}
+
+export function useInventoryItemAudit(
+  itemId: InventoryItem["_id"],
+  limit = 20,
+) {
+  return useQuery(inventoryItemAuditQueryOptions(itemId, limit));
+}
+
 export function useLowStock(barbershopId: Barbershop["_id"]) {
   return useQuery(lowStockQueryOptions(barbershopId));
 }
@@ -96,6 +141,9 @@ export function useInventoryActions() {
   const archiveItemMutation = useMutation({
     mutationFn: useConvexMutation(api.inventory.archiveItem),
   });
+  const restoreItemMutation = useMutation({
+    mutationFn: useConvexMutation(api.inventory.restoreItem),
+  });
   const receiveStockMutation = useMutation({
     mutationFn: useConvexMutation(api.inventory.receiveStock),
   });
@@ -119,6 +167,7 @@ export function useInventoryActions() {
     createItemMutation,
     updateItemMutation,
     archiveItemMutation,
+    restoreItemMutation,
     receiveStockMutation,
     adjustStockMutation,
     recordConsumptionMutation,

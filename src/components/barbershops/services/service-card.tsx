@@ -1,4 +1,5 @@
 import type { Service } from "@convex/schema";
+import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
 import { lazy, Suspense } from "react";
 
@@ -25,12 +26,6 @@ const ServiceDialog = lazy(() =>
     default: module.ServiceDialog,
   })),
 );
-const ServiceRecipeDialog = lazy(() =>
-  import("@/components/inventory/service-recipe-dialog").then((module) => ({
-    default: module.ServiceRecipeDialog,
-  })),
-);
-
 interface ServiceCardProps {
   service: Service;
   canManage: boolean;
@@ -49,13 +44,18 @@ export const ServiceCard: FC<ServiceCardProps> = ({ service, canManage }) => {
 
       {canManage && (
         <CardFooter className="justify-end gap-2">
-          <Suspense fallback={null}>
-            <ServiceRecipeDialog
-              serviceId={service._id}
-              barbershopId={service.barbershopId}
-              trigger={<Button variant="outline">Insumos</Button>}
-            />
-          </Suspense>
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={
+              <Link
+                to="/profile/barbershops/services/$serviceId/recipe"
+                params={{ serviceId: service._id }}
+              />
+            }
+          >
+            Insumos
+          </Button>
 
           <Suspense
             fallback={

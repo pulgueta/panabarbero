@@ -1,5 +1,6 @@
 import type { Barbershop } from "@convex/schema";
 import {
+  CaretRightIcon,
   CaretUpDownIcon,
   SignOutIcon,
   StorefrontIcon,
@@ -7,10 +8,15 @@ import {
 } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@workos/authkit-tanstack-react-start/client";
-import type { FC, ReactElement } from "react";
+import { type FC, type ReactElement, useState } from "react";
 import { useActiveRoute } from "@/components/layout/nav/use-active-route";
 import { ThemeToggler } from "@/components/layout/theme-toggler";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { DrawerClose } from "@/components/ui/drawer";
 import {
   DropdownMenu,
@@ -30,11 +36,14 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useBarbershopPlan } from "@/hooks/billing/use-plan";
-import { getInitials } from "@/lib/utils";
-import type { DashboardRole } from "./dashboard-nav";
+import { cn, getInitials } from "@/lib/utils";
+import type { DashboardNavItem, DashboardRole } from "./dashboard-nav";
 import { getDashboardNavGroups } from "./dashboard-nav";
 
 const PLAN_LABELS = {
@@ -69,7 +78,16 @@ export const DashboardSidebar: FC<DashboardSidebarProps> = ({
   const { isMobile } = useSidebar();
 
   const groups = getDashboardNavGroups(role);
-  const activeTo = useActiveRoute(groups.flatMap((group) => group.items));
+  // Longest-prefix-wins across items AND their children, so a sub-route lights
+  // up its own entry (not just the parent).
+  const activeTo = useActiveRoute(
+    groups.flatMap((group) =>
+      group.items.flatMap((item) => [
+        { to: item.to },
+        ...(item.children ?? []).map((child) => ({ to: child.to })),
+      ]),
+    ),
+  );
 
   return (
     <Sidebar collapsible="icon" variant="inset">
@@ -114,31 +132,14 @@ export const DashboardSidebar: FC<DashboardSidebarProps> = ({
             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.items.map((item) => {
-                  const isActive = activeTo === item.to;
-                  const Icon = item.icon;
-
-                  return (
-                    <SidebarMenuItem key={item.to}>
-                      <SidebarMenuButton
-                        className="data-active:text-sidebar-primary"
-                        isActive={isActive}
-                        render={closeOnMobile(
-                          isMobile,
-                          <Link
-                            aria-current={isActive ? "page" : undefined}
-                            to={item.to}
-                            viewTransition={{ types: ["dashboard-nav"] }}
-                          />,
-                        )}
-                        tooltip={item.label}
-                      >
-                        <Icon weight={isActive ? "fill" : "bold"} />
-                        <span>{item.label}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
+                {group.items.map((item) => (
+                  <DashboardNavEntry
+                    key={item.to}
+                    activeTo={activeTo}
+                    isMobile={isMobile}
+                    item={item}
+                  />
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -151,6 +152,107 @@ export const DashboardSidebar: FC<DashboardSidebarProps> = ({
         </SidebarFooter>
       )}
     </Sidebar>
+  );
+};
+
+interface DashboardNavEntryProps {
+  item: DashboardNavItem;
+  activeTo: string | undefined;
+  isMobile: boolean;
+}
+
+const DashboardNavEntry: FC<DashboardNavEntryProps> = ({
+  item,
+  activeTo,
+  isMobile,
+}) => {
+  const Icon = item.icon;
+  const children = item.children ?? [];
+  const isSelfActive = activeTo === item.to;
+  const hasActiveChild = children.some((child) => child.to === activeTo);
+  const isActive = isSelfActive || hasActiveChild;
+
+  const [open, setOpen] = useState(isActive);
+  // Re-open the group when its entry becomes active after mount (e.g. a
+  // navigation into a nested route while the group was collapsed).
+  const [wasActive, setWasActive] = useState(isActive);
+  if (isActive !== wasActive) {
+    setWasActive(isActive);
+    if (isActive) setOpen(true);
+  }
+
+  if (children.length === 0) {
+    return (
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          className="data-active:text-sidebar-primary"
+          isActive={isActive}
+          render={closeOnMobile(
+            isMobile,
+            <Link
+              aria-current={isActive ? "page" : undefined}
+              to={item.to}
+              viewTransition={{ types: ["dashboard-nav"] }}
+            />,
+          )}
+          tooltip={item.label}
+        >
+          <Icon weight={isActive ? "fill" : "bold"} />
+          <span>{item.label}</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  }
+
+  return (
+    <Collapsible
+      onOpenChange={setOpen}
+      open={open}
+      render={<SidebarMenuItem />}
+    >
+      <CollapsibleTrigger
+        render={
+          <SidebarMenuButton
+            className="data-active:text-sidebar-primary"
+            isActive={isActive}
+            tooltip={item.label}
+          />
+        }
+      >
+        <Icon weight={isActive ? "fill" : "bold"} />
+        <span>{item.label}</span>
+        <CaretRightIcon
+          className={cn(
+            "ml-auto size-4 shrink-0 transition-transform duration-200",
+            open && "rotate-90",
+          )}
+        />
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <SidebarMenuSub>
+          {children.map((child) => {
+            const childActive = activeTo === child.to;
+            return (
+              <SidebarMenuSubItem key={child.to}>
+                <SidebarMenuSubButton
+                  isActive={childActive}
+                  render={closeOnMobile(
+                    isMobile,
+                    <Link
+                      aria-current={childActive ? "page" : undefined}
+                      to={child.to}
+                      viewTransition={{ types: ["dashboard-nav"] }}
+                    />,
+                  )}
+                >
+                  <span>{child.label}</span>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            );
+          })}
+        </SidebarMenuSub>
+      </CollapsibleContent>
+    </Collapsible>
   );
 };
 
@@ -220,9 +322,9 @@ const DashboardUserMenu: FC<{ user: DashboardUser }> = ({ user }) => {
             <DropdownMenuItem
               render={
                 <ThemeToggler
+                  className="size-full justify-start"
                   size="sm"
                   variant="ghost"
-                  className="size-full justify-start"
                 />
               }
             />
