@@ -46,4 +46,6 @@ export const errorMessages = {
   salePriceRequired:
     "El precio de venta es requerido para productos vendibles.",
   duplicateRecipeItem: "No repitas productos en la receta.",
+  durableNotConsumable:
+    "Los productos durables no se consumen, no se venden ni se marcan como merma. Usa un ajuste para corregir su cantidad.",
 } as const;

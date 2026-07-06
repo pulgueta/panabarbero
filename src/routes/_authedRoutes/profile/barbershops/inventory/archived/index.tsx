@@ -20,6 +20,7 @@ import {
 } from "@/components/dashboard/dashboard-page";
 import { DashboardPending } from "@/components/dashboard/dashboard-pending";
 import {
+  formatPresentation,
   inventoryCategoryLabels,
   inventoryUnitSuffixes,
 } from "@/components/inventory/labels";
@@ -165,6 +166,11 @@ function getArchivedColumns({
               {row.original.sku}
             </p>
           ) : null}
+          {row.original.customLabel ? (
+            <p className="truncate text-muted-foreground text-xs">
+              {row.original.customLabel}
+            </p>
+          ) : null}
         </div>
       ),
     },
@@ -193,7 +199,18 @@ function getArchivedColumns({
       ),
       cell: ({ row }) => (
         <div className="text-right tabular-nums">
-          {row.original.onHand} {inventoryUnitSuffixes[row.original.unit]}
+          <p>
+            {row.original.onHand} {inventoryUnitSuffixes[row.original.unit]}
+          </p>
+          {row.original.presentationValue && row.original.presentationUnit ? (
+            <p className="text-muted-foreground text-xs">
+              {formatPresentation(
+                row.original.presentationValue,
+                row.original.presentationUnit,
+              )}{" "}
+              c/u
+            </p>
+          ) : null}
         </div>
       ),
     },

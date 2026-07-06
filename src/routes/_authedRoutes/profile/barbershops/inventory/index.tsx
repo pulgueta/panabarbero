@@ -187,6 +187,12 @@ const InventorySummaryCards: FC<InventorySummaryCardsProps> = ({
           <CardTitle className="tabular-nums">
             {valuation ? formatCurrency(valuation.totalValue) : "—"}
           </CardTitle>
+          {/* Durable assets are capital, not shelf stock — shown apart. */}
+          {valuation && valuation.equipmentValue > 0 ? (
+            <p className="text-muted-foreground text-xs tabular-nums">
+              Equipos: {formatCurrency(valuation.equipmentValue)}
+            </p>
+          ) : null}
         </CardHeader>
       </Card>
 
@@ -201,20 +207,22 @@ const InventorySummaryCards: FC<InventorySummaryCardsProps> = ({
         </CardHeader>
       </Card>
 
+      {/* Movement counts, not quantity sums — quantities mix units (ml,
+          und, cajas) across items and would add up to a meaningless number. */}
       <Card>
         <CardHeader>
-          <CardDescription>Consumido este mes</CardDescription>
+          <CardDescription>Consumos del mes</CardDescription>
           <CardTitle className="tabular-nums">
-            {monthlyConsumption?.consumed ?? 0}
+            {monthlyConsumption?.consumedCount ?? 0}
           </CardTitle>
         </CardHeader>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardDescription>Vendido este mes</CardDescription>
+          <CardDescription>Ventas del mes</CardDescription>
           <CardTitle className="tabular-nums">
-            {monthlyConsumption?.sold ?? 0}
+            {monthlyConsumption?.soldCount ?? 0}
           </CardTitle>
         </CardHeader>
       </Card>

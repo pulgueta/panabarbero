@@ -321,14 +321,35 @@ export const inventoryCategories = [
   "tool",
   "consumable",
   "retail",
+  "ppe",
+  "cleaning",
+  "linen",
   "other",
 ] as const;
+
+/**
+ * Equipment lives in the same table as stock but is never consumed, sold or
+ * wasted — clippers survive the haircut. Guards in `convex/inventory.ts` and
+ * the UI both key off this set.
+ */
+export const inventoryEquipmentCategories = ["machine", "tool"] as const;
+
+export function isEquipmentCategory(
+  category: (typeof inventoryCategories)[number],
+): boolean {
+  return (inventoryEquipmentCategories as readonly string[]).includes(category);
+}
+
+export const inventoryStockBehaviors = ["consumable", "durable"] as const;
 
 /**
  * Quantities are ALWAYS integers in the item's unit. Liquids/weights use
  * integer base units (ml, g) — a 1L bottle is 1000 ml. No floats, no drift.
  */
 export const inventoryUnits = ["unit", "ml", "g", "box", "pack"] as const;
+
+/** What one purchasable package contains for receive-time conversion and display. */
+export const inventoryPresentationUnits = ["ml", "g", "und"] as const;
 
 export const inventoryMovementTypes = [
   "receipt",
@@ -358,6 +379,23 @@ export const inventoryItems = zodTable("inventoryItems", (id) => ({
     error: "La categoría es requerida",
   }),
   unit: z.enum(inventoryUnits, { error: "La unidad es requerida" }),
+  stockBehavior: z.enum(inventoryStockBehaviors).default("consumable"),
+  brand: z.string().max(80).trim().optional(),
+  supplier: z.string().max(120).trim().optional(),
+  customLabel: z.string().max(60).trim().optional(),
+  /**
+   * Presentation: what one purchasable package contains ("frasco de 500 ml",
+   * "caja x 100 und"). Stock math always runs in `unit`; receive UI may
+   * convert package counts into the base stock unit.
+   */
+  presentationValue: z.coerce.number().int().positive().optional(),
+  presentationUnit: z.enum(inventoryPresentationUnits).optional(),
+  /** Equipment sheet (machines/tools): identity + lifecycle, not stock. */
+  model: z.string().max(80).trim().optional(),
+  serialNumber: z.string().max(80).trim().optional(),
+  purchasedAt: z.number().optional(),
+  warrantyUntil: z.number().optional(),
+  notes: z.string().max(300).trim().optional(),
   isSellable: z.boolean().default(false),
   /** COP integer pesos. Weighted moving average, updated on each receipt. */
   unitCost: z.coerce
@@ -420,6 +458,8 @@ export const inventoryMovements = zodTable("inventoryMovements", (id) => ({
   quantity: z.number().int(),
   /** Cost snapshot at write time — historical valuation survives cost changes. */
   unitCostAtTime: z.number().int(),
+  /** Sale price snapshot at write time — retail history survives price edits. */
+  salePriceAtTime: z.number().int().optional(),
   /** onHand after applying this movement — O(1) audit and reconcile anchor. */
   balanceAfter: z.number().int(),
   reason: z.string().max(300).optional(),
@@ -615,6 +655,9 @@ export type InventoryMovement = output<typeof inventoryMovements.schema>;
 export type InventoryMovementType = (typeof inventoryMovementTypes)[number];
 export type InventoryCategory = (typeof inventoryCategories)[number];
 export type InventoryUnit = (typeof inventoryUnits)[number];
+export type InventoryStockBehavior = (typeof inventoryStockBehaviors)[number];
+export type InventoryPresentationUnit =
+  (typeof inventoryPresentationUnits)[number];
 export type ServiceInventoryUsage = output<typeof serviceInventoryUsage.schema>;
 export type InventoryMovementSummary = output<
   typeof inventoryMovementSummaries.schema

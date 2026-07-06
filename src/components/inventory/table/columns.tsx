@@ -2,6 +2,7 @@ import { PackageIcon } from "@phosphor-icons/react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import {
+  formatPresentation,
   inventoryCategoryLabels,
   inventoryUnitSuffixes,
 } from "@/components/inventory/labels";
@@ -88,16 +89,33 @@ export function getInventoryTableColumns(
         <DataTableColumnHeader column={column} title="Nombre" />
       ),
       enableHiding: false,
-      cell: ({ row }) => (
-        <div className="min-w-0">
-          <p className="truncate font-medium">{row.original.name}</p>
-          {row.original.sku ? (
-            <p className="truncate text-muted-foreground text-xs">
-              {row.original.sku}
+      cell: ({ row }) => {
+        const subtitle = [row.original.brand, row.original.sku]
+          .filter(Boolean)
+          .join(" · ");
+
+        return (
+          <div className="min-w-0">
+            <p className="truncate font-medium">{row.original.name}</p>
+            {subtitle ? (
+              <p className="truncate text-muted-foreground text-xs">
+                {subtitle}
+              </p>
+            ) : null}
+            {row.original.customLabel ? (
+              <p className="truncate text-muted-foreground text-xs">
+                {row.original.customLabel}
+              </p>
+            ) : null}
+            {/* The stock column scrolls out of view on phones — the number
+                and state a manager opens the app for stay on the name cell. */}
+            <p className="text-muted-foreground text-xs tabular-nums sm:hidden">
+              {row.original.onHand} {inventoryUnitSuffixes[row.original.unit]}
+              {` · ${getStockStatus(row.original).label}`}
             </p>
-          ) : null}
-        </div>
-      ),
+          </div>
+        );
+      },
     },
     {
       accessorKey: "category",
@@ -129,6 +147,15 @@ export function getInventoryTableColumns(
           <p>
             {row.original.onHand} {inventoryUnitSuffixes[row.original.unit]}
           </p>
+          {row.original.presentationValue && row.original.presentationUnit ? (
+            <p className="text-muted-foreground text-xs">
+              {formatPresentation(
+                row.original.presentationValue,
+                row.original.presentationUnit,
+              )}{" "}
+              c/u
+            </p>
+          ) : null}
           {row.original.reserved > 0 ? (
             <p className="text-muted-foreground text-xs">
               {row.original.reserved} en reserva
@@ -195,7 +222,7 @@ export function getInventoryTableColumns(
             ]}
           />
         </div>
-      ) : (
+      ) : row.original.stockBehavior === "durable" ? null : (
         <div className="flex justify-end">
           <Button
             variant="outline"

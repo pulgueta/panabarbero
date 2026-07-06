@@ -25,11 +25,7 @@ import {
 import { internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { assertInventoryAllowed, isInventoryAllowed } from "./acl";
-import {
-  inventoryMovementsAggregate,
-  inventoryTriggers,
-  inventoryValueAggregate,
-} from "./aggregates";
+import { inventoryMovementsAggregate, inventoryTriggers } from "./aggregates";
 import { track } from "./analytics";
 import { authz, barbershopScope } from "./authz";
 import { errorMessages } from "./errors";
@@ -48,6 +44,7 @@ import {
   inventoryItems,
   services,
 } from "./schema";
+import { getProfileByUserId } from "./userProfileData";
 import { colombiaDateKeyToMs, toColombiaDateKey } from "./utils";
 
 // ---------------------------------------------------------------------------
@@ -121,6 +118,8 @@ type RecordMovementArgs = {
   actorUserId: string;
   /** Receipt only: incoming unit cost feeding the weighted moving average. */
   unitCost?: number;
+  /** Sale only: price charged at the time of the movement. */
+  salePriceAtTime?: number;
   reason?: string;
   locationId?: string;
   relatedAppointmentId?: Appointment["_id"];
@@ -354,6 +353,7 @@ export async function recordMovement(
     type: args.type,
     quantity: args.type === "adjustment" ? quantity : Math.abs(quantity),
     unitCostAtTime,
+    salePriceAtTime: args.type === "sale" ? args.salePriceAtTime : undefined,
     balanceAfter: onHand,
     reason,
     actorUserId: args.actorUserId,
@@ -487,6 +487,10 @@ export const createItem = zAuthMutation({
       throw new ConvexError(errorMessages.salePriceRequired);
     }
 
+    if (itemArgs.stockBehavior === "durable" && itemArgs.isSellable) {
+      throw new ConvexError(errorMessages.durableNotConsumable);
+    }
+
     const itemId = await ctx.db.insert("inventoryItems", {
       ...itemArgs,
       deletedAt: undefined,
@@ -575,6 +579,13 @@ export const updateItem = zAuthMutation({
       (data.salePrice ?? item.salePrice) === undefined
     ) {
       throw new ConvexError(errorMessages.salePriceRequired);
+    }
+
+    if (
+      (data.stockBehavior ?? item.stockBehavior) === "durable" &&
+      (data.isSellable ?? item.isSellable)
+    ) {
+      throw new ConvexError(errorMessages.durableNotConsumable);
     }
 
     await ctx.db.patch(item._id, data);
@@ -994,6 +1005,10 @@ export const recordConsumption = zAuthMutation({
 
     await assertCanRecordConsumption(ctx, item.barbershopId, userId);
 
+    if (item.stockBehavior === "durable") {
+      throw new ConvexError(errorMessages.durableNotConsumable);
+    }
+
     const result = await recordMovement(ctx, {
       barbershopId: item.barbershopId,
       itemId: item._id,
@@ -1030,6 +1045,10 @@ export const recordSale = zAuthMutation({
 
     await assertCanRecordConsumption(ctx, item.barbershopId, userId);
 
+    if (item.stockBehavior === "durable") {
+      throw new ConvexError(errorMessages.durableNotConsumable);
+    }
+
     if (!item.isSellable) {
       throw new ConvexError(errorMessages.itemNotSellable);
     }
@@ -1040,6 +1059,7 @@ export const recordSale = zAuthMutation({
       type: "sale",
       quantity: args.quantity,
       actorUserId: userId,
+      salePriceAtTime: item.salePrice,
     });
 
     await track(ctx, {
@@ -1072,6 +1092,10 @@ export const recordWaste = zAuthMutation({
     const item = await requireItemInShop(ctx, args.item.id);
 
     await assertCanManageInventory(ctx, item.barbershopId, userId);
+
+    if (item.stockBehavior === "durable") {
+      throw new ConvexError(errorMessages.durableNotConsumable);
+    }
 
     const result = await recordMovement(ctx, {
       barbershopId: item.barbershopId,
@@ -1203,6 +1227,11 @@ export const setServiceRecipe = zAuthMutation({
       if (item.deletedAt !== undefined) {
         throw new ConvexError(errorMessages.itemArchived);
       }
+
+      // Recipes consume stock on completion; durable items are reusable assets.
+      if (item.stockBehavior === "durable") {
+        throw new ConvexError(errorMessages.durableNotConsumable);
+      }
     }
 
     // Replace atomically: the recipe is small and edited as a whole.
@@ -1310,6 +1339,11 @@ export async function reserveForAppointment(
       continue;
     }
 
+    // Legacy recipe lines may predate the durable guard — never hold assets.
+    if (item.stockBehavior === "durable") {
+      continue;
+    }
+
     // Partial reservations are fine: release/consume work from outstanding.
     await recordMovement(ctx, {
       barbershopId: appointment.barbershopId,
@@ -1395,6 +1429,11 @@ export async function consumeForAppointment(
     const item = await ctx.db.get(line.itemId);
 
     if (!item || item.deletedAt !== undefined) {
+      continue;
+    }
+
+    // Legacy recipe lines may predate the durable guard — never consume assets.
+    if (item.stockBehavior === "durable") {
       continue;
     }
 
@@ -1489,7 +1528,15 @@ export const getInventoryOverview = zAuthQuery({
           sku: item.sku,
           category: item.category,
           unit: item.unit,
+          stockBehavior: item.stockBehavior,
+          brand: item.brand,
+          customLabel: item.customLabel,
+          presentationValue: item.presentationValue,
+          presentationUnit: item.presentationUnit,
           isSellable: item.isSellable,
+          // The sale price is what the customer pays — barbers need it to
+          // register sales. Costs and valuation stay manager-only.
+          salePrice: item.salePrice,
           reorderPoint: item.reorderPoint,
           reorderQuantity: item.reorderQuantity,
           imageKey: item.imageKey,
@@ -1500,9 +1547,14 @@ export const getInventoryOverview = zAuthQuery({
           ...(canManage
             ? {
                 unitCost: item.unitCost,
-                salePrice: item.salePrice,
                 allowNegativeStock: item.allowNegativeStock,
                 value: balance.onHand * item.unitCost,
+                supplier: item.supplier,
+                model: item.model,
+                serialNumber: item.serialNumber,
+                purchasedAt: item.purchasedAt,
+                warrantyUntil: item.warrantyUntil,
+                notes: item.notes,
               }
             : {}),
         };
@@ -1565,6 +1617,11 @@ export const listArchivedItems = zAuthQuery({
         sku: item.sku,
         category: item.category,
         unit: item.unit,
+        stockBehavior: item.stockBehavior,
+        brand: item.brand,
+        customLabel: item.customLabel,
+        presentationValue: item.presentationValue,
+        presentationUnit: item.presentationUnit,
         isSellable: item.isSellable,
         reorderPoint: item.reorderPoint,
         reorderQuantity: item.reorderQuantity,
@@ -1622,7 +1679,18 @@ export const listItems = zAuthQuery({
     return {
       ...page,
       page: page.page.map((item) => {
-        const { unitCost: _uc, salePrice: _sp, ...reduced } = item;
+        // Same policy as getInventoryOverview: costs and the supplier/equipment
+        // sheet are manager-only; salePrice is the public price barbers charge.
+        const {
+          unitCost: _uc,
+          supplier: _sup,
+          notes: _no,
+          model: _mo,
+          serialNumber: _sn,
+          purchasedAt: _pa,
+          warrantyUntil: _wu,
+          ...reduced
+        } = item;
 
         return reduced;
       }),
@@ -1652,7 +1720,18 @@ export const getItem = zAuthQuery({
       .collect();
 
     if (!canManage) {
-      const { unitCost: _uc, salePrice: _sp, ...reduced } = item;
+      // Same policy as getInventoryOverview: costs and the supplier/equipment
+      // sheet are manager-only; salePrice is the public price barbers charge.
+      const {
+        unitCost: _uc,
+        supplier: _sup,
+        notes: _no,
+        model: _mo,
+        serialNumber: _sn,
+        purchasedAt: _pa,
+        warrantyUntil: _wu,
+        ...reduced
+      } = item;
 
       return {
         item: reduced,
@@ -1728,11 +1807,31 @@ export const listMovements = zAuthQuery({
       ),
     ]);
 
-    return await ctx.db
+    const result = await ctx.db
       .query("inventoryMovements")
       .withIndex("by_itemId", (q) => q.eq("itemId", item._id))
       .order("desc")
       .paginate(args.paginationOpts);
+
+    // Accountability: resolve each actor once per page so the ledger shows
+    // WHO moved stock, not just what moved.
+    const actorIds = [...new Set(result.page.map((m) => m.actorUserId))];
+    const actorNames = new Map(
+      await Promise.all(
+        actorIds.map(async (actorId) => {
+          const profile = await getProfileByUserId(ctx, actorId);
+          return [actorId, profile?.name] as const;
+        }),
+      ),
+    );
+
+    return {
+      ...result,
+      page: result.page.map((movement) => ({
+        ...movement,
+        actorName: actorNames.get(movement.actorUserId),
+      })),
+    };
   },
 });
 
@@ -1752,12 +1851,53 @@ export const getValuation = zAuthQuery({
       ),
     ]);
 
-    const [totalValue, levelCount] = await Promise.all([
-      inventoryValueAggregate.sum(ctx, { namespace: args.barbershop.id }),
-      inventoryValueAggregate.count(ctx, { namespace: args.barbershop.id }),
+    // Joined in code instead of the raw aggregate: the aggregate sums every
+    // level, but the dashboard number must exclude archived items and keep
+    // durable assets apart from consumable stock — a clipper is capital, not
+    // shelf inventory. Per-shop rows are few (same collect the overview does).
+    const [items, levels] = await Promise.all([
+      ctx.db
+        .query("inventoryItems")
+        .withIndex("by_barbershopId", (q) =>
+          q.eq("barbershopId", args.barbershop.id),
+        )
+        .collect(),
+      ctx.db
+        .query("inventoryLevels")
+        .withIndex("by_barbershopId", (q) =>
+          q.eq("barbershopId", args.barbershop.id),
+        )
+        .collect(),
     ]);
 
-    return { totalValue, levelCount };
+    const activeItems = new Map(
+      items
+        .filter((item) => item.deletedAt === undefined)
+        .map((item) => [item._id, item]),
+    );
+
+    let totalValue = 0;
+    let equipmentValue = 0;
+    let levelCount = 0;
+
+    for (const level of levels) {
+      const item = activeItems.get(level.itemId);
+
+      if (!item) {
+        continue;
+      }
+
+      levelCount += 1;
+      const value = level.onHand * level.unitCost;
+
+      if (item.stockBehavior === "durable") {
+        equipmentValue += value;
+      } else {
+        totalValue += value;
+      }
+    }
+
+    return { totalValue, equipmentValue, levelCount };
   },
 });
 
@@ -1801,26 +1941,45 @@ export const getMonthlyConsumption = zAuthQuery({
       upper: { key: [type, endMs] as [string, number], inclusive: false },
     });
 
-    const [consumed, sold, received, wasted] = await Promise.all([
-      inventoryMovementsAggregate.sum(ctx, {
-        namespace: args.barbershop.id,
-        bounds: boundsFor("consumption"),
-      }),
-      inventoryMovementsAggregate.sum(ctx, {
-        namespace: args.barbershop.id,
-        bounds: boundsFor("sale"),
-      }),
-      inventoryMovementsAggregate.sum(ctx, {
-        namespace: args.barbershop.id,
-        bounds: boundsFor("receipt"),
-      }),
-      inventoryMovementsAggregate.sum(ctx, {
-        namespace: args.barbershop.id,
-        bounds: boundsFor("waste"),
-      }),
-    ]);
+    const [consumed, sold, received, wasted, consumedCount, soldCount] =
+      await Promise.all([
+        inventoryMovementsAggregate.sum(ctx, {
+          namespace: args.barbershop.id,
+          bounds: boundsFor("consumption"),
+        }),
+        inventoryMovementsAggregate.sum(ctx, {
+          namespace: args.barbershop.id,
+          bounds: boundsFor("sale"),
+        }),
+        inventoryMovementsAggregate.sum(ctx, {
+          namespace: args.barbershop.id,
+          bounds: boundsFor("receipt"),
+        }),
+        inventoryMovementsAggregate.sum(ctx, {
+          namespace: args.barbershop.id,
+          bounds: boundsFor("waste"),
+        }),
+        // Movement counts: the sums mix units (ml + und + cajas), so the
+        // dashboard cards report operations instead of a meaningless total.
+        inventoryMovementsAggregate.count(ctx, {
+          namespace: args.barbershop.id,
+          bounds: boundsFor("consumption"),
+        }),
+        inventoryMovementsAggregate.count(ctx, {
+          namespace: args.barbershop.id,
+          bounds: boundsFor("sale"),
+        }),
+      ]);
 
-    return { month, consumed, sold, received, wasted };
+    return {
+      month,
+      consumed,
+      sold,
+      received,
+      wasted,
+      consumedCount,
+      soldCount,
+    };
   },
 });
 
@@ -1851,6 +2010,8 @@ export const getServiceRecipe = zAuthQuery({
           name: item?.name ?? "",
           unit: item?.unit ?? "unit",
           isArchived: item?.deletedAt !== undefined,
+          /** Legacy lines only — new recipes reject durable items at save time. */
+          isDurable: item?.stockBehavior === "durable",
         };
       }),
     );

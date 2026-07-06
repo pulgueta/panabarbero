@@ -14,7 +14,10 @@ import {
   FormPageFooter,
   FormPagePreview,
 } from "@/components/form/form-page";
-import { ItemFormFields } from "@/components/inventory/item-form";
+import {
+  ItemFormFields,
+  ItemFormStepActions,
+} from "@/components/inventory/item-form";
 import { ItemPreviewCard } from "@/components/inventory/item-preview-card";
 import { useItemForm } from "@/components/inventory/use-item-form";
 import { Button } from "@/components/ui/button";
@@ -79,7 +82,7 @@ const NewItemPage: FC<{
       void navigate({ to: "/profile/barbershops/inventory" });
     },
   });
-  const { form, photoFile } = engine;
+  const { handlePrimaryAction } = engine;
 
   return (
     <DashboardPage>
@@ -98,7 +101,7 @@ const NewItemPage: FC<{
               onSubmit={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                form.handleSubmit();
+                handlePrimaryAction();
               }}
             >
               <ItemFormFields engine={engine} />
@@ -111,12 +114,10 @@ const NewItemPage: FC<{
                 >
                   Cancelar
                 </Button>
-                <form.AppForm>
-                  <form.SubmitButton
-                    label="Crear producto"
-                    forceEnabled={photoFile !== null}
-                  />
-                </form.AppForm>
+                <ItemFormStepActions
+                  engine={engine}
+                  submitLabel="Crear producto"
+                />
               </FormPageFooter>
             </form>
           </FormPageFields>

@@ -21,7 +21,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import type { InventoryOverviewRow } from "@/hooks/use-inventory";
 import { usePaginatedMovements } from "@/hooks/use-inventory";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 interface MovementsPageProps {
   itemId: InventoryItem["_id"];
@@ -76,6 +76,14 @@ const MovementsPage: FC<MovementsPageProps> = ({
                 </p>
               )}
 
+              {movement.type === "sale" &&
+              typeof movement.salePriceAtTime === "number" ? (
+                <p className="text-muted-foreground text-xs tabular-nums">
+                  Precio de venta: {formatCurrency(movement.salePriceAtTime)}{" "}
+                  c/u
+                </p>
+              ) : null}
+
               <p
                 className="text-muted-foreground text-xs"
                 suppressHydrationWarning
@@ -87,6 +95,7 @@ const MovementsPage: FC<MovementsPageProps> = ({
                   hour: "2-digit",
                   minute: "2-digit",
                 })}
+                {movement.actorName ? ` · por ${movement.actorName}` : null}
               </p>
             </div>
 

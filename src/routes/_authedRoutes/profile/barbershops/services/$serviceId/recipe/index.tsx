@@ -152,13 +152,21 @@ function RouteComponent() {
                       Productos disponibles
                     </dt>
                     <dd className="font-medium tabular-nums">
-                      {overview.rows.length}
+                      {
+                        // Durable items are excluded from recipes — count only
+                        // what the dropdown actually offers.
+                        overview.rows.filter(
+                          (row) => row.stockBehavior !== "durable",
+                        ).length
+                      }
                     </dd>
                   </div>
                   <div className="flex items-center justify-between gap-3">
                     <dt className="text-muted-foreground">Insumos asociados</dt>
                     <dd className="font-medium tabular-nums">
-                      {recipe?.filter((line) => !line.isArchived).length ?? 0}
+                      {recipe?.filter(
+                        (line) => !line.isArchived && !line.isDurable,
+                      ).length ?? 0}
                     </dd>
                   </div>
                 </dl>

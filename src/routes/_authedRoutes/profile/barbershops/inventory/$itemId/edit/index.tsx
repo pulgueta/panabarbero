@@ -17,9 +17,15 @@ import {
   FormPageFooter,
   FormPagePreview,
 } from "@/components/form/form-page";
-import { ItemFormFields } from "@/components/inventory/item-form";
+import {
+  ItemFormFields,
+  ItemFormStepActions,
+} from "@/components/inventory/item-form";
 import { ItemPreviewCard } from "@/components/inventory/item-preview-card";
-import { useItemForm } from "@/components/inventory/use-item-form";
+import {
+  toDateInputValue,
+  useItemForm,
+} from "@/components/inventory/use-item-form";
 import { Button } from "@/components/ui/button";
 import { cacheTime } from "@/config/cache";
 import { useBarbershopByMemberUserId } from "@/hooks/barbershop/use-barbershop";
@@ -98,12 +104,24 @@ const EditItemPage: FC<{
     barbershopId,
     itemId: item._id,
     currentImageKey: item.imageKey,
+    currentOnHand: item.onHand,
     initialValues: {
       barbershopId,
       name: item.name,
       sku: item.sku,
       category: item.category,
       unit: item.unit,
+      stockBehavior: item.stockBehavior,
+      brand: item.brand,
+      supplier: item.supplier,
+      customLabel: item.customLabel,
+      presentationValue: item.presentationValue,
+      presentationUnit: item.presentationUnit ?? "ml",
+      model: item.model,
+      serialNumber: item.serialNumber,
+      purchasedAtDate: toDateInputValue(item.purchasedAt),
+      warrantyUntilDate: toDateInputValue(item.warrantyUntil),
+      notes: item.notes,
       isSellable: item.isSellable,
       unitCost: item.unitCost ?? 0,
       salePrice: item.salePrice,
@@ -115,7 +133,7 @@ const EditItemPage: FC<{
       void navigate({ to: "/profile/barbershops/inventory" });
     },
   });
-  const { form, photoFile } = engine;
+  const { handlePrimaryAction } = engine;
 
   return (
     <DashboardPage>
@@ -134,7 +152,7 @@ const EditItemPage: FC<{
               onSubmit={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                form.handleSubmit();
+                handlePrimaryAction();
               }}
             >
               <ItemFormFields engine={engine} itemId={item._id} />
@@ -147,12 +165,11 @@ const EditItemPage: FC<{
                 >
                   Cancelar
                 </Button>
-                <form.AppForm>
-                  <form.SubmitButton
-                    label="Guardar cambios"
-                    forceEnabled={photoFile !== null}
-                  />
-                </form.AppForm>
+                <ItemFormStepActions
+                  engine={engine}
+                  itemId={item._id}
+                  submitLabel="Guardar cambios"
+                />
               </FormPageFooter>
             </form>
           </FormPageFields>

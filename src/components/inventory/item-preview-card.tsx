@@ -3,8 +3,11 @@ import type { FC } from "react";
 import { useEffect, useMemo } from "react";
 
 import {
+  formatPresentation,
   inventoryCategoryLabels,
+  inventoryStockBehaviorLabels,
   inventoryUnitSuffixes,
+  isEquipmentCategory,
 } from "@/components/inventory/labels";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
@@ -66,6 +69,9 @@ export const ItemPreviewCard: FC<ItemPreviewCardProps> = ({
             )
           : { label: "Inventario", variant: "outline" as const };
         const unitSuffix = inventoryUnitSuffixes[values.unit];
+        const stockBehavior = isEquipmentCategory(values.category)
+          ? "durable"
+          : values.stockBehavior;
 
         return (
           <div className="overflow-hidden rounded-xl border bg-card">
@@ -86,8 +92,14 @@ export const ItemPreviewCard: FC<ItemPreviewCardProps> = ({
                   {values.name || "Nombre del producto"}
                 </p>
                 <p className="truncate text-muted-foreground text-xs">
-                  {values.sku || inventoryCategoryLabels[values.category]}
+                  {[values.brand, values.sku].filter(Boolean).join(" · ") ||
+                    inventoryCategoryLabels[values.category]}
                 </p>
+                {values.customLabel ? (
+                  <p className="truncate text-muted-foreground text-xs">
+                    {values.customLabel}
+                  </p>
+                ) : null}
               </div>
               <Badge variant={status.variant}>{status.label}</Badge>
             </div>
@@ -96,6 +108,23 @@ export const ItemPreviewCard: FC<ItemPreviewCardProps> = ({
               <div className="flex items-center justify-between gap-4">
                 <dt className="text-muted-foreground">Categoría</dt>
                 <dd>{inventoryCategoryLabels[values.category]}</dd>
+              </div>
+              {values.presentationValue && values.presentationUnit ? (
+                <div className="flex items-center justify-between gap-4">
+                  <dt className="text-muted-foreground">
+                    Contenido por envase
+                  </dt>
+                  <dd className="tabular-nums">
+                    {formatPresentation(
+                      values.presentationValue,
+                      values.presentationUnit,
+                    )}
+                  </dd>
+                </div>
+              ) : null}
+              <div className="flex items-center justify-between gap-4">
+                <dt className="text-muted-foreground">Tipo de manejo</dt>
+                <dd>{inventoryStockBehaviorLabels[stockBehavior]}</dd>
               </div>
               {showInitialQuantity ? (
                 <div className="flex items-center justify-between gap-4">
