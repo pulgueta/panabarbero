@@ -45,11 +45,12 @@
     --border: oklch(1 0 0 / 12%);
     --input: oklch(1 0 0 / 15%);
     --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.809 0.105 251.813);
-    --chart-2: oklch(0.623 0.214 259.815);
-    --chart-3: oklch(0.546 0.245 262.881);
-    --chart-4: oklch(0.488 0.243 264.376);
-    --chart-5: oklch(0.424 0.199 265.638);
+    /* Categorical chart palette (dark) — CVD + contrast validated on the dark surface. */
+    --chart-1: #c9564a;
+    --chart-2: #4a8fdf;
+    --chart-3: #bd8a15;
+    --chart-4: #1baf7a;
+    --chart-5: #8a75d8;
     --sidebar: oklch(0.145 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
     --sidebar-primary: oklch(0.7 0.1651 28.33);
@@ -101,11 +102,12 @@ code {
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
+  /* Categorical chart palette (light) — slot 1 is the brand red; CVD + contrast validated. */
+  --chart-1: #b3342b;
+  --chart-2: #2a78d6;
+  --chart-3: #b17c00;
+  --chart-4: #0f8a63;
+  --chart-5: #4a3aa7;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.5156 0.1651 28.33);
@@ -144,11 +146,12 @@ code {
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
+  /* Categorical chart palette (dark) — CVD + contrast validated on the dark surface. */
+  --chart-1: #c9564a;
+  --chart-2: #4a8fdf;
+  --chart-3: #bd8a15;
+  --chart-4: #1baf7a;
+  --chart-5: #8a75d8;
   --sidebar: oklch(0.145 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.7 0.1651 28.33);

@@ -22,11 +22,15 @@ import type { QueryCtx } from "./_generated/server";
 import type { Appointment, Barbershop, Review } from "./schema";
 
 /**
- * Counts completed appointments per barbershop.
+ * Counts completed appointments per barbershop and sums their revenue.
  *
  * Namespace: barbershopId
  * Key:       appointment date (timestamp) — enables range queries by time
  * Id:        appointmentId (unique tie-breaker)
+ * sumValue:  service price snapshotted at completion time (COP integer pesos)
+ *            — count() answers "how many", sum() answers "estimated revenue".
+ *            Rows inserted before the analytics feature carry sumValue 0 until
+ *            `migrations:backfillCompletedAppointmentRevenue` runs.
  */
 export const completedAppointmentsAggregate = new DirectAggregate<{
   Namespace: Barbershop["_id"];

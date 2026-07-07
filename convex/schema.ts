@@ -554,12 +554,14 @@ export default defineSchema({
   appointments: appointments
     .table()
     .index("by_userId", ["userId"])
+    .index("by_userId_and_status", ["userId", "status"])
     .index("by_barbershopId", ["barbershopId"])
     .index("by_userIdAndBarbershopId", ["userId", "barbershopId"])
     .index("by_serviceId", ["serviceId"])
     .index("by_barbershopMemberId", ["barbershopMemberId"])
     .index("by_status", ["status"])
     .index("by_date", ["date"])
+    .index("by_barbershopId_and_date", ["barbershopId", "date"])
     .index("by_deletedAt", ["deletedAt"])
     .index("by_reviewCode", ["reviewCode"]),
 
