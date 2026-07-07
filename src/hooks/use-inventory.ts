@@ -88,6 +88,26 @@ export function movementsPaginatedQueryOptions(
   });
 }
 
+export function movementTrendQueryOptions(barbershopId: Barbershop["_id"]) {
+  return convexQuery(api.inventory.getMovementTrend, {
+    barbershop: { id: barbershopId },
+  });
+}
+
+export function shopMovementsPaginatedQueryOptions(
+  barbershopId: Barbershop["_id"],
+  cursor: string | null = null,
+  numItems = 10,
+) {
+  return convexQuery(api.inventory.listShopMovements, {
+    barbershop: { id: barbershopId },
+    paginationOpts: {
+      cursor,
+      numItems,
+    },
+  });
+}
+
 export function useInventoryOverview(barbershopId: Barbershop["_id"]) {
   return useSuspenseQuery(inventoryOverviewQueryOptions(barbershopId));
 }
@@ -129,6 +149,20 @@ export function usePaginatedMovements(
   numItems = 10,
 ) {
   return useQuery(movementsPaginatedQueryOptions(itemId, cursor, numItems));
+}
+
+export function useMovementTrend(barbershopId: Barbershop["_id"]) {
+  return useQuery(movementTrendQueryOptions(barbershopId));
+}
+
+export function usePaginatedShopMovements(
+  barbershopId: Barbershop["_id"],
+  cursor: string | null,
+  numItems = 10,
+) {
+  return useQuery(
+    shopMovementsPaginatedQueryOptions(barbershopId, cursor, numItems),
+  );
 }
 
 export function useInventoryActions() {
