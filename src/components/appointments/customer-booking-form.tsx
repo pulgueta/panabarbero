@@ -9,7 +9,14 @@ import { revalidateLogic } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { es } from "date-fns/locale";
 import type { FC } from "react";
-import { Suspense, useEffect, useId, useState, useTransition } from "react";
+import {
+  Suspense,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
@@ -300,15 +307,19 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
 
   const effectiveService = services.find((s) => s._id === effectiveServiceId);
 
-  // Reset the chosen slot when the service changes. Done as a render-phase
-  // adjustment (not an effect) so there's no extra render showing the stale
-  // slot against the new service. Barber changes reset the slot at the point
-  // of change (select handler / auto-select effect).
-  const [prevServiceId, setPrevServiceId] = useState(effectiveServiceId);
-  if (effectiveServiceId !== prevServiceId) {
-    setPrevServiceId(effectiveServiceId);
+  // Barber changes reset the slot at the point of change (select handler /
+  // auto-select effect). Service changes need the same guard so the summary
+  // never shows a stale time for the newly selected service.
+  const previousServiceId = useRef(effectiveServiceId);
+
+  useEffect(() => {
+    if (previousServiceId.current === effectiveServiceId) {
+      return;
+    }
+
+    previousServiceId.current = effectiveServiceId;
     setSelectedSlotTime(undefined);
-  }
+  }, [effectiveServiceId]);
 
   const pendingLabel = "Pendiente";
 
@@ -623,7 +634,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                   <FieldLabel htmlFor={formIds.date}>Día</FieldLabel>
                   <Popover>
                     <PopoverTrigger
-                      nativeButton={false}
+                      nativeButton
                       render={
                         <Button
                           type="button"

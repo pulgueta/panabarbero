@@ -3,6 +3,7 @@ import { lazy, Suspense } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { ThemeToggler } from "../layout/theme-toggler";
 import { DashboardBreadcrumbs } from "./dashboard-breadcrumbs";
 import { DASHBOARD_GUTTER_X } from "./dashboard-gutter";
 
@@ -26,6 +27,10 @@ export function DashboardTopbar() {
       <div className="ml-auto flex items-center gap-1.5">
         <Suspense fallback={<Skeleton className="size-8" />}>
           <NotificationsBell />
+        </Suspense>
+
+        <Suspense fallback={<Skeleton className="size-8" />}>
+          <ThemeToggler />
         </Suspense>
       </div>
     </header>

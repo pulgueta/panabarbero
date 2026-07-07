@@ -5,6 +5,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
+  DrawerClose,
   DrawerContent,
   DrawerFooter,
   DrawerHeader,
@@ -151,23 +152,28 @@ export function MobileTopBar() {
 
                     return (
                       <li key={item.to}>
-                        <Link
-                          aria-current={isActive ? "page" : undefined}
-                          className={cn(
-                            "flex h-11 items-center gap-3 rounded-lg px-3 font-medium text-sm transition-colors",
-                            isActive
-                              ? "bg-muted text-primary"
-                              : "text-foreground hover:bg-muted",
-                          )}
-                          search={navSearch(item.to)}
-                          to={item.to}
+                        <DrawerClose
+                          nativeButton={false}
+                          render={
+                            <Link
+                              aria-current={isActive ? "page" : undefined}
+                              className={cn(
+                                "flex h-11 items-center gap-3 rounded-lg px-3 font-medium text-sm transition-colors",
+                                isActive
+                                  ? "bg-muted text-primary"
+                                  : "text-foreground hover:bg-muted",
+                              )}
+                              search={navSearch(item.to)}
+                              to={item.to}
+                            />
+                          }
                         >
                           <Icon
                             className="size-4"
                             weight={isActive ? "fill" : "bold"}
                           />
                           {item.label}
-                        </Link>
+                        </DrawerClose>
                       </li>
                     );
                   })}
@@ -179,7 +185,9 @@ export function MobileTopBar() {
           <DrawerFooter className="border-t p-3">
             <div className="flex items-center justify-between px-3">
               <span className="text-muted-foreground text-sm">Tema</span>
-              <ThemeToggler size="sm" />
+              <Suspense fallback={<Skeleton className="size-8" />}>
+                <ThemeToggler size="sm" />
+              </Suspense>
             </div>
           </DrawerFooter>
         </DrawerContent>

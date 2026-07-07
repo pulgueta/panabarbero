@@ -8,9 +8,10 @@ import {
 } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@workos/authkit-tanstack-react-start/client";
-import { type FC, type ReactElement, useState } from "react";
+import type { FC, ReactElement } from "react";
+import { useState } from "react";
+
 import { useActiveRoute } from "@/components/layout/nav/use-active-route";
-import { ThemeToggler } from "@/components/layout/theme-toggler";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Collapsible,
@@ -42,6 +43,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useBarbershopPlan } from "@/hooks/billing/use-plan";
+import { getLogoUrl } from "@/hooks/use-upload";
 import { cn, getInitials } from "@/lib/utils";
 import type { DashboardNavItem, DashboardRole } from "./dashboard-nav";
 import { getDashboardNavGroups } from "./dashboard-nav";
@@ -106,7 +108,7 @@ export const DashboardSidebar: FC<DashboardSidebarProps> = ({
                 size="lg"
                 tooltip={barbershop.name}
               >
-                <ShopTile name={barbershop.name} />
+                <ShopTile logoKey={barbershop.logoKey} name={barbershop.name} />
                 <span className="grid flex-1 leading-tight">
                   <span className="truncate font-semibold text-sm">
                     {barbershop.name}
@@ -116,7 +118,7 @@ export const DashboardSidebar: FC<DashboardSidebarProps> = ({
               </SidebarMenuButton>
             ) : (
               <SidebarMenuButton disabled size="lg" tooltip="Mi barbería">
-                <ShopTile name={null} />
+                <ShopTile logoKey={null} name={null} />
                 <span className="truncate font-semibold text-sm">
                   Mi barbería
                 </span>
@@ -256,15 +258,33 @@ const DashboardNavEntry: FC<DashboardNavEntryProps> = ({
   );
 };
 
-const ShopTile: FC<{ name: string | null }> = ({ name }) => (
-  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-contrast text-contrast-foreground">
-    {name ? (
-      <span className="font-semibold text-sm uppercase">{name.charAt(0)}</span>
-    ) : (
-      <StorefrontIcon className="size-4" />
-    )}
-  </span>
-);
+const ShopTile: FC<{ logoKey?: string | null; name: string | null }> = ({
+  logoKey,
+  name,
+}) => {
+  const logoUrl = getLogoUrl(logoKey);
+
+  return (
+    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-contrast text-contrast-foreground">
+      {logoUrl ? (
+        <img
+          alt="Logo de la barbería"
+          className="mx-auto size-full rounded-lg object-cover"
+          height={32}
+          width={32}
+          loading="lazy"
+          src={logoUrl}
+        />
+      ) : name ? (
+        <span className="font-semibold text-sm uppercase">
+          {name.charAt(0)}
+        </span>
+      ) : (
+        <StorefrontIcon className="size-4" />
+      )}
+    </span>
+  );
+};
 
 const ShopPlanLabel: FC<{ barbershopId: Barbershop["_id"] }> = ({
   barbershopId,
@@ -316,18 +336,6 @@ const DashboardUserMenu: FC<{ user: DashboardUser }> = ({ user }) => {
               <UserIcon />
               Mi perfil
             </DropdownMenuItem>
-
-            <DropdownMenuSeparator />
-
-            <DropdownMenuItem
-              render={
-                <ThemeToggler
-                  className="size-full justify-start"
-                  size="sm"
-                  variant="ghost"
-                />
-              }
-            />
 
             <DropdownMenuSeparator />
 

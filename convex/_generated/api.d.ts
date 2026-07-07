@@ -27,6 +27,7 @@ import type * as barbershopMetadata from "../barbershopMetadata.js";
 import type * as barbershops from "../barbershops.js";
 import type * as credits from "../credits.js";
 import type * as crons from "../crons.js";
+import type * as dashboardAnalytics from "../dashboardAnalytics.js";
 import type * as emails from "../emails.js";
 import type * as errors from "../errors.js";
 import type * as geospatial from "../geospatial.js";
@@ -82,6 +83,7 @@ declare const fullApi: ApiFromModules<{
   barbershops: typeof barbershops;
   credits: typeof credits;
   crons: typeof crons;
+  dashboardAnalytics: typeof dashboardAnalytics;
   emails: typeof emails;
   errors: typeof errors;
   geospatial: typeof geospatial;

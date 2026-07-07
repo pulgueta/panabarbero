@@ -28,7 +28,6 @@ import { Route as AuthRegisterRouteImport } from './routes/_auth/register'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as BarbershopsBarbershopUuidIndexRouteImport } from './routes/barbershops/$barbershopUuid/index'
 import { Route as AuthedRoutesProfileIndexRouteImport } from './routes/_authedRoutes/profile/index'
-import { Route as BarbershopsBarbershopUuidReviewRouteImport } from './routes/barbershops/$barbershopUuid/review'
 import { Route as BarbershopsBarbershopUuidBookRouteImport } from './routes/barbershops/$barbershopUuid/book'
 import { Route as AuthedRoutesProfileBarbershopsRouteRouteImport } from './routes/_authedRoutes/profile/barbershops/route'
 import { Route as AuthedRoutesProfileBarbershopsIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/index'
@@ -44,11 +43,12 @@ import { Route as AuthedRoutesProfileBarbershopsReviewsIndexRouteImport } from '
 import { Route as AuthedRoutesProfileBarbershopsPanaIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/pana/index'
 import { Route as AuthedRoutesProfileBarbershopsInventoryIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/inventory/index'
 import { Route as AuthedRoutesProfileBarbershopsAppointmentsIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/appointments/index'
+import { Route as AuthedRoutesProfileBarbershopsAnalyticsIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/analytics/index'
 import { Route as AuthedRoutesProfileBarbershopsTeamBarbersRouteRouteImport } from './routes/_authedRoutes/profile/barbershops/team/barbers/route'
 import { Route as AuthedRoutesProfileBarbershopsTeamReceptionistsIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/team/receptionists/index'
 import { Route as AuthedRoutesProfileBarbershopsTeamInvitationsIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/team/invitations/index'
 import { Route as AuthedRoutesProfileBarbershopsTeamBarbersIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/team/barbers/index'
-import { Route as AuthedRoutesProfileBarbershopsSettingsPreferencesIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/settings/preferences/index'
+import { Route as AuthedRoutesProfileBarbershopsSettingsSocialIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/settings/social/index'
 import { Route as AuthedRoutesProfileBarbershopsSettingsLocationIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/settings/location/index'
 import { Route as AuthedRoutesProfileBarbershopsSettingsBrandingIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/settings/branding/index'
 import { Route as AuthedRoutesProfileBarbershopsSettingsBillingIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/settings/billing/index'
@@ -56,7 +56,9 @@ import { Route as AuthedRoutesProfileBarbershopsSettingsAvailabilityIndexRouteIm
 import { Route as AuthedRoutesProfileBarbershopsPanaMemoryIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/pana/memory/index'
 import { Route as AuthedRoutesProfileBarbershopsPanaKnowledgeIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/pana/knowledge/index'
 import { Route as AuthedRoutesProfileBarbershopsPanaThreadIdIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/pana/$threadId/index'
+import { Route as AuthedRoutesProfileBarbershopsInventoryProductsIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/inventory/products/index'
 import { Route as AuthedRoutesProfileBarbershopsInventoryNewIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/inventory/new/index'
+import { Route as AuthedRoutesProfileBarbershopsInventoryMovementsIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/inventory/movements/index'
 import { Route as AuthedRoutesProfileBarbershopsInventoryArchivedIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/inventory/archived/index'
 import { Route as AuthedRoutesProfileBarbershopsAppointmentsNewIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/appointments/new/index'
 import { Route as AuthedRoutesProfileBarbershopsServicesServiceIdRecipeIndexRouteImport } from './routes/_authedRoutes/profile/barbershops/services/$serviceId/recipe/index'
@@ -160,12 +162,6 @@ const AuthedRoutesProfileIndexRoute =
     path: '/profile/',
     getParentRoute: () => AuthedRoutesRouteRoute,
   } as any)
-const BarbershopsBarbershopUuidReviewRoute =
-  BarbershopsBarbershopUuidReviewRouteImport.update({
-    id: '/barbershops/$barbershopUuid/review',
-    path: '/barbershops/$barbershopUuid/review',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const BarbershopsBarbershopUuidBookRoute =
   BarbershopsBarbershopUuidBookRouteImport.update({
     id: '/barbershops/$barbershopUuid/book',
@@ -256,6 +252,12 @@ const AuthedRoutesProfileBarbershopsAppointmentsIndexRoute =
     path: '/',
     getParentRoute: () => AuthedRoutesProfileBarbershopsAppointmentsRouteRoute,
   } as any)
+const AuthedRoutesProfileBarbershopsAnalyticsIndexRoute =
+  AuthedRoutesProfileBarbershopsAnalyticsIndexRouteImport.update({
+    id: '/analytics/',
+    path: '/analytics/',
+    getParentRoute: () => AuthedRoutesProfileBarbershopsRouteRoute,
+  } as any)
 const AuthedRoutesProfileBarbershopsTeamBarbersRouteRoute =
   AuthedRoutesProfileBarbershopsTeamBarbersRouteRouteImport.update({
     id: '/team/barbers',
@@ -280,10 +282,10 @@ const AuthedRoutesProfileBarbershopsTeamBarbersIndexRoute =
     path: '/',
     getParentRoute: () => AuthedRoutesProfileBarbershopsTeamBarbersRouteRoute,
   } as any)
-const AuthedRoutesProfileBarbershopsSettingsPreferencesIndexRoute =
-  AuthedRoutesProfileBarbershopsSettingsPreferencesIndexRouteImport.update({
-    id: '/preferences/',
-    path: '/preferences/',
+const AuthedRoutesProfileBarbershopsSettingsSocialIndexRoute =
+  AuthedRoutesProfileBarbershopsSettingsSocialIndexRouteImport.update({
+    id: '/social/',
+    path: '/social/',
     getParentRoute: () => AuthedRoutesProfileBarbershopsSettingsRouteRoute,
   } as any)
 const AuthedRoutesProfileBarbershopsSettingsLocationIndexRoute =
@@ -328,10 +330,22 @@ const AuthedRoutesProfileBarbershopsPanaThreadIdIndexRoute =
     path: '/$threadId/',
     getParentRoute: () => AuthedRoutesProfileBarbershopsPanaRouteRoute,
   } as any)
+const AuthedRoutesProfileBarbershopsInventoryProductsIndexRoute =
+  AuthedRoutesProfileBarbershopsInventoryProductsIndexRouteImport.update({
+    id: '/products/',
+    path: '/products/',
+    getParentRoute: () => AuthedRoutesProfileBarbershopsInventoryRouteRoute,
+  } as any)
 const AuthedRoutesProfileBarbershopsInventoryNewIndexRoute =
   AuthedRoutesProfileBarbershopsInventoryNewIndexRouteImport.update({
     id: '/new/',
     path: '/new/',
+    getParentRoute: () => AuthedRoutesProfileBarbershopsInventoryRouteRoute,
+  } as any)
+const AuthedRoutesProfileBarbershopsInventoryMovementsIndexRoute =
+  AuthedRoutesProfileBarbershopsInventoryMovementsIndexRouteImport.update({
+    id: '/movements/',
+    path: '/movements/',
     getParentRoute: () => AuthedRoutesProfileBarbershopsInventoryRouteRoute,
   } as any)
 const AuthedRoutesProfileBarbershopsInventoryArchivedIndexRoute =
@@ -399,7 +413,6 @@ export interface FileRoutesByFullPath {
   '/chat/': typeof ChatIndexRoute
   '/profile/barbershops': typeof AuthedRoutesProfileBarbershopsRouteRouteWithChildren
   '/barbershops/$barbershopUuid/book': typeof BarbershopsBarbershopUuidBookRoute
-  '/barbershops/$barbershopUuid/review': typeof BarbershopsBarbershopUuidReviewRoute
   '/profile/': typeof AuthedRoutesProfileIndexRoute
   '/barbershops/$barbershopUuid/': typeof BarbershopsBarbershopUuidIndexRoute
   '/profile/barbershops/appointments': typeof AuthedRoutesProfileBarbershopsAppointmentsRouteRouteWithChildren
@@ -409,6 +422,7 @@ export interface FileRoutesByFullPath {
   '/profile/barbershops/settings': typeof AuthedRoutesProfileBarbershopsSettingsRouteRouteWithChildren
   '/profile/barbershops/': typeof AuthedRoutesProfileBarbershopsIndexRoute
   '/profile/barbershops/team/barbers': typeof AuthedRoutesProfileBarbershopsTeamBarbersRouteRouteWithChildren
+  '/profile/barbershops/analytics/': typeof AuthedRoutesProfileBarbershopsAnalyticsIndexRoute
   '/profile/barbershops/appointments/': typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
   '/profile/barbershops/inventory/': typeof AuthedRoutesProfileBarbershopsInventoryIndexRoute
   '/profile/barbershops/pana/': typeof AuthedRoutesProfileBarbershopsPanaIndexRoute
@@ -418,7 +432,9 @@ export interface FileRoutesByFullPath {
   '/profile/barbershops/team/': typeof AuthedRoutesProfileBarbershopsTeamIndexRoute
   '/profile/barbershops/appointments/new/': typeof AuthedRoutesProfileBarbershopsAppointmentsNewIndexRoute
   '/profile/barbershops/inventory/archived/': typeof AuthedRoutesProfileBarbershopsInventoryArchivedIndexRoute
+  '/profile/barbershops/inventory/movements/': typeof AuthedRoutesProfileBarbershopsInventoryMovementsIndexRoute
   '/profile/barbershops/inventory/new/': typeof AuthedRoutesProfileBarbershopsInventoryNewIndexRoute
+  '/profile/barbershops/inventory/products/': typeof AuthedRoutesProfileBarbershopsInventoryProductsIndexRoute
   '/profile/barbershops/pana/$threadId/': typeof AuthedRoutesProfileBarbershopsPanaThreadIdIndexRoute
   '/profile/barbershops/pana/knowledge/': typeof AuthedRoutesProfileBarbershopsPanaKnowledgeIndexRoute
   '/profile/barbershops/pana/memory/': typeof AuthedRoutesProfileBarbershopsPanaMemoryIndexRoute
@@ -426,7 +442,7 @@ export interface FileRoutesByFullPath {
   '/profile/barbershops/settings/billing/': typeof AuthedRoutesProfileBarbershopsSettingsBillingIndexRoute
   '/profile/barbershops/settings/branding/': typeof AuthedRoutesProfileBarbershopsSettingsBrandingIndexRoute
   '/profile/barbershops/settings/location/': typeof AuthedRoutesProfileBarbershopsSettingsLocationIndexRoute
-  '/profile/barbershops/settings/preferences/': typeof AuthedRoutesProfileBarbershopsSettingsPreferencesIndexRoute
+  '/profile/barbershops/settings/social/': typeof AuthedRoutesProfileBarbershopsSettingsSocialIndexRoute
   '/profile/barbershops/team/barbers/': typeof AuthedRoutesProfileBarbershopsTeamBarbersIndexRoute
   '/profile/barbershops/team/invitations/': typeof AuthedRoutesProfileBarbershopsTeamInvitationsIndexRoute
   '/profile/barbershops/team/receptionists/': typeof AuthedRoutesProfileBarbershopsTeamReceptionistsIndexRoute
@@ -452,10 +468,10 @@ export interface FileRoutesByTo {
   '/barbershops': typeof BarbershopsIndexRoute
   '/chat': typeof ChatIndexRoute
   '/barbershops/$barbershopUuid/book': typeof BarbershopsBarbershopUuidBookRoute
-  '/barbershops/$barbershopUuid/review': typeof BarbershopsBarbershopUuidReviewRoute
   '/profile': typeof AuthedRoutesProfileIndexRoute
   '/barbershops/$barbershopUuid': typeof BarbershopsBarbershopUuidIndexRoute
   '/profile/barbershops': typeof AuthedRoutesProfileBarbershopsIndexRoute
+  '/profile/barbershops/analytics': typeof AuthedRoutesProfileBarbershopsAnalyticsIndexRoute
   '/profile/barbershops/appointments': typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
   '/profile/barbershops/inventory': typeof AuthedRoutesProfileBarbershopsInventoryIndexRoute
   '/profile/barbershops/pana': typeof AuthedRoutesProfileBarbershopsPanaIndexRoute
@@ -465,7 +481,9 @@ export interface FileRoutesByTo {
   '/profile/barbershops/team': typeof AuthedRoutesProfileBarbershopsTeamIndexRoute
   '/profile/barbershops/appointments/new': typeof AuthedRoutesProfileBarbershopsAppointmentsNewIndexRoute
   '/profile/barbershops/inventory/archived': typeof AuthedRoutesProfileBarbershopsInventoryArchivedIndexRoute
+  '/profile/barbershops/inventory/movements': typeof AuthedRoutesProfileBarbershopsInventoryMovementsIndexRoute
   '/profile/barbershops/inventory/new': typeof AuthedRoutesProfileBarbershopsInventoryNewIndexRoute
+  '/profile/barbershops/inventory/products': typeof AuthedRoutesProfileBarbershopsInventoryProductsIndexRoute
   '/profile/barbershops/pana/$threadId': typeof AuthedRoutesProfileBarbershopsPanaThreadIdIndexRoute
   '/profile/barbershops/pana/knowledge': typeof AuthedRoutesProfileBarbershopsPanaKnowledgeIndexRoute
   '/profile/barbershops/pana/memory': typeof AuthedRoutesProfileBarbershopsPanaMemoryIndexRoute
@@ -473,7 +491,7 @@ export interface FileRoutesByTo {
   '/profile/barbershops/settings/billing': typeof AuthedRoutesProfileBarbershopsSettingsBillingIndexRoute
   '/profile/barbershops/settings/branding': typeof AuthedRoutesProfileBarbershopsSettingsBrandingIndexRoute
   '/profile/barbershops/settings/location': typeof AuthedRoutesProfileBarbershopsSettingsLocationIndexRoute
-  '/profile/barbershops/settings/preferences': typeof AuthedRoutesProfileBarbershopsSettingsPreferencesIndexRoute
+  '/profile/barbershops/settings/social': typeof AuthedRoutesProfileBarbershopsSettingsSocialIndexRoute
   '/profile/barbershops/team/barbers': typeof AuthedRoutesProfileBarbershopsTeamBarbersIndexRoute
   '/profile/barbershops/team/invitations': typeof AuthedRoutesProfileBarbershopsTeamInvitationsIndexRoute
   '/profile/barbershops/team/receptionists': typeof AuthedRoutesProfileBarbershopsTeamReceptionistsIndexRoute
@@ -504,7 +522,6 @@ export interface FileRoutesById {
   '/chat/': typeof ChatIndexRoute
   '/_authedRoutes/profile/barbershops': typeof AuthedRoutesProfileBarbershopsRouteRouteWithChildren
   '/barbershops/$barbershopUuid/book': typeof BarbershopsBarbershopUuidBookRoute
-  '/barbershops/$barbershopUuid/review': typeof BarbershopsBarbershopUuidReviewRoute
   '/_authedRoutes/profile/': typeof AuthedRoutesProfileIndexRoute
   '/barbershops/$barbershopUuid/': typeof BarbershopsBarbershopUuidIndexRoute
   '/_authedRoutes/profile/barbershops/appointments': typeof AuthedRoutesProfileBarbershopsAppointmentsRouteRouteWithChildren
@@ -514,6 +531,7 @@ export interface FileRoutesById {
   '/_authedRoutes/profile/barbershops/settings': typeof AuthedRoutesProfileBarbershopsSettingsRouteRouteWithChildren
   '/_authedRoutes/profile/barbershops/': typeof AuthedRoutesProfileBarbershopsIndexRoute
   '/_authedRoutes/profile/barbershops/team/barbers': typeof AuthedRoutesProfileBarbershopsTeamBarbersRouteRouteWithChildren
+  '/_authedRoutes/profile/barbershops/analytics/': typeof AuthedRoutesProfileBarbershopsAnalyticsIndexRoute
   '/_authedRoutes/profile/barbershops/appointments/': typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRoute
   '/_authedRoutes/profile/barbershops/inventory/': typeof AuthedRoutesProfileBarbershopsInventoryIndexRoute
   '/_authedRoutes/profile/barbershops/pana/': typeof AuthedRoutesProfileBarbershopsPanaIndexRoute
@@ -523,7 +541,9 @@ export interface FileRoutesById {
   '/_authedRoutes/profile/barbershops/team/': typeof AuthedRoutesProfileBarbershopsTeamIndexRoute
   '/_authedRoutes/profile/barbershops/appointments/new/': typeof AuthedRoutesProfileBarbershopsAppointmentsNewIndexRoute
   '/_authedRoutes/profile/barbershops/inventory/archived/': typeof AuthedRoutesProfileBarbershopsInventoryArchivedIndexRoute
+  '/_authedRoutes/profile/barbershops/inventory/movements/': typeof AuthedRoutesProfileBarbershopsInventoryMovementsIndexRoute
   '/_authedRoutes/profile/barbershops/inventory/new/': typeof AuthedRoutesProfileBarbershopsInventoryNewIndexRoute
+  '/_authedRoutes/profile/barbershops/inventory/products/': typeof AuthedRoutesProfileBarbershopsInventoryProductsIndexRoute
   '/_authedRoutes/profile/barbershops/pana/$threadId/': typeof AuthedRoutesProfileBarbershopsPanaThreadIdIndexRoute
   '/_authedRoutes/profile/barbershops/pana/knowledge/': typeof AuthedRoutesProfileBarbershopsPanaKnowledgeIndexRoute
   '/_authedRoutes/profile/barbershops/pana/memory/': typeof AuthedRoutesProfileBarbershopsPanaMemoryIndexRoute
@@ -531,7 +551,7 @@ export interface FileRoutesById {
   '/_authedRoutes/profile/barbershops/settings/billing/': typeof AuthedRoutesProfileBarbershopsSettingsBillingIndexRoute
   '/_authedRoutes/profile/barbershops/settings/branding/': typeof AuthedRoutesProfileBarbershopsSettingsBrandingIndexRoute
   '/_authedRoutes/profile/barbershops/settings/location/': typeof AuthedRoutesProfileBarbershopsSettingsLocationIndexRoute
-  '/_authedRoutes/profile/barbershops/settings/preferences/': typeof AuthedRoutesProfileBarbershopsSettingsPreferencesIndexRoute
+  '/_authedRoutes/profile/barbershops/settings/social/': typeof AuthedRoutesProfileBarbershopsSettingsSocialIndexRoute
   '/_authedRoutes/profile/barbershops/team/barbers/': typeof AuthedRoutesProfileBarbershopsTeamBarbersIndexRoute
   '/_authedRoutes/profile/barbershops/team/invitations/': typeof AuthedRoutesProfileBarbershopsTeamInvitationsIndexRoute
   '/_authedRoutes/profile/barbershops/team/receptionists/': typeof AuthedRoutesProfileBarbershopsTeamReceptionistsIndexRoute
@@ -561,7 +581,6 @@ export interface FileRouteTypes {
     | '/chat/'
     | '/profile/barbershops'
     | '/barbershops/$barbershopUuid/book'
-    | '/barbershops/$barbershopUuid/review'
     | '/profile/'
     | '/barbershops/$barbershopUuid/'
     | '/profile/barbershops/appointments'
@@ -571,6 +590,7 @@ export interface FileRouteTypes {
     | '/profile/barbershops/settings'
     | '/profile/barbershops/'
     | '/profile/barbershops/team/barbers'
+    | '/profile/barbershops/analytics/'
     | '/profile/barbershops/appointments/'
     | '/profile/barbershops/inventory/'
     | '/profile/barbershops/pana/'
@@ -580,7 +600,9 @@ export interface FileRouteTypes {
     | '/profile/barbershops/team/'
     | '/profile/barbershops/appointments/new/'
     | '/profile/barbershops/inventory/archived/'
+    | '/profile/barbershops/inventory/movements/'
     | '/profile/barbershops/inventory/new/'
+    | '/profile/barbershops/inventory/products/'
     | '/profile/barbershops/pana/$threadId/'
     | '/profile/barbershops/pana/knowledge/'
     | '/profile/barbershops/pana/memory/'
@@ -588,7 +610,7 @@ export interface FileRouteTypes {
     | '/profile/barbershops/settings/billing/'
     | '/profile/barbershops/settings/branding/'
     | '/profile/barbershops/settings/location/'
-    | '/profile/barbershops/settings/preferences/'
+    | '/profile/barbershops/settings/social/'
     | '/profile/barbershops/team/barbers/'
     | '/profile/barbershops/team/invitations/'
     | '/profile/barbershops/team/receptionists/'
@@ -614,10 +636,10 @@ export interface FileRouteTypes {
     | '/barbershops'
     | '/chat'
     | '/barbershops/$barbershopUuid/book'
-    | '/barbershops/$barbershopUuid/review'
     | '/profile'
     | '/barbershops/$barbershopUuid'
     | '/profile/barbershops'
+    | '/profile/barbershops/analytics'
     | '/profile/barbershops/appointments'
     | '/profile/barbershops/inventory'
     | '/profile/barbershops/pana'
@@ -627,7 +649,9 @@ export interface FileRouteTypes {
     | '/profile/barbershops/team'
     | '/profile/barbershops/appointments/new'
     | '/profile/barbershops/inventory/archived'
+    | '/profile/barbershops/inventory/movements'
     | '/profile/barbershops/inventory/new'
+    | '/profile/barbershops/inventory/products'
     | '/profile/barbershops/pana/$threadId'
     | '/profile/barbershops/pana/knowledge'
     | '/profile/barbershops/pana/memory'
@@ -635,7 +659,7 @@ export interface FileRouteTypes {
     | '/profile/barbershops/settings/billing'
     | '/profile/barbershops/settings/branding'
     | '/profile/barbershops/settings/location'
-    | '/profile/barbershops/settings/preferences'
+    | '/profile/barbershops/settings/social'
     | '/profile/barbershops/team/barbers'
     | '/profile/barbershops/team/invitations'
     | '/profile/barbershops/team/receptionists'
@@ -665,7 +689,6 @@ export interface FileRouteTypes {
     | '/chat/'
     | '/_authedRoutes/profile/barbershops'
     | '/barbershops/$barbershopUuid/book'
-    | '/barbershops/$barbershopUuid/review'
     | '/_authedRoutes/profile/'
     | '/barbershops/$barbershopUuid/'
     | '/_authedRoutes/profile/barbershops/appointments'
@@ -675,6 +698,7 @@ export interface FileRouteTypes {
     | '/_authedRoutes/profile/barbershops/settings'
     | '/_authedRoutes/profile/barbershops/'
     | '/_authedRoutes/profile/barbershops/team/barbers'
+    | '/_authedRoutes/profile/barbershops/analytics/'
     | '/_authedRoutes/profile/barbershops/appointments/'
     | '/_authedRoutes/profile/barbershops/inventory/'
     | '/_authedRoutes/profile/barbershops/pana/'
@@ -684,7 +708,9 @@ export interface FileRouteTypes {
     | '/_authedRoutes/profile/barbershops/team/'
     | '/_authedRoutes/profile/barbershops/appointments/new/'
     | '/_authedRoutes/profile/barbershops/inventory/archived/'
+    | '/_authedRoutes/profile/barbershops/inventory/movements/'
     | '/_authedRoutes/profile/barbershops/inventory/new/'
+    | '/_authedRoutes/profile/barbershops/inventory/products/'
     | '/_authedRoutes/profile/barbershops/pana/$threadId/'
     | '/_authedRoutes/profile/barbershops/pana/knowledge/'
     | '/_authedRoutes/profile/barbershops/pana/memory/'
@@ -692,7 +718,7 @@ export interface FileRouteTypes {
     | '/_authedRoutes/profile/barbershops/settings/billing/'
     | '/_authedRoutes/profile/barbershops/settings/branding/'
     | '/_authedRoutes/profile/barbershops/settings/location/'
-    | '/_authedRoutes/profile/barbershops/settings/preferences/'
+    | '/_authedRoutes/profile/barbershops/settings/social/'
     | '/_authedRoutes/profile/barbershops/team/barbers/'
     | '/_authedRoutes/profile/barbershops/team/invitations/'
     | '/_authedRoutes/profile/barbershops/team/receptionists/'
@@ -718,7 +744,6 @@ export interface RootRouteChildren {
   TosRoute: typeof TosRoute
   BarbershopsIndexRoute: typeof BarbershopsIndexRoute
   BarbershopsBarbershopUuidBookRoute: typeof BarbershopsBarbershopUuidBookRoute
-  BarbershopsBarbershopUuidReviewRoute: typeof BarbershopsBarbershopUuidReviewRoute
   BarbershopsBarbershopUuidIndexRoute: typeof BarbershopsBarbershopUuidIndexRoute
 }
 
@@ -857,13 +882,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedRoutesProfileIndexRouteImport
       parentRoute: typeof AuthedRoutesRouteRoute
     }
-    '/barbershops/$barbershopUuid/review': {
-      id: '/barbershops/$barbershopUuid/review'
-      path: '/barbershops/$barbershopUuid/review'
-      fullPath: '/barbershops/$barbershopUuid/review'
-      preLoaderRoute: typeof BarbershopsBarbershopUuidReviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/barbershops/$barbershopUuid/book': {
       id: '/barbershops/$barbershopUuid/book'
       path: '/barbershops/$barbershopUuid/book'
@@ -969,6 +987,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedRoutesProfileBarbershopsAppointmentsIndexRouteImport
       parentRoute: typeof AuthedRoutesProfileBarbershopsAppointmentsRouteRoute
     }
+    '/_authedRoutes/profile/barbershops/analytics/': {
+      id: '/_authedRoutes/profile/barbershops/analytics/'
+      path: '/analytics'
+      fullPath: '/profile/barbershops/analytics/'
+      preLoaderRoute: typeof AuthedRoutesProfileBarbershopsAnalyticsIndexRouteImport
+      parentRoute: typeof AuthedRoutesProfileBarbershopsRouteRoute
+    }
     '/_authedRoutes/profile/barbershops/team/barbers': {
       id: '/_authedRoutes/profile/barbershops/team/barbers'
       path: '/team/barbers'
@@ -997,11 +1022,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedRoutesProfileBarbershopsTeamBarbersIndexRouteImport
       parentRoute: typeof AuthedRoutesProfileBarbershopsTeamBarbersRouteRoute
     }
-    '/_authedRoutes/profile/barbershops/settings/preferences/': {
-      id: '/_authedRoutes/profile/barbershops/settings/preferences/'
-      path: '/preferences'
-      fullPath: '/profile/barbershops/settings/preferences/'
-      preLoaderRoute: typeof AuthedRoutesProfileBarbershopsSettingsPreferencesIndexRouteImport
+    '/_authedRoutes/profile/barbershops/settings/social/': {
+      id: '/_authedRoutes/profile/barbershops/settings/social/'
+      path: '/social'
+      fullPath: '/profile/barbershops/settings/social/'
+      preLoaderRoute: typeof AuthedRoutesProfileBarbershopsSettingsSocialIndexRouteImport
       parentRoute: typeof AuthedRoutesProfileBarbershopsSettingsRouteRoute
     }
     '/_authedRoutes/profile/barbershops/settings/location/': {
@@ -1053,11 +1078,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedRoutesProfileBarbershopsPanaThreadIdIndexRouteImport
       parentRoute: typeof AuthedRoutesProfileBarbershopsPanaRouteRoute
     }
+    '/_authedRoutes/profile/barbershops/inventory/products/': {
+      id: '/_authedRoutes/profile/barbershops/inventory/products/'
+      path: '/products'
+      fullPath: '/profile/barbershops/inventory/products/'
+      preLoaderRoute: typeof AuthedRoutesProfileBarbershopsInventoryProductsIndexRouteImport
+      parentRoute: typeof AuthedRoutesProfileBarbershopsInventoryRouteRoute
+    }
     '/_authedRoutes/profile/barbershops/inventory/new/': {
       id: '/_authedRoutes/profile/barbershops/inventory/new/'
       path: '/new'
       fullPath: '/profile/barbershops/inventory/new/'
       preLoaderRoute: typeof AuthedRoutesProfileBarbershopsInventoryNewIndexRouteImport
+      parentRoute: typeof AuthedRoutesProfileBarbershopsInventoryRouteRoute
+    }
+    '/_authedRoutes/profile/barbershops/inventory/movements/': {
+      id: '/_authedRoutes/profile/barbershops/inventory/movements/'
+      path: '/movements'
+      fullPath: '/profile/barbershops/inventory/movements/'
+      preLoaderRoute: typeof AuthedRoutesProfileBarbershopsInventoryMovementsIndexRouteImport
       parentRoute: typeof AuthedRoutesProfileBarbershopsInventoryRouteRoute
     }
     '/_authedRoutes/profile/barbershops/inventory/archived/': {
@@ -1147,7 +1186,9 @@ const AuthedRoutesProfileBarbershopsAppointmentsRouteRouteWithChildren =
 interface AuthedRoutesProfileBarbershopsInventoryRouteRouteChildren {
   AuthedRoutesProfileBarbershopsInventoryIndexRoute: typeof AuthedRoutesProfileBarbershopsInventoryIndexRoute
   AuthedRoutesProfileBarbershopsInventoryArchivedIndexRoute: typeof AuthedRoutesProfileBarbershopsInventoryArchivedIndexRoute
+  AuthedRoutesProfileBarbershopsInventoryMovementsIndexRoute: typeof AuthedRoutesProfileBarbershopsInventoryMovementsIndexRoute
   AuthedRoutesProfileBarbershopsInventoryNewIndexRoute: typeof AuthedRoutesProfileBarbershopsInventoryNewIndexRoute
+  AuthedRoutesProfileBarbershopsInventoryProductsIndexRoute: typeof AuthedRoutesProfileBarbershopsInventoryProductsIndexRoute
   AuthedRoutesProfileBarbershopsInventoryItemIdEditIndexRoute: typeof AuthedRoutesProfileBarbershopsInventoryItemIdEditIndexRoute
   AuthedRoutesProfileBarbershopsInventoryItemIdHistoryIndexRoute: typeof AuthedRoutesProfileBarbershopsInventoryItemIdHistoryIndexRoute
 }
@@ -1158,8 +1199,12 @@ const AuthedRoutesProfileBarbershopsInventoryRouteRouteChildren: AuthedRoutesPro
       AuthedRoutesProfileBarbershopsInventoryIndexRoute,
     AuthedRoutesProfileBarbershopsInventoryArchivedIndexRoute:
       AuthedRoutesProfileBarbershopsInventoryArchivedIndexRoute,
+    AuthedRoutesProfileBarbershopsInventoryMovementsIndexRoute:
+      AuthedRoutesProfileBarbershopsInventoryMovementsIndexRoute,
     AuthedRoutesProfileBarbershopsInventoryNewIndexRoute:
       AuthedRoutesProfileBarbershopsInventoryNewIndexRoute,
+    AuthedRoutesProfileBarbershopsInventoryProductsIndexRoute:
+      AuthedRoutesProfileBarbershopsInventoryProductsIndexRoute,
     AuthedRoutesProfileBarbershopsInventoryItemIdEditIndexRoute:
       AuthedRoutesProfileBarbershopsInventoryItemIdEditIndexRoute,
     AuthedRoutesProfileBarbershopsInventoryItemIdHistoryIndexRoute:
@@ -1219,7 +1264,7 @@ interface AuthedRoutesProfileBarbershopsSettingsRouteRouteChildren {
   AuthedRoutesProfileBarbershopsSettingsBillingIndexRoute: typeof AuthedRoutesProfileBarbershopsSettingsBillingIndexRoute
   AuthedRoutesProfileBarbershopsSettingsBrandingIndexRoute: typeof AuthedRoutesProfileBarbershopsSettingsBrandingIndexRoute
   AuthedRoutesProfileBarbershopsSettingsLocationIndexRoute: typeof AuthedRoutesProfileBarbershopsSettingsLocationIndexRoute
-  AuthedRoutesProfileBarbershopsSettingsPreferencesIndexRoute: typeof AuthedRoutesProfileBarbershopsSettingsPreferencesIndexRoute
+  AuthedRoutesProfileBarbershopsSettingsSocialIndexRoute: typeof AuthedRoutesProfileBarbershopsSettingsSocialIndexRoute
 }
 
 const AuthedRoutesProfileBarbershopsSettingsRouteRouteChildren: AuthedRoutesProfileBarbershopsSettingsRouteRouteChildren =
@@ -1234,8 +1279,8 @@ const AuthedRoutesProfileBarbershopsSettingsRouteRouteChildren: AuthedRoutesProf
       AuthedRoutesProfileBarbershopsSettingsBrandingIndexRoute,
     AuthedRoutesProfileBarbershopsSettingsLocationIndexRoute:
       AuthedRoutesProfileBarbershopsSettingsLocationIndexRoute,
-    AuthedRoutesProfileBarbershopsSettingsPreferencesIndexRoute:
-      AuthedRoutesProfileBarbershopsSettingsPreferencesIndexRoute,
+    AuthedRoutesProfileBarbershopsSettingsSocialIndexRoute:
+      AuthedRoutesProfileBarbershopsSettingsSocialIndexRoute,
   }
 
 const AuthedRoutesProfileBarbershopsSettingsRouteRouteWithChildren =
@@ -1272,6 +1317,7 @@ interface AuthedRoutesProfileBarbershopsRouteRouteChildren {
   AuthedRoutesProfileBarbershopsSettingsRouteRoute: typeof AuthedRoutesProfileBarbershopsSettingsRouteRouteWithChildren
   AuthedRoutesProfileBarbershopsIndexRoute: typeof AuthedRoutesProfileBarbershopsIndexRoute
   AuthedRoutesProfileBarbershopsTeamBarbersRouteRoute: typeof AuthedRoutesProfileBarbershopsTeamBarbersRouteRouteWithChildren
+  AuthedRoutesProfileBarbershopsAnalyticsIndexRoute: typeof AuthedRoutesProfileBarbershopsAnalyticsIndexRoute
   AuthedRoutesProfileBarbershopsReviewsIndexRoute: typeof AuthedRoutesProfileBarbershopsReviewsIndexRoute
   AuthedRoutesProfileBarbershopsTeamIndexRoute: typeof AuthedRoutesProfileBarbershopsTeamIndexRoute
   AuthedRoutesProfileBarbershopsTeamInvitationsIndexRoute: typeof AuthedRoutesProfileBarbershopsTeamInvitationsIndexRoute
@@ -1294,6 +1340,8 @@ const AuthedRoutesProfileBarbershopsRouteRouteChildren: AuthedRoutesProfileBarbe
       AuthedRoutesProfileBarbershopsIndexRoute,
     AuthedRoutesProfileBarbershopsTeamBarbersRouteRoute:
       AuthedRoutesProfileBarbershopsTeamBarbersRouteRouteWithChildren,
+    AuthedRoutesProfileBarbershopsAnalyticsIndexRoute:
+      AuthedRoutesProfileBarbershopsAnalyticsIndexRoute,
     AuthedRoutesProfileBarbershopsReviewsIndexRoute:
       AuthedRoutesProfileBarbershopsReviewsIndexRoute,
     AuthedRoutesProfileBarbershopsTeamIndexRoute:
@@ -1352,7 +1400,6 @@ const rootRouteChildren: RootRouteChildren = {
   TosRoute: TosRoute,
   BarbershopsIndexRoute: BarbershopsIndexRoute,
   BarbershopsBarbershopUuidBookRoute: BarbershopsBarbershopUuidBookRoute,
-  BarbershopsBarbershopUuidReviewRoute: BarbershopsBarbershopUuidReviewRoute,
   BarbershopsBarbershopUuidIndexRoute: BarbershopsBarbershopUuidIndexRoute,
 }
 export const routeTree = rootRouteImport

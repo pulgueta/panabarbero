@@ -258,12 +258,15 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
             )}
           >
             {/* Preview / placeholder */}
-            <div className="relative flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted/40">
+            <div className="relative flex size-24 shrink-0 items-center justify-center rounded-lg border bg-muted/40">
               {logoUrl ? (
                 <img
+                  loading="lazy"
                   src={logoUrl}
                   alt="Logo actual de la barbería"
-                  className="size-full object-cover"
+                  className="size-full rounded-lg object-cover"
+                  height={32}
+                  width={32}
                 />
               ) : (
                 <CameraIcon
@@ -308,7 +311,10 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
                       <img
                         src={url}
                         alt={file.name}
-                        className="size-full object-cover"
+                        className="size-full rounded-lg object-cover"
+                        height={32}
+                        width={32}
+                        loading="lazy"
                         onLoad={() => URL.revokeObjectURL(url)}
                       />
                     );

@@ -13,7 +13,7 @@ export const Card: FC<CardProps> = ({
     data-slot="card"
     data-size={size}
     className={cn(
-      "group/card flex flex-col gap-6 overflow-hidden rounded-xl border border-border bg-card py-4 text-card-foreground text-sm [scrollbar-gutter:auto] has-[>img:first-child]:pt-0 has-data-[slot=card-footer]:pb-0 data-[size=sm]:gap-4 data-[size=sm]:py-4 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+      "group/card flex flex-col gap-6 overflow-hidden rounded-xl border border-border bg-card py-4 text-card-foreground text-sm [scrollbar-gutter:auto] has-[>[data-slot=card-header]+[data-slot=card-footer]]:gap-0 has-[>img:first-child]:pt-0 has-data-[slot=card-footer]:pb-0 data-[size=sm]:gap-4 data-[size=sm]:py-4 data-[size=sm]:has-[>[data-slot=card-header]+[data-slot=card-footer]]:gap-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
       className,
     )}
     {...props}
