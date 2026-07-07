@@ -38,6 +38,14 @@ import { cacheTime } from "@/config/cache";
 import { useBarbershopByMemberUserId } from "@/hooks/barbershop/use-barbershop";
 import { useBarbershopMemberRoles } from "@/hooks/barbershop/use-barbershop-member";
 import {
+  getBarbershopPlanQueryOptions,
+  useBarbershopPlan,
+} from "@/hooks/billing/use-plan";
+import {
+  serviceSupplyCountsQueryOptions,
+  useServiceSupplyCounts,
+} from "@/hooks/use-inventory";
+import {
   servicesQueryOptions,
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
@@ -67,7 +75,7 @@ const ServicesPending: FC = () => (
     </DashboardPageHeader>
 
     <DashboardPageContent>
-      <DataTableSkeleton columns={4} rows={6} />
+      <DataTableSkeleton columns={5} rows={6} />
     </DashboardPageContent>
   </DashboardPage>
 );
@@ -89,9 +97,20 @@ export const Route = createFileRoute(
     }
 
     if (barbershop?._id) {
-      await opts.context.queryClient.ensureQueryData(
-        servicesQueryOptions(barbershop._id),
-      );
+      const [, plan] = await Promise.all([
+        opts.context.queryClient.ensureQueryData(
+          servicesQueryOptions(barbershop._id),
+        ),
+        opts.context.queryClient.ensureQueryData(
+          getBarbershopPlanQueryOptions(barbershop._id),
+        ),
+      ]);
+
+      if (plan?.planLimits.inventoryEnabled) {
+        await opts.context.queryClient.ensureQueryData(
+          serviceSupplyCountsQueryOptions(barbershop._id),
+        );
+      }
     }
   },
 });
@@ -114,6 +133,12 @@ const ServicesDashboard: FC<ServicesDashboardProps> = ({
   const [dialog, setDialog] = useState<ServicesDialogState>(null);
 
   const { data: rows } = useServicesFromBarbershop(barbershopId);
+  const { planLimits } = useBarbershopPlan(barbershopId);
+  const inventoryEnabled = planLimits.inventoryEnabled;
+  const { data: supplyCounts = [] } = useServiceSupplyCounts(
+    barbershopId,
+    canManage && inventoryEnabled,
+  );
 
   const editInitialValues = useMemo(
     () =>
@@ -132,8 +157,17 @@ const ServicesDashboard: FC<ServicesDashboardProps> = ({
     if (!open) setDialog(null);
   };
 
+  const supplyCountByServiceId = useMemo(() => {
+    if (!inventoryEnabled) return undefined;
+
+    return new Map(
+      supplyCounts.map((row) => [row.serviceId, row.supplyCount] as const),
+    );
+  }, [inventoryEnabled, supplyCounts]);
+
   const columns = getServicesTableColumns({
     canManage,
+    supplyCountByServiceId,
     onEdit: (row) => setDialog({ type: "edit", row }),
     onRecipe: (row) =>
       void navigate({

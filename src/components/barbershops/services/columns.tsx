@@ -9,6 +9,7 @@ export type ServiceRow = Service;
 
 interface ServicesTableColumnsOpts {
   canManage: boolean;
+  supplyCountByServiceId?: Map<Service["_id"], number>;
   onEdit: (row: ServiceRow) => void;
   onRecipe: (row: ServiceRow) => void;
   onDelete: (row: ServiceRow) => void;
@@ -51,6 +52,25 @@ export function getServicesTableColumns(
       ),
     },
   ];
+
+  if (opts.supplyCountByServiceId) {
+    columns.push({
+      id: "supplyCount",
+      accessorFn: (row) => opts.supplyCountByServiceId?.get(row._id) ?? 0,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Insumos" align="end" />
+      ),
+      cell: ({ getValue }) => {
+        const count = getValue<number>();
+
+        return (
+          <div className="text-right text-muted-foreground tabular-nums">
+            {count === 1 ? "1 insumo" : `${count} insumos`}
+          </div>
+        );
+      },
+    });
+  }
 
   columns.push({
     id: "actions",

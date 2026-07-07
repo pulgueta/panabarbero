@@ -1,6 +1,6 @@
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import type { Barbershop, InventoryItem, Service } from "@convex/schema";
-import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import type { FunctionReturnType } from "convex/server";
 
@@ -74,6 +74,16 @@ export function serviceRecipeQueryOptions(serviceId: Service["_id"]) {
   });
 }
 
+export function serviceSupplyCountsQueryOptions(
+  barbershopId: Barbershop["_id"],
+  enabled = true,
+) {
+  return convexQuery(
+    api.inventory.getServiceSupplyCounts,
+    enabled ? { id: barbershopId } : "skip",
+  );
+}
+
 export function movementsPaginatedQueryOptions(
   itemId: InventoryItem["_id"],
   cursor: string | null = null,
@@ -141,6 +151,13 @@ export function useMonthlyConsumption(barbershopId: Barbershop["_id"]) {
 
 export function useServiceRecipe(serviceId: Service["_id"]) {
   return useQuery(serviceRecipeQueryOptions(serviceId));
+}
+
+export function useServiceSupplyCounts(
+  barbershopId: Barbershop["_id"],
+  enabled = true,
+) {
+  return useQuery(serviceSupplyCountsQueryOptions(barbershopId, enabled));
 }
 
 export function usePaginatedMovements(

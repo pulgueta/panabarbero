@@ -11,9 +11,9 @@
  * and the retention rollup — both documented, both through the wrapped db.
  */
 
+import { convexToZod } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
-import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import {
@@ -37,6 +37,7 @@ import type {
   InventoryLevel,
   InventoryMovement,
   InventoryMovementType,
+  Service,
 } from "./schema";
 import {
   barbershops,
@@ -1250,6 +1251,38 @@ export const setServiceRecipe = zAuthMutation({
         quantity: line.quantity,
       });
     }
+  },
+});
+
+export const getServiceSupplyCounts = zAuthQuery({
+  args: barbershops.tools.id,
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+
+    await Promise.all([
+      assertInventoryAllowed(ctx, args.id),
+      authz.require(ctx, userId, "inventory:manage", barbershopScope(args.id)),
+    ]);
+
+    const lines = await ctx.db
+      .query("serviceInventoryUsage")
+      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
+      .collect();
+
+    const counts = new Map<Service["_id"], Set<InventoryItem["_id"]>>();
+
+    for (const line of lines) {
+      const serviceCounts =
+        counts.get(line.serviceId) ?? new Set<InventoryItem["_id"]>();
+
+      serviceCounts.add(line.itemId);
+      counts.set(line.serviceId, serviceCounts);
+    }
+
+    return [...counts.entries()].map(([serviceId, itemIds]) => ({
+      serviceId,
+      supplyCount: itemIds.size,
+    }));
   },
 });
 
