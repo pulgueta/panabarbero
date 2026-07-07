@@ -8,7 +8,6 @@ import { useWebHaptics } from "web-haptics/react";
 import { BarbershopLogoUploader } from "@/components/barbershops/barbershop-logo-uploader";
 import { AddressForm } from "@/components/barbershops/settings/address-form";
 import { GeneralInfoForm } from "@/components/barbershops/settings/general-info-form";
-import { LocationForm } from "@/components/barbershops/settings/location-form";
 import { OwnerRoleToggle } from "@/components/barbershops/settings/owner-role-toggle";
 import { PreferencesForm } from "@/components/barbershops/settings/preferences-form";
 import { SettingsCard } from "@/components/barbershops/settings/settings-card";
@@ -108,7 +107,7 @@ function ProfileSettingsPage() {
 
         {barbershop && (
           <DashboardPageActions>
-            <Button variant="outline" size="sm" onClick={onCopyLink}>
+            <Button variant="outline" onClick={onCopyLink}>
               <ShareNetworkIcon weight="bold" />
               Copiar link
             </Button>
@@ -118,7 +117,7 @@ function ProfileSettingsPage() {
 
       <DashboardPageContent>
         {barbershop && (
-          <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             <SettingsCard
               title="Información general"
               description="Nombre y descripción pública de tu barbería."
@@ -134,6 +133,13 @@ function ProfileSettingsPage() {
             </SettingsCard>
 
             <SettingsCard
+              title="Preferencias"
+              description="Ajustes operativos como el periodo de gracia."
+            >
+              <PreferencesForm barbershop={barbershop} />
+            </SettingsCard>
+
+            <SettingsCard
               title="Logo"
               description="Imagen que identifica tu barbería en la plataforma."
             >
@@ -141,20 +147,6 @@ function ProfileSettingsPage() {
                 barbershopId={barbershop._id}
                 logoKey={barbershop.logoKey}
               />
-            </SettingsCard>
-
-            <SettingsCard
-              title="Ubicación"
-              description="Fija el punto exacto para que tus clientes te encuentren."
-            >
-              <LocationForm barbershop={barbershop} />
-            </SettingsCard>
-
-            <SettingsCard
-              title="Preferencias"
-              description="Ajustes operativos como el periodo de gracia."
-            >
-              <PreferencesForm barbershop={barbershop} />
             </SettingsCard>
 
             <SettingsCard

@@ -160,7 +160,7 @@ export const OwnerRoleToggle: FC<OwnerRoleToggleProps> = ({
 
   return (
     <>
-      <div className="flex flex-col gap-[0.745rem]">
+      <div className="flex h-full flex-1 flex-col justify-between gap-[0.745rem]">
         <Badge variant={isCurrentlyBarber ? "default" : "secondary"}>
           {isCurrentlyBarber ? "Dueño y Barbero" : "Solo Dueño"}
         </Badge>

@@ -11,6 +11,10 @@ export function barbershopMetadataQueryOptions(
   });
 }
 
+export function useBarbershopMetadata(barbershopId: Barbershop["_id"]) {
+  return useQuery(barbershopMetadataQueryOptions(barbershopId));
+}
+
 export function barbershopLocationQueryOptions(
   barbershopId: Barbershop["_id"],
 ) {
@@ -46,4 +50,15 @@ export function useBarbershopMetadataActions() {
     setLogoKeyMutation,
     removeLogoKeyMutation,
   } as const;
+}
+
+export function useSocialMediaActions() {
+  const upsertSocialLinkMutation = useMutation({
+    mutationFn: useConvexMutation(api.barbershopMetadata.upsertSocialLink),
+  });
+  const removeSocialLinkMutation = useMutation({
+    mutationFn: useConvexMutation(api.barbershopMetadata.removeSocialLink),
+  });
+
+  return { upsertSocialLinkMutation, removeSocialLinkMutation } as const;
 }
