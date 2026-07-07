@@ -15,6 +15,7 @@ import {
   revokeMemberAuthz,
   syncMemberAuthz,
 } from "./authz";
+import { cascadingDelete } from "./cascade";
 import { errorMessages } from "./errors";
 import { getUserId, requireUserId } from "./identity";
 import { releaseForAppointment } from "./inventory";
@@ -114,7 +115,9 @@ export const deleteMember = zInternalMutation({
 
     const member = await ctx.db.get(args.id);
 
-    await ctx.db.delete(args.id);
+    // Cascades to the member's service assignments (`barbershopMembers`
+    // rules in cascade.ts).
+    await cascadingDelete.deleteWithCascade(ctx, "barbershopMembers", args.id);
 
     if (member) {
       const workosUserId = await getMemberWorkosUserId(ctx, member);
