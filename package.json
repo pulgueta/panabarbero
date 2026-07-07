@@ -17,6 +17,7 @@
     "doctor:diff": "react-doctor . --project panabarbero --verbose --scope changed"
   },
   "dependencies": {
+    "@00akshatsinha00/convex-cascading-delete": "0.1.0",
     "@base-ui/react": "1.6.0",
     "@convex-dev/agent": "^0.6.2",
     "@convex-dev/aggregate": "^0.2.1",

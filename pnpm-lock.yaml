@@ -11,6 +11,9 @@ importers:
 
   .:
     dependencies:
+      '@00akshatsinha00/convex-cascading-delete':
+        specifier: 0.1.0
+        version: 0.1.0(convex@1.42.1(react@19.2.7))(react@19.2.7)
       '@base-ui/react':
         specifier: 1.6.0
         version: 1.6.0(@date-fns/tz@1.5.0)(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -305,6 +308,12 @@ importers:
         version: 5.3.0
 
 packages:
+
+  '@00akshatsinha00/convex-cascading-delete@0.1.0':
+    resolution: {integrity: sha512-xtNav8fwYFXkX+v8wdtfcuH++Wkrsk3xLBb+NTpFUON2mElOE2mpZQPgXDySe2I7JKDOUpcJZRvwQ0mKvQlqcQ==}
+    peerDependencies:
+      convex: ^1.31.7
+      react: ^18.3.1 || ^19.0.0
 
   '@ai-sdk/gateway@3.0.141':
     resolution: {integrity: sha512-BVisCihanCq+rXJZHY+aKVOSHe+gQDEitSexnvU9UuRTX/P16fu4x31AZLDNIR/bWAShT3Ct+dDltO1enBPK6Q==}
@@ -6866,6 +6875,11 @@ packages:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
 snapshots:
+
+  '@00akshatsinha00/convex-cascading-delete@0.1.0(convex@1.42.1(react@19.2.7))(react@19.2.7)':
+    dependencies:
+      convex: 1.42.1(react@19.2.7)
+      react: 19.2.7
 
   '@ai-sdk/gateway@3.0.141(zod@4.4.3)':
     dependencies:
