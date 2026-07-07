@@ -31,9 +31,9 @@ export const ReviewBreakdownList: FC<ReviewBreakdownListProps> = ({
       <CardTitle className="text-base">{title}</CardTitle>
     </CardHeader>
     {items.length === 0 ? (
-      <p className="px-4 py-4 text-muted-foreground text-sm">{emptyLabel}</p>
+      <p className="px-4 text-muted-foreground text-sm">{emptyLabel}</p>
     ) : (
-      <ul className="mt-4 divide-y divide-border border-t">
+      <ul className="divide-y divide-border border-t">
         {items.map((item) => (
           <li
             key={item.key}
@@ -45,7 +45,7 @@ export const ReviewBreakdownList: FC<ReviewBreakdownListProps> = ({
               <StarIcon
                 weight="fill"
                 aria-hidden
-                className="size-3.5 text-amber-500"
+                className="size-4 text-amber-500"
               />
               <span className="text-muted-foreground">({item.count})</span>
             </span>

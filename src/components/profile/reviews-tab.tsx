@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
 import { formatRelativeTime } from "@/components/notifications/relative-time";
+import { ReviewDialog } from "@/components/reviews/review-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,15 @@ import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
 import { StarRating } from "@/components/ui/star-rating";
 import { Textarea } from "@/components/ui/textarea";
-import { useMyReviews, useReviewActions } from "@/hooks/use-reviews";
+import {
+  type ReviewableAppointment,
+  useMyReviews,
+  useReviewActions,
+  useReviewableAppointments,
+} from "@/hooks/use-reviews";
+import { getLogoUrl } from "@/hooks/use-upload";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
+import { formatLongDate } from "@/lib/utils";
 
 const ConfirmationDialog = lazy(() =>
   import("@/components/confirmation-dialog").then((module) => ({
@@ -176,6 +184,46 @@ const FlaggedReviewCard: FC<ReviewMetaProps> = ({ review }) => {
   );
 };
 
+interface ReviewableAppointmentCardProps {
+  appointment: ReviewableAppointment;
+}
+
+const ReviewableAppointmentCard: FC<ReviewableAppointmentCardProps> = ({
+  appointment,
+}) => (
+  <div className="flex items-center gap-4 rounded-xl border border-border/60 bg-card/40 p-4">
+    <div className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted/40">
+      <img
+        src={getLogoUrl(appointment.logoKey) ?? "/default-logo.png"}
+        alt={`Logo de ${appointment.barbershopName}`}
+        className="size-full object-cover"
+        loading="lazy"
+      />
+    </div>
+
+    <div className="min-w-0 flex-1 space-y-0.5">
+      <p className="truncate font-medium text-foreground text-sm">
+        {appointment.barbershopName}
+      </p>
+      <p className="truncate text-muted-foreground text-xs">
+        {appointment.serviceName}
+        <span aria-hidden> • </span>
+        <span suppressHydrationWarning>{formatLongDate(appointment.date)}</span>
+      </p>
+    </div>
+
+    <ReviewDialog
+      appointmentId={appointment.appointmentId}
+      serviceName={appointment.serviceName}
+      trigger={
+        <Button size="sm" className="shrink-0">
+          Dejar reseña
+        </Button>
+      }
+    />
+  </div>
+);
+
 const PendingReviewCard: FC<ReviewMetaProps> = ({ review }) => (
   <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-4">
     <div className="flex items-center justify-between gap-2">
@@ -214,17 +262,17 @@ const PublishedReviewCard: FC<ReviewMetaProps> = ({ review }) => (
 
 export const ReviewsTab = () => {
   const { data: reviews } = useMyReviews();
+  const { data: reviewable } = useReviewableAppointments();
 
-  if (reviews.length === 0) {
+  if (reviews.length === 0 && reviewable.length === 0) {
     return (
       <Empty className="rounded-xl border border-dashed py-16">
         <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <StarIcon weight="duotone" />
         </div>
-        <EmptyTitle>Aún no has dejado reseñas</EmptyTitle>
+        <EmptyTitle>Aún no tienes reseñas</EmptyTitle>
         <EmptyDescription>
-          Después de una cita completada recibirás un enlace para calificar tu
-          experiencia. Tus reseñas aparecerán aquí.
+          Cuando completes una cita en una barbería podrás dejar tu reseña aquí.
         </EmptyDescription>
       </Empty>
     );
@@ -236,6 +284,22 @@ export const ReviewsTab = () => {
 
   return (
     <section className="flex flex-col gap-6">
+      {reviewable.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <h3 className="font-medium text-muted-foreground text-xs uppercase tracking-[0.14em]">
+            Por reseñar
+          </h3>
+          <div className="flex flex-col gap-3">
+            {reviewable.map((appointment) => (
+              <ReviewableAppointmentCard
+                key={appointment.appointmentId}
+                appointment={appointment}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {flagged.length > 0 && (
         <div className="flex flex-col gap-3">
           <h3 className="font-medium text-muted-foreground text-xs uppercase tracking-[0.14em]">

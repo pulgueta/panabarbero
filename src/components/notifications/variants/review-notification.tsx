@@ -31,15 +31,9 @@ export const ReviewNotification: FC<
 }) => {
   const { tone, icon, actionLabel } = config[kind];
 
-  const uuid = notification.payload?.barbershopUuid;
-  const code = notification.payload?.reviewCode;
-  const action =
-    kind === "review_invite" && uuid && code
-      ? {
-          to: `/barbershops/${uuid}/review`,
-          search: { code },
-        }
-      : { to: "/profile", search: { tab: "reviews" } };
+  // Both kinds land on the profile "Reseñas" tab: the code-gated review route
+  // is gone, and historical `review_invite` rows must not 404.
+  const action = { to: "/profile", search: { tab: "reviews" } };
 
   return (
     <NotificationItem

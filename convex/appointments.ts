@@ -501,21 +501,10 @@ export const setStatus = zAuthMutation({
       case "completed": {
         await cancelScheduledNotifications(ctx, appt);
 
-        // Mint a single-use review code only for authenticated customers —
-        // anonymous/guest bookings cannot review. Idempotent: never re-mint.
-        const isAuthedCustomer =
-          appt.userId !== "user_does_not_exist" &&
-          !appt.userId.startsWith("anon:");
-        const reviewCode =
-          isAuthedCustomer && !appt.reviewCode
-            ? crypto.randomUUID()
-            : undefined;
-
         updatedAppointment = await ctx.db.patch(appointmentId, {
           status: "completed",
           upcomingNotificationId: undefined,
           pastReminderNotificationId: undefined,
-          ...(reviewCode ? { reviewCode, reviewCodeIssuedAt: Date.now() } : {}),
         });
 
         // Release the recipe holds and consume the stock the service used.
@@ -541,30 +530,6 @@ export const setStatus = zAuthMutation({
           groups: { barbershop: appt.barbershopId },
         });
 
-        if (reviewCode) {
-          const service = await ctx.db.get(appt.serviceId);
-
-          await ctx.runMutation(internal.notifications.createReviewInvite, {
-            customerUserId: appt.userId,
-            barbershopId: appt.barbershopId,
-            barbershopUuid: barbershop.uuid,
-            barbershopName: barbershop.name,
-            reviewCode,
-            serviceName: service?.name ?? "tu servicio",
-            to: appt.contactEmail,
-            receiverPhoneNumber: appt.contactPhone,
-          });
-
-          await track(ctx, {
-            distinctId: appt.userId,
-            event: "review_invite_sent",
-            properties: {
-              appointmentId,
-              barbershopId: appt.barbershopId,
-            },
-            groups: { barbershop: appt.barbershopId },
-          });
-        }
         break;
       }
 

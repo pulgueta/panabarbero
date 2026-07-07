@@ -1,7 +1,7 @@
 import { vOnCompleteArgs, Workpool } from "@convex-dev/workpool";
-import { convexToZod } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
+import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import {
@@ -17,9 +17,10 @@ import { getBarbershopRatingValue, reviewRatingsAggregate } from "./aggregates";
 import { track } from "./analytics";
 import { assertShopRole } from "./authz";
 import { errorMessages } from "./errors";
+import { getUserId } from "./identity";
 import { rateLimitOrThrow } from "./ratelimit";
 import type { Barbershop, BarbershopMember, Review } from "./schema";
-import { barbershops, reviews } from "./schema";
+import { appointments, barbershops, reviews } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
 import { colombiaDateKeyToMs, toColombiaDateKey } from "./utils";
 
@@ -97,14 +98,15 @@ async function settleReview(
 }
 
 /**
- * Create a review. Gated entirely by a single-use review code minted on the
- * appointment when it was completed — there is no other entry point. A review
- * without a comment is published immediately; one with a comment is moderated
- * asynchronously and stays unpublished until cleared.
+ * Create a review. Eligibility is derived server-side: the caller must own a
+ * completed appointment that has no review yet — one review per completed
+ * visit is the invariant, enforced through the `by_appointmentId` index. A
+ * review without a comment is published immediately; one with a comment is
+ * moderated asynchronously and stays unpublished until cleared.
  */
 export const create = zAuthMutation({
   args: z.object({
-    code: z.uuidv4(),
+    appointmentId: appointments.tools.id.shape.id,
     rating: z.number().int().min(1).max(5),
     comment: z.string().trim().max(500).optional(),
   }),
@@ -113,20 +115,13 @@ export const create = zAuthMutation({
 
     await rateLimitOrThrow(ctx, "createReview", userId);
 
-    const appointment = await ctx.db
-      .query("appointments")
-      .withIndex("by_reviewCode", (q) => q.eq("reviewCode", args.code))
-      .unique();
+    const appointment = await ctx.db.get(args.appointmentId);
 
-    if (
-      !appointment ||
-      appointment.deletedAt ||
-      appointment.reviewCode !== args.code
-    ) {
-      throw new ConvexError(errorMessages.reviewInvalidCode);
+    if (!appointment || appointment.deletedAt) {
+      throw new ConvexError(errorMessages.notFound("cita"));
     }
 
-    // Server-authoritative ownership: the code holder must be the customer.
+    // Server-authoritative ownership: only the customer may review their visit.
     if (appointment.userId !== userId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
@@ -135,7 +130,15 @@ export const create = zAuthMutation({
       throw new ConvexError(errorMessages.reviewNotCompleted);
     }
 
-    if (appointment.reviewCodeRedeemedAt) {
+    // One review per completed appointment.
+    const existing = await ctx.db
+      .query("reviews")
+      .withIndex("by_appointmentId", (q) =>
+        q.eq("appointmentId", appointment._id),
+      )
+      .unique();
+
+    if (existing) {
       throw new ConvexError(errorMessages.reviewAlreadyExists);
     }
 
@@ -156,9 +159,6 @@ export const create = zAuthMutation({
       serviceName: service?.name ?? "Servicio",
       authorName: profile?.name ?? appointment.customerName,
     });
-
-    // Consume the single-use code in the same transaction as the insert.
-    await ctx.db.patch(appointment._id, { reviewCodeRedeemedAt: Date.now() });
 
     await track(ctx, {
       distinctId: userId,
@@ -314,6 +314,13 @@ export const getBarbershopRating = zQuery({
  */
 const MY_REVIEWS_LIMIT = 100;
 
+/**
+ * Cap on the reviewable-appointment lookups. A customer's completed history is
+ * naturally bounded, so this ceiling is invisible in practice; it only guards
+ * the pathological case while keeping the scans index-bounded.
+ */
+const REVIEWABLE_LIMIT = 50;
+
 /** The authenticated user's own reviews (every state), newest first. */
 export const getMine = zAuthQuery({
   args: z.object({}),
@@ -371,48 +378,113 @@ export const countMineNeedingAttention = zAuthQuery({
 });
 
 /**
- * Validate a review code for the review page and return a summary of the visit.
- * Returns `null` for any invalid/used/foreign code so the route redirects to
- * the barbershop view without further fetches.
+ * The authenticated user's completed appointments that have no review yet,
+ * newest first. Eligibility is derived server-side; each survivor is resolved
+ * to its barbershop + service for the "deja tu reseña" surface. Appointments
+ * whose barbershop no longer exists are skipped.
  */
-export const getInvite = zAuthQuery({
-  args: z.object({ code: z.string(), barbershopUuid: z.string() }),
-  handler: async (ctx, args) => {
+export const getReviewableAppointments = zAuthQuery({
+  args: z.object({}),
+  handler: async (ctx) => {
     const { userId } = ctx;
 
-    const appointment = await ctx.db
+    const completed = await ctx.db
       .query("appointments")
-      .withIndex("by_reviewCode", (q) => q.eq("reviewCode", args.code))
-      .unique();
+      .withIndex("by_userId_and_status", (q) =>
+        q.eq("userId", userId).eq("status", "completed"),
+      )
+      .order("desc")
+      .take(REVIEWABLE_LIMIT);
 
-    if (
-      !appointment ||
-      appointment.deletedAt ||
-      appointment.reviewCode !== args.code ||
-      appointment.userId !== userId ||
-      appointment.status !== "completed" ||
-      appointment.reviewCodeRedeemedAt
-    ) {
+    const resolved = await Promise.all(
+      completed
+        .filter((appointment) => !appointment.deletedAt)
+        .map(async (appointment) => {
+          const existing = await ctx.db
+            .query("reviews")
+            .withIndex("by_appointmentId", (q) =>
+              q.eq("appointmentId", appointment._id),
+            )
+            .unique();
+
+          if (existing) {
+            return null;
+          }
+
+          const [barbershop, service] = await Promise.all([
+            ctx.db.get(appointment.barbershopId),
+            ctx.db.get(appointment.serviceId),
+          ]);
+
+          if (!barbershop) {
+            return null;
+          }
+
+          return {
+            appointmentId: appointment._id,
+            barbershopId: appointment.barbershopId,
+            barbershopUuid: barbershop.uuid,
+            barbershopName: barbershop.name ?? "Barbería",
+            logoKey: barbershop.logoKey,
+            serviceName: service?.name ?? "Servicio",
+            date: appointment.date,
+          };
+        }),
+    );
+
+    return resolved.filter((row) => row !== null);
+  },
+});
+
+/**
+ * Public (single-barbershop page): the caller's newest completed, not-yet-
+ * reviewed appointment at this barbershop, or `null`. Tolerates an
+ * unauthenticated caller by returning `null` — never throws — so the public
+ * route can render without an auth gate.
+ */
+export const getReviewableForBarbershop = zQuery({
+  args: z.object({ barbershopId: barbershops.tools.id.shape.id }),
+  handler: async (ctx, args) => {
+    const userId = await getUserId(ctx);
+
+    if (!userId) {
       return null;
     }
 
-    const barbershop = await ctx.db.get(appointment.barbershopId);
+    const candidates = await ctx.db
+      .query("appointments")
+      .withIndex("by_userIdAndBarbershopId", (q) =>
+        q.eq("userId", userId).eq("barbershopId", args.barbershopId),
+      )
+      .order("desc")
+      .take(REVIEWABLE_LIMIT);
 
-    if (!barbershop || barbershop.uuid !== args.barbershopUuid) {
-      return null;
+    for (const appointment of candidates) {
+      if (appointment.status !== "completed" || appointment.deletedAt) {
+        continue;
+      }
+
+      const existing = await ctx.db
+        .query("reviews")
+        .withIndex("by_appointmentId", (q) =>
+          q.eq("appointmentId", appointment._id),
+        )
+        .unique();
+
+      if (existing) {
+        continue;
+      }
+
+      const service = await ctx.db.get(appointment.serviceId);
+
+      return {
+        appointmentId: appointment._id,
+        serviceName: service?.name ?? "Servicio",
+        date: appointment.date,
+      };
     }
 
-    const service = await ctx.db.get(appointment.serviceId);
-
-    return {
-      barbershopId: barbershop._id,
-      barbershopName: barbershop.name,
-      barbershopUuid: barbershop.uuid,
-      logoKey: barbershop.logoKey,
-      serviceName: service?.name ?? "Servicio",
-      date: appointment.date,
-      customerName: appointment.customerName,
-    };
+    return null;
   },
 });
 

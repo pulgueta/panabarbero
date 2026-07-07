@@ -2,7 +2,8 @@ import { api } from "@convex/_generated/api";
 import type { Barbershop } from "@convex/schema";
 import type { ColumnFiltersState, SortingState } from "@tanstack/react-table";
 import { usePaginatedQuery } from "convex/react";
-import { type FC, useMemo, useState } from "react";
+import type { FC } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 
 import {
   DataTable,
@@ -19,17 +20,38 @@ import {
   useShopReviewStats,
 } from "@/hooks/use-reviews";
 import { getShopReviewColumns } from "./columns";
-import { RatingDistribution } from "./rating-distribution";
-import { RatingTrend } from "./rating-trend";
-import { ReviewBreakdownList } from "./review-breakdown-list";
-import { ReviewDetailModal } from "./review-detail-modal";
-import { ReviewStatsCards } from "./review-stats-cards";
 import { ReviewsEmpty } from "./reviews-empty";
 import {
   type ReviewFilterKey,
   ReviewsFilter,
   reviewFilterToArgs,
 } from "./reviews-filter";
+
+const RatingTrend = lazy(() =>
+  import("./rating-trend").then((module) => ({
+    default: module.RatingTrend,
+  })),
+);
+const RatingDistribution = lazy(() =>
+  import("./rating-distribution").then((module) => ({
+    default: module.RatingDistribution,
+  })),
+);
+const ReviewBreakdownList = lazy(() =>
+  import("./review-breakdown-list").then((module) => ({
+    default: module.ReviewBreakdownList,
+  })),
+);
+const ReviewDetailModal = lazy(() =>
+  import("./review-detail-modal").then((module) => ({
+    default: module.ReviewDetailModal,
+  })),
+);
+const ReviewStatsCards = lazy(() =>
+  import("./review-stats-cards").then((module) => ({
+    default: module.ReviewStatsCards,
+  })),
+);
 
 interface ReviewsDashboardProps {
   barbershopId: Barbershop["_id"];
@@ -113,7 +135,13 @@ export const ReviewsDashboard: FC<ReviewsDashboardProps> = ({
         ) : (
           <CardSkeleton />
         )}
-        {trend ? <RatingTrend points={trend} /> : <CardSkeleton />}
+        {trend ? (
+          <Suspense fallback={<CardSkeleton />}>
+            <RatingTrend points={trend} />
+          </Suspense>
+        ) : (
+          <CardSkeleton />
+        )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
