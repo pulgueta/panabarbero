@@ -88,20 +88,25 @@ const ScheduleContent: FC<{ memberId: BarbershopMember["_id"] }> = ({
   );
 };
 
-export const BarberScheduleCard: FC<{ userId: string }> = ({ userId }) => {
+export const BarberScheduleCard: FC<{
+  userId: string;
+  hideHeader?: boolean;
+}> = ({ userId, hideHeader = false }) => {
   const { data: member } = useBarberByUserId(userId);
 
   if (!member) return null;
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Mi horario</CardTitle>
-        <CardDescription>
-          Tu horario de trabajo semanal. Contacta al dueño para solicitar
-          cambios.
-        </CardDescription>
-      </CardHeader>
+      {!hideHeader && (
+        <CardHeader>
+          <CardTitle>Mi horario</CardTitle>
+          <CardDescription>
+            Tu horario de trabajo semanal. Contacta al dueño para solicitar
+            cambios.
+          </CardDescription>
+        </CardHeader>
+      )}
       <CardContent>
         <ScheduleContent memberId={member._id} />
       </CardContent>

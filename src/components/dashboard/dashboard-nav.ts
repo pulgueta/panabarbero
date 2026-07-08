@@ -3,6 +3,7 @@ import {
   CalendarIcon,
   ChartBarIcon,
   ChatCircleIcon,
+  ClockIcon,
   GearSixIcon,
   PackageIcon,
   ScissorsIcon,
@@ -50,10 +51,19 @@ const groups: DashboardNavGroup[] = [
         roles: ["owner", "staff", "barber"],
       },
       {
+        // Read-only self-schedule for the barber role. Owners/staff edit
+        // schedules per barber under Equipo → Barberos, so this stays
+        // barber-only to fill the gap where a plain barber has no other view.
+        label: "Mi horario",
+        to: "/profile/barbershops/schedule",
+        icon: ClockIcon,
+        roles: ["barber"],
+      },
+      {
         label: "Inventario",
         to: "/profile/barbershops/inventory",
         icon: PackageIcon,
-        roles: ["owner", "staff", "barber"],
+        roles: ["owner", "staff"],
         children: [
           {
             label: "Resumen",
@@ -150,14 +160,19 @@ const groups: DashboardNavGroup[] = [
         to: "/profile/barbershops/pana",
         icon: ChatCircleIcon,
         roles: ["owner", "staff", "barber"],
-        children: [
-          { label: "Chat", to: "/profile/barbershops/pana" },
-          {
-            label: "Conocimiento",
-            to: "/profile/barbershops/pana/knowledge",
-          },
-          { label: "Memoria", to: "/profile/barbershops/pana/memory" },
-        ],
+        // children: [
+        //   { label: "Chat", to: "/profile/barbershops/pana" },
+        //   {
+        //     label: "Conocimiento",
+        //     to: "/profile/barbershops/pana/knowledge",
+        //     roles: ["owner", "staff"],
+        //   },
+        //   {
+        //     label: "Memoria",
+        //     to: "/profile/barbershops/pana/memory",
+        //     roles: ["owner", "staff"],
+        //   },
+        // ],
       },
     ],
   },
