@@ -6,6 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
+import { inventoryUnitSuffixes } from "@/components/inventory/labels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -51,7 +52,7 @@ interface ServiceRecipeEditorProps {
   onSuccess: () => void;
 }
 
-const ServiceRecipeEditor: FC<ServiceRecipeEditorProps> = ({
+export const ServiceRecipeEditor: FC<ServiceRecipeEditorProps> = ({
   serviceId,
   barbershopId,
   onSuccess,
@@ -74,12 +75,13 @@ const ServiceRecipeEditor: FC<ServiceRecipeEditorProps> = ({
   }
 
   // Pristine until edited: archived lines are dropped (archiving already
-  // detaches recipes server-side; the flag is defensive).
+  // detaches recipes server-side; the flag is defensive). Legacy equipment
+  // lines are dropped too — the server now rejects them on save.
   const currentLines =
     lines ??
     recipe.reduce<Array<{ itemId: InventoryItem["_id"]; quantity: number }>>(
       (acc, line) => {
-        if (!line.isArchived) {
+        if (!line.isArchived && !line.isDurable) {
           acc.push({ itemId: line.itemId, quantity: line.quantity });
         }
         return acc;
@@ -88,7 +90,10 @@ const ServiceRecipeEditor: FC<ServiceRecipeEditorProps> = ({
     );
 
   const usedIds = new Set(currentLines.map((line) => line.itemId));
-  const availableItems = overview.rows.filter((row) => !usedIds.has(row._id));
+  // Durable inventory survives the service — only consumable stock belongs here.
+  const availableItems = overview.rows.filter(
+    (row) => !usedIds.has(row._id) && row.stockBehavior !== "durable",
+  );
 
   const updateLine = (index: number, patch: Partial<RecipeLine>) => {
     setLines(
@@ -187,9 +192,14 @@ const ServiceRecipeEditor: FC<ServiceRecipeEditorProps> = ({
                   onChange={(e) =>
                     updateLine(index, { quantity: Number(e.target.value) })
                   }
-                  className="w-24 tabular-nums"
+                  className="w-20 tabular-nums"
                   aria-label="Cantidad"
                 />
+
+                {/* The dose is in the item's counting unit — say so. */}
+                <span className="w-9 shrink-0 text-muted-foreground text-xs">
+                  {lineItem ? inventoryUnitSuffixes[lineItem.unit] : ""}
+                </span>
 
                 <Button
                   type="button"
@@ -236,15 +246,26 @@ const ServiceRecipeEditor: FC<ServiceRecipeEditorProps> = ({
 interface ServiceRecipeDialogProps {
   serviceId: Service["_id"];
   barbershopId: Barbershop["_id"];
-  trigger: ReactElement;
+  /** Omit when driving the modal externally via `open` / `onOpenChange`. */
+  trigger?: ReactElement;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export const ServiceRecipeDialog: FC<ServiceRecipeDialogProps> = ({
   serviceId,
   barbershopId,
   trigger,
+  open: controlledOpen,
+  onOpenChange,
 }) => {
-  const [open, setOpen] = useState<boolean>(false);
+  const [internalOpen, setInternalOpen] = useState<boolean>(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (next: boolean) => {
+    if (!isControlled) setInternalOpen(next);
+    onOpenChange?.(next);
+  };
 
   const { planLimits } = useBarbershopPlan(barbershopId);
 
@@ -256,7 +277,7 @@ export const ServiceRecipeDialog: FC<ServiceRecipeDialogProps> = ({
 
   return (
     <ResponsiveModal open={open} onOpenChange={setOpen}>
-      <ResponsiveModalTrigger render={trigger} />
+      {trigger ? <ResponsiveModalTrigger render={trigger} /> : null}
       <ResponsiveModalContent>
         <ResponsiveModalHeader>
           <ResponsiveModalTitle>Insumos del servicio</ResponsiveModalTitle>

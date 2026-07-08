@@ -67,7 +67,7 @@ export const GeneralInfoForm: FC<GeneralInfoFormProps> = ({ barbershop }) => {
   const nameInvalid = !nameRef.current || nameRef.current.length < 3;
 
   return (
-    <div className="w-full space-y-4">
+    <div className="flex h-full w-full flex-1 flex-col justify-between gap-4">
       <FieldGroup className="grid grid-cols-1 gap-4">
         <Field data-invalid={nameInvalid}>
           <FieldLabel htmlFor={ids.name}>Nombre</FieldLabel>

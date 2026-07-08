@@ -1,18 +1,20 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: Needed */
-
 import type { Barbershop } from "@convex/schema";
-import { PackageIcon, PlusIcon } from "@phosphor-icons/react";
+import { PackageIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import type { FC } from "react";
-import { lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense } from "react";
 
-import { DashboardHeaderSkeleton } from "@/components/barbershops/dashboard-header.skeleton";
-import { getInventoryTableColumns } from "@/components/inventory/table/columns";
-import { BorderContainer } from "@/components/layout/border-container";
-import { LoadingComponent } from "@/components/layout/loading-component";
+import {
+  DashboardPage,
+  DashboardPageContent,
+  DashboardPageHeader,
+  DashboardPageHeading,
+} from "@/components/dashboard/dashboard-page";
+import { DashboardPending } from "@/components/dashboard/dashboard-pending";
 import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -28,129 +30,111 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { cacheTime } from "@/config/cache";
 import {
-  barbershopByMemberUserIdQueryOptions,
-  useBarbershopByMemberUserId,
-} from "@/hooks/barbershop/use-barbershop";
-import {
-  barbershopMemberRolesQueryOptions,
-  useBarbershopMemberRoles,
-} from "@/hooks/barbershop/use-barbershop-member";
-import {
   getBarbershopPlanQueryOptions,
   useBarbershopPlan,
 } from "@/hooks/billing/use-plan";
-import type { InventoryOverviewRow } from "@/hooks/use-inventory";
 import {
   inventoryOverviewQueryOptions,
   lowStockQueryOptions,
   monthlyConsumptionQueryOptions,
+  movementTrendQueryOptions,
+  shopMovementsPaginatedQueryOptions,
   useInventoryOverview,
-  useLowStock,
-  useMonthlyConsumption,
-  useValuation,
   valuationQueryOptions,
 } from "@/hooks/use-inventory";
-import { useSession } from "@/hooks/use-session";
-import { cn, formatCurrency } from "@/lib/utils";
 
-const DashboardHeader = lazy(() =>
-  import("@/components/barbershops/dashboard-header").then((module) => ({
-    default: module.DashboardHeader,
+const CategoryBreakdownChart = lazy(() =>
+  import("@/components/inventory/category-breakdown-chart").then((module) => ({
+    default: module.CategoryBreakdownChart,
+  })),
+);
+const LowStockCard = lazy(() =>
+  import("@/components/inventory/low-stock-card").then((module) => ({
+    default: module.LowStockCard,
+  })),
+);
+const MovementTrendChart = lazy(() =>
+  import("@/components/inventory/movement-trend-chart").then((module) => ({
+    default: module.MovementTrendChart,
+  })),
+);
+const ShopMovementList = lazy(() =>
+  import("@/components/inventory/shop-movement-list").then((module) => ({
+    default: module.ShopMovementList,
+  })),
+);
+const InventorySummaryCards = lazy(() =>
+  import("@/components/inventory/summary-cards").then((module) => ({
+    default: module.InventorySummaryCards,
   })),
 );
 
-const DataTable = lazy(() =>
-  import("@/components/table/data-table").then((module) => ({
-    default: module.DataTable,
-  })),
-) as typeof import("@/components/table/data-table").DataTable;
+const OVERVIEW_DESCRIPTION =
+  "El estado de tu inventario de un vistazo: valor, actividad y alertas.";
 
-const ItemDialog = lazy(() =>
-  import("@/components/inventory/item-dialog").then((module) => ({
-    default: module.ItemDialog,
-  })),
-);
-
-const StockAdjustDialog = lazy(() =>
-  import("@/components/inventory/stock-adjust-dialog").then((module) => ({
-    default: module.StockAdjustDialog,
-  })),
-);
-
-const ArchiveItemDialog = lazy(() =>
-  import("@/components/inventory/archive-item-dialog").then((module) => ({
-    default: module.ArchiveItemDialog,
-  })),
-);
-
-const MovementHistory = lazy(() =>
-  import("@/components/inventory/movement-history").then((module) => ({
-    default: module.MovementHistory,
-  })),
-);
+const RECENT_MOVEMENTS_PAGE_SIZE = 5;
 
 export const Route = createFileRoute(
   "/_authedRoutes/profile/barbershops/inventory/",
 )({
   component: RouteComponent,
-  pendingComponent: LoadingComponent,
+  pendingComponent: DashboardPending,
   ssr: "data-only",
+  staticData: { breadcrumb: "Resumen" },
   staleTime: cacheTime.low,
   gcTime: cacheTime.medium,
   loader: async (opts) => {
-    const userId = opts.context.userId;
+    const barbershop = opts.context.dashboardBarbershop;
+    const roles = opts.context.dashboardRoles;
 
-    if (userId) {
-      const barbershop = await opts.context.queryClient.ensureQueryData(
-        barbershopByMemberUserIdQueryOptions(userId),
+    const isBarber = roles?.roles?.includes("barber") ?? false;
+
+    if (!roles?.isOwner && !roles?.isStaff) {
+      // The overview is management analytics (money + trends) — barbers work
+      // from the product list instead.
+      throw redirect({
+        to: isBarber
+          ? "/profile/barbershops/inventory/products"
+          : "/profile/barbershops/appointments",
+      });
+    }
+
+    if (barbershop?._id) {
+      const plan = await opts.context.queryClient.ensureQueryData(
+        getBarbershopPlanQueryOptions(barbershop._id),
       );
 
-      const barbershopMemberRoles =
-        await opts.context.queryClient.ensureQueryData(
-          barbershopMemberRolesQueryOptions(userId),
-        );
-
-      const isBarber =
-        barbershopMemberRoles?.roles?.includes("barber") ?? false;
-
-      if (
-        !barbershopMemberRoles?.isOwner &&
-        !barbershopMemberRoles?.isStaff &&
-        !isBarber
-      ) {
-        throw redirect({ to: "/profile/barbershops/appointments" });
+      // Inventory queries throw for plans without the feature — the page
+      // renders the upsell instead, so skip priming them entirely.
+      if (!plan?.planLimits.inventoryEnabled) {
+        return;
       }
 
-      if (barbershop?._id) {
-        const plan = await opts.context.queryClient.ensureQueryData(
-          getBarbershopPlanQueryOptions(barbershop._id),
-        );
+      // Spine: the overview feeds the category breakdown via useSuspenseQuery.
+      await opts.context.queryClient.ensureQueryData(
+        inventoryOverviewQueryOptions(barbershop._id),
+      );
 
-        // Inventory queries throw for plans without the feature — the page
-        // renders the upsell instead, so skip priming them entirely.
-        if (!plan?.planLimits.inventoryEnabled) {
-          return;
-        }
-
-        // Spine: the overview feeds the table via useSuspenseQuery.
-        await opts.context.queryClient.ensureQueryData(
-          inventoryOverviewQueryOptions(barbershop._id),
-        );
-
-        // Leaves: consumed via useQuery — prime without blocking.
-        void opts.context.queryClient.prefetchQuery(
-          lowStockQueryOptions(barbershop._id),
-        );
-
-        if (barbershopMemberRoles?.isOwner || barbershopMemberRoles?.isStaff) {
-          void opts.context.queryClient.prefetchQuery(
-            valuationQueryOptions(barbershop._id),
-          );
-          void opts.context.queryClient.prefetchQuery(
-            monthlyConsumptionQueryOptions(barbershop._id),
-          );
-        }
-      }
+      // Leaves: prime the KPI strip, charts and recent activity without blocking.
+      void opts.context.queryClient.prefetchQuery(
+        valuationQueryOptions(barbershop._id),
+      );
+      void opts.context.queryClient.prefetchQuery(
+        lowStockQueryOptions(barbershop._id),
+      );
+      void opts.context.queryClient.prefetchQuery(
+        monthlyConsumptionQueryOptions(barbershop._id),
+      );
+      void opts.context.queryClient.prefetchQuery(
+        movementTrendQueryOptions(barbershop._id),
+      );
+      void opts.context.queryClient.prefetchQuery(
+        shopMovementsPaginatedQueryOptions(
+          barbershop._id,
+          null,
+          RECENT_MOVEMENTS_PAGE_SIZE,
+        ),
+      );
     }
   },
 });
@@ -177,302 +161,137 @@ const InventoryUpsell: FC = () => (
   </Empty>
 );
 
-interface InventorySummaryCardsProps {
+const NoBarbershop: FC = () => (
+  <Empty>
+    <EmptyHeader>
+      <EmptyTitle>No tienes una barbería asociada.</EmptyTitle>
+      <EmptyDescription>
+        Crea o únete a una barbería para gestionar inventario.
+      </EmptyDescription>
+    </EmptyHeader>
+  </Empty>
+);
+
+interface OverviewBodyProps {
   barbershopId: Barbershop["_id"];
 }
 
-const InventorySummaryCards: FC<InventorySummaryCardsProps> = ({
-  barbershopId,
-}) => {
-  const { data: valuation } = useValuation(barbershopId);
-  const { data: lowStock } = useLowStock(barbershopId);
-  const { data: monthlyConsumption } = useMonthlyConsumption(barbershopId);
-
-  const lowStockCount = lowStock?.length ?? 0;
+const OverviewBody: FC<OverviewBodyProps> = ({ barbershopId }) => {
+  const { data: overview } = useInventoryOverview(barbershopId);
 
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      <Card>
-        <CardHeader>
-          <CardDescription>Valor del inventario</CardDescription>
-          <CardTitle className="tabular-nums">
-            {valuation ? formatCurrency(valuation.totalValue) : "—"}
-          </CardTitle>
-        </CardHeader>
-      </Card>
+    <div className="space-y-6">
+      <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+        <InventorySummaryCards barbershopId={barbershopId} />
+      </Suspense>
 
-      <Card>
-        <CardHeader>
-          <CardDescription>Bajo stock</CardDescription>
-          <CardTitle
-            className={cn("tabular-nums", lowStockCount > 0 && "text-warning")}
-          >
-            {lowStockCount}
-          </CardTitle>
-        </CardHeader>
-      </Card>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+          <MovementTrendChart barbershopId={barbershopId} />
+        </Suspense>
 
-      <Card>
-        <CardHeader>
-          <CardDescription>Consumido este mes</CardDescription>
-          <CardTitle className="tabular-nums">
-            {monthlyConsumption?.consumed ?? 0}
-          </CardTitle>
-        </CardHeader>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Movimientos recientes</CardTitle>
+            <CardDescription>
+              Los últimos registros del historial de inventario
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+              <ShopMovementList
+                barbershopId={barbershopId}
+                pageSize={RECENT_MOVEMENTS_PAGE_SIZE}
+                showLoadMore={false}
+              />
+            </Suspense>
+            <div className="flex justify-end pt-3">
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<Link to="/profile/barbershops/inventory/movements" />}
+              >
+                Ver todo el historial
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardDescription>Vendido este mes</CardDescription>
-          <CardTitle className="tabular-nums">
-            {monthlyConsumption?.sold ?? 0}
-          </CardTitle>
-        </CardHeader>
-      </Card>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+          <CategoryBreakdownChart
+            rows={overview.rows}
+            canManage={overview.canManage}
+          />
+        </Suspense>
+
+        <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+          <LowStockCard barbershopId={barbershopId} />
+        </Suspense>
+      </div>
     </div>
   );
 };
 
-type InventoryDialogState = {
-  type: "adjust" | "history" | "edit" | "archive" | "record";
-  row: InventoryOverviewRow;
-} | null;
+const OverviewSkeleton: FC = () => (
+  <div className="space-y-6">
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      {Array.from({ length: 4 }, (_, index) => (
+        <Skeleton key={index} className="h-24 w-full" />
+      ))}
+    </div>
+    <Skeleton className="h-80 w-full" />
+    <div className="grid gap-4 lg:grid-cols-2">
+      <Skeleton className="h-64 w-full" />
+      <Skeleton className="h-64 w-full" />
+    </div>
+  </div>
+);
 
-interface InventoryDashboardProps {
-  barbershopId: Barbershop["_id"];
-}
-
-const InventoryDashboard: FC<InventoryDashboardProps> = ({ barbershopId }) => {
-  const [dialog, setDialog] = useState<InventoryDialogState>(null);
-
-  const { data: overview } = useInventoryOverview(barbershopId);
-
-  const editInitialValues = useMemo(
-    () =>
-      dialog?.type === "edit"
-        ? {
-            barbershopId,
-            name: dialog.row.name,
-            sku: dialog.row.sku,
-            category: dialog.row.category,
-            unit: dialog.row.unit,
-            isSellable: dialog.row.isSellable,
-            unitCost: dialog.row.unitCost ?? 0,
-            salePrice: dialog.row.salePrice,
-            reorderPoint: dialog.row.reorderPoint,
-            reorderQuantity: dialog.row.reorderQuantity,
-            allowNegativeStock: dialog.row.allowNegativeStock ?? false,
-          }
-        : undefined,
-    [dialog, barbershopId],
-  );
-
-  const closeDialog = (open: boolean) => {
-    if (!open) setDialog(null);
-  };
-
-  const columns = getInventoryTableColumns({
-    canManage: overview.canManage,
-    onAdjust: (row) => setDialog({ type: "adjust", row }),
-    onHistory: (row) => setDialog({ type: "history", row }),
-    onEdit: (row) => setDialog({ type: "edit", row }),
-    onArchive: (row) => setDialog({ type: "archive", row }),
-    onRecord: (row) => setDialog({ type: "record", row }),
+function RouteComponent() {
+  const barbershop = Route.useRouteContext({
+    select: (context) => context.dashboardBarbershop,
   });
 
   return (
-    <div className="space-y-4">
-      {overview.canManage && (
-        <InventorySummaryCards barbershopId={barbershopId} />
-      )}
+    <DashboardPage>
+      <DashboardPageHeader>
+        <DashboardPageHeading
+          title="Inventario"
+          description={OVERVIEW_DESCRIPTION}
+        />
+      </DashboardPageHeader>
 
-      {overview.rows.length === 0 ? (
-        <Empty>
-          <EmptyHeader>
-            <EmptyTitle>Aún no tienes productos en tu inventario.</EmptyTitle>
-            <EmptyDescription>
-              Crea tu primer producto para empezar a controlar el stock.
-            </EmptyDescription>
-          </EmptyHeader>
-          {overview.canManage && (
-            <EmptyContent>
-              <Suspense
-                fallback={
-                  <Button disabled>
-                    <PlusIcon />
-                    Crear producto
-                  </Button>
-                }
-              >
-                <ItemDialog
-                  barbershopId={barbershopId}
-                  trigger={
-                    <Button>
-                      <PlusIcon />
-                      Crear producto
-                    </Button>
-                  }
-                />
-              </Suspense>
-            </EmptyContent>
-          )}
-        </Empty>
-      ) : (
-        <Suspense fallback={<Skeleton className="h-32 w-full md:h-64" />}>
-          <DataTable columns={columns} data={overview.rows} />
-        </Suspense>
-      )}
-
-      <Suspense fallback={null}>
-        {(dialog?.type === "adjust" || dialog?.type === "record") && (
-          <StockAdjustDialog
-            item={dialog.row}
-            canManage={dialog.type === "adjust"}
-            open
-            onOpenChange={closeDialog}
-            trigger={<span className="hidden" />}
-          />
+      <DashboardPageContent>
+        {barbershop?._id ? (
+          <Suspense fallback={<OverviewSkeleton />}>
+            <OverviewRouteBody barbershop={barbershop} />
+          </Suspense>
+        ) : (
+          <NoBarbershop />
         )}
-
-        {dialog?.type === "history" && (
-          <MovementHistory
-            item={dialog.row}
-            open
-            onOpenChange={closeDialog}
-            trigger={<span className="hidden" />}
-          />
-        )}
-
-        {dialog?.type === "edit" && (
-          <ItemDialog
-            barbershopId={barbershopId}
-            itemId={dialog.row._id}
-            currentImageKey={dialog.row.imageKey}
-            initialValues={editInitialValues}
-            open
-            onOpenChange={closeDialog}
-            trigger={<span className="hidden" />}
-          />
-        )}
-
-        {dialog?.type === "archive" && (
-          <ArchiveItemDialog
-            itemId={dialog.row._id}
-            barbershopId={barbershopId}
-            open
-            onOpenChange={closeDialog}
-            trigger={<span className="hidden" />}
-          />
-        )}
-      </Suspense>
-    </div>
-  );
-};
-
-function RouteComponent() {
-  const { data: user } = useSession();
-  const userId = user?.id ?? "";
-  const { data: rolesData } = useBarbershopMemberRoles(userId);
-  const { data: barbershop, isLoading: isLoadingBarbershop } =
-    useBarbershopByMemberUserId(userId);
-
-  const canManageRoles = Boolean(rolesData?.isOwner || rolesData?.isStaff);
-
-  if (isLoadingBarbershop || !barbershop?._id) {
-    return (
-      <BorderContainer className="space-y-4">
-        <section className="flex w-full flex-col gap-4">
-          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-            <Suspense fallback={<DashboardHeaderSkeleton />}>
-              <DashboardHeader
-                title="Inventario"
-                description="Controla el stock, los costos y el consumo de tus productos."
-              />
-            </Suspense>
-          </div>
-
-          {isLoadingBarbershop ? (
-            <Skeleton className="h-64 w-full" />
-          ) : (
-            <Empty>
-              <EmptyHeader>
-                <EmptyTitle>No tienes una barbería asociada.</EmptyTitle>
-                <EmptyDescription>
-                  Crea o únete a una barbería para gestionar inventario.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          )}
-        </section>
-      </BorderContainer>
-    );
-  }
-
-  return (
-    <InventoryRouteBody
-      barbershop={barbershop}
-      canManageRoles={canManageRoles}
-    />
+      </DashboardPageContent>
+    </DashboardPage>
   );
 }
 
-interface InventoryRouteBodyProps {
+interface OverviewRouteBodyProps {
   barbershop: Barbershop;
-  canManageRoles: boolean;
 }
 
-const InventoryRouteBody: FC<InventoryRouteBodyProps> = ({
-  barbershop,
-  canManageRoles,
-}) => {
+const OverviewRouteBody: FC<OverviewRouteBodyProps> = ({ barbershop }) => {
   const { planLimits, isLoading: isLoadingPlan } = useBarbershopPlan(
     barbershop._id,
   );
-  const inventoryEnabled = planLimits.inventoryEnabled;
 
-  return (
-    <BorderContainer className="space-y-4">
-      <section className="flex w-full flex-col gap-4">
-        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <Suspense fallback={<DashboardHeaderSkeleton />}>
-            <DashboardHeader
-              title="Inventario"
-              description="Controla el stock, los costos y el consumo de tus productos."
-            />
-          </Suspense>
+  if (isLoadingPlan) {
+    return <OverviewSkeleton />;
+  }
 
-          <Suspense
-            fallback={
-              <Button disabled variant="outline">
-                <PlusIcon />
-                Nuevo producto
-              </Button>
-            }
-          >
-            {inventoryEnabled && canManageRoles && (
-              <ItemDialog
-                barbershopId={barbershop._id}
-                trigger={
-                  <Button variant="outline">
-                    <PlusIcon />
-                    Nuevo producto
-                  </Button>
-                }
-              />
-            )}
-          </Suspense>
-        </div>
+  if (!planLimits.inventoryEnabled) {
+    return <InventoryUpsell />;
+  }
 
-        {isLoadingPlan ? (
-          <Skeleton className="h-64 w-full" />
-        ) : !inventoryEnabled ? (
-          <InventoryUpsell />
-        ) : (
-          <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-            <InventoryDashboard barbershopId={barbershop._id} />
-          </Suspense>
-        )}
-      </section>
-    </BorderContainer>
-  );
+  return <OverviewBody barbershopId={barbershop._id} />;
 };

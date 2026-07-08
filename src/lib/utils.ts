@@ -69,6 +69,7 @@ export function seo({
     { property: "og:image", content: image },
     { property: "og:url", content: url },
     // Twitter
+    { name: "twitter:url", content: url },
     { name: "twitter:card", content: "summary_large_image" },
     { name: "twitter:title", content: title },
     { name: "twitter:description", content: description },
@@ -438,4 +439,19 @@ export function endOfDay(date: number | Date): Date {
   const d = typeof date === "number" ? new Date(date) : new Date(date);
   d.setHours(23, 59, 59, 999);
   return d;
+}
+
+/** Up-to-2-letter avatar initials from a name, falling back to the email. */
+export function getInitials(name?: string | null, email?: string): string {
+  const trimmed = name?.trim();
+  if (trimmed) {
+    return trimmed
+      .split(" ")
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  }
+  return email?.[0]?.toUpperCase() ?? "U";
 }

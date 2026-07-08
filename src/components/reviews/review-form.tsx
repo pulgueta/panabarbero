@@ -1,6 +1,6 @@
+import type { Id } from "@convex/_generated/dataModel";
 import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { revalidateLogic } from "@tanstack/react-form";
-import { useNavigate } from "@tanstack/react-router";
 import type { FC } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
@@ -15,19 +15,18 @@ import { getConvexErrorMessage } from "@/lib/convex-errors";
 import { reviewSchema } from "@/lib/schemas";
 
 interface ReviewFormProps {
-  code: string;
-  barbershopUuid: string;
+  appointmentId: Id<"appointments">;
   serviceName?: string;
   onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
 export const ReviewForm: FC<ReviewFormProps> = ({
-  code,
-  barbershopUuid,
+  appointmentId,
   serviceName,
   onSuccess,
+  onCancel,
 }) => {
-  const navigate = useNavigate();
   const haptic = useWebHaptics();
 
   const {
@@ -53,7 +52,7 @@ export const ReviewForm: FC<ReviewFormProps> = ({
     onSubmit: async ({ value }) => {
       try {
         const result = await createReview({
-          code,
+          appointmentId,
           rating: value.rating,
           comment: value.comment?.trim() || undefined,
         });
@@ -66,10 +65,6 @@ export const ReviewForm: FC<ReviewFormProps> = ({
         );
         form.reset();
         onSuccess?.();
-        navigate({
-          to: "/barbershops/$barbershopUuid",
-          params: { barbershopUuid },
-        });
       } catch (error) {
         haptic.trigger("error");
         toast.error(getConvexErrorMessage(error));
@@ -84,11 +79,14 @@ export const ReviewForm: FC<ReviewFormProps> = ({
         e.stopPropagation();
         form.handleSubmit();
       }}
-      className="space-y-6"
+      className="grid w-full grid-cols-1 gap-4"
     >
       <form.AppField name="rating">
         {(field) => (
-          <Field data-invalid={field.state.meta.errors.length > 0}>
+          <Field
+            data-invalid={field.state.meta.errors.length > 0}
+            className="w-full"
+          >
             <FieldLabel htmlFor={field.name}>Calificación</FieldLabel>
             <StarRating
               value={field.state.value}
@@ -102,6 +100,7 @@ export const ReviewForm: FC<ReviewFormProps> = ({
                   ? `Califica el servicio ${serviceName}`
                   : "Califica tu experiencia"
               }
+              className="mx-auto max-w-max"
             />
             {field.state.meta.errors.length > 0 && (
               <FieldError
@@ -140,7 +139,7 @@ export const ReviewForm: FC<ReviewFormProps> = ({
         )}
       </form.AppField>
 
-      <div className="flex flex-col gap-3 sm:flex-row-reverse sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row-reverse sm:items-center sm:justify-between">
         <form.AppForm>
           <form.SubmitButton
             label="Enviar reseña"
@@ -148,20 +147,17 @@ export const ReviewForm: FC<ReviewFormProps> = ({
           />
         </form.AppForm>
 
-        <Button
-          type="button"
-          variant="ghost"
-          className="w-full text-muted-foreground hover:text-foreground sm:w-auto"
-          onClick={() =>
-            navigate({
-              to: "/barbershops/$barbershopUuid",
-              params: { barbershopUuid },
-            })
-          }
-        >
-          <ArrowLeftIcon className="size-4 shrink-0" />
-          Ahora no
-        </Button>
+        {onCancel && (
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full text-muted-foreground hover:text-foreground sm:w-auto"
+            onClick={onCancel}
+          >
+            <ArrowLeftIcon className="size-4 shrink-0" />
+            Ahora no
+          </Button>
+        )}
       </div>
     </form>
   );

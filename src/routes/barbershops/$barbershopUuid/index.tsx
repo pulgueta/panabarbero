@@ -2,14 +2,16 @@
 /** biome-ignore-all lint/suspicious/noNonNullAssertedOptionalChain: objects are guaranteed to be not null */
 
 import { ArrowLeftIcon } from "@phosphor-icons/react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Hydrate } from "@tanstack/react-start";
 import { visible } from "@tanstack/react-start/hydration";
 import { lazy, Suspense } from "react";
+import { z } from "zod";
 
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ServicesSkeleton } from "@/components/layout/skeleton/services-skeleton";
+import { WriteReviewCta } from "@/components/reviews/write-review-cta";
 import { buttonVariants } from "@/components/ui/button";
 import { useCarouselApi } from "@/components/ui/carousel";
 import {
@@ -36,6 +38,7 @@ import {
 import { profileQueryOptions } from "@/hooks/use-profile";
 import {
   barbershopRatingQueryOptions,
+  reviewableForBarbershopQueryOptions,
   reviewsByBarbershopQueryOptions,
 } from "@/hooks/use-reviews";
 import {
@@ -90,45 +93,54 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
   staleTime: cacheTime.low,
   gcTime: cacheTime.medium,
   loader: async ({ context, params }) => {
+    if (!z.uuidv4().safeParse(params.barbershopUuid).success) {
+      throw notFound();
+    }
+
     // Critical, above-the-fold identity — block on the shop.
     const barbershop = await context.queryClient.ensureQueryData(
       barbershopByUuidQueryOptions(params.barbershopUuid),
     );
 
-    if (barbershop?._id) {
-      // Primary content (services list + the barbers it lets you pick) — block
-      // the initial render on these.
-      const [, barbershopMembers] = await Promise.all([
-        context.queryClient.ensureQueryData(
-          servicesQueryOptions(barbershop._id),
-        ),
-        context.queryClient.ensureQueryData(
-          barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
-        ),
-      ]);
+    if (!barbershop?._id || !barbershop.isActive) {
+      throw notFound();
+    }
 
-      // Secondary / below-the-fold / interaction-only data — prime the cache
-      // without blocking. prefetchQuery never throws, and the streaming SSR
-      // integration hands these to the components' <Suspense>/<Hydrate>
-      // boundaries (availability + per-barber services are for the booking flow,
-      // location feeds the lazily-hydrated map).
+    // Primary content (services list + the barbers it lets you pick) — block
+    // the initial render on these.
+    const [, barbershopMembers] = await Promise.all([
+      context.queryClient.ensureQueryData(servicesQueryOptions(barbershop._id)),
+      context.queryClient.ensureQueryData(
+        barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+      ),
+    ]);
+
+    // Secondary / below-the-fold / interaction-only data — prime the cache
+    // without blocking. prefetchQuery never throws, and the streaming SSR
+    // integration hands these to the components' <Suspense>/<Hydrate>
+    // boundaries (availability + per-barber services are for the booking flow,
+    // location feeds the lazily-hydrated map).
+    void context.queryClient.prefetchQuery(
+      barbershopAvailabilityQueryOptions(barbershop._id),
+    );
+    void context.queryClient.prefetchQuery(
+      barbershopLocationQueryOptions(barbershop._id),
+    );
+    void context.queryClient.prefetchQuery(
+      reviewsByBarbershopQueryOptions(barbershop._id, 6),
+    );
+    void context.queryClient.prefetchQuery(
+      barbershopRatingQueryOptions(barbershop._id),
+    );
+    if (context.userId) {
       void context.queryClient.prefetchQuery(
-        barbershopAvailabilityQueryOptions(barbershop._id),
+        reviewableForBarbershopQueryOptions(barbershop._id),
       );
+    }
+    for (const barbershopMember of barbershopMembers) {
       void context.queryClient.prefetchQuery(
-        barbershopLocationQueryOptions(barbershop._id),
+        servicesForBarberQueryOptions(barbershopMember._id),
       );
-      void context.queryClient.prefetchQuery(
-        reviewsByBarbershopQueryOptions(barbershop._id, 6),
-      );
-      void context.queryClient.prefetchQuery(
-        barbershopRatingQueryOptions(barbershop._id),
-      );
-      for (const barbershopMember of barbershopMembers) {
-        void context.queryClient.prefetchQuery(
-          servicesForBarberQueryOptions(barbershopMember._id),
-        );
-      }
     }
 
     // Viewer-specific data (used by the booking flow / barber checks, not the
@@ -178,6 +190,9 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
 
 function RouteComponent() {
   const { barbershopUuid } = Route.useParams();
+  const isAuthed = Route.useRouteContext({
+    select: (context) => Boolean(context.userId),
+  });
 
   const { data: user } = useSession();
   const [_, _setCarouselApi] = useCarouselApi();
@@ -315,9 +330,16 @@ function RouteComponent() {
             <Separator className="my-6" />
 
             <section className="space-y-4">
-              <h2 className="text-balance font-semibold text-xl tracking-tight">
-                Reseñas
-              </h2>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-balance font-semibold text-xl tracking-tight">
+                  Reseñas
+                </h2>
+
+                <WriteReviewCta
+                  barbershopId={barbershop._id}
+                  isAuthed={isAuthed}
+                />
+              </div>
 
               <Hydrate
                 when={visible({ rootMargin: "200px" })}

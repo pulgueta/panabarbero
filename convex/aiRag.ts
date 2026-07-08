@@ -2,7 +2,7 @@ import { RAG } from "@convex-dev/rag";
 import { gateway } from "ai";
 import { z } from "zod";
 
-import { zInternalAction, zInternalQuery } from ".";
+import { zInternalAction, zInternalMutation, zInternalQuery } from ".";
 import { components, internal } from "./_generated/api";
 import type { ActionCtx } from "./_generated/server";
 import { getLimitsForProductKey } from "./plans";
@@ -210,6 +210,29 @@ export const reindexShopKnowledge = zInternalAction({
       key: `shop:${args.barbershopId}`,
       title: data.name,
       text,
+    });
+  },
+});
+
+/**
+ * Removes a barbershop's knowledge-base entries when the shop is torn down.
+ * Scheduled from `cascadeDeleteBarbershop` — the rag component's data is
+ * invisible to the row cascade, so it needs its own cleanup.
+ */
+export const deleteShopKnowledge = zInternalMutation({
+  args: z.object({ barbershopId: z.string() }),
+  handler: async (ctx, args) => {
+    const namespace = await rag.getNamespace(ctx, {
+      namespace: shopKnowledgeNamespace(args.barbershopId),
+    });
+
+    if (!namespace) {
+      return;
+    }
+
+    await rag.deleteByKeyAsync(ctx, {
+      namespaceId: namespace.namespaceId,
+      key: `shop:${args.barbershopId}`,
     });
   },
 });

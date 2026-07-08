@@ -59,7 +59,7 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
           <img
             src={logoUrl ?? "/default-logo.png"}
             alt={`Logo de ${barbershop?.name}`}
-            className="size-full object-cover"
+            className="size-full object-contain p-2"
             loading="lazy"
           />
         </div>
@@ -108,10 +108,12 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
             </p>
 
             <Popover>
-              <PopoverTrigger>
-                <Button variant="outline" className="w-full md:w-max">
-                  Ver horario de atención
-                </Button>
+              <PopoverTrigger
+                render={
+                  <Button variant="outline" className="w-full md:w-max" />
+                }
+              >
+                Ver horario de atención
               </PopoverTrigger>
               <PopoverContent className="w-full">
                 <div className="space-y-2">

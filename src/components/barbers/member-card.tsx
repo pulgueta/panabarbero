@@ -1,9 +1,7 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: for now */
 import type { BarbershopMemberWithName, Service } from "@convex/schema";
+import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
-import { lazy, Suspense, useState } from "react";
-import { toast } from "sonner";
-import { useWebHaptics } from "web-haptics/react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -15,46 +13,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  ResponsiveModal,
-  ResponsiveModalContent,
-  ResponsiveModalDescription,
-  ResponsiveModalFooter,
-  ResponsiveModalHeader,
-  ResponsiveModalTitle,
-} from "@/components/ui/responsive-modal";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Spinner } from "@/components/ui/spinner";
-import {
-  useBarbershopMemberActions,
-  useServicesForBarber,
-} from "@/hooks/use-barbershop-members";
-import { getConvexErrorMessage } from "@/lib/convex-errors";
+import { useServicesForBarber } from "@/hooks/use-barbershop-members";
+import { RemoveMemberDialog } from "./remove-member-dialog";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Dueño",
   barber: "Barbero",
   staff: "Recepcionista",
 };
-
-const ManageServicesDialog = lazy(() =>
-  import("./manage-services-dialog").then((module) => ({
-    default: module.ManageServicesDialog,
-  })),
-);
-
-const BarberScheduleDialog = lazy(() =>
-  import("../barbershops/availability/barber-schedule-dialog").then(
-    (module) => ({
-      default: module.BarberScheduleDialog,
-    }),
-  ),
-);
-
-function parseWillCancelError(errorMessage: string): number | null {
-  const match = errorMessage.match(/WILL_CANCEL:(\d+)/);
-  return match ? Number.parseInt(match[1], 10) : null;
-}
 
 /** Renders the assigned-services list for a barber member. */
 const BarberServices: FC<{ memberId: BarbershopMemberWithName["_id"] }> = ({
@@ -86,121 +53,6 @@ const BarberServices: FC<{ memberId: BarbershopMemberWithName["_id"] }> = ({
   );
 };
 
-interface RemoveConfirmationProps {
-  member: BarbershopMemberWithName;
-  variant: "barber" | "staff";
-}
-
-const RemoveConfirmation: FC<RemoveConfirmationProps> = ({
-  member,
-  variant,
-}) => {
-  const [open, setOpen] = useState(false);
-  const [confirmationStep, setConfirmationStep] = useState<
-    "initial" | "confirm_cancellation"
-  >("initial");
-  const [impactedCount, setImpactedCount] = useState(0);
-  const haptic = useWebHaptics();
-
-  const {
-    removeBarberMutation: {
-      mutateAsync: removeBarber,
-      isPending: isRemovingBarber,
-    },
-    removeStaffMutation: {
-      mutateAsync: removeStaff,
-      isPending: isRemovingStaff,
-    },
-  } = useBarbershopMemberActions();
-
-  const isPending = variant === "barber" ? isRemovingBarber : isRemovingStaff;
-
-  const handleOpenChange = (value: boolean) => {
-    setOpen(value);
-    if (!value) {
-      setConfirmationStep("initial");
-      setImpactedCount(0);
-    }
-  };
-
-  const handleRemove = async (force = false) => {
-    try {
-      if (variant === "barber") {
-        await removeBarber({ id: member._id, force });
-      } else {
-        await removeStaff({ id: member._id });
-      }
-      haptic.trigger("success");
-      toast.success(`${member.name} fue eliminado del equipo`);
-      handleOpenChange(false);
-    } catch (error) {
-      const errorMessage = getConvexErrorMessage(error);
-      const willCancelCount = parseWillCancelError(errorMessage);
-
-      if (willCancelCount !== null && !force) {
-        setImpactedCount(willCancelCount);
-        setConfirmationStep("confirm_cancellation");
-      } else {
-        haptic.trigger("error");
-        toast.error(errorMessage);
-      }
-    }
-  };
-
-  const roleLabel = variant === "barber" ? "barbero" : "recepcionista";
-
-  return (
-    <>
-      <Button
-        variant="destructive"
-        onClick={() => setOpen(true)}
-        disabled={isPending}
-      >
-        {isPending && <Spinner />}
-        Eliminar
-      </Button>
-
-      <ResponsiveModal open={open} onOpenChange={handleOpenChange}>
-        <ResponsiveModalContent>
-          <ResponsiveModalHeader>
-            <ResponsiveModalTitle>
-              {confirmationStep === "initial"
-                ? `Eliminar a ${member.name}`
-                : "Confirmar cancelación de citas"}
-            </ResponsiveModalTitle>
-            <ResponsiveModalDescription>
-              {confirmationStep === "initial"
-                ? `Esta acción removerá a este ${roleLabel} de tu barbería y perderá el acceso ${variant === "barber" ? "a los servicios asignados" : "al panel de gestión"}.`
-                : `Este barbero tiene ${impactedCount} cita(s) pendiente(s) que serán canceladas. Los clientes serán notificados.`}
-            </ResponsiveModalDescription>
-          </ResponsiveModalHeader>
-          <ResponsiveModalFooter>
-            <Button
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-              disabled={isPending}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() =>
-                handleRemove(confirmationStep === "confirm_cancellation")
-              }
-              disabled={isPending}
-            >
-              {isPending && <Spinner />}
-              {confirmationStep === "initial"
-                ? "Sí, eliminar"
-                : `Eliminar y cancelar ${impactedCount} cita(s)`}
-            </Button>
-          </ResponsiveModalFooter>
-        </ResponsiveModalContent>
-      </ResponsiveModal>
-    </>
-  );
-};
-
 interface MemberCardProps {
   member: BarbershopMemberWithName;
   /** All barbershop services — only needed for barber members (service management). */
@@ -213,9 +65,6 @@ export const MemberCard: FC<MemberCardProps> = ({
   services,
   isOwner,
 }) => {
-  const [manageOpen, setManageOpen] = useState(false);
-  const [scheduleOpen, setScheduleOpen] = useState(false);
-
   const isBarber = member.roles.includes("barber");
   const isMemberOwner = member.roles.includes("owner");
 
@@ -267,41 +116,37 @@ export const MemberCard: FC<MemberCardProps> = ({
 
       <CardFooter className="flex-wrap justify-end gap-2">
         {canManageSchedule && (
-          <Suspense
-            fallback={
-              <Button variant="outline" disabled>
-                Horario
-              </Button>
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={
+              <Link
+                to="/profile/barbershops/team/barbers/$memberId/schedule"
+                params={{ memberId: member._id }}
+              />
             }
           >
-            <BarberScheduleDialog
-              member={member}
-              open={scheduleOpen}
-              onOpenChange={setScheduleOpen}
-            />
-          </Suspense>
+            Horario
+          </Button>
         )}
 
         {canManageServices && services && (
-          <Suspense
-            fallback={
-              <Button variant="outline" disabled>
-                Gestionar servicios
-              </Button>
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={
+              <Link
+                to="/profile/barbershops/team/barbers/$memberId/services"
+                params={{ memberId: member._id }}
+              />
             }
           >
-            <ManageServicesDialog
-              barbershopMember={member}
-              services={services}
-              currentServices={barberServices.map((s) => s!)}
-              open={manageOpen}
-              onOpenChange={setManageOpen}
-            />
-          </Suspense>
+            Gestionar servicios
+          </Button>
         )}
 
         {canRemove && (
-          <RemoveConfirmation
+          <RemoveMemberDialog
             member={member}
             variant={removeVariant as "barber" | "staff"}
           />

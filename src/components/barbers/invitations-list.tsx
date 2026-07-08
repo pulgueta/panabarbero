@@ -4,7 +4,7 @@ import type { FC } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
@@ -16,11 +16,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useInvitationActions, useInvitations } from "@/hooks/use-invitations";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
-const STATE_LABELS: Record<string, string> = {
-  pending: "Pendiente",
-  accepted: "Aceptada",
-  expired: "Expirada",
-  revoked: "Revocada",
+const STATE_META: Record<
+  string,
+  { label: string; variant: BadgeProps["variant"] }
+> = {
+  pending: { label: "Pendiente", variant: "warning" },
+  accepted: { label: "Aceptada", variant: "success" },
+  successful: { label: "Aceptada", variant: "success" },
+  declined: { label: "Rechazada", variant: "destructive" },
+  expired: { label: "Expirada", variant: "destructive" },
+  revoked: { label: "Revocada", variant: "destructive" },
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -93,6 +98,10 @@ export const InvitationsList: FC<InvitationsListProps> = ({ barbershopId }) => {
     <ul className="space-y-2">
       {invitations.map((invitation) => {
         const isPendingInvite = invitation.state === "pending";
+        const stateMeta = STATE_META[invitation.state] ?? {
+          label: invitation.state,
+          variant: "secondary" as const,
+        };
 
         return (
           <li
@@ -107,9 +116,7 @@ export const InvitationsList: FC<InvitationsListProps> = ({ barbershopId }) => {
             </div>
 
             <div className="flex shrink-0 items-center gap-2">
-              <Badge variant={isPendingInvite ? "default" : "secondary"}>
-                {STATE_LABELS[invitation.state] ?? invitation.state}
-              </Badge>
+              <Badge variant={stateMeta.variant}>{stateMeta.label}</Badge>
 
               {isPendingInvite && (
                 <>

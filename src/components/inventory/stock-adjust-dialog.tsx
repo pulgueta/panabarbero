@@ -61,7 +61,11 @@ export const StockAdjustDialog: FC<StockAdjustDialogProps> = ({
             }}
             className="w-full space-y-4"
           >
-            <StockAdjustFormFields form={form} item={item} {...dialogFields} />
+            <StockAdjustFormFields
+              form={form}
+              item={item}
+              state={dialogFields}
+            />
 
             <form.AppForm>
               <form.SubmitButton

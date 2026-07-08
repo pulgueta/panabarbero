@@ -1,3 +1,4 @@
+import cascadingDelete from "@00akshatsinha00/convex-cascading-delete/convex.config";
 import agent from "@convex-dev/agent/convex.config";
 import aggregate from "@convex-dev/aggregate/convex.config";
 import geospatial from "@convex-dev/geospatial/convex.config";
@@ -14,6 +15,7 @@ import authz from "@djpanda/convex-authz/convex.config";
 import posthog from "@posthog/convex/convex.config";
 import { defineApp } from "convex/server";
 import { v } from "convex/values";
+import auditLog from "convex-audit-log/convex.config";
 import unreads from "convex-unread-tracking/convex.config";
 
 const app = defineApp({
@@ -26,6 +28,7 @@ const app = defineApp({
 });
 app.use(authkit);
 app.use(authz);
+app.use(auditLog);
 app.use(twilio);
 app.use(rateLimiter);
 app.use(r2);
@@ -41,6 +44,7 @@ app.use(posthog, {
   },
 });
 app.use(unreads);
+app.use(cascadingDelete);
 app.use(agent);
 app.use(rag);
 app.use(geospatial);

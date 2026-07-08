@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { usePanaAccess } from "@/hooks/billing/use-pana-access";
 import { useAnonId } from "@/hooks/use-anon-id";
 import {
+  type ChatRouteScope,
   useChatMessages,
   useProposalActions,
   useSendChatMessage,
@@ -40,6 +41,7 @@ const SUGGESTIONS = [
 interface ChatViewProps {
   /** Active thread. Omitted on the empty `/chat` view. */
   threadId?: string;
+  routeScope?: ChatRouteScope;
 }
 
 /**
@@ -48,7 +50,7 @@ interface ChatViewProps {
  * `main-content` so it slides during chat navigations, while the composer is
  * isolated (`chat-composer`) so it stays put across the transition.
  */
-export function ChatView({ threadId }: ChatViewProps) {
+export function ChatView({ threadId, routeScope = "public" }: ChatViewProps) {
   const { data: user } = useSession();
   const anonId = useAnonId();
   // Authenticated users use their real id; everyone else gets an anonymous
@@ -60,7 +62,7 @@ export function ChatView({ threadId }: ChatViewProps) {
   const blocked = Boolean(access?.isShopMember && !access.canManage);
 
   const { results, status, loadMore } = useChatMessages(threadId, userId);
-  const send = useSendChatMessage(userId);
+  const send = useSendChatMessage(userId, routeScope);
   const { confirm: handleConfirm, reject: handleReject } = useProposalActions(
     threadId,
     userId,

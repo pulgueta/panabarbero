@@ -15,9 +15,10 @@ import {
   revokeMemberAuthz,
   syncMemberAuthz,
 } from "./authz";
+import { cascadingDelete } from "./cascade";
 import { errorMessages } from "./errors";
-import { releaseForAppointment } from "./inventory";
 import { getUserId, requireUserId } from "./identity";
+import { releaseForAppointment } from "./inventory";
 import { rateLimitOrThrow } from "./ratelimit";
 import type { Barbershop, BarbershopMember } from "./schema";
 import { barbershopMembers, barbershops } from "./schema";
@@ -114,7 +115,9 @@ export const deleteMember = zInternalMutation({
 
     const member = await ctx.db.get(args.id);
 
-    await ctx.db.delete(args.id);
+    // Cascades to the member's service assignments (`barbershopMembers`
+    // rules in cascade.ts).
+    await cascadingDelete.deleteWithCascade(ctx, "barbershopMembers", args.id);
 
     if (member) {
       const workosUserId = await getMemberWorkosUserId(ctx, member);
@@ -223,8 +226,7 @@ export const removeBarberFromBarbershop = zAuthMutation({
       await ctx.db.patch(appt._id, {
         deletedAt: Date.now(),
         status: "cancelled",
-        notes:
-          "Cita cancelada porque el barbero ya no pertenece a la barbería",
+        notes: "Cita cancelada porque el barbero ya no pertenece a la barbería",
         proposedDate: undefined,
         rescheduleRequestedByUserId: undefined,
       });
@@ -612,8 +614,7 @@ export const toggleBarberRole = zAuthMutation({
       await ctx.db.patch(appt._id, {
         deletedAt: now,
         status: "cancelled",
-        notes:
-          "Cita cancelada porque el dueño dejó de atender como barbero.",
+        notes: "Cita cancelada porque el dueño dejó de atender como barbero.",
         proposedDate: undefined,
         rescheduleRequestedByUserId: undefined,
       });

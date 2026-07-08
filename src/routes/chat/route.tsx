@@ -10,11 +10,11 @@ import { RecentChats } from "@/components/chat/recent-chats";
 import { BorderContainer } from "@/components/layout/border-container";
 import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import {
   SidebarProvider,
   SidebarTrigger,
@@ -88,19 +88,23 @@ function ChatShell() {
         />
       </aside>
 
-      <Sheet onOpenChange={setOpenMobile} open={openMobile}>
-        <SheetContent side="left">
-          <SheetHeader>
-            <SheetTitle>Conversaciones</SheetTitle>
-          </SheetHeader>
+      <Drawer
+        onOpenChange={setOpenMobile}
+        open={openMobile}
+        swipeDirection="left"
+      >
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>Conversaciones</DrawerTitle>
+          </DrawerHeader>
           <RecentChats
             activeThreadId={threadId}
             isLoading={isPending}
             onSelect={() => setOpenMobile(false)}
             threads={threads}
           />
-        </SheetContent>
-      </Sheet>
+        </DrawerContent>
+      </Drawer>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-16 shrink-0 items-center gap-1 border-b px-2">

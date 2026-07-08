@@ -11,6 +11,7 @@ export const errorMessages = {
   barbershopClosedOnSelectedDay:
     "La barbería no está abierta en el día seleccionado",
   barbershopAlreadyExists: "Ya tienes una barbería registrada.",
+  barbershopInactive: "Esta barbería no está aceptando citas en este momento.",
   requiredAccount:
     "El usuario debe tener una cuenta en el sistema para ser invitado.",
   rateLimitExceeded: `Has excedido el límite de solicitudes. Intenta después.`,
@@ -46,4 +47,6 @@ export const errorMessages = {
   salePriceRequired:
     "El precio de venta es requerido para productos vendibles.",
   duplicateRecipeItem: "No repitas productos en la receta.",
+  durableNotConsumable:
+    "Los productos durables no se consumen, no se venden ni se marcan como merma. Usa un ajuste para corregir su cantidad.",
 } as const;
