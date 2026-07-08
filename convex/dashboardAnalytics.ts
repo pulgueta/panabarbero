@@ -92,9 +92,11 @@ export const getAppointmentsTrend = zAuthQuery({
  * Last-90-days operational breakdown: per barber, per service and per Bogotá
  * weekday, plus window totals. One index scan bounded on both sides (since ≤
  * date ≤ now — future-dated bookings can never be `completed`/`no-show`, so
- * the upper bound only trims the scan), grouped in memory; revenue here joins
- * the CURRENT service price (cancelled citas are hard-deleted, so only
- * `completed` and `no-show` rows survive to be counted).
+ * the upper bound only trims the scan), grouped in memory; revenue and service
+ * name come from the completion-time snapshot on each row (falling back to the
+ * live service, then 0 / "Servicio"), so a service deleted after the fact still
+ * counts. Cancelled citas are hard-deleted, so only `completed` and `no-show`
+ * rows survive to be counted.
  */
 export const getOperationsBreakdown = zAuthQuery({
   args: z.object({ barbershop: barbershops.tools.id }),
@@ -130,7 +132,7 @@ export const getOperationsBreakdown = zAuthQuery({
     >();
     const perService = new Map<
       Service["_id"],
-      { completed: number; revenue: number }
+      { completed: number; revenue: number; name: string }
     >();
     // Indexed by JS `getUTCDay()` of the Bogotá calendar date (0 = domingo).
     const byWeekday = Array.from({ length: 7 }, () => 0);
@@ -150,7 +152,11 @@ export const getOperationsBreakdown = zAuthQuery({
         continue;
       }
 
-      const price = serviceById.get(appointment.serviceId)?.price ?? 0;
+      const liveService = serviceById.get(appointment.serviceId);
+      const price =
+        appointment.completedServicePrice ?? liveService?.price ?? 0;
+      const serviceName =
+        appointment.completedServiceName ?? liveService?.name ?? "Servicio";
 
       totals.completed += 1;
       totals.revenue += price;
@@ -166,9 +172,15 @@ export const getOperationsBreakdown = zAuthQuery({
       const service = perService.get(appointment.serviceId) ?? {
         completed: 0,
         revenue: 0,
+        name: serviceName,
       };
       service.completed += 1;
       service.revenue += price;
+      // A concrete (snapshot or live) name beats the "Servicio" fallback, so a
+      // deleted service still labels correctly if any of its rows carries one.
+      if (service.name === "Servicio" && serviceName !== "Servicio") {
+        service.name = serviceName;
+      }
       perService.set(appointment.serviceId, service);
 
       const [year, month, day] = toColombiaDateKey(appointment.date)
@@ -200,7 +212,6 @@ export const getOperationsBreakdown = zAuthQuery({
       perService: Array.from(perService.entries())
         .map(([serviceId, stats]) => ({
           serviceId,
-          name: serviceById.get(serviceId)?.name ?? "Servicio",
           ...stats,
         }))
         .sort((a, b) => b.completed - a.completed),

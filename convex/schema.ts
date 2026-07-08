@@ -223,6 +223,15 @@ export const appointments = zodTable("appointments", (id) => ({
    * after the author deletes theirs.
    */
   reviewedAt: z.number().optional(),
+  /**
+   * Service price + name snapshotted when this appointment is marked completed,
+   * so the analytics breakdown survives later service edits/deletion (services
+   * are hard-deleted; the revenue aggregate already snapshots price the same
+   * way). Undefined for rows completed before this field existed — the
+   * breakdown falls back to the live service, then 0 / "Servicio".
+   */
+  completedServicePrice: z.number().optional(),
+  completedServiceName: z.string().optional(),
 }));
 
 export const barbershopMemberServices = zodTable(

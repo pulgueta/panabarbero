@@ -144,12 +144,21 @@ export const incrementCompletedAppointments = zInternalMutation({
     // Snapshot the service price at completion time so the revenue sum is
     // immune to later price edits. A missing service contributes 0.
     const service = await ctx.db.get(appointment.serviceId);
+    const price = service?.price ?? 0;
+
+    // Mirror the same snapshot onto the row so the 90-day operations breakdown
+    // (which joins per-service, not just the aggregate sum) survives later
+    // service edits/deletion.
+    await ctx.db.patch(args.appointmentId, {
+      completedServicePrice: price,
+      completedServiceName: service?.name,
+    });
 
     await completedAppointmentsAggregate.insert(ctx, {
       namespace: args.barbershopId,
       key: appointment.date,
       id: args.appointmentId,
-      sumValue: service?.price ?? 0,
+      sumValue: price,
     });
   },
 });

@@ -68,6 +68,37 @@ export const backfillCompletedAppointmentRevenue = migrations.define({
 });
 
 /**
+ * Backfill the completion-time service snapshot (`completedServicePrice` +
+ * `completedServiceName`) onto existing completed appointments from their
+ * current service, so the operations breakdown survives a *future* service
+ * deletion. Rows whose service is already gone stay unset (nothing to recover).
+ * Idempotent: only writes rows still missing the snapshot. Run once with
+ * `npx convex run migrations:run '{fn: "migrations:backfillCompletedServiceSnapshot"}'`.
+ */
+export const backfillCompletedServiceSnapshot = migrations.define({
+  table: "appointments",
+  migrateOne: async (ctx, appointment) => {
+    if (
+      appointment.status !== "completed" ||
+      appointment.completedServicePrice !== undefined
+    ) {
+      return;
+    }
+
+    const service = await ctx.db.get(appointment.serviceId);
+
+    if (!service) {
+      return;
+    }
+
+    await ctx.db.patch(appointment._id, {
+      completedServicePrice: service.price,
+      completedServiceName: service.name,
+    });
+  },
+});
+
+/**
  * One-off (dev data): wipe inbox rows carrying the legacy `readAt` field so
  * the table validates against the watermark-based schema. Run once with
  * `npx convex run migrations:run '{fn: "migrations:wipeInAppNotifications"}'`.
