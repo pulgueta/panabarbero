@@ -114,7 +114,7 @@ export const create = zAuthMutation({
       ctx.db.get(appointment.barbershopMemberId),
     ]);
 
-    if (!barber) {
+    if (!barber || !barber.isActive) {
       throw new ConvexError(errorMessages.notFound("barbero"));
     }
 
@@ -193,6 +193,12 @@ export const create = zAuthMutation({
     const barbershop = await ctx.db.get(appointment.barbershopId);
 
     if (!barbershop) throw new ConvexError(errorMessages.notFound("barbería"));
+
+    // A deactivated shop (owner-disabled, or tombstoned while a batched
+    // cascade delete drains its rows) must not accept new bookings.
+    if (!barbershop.isActive) {
+      throw new ConvexError(errorMessages.barbershopInactive);
+    }
 
     const effectiveSchedule = await getEffectiveSchedule(
       ctx,

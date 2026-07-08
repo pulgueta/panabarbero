@@ -136,7 +136,15 @@ export async function cascadeDeleteBarbershop(
   }
 
   // Mirror: drop the members' scoped authz roles before their rows go away.
+  // Members are also deactivated up front: role checks that trust
+  // `member.isActive` (e.g. `appointments.setStatus`) must stop authorizing
+  // immediately, and in batched mode the member rows survive until a
+  // scheduled batch reaches them.
   for (const member of members) {
+    if (member.isActive) {
+      await ctx.db.patch(member._id, { isActive: false });
+    }
+
     const workosUserId = await getMemberWorkosUserId(ctx, member);
 
     if (workosUserId) {
