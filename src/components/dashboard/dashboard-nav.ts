@@ -106,28 +106,37 @@ const groups: DashboardNavGroup[] = [
         ],
       },
       {
+        // The parent is widened to staff so the staff-visible children below
+        // survive `getDashboardNavGroups` (it filters parents before
+        // children); everything owner-only narrows explicitly.
         label: "Ajustes",
         to: "/profile/barbershops/settings",
         icon: GearSixIcon,
-        roles: ["owner"],
+        roles: ["owner", "staff"],
         children: [
-          { label: "General", to: "/profile/barbershops/settings" },
+          {
+            label: "General",
+            to: "/profile/barbershops/settings",
+            roles: ["owner"],
+          },
           {
             label: "Disponibilidad",
             to: "/profile/barbershops/settings/availability",
+            roles: ["owner"],
           },
           {
             label: "Redes sociales",
             to: "/profile/barbershops/settings/social",
-            roles: ["owner", "staff"],
           },
           {
             label: "Facturación",
             to: "/profile/barbershops/settings/billing",
+            roles: ["owner"],
           },
           {
             label: "Ubicación",
             to: "/profile/barbershops/settings/location",
+            roles: ["owner"],
           },
         ],
       },
