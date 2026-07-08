@@ -1,12 +1,8 @@
 import type { Barbershop } from "@convex/schema";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import type { FC } from "react";
-import { Suspense } from "react";
+import { lazy, Suspense } from "react";
 
-import { AppointmentsTrendChart } from "@/components/analytics/appointments-trend-chart";
-import { RevenueTrendChart } from "@/components/analytics/revenue-trend-chart";
-import { TopBreakdownChart } from "@/components/analytics/top-breakdown-chart";
-import { WeekdayChart } from "@/components/analytics/weekday-chart";
 import {
   DashboardPage,
   DashboardPageContent,
@@ -36,6 +32,29 @@ import {
   useOperationsBreakdown,
 } from "@/hooks/use-dashboard-analytics";
 import { formatCurrency } from "@/lib/utils";
+
+// Recharts is heavy; loading the charts lazily keeps it out of the route
+// chunk. Their suspension is caught by the AnalyticsBody boundary below.
+const AppointmentsTrendChart = lazy(() =>
+  import("@/components/analytics/appointments-trend-chart").then((module) => ({
+    default: module.AppointmentsTrendChart,
+  })),
+);
+const RevenueTrendChart = lazy(() =>
+  import("@/components/analytics/revenue-trend-chart").then((module) => ({
+    default: module.RevenueTrendChart,
+  })),
+);
+const TopBreakdownChart = lazy(() =>
+  import("@/components/analytics/top-breakdown-chart").then((module) => ({
+    default: module.TopBreakdownChart,
+  })),
+);
+const WeekdayChart = lazy(() =>
+  import("@/components/analytics/weekday-chart").then((module) => ({
+    default: module.WeekdayChart,
+  })),
+);
 
 const ANALYTICS_DESCRIPTION =
   "Analiza el desempeño de tu barbería: citas, ingresos, equipo y servicios.";

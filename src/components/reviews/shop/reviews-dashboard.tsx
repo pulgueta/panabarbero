@@ -59,6 +59,19 @@ interface ReviewsDashboardProps {
 
 const CardSkeleton = () => <Skeleton className="h-52" />;
 
+// Shared between the data-pending branch and the lazy-chunk Suspense
+// fallback so a cold visit shows one continuous skeleton.
+const STATS_SKELETON = (
+  <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <Skeleton className="h-28" />
+    <Skeleton className="h-28" />
+    <Skeleton className="h-28" />
+    <Skeleton className="h-28" />
+  </div>
+);
+
+const BREAKDOWN_SKELETON = <Skeleton className="h-40" />;
+
 const TABLE_EMPTY = (
   <p className="text-muted-foreground text-sm">
     No hay reseñas que coincidan con este filtro.
@@ -119,19 +132,18 @@ export const ReviewsDashboard: FC<ReviewsDashboardProps> = ({
   return (
     <div className="space-y-6">
       {stats ? (
-        <ReviewStatsCards stats={stats} />
+        <Suspense fallback={STATS_SKELETON}>
+          <ReviewStatsCards stats={stats} />
+        </Suspense>
       ) : (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <Skeleton className="h-28" />
-          <Skeleton className="h-28" />
-          <Skeleton className="h-28" />
-          <Skeleton className="h-28" />
-        </div>
+        STATS_SKELETON
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         {stats ? (
-          <RatingDistribution distribution={stats.distribution} />
+          <Suspense fallback={<CardSkeleton />}>
+            <RatingDistribution distribution={stats.distribution} />
+          </Suspense>
         ) : (
           <CardSkeleton />
         )}
@@ -146,32 +158,36 @@ export const ReviewsDashboard: FC<ReviewsDashboardProps> = ({
 
       <div className="grid gap-4 lg:grid-cols-2">
         {breakdown ? (
-          <ReviewBreakdownList
-            title="Por servicio"
-            emptyLabel="Sin reseñas por servicio todavía."
-            items={breakdown.byService.map((service) => ({
-              key: service.serviceName,
-              name: service.serviceName,
-              average: service.average,
-              count: service.count,
-            }))}
-          />
+          <Suspense fallback={BREAKDOWN_SKELETON}>
+            <ReviewBreakdownList
+              title="Por servicio"
+              emptyLabel="Sin reseñas por servicio todavía."
+              items={breakdown.byService.map((service) => ({
+                key: service.serviceName,
+                name: service.serviceName,
+                average: service.average,
+                count: service.count,
+              }))}
+            />
+          </Suspense>
         ) : (
-          <Skeleton className="h-40" />
+          BREAKDOWN_SKELETON
         )}
         {breakdown ? (
-          <ReviewBreakdownList
-            title="Por barbero"
-            emptyLabel="Sin reseñas por barbero todavía."
-            items={breakdown.byBarber.map((barber) => ({
-              key: barber.barbershopMemberId,
-              name: barber.name,
-              average: barber.average,
-              count: barber.count,
-            }))}
-          />
+          <Suspense fallback={BREAKDOWN_SKELETON}>
+            <ReviewBreakdownList
+              title="Por barbero"
+              emptyLabel="Sin reseñas por barbero todavía."
+              items={breakdown.byBarber.map((barber) => ({
+                key: barber.barbershopMemberId,
+                name: barber.name,
+                average: barber.average,
+                count: barber.count,
+              }))}
+            />
+          </Suspense>
         ) : (
-          <Skeleton className="h-40" />
+          BREAKDOWN_SKELETON
         )}
       </div>
 
@@ -187,7 +203,12 @@ export const ReviewsDashboard: FC<ReviewsDashboardProps> = ({
         )}
       </div>
 
-      <ReviewDetailModal review={selected} onClose={() => setSelected(null)} />
+      <Suspense fallback={null}>
+        <ReviewDetailModal
+          review={selected}
+          onClose={() => setSelected(null)}
+        />
+      </Suspense>
     </div>
   );
 };
