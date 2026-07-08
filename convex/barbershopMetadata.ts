@@ -167,7 +167,14 @@ export const upsertSocialLink = zAuthMutation({
   args: z.object({
     barbershopId: barbershops.tools.id.shape.id,
     platform: socialPlatform,
-    url: z.url(),
+    url: z.url().refine(
+      (url) => {
+        const protocol = new URL(url).protocol;
+
+        return protocol === "http:" || protocol === "https:";
+      },
+      { message: "El enlace debe usar http:// o https://" },
+    ),
   }),
   ratelimit: "updateBarbershop",
   handler: async (ctx, args) => {
