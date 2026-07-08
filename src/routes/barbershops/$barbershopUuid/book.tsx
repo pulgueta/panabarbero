@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: objects are guaranteed to be not null */
 
 import { ArrowLeftIcon } from "@phosphor-icons/react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo } from "react";
 import { z } from "zod";
 
@@ -50,31 +50,35 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/book")({
   staleTime: cacheTime.low,
   gcTime: cacheTime.medium,
   loader: async ({ context, params }) => {
+    if (!z.uuidv4().safeParse(params.barbershopUuid).success) {
+      throw notFound();
+    }
+
     const barbershop = await context.queryClient.ensureQueryData(
       barbershopByUuidQueryOptions(params.barbershopUuid),
     );
 
-    if (barbershop?._id) {
-      // Core booking-form inputs (services, barbers, schedule) — block.
-      const [, barbershopMembers] = await Promise.all([
-        context.queryClient.ensureQueryData(
-          servicesQueryOptions(barbershop._id),
-        ),
-        context.queryClient.ensureQueryData(
-          barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
-        ),
-        context.queryClient.ensureQueryData(
-          barbershopAvailabilityQueryOptions(barbershop._id),
-        ),
-      ]);
+    if (!barbershop?._id) {
+      throw notFound();
+    }
 
-      // Per-barber service filtering happens on selection — prime without
-      // blocking the form.
-      for (const member of barbershopMembers) {
-        void context.queryClient.prefetchQuery(
-          servicesForBarberQueryOptions(member._id),
-        );
-      }
+    // Core booking-form inputs (services, barbers, schedule) — block.
+    const [, barbershopMembers] = await Promise.all([
+      context.queryClient.ensureQueryData(servicesQueryOptions(barbershop._id)),
+      context.queryClient.ensureQueryData(
+        barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+      ),
+      context.queryClient.ensureQueryData(
+        barbershopAvailabilityQueryOptions(barbershop._id),
+      ),
+    ]);
+
+    // Per-barber service filtering happens on selection — prime without
+    // blocking the form.
+    for (const member of barbershopMembers) {
+      void context.queryClient.prefetchQuery(
+        servicesForBarberQueryOptions(member._id),
+      );
     }
 
     // Viewer checks (not needed for first paint) — fire-and-forget.

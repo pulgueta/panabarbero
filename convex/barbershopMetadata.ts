@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { zAuthMutation, zInternalMutation, zQuery } from ".";
 import { completedAppointmentsAggregate } from "./aggregates";
-import { assertOwner } from "./authz";
+import { assertCanManageTeam, assertOwner } from "./authz";
 import { errorMessages } from "./errors";
 import { barbershopGeospatial } from "./geospatial";
 import { rateLimitOrThrow } from "./ratelimit";
@@ -141,10 +141,98 @@ export const incrementCompletedAppointments = zInternalMutation({
       throw new ConvexError(errorMessages.notFound("cita"));
     }
 
+    // Snapshot the service price at completion time so the revenue sum is
+    // immune to later price edits. A missing service contributes 0.
+    const service = await ctx.db.get(appointment.serviceId);
+
     await completedAppointmentsAggregate.insert(ctx, {
       namespace: args.barbershopId,
       key: appointment.date,
       id: args.appointmentId,
+      sumValue: service?.price ?? 0,
+    });
+  },
+});
+
+const socialPlatform = z.enum([
+  "tiktok",
+  "instagram",
+  "facebook",
+  "twitter",
+  "youtube",
+]);
+
+/** Owner or staff: add or update a single social media link. */
+export const upsertSocialLink = zAuthMutation({
+  args: z.object({
+    barbershopId: barbershops.tools.id.shape.id,
+    platform: socialPlatform,
+    url: z.url().refine(
+      (url) => {
+        const protocol = new URL(url).protocol;
+
+        return protocol === "http:" || protocol === "https:";
+      },
+      { message: "El enlace debe usar http:// o https://" },
+    ),
+  }),
+  ratelimit: "updateBarbershop",
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+
+    await assertCanManageTeam(ctx, args.barbershopId, userId);
+
+    const metadata = await ctx.db
+      .query("barbershopMetadata")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
+      .unique();
+
+    const link = { platform: args.platform, url: args.url };
+    const existing = metadata?.socialMedia ?? [];
+    const socialMedia = existing.some((l) => l.platform === args.platform)
+      ? existing.map((l) => (l.platform === args.platform ? link : l))
+      : [...existing, link];
+
+    if (metadata) {
+      await ctx.db.patch(metadata._id, { socialMedia });
+    } else {
+      await ctx.db.insert("barbershopMetadata", {
+        barbershopId: args.barbershopId,
+        socialMedia,
+      });
+    }
+  },
+});
+
+/** Owner-only: remove a single social media link (destructive). */
+export const removeSocialLink = zAuthMutation({
+  args: z.object({
+    barbershopId: barbershops.tools.id.shape.id,
+    platform: socialPlatform,
+  }),
+  ratelimit: "updateBarbershop",
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+
+    await assertOwner(ctx, args.barbershopId, userId);
+
+    const metadata = await ctx.db
+      .query("barbershopMetadata")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
+      .unique();
+
+    if (!metadata?.socialMedia) return;
+
+    const socialMedia = metadata.socialMedia.filter(
+      (l) => l.platform !== args.platform,
+    );
+
+    await ctx.db.patch(metadata._id, {
+      socialMedia: socialMedia.length > 0 ? socialMedia : undefined,
     });
   },
 });

@@ -217,6 +217,12 @@ export const appointments = zodTable("appointments", (id) => ({
   reviewCode: z.uuidv4().optional(),
   reviewCodeIssuedAt: z.number().optional(),
   reviewCodeRedeemedAt: z.number().optional(),
+  /**
+   * Stamped when the customer's review for this visit is created. Durable —
+   * it survives review deletion, so one review per completed visit holds even
+   * after the author deletes theirs.
+   */
+  reviewedAt: z.number().optional(),
 }));
 
 export const barbershopMemberServices = zodTable(
@@ -554,12 +560,14 @@ export default defineSchema({
   appointments: appointments
     .table()
     .index("by_userId", ["userId"])
+    .index("by_userId_and_status", ["userId", "status"])
     .index("by_barbershopId", ["barbershopId"])
     .index("by_userIdAndBarbershopId", ["userId", "barbershopId"])
     .index("by_serviceId", ["serviceId"])
     .index("by_barbershopMemberId", ["barbershopMemberId"])
     .index("by_status", ["status"])
     .index("by_date", ["date"])
+    .index("by_barbershopId_and_date", ["barbershopId", "date"])
     .index("by_deletedAt", ["deletedAt"])
     .index("by_reviewCode", ["reviewCode"]),
 

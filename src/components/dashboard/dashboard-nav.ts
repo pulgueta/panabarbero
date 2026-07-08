@@ -1,6 +1,7 @@
 import type { Icon } from "@phosphor-icons/react";
 import {
   CalendarIcon,
+  ChartBarIcon,
   ChatCircleIcon,
   GearSixIcon,
   PackageIcon,
@@ -37,28 +38,56 @@ const groups: DashboardNavGroup[] = [
     label: "Operación",
     items: [
       {
+        label: "Analíticas",
+        to: "/profile/barbershops/analytics",
+        icon: ChartBarIcon,
+        roles: ["owner", "staff"],
+      },
+      {
         label: "Citas",
         to: "/profile/barbershops/appointments",
         icon: CalendarIcon,
         roles: ["owner", "staff", "barber"],
       },
       {
-        label: "Servicios",
-        to: "/profile/barbershops/services",
-        icon: ScissorsIcon,
-        roles: ["owner", "staff"],
-      },
-      {
         label: "Inventario",
         to: "/profile/barbershops/inventory",
         icon: PackageIcon,
         roles: ["owner", "staff", "barber"],
+        children: [
+          {
+            label: "Resumen",
+            to: "/profile/barbershops/inventory",
+            roles: ["owner", "staff"],
+          },
+          {
+            label: "Productos",
+            to: "/profile/barbershops/inventory/products",
+          },
+          {
+            label: "Movimientos",
+            to: "/profile/barbershops/inventory/movements",
+            roles: ["owner", "staff"],
+          },
+        ],
+      },
+      {
+        label: "Reseñas",
+        to: "/profile/barbershops/reviews",
+        icon: StarIcon,
+        roles: ["owner", "staff"],
       },
     ],
   },
   {
     label: "Barbería",
     items: [
+      {
+        label: "Servicios",
+        to: "/profile/barbershops/services",
+        icon: ScissorsIcon,
+        roles: ["owner", "staff"],
+      },
       {
         label: "Equipo",
         to: "/profile/barbershops/team",
@@ -77,37 +106,37 @@ const groups: DashboardNavGroup[] = [
         ],
       },
       {
-        label: "Reseñas",
-        to: "/profile/barbershops/reviews",
-        icon: StarIcon,
-        roles: ["owner", "staff"],
-      },
-      {
+        // The parent is widened to staff so the staff-visible children below
+        // survive `getDashboardNavGroups` (it filters parents before
+        // children); everything owner-only narrows explicitly.
         label: "Ajustes",
         to: "/profile/barbershops/settings",
         icon: GearSixIcon,
-        roles: ["owner"],
+        roles: ["owner", "staff"],
         children: [
-          { label: "General", to: "/profile/barbershops/settings" },
+          {
+            label: "General",
+            to: "/profile/barbershops/settings",
+            roles: ["owner"],
+          },
           {
             label: "Disponibilidad",
             to: "/profile/barbershops/settings/availability",
+            roles: ["owner"],
+          },
+          {
+            label: "Redes sociales",
+            to: "/profile/barbershops/settings/social",
           },
           {
             label: "Facturación",
             to: "/profile/barbershops/settings/billing",
-          },
-          {
-            label: "Marca",
-            to: "/profile/barbershops/settings/branding",
+            roles: ["owner"],
           },
           {
             label: "Ubicación",
             to: "/profile/barbershops/settings/location",
-          },
-          {
-            label: "Preferencias",
-            to: "/profile/barbershops/settings/preferences",
+            roles: ["owner"],
           },
         ],
       },

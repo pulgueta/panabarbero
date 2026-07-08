@@ -1,6 +1,6 @@
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import type { Barbershop, InventoryItem, Service } from "@convex/schema";
-import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import type { FunctionReturnType } from "convex/server";
 
@@ -74,6 +74,16 @@ export function serviceRecipeQueryOptions(serviceId: Service["_id"]) {
   });
 }
 
+export function serviceSupplyCountsQueryOptions(
+  barbershopId: Barbershop["_id"],
+  enabled = true,
+) {
+  return convexQuery(
+    api.inventory.getServiceSupplyCounts,
+    enabled ? { id: barbershopId } : "skip",
+  );
+}
+
 export function movementsPaginatedQueryOptions(
   itemId: InventoryItem["_id"],
   cursor: string | null = null,
@@ -81,6 +91,26 @@ export function movementsPaginatedQueryOptions(
 ) {
   return convexQuery(api.inventory.listMovements, {
     item: { id: itemId },
+    paginationOpts: {
+      cursor,
+      numItems,
+    },
+  });
+}
+
+export function movementTrendQueryOptions(barbershopId: Barbershop["_id"]) {
+  return convexQuery(api.inventory.getMovementTrend, {
+    barbershop: { id: barbershopId },
+  });
+}
+
+export function shopMovementsPaginatedQueryOptions(
+  barbershopId: Barbershop["_id"],
+  cursor: string | null = null,
+  numItems = 10,
+) {
+  return convexQuery(api.inventory.listShopMovements, {
+    barbershop: { id: barbershopId },
     paginationOpts: {
       cursor,
       numItems,
@@ -123,12 +153,33 @@ export function useServiceRecipe(serviceId: Service["_id"]) {
   return useQuery(serviceRecipeQueryOptions(serviceId));
 }
 
+export function useServiceSupplyCounts(
+  barbershopId: Barbershop["_id"],
+  enabled = true,
+) {
+  return useQuery(serviceSupplyCountsQueryOptions(barbershopId, enabled));
+}
+
 export function usePaginatedMovements(
   itemId: InventoryItem["_id"],
   cursor: string | null,
   numItems = 10,
 ) {
   return useQuery(movementsPaginatedQueryOptions(itemId, cursor, numItems));
+}
+
+export function useMovementTrend(barbershopId: Barbershop["_id"]) {
+  return useQuery(movementTrendQueryOptions(barbershopId));
+}
+
+export function usePaginatedShopMovements(
+  barbershopId: Barbershop["_id"],
+  cursor: string | null,
+  numItems = 10,
+) {
+  return useQuery(
+    shopMovementsPaginatedQueryOptions(barbershopId, cursor, numItems),
+  );
 }
 
 export function useInventoryActions() {

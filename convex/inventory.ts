@@ -11,9 +11,9 @@
  * and the retention rollup — both documented, both through the wrapped db.
  */
 
+import { convexToZod } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
-import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import {
@@ -37,6 +37,7 @@ import type {
   InventoryLevel,
   InventoryMovement,
   InventoryMovementType,
+  Service,
 } from "./schema";
 import {
   barbershops,
@@ -1253,6 +1254,38 @@ export const setServiceRecipe = zAuthMutation({
   },
 });
 
+export const getServiceSupplyCounts = zAuthQuery({
+  args: barbershops.tools.id,
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+
+    await Promise.all([
+      assertInventoryAllowed(ctx, args.id),
+      authz.require(ctx, userId, "inventory:manage", barbershopScope(args.id)),
+    ]);
+
+    const lines = await ctx.db
+      .query("serviceInventoryUsage")
+      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
+      .collect();
+
+    const counts = new Map<Service["_id"], Set<InventoryItem["_id"]>>();
+
+    for (const line of lines) {
+      const serviceCounts =
+        counts.get(line.serviceId) ?? new Set<InventoryItem["_id"]>();
+
+      serviceCounts.add(line.itemId);
+      counts.set(line.serviceId, serviceCounts);
+    }
+
+    return [...counts.entries()].map(([serviceId, itemIds]) => ({
+      serviceId,
+      supplyCount: itemIds.size,
+    }));
+  },
+});
+
 // ---------------------------------------------------------------------------
 // Appointment lifecycle hooks (design §3.5)
 //
@@ -1979,6 +2012,132 @@ export const getMonthlyConsumption = zAuthQuery({
       wasted,
       consumedCount,
       soldCount,
+    };
+  },
+});
+
+/** Bogotá months covered by the inventory activity trend. */
+const MOVEMENT_TREND_MONTHS = 6;
+
+/**
+ * Movement activity per Bogotá month for the last 6 months, one aggregate
+ * count per (type, month) — O(log n) each, no ledger scan. Counts operations
+ * rather than quantities for the same reason as `getMonthlyConsumption`: the
+ * sums mix units (ml + und + cajas). Managers only, like the rest of the
+ * analytics surface. Months inside the 12-month retention horizon always have
+ * their raw rows, so the aggregate alone is sufficient.
+ */
+export const getMovementTrend = zAuthQuery({
+  args: z.object({ barbershop: barbershops.tools.id }),
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+
+    await Promise.all([
+      assertInventoryAllowed(ctx, args.barbershop.id),
+      authz.require(
+        ctx,
+        userId,
+        "inventory:manage",
+        barbershopScope(args.barbershop.id),
+      ),
+    ]);
+
+    const currentMonth = toColombiaDateKey(Date.now()).slice(0, 7);
+    const [currentYear, currentMonthNumber] = currentMonth
+      .split("-")
+      .map(Number);
+    const baseMonthIndex = currentYear * 12 + (currentMonthNumber - 1);
+
+    const monthKeys: string[] = [];
+
+    for (let offset = MOVEMENT_TREND_MONTHS - 1; offset >= 0; offset--) {
+      const monthIndex = baseMonthIndex - offset;
+      const year = Math.floor(monthIndex / 12);
+      const monthNumber = (monthIndex % 12) + 1;
+
+      monthKeys.push(`${year}-${String(monthNumber).padStart(2, "0")}`);
+    }
+
+    return await Promise.all(
+      monthKeys.map(async (month) => {
+        const [year, monthNumber] = month.split("-").map(Number);
+        const nextMonth =
+          monthNumber === 12
+            ? `${year + 1}-01`
+            : `${year}-${String(monthNumber + 1).padStart(2, "0")}`;
+        const startMs = colombiaDateKeyToMs(`${month}-01`);
+        const endMs = colombiaDateKeyToMs(`${nextMonth}-01`);
+
+        const countFor = (type: InventoryMovementType) =>
+          inventoryMovementsAggregate.count(ctx, {
+            namespace: args.barbershop.id,
+            bounds: {
+              lower: { key: [type, startMs], inclusive: true },
+              upper: { key: [type, endMs], inclusive: false },
+            },
+          });
+
+        const [consumption, sale, receipt, waste] = await Promise.all([
+          countFor("consumption"),
+          countFor("sale"),
+          countFor("receipt"),
+          countFor("waste"),
+        ]);
+
+        return { month, consumption, sale, receipt, waste };
+      }),
+    );
+  },
+});
+
+/**
+ * Shop-wide movement ledger (newest first) for the Movimientos view — the
+ * per-item variant is `listMovements`. Managers only: rows expose costs.
+ */
+export const listShopMovements = zAuthQuery({
+  args: z.object({
+    barbershop: barbershops.tools.id,
+    paginationOpts: convexToZod(paginationOptsValidator),
+  }),
+  handler: async (ctx, args) => {
+    const { userId } = ctx;
+
+    await Promise.all([
+      assertInventoryAllowed(ctx, args.barbershop.id),
+      authz.require(
+        ctx,
+        userId,
+        "inventory:manage",
+        barbershopScope(args.barbershop.id),
+      ),
+    ]);
+
+    const result = await ctx.db
+      .query("inventoryMovements")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershop.id),
+      )
+      .order("desc")
+      .paginate(args.paginationOpts);
+
+    // Accountability: resolve each actor once per page so the ledger shows
+    // WHO moved stock, not just what moved.
+    const actorIds = [...new Set(result.page.map((m) => m.actorUserId))];
+    const actorNames = new Map(
+      await Promise.all(
+        actorIds.map(async (actorId) => {
+          const profile = await getProfileByUserId(ctx, actorId);
+          return [actorId, profile?.name] as const;
+        }),
+      ),
+    );
+
+    return {
+      ...result,
+      page: result.page.map((movement) => ({
+        ...movement,
+        actorName: actorNames.get(movement.actorUserId),
+      })),
     };
   },
 });

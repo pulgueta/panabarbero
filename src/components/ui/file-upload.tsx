@@ -1128,7 +1128,7 @@ function FileUploadItemPreview(props: FileUploadItemPreviewProps) {
         // @ts-expect-error: extra field for base-ui
         "data-slot": "file-upload-preview",
         className: cn(
-          "relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded border bg-accent/50 [&>svg]:size-10",
+          "relative flex size-10 shrink-0 items-center justify-center rounded border bg-accent/50 [&>svg]:size-10",
           className,
         ),
         children: (

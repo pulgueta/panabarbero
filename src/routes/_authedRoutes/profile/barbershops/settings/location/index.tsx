@@ -67,7 +67,7 @@ function LocationSettingsPage() {
 
       <DashboardPageContent>
         {barbershop && (
-          <div className="grid max-w-2xl grid-cols-1 items-start gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <SettingsCard
               title="Dirección"
               description="Dirección, ciudad y departamento."

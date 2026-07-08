@@ -69,6 +69,7 @@ export function seo({
     { property: "og:image", content: image },
     { property: "og:url", content: url },
     // Twitter
+    { name: "twitter:url", content: url },
     { name: "twitter:card", content: "summary_large_image" },
     { name: "twitter:title", content: title },
     { name: "twitter:description", content: description },

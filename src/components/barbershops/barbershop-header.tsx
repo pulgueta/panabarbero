@@ -59,7 +59,7 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = (props) => {
           <img
             src={logoUrl ?? "/default-logo.png"}
             alt={`Logo de ${barbershop?.name}`}
-            className="size-full object-cover"
+            className="size-full object-contain p-2"
             loading="lazy"
           />
         </div>

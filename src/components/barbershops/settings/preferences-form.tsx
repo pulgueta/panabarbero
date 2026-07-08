@@ -68,7 +68,7 @@ export const PreferencesForm: FC<PreferencesFormProps> = ({ barbershop }) => {
   const invalidGrace = Number.isNaN(Number(grace)) || Number(grace) < 0;
 
   return (
-    <div className="space-y-4">
+    <div className="flex h-full flex-1 flex-col justify-between gap-4">
       <FieldGroup>
         <Field data-invalid={invalidGrace}>
           <FieldLabel htmlFor={id}>Periodo de gracia (minutos)</FieldLabel>

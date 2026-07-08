@@ -7,6 +7,7 @@ import { zAuthMutation, zQuery } from ".";
 import { internal } from "./_generated/api";
 import { track } from "./analytics";
 import { assertCanManageServices, assertCanManageTeam } from "./authz";
+import { cascadingDelete } from "./cascade";
 import { errorMessages } from "./errors";
 import { releaseForAppointment } from "./inventory";
 import { rateLimitOrThrow } from "./ratelimit";
@@ -201,40 +202,25 @@ export const deleteService = zAuthMutation({
       });
     }
 
-    // Delete all barber-service assignments for this service
-    const [, assignments] = await Promise.all([
-      Promise.all(
-        impactedAppointments.map((appt) =>
-          ctx.runMutation(
-            internal.notifications.createServiceDeletedCancellation,
-            {
-              appointmentId: appt._id,
-              customerUserId: appt.userId,
-              serviceName: service.name,
-              barbershopName: barbershop?.name ?? "la barbería",
-              contactPhone: appt.contactPhone,
-              contactEmail: appt.contactEmail,
-            },
-          ),
+    await Promise.all(
+      impactedAppointments.map((appt) =>
+        ctx.runMutation(
+          internal.notifications.createServiceDeletedCancellation,
+          {
+            appointmentId: appt._id,
+            customerUserId: appt.userId,
+            serviceName: service.name,
+            barbershopName: barbershop?.name ?? "la barbería",
+            contactPhone: appt.contactPhone,
+            contactEmail: appt.contactEmail,
+          },
         ),
       ),
-      ctx.db
-        .query("barbershopMemberServices")
-        .withIndex("by_serviceId", (q) => q.eq("serviceId", args.service.id))
-        .collect(),
-    ]);
+    );
 
-    // A deleted service takes its inventory recipe with it.
-    const recipeLines = await ctx.db
-      .query("serviceInventoryUsage")
-      .withIndex("by_serviceId", (q) => q.eq("serviceId", args.service.id))
-      .collect();
-
-    await Promise.all([
-      ...assignments.map((assignment) => ctx.db.delete(assignment._id)),
-      ...recipeLines.map((line) => ctx.db.delete(line._id)),
-      ctx.db.delete(args.service.id),
-    ]);
+    // A deleted service takes its barber assignments and inventory recipe
+    // with it (`services` cascade rules in cascade.ts).
+    await cascadingDelete.deleteWithCascade(ctx, "services", args.service.id);
 
     await ctx.scheduler.runAfter(0, internal.aiRag.reindexShopKnowledge, {
       barbershopId: args.barbershop.id,

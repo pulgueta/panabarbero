@@ -28,12 +28,12 @@ export function SettingsCard({
   ...props
 }: SettingsCardProps) {
   return (
-    <Card size="sm" className={cn(className)} {...props}>
+    <Card size="sm" className={cn("h-full", className)} {...props}>
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent>{children}</CardContent>
+      <CardContent className="flex flex-1 flex-col">{children}</CardContent>
     </Card>
   );
 }

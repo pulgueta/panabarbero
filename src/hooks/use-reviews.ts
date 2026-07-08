@@ -38,6 +38,11 @@ export type ModerationQueueRow = FunctionReturnType<
   typeof api.reviews.getModerationQueue
 >[number];
 
+/** A completed, not-yet-reviewed appointment (`reviews.getReviewableAppointments`). */
+export type ReviewableAppointment = FunctionReturnType<
+  typeof api.reviews.getReviewableAppointments
+>[number];
+
 export function reviewsByBarbershopQueryOptions(
   barbershopId: Barbershop["_id"],
   limit?: number,
@@ -57,8 +62,14 @@ export function myReviewsNeedingAttentionCountQueryOptions() {
   return convexQuery(api.reviews.countMineNeedingAttention, {});
 }
 
-export function reviewInviteQueryOptions(code: string, barbershopUuid: string) {
-  return convexQuery(api.reviews.getInvite, { code, barbershopUuid });
+export function reviewableAppointmentsQueryOptions() {
+  return convexQuery(api.reviews.getReviewableAppointments, {});
+}
+
+export function reviewableForBarbershopQueryOptions(
+  barbershopId: Barbershop["_id"],
+) {
+  return convexQuery(api.reviews.getReviewableForBarbershop, { barbershopId });
 }
 
 /** Live-updating list of the most recent published reviews for a barbershop. */
@@ -77,6 +88,11 @@ export function useBarbershopRating(barbershopId: Barbershop["_id"]) {
 /** The current user's own reviews across every moderation state. */
 export function useMyReviews() {
   return useSuspenseQuery(myReviewsQueryOptions());
+}
+
+/** The current user's completed appointments still awaiting a review. */
+export function useReviewableAppointments() {
+  return useSuspenseQuery(reviewableAppointmentsQueryOptions());
 }
 
 export function useReviewActions() {
