@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 
-import { convexToZod } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
+import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import {
@@ -416,14 +416,13 @@ export const getByBarbershopId = zQuery({
 
     const appointments = await ctx.db
       .query("appointments")
-      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("deletedAt"), undefined),
-          q.gte(q.field("date"), startOfDay),
-          q.lte(q.field("date"), endOfDay),
-        ),
+      .withIndex("by_barbershopId_and_date", (q) =>
+        q
+          .eq("barbershopId", args.id)
+          .gte("date", startOfDay)
+          .lte("date", endOfDay),
       )
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
       .collect();
 
     const userProfile = await getProfileByUserId(ctx, userId);
