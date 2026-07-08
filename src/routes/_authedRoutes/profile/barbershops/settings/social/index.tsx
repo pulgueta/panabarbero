@@ -1,5 +1,4 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: barbershop is primed by the loader and gated to members */
-
+import type { Barbershop } from "@convex/schema";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import type { FC } from "react";
 import { SettingsCard } from "@/components/barbershops/settings/settings-card";
@@ -62,6 +61,35 @@ const NoBarbershop: FC = () => (
   </Empty>
 );
 
+interface SocialMediaContentProps {
+  barbershopId: Barbershop["_id"];
+  isOwner: boolean;
+}
+
+// The metadata query lives below the barbershop guard so a member without a
+// resolved shop renders the empty state instead of querying with no id.
+const SocialMediaContent: FC<SocialMediaContentProps> = ({
+  barbershopId,
+  isOwner,
+}) => {
+  const { data: metadata } = useBarbershopMetadata(barbershopId);
+
+  return (
+    <div className="max-w-2xl">
+      <SettingsCard
+        title="Perfiles"
+        description="Agrega o actualiza los enlaces a tus redes sociales."
+      >
+        <SocialMediaForm
+          barbershopId={barbershopId}
+          socialMedia={metadata?.socialMedia ?? []}
+          canDelete={isOwner}
+        />
+      </SettingsCard>
+    </div>
+  );
+};
+
 function SocialMediaPage() {
   const { barbershop, isOwner } = Route.useRouteContext({
     select: (context) => ({
@@ -69,7 +97,6 @@ function SocialMediaPage() {
       isOwner: context.dashboardRoles?.isOwner ?? false,
     }),
   });
-  const { data: metadata } = useBarbershopMetadata(barbershop?._id!);
 
   return (
     <DashboardPage>
@@ -82,18 +109,7 @@ function SocialMediaPage() {
 
       <DashboardPageContent>
         {barbershop?._id ? (
-          <div className="max-w-2xl">
-            <SettingsCard
-              title="Perfiles"
-              description="Agrega o actualiza los enlaces a tus redes sociales."
-            >
-              <SocialMediaForm
-                barbershopId={barbershop._id}
-                socialMedia={metadata?.socialMedia ?? []}
-                canDelete={isOwner}
-              />
-            </SettingsCard>
-          </div>
+          <SocialMediaContent barbershopId={barbershop._id} isOwner={isOwner} />
         ) : (
           <NoBarbershop />
         )}
