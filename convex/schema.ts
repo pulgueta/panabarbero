@@ -217,6 +217,12 @@ export const appointments = zodTable("appointments", (id) => ({
   reviewCode: z.uuidv4().optional(),
   reviewCodeIssuedAt: z.number().optional(),
   reviewCodeRedeemedAt: z.number().optional(),
+  /**
+   * Stamped when the customer's review for this visit is created. Durable —
+   * it survives review deletion, so one review per completed visit holds even
+   * after the author deletes theirs.
+   */
+  reviewedAt: z.number().optional(),
 }));
 
 export const barbershopMemberServices = zodTable(

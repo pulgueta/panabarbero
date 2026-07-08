@@ -130,7 +130,13 @@ export const create = zAuthMutation({
       throw new ConvexError(errorMessages.reviewNotCompleted);
     }
 
-    // One review per completed appointment.
+    // One review per completed appointment. The durable stamps (`reviewedAt`,
+    // or the legacy review-code redemption) hold even after the review row is
+    // deleted; the live-row check covers reviews that predate the stamp.
+    if (appointment.reviewedAt || appointment.reviewCodeRedeemedAt) {
+      throw new ConvexError(errorMessages.reviewAlreadyExists);
+    }
+
     const existing = await ctx.db
       .query("reviews")
       .withIndex("by_appointmentId", (q) =>
@@ -159,6 +165,8 @@ export const create = zAuthMutation({
       serviceName: service?.name ?? "Servicio",
       authorName: profile?.name ?? appointment.customerName,
     });
+
+    await ctx.db.patch(appointment._id, { reviewedAt: Date.now() });
 
     await track(ctx, {
       distinctId: userId,
@@ -253,6 +261,16 @@ export const deleteReview = zAuthMutation({
         namespace: review.barbershopId,
         key: review._creationTime,
         id: review._id,
+      });
+    }
+
+    // Reviews that predate the durable `reviewedAt` stamp never marked their
+    // appointment — stamp it now so deleting doesn't reopen the visit.
+    const appointment = await ctx.db.get(review.appointmentId);
+
+    if (appointment && !appointment.reviewedAt) {
+      await ctx.db.patch(appointment._id, {
+        reviewedAt: review._creationTime,
       });
     }
 
@@ -398,7 +416,12 @@ export const getReviewableAppointments = zAuthQuery({
 
     const resolved = await Promise.all(
       completed
-        .filter((appointment) => !appointment.deletedAt)
+        .filter(
+          (appointment) =>
+            !appointment.deletedAt &&
+            !appointment.reviewedAt &&
+            !appointment.reviewCodeRedeemedAt,
+        )
         .map(async (appointment) => {
           const existing = await ctx.db
             .query("reviews")
@@ -460,7 +483,12 @@ export const getReviewableForBarbershop = zQuery({
       .take(REVIEWABLE_LIMIT);
 
     for (const appointment of candidates) {
-      if (appointment.status !== "completed" || appointment.deletedAt) {
+      if (
+        appointment.status !== "completed" ||
+        appointment.deletedAt ||
+        appointment.reviewedAt ||
+        appointment.reviewCodeRedeemedAt
+      ) {
         continue;
       }
 
