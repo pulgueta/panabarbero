@@ -102,7 +102,7 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
       barbershopByUuidQueryOptions(params.barbershopUuid),
     );
 
-    if (!barbershop?._id) {
+    if (!barbershop?._id || !barbershop.isActive) {
       throw notFound();
     }
 
