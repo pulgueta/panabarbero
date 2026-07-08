@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 
-import { convexToZod, zid } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
+import { convexToZod, zid } from "convex-helpers/server/zod4";
 import { z } from "zod";
 import { zAuthMutation, zInternalMutation, zQuery } from ".";
 import { api, internal } from "./_generated/api";
@@ -17,7 +17,7 @@ import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
 import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
-import { DAY_MAP, formatPhoneNumber } from "./utils";
+import { formatPhoneNumber } from "./utils";
 
 export const create = zAuthMutation({
   args: z.object({
@@ -321,36 +321,6 @@ export const getAvailability = zQuery({
     }
 
     return barbershop.availability;
-  },
-});
-
-export const getAvailabilityForDate = zQuery({
-  args: z.object({
-    barbershop: barbershops.tools.id,
-    date: z.number(),
-  }),
-  handler: async (ctx, args) => {
-    const barbershop = await ctx.db.get(args.barbershop.id);
-
-    if (!barbershop) {
-      return null;
-    }
-
-    const day = DAY_MAP[new Date(args.date).getDay()];
-
-    const dayAvailability = barbershop.availability.find(
-      (a) => a.weekDay.day === day,
-    );
-
-    if (!dayAvailability) {
-      return { isActive: false, openAt: undefined, closeAt: undefined };
-    }
-
-    return {
-      isActive: dayAvailability.weekDay.isActive,
-      openAt: dayAvailability.openAt,
-      closeAt: dayAvailability.closeAt,
-    };
   },
 });
 

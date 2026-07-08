@@ -110,18 +110,6 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     period: MINUTE,
     capacity: 10,
   },
-  addServiceToBarber: {
-    kind: "token bucket",
-    rate: 10,
-    period: MINUTE,
-    capacity: 10,
-  },
-  removeServiceFromBarber: {
-    kind: "token bucket",
-    rate: 10,
-    period: MINUTE,
-    capacity: 10,
-  },
   createReview: { kind: "fixed window", rate: 3, period: MINUTE },
   updateReview: { kind: "token bucket", rate: 5, period: MINUTE, capacity: 5 },
   deleteReview: { kind: "token bucket", rate: 5, period: MINUTE, capacity: 5 },
@@ -165,6 +153,12 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     capacity: 5,
   },
   removeStaffFromBarbershop: {
+    kind: "token bucket",
+    rate: 5,
+    period: MINUTE,
+    capacity: 5,
+  },
+  r2: {
     kind: "token bucket",
     rate: 5,
     period: MINUTE,
