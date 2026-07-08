@@ -90,9 +90,11 @@ export const getAppointmentsTrend = zAuthQuery({
 
 /**
  * Last-90-days operational breakdown: per barber, per service and per Bogotá
- * weekday, plus window totals. One bounded index scan (`gte date`), grouped in
- * memory; revenue here joins the CURRENT service price (cancelled citas are
- * hard-deleted, so only `completed` and `no-show` rows survive to be counted).
+ * weekday, plus window totals. One index scan bounded on both sides (since ≤
+ * date ≤ now — future-dated bookings can never be `completed`/`no-show`, so
+ * the upper bound only trims the scan), grouped in memory; revenue here joins
+ * the CURRENT service price (cancelled citas are hard-deleted, so only
+ * `completed` and `no-show` rows survive to be counted).
  */
 export const getOperationsBreakdown = zAuthQuery({
   args: z.object({ barbershop: barbershops.tools.id }),
@@ -102,13 +104,14 @@ export const getOperationsBreakdown = zAuthQuery({
 
     await assertShopRole(ctx, barbershopId, userId, ["owner", "staff"]);
 
-    const since = Date.now() - BREAKDOWN_DAYS * DAY_MS;
+    const now = Date.now();
+    const since = now - BREAKDOWN_DAYS * DAY_MS;
 
     const [rows, services] = await Promise.all([
       ctx.db
         .query("appointments")
         .withIndex("by_barbershopId_and_date", (q) =>
-          q.eq("barbershopId", barbershopId).gte("date", since),
+          q.eq("barbershopId", barbershopId).gte("date", since).lte("date", now),
         )
         .collect(),
       ctx.db
