@@ -143,4 +143,55 @@ polar.registerRoutes(http, {
   },
 });
 
+/**
+ * MercadoPago Subscriptions webhook. Parallel to the Polar routes above — it
+ * does not touch Polar. Signature verification + resource fetch happen in a
+ * `"use node"` action; this route only forwards the values it needs and maps the
+ * returned HTTP status back to MercadoPago.
+ */
+http.route({
+  path: "/mercadopago/webhook",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const url = new URL(request.url);
+
+    // Signed webhooks carry `data.id` in the query string — that is the value
+    // MercadoPago hashed, so prefer it for signature validation.
+    const queryDataId =
+      url.searchParams.get("data.id") ??
+      url.searchParams.get("id") ??
+      undefined;
+
+    let bodyType: string | undefined;
+    let bodyDataId: string | undefined;
+    try {
+      const body = (await request.json()) as {
+        type?: string;
+        topic?: string;
+        data?: { id?: string };
+      };
+      bodyType = body.type ?? body.topic;
+      bodyDataId = body.data?.id;
+    } catch {
+      // IPN pings may have no JSON body — fall back to query params.
+    }
+
+    const status = await ctx.runAction(
+      internal.mercadopago.processWebhookEvent,
+      {
+        xSignature: request.headers.get("x-signature") ?? undefined,
+        xRequestId: request.headers.get("x-request-id") ?? undefined,
+        dataId: queryDataId ?? bodyDataId,
+        type:
+          bodyType ??
+          url.searchParams.get("type") ??
+          url.searchParams.get("topic") ??
+          undefined,
+      },
+    );
+
+    return new Response(null, { status });
+  }),
+});
+
 export default http;

@@ -518,6 +518,39 @@ export const inventoryMovementSummaries = zodTable(
   }),
 );
 
+/**
+ * MercadoPago subscriptions — the parallel (test) subscription store that can
+ * replace Polar without removing it. One row per user subscription attempt;
+ * `getCurrentMpSubscription` picks the effective one. Paid rows carry a
+ * `preapprovalId`; the free plan is a local row with no remote counterpart.
+ */
+export const mercadopagoSubscriptions = zodTable(
+  "mercadopagoSubscriptions",
+  () => ({
+    userId: z.string(),
+    /** Shared vocabulary with `convex/plans.ts` — drives the plan tier. */
+    productKey: z.string(),
+    /** App-normalized status (matches Polar's `active`/`trialing` gate vocabulary). */
+    status: z.enum(["active", "pending", "paused", "canceled", "trialing"]),
+    /** Raw MercadoPago preapproval status (authorized/pending/paused/cancelled). */
+    mpStatus: z.string().optional(),
+    /** MercadoPago preapproval id. Absent for the free plan. */
+    preapprovalId: z.string().optional(),
+    payerEmail: z.string().optional(),
+    reason: z.string().optional(),
+    /** Amount charged per cycle, in whole COP pesos. */
+    amount: z.number().optional(),
+    currencyId: z.string().optional(),
+    /** Hosted checkout URL returned for a pending preapproval. */
+    initPoint: z.string().optional(),
+    /** `<userId>|<productKey>` — lets the webhook map a preapproval back to us. */
+    externalReference: z.string().optional(),
+    /** ISO date of the next scheduled charge, when known. */
+    nextPaymentDate: z.string().optional(),
+    updatedAt: z.number(),
+  }),
+);
+
 export default defineSchema({
   userProfileData: userProfileData
     .table()
@@ -640,6 +673,11 @@ export default defineSchema({
     .table()
     .index("by_barbershopId_and_month", ["barbershopId", "month"])
     .index("by_itemId_and_month", ["itemId", "month"]),
+
+  mercadopagoSubscriptions: mercadopagoSubscriptions
+    .table()
+    .index("by_userId", ["userId"])
+    .index("by_preapprovalId", ["preapprovalId"]),
 });
 
 export type UserProfileData = output<typeof userProfileData.schema>;
@@ -678,4 +716,7 @@ export type InventoryPresentationUnit =
 export type ServiceInventoryUsage = output<typeof serviceInventoryUsage.schema>;
 export type InventoryMovementSummary = output<
   typeof inventoryMovementSummaries.schema
+>;
+export type MercadopagoSubscription = output<
+  typeof mercadopagoSubscriptions.schema
 >;
