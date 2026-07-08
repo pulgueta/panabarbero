@@ -52,13 +52,17 @@ export const CategoryBreakdownChart: FC<CategoryBreakdownChartProps> = ({
     byCategory.set(label, current);
   }
 
-  const data = Array.from(byCategory.entries())
-    .map(([name, stats]) => ({ name, ...stats }))
-    .filter((entry) => entry.value > 0)
-    .sort((a, b) => b.value - a.value)
-    .slice(0, TOP_LIMIT);
+  const entries: { name: string; value: number; items: number }[] = [];
 
-  const hasValue = canManage && data.some((entry) => entry.value > 0);
+  for (const [name, stats] of byCategory) {
+    if (stats.value > 0) {
+      entries.push({ name, ...stats });
+    }
+  }
+
+  const data = entries.sort((a, b) => b.value - a.value).slice(0, TOP_LIMIT);
+
+  const hasValue = canManage && data.length > 0;
 
   return (
     <Card>
