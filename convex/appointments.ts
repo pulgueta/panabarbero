@@ -1,16 +1,21 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 
+import { convexToZod } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
-import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
-import { zAuthMutation, zInternalMutation, zInternalQuery, zQuery } from ".";
+import {
+  zAuthMutation,
+  zAuthQuery,
+  zInternalMutation,
+  zInternalQuery,
+  zQuery,
+} from ".";
 import { internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
 import { assertCanCreateStaffAppointment } from "./acl";
 import { track } from "./analytics";
-import { authkit } from "./auth.config";
 import {
   assertCanMutateAppointment,
   assertShopRole,
@@ -372,16 +377,16 @@ export const getRescheduledRequests = zQuery({
   },
 });
 
-export const getByUserId = zQuery({
+export const getByUserId = zAuthQuery({
   args: z.object({
     userId: z.string(),
     paginationOpts: convexToZod(paginationOptsValidator),
   }),
   handler: async (ctx, args) => {
-    const user = await authkit.getAuthUser(ctx);
+    const { userId } = ctx;
 
-    if (!user || args.userId !== user.id) {
-      return [];
+    if (!userId || args.userId !== userId) {
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     const result = await ctx.db
