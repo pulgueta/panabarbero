@@ -198,7 +198,6 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
       if (appointments) {
         void context.queryClient.prefetchQuery(
           servicesByIdsQueryOptions(
-            // @ts-expect-error - appointments is defined
             appointments.page.map((appointment) => appointment.serviceId),
           ),
         );
