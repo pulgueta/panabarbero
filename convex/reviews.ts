@@ -19,7 +19,12 @@ import { assertShopRole } from "./authz";
 import { errorMessages } from "./errors";
 import { getUserId } from "./identity";
 import { rateLimitOrThrow } from "./ratelimit";
-import type { Barbershop, BarbershopMember, Review } from "./schema";
+import type {
+  Appointment,
+  Barbershop,
+  BarbershopMember,
+  Review,
+} from "./schema";
 import { appointments, barbershops, reviews } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
 import { colombiaDateKeyToMs, toColombiaDateKey } from "./utils";
@@ -333,11 +338,14 @@ export const getBarbershopRating = zQuery({
 const MY_REVIEWS_LIMIT = 100;
 
 /**
- * Cap on the reviewable-appointment lookups. A customer's completed history is
- * naturally bounded, so this ceiling is invisible in practice; it only guards
- * the pathological case while keeping the scans index-bounded.
+ * Caps on the reviewable-appointment lookups. `REVIEWABLE_LIMIT` bounds how
+ * many eligible rows we surface; `REVIEWABLE_SCAN_CAP` bounds how far we scan
+ * looking for them, so a customer whose newest visits are all already reviewed
+ * still surfaces older eligible ones without an unbounded scan. A completed
+ * history is naturally small, so both ceilings are invisible in practice.
  */
 const REVIEWABLE_LIMIT = 50;
+const REVIEWABLE_SCAN_CAP = 500;
 
 /** The authenticated user's own reviews (every state), newest first. */
 export const getMine = zAuthQuery({
@@ -406,56 +414,75 @@ export const getReviewableAppointments = zAuthQuery({
   handler: async (ctx) => {
     const { userId } = ctx;
 
-    const completed = await ctx.db
+    const resolved: {
+      appointmentId: Appointment["_id"];
+      barbershopId: Appointment["barbershopId"];
+      barbershopUuid: string;
+      barbershopName: string;
+      logoKey: string | undefined;
+      serviceName: string;
+      date: number;
+    }[] = [];
+    let scanned = 0;
+
+    // Stream newest-first and keep the eligible survivors. Reviewed/redeemed
+    // rows are skipped without counting against the result cap, so a customer
+    // whose latest visits are all reviewed still surfaces older eligible ones —
+    // bounded by REVIEWABLE_SCAN_CAP so the scan can never run away.
+    for await (const appointment of ctx.db
       .query("appointments")
       .withIndex("by_userId_and_status", (q) =>
         q.eq("userId", userId).eq("status", "completed"),
       )
-      .order("desc")
-      .take(REVIEWABLE_LIMIT);
+      .order("desc")) {
+      if (
+        resolved.length >= REVIEWABLE_LIMIT ||
+        scanned >= REVIEWABLE_SCAN_CAP
+      ) {
+        break;
+      }
+      scanned += 1;
 
-    const resolved = await Promise.all(
-      completed
-        .filter(
-          (appointment) =>
-            !appointment.deletedAt &&
-            !appointment.reviewedAt &&
-            !appointment.reviewCodeRedeemedAt,
+      if (
+        appointment.deletedAt ||
+        appointment.reviewedAt ||
+        appointment.reviewCodeRedeemedAt
+      ) {
+        continue;
+      }
+
+      const existing = await ctx.db
+        .query("reviews")
+        .withIndex("by_appointmentId", (q) =>
+          q.eq("appointmentId", appointment._id),
         )
-        .map(async (appointment) => {
-          const existing = await ctx.db
-            .query("reviews")
-            .withIndex("by_appointmentId", (q) =>
-              q.eq("appointmentId", appointment._id),
-            )
-            .unique();
+        .unique();
 
-          if (existing) {
-            return null;
-          }
+      if (existing) {
+        continue;
+      }
 
-          const [barbershop, service] = await Promise.all([
-            ctx.db.get(appointment.barbershopId),
-            ctx.db.get(appointment.serviceId),
-          ]);
+      const [barbershop, service] = await Promise.all([
+        ctx.db.get(appointment.barbershopId),
+        ctx.db.get(appointment.serviceId),
+      ]);
 
-          if (!barbershop) {
-            return null;
-          }
+      if (!barbershop) {
+        continue;
+      }
 
-          return {
-            appointmentId: appointment._id,
-            barbershopId: appointment.barbershopId,
-            barbershopUuid: barbershop.uuid,
-            barbershopName: barbershop.name ?? "Barbería",
-            logoKey: barbershop.logoKey,
-            serviceName: service?.name ?? "Servicio",
-            date: appointment.date,
-          };
-        }),
-    );
+      resolved.push({
+        appointmentId: appointment._id,
+        barbershopId: appointment.barbershopId,
+        barbershopUuid: barbershop.uuid,
+        barbershopName: barbershop.name ?? "Barbería",
+        logoKey: barbershop.logoKey,
+        serviceName: service?.name ?? "Servicio",
+        date: appointment.date,
+      });
+    }
 
-    return resolved.filter((row) => row !== null);
+    return resolved;
   },
 });
 
@@ -474,15 +501,21 @@ export const getReviewableForBarbershop = zQuery({
       return null;
     }
 
-    const candidates = await ctx.db
+    // Stream newest-first until the first eligible visit turns up. The scan cap
+    // bounds work when this shop's recent visits are all reviewed/redeemed.
+    let scanned = 0;
+
+    for await (const appointment of ctx.db
       .query("appointments")
       .withIndex("by_userIdAndBarbershopId", (q) =>
         q.eq("userId", userId).eq("barbershopId", args.barbershopId),
       )
-      .order("desc")
-      .take(REVIEWABLE_LIMIT);
+      .order("desc")) {
+      if (scanned >= REVIEWABLE_SCAN_CAP) {
+        break;
+      }
+      scanned += 1;
 
-    for (const appointment of candidates) {
       if (
         appointment.status !== "completed" ||
         appointment.deletedAt ||
