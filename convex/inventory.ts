@@ -11,9 +11,9 @@
  * and the retention rollup — both documented, both through the wrapped db.
  */
 
-import { convexToZod } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
+import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import {
@@ -22,13 +22,13 @@ import {
   zInternalMutation,
   zInternalQuery,
 } from ".";
-import { internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { assertInventoryAllowed, isInventoryAllowed } from "./acl";
 import { inventoryMovementsAggregate, inventoryTriggers } from "./aggregates";
 import { track } from "./analytics";
 import { authz, barbershopScope } from "./authz";
 import { errorMessages } from "./errors";
+import { startLowStockAlert } from "./inventoryAlerts";
 import { auditLog } from "./log";
 import type {
   Appointment,
@@ -331,7 +331,7 @@ export async function recordMovement(
   await db.patch(level._id, levelPatch);
 
   if (crossedDown) {
-    await ctx.runMutation(internal.notifications.createLowStock, {
+    await startLowStockAlert(ctx, {
       barbershopId: args.barbershopId,
       itemId: item._id,
       itemName: item.name,
@@ -638,7 +638,7 @@ export const updateItem = zAuthMutation({
         await db.patch(level._id, patch);
 
         if (crossedDown && data.reorderPoint !== undefined) {
-          await ctx.runMutation(internal.notifications.createLowStock, {
+          await startLowStockAlert(ctx, {
             barbershopId: item.barbershopId,
             itemId: item._id,
             itemName: data.name ?? item.name,
