@@ -175,8 +175,9 @@ SaaS frame: **inset layout** — the whole viewport is the `--sidebar` canvas; t
     - **Asistente**: Pana (chat)
   - Footer: user block (avatar, name, email) opening account menu (Perfil, theme, Cerrar sesión).
   - Items: h-36, `rounded-lg`, icon 16 + `text-sm font-medium`. States are layered, never color-only: **hover** = subtle `bg-sidebar-accent/60` fill, regular weight, outline icon; **active** = solid `bg-sidebar-accent` fill + a 2-px `bg-sidebar-primary` left indicator bar + bold text + filled icon + `--sidebar-primary` icon/text color (a lightness-tuned red, distinct from `--primary`, kept ≥4.5:1 on `--sidebar-accent` in dark mode — see §1.2/§13).
-  - Role visibility: owner = all; staff = Citas, Servicios, Inventario,
-    Equipo; barber = Citas, Inventario.
+  - Role visibility: owner = all; staff = Analíticas, Citas, Servicios,
+    Inventario, Equipo (staff see shop-wide analytics/revenue); barber = Citas,
+    Inventario.
 - **Sheet header** (h-56, `border-b`, sticky top of the sheet): sidebar trigger (flush to the gutter via `-ml-1`; **no vertical divider before the breadcrumb**), breadcrumb trail (Panel › current section, each route opts in via `staticData.breadcrumb`), right side: notifications + avatar (mobile only — desktop identity lives in the sidebar footer). Page-level primary action stays in the page header, not the shell header. The header uses the shared `DASHBOARD_GUTTER_X` so it shares the content's left/right edges.
 - **Content**: full-width, edge-to-edge inside the sheet — **no `max-w` cap** (the old `max-w-6xl mx-auto` wasted width on wide monitors). The horizontal gutter is the shared `DASHBOARD_GUTTER_X` (`px-4 md:px-6`, in `src/components/dashboard/dashboard-gutter.ts`) used by **both** the sheet header and the content so their edges align at every breakpoint; vertical is `py-6`. Compose page anatomy with the **`DashboardPage`** primitive (`src/components/dashboard/dashboard-page.tsx`): `DashboardPageHeader` (heading + `DashboardPageActions` slot) → `DashboardPageStats` (optional KPI strip) → `DashboardPageContent` (work surface). No BorderContainer — the shell owns the frame. Below `md` the gutter drops to `px-4` and the sheet goes edge-to-edge (no border/radius). An inner block may cap its own width for readability, but the section stays full-width.
 
