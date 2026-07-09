@@ -53,7 +53,7 @@ const HOME_FAQS = [
   {
     question: "¿Qué es PanaBarbero?",
     answer:
-      "PanaBarbero es una plataforma colombiana para barberías y clientes. Permite reservar citas en línea, gestionar barberos y servicios, y enviar notificaciones automáticas por email y SMS para cada evento de la cita.",
+      "PanaBarbero es una plataforma colombiana para barberías y clientes. Permite reservar citas en línea, gestionar barberos y servicios, y enviar notificaciones automáticas por WhatsApp para cada evento de la cita.",
   },
   {
     question: "¿Necesito crear una cuenta para reservar una cita?",
@@ -73,12 +73,12 @@ const HOME_FAQS = [
   {
     question: "¿Qué notificaciones reciben los clientes y barberos?",
     answer:
-      "Ambos reciben notificaciones automáticas por email y/o SMS para: cita agendada, recordatorio antes de la cita, cancelación, solicitud de reagendamiento, confirmación o rechazo del reagendamiento, y citas sin marcar como completadas.",
+      "Ambos reciben notificaciones automáticas por WhatsApp para: cita agendada, recordatorio antes de la cita, cancelación, solicitud de reagendamiento, confirmación o rechazo del reagendamiento, y citas sin marcar como completadas.",
   },
   {
     question: "¿Puedo agregar más barberos a mi barbería?",
     answer:
-      "Sí. Puedes invitar a tu equipo por email o SMS. Cada barbero tiene su propio panel de citas y los clientes pueden elegir a qué barbero reservarle directamente.",
+      "Sí. Puedes invitar a tu equipo por correo electrónico. Cada barbero tiene su propio panel de citas y los clientes pueden elegir a qué barbero reservarle directamente.",
   },
   {
     question: "¿Los clientes pueden reagendar una cita?",

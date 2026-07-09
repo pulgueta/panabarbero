@@ -10,8 +10,8 @@ import {
   XCircleIcon,
 } from "@phosphor-icons/react";
 import {
-  animate,
   AnimatePresence,
+  animate,
   domAnimation,
   LazyMotion,
   m,
@@ -28,7 +28,7 @@ interface NotificationItem {
   icon: ReactNode;
   subject: string;
   description: string;
-  channel: "email" | "sms" | "ambos";
+  channel: "email" | "whatsapp";
   color: string;
 }
 
@@ -37,42 +37,42 @@ export const notifications: NotificationItem[] = [
     icon: <CalendarCheckIcon weight="bold" className="size-4" />,
     subject: "Cita agendada",
     description: "Tu cita ha sido confirmada exitosamente",
-    channel: "ambos",
+    channel: "whatsapp",
     color: "text-emerald-400",
   },
   {
     icon: <BellIcon weight="bold" className="size-4" />,
     subject: "Recordatorio de cita",
     description: "Tu cita es en ~30 minutos",
-    channel: "ambos",
+    channel: "whatsapp",
     color: "text-amber-400",
   },
   {
     icon: <CalendarXIcon weight="bold" className="size-4" />,
     subject: "Cita cancelada",
     description: "La cita ha sido cancelada por el barbero",
-    channel: "ambos",
+    channel: "whatsapp",
     color: "text-red-400",
   },
   {
     icon: <ClockCounterClockwiseIcon weight="bold" className="size-4" />,
     subject: "Solicitud de reagendamiento",
     description: "Tu barbero quiere reagendar la cita",
-    channel: "email",
+    channel: "whatsapp",
     color: "text-blue-400",
   },
   {
     icon: <CheckCircleIcon weight="bold" className="size-4" />,
     subject: "Reagendamiento aceptado",
     description: "El cambio de fecha fue aceptado",
-    channel: "ambos",
+    channel: "whatsapp",
     color: "text-emerald-400",
   },
   {
     icon: <XCircleIcon weight="bold" className="size-4" />,
     subject: "Reagendamiento rechazado",
     description: "La solicitud de reagendamiento fue rechazada",
-    channel: "sms",
+    channel: "whatsapp",
     color: "text-red-400",
   },
   {
@@ -86,34 +86,30 @@ export const notifications: NotificationItem[] = [
 
 export const channelConfig = {
   email: {
-    label: "Email",
+    label: "Correo",
     icon: <EnvelopeSimpleIcon weight="bold" className="size-3" />,
   },
-  sms: {
-    label: "SMS",
+  whatsapp: {
+    label: "WhatsApp",
     icon: <ChatTextIcon weight="bold" className="size-3" />,
-  },
-  ambos: {
-    label: "Email + SMS",
-    icon: <BellIcon weight="bold" className="size-3" />,
   },
 };
 
 export const notificationFeatures = [
   {
-    icon: <EnvelopeSimpleIcon weight="bold" className="size-5" />,
-    title: "Correo electrónico",
-    desc: "Notificaciones detalladas con toda la información de la cita.",
+    icon: <ChatTextIcon weight="bold" className="size-5" />,
+    title: "WhatsApp interactivo",
+    desc: "Confirmaciones, recordatorios y reagendamientos desde el chat.",
   },
   {
-    icon: <ChatTextIcon weight="bold" className="size-5" />,
-    title: "Mensajes SMS",
-    desc: "Alertas directas al celular para recordatorios urgentes.",
+    icon: <EnvelopeSimpleIcon weight="bold" className="size-5" />,
+    title: "Correo electrónico",
+    desc: "Invitaciones del equipo y alertas administrativas por correo.",
   },
   {
     icon: <BellIcon weight="bold" className="size-5" />,
-    title: "Multicanal",
-    desc: "Configura qué notificaciones recibir y por cuál canal.",
+    title: "Bandeja interna",
+    desc: "Cada aviso importante también queda en el perfil del usuario.",
   },
 ];
 

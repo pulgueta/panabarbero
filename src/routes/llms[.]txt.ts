@@ -11,7 +11,7 @@ export const Route = createFileRoute("/llms.txt")({
         const content = `# PanaBarbero
 
 > PanaBarbero es la plataforma de gestión de barberías para Colombia y Latinoamérica.
-> Permite a barberías agendar citas, gestionar equipos de barberos y enviar recordatorios automáticos a clientes por email y SMS.
+> Permite a barberías agendar citas, gestionar equipos de barberos y enviar recordatorios automáticos a clientes por WhatsApp.
 
 ## Sitio
 
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/llms.txt")({
 ## Características principales
 
 - Agenda de citas 24/7 sin llamadas telefónicas
-- Recordatorios automáticos por email y SMS antes de cada cita
+- Recordatorios automáticos por WhatsApp antes de cada cita
 - Gestión de equipos: múltiples barberos con agendas independientes
 - Reservas en tiempo real con verificación de disponibilidad
 - Planes: Gratuito, Pro y Premium

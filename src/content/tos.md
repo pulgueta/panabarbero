@@ -88,7 +88,7 @@ Usted puede eliminar su cuenta en cualquier momento desde la configuración de s
 Al eliminar su cuenta, el propietario de una barbería acepta expresamente que:
 
 - **La eliminación es inmediata e irreversible.** La barbería, todos sus servicios, registros de citas, membresías del equipo y demás datos asociados serán eliminados de forma permanente en el momento en que se procese la solicitud.
-- **Las citas futuras serán canceladas automáticamente.** Los clientes que cuenten con dirección de correo electrónico registrada recibirán una notificación de cancelación.
+- **Las citas futuras serán canceladas automáticamente.** Los clientes que cuenten con correo registrado recibirán una notificación de cancelación por correo electrónico.
 - **El propietario asume plena responsabilidad** por cualquier perjuicio, queja o reclamación que los clientes afectados puedan presentar como consecuencia directa o indirecta de la eliminación de la cuenta.
 - **Los clientes afectados deben dirigir sus reclamaciones directamente al ex-propietario** fuera de la plataforma. PanaBarbero no actúa como mediador en dichas reclamaciones ni asume responsabilidad alguna por daños económicos, morales o de cualquier otra índole derivados de la eliminación voluntaria de la cuenta.
 - Se recomienda **notificar con antelación** a los clientes y al equipo antes de proceder con la eliminación.
@@ -98,7 +98,7 @@ Al eliminar su cuenta, el propietario de una barbería acepta expresamente que:
 Al eliminar su cuenta como miembro del equipo de una barbería:
 
 - La plataforma intentará **reasignar automáticamente** las citas futuras asignadas al miembro al siguiente barbero disponible con horario compatible en la misma barbería.
-- Si no existe otro miembro disponible para asumir una cita, dicha cita será **cancelada automáticamente** y el cliente será notificado por correo electrónico.
+- Si no existe otro miembro disponible para asumir una cita, dicha cita será **cancelada automáticamente** y el cliente será notificado por WhatsApp.
 - El propietario de la barbería recibirá un correo resumen indicando las citas reasignadas y las citas canceladas.
 - Se recomienda **informar previamente al propietario** de la barbería para coordinar la reasignación de clientes antes de eliminar la cuenta.
 

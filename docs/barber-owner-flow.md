@@ -106,8 +106,7 @@ against the owner's plan**, even when staff perform the action.
 |---|---|---|---|
 | `maxInvitedBarbers` | 2 | 5 | 10 |
 | `maxStaff` | 0 | 1 | 3 |
-| `maxSmsPerMonth` | 200 | 1,000 | 3,000 |
-| `maxEmailPerMonth` | 50 | 500 | 1,500 |
+| `maxWhatsappMessagesPerMonth` | 200 | 1,000 | 3,000 |
 | `staffCanCreateAppointments` | ❌ | ✅ | ✅ |
 | `panaManagement` (AI agent) | ❌ | ✅ | ✅ |
 
@@ -180,9 +179,9 @@ member must have the `barber` role.
 ### 22–23. Subscription, Plan & Usage
 
 - [ ] Owners view subscription/plan status in the **Planes** profile tab
-- [ ] SMS/email usage is metered monthly against the plan quota
-      (`isSmsLimitNotExceeded` / `isEmailLimitNotExceeded`), with purchased
-      credits added on top
+- [ ] WhatsApp appointment usage is metered monthly against the plan quota
+      (`isWhatsappLimitNotExceeded`), with purchased WhatsApp credits added on
+      top; SMS/email remain legacy channels for non-core alerts
 - [ ] Upgrading raises the caps in §10; the subscription is a Polar product
 
 ### 24. Activate / Deactivate Barbershop

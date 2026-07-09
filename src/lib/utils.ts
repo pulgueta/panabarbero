@@ -312,7 +312,7 @@ export function softwareApplicationStructuredData(): ScriptHTMLAttributes<HTMLSc
       featureList: [
         "Reserva de citas en línea",
         "Gestión de barberos y servicios",
-        "Notificaciones por email y SMS",
+        "Notificaciones de citas por WhatsApp",
         "Reagendamiento de citas",
         "Reservas sin cuenta de usuario",
         "Panel de administración para barberías",

@@ -49,7 +49,7 @@ const sellingPoints: SellingPoint[] = [
     icon: <ChatsIcon weight="bold" className="size-5" />,
     title: "Comunicación directa",
     description:
-      "Email y SMS automáticos para cada evento. Tu cliente siempre sabe qué pasa con su cita.",
+      "WhatsApp automático para citas, recordatorios y cambios. Tu cliente siempre sabe qué pasa.",
   },
 ];
 
