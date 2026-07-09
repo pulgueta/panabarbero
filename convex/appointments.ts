@@ -1009,9 +1009,11 @@ async function applyRescheduleDecision(
       rescheduleRequestedByUserId: undefined,
     });
 
-    // "denied" is a terminal state — free the recipe holds.
+    // "denied" is a terminal state — free the recipe holds and stop the
+    // reminders scheduled for the original date.
     if (newStatus === "denied") {
       await releaseForAppointment(ctx, appt);
+      await cancelScheduledNotifications(ctx, appt);
     }
   }
 
