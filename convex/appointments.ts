@@ -286,7 +286,6 @@ export const create = zAuthMutation({
         sendTo: "barber",
         barbershopName: barbershop.name,
         receiverPhoneNumber: contactPhone,
-        isStaffCreated: isStaffCreatingAppointment,
       });
     }
 
@@ -297,7 +296,6 @@ export const create = zAuthMutation({
       sendTo: "customer",
       barbershopName: barbershop.name,
       receiverPhoneNumber: contactPhone,
-      isStaffCreated: isStaffCreatingAppointment,
     });
 
     const thirtyMinutesBeforeAppointment = appointment.date - 30 * 60 * 1000;
@@ -1514,7 +1512,6 @@ export const agentBook = zInternalMutation({
       sendTo: "barber",
       barbershopName: barbershop.name,
       receiverPhoneNumber: contactPhone,
-      isStaffCreated: false,
     });
 
     await ctx.runMutation(internal.notifications.createAppointmentCreated, {
@@ -1524,7 +1521,6 @@ export const agentBook = zInternalMutation({
       sendTo: "customer",
       barbershopName: barbershop.name,
       receiverPhoneNumber: contactPhone,
-      isStaffCreated: false,
     });
 
     await track(ctx, {

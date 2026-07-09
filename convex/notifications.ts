@@ -69,6 +69,9 @@ async function scheduleWhatsAppWithQuota(
   });
 
   if (!templateName) {
+    console.warn(
+      "[whatsapp] Template name not configured; skipping notification. Set WHATSAPP_NOTIFICATION_TEMPLATE_NAME / WHATSAPP_RESCHEDULE_TEMPLATE_NAME.",
+    );
     return;
   }
 
@@ -87,7 +90,7 @@ async function scheduleWhatsAppWithQuota(
     body: opts.body,
     template: {
       name: templateName,
-      language: process.env.WHATSAPP_TEMPLATE_LANGUAGE ?? "es_CO",
+      language: process.env.WHATSAPP_TEMPLATE_LANGUAGE ?? "es",
     },
     to: opts.to,
     ...(opts.rescheduleAction
@@ -175,7 +178,7 @@ export const createAppointmentCancelled = zInternalMutation({
     });
     const body = buildSmsBody(copy);
     const phoneNumber = isCustomer
-      ? (receiverProfile?.phoneNumber ?? appointment.contactPhone)
+      ? appointment.contactPhone || receiverProfile?.phoneNumber
       : receiverProfile?.phoneNumber;
 
     if (isWhatsAppEnabled(receiverProfile) && phoneNumber) {
@@ -245,7 +248,7 @@ export const createAppointmentRescheduleRequest = zInternalMutation({
     const body = copy.description;
 
     const phoneNumber = isCustomer
-      ? (receiverProfile?.phoneNumber ?? appointment.contactPhone)
+      ? appointment.contactPhone || receiverProfile?.phoneNumber
       : receiverProfile?.phoneNumber;
 
     if (isWhatsAppEnabled(receiverProfile) && phoneNumber) {
@@ -311,7 +314,7 @@ export const createAppointmentRescheduleDecision = zInternalMutation({
     const body = buildSmsBody(copy);
     const phoneNumber =
       args.role === "customer"
-        ? (receiverProfile?.phoneNumber ?? appointment?.contactPhone)
+        ? appointment?.contactPhone || receiverProfile?.phoneNumber
         : receiverProfile?.phoneNumber;
 
     if (isWhatsAppEnabled(receiverProfile) && phoneNumber) {
@@ -345,7 +348,6 @@ export const createAppointmentCreated = zInternalMutation({
     sendTo: z.enum(["customer", "barber"]),
     barbershopName: z.string().optional(),
     receiverPhoneNumber: z.string(),
-    isStaffCreated: z.boolean(),
   }),
   handler: async (ctx, args) => {
     let customerProfile: UserProfileData | null = null;
@@ -375,13 +377,10 @@ export const createAppointmentCreated = zInternalMutation({
     });
     const body = buildSmsBody(copy);
     const phoneNumber = isCustomer
-      ? (receiverProfile?.phoneNumber ?? args.receiverPhoneNumber)
+      ? args.receiverPhoneNumber || receiverProfile?.phoneNumber
       : receiverProfile?.phoneNumber;
-    const whatsappEnabled = isCustomer
-      ? args.isStaffCreated || isWhatsAppEnabled(receiverProfile)
-      : isWhatsAppEnabled(receiverProfile);
 
-    if (whatsappEnabled && phoneNumber) {
+    if (isWhatsAppEnabled(receiverProfile) && phoneNumber) {
       await scheduleWhatsAppWithQuota(ctx, {
         body,
         to: phoneNumber,
@@ -428,7 +427,7 @@ export const createAppointmentReminder = zInternalMutation({
     const body = buildSmsBody(copy);
 
     const phoneNumber =
-      customerProfile?.phoneNumber || args.receiverPhoneNumber;
+      args.receiverPhoneNumber || customerProfile?.phoneNumber;
 
     if (isWhatsAppEnabled(customerProfile) && phoneNumber) {
       await scheduleWhatsAppWithQuota(ctx, {
