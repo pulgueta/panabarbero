@@ -17,6 +17,7 @@ import { defineApp } from "convex/server";
 import { v } from "convex/values";
 import auditLog from "convex-audit-log/convex.config";
 import unreads from "convex-unread-tracking/convex.config";
+import whatsapp from "convex-whatsapp/convex.config";
 
 const app = defineApp({
   env: {
@@ -24,12 +25,30 @@ const app = defineApp({
     POSTHOG_HOST: v.optional(v.string()),
     POSTHOG_PERSONAL_API_KEY: v.optional(v.string()),
     POSTHOG_FLAGS_POLLING_INTERVAL_SECONDS: v.optional(v.string()),
+    WHATSAPP_PHONE_NUMBER_ID: v.string(),
+    WHATSAPP_ACCESS_TOKEN: v.string(),
+    WHATSAPP_WEBHOOK_VERIFY_TOKEN: v.string(),
+    WHATSAPP_APP_SECRET: v.string(),
+    WHATSAPP_WABA_ID: v.optional(v.string()),
+    WHATSAPP_NOTIFICATION_TEMPLATE_NAME: v.optional(v.string()),
+    WHATSAPP_RESCHEDULE_TEMPLATE_NAME: v.optional(v.string()),
+    WHATSAPP_TEMPLATE_LANGUAGE: v.optional(v.string()),
   },
 });
 app.use(authkit);
 app.use(authz);
 app.use(auditLog);
 app.use(twilio);
+app.use(whatsapp, {
+  httpPrefix: "/whatsapp",
+  env: {
+    WHATSAPP_PHONE_NUMBER_ID: app.env.WHATSAPP_PHONE_NUMBER_ID,
+    WHATSAPP_ACCESS_TOKEN: app.env.WHATSAPP_ACCESS_TOKEN,
+    WHATSAPP_WEBHOOK_VERIFY_TOKEN: app.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN,
+    WHATSAPP_APP_SECRET: app.env.WHATSAPP_APP_SECRET,
+    WHATSAPP_WABA_ID: app.env.WHATSAPP_WABA_ID,
+  },
+});
 app.use(rateLimiter);
 app.use(r2);
 app.use(migrations);
@@ -49,6 +68,7 @@ app.use(agent);
 app.use(rag);
 app.use(geospatial);
 app.use(aggregate, { name: "aggregateCompletedAppointments" });
+app.use(aggregate, { name: "aggregateWhatsappMessagesSent" });
 app.use(aggregate, { name: "aggregateSmsSent" });
 app.use(aggregate, { name: "aggregateEmailsSent" });
 app.use(aggregate, { name: "aggregateReviewRatings" });

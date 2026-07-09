@@ -29,6 +29,14 @@ type Env = {
   readonly POSTHOG_HOST: string | undefined;
   readonly POSTHOG_PERSONAL_API_KEY: string | undefined;
   readonly POSTHOG_PROJECT_TOKEN: string;
+  readonly WHATSAPP_ACCESS_TOKEN: string;
+  readonly WHATSAPP_APP_SECRET: string;
+  readonly WHATSAPP_NOTIFICATION_TEMPLATE_NAME: string | undefined;
+  readonly WHATSAPP_PHONE_NUMBER_ID: string;
+  readonly WHATSAPP_RESCHEDULE_TEMPLATE_NAME: string | undefined;
+  readonly WHATSAPP_TEMPLATE_LANGUAGE: string | undefined;
+  readonly WHATSAPP_WABA_ID: string | undefined;
+  readonly WHATSAPP_WEBHOOK_VERIFY_TOKEN: string;
 };
 
 /**

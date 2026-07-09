@@ -57,6 +57,8 @@ import type * as tracing from "../tracing.js";
 import type * as twilio from "../twilio.js";
 import type * as userProfileData from "../userProfileData.js";
 import type * as utils from "../utils.js";
+import type * as whatsapp from "../whatsapp.js";
+import type * as whatsappNotificationCore from "../whatsappNotificationCore.js";
 import type * as workosOrgs from "../workosOrgs.js";
 
 import type {
@@ -115,6 +117,8 @@ declare const fullApi: ApiFromModules<{
   twilio: typeof twilio;
   userProfileData: typeof userProfileData;
   utils: typeof utils;
+  whatsapp: typeof whatsapp;
+  whatsappNotificationCore: typeof whatsappNotificationCore;
   workosOrgs: typeof workosOrgs;
 }>;
 
@@ -149,6 +153,7 @@ export declare const components: {
   authz: import("@djpanda/convex-authz/_generated/component.js").ComponentApi<"authz">;
   auditLog: import("convex-audit-log/_generated/component.js").ComponentApi<"auditLog">;
   twilio: import("@convex-dev/twilio/_generated/component.js").ComponentApi<"twilio">;
+  whatsapp: import("convex-whatsapp/_generated/component.js").ComponentApi<"whatsapp">;
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
   r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
   migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
@@ -160,6 +165,7 @@ export declare const components: {
   rag: import("@convex-dev/rag/_generated/component.js").ComponentApi<"rag">;
   geospatial: import("@convex-dev/geospatial/_generated/component.js").ComponentApi<"geospatial">;
   aggregateCompletedAppointments: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateCompletedAppointments">;
+  aggregateWhatsappMessagesSent: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateWhatsappMessagesSent">;
   aggregateSmsSent: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateSmsSent">;
   aggregateEmailsSent: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateEmailsSent">;
   aggregateReviewRatings: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateReviewRatings">;
