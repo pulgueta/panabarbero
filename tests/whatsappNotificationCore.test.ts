@@ -13,26 +13,36 @@ describe("WhatsApp appointment notification helpers", () => {
     const actionId = buildWhatsAppActionId({
       action: "accept",
       appointmentId: "appt_123",
+      proposedAt: 1783717200000,
       role: "customer",
     });
 
-    expect(actionId).toBe("appointment-reschedule:customer:accept:appt_123");
+    expect(actionId).toBe(
+      "appointment-reschedule:customer:accept:appt_123:1783717200000",
+    );
     expect(parseWhatsAppActionId(actionId)).toEqual({
       action: "accept",
       appointmentId: "appt_123",
+      proposedAt: 1783717200000,
       role: "customer",
       type: "appointment-reschedule",
     });
   });
 
   test("rejects malformed or unsupported action ids", () => {
-    expect(parseWhatsAppActionId("appointment-reschedule:owner:accept:123"))
+    expect(parseWhatsAppActionId("appointment-reschedule:owner:accept:123:1"))
       .toBeNull();
-    expect(parseWhatsAppActionId("appointment-reschedule:customer:maybe:123"))
+    expect(parseWhatsAppActionId("appointment-reschedule:customer:maybe:123:1"))
       .toBeNull();
-    expect(parseWhatsAppActionId("unknown:customer:accept:123")).toBeNull();
+    expect(parseWhatsAppActionId("unknown:customer:accept:123:1")).toBeNull();
     expect(parseWhatsAppActionId("appointment-reschedule:customer:accept"))
       .toBeNull();
+    // Payloads without the proposal timestamp must not decide anything.
+    expect(parseWhatsAppActionId("appointment-reschedule:customer:accept:123"))
+      .toBeNull();
+    expect(
+      parseWhatsAppActionId("appointment-reschedule:customer:accept:123:abc"),
+    ).toBeNull();
   });
 
   test("extracts reply ids from WhatsApp interactive webhook payloads", () => {
@@ -88,6 +98,7 @@ describe("WhatsApp appointment notification helpers", () => {
     const components = buildRescheduleRequestTemplateComponents({
       appointmentId: "appt_123",
       body: "Un cliente ha solicitado reagendar una cita.",
+      proposedAt: 1783717200000,
       role: "barber",
     });
 
@@ -105,7 +116,8 @@ describe("WhatsApp appointment notification helpers", () => {
         parameters: [
           {
             type: "payload",
-            payload: "appointment-reschedule:barber:accept:appt_123",
+            payload:
+              "appointment-reschedule:barber:accept:appt_123:1783717200000",
           },
         ],
       },
@@ -116,7 +128,8 @@ describe("WhatsApp appointment notification helpers", () => {
         parameters: [
           {
             type: "payload",
-            payload: "appointment-reschedule:barber:reject:appt_123",
+            payload:
+              "appointment-reschedule:barber:reject:appt_123:1783717200000",
           },
         ],
       },

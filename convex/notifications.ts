@@ -60,6 +60,7 @@ async function scheduleWhatsAppWithQuota(
     barbershopId?: Barbershop["_id"];
     rescheduleAction?: {
       appointmentId: string;
+      proposedAt: number;
       role: "customer" | "barber";
     };
   },
@@ -251,13 +252,18 @@ export const createAppointmentRescheduleRequest = zInternalMutation({
       ? appointment.contactPhone || receiverProfile?.phoneNumber
       : receiverProfile?.phoneNumber;
 
-    if (isWhatsAppEnabled(receiverProfile) && phoneNumber) {
+    if (
+      isWhatsAppEnabled(receiverProfile) &&
+      phoneNumber &&
+      appointment.proposedDate
+    ) {
       await scheduleWhatsAppWithQuota(ctx, {
         body,
         to: phoneNumber,
         barbershopId: appointment.barbershopId,
         rescheduleAction: {
           appointmentId: appointment._id,
+          proposedAt: appointment.proposedDate,
           role: args.sendTo,
         },
       });

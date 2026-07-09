@@ -39,6 +39,7 @@ export const sendNotification = zInternalAction({
     rescheduleAction: z
       .object({
         appointmentId: z.string(),
+        proposedAt: z.number(),
         role: z.enum(["customer", "barber"]),
       })
       .optional(),
@@ -48,6 +49,7 @@ export const sendNotification = zInternalAction({
       ? buildRescheduleRequestTemplateComponents({
           appointmentId: args.rescheduleAction.appointmentId,
           body: args.body,
+          proposedAt: args.rescheduleAction.proposedAt,
           role: args.rescheduleAction.role,
         })
       : buildTextTemplateComponents(args.body);
@@ -88,6 +90,7 @@ export const onInboundMessage = zInternalMutation({
         appointmentId: action.appointmentId as Id<"appointments">,
         accepted: action.action === "accept",
         answeredBy: action.role,
+        proposedAt: action.proposedAt,
         senderPhone: message.from,
       },
     );

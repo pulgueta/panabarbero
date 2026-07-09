@@ -4,6 +4,7 @@ type RescheduleRole = "barber" | "customer";
 export type WhatsAppActionId = {
   action: RescheduleDecision;
   appointmentId: string;
+  proposedAt: number;
   role: RescheduleRole;
   type: "appointment-reschedule";
 };
@@ -23,25 +24,30 @@ type TemplateComponent =
 export function buildWhatsAppActionId(args: {
   action: RescheduleDecision;
   appointmentId: string;
+  proposedAt: number;
   role: RescheduleRole;
 }) {
-  return `appointment-reschedule:${args.role}:${args.action}:${args.appointmentId}`;
+  return `appointment-reschedule:${args.role}:${args.action}:${args.appointmentId}:${args.proposedAt}`;
 }
 
 export function parseWhatsAppActionId(id: string): WhatsAppActionId | null {
-  const [type, role, action, appointmentId, ...extra] = id.split(":");
+  const [type, role, action, appointmentId, proposedAtRaw, ...extra] =
+    id.split(":");
+  const proposedAt = Number(proposedAtRaw);
 
   if (
     type !== "appointment-reschedule" ||
     (role !== "barber" && role !== "customer") ||
     (action !== "accept" && action !== "reject") ||
     !appointmentId ||
+    !proposedAtRaw ||
+    !Number.isInteger(proposedAt) ||
     extra.length > 0
   ) {
     return null;
   }
 
-  return { action, appointmentId, role, type };
+  return { action, appointmentId, proposedAt, role, type };
 }
 
 function readReplyId(
@@ -117,6 +123,7 @@ export function buildTextTemplateComponents(body: string): TemplateComponent[] {
 export function buildRescheduleRequestTemplateComponents(args: {
   appointmentId: string;
   body: string;
+  proposedAt: number;
   role: RescheduleRole;
 }): TemplateComponent[] {
   return [
@@ -131,6 +138,7 @@ export function buildRescheduleRequestTemplateComponents(args: {
           payload: buildWhatsAppActionId({
             action: "accept",
             appointmentId: args.appointmentId,
+            proposedAt: args.proposedAt,
             role: args.role,
           }),
         },
@@ -146,6 +154,7 @@ export function buildRescheduleRequestTemplateComponents(args: {
           payload: buildWhatsAppActionId({
             action: "reject",
             appointmentId: args.appointmentId,
+            proposedAt: args.proposedAt,
             role: args.role,
           }),
         },

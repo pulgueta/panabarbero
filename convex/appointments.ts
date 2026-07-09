@@ -1094,12 +1094,19 @@ export const answerRescheduleRequestFromWhatsApp = zInternalMutation({
     appointmentId: appointments.tools.id.shape.id,
     accepted: z.boolean(),
     answeredBy: z.enum(["customer", "barber"]),
+    proposedAt: z.number(),
     senderPhone: z.string(),
   }),
   handler: async (ctx, args) => {
     const appt = await ctx.db.get(args.appointmentId);
 
     if (!appt || appt.deletedAt) {
+      return false;
+    }
+
+    // Bind the reply to the proposal it was sent for: a replayed button from
+    // an older reschedule message must not decide a newer proposal.
+    if (appt.proposedDate !== args.proposedAt) {
       return false;
     }
 
