@@ -1,7 +1,10 @@
 import { Migrations } from "@convex-dev/migrations";
 import { components } from "./_generated/api.js";
 import type { DataModel } from "./_generated/dataModel.js";
-import { completedAppointmentsAggregate } from "./aggregates";
+import {
+  completedAppointmentsAggregate,
+  whatsappUsageAggregate,
+} from "./aggregates";
 import { authz, barbershopScope } from "./authz";
 
 export const migrations = new Migrations<DataModel>(components.migrations);
@@ -95,6 +98,21 @@ export const backfillCompletedServiceSnapshot = migrations.define({
       completedServicePrice: service.price,
       completedServiceName: service.name,
     });
+  },
+});
+
+/**
+ * Seed the new WhatsApp usage aggregate with pre-existing `usage` rows so the
+ * table trigger's `replace` finds them on the first WhatsApp increment —
+ * without this, the first send for a barbershop with an existing usage row
+ * throws DELETE_MISSING_KEY and fails the booking mutation. Idempotent via
+ * `insertIfDoesNotExist`. Run once per deployment with
+ * `npx convex run migrations:run '{fn: "migrations:backfillWhatsappUsageAggregate"}'`.
+ */
+export const backfillWhatsappUsageAggregate = migrations.define({
+  table: "usage",
+  migrateOne: async (ctx, doc) => {
+    await whatsappUsageAggregate.insertIfDoesNotExist(ctx, doc);
   },
 });
 
