@@ -41,7 +41,7 @@ export interface UsePlanResult {
   canUsePanaManagement: boolean;
   maxInvitedBarbers: number | null;
   maxStaff: number | null;
-  maxSmsPerMonth: number | null;
+  maxWhatsappMessagesPerMonth: number | null;
   isFree: boolean;
   isPro: boolean;
   isPremium: boolean;
@@ -80,7 +80,7 @@ export function usePlan(): UsePlanResult {
     canUsePanaManagement: planLimits.panaManagement,
     maxInvitedBarbers: planLimits.maxInvitedBarbers,
     maxStaff: planLimits.maxStaff,
-    maxSmsPerMonth: planLimits.maxSmsPerMonth,
+    maxWhatsappMessagesPerMonth: planLimits.maxWhatsappMessagesPerMonth,
 
     // Tier booleans
     isFree: planTier === "free",
@@ -121,7 +121,7 @@ export function useBarbershopPlan(
     canUsePanaManagement: planLimits.panaManagement,
     maxInvitedBarbers: planLimits.maxInvitedBarbers,
     maxStaff: planLimits.maxStaff,
-    maxSmsPerMonth: planLimits.maxSmsPerMonth,
+    maxWhatsappMessagesPerMonth: planLimits.maxWhatsappMessagesPerMonth,
 
     isFree: planTier === "free",
     isPro: planTier === "pro",

@@ -111,7 +111,7 @@ export const BillingPlanCard: FC<BillingPlanCardProps> = ({ barbershopId }) => {
           {isLoading ? (
             <>
               <div className="grid gap-2">
-                {["barbers", "staff", "sms", "email"].map((row) => (
+                {["barbers", "staff", "whatsapp"].map((row) => (
                   <Skeleton key={row} className="h-5 w-full" />
                 ))}
               </div>
@@ -139,15 +139,9 @@ export const BillingPlanCard: FC<BillingPlanCardProps> = ({ barbershopId }) => {
                   </dd>
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  <dt className="text-muted-foreground">SMS mensuales</dt>
+                  <dt className="text-muted-foreground">WhatsApp mensuales</dt>
                   <dd className="font-medium tabular-nums">
-                    {formatLimit(planLimits.maxSmsPerMonth)}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-muted-foreground">Emails mensuales</dt>
-                  <dd className="font-medium tabular-nums">
-                    {formatLimit(planLimits.maxEmailPerMonth)}
+                    {formatLimit(planLimits.maxWhatsappMessagesPerMonth)}
                   </dd>
                 </div>
               </dl>

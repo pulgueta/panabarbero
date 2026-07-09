@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 
-import { convexToZod, zid } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
+import { convexToZod, zid } from "convex-helpers/server/zod4";
 import { z } from "zod";
 import { zAuthMutation, zInternalMutation, zQuery } from ".";
 import { api, internal } from "./_generated/api";
@@ -85,6 +85,7 @@ export const create = zAuthMutation({
           undefined,
         notificationsPreferences: [
           { type: "email", enabled: true },
+          { type: "whatsapp", enabled: true },
           { type: "sms", enabled: false },
         ],
       });

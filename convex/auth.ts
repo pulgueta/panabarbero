@@ -318,6 +318,7 @@ export const { authKitEvent } = authkit.events({
         name: fullName(firstName, lastName),
         notificationsPreferences: [
           { type: "email", enabled: true },
+          { type: "whatsapp", enabled: true },
           { type: "sms", enabled: false },
         ],
       });

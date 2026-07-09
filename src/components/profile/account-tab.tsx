@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import {
   FieldContent,
+  FieldDescription,
   FieldLabel,
   Field as FieldRoot,
 } from "@/components/ui/field";
@@ -51,6 +52,43 @@ interface AccountTabProps {
   userId: string;
 }
 
+type NotificationPreferenceType =
+  UserProfileData["notificationsPreferences"][number]["type"];
+
+interface NotificationSwitchFieldProps {
+  checked?: boolean;
+  disabled?: boolean;
+  disabledDescription?: string;
+  label: string;
+  onCheckedChange: (type: NotificationPreferenceType, enabled: boolean) => void;
+  type: NotificationPreferenceType;
+}
+
+const NotificationSwitchField: FC<NotificationSwitchFieldProps> = ({
+  checked,
+  disabled,
+  disabledDescription,
+  label,
+  onCheckedChange,
+  type,
+}) => (
+  <FieldRoot orientation="horizontal">
+    <FieldLabel>{label}</FieldLabel>
+    <FieldContent className="items-end">
+      <Switch
+        checked={checked}
+        disabled={disabled}
+        onCheckedChange={(val) => onCheckedChange(type, val)}
+      />
+      {disabled && disabledDescription && (
+        <FieldDescription className="max-w-56 text-right text-xs">
+          {disabledDescription}
+        </FieldDescription>
+      )}
+    </FieldContent>
+  </FieldRoot>
+);
+
 export const AccountTab: FC<AccountTabProps> = ({
   profile,
   isBarber,
@@ -75,6 +113,19 @@ export const AccountTab: FC<AccountTabProps> = ({
     useState<boolean>(false);
 
   const { isSubscribed } = usePlan();
+  const emailPreference = profile?.notificationsPreferences.find(
+    (p) => p.type === "email",
+  );
+  const smsPreference = profile?.notificationsPreferences.find(
+    (p) => p.type === "sms",
+  );
+  const whatsappPreference = profile?.notificationsPreferences.find(
+    (p) => p.type === "whatsapp",
+  );
+  const updatePreference = (
+    type: NotificationPreferenceType,
+    enabled: boolean,
+  ) => updateNotificationPreference({ type, enabled, userId });
 
   useEffect(() => {
     const checkBannerVisibility = () => {
@@ -269,51 +320,32 @@ export const AccountTab: FC<AccountTabProps> = ({
           <CardHeader>
             <CardTitle>Preferencias de notificación</CardTitle>
             <CardDescription>
-              Selecciona los canales por los cuales deseas recibir
-              notificaciones.
+              Selecciona cómo deseas recibir avisos de cuenta, citas y alertas.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
-            <FieldRoot orientation="horizontal">
-              <FieldLabel>Email</FieldLabel>
-              <FieldContent className="items-end">
-                <Switch
-                  checked={
-                    profile?.notificationsPreferences.find(
-                      (p) => p.type === "email",
-                    )?.enabled
-                  }
-                  onCheckedChange={(val) =>
-                    updateNotificationPreference({
-                      type: "email",
-                      enabled: val,
-                      userId,
-                    })
-                  }
-                />
-              </FieldContent>
-            </FieldRoot>
-
-            <FieldRoot orientation="horizontal">
-              <FieldLabel>Mensaje de texto (SMS)</FieldLabel>
-              <FieldContent className="items-end">
-                <Switch
-                  checked={
-                    profile?.notificationsPreferences.find(
-                      (p) => p.type === "sms",
-                    )?.enabled
-                  }
-                  disabled={!profile?.phoneNumber}
-                  onCheckedChange={(val) =>
-                    updateNotificationPreference({
-                      type: "sms",
-                      enabled: val,
-                      userId,
-                    })
-                  }
-                />
-              </FieldContent>
-            </FieldRoot>
+            <NotificationSwitchField
+              checked={emailPreference?.enabled}
+              label="Correo electrónico"
+              onCheckedChange={updatePreference}
+              type="email"
+            />
+            <NotificationSwitchField
+              checked={whatsappPreference?.enabled}
+              disabled={!profile?.phoneNumber}
+              disabledDescription="Agrega un celular para activar avisos por WhatsApp."
+              label="WhatsApp"
+              onCheckedChange={updatePreference}
+              type="whatsapp"
+            />
+            <NotificationSwitchField
+              checked={smsPreference?.enabled}
+              disabled={!profile?.phoneNumber}
+              disabledDescription="Agrega un celular para activar alertas por SMS."
+              label="SMS"
+              onCheckedChange={updatePreference}
+              type="sms"
+            />
           </CardContent>
         </Card>
       </div>

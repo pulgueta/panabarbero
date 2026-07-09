@@ -1,6 +1,6 @@
-import { CheckoutLink } from "@convex-dev/polar/react";
 import { api } from "@convex/_generated/api";
 import type { Barbershop, ExtraCredits } from "@convex/schema";
+import { CheckoutLink } from "@convex-dev/polar/react";
 import type { FC } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -37,7 +37,6 @@ interface CreditCardProps {
   isLoading: boolean;
   planQuotaUsed: number;
   planQuotaMax: number;
-  planQuotaKind: "sms" | "email";
 }
 
 const CreditCard: FC<CreditCardProps> = ({
@@ -52,13 +51,11 @@ const CreditCard: FC<CreditCardProps> = ({
   isLoading,
   planQuotaUsed,
   planQuotaMax,
-  planQuotaKind,
 }) => {
   const hasCredits = currentCredits > 0;
   const percentage = maxCredits > 0 ? (currentCredits / maxCredits) * 100 : 0;
 
-  const planLabel =
-    planQuotaKind === "sms" ? "SMS incluidos" : "Correos incluidos";
+  const planLabel = "WhatsApp incluidos";
 
   const isUnlimitedPlan = planQuotaMax === 0;
   const planRemaining =
@@ -80,7 +77,7 @@ const CreditCard: FC<CreditCardProps> = ({
             {formatCurrency(priceCop)}
           </span>
           <span className="block text-pretty text-muted-foreground text-sm">
-            Estos créditos se consumen después de los que tienes incluídos en tu
+            Estos créditos se consumen después de los que tienes incluidos en tu
             plan.
           </span>
         </div>
@@ -101,9 +98,7 @@ const CreditCard: FC<CreditCardProps> = ({
 
           {hasCredits && (
             <Progress value={percentage}>
-              <ProgressLabel>
-                {planQuotaKind === "sms" ? "SMS" : "Correos"} extra restantes
-              </ProgressLabel>
+              <ProgressLabel>WhatsApp extra restantes</ProgressLabel>
               <ProgressValue>{() => `${currentCredits}`}</ProgressValue>
             </Progress>
           )}
@@ -161,60 +156,37 @@ export const ExtraCreditsCards: FC<ExtraCreditsCardsProps> = ({
 
   const isLoading = productsLoading || creditsLoading;
 
-  // Find the one-time credit products
-  const smsProduct = products?.find(
-    (p) => !p.isRecurring && p.name.toLowerCase().includes("sms"),
-  );
-  const emailProduct = products?.find(
-    (p) => !p.isRecurring && p.name.toLowerCase().includes("correo"),
+  const whatsappProduct = products?.find(
+    (p) => !p.isRecurring && p.name.toLowerCase().includes("whatsapp"),
   );
 
   const safeCredits: ExtraCredits | null = credits ?? null;
 
   // Use the cumulative purchased total as the progress-bar ceiling so the bar
   // accurately reflects depletion across all purchases (not just one pack).
-  const smsMax = safeCredits?.smsPurchasedTotal ?? 0;
-  const emailMax = safeCredits?.emailPurchasedTotal ?? 0;
+  const whatsappMax = safeCredits?.whatsappPurchasedTotal ?? 0;
 
-  if (!smsProduct && !emailProduct) {
+  if (!whatsappProduct) {
     return null;
   }
 
   return (
     <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
-      {smsProduct && quota && (
+      {quota && (
         <CreditCard
-          productId={smsProduct.id}
-          name={smsProduct.name}
-          description={smsProduct.description ?? "Créditos de SMS adicionales"}
-          priceCop={getCopPrice(smsProduct)}
-          currentCredits={safeCredits?.smsCredits ?? 0}
-          maxCredits={smsMax}
-          barbershopId={barbershopId}
-          workosOrganizationId={workosOrganizationId}
-          isLoading={isLoading}
-          planQuotaUsed={quota.smsUsed}
-          planQuotaMax={quota.maxSmsPerMonth ?? 0}
-          planQuotaKind="sms"
-        />
-      )}
-
-      {emailProduct && quota && (
-        <CreditCard
-          productId={emailProduct.id}
-          name={emailProduct.name}
+          productId={whatsappProduct.id}
+          name={whatsappProduct.name}
           description={
-            emailProduct.description ?? "Créditos de correo adicionales"
+            whatsappProduct.description ?? "Créditos de WhatsApp adicionales"
           }
-          priceCop={getCopPrice(emailProduct)}
-          currentCredits={safeCredits?.emailCredits ?? 0}
-          maxCredits={emailMax}
+          priceCop={getCopPrice(whatsappProduct)}
+          currentCredits={safeCredits?.whatsappCredits ?? 0}
+          maxCredits={whatsappMax}
           barbershopId={barbershopId}
           workosOrganizationId={workosOrganizationId}
           isLoading={isLoading}
-          planQuotaUsed={quota.emailsUsed}
-          planQuotaMax={quota.maxEmailPerMonth ?? 0}
-          planQuotaKind="email"
+          planQuotaUsed={quota.whatsappMessagesUsed}
+          planQuotaMax={quota.maxWhatsappMessagesPerMonth ?? 0}
         />
       )}
     </div>

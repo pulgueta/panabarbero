@@ -35,10 +35,19 @@ export function useProfileActions() {
       );
 
       if (existingProfile) {
-        const updatedPreferences = existingProfile.notificationsPreferences.map(
-          (pref) =>
-            pref.type === args.type ? { ...pref, enabled: args.enabled } : pref,
+        const hasPreference = existingProfile.notificationsPreferences.some(
+          (pref) => pref.type === args.type,
         );
+        const updatedPreferences = hasPreference
+          ? existingProfile.notificationsPreferences.map((pref) =>
+              pref.type === args.type
+                ? { ...pref, enabled: args.enabled }
+                : pref,
+            )
+          : [
+              ...existingProfile.notificationsPreferences,
+              { type: args.type, enabled: args.enabled },
+            ];
 
         localStore.setQuery(
           api.userProfileData.getMyProfile,

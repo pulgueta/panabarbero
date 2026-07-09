@@ -117,7 +117,7 @@ export const updatePhoneNumber = zAuthMutation({
 
 export const updateNotificationPreference = zAuthMutation({
   args: z.object({
-    type: z.enum(["email", "sms"]),
+    type: z.enum(["email", "sms", "whatsapp"]),
     enabled: z.boolean(),
     userId: z.string(),
   }),
@@ -133,9 +133,17 @@ export const updateNotificationPreference = zAuthMutation({
     if (!profile)
       throw new ConvexError(errorMessages.notFound("perfil de usuario"));
 
-    const next = profile.notificationsPreferences.map((p) =>
-      p.type === args.type ? { ...p, enabled: args.enabled } : p,
+    const hasPreference = profile.notificationsPreferences.some(
+      (p) => p.type === args.type,
     );
+    const next = hasPreference
+      ? profile.notificationsPreferences.map((p) =>
+          p.type === args.type ? { ...p, enabled: args.enabled } : p,
+        )
+      : [
+          ...profile.notificationsPreferences,
+          { type: args.type, enabled: args.enabled },
+        ];
 
     await ctx.db.patch(profile._id, { notificationsPreferences: next });
   },
