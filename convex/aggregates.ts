@@ -3,12 +3,13 @@
  *
  * Three aggregates are registered:
  *   - completedAppointmentsAggregate: count completed appointments per barbershop
- *   - smsUsageAggregate: sum smsSent per barbershop (across months)
- *   - emailUsageAggregate: sum emailsSent per barbershop (across months)
+ *   - whatsappUsageAggregate: sum whatsappMessagesSent per barbershop (across months)
+ *   - smsUsageAggregate: legacy sum smsSent per barbershop (across months)
+ *   - emailUsageAggregate: legacy sum emailsSent per barbershop (across months)
  *
- * `smsUsageAggregate` and `emailUsageAggregate` are kept in sync automatically
- * via a Trigger registered on the `usage` table — no manual `.insert/.replace`
- * calls are needed in mutations.
+ * Usage aggregates are kept in sync automatically via a Trigger registered on
+ * the `usage` table — no manual `.insert/.replace` calls are needed in
+ * mutations.
  * `completedAppointmentsAggregate` is a DirectAggregate and must still be
  * maintained manually.
  */
@@ -39,7 +40,25 @@ export const completedAppointmentsAggregate = new DirectAggregate<{
 }>(components.aggregateCompletedAppointments);
 
 /**
- * Sums smsSent across all `usage` rows per barbershop.
+ * Sums WhatsApp messages across all `usage` rows per barbershop.
+ *
+ * Namespace: barbershopId
+ * Key:       month string (YYYY-MM) — enables range queries per month
+ * sumValue:  whatsappMessagesSent
+ */
+export const whatsappUsageAggregate = new TableAggregate<{
+  Namespace: Barbershop["_id"];
+  Key: string;
+  DataModel: DataModel;
+  TableName: "usage";
+}>(components.aggregateWhatsappMessagesSent, {
+  namespace: (doc) => doc.barbershopId,
+  sortKey: (doc) => doc.month,
+  sumValue: (doc) => doc.whatsappMessagesSent ?? 0,
+});
+
+/**
+ * Legacy sum of smsSent across all `usage` rows per barbershop.
  *
  * Namespace: barbershopId
  * Key:       month string (YYYY-MM) — enables range queries per month
@@ -57,7 +76,7 @@ export const smsUsageAggregate = new TableAggregate<{
 });
 
 /**
- * Sums emailsSent across all `usage` rows per barbershop.
+ * Legacy sum of emailsSent across all `usage` rows per barbershop.
  *
  * Namespace: barbershopId
  * Key:       month string (YYYY-MM) — enables range queries per month
@@ -111,7 +130,7 @@ export async function getBarbershopRatingValue(
 }
 
 /**
- * Triggers that keep `smsUsageAggregate` and `emailUsageAggregate` in sync
+ * Triggers that keep usage aggregates in sync
  * automatically whenever the `usage` table is written through `usageTriggers`.
  *
  * Use `usageTriggers.wrapDB(ctx).db` instead of `ctx.db` in mutations that
@@ -119,6 +138,7 @@ export async function getBarbershopRatingValue(
  */
 export const usageTriggers = new Triggers<DataModel>();
 
+usageTriggers.register("usage", whatsappUsageAggregate.trigger());
 usageTriggers.register("usage", smsUsageAggregate.trigger());
 usageTriggers.register("usage", emailUsageAggregate.trigger());
 

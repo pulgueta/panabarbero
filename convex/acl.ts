@@ -224,114 +224,96 @@ export async function getUsageRow(
 }
 
 /**
- * Returns `true` when the barbershop can still send SMS this month,
- * `false` when both the monthly plan quota AND purchased extra credits
- * are exhausted.
- * Never throws — safe to use in fire-and-forget notification paths.
+ * Returns `true` when the barbershop can still send WhatsApp messages this
+ * month, `false` when both the monthly plan quota AND purchased extra credits
+ * are exhausted. Never throws — safe to use in fire-and-forget notification
+ * paths.
+ */
+export async function isWhatsappLimitNotExceeded(
+  ctx: QueryCtx | MutationCtx,
+  barbershopId: Barbershop["_id"],
+): Promise<boolean> {
+  const barbershop = await ctx.db.get(barbershopId);
+
+  if (!barbershop) {
+    return true;
+  }
+
+  const limits = await getUserPlanLimits(ctx, barbershop.ownerId);
+
+  if (limits.maxWhatsappMessagesPerMonth === null) {
+    return true;
+  }
+
+  const row = await getUsageRow(ctx, barbershopId, getCurrentYearMonth());
+
+  if (!row) {
+    return true;
+  }
+
+  // Plan quota still has room
+  if ((row.whatsappMessagesSent ?? 0) < limits.maxWhatsappMessagesPerMonth) {
+    return true;
+  }
+
+  // Plan exhausted — check purchased extra credits
+  const credits = await getExtraCredits(ctx, barbershopId);
+
+  return (credits?.whatsappCredits ?? 0) > 0;
+}
+
+/**
+ * Legacy SMS notifications are no longer part of the barbershop quota model.
+ * Keep returning true so non-core SMS alerts can still be delivered.
  */
 export async function isSmsLimitNotExceeded(
-  ctx: QueryCtx | MutationCtx,
-  barbershopId: Barbershop["_id"],
+  _ctx: QueryCtx | MutationCtx,
+  _barbershopId: Barbershop["_id"],
 ): Promise<boolean> {
-  const barbershop = await ctx.db.get(barbershopId);
-
-  if (!barbershop) {
-    return true;
-  }
-
-  const limits = await getUserPlanLimits(ctx, barbershop.ownerId);
-
-  if (limits.maxSmsPerMonth === null) {
-    return true;
-  }
-
-  const row = await getUsageRow(ctx, barbershopId, getCurrentYearMonth());
-
-  if (!row) {
-    return true;
-  }
-
-  // Plan quota still has room
-  if (row.smsSent < limits.maxSmsPerMonth) {
-    return true;
-  }
-
-  // Plan exhausted — check purchased extra credits
-  const credits = await getExtraCredits(ctx, barbershopId);
-
-  return (credits?.smsCredits ?? 0) > 0;
+  return true;
 }
 
 /**
- * Returns `true` when the barbershop can still send emails this month,
- * `false` when both the monthly plan quota AND purchased extra credits
- * are exhausted.
- * Never throws — safe to use in fire-and-forget notification paths.
+ * Legacy email notifications are no longer part of the barbershop quota model.
+ * Keep returning true so non-core email alerts can still be delivered.
  */
 export async function isEmailLimitNotExceeded(
-  ctx: QueryCtx | MutationCtx,
-  barbershopId: Barbershop["_id"],
+  _ctx: QueryCtx | MutationCtx,
+  _barbershopId: Barbershop["_id"],
 ): Promise<boolean> {
-  const barbershop = await ctx.db.get(barbershopId);
-
-  if (!barbershop) {
-    return true;
-  }
-
-  const limits = await getUserPlanLimits(ctx, barbershop.ownerId);
-
-  if (limits.maxEmailPerMonth === null) {
-    return true;
-  }
-
-  const row = await getUsageRow(ctx, barbershopId, getCurrentYearMonth());
-
-  if (!row) {
-    return true;
-  }
-
-  // Plan quota still has room
-  if (row.emailsSent < limits.maxEmailPerMonth) {
-    return true;
-  }
-
-  // Plan exhausted — check purchased extra credits
-  const credits = await getExtraCredits(ctx, barbershopId);
-
-  if (!credits?.emailCredits) {
-    return false;
-  }
-
-  return credits.emailCredits > 0;
+  return true;
 }
 
 /**
- * Increment the SMS counter for a barbershop in the current month.
+ * Increment the WhatsApp counter for a barbershop in the current month.
  * Creates the `usage` row if it doesn't exist yet (upsert pattern).
  *
  * When the plan's monthly quota is exceeded, purchased extra credits are
- * decremented instead. The `usage.smsSent` counter always increases (for
+ * decremented instead. The `usage.whatsappMessagesSent` counter always increases (for
  * analytics) regardless of whether the send came from plan quota or credits.
  *
- * Writes go through `usageTriggers.wrapDB` so that `smsUsageAggregate` and
- * `emailUsageAggregate` are updated automatically — no manual sync needed.
+ * Writes go through `usageTriggers.wrapDB` so aggregates are updated
+ * automatically — no manual sync needed.
  */
-export async function incrementSmsSent(
+export async function incrementWhatsappSent(
   ctx: MutationCtx,
   barbershopId: Barbershop["_id"],
 ): Promise<void> {
   const month = getCurrentYearMonth();
   const existing = await getUsageRow(ctx, barbershopId, month);
   const db = usageTriggers.wrapDB(ctx).db;
-  const previousSmsSent = existing?.smsSent ?? 0;
+  const previousWhatsappSent = existing?.whatsappMessagesSent ?? 0;
 
   if (existing) {
-    await db.patch(existing._id, { smsSent: existing.smsSent + 1 });
+    await db.patch(existing._id, {
+      whatsappMessagesSent: previousWhatsappSent + 1,
+    });
   } else {
     await db.insert("usage", {
       barbershopId,
       month,
-      smsSent: 1,
+      whatsappMessagesSent: 1,
+      smsSent: 0,
       emailsSent: 0,
     });
   }
@@ -341,13 +323,13 @@ export async function incrementSmsSent(
   if (barbershop) {
     const limits = await getUserPlanLimits(ctx, barbershop.ownerId);
     if (
-      limits.maxSmsPerMonth !== null &&
-      previousSmsSent >= limits.maxSmsPerMonth
+      limits.maxWhatsappMessagesPerMonth !== null &&
+      previousWhatsappSent >= limits.maxWhatsappMessagesPerMonth
     ) {
       const credits = await getExtraCredits(ctx, barbershopId);
-      if (credits && credits.smsCredits > 0) {
+      if (credits && (credits.whatsappCredits ?? 0) > 0) {
         await ctx.db.patch(credits._id, {
-          smsCredits: credits.smsCredits - 1,
+          whatsappCredits: (credits.whatsappCredits ?? 0) - 1,
         });
       }
     }
@@ -355,15 +337,34 @@ export async function incrementSmsSent(
 }
 
 /**
+ * Increment the legacy SMS counter for non-core alerts.
+ */
+export async function incrementSmsSent(
+  ctx: MutationCtx,
+  barbershopId: Barbershop["_id"],
+): Promise<void> {
+  const month = getCurrentYearMonth();
+  const existing = await getUsageRow(ctx, barbershopId, month);
+  const db = usageTriggers.wrapDB(ctx).db;
+
+  if (existing) {
+    await db.patch(existing._id, { smsSent: existing.smsSent + 1 });
+  } else {
+    await db.insert("usage", {
+      barbershopId,
+      month,
+      whatsappMessagesSent: 0,
+      smsSent: 1,
+      emailsSent: 0,
+    });
+  }
+}
+
+/**
  * Increment the email counter for a barbershop in the current month.
  * Creates the `usage` row if it doesn't exist yet (upsert pattern).
  *
- * When the plan's monthly quota is exceeded, purchased extra credits are
- * decremented instead. The `usage.emailsSent` counter always increases (for
- * analytics) regardless of whether the send came from plan quota or credits.
- *
- * Writes go through `usageTriggers.wrapDB` so that `emailUsageAggregate` is
- * updated automatically — no manual sync needed.
+ * Legacy email counter for non-core alerts.
  */
 export async function incrementEmailSent(
   ctx: MutationCtx,
@@ -372,7 +373,6 @@ export async function incrementEmailSent(
   const month = getCurrentYearMonth();
   const existing = await getUsageRow(ctx, barbershopId, month);
   const db = usageTriggers.wrapDB(ctx).db;
-  const previousEmailsSent = existing?.emailsSent ?? 0;
 
   if (existing) {
     await db.patch(existing._id, { emailsSent: existing.emailsSent + 1 });
@@ -380,25 +380,9 @@ export async function incrementEmailSent(
     await db.insert("usage", {
       barbershopId,
       month,
+      whatsappMessagesSent: 0,
       smsSent: 0,
       emailsSent: 1,
     });
-  }
-
-  // If this send exceeded the plan quota, decrement extra credits
-  const barbershop = await ctx.db.get(barbershopId);
-  if (barbershop) {
-    const limits = await getUserPlanLimits(ctx, barbershop.ownerId);
-    if (
-      limits.maxEmailPerMonth !== null &&
-      previousEmailsSent >= limits.maxEmailPerMonth
-    ) {
-      const credits = await getExtraCredits(ctx, barbershopId);
-      if (credits && credits.emailCredits > 0) {
-        await ctx.db.patch(credits._id, {
-          emailCredits: credits.emailCredits - 1,
-        });
-      }
-    }
   }
 }

@@ -13,7 +13,7 @@ export const userProfileData = zodTable("userProfileData", () => ({
   phoneNumber: z.string().optional(),
   notificationsPreferences: z.array(
     z.object({
-      type: z.enum(["email", "sms"]),
+      type: z.enum(["email", "sms", "whatsapp"]),
       enabled: z.boolean(),
     }),
   ),
@@ -248,6 +248,7 @@ export const barbershopMemberServices = zodTable(
 export const usage = zodTable("usage", (id) => ({
   barbershopId: id("barbershops"),
   month: z.string(),
+  whatsappMessagesSent: z.number().optional(),
   smsSent: z.number(),
   emailsSent: z.number(),
 }));
@@ -261,10 +262,13 @@ export const extraCredits = zodTable("extraCredits", (id) => ({
   barbershopId: id("barbershops"),
   smsCredits: z.number(),
   emailCredits: z.number(),
+  whatsappCredits: z.number().optional(),
   /** Cumulative SMS credits ever purchased — used as the progress-bar ceiling. */
   smsPurchasedTotal: z.number(),
   /** Cumulative email credits ever purchased — used as the progress-bar ceiling. */
   emailPurchasedTotal: z.number(),
+  /** Cumulative WhatsApp credits ever purchased — used as the progress-bar ceiling. */
+  whatsappPurchasedTotal: z.number().optional(),
 }));
 
 /**
@@ -274,7 +278,7 @@ export const extraCredits = zodTable("extraCredits", (id) => ({
 export const creditPurchases = zodTable("creditPurchases", (id) => ({
   orderId: z.string(),
   barbershopId: id("barbershops"),
-  type: z.enum(["sms", "email"]),
+  type: z.enum(["sms", "email", "whatsapp"]),
   amount: z.number(),
   purchasedAt: z.number(),
 }));
@@ -300,7 +304,7 @@ export const notificationKindSchema = z.enum(notificationKinds);
 
 /**
  * In-app notification inbox rows. One row per recipient; copy is rendered
- * server-side so SMS, email and in-app stay in sync.
+ * server-side so external and in-app notifications stay in sync.
  */
 export const inAppNotifications = zodTable("inAppNotifications", (id) => ({
   userId: z.string(),
