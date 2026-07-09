@@ -332,7 +332,7 @@ export const AccountTab: FC<AccountTabProps> = ({
             />
             <NotificationSwitchField
               checked={whatsappPreference?.enabled}
-              disabled={!profile?.phoneNumber}
+              disabled={!profile?.phoneNumber && !whatsappPreference?.enabled}
               disabledDescription="Agrega un celular para activar avisos por WhatsApp."
               label="WhatsApp"
               onCheckedChange={updatePreference}
