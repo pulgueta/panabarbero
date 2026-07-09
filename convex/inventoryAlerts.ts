@@ -5,7 +5,7 @@
  * `recordMovement`/`updateItem` detect the downward crossing (hysteresis on
  * `inventoryLevels.lowStockAlertedAt`) and only *enqueue* this workflow
  * (`startAsync`), so the inventory mutation carries none of the notification
- * load. The workflow resolves recipients, channel preferences, plan quotas and
+ * load. The workflow resolves recipients, channel preferences and
  * in-app rows in a single mutation step, then dispatches each email/SMS as its
  * own retriable action step with exponential backoff.
  */
@@ -55,8 +55,8 @@ export async function startLowStockAlert(
 
 /**
  * Step 1 (mutation): resolve recipients — the owner plus every active member
- * with the `owner` or `staff` role — apply per-user channel preferences and
- * the barbershop's monthly email/SMS quotas, and persist the in-app rows.
+ * with the `owner` or `staff` role — apply per-user channel preferences, keep
+ * legacy email/SMS counters current, and persist the in-app rows.
  * Returns the concrete deliveries for the workflow to dispatch as actions.
  */
 export const prepareLowStockAlert = zInternalMutation({

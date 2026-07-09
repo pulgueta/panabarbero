@@ -3,8 +3,8 @@ import type { NotificationKind } from "./schema";
 
 /**
  * Canonical copy for every end-user notification. A single function builds the
- * title + description used across in-app, email subjects, and SMS bodies so
- * the three channels cannot drift out of sync.
+ * title + description used across in-app and external messages so channels
+ * cannot drift out of sync.
  */
 
 export const siteUrl = () => process.env.SITE_URL ?? "";
@@ -125,7 +125,7 @@ export interface NotificationCopy {
   kind: NotificationKind;
   /** Short title (used as in-app title + email subject). */
   title: string;
-  /** Longer body (used for in-app description, email body, and SMS prefix). */
+  /** Longer body (used for in-app description and external message prefix). */
   description: string;
   /** Role-specific deep link the user should land on when clicking the item. */
   href: string;
@@ -282,7 +282,7 @@ export function buildNotificationCopy(
   }
 }
 
-/** SMS body = description + short deep link. */
+/** Short external message body = description + deep link. */
 export function buildSmsBody(copy: NotificationCopy): string {
   return `${copy.description} Ver detalles: ${copy.href}`;
 }

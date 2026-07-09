@@ -1,6 +1,6 @@
 /**
- * Canonical subjects used as notification titles across email, SMS, and
- * in-app surfaces. Kept in a standalone module to avoid circular imports with
+ * Canonical subjects used as notification titles across external and in-app
+ * surfaces. Kept in a standalone module to avoid circular imports with
  * `notifications.ts`.
  */
 export const subjects = {

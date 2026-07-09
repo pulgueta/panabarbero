@@ -13,6 +13,7 @@ import {
   zQuery,
 } from ".";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { assertCanCreateStaffAppointment } from "./acl";
 import { track } from "./analytics";
@@ -247,6 +248,7 @@ export const create = zAuthMutation({
       : userId;
     const { isStaffCreated: _isStaffCreated, ...withoutIsStaffCreated } =
       appointment;
+    const contactPhone = formatPhoneNumber(withoutIsStaffCreated.contactPhone);
 
     // Resolve creator member ID for staff-created appointments
     let createdByMemberId: typeof appointment.barbershopMemberId | undefined;
@@ -262,7 +264,7 @@ export const create = zAuthMutation({
     const appointmentId = await ctx.db.insert("appointments", {
       ...withoutIsStaffCreated,
       contactEmail,
-      contactPhone: formatPhoneNumber(withoutIsStaffCreated.contactPhone),
+      contactPhone,
       userId: appointmentUserId,
       status: "confirmed",
       createdBy: createdByMemberId,
@@ -281,10 +283,9 @@ export const create = zAuthMutation({
         appointmentId,
         barberUserId: barberProfile.userId,
         customerUserId: appointmentUserId,
-        to: barberProfile.email,
         sendTo: "barber",
         barbershopName: barbershop.name,
-        receiverPhoneNumber: appointment.contactPhone,
+        receiverPhoneNumber: contactPhone,
         isStaffCreated: isStaffCreatingAppointment,
       });
     }
@@ -293,10 +294,9 @@ export const create = zAuthMutation({
       appointmentId,
       barberUserId: barberProfile.userId,
       customerUserId: appointmentUserId,
-      to: contactEmail ?? customerProfile?.email,
       sendTo: "customer",
       barbershopName: barbershop.name,
-      receiverPhoneNumber: appointment.contactPhone,
+      receiverPhoneNumber: contactPhone,
       isStaffCreated: isStaffCreatingAppointment,
     });
 
@@ -318,6 +318,7 @@ export const create = zAuthMutation({
           thirtyMinutesAfterAppointment,
           internal.notifications.createPastAppointmentReminder,
           {
+            barbershopId: appointment.barbershopId,
             barberUserId: barberProfile.userId,
           },
         ),
@@ -898,8 +899,257 @@ export const notifyUpcoming = zInternalMutation({
       barbershopName: barbershop.name,
       barbershopId: barbershopId,
       customerUserId: userProfile?.userId ?? "user_does_not_exist",
-      to: appointment.contactEmail,
       receiverPhoneNumber: appointment.contactPhone,
+    });
+  },
+});
+
+async function applyRescheduleDecision(
+  ctx: MutationCtx,
+  args: {
+    accepted: boolean;
+    actorUserId: string;
+    answeredBy: "customer" | "barber";
+    appointmentId: Id<"appointments">;
+    requireAuthenticatedActor: boolean;
+  },
+) {
+  const appt = await ctx.db.get(args.appointmentId);
+
+  if (!appt) {
+    return false;
+  }
+
+  if (appt.deletedAt) {
+    return false;
+  }
+
+  if (args.requireAuthenticatedActor) {
+    if (args.answeredBy === "customer") {
+      if (appt.userId !== args.actorUserId) {
+        throw new ConvexError(errorMessages.unauthorized);
+      }
+    } else {
+      await assertShopRole(ctx, appt.barbershopId, args.actorUserId, [
+        "owner",
+        "barber",
+        "staff",
+      ]);
+    }
+  }
+
+  if (!appt.proposedDate) {
+    return false;
+  }
+
+  if (args.accepted) {
+    const service = await ctx.db.get(appt.serviceId);
+
+    if (!service) {
+      return false;
+    }
+
+    const overlap = await ctx.runQuery(internal.appointments.overlaps, {
+      appointment: { id: args.appointmentId },
+      date: appt.proposedDate,
+      endAt: appt.proposedDate + service.duration * MINUTE_MS,
+    });
+
+    if (overlap) {
+      throw new ConvexError(errorMessages.appointmentOverlaps);
+    }
+  }
+
+  const newStatus = args.accepted ? "rescheduled" : "denied";
+
+  if (args.accepted) {
+    await cancelScheduledNotifications(ctx, appt);
+
+    const thirtyMinBefore = appt.proposedDate - 30 * 60 * 1000;
+    const thirtyMinAfter = appt.proposedDate + 30 * 60 * 1000;
+
+    const upcomingNotificationId = await ctx.scheduler.runAt(
+      thirtyMinBefore,
+      internal.appointments.notifyUpcoming,
+      {
+        appointmentId: { id: args.appointmentId },
+        barbershopId: { id: appt.barbershopId },
+        userId: appt.userId,
+      },
+    );
+
+    const barberMember = await ctx.db.get(appt.barbershopMemberId);
+    const barberProf = barberMember
+      ? await ctx.db.get(barberMember.userProfileDataId)
+      : null;
+
+    let pastReminderNotificationId: typeof appt.pastReminderNotificationId;
+
+    if (barberProf) {
+      pastReminderNotificationId = await ctx.scheduler.runAt(
+        thirtyMinAfter,
+        internal.notifications.createPastAppointmentReminder,
+        {
+          barbershopId: appt.barbershopId,
+          barberUserId: barberProf.userId,
+        },
+      );
+    }
+
+    await ctx.db.patch(args.appointmentId, {
+      status: newStatus,
+      date: appt.proposedDate,
+      proposedDate: undefined,
+      rescheduleRequestedByUserId: undefined,
+      upcomingNotificationId,
+      pastReminderNotificationId,
+    });
+  } else {
+    await ctx.db.patch(args.appointmentId, {
+      status: newStatus,
+      proposedDate: undefined,
+      rescheduleRequestedByUserId: undefined,
+    });
+
+    // "denied" is a terminal state — free the recipe holds.
+    if (newStatus === "denied") {
+      await releaseForAppointment(ctx, appt);
+    }
+  }
+
+  const barber = await ctx.db.get(appt.barbershopMemberId);
+
+  if (!barber) {
+    throw new ConvexError(errorMessages.notFound("barbero"));
+  }
+
+  const barberProfile = await ctx.db.get(barber.userProfileDataId);
+
+  if (!barberProfile) {
+    throw new ConvexError(errorMessages.notFound("perfil de barbero"));
+  }
+
+  let customerProfile = null;
+
+  if (appt.userId !== "user_does_not_exist") {
+    customerProfile = await getProfileByUserId(ctx, appt.userId);
+  }
+
+  const barbershop = await ctx.db.get(appt.barbershopId);
+
+  if (!barbershop) {
+    throw new ConvexError(errorMessages.notFound("barbería"));
+  }
+
+  const isCustomerAccepting = args.answeredBy === "customer";
+  const receiverProfile = isCustomerAccepting ? barberProfile : customerProfile;
+  const receiverRole = isCustomerAccepting ? "barber" : "customer";
+  const receiverUserId = receiverProfile?.userId ?? "user_does_not_exist";
+
+  const formattedDate = dateTimeFormatter.format(new Date(appt.proposedDate));
+
+  const body = args.accepted
+    ? `Tu cita ha sido confirmada con la nueva fecha: ${formattedDate}.`
+    : "La solicitud fue rechazada y la cita fue cancelada.";
+
+  await ctx.runMutation(
+    internal.notifications.createAppointmentRescheduleDecision,
+    {
+      receiverUserId,
+      appointmentId: args.appointmentId,
+      accepted: args.accepted,
+      notes: args.accepted ? undefined : body,
+      barbershopName: barbershop.name,
+      role: receiverRole,
+    },
+  );
+
+  await track(ctx, {
+    distinctId: args.actorUserId,
+    event: "appointment_reschedule_decided",
+    properties: {
+      appointmentId: args.appointmentId,
+      barbershopId: appt.barbershopId,
+      accepted: args.accepted,
+      barberId: appt.barbershopMemberId,
+      serviceId: appt.serviceId,
+    },
+    groups: { barbershop: appt.barbershopId },
+  });
+
+  return true;
+}
+
+function phoneMatches(left: string | undefined, right: string | undefined) {
+  if (!left || !right) {
+    return false;
+  }
+
+  const normalizedLeft = formatPhoneNumber(left);
+  const normalizedRight = formatPhoneNumber(right);
+
+  return !!normalizedLeft && normalizedLeft === normalizedRight;
+}
+
+export const answerRescheduleRequestFromWhatsApp = zInternalMutation({
+  args: z.object({
+    appointmentId: appointments.tools.id.shape.id,
+    accepted: z.boolean(),
+    answeredBy: z.enum(["customer", "barber"]),
+    senderPhone: z.string(),
+  }),
+  handler: async (ctx, args) => {
+    const appt = await ctx.db.get(args.appointmentId);
+
+    if (!appt || appt.deletedAt) {
+      return false;
+    }
+
+    if (args.answeredBy === "customer") {
+      let customerProfile = null;
+
+      if (appt.userId !== "user_does_not_exist") {
+        customerProfile = await getProfileByUserId(ctx, appt.userId);
+      }
+
+      const senderMatches =
+        phoneMatches(args.senderPhone, appt.contactPhone) ||
+        phoneMatches(args.senderPhone, customerProfile?.phoneNumber);
+
+      if (!senderMatches) {
+        return false;
+      }
+
+      return await applyRescheduleDecision(ctx, {
+        accepted: args.accepted,
+        actorUserId: appt.userId,
+        answeredBy: args.answeredBy,
+        appointmentId: args.appointmentId,
+        requireAuthenticatedActor: false,
+      });
+    }
+
+    const barber = await ctx.db.get(appt.barbershopMemberId);
+
+    if (!barber) {
+      return false;
+    }
+
+    const barberProfile = await ctx.db.get(barber.userProfileDataId);
+
+    if (
+      !barberProfile?.phoneNumber ||
+      !phoneMatches(args.senderPhone, barberProfile.phoneNumber)
+    ) {
+      return false;
+    }
+
+    return await applyRescheduleDecision(ctx, {
+      accepted: args.accepted,
+      actorUserId: barberProfile.userId,
+      answeredBy: args.answeredBy,
+      appointmentId: args.appointmentId,
+      requireAuthenticatedActor: false,
     });
   },
 });
@@ -919,160 +1169,12 @@ export const answerRescheduleRequest = zAuthMutation({
       `${userId}-${args.appointment.id}`,
     );
 
-    const appt = await ctx.db.get(args.appointment.id);
-
-    if (!appt) {
-      return;
-    }
-
-    if (appt.deletedAt) {
-      return;
-    }
-
-    if (args.accepted) {
-      if (!appt.proposedDate) {
-        return;
-      }
-
-      const service = await ctx.db.get(appt.serviceId);
-
-      if (!service) {
-        return;
-      }
-
-      const overlap = await ctx.runQuery(internal.appointments.overlaps, {
-        appointment: args.appointment,
-        date: appt.proposedDate,
-        endAt: appt.proposedDate + service.duration * MINUTE_MS,
-      });
-
-      if (overlap) {
-        throw new ConvexError(errorMessages.appointmentOverlaps);
-      }
-    }
-
-    const newStatus = args.accepted ? "rescheduled" : "denied";
-
-    if (args.accepted && appt.proposedDate) {
-      await cancelScheduledNotifications(ctx, appt);
-
-      const thirtyMinBefore = appt.proposedDate - 30 * 60 * 1000;
-      const thirtyMinAfter = appt.proposedDate + 30 * 60 * 1000;
-
-      const upcomingNotificationId = await ctx.scheduler.runAt(
-        thirtyMinBefore,
-        internal.appointments.notifyUpcoming,
-        {
-          appointmentId: { id: args.appointment.id },
-          barbershopId: { id: appt.barbershopId },
-          userId: appt.userId,
-        },
-      );
-
-      const barberMember = await ctx.db.get(appt.barbershopMemberId);
-      const barberProf = barberMember
-        ? await ctx.db.get(barberMember.userProfileDataId)
-        : null;
-
-      let pastReminderNotificationId: typeof appt.pastReminderNotificationId;
-
-      if (barberProf) {
-        pastReminderNotificationId = await ctx.scheduler.runAt(
-          thirtyMinAfter,
-          internal.notifications.createPastAppointmentReminder,
-          { barberUserId: barberProf.userId },
-        );
-      }
-
-      await ctx.db.patch(args.appointment.id, {
-        status: newStatus,
-        date: appt.proposedDate,
-        proposedDate: undefined,
-        rescheduleRequestedByUserId: undefined,
-        upcomingNotificationId,
-        pastReminderNotificationId,
-      });
-    } else {
-      await ctx.db.patch(args.appointment.id, {
-        status: newStatus,
-        proposedDate: undefined,
-        rescheduleRequestedByUserId: undefined,
-      });
-
-      // "denied" is a terminal state — free the recipe holds.
-      if (newStatus === "denied") {
-        await releaseForAppointment(ctx, appt);
-      }
-    }
-
-    const barber = await ctx.db.get(appt.barbershopMemberId);
-
-    if (!barber) {
-      throw new ConvexError(errorMessages.notFound("barbero"));
-    }
-
-    const barberProfile = await ctx.db.get(barber.userProfileDataId);
-
-    if (!barberProfile) {
-      throw new ConvexError(errorMessages.notFound("perfil de barbero"));
-    }
-
-    let customerProfile = null;
-
-    if (appt.userId !== "user_does_not_exist") {
-      customerProfile = await getProfileByUserId(ctx, appt.userId);
-    }
-
-    const barbershop = await ctx.db.get(appt.barbershopId);
-
-    if (!barbershop) {
-      throw new ConvexError(errorMessages.notFound("barbería"));
-    }
-
-    const isCustomerAccepting = args.answeredBy === "customer";
-    const receiverProfile = isCustomerAccepting
-      ? barberProfile
-      : customerProfile;
-    const receiverRole = isCustomerAccepting ? "barber" : "customer";
-    const receiverUserId = receiverProfile?.userId ?? "user_does_not_exist";
-
-    const formattedDate = dateTimeFormatter.format(
-      new Date(appt.proposedDate!),
-    );
-
-    const body = args.accepted
-      ? `Tu cita ha sido confirmada con la nueva fecha: ${formattedDate}.`
-      : "La solicitud fue rechazada y la cita fue cancelada.";
-
-    const receiverEmail =
-      (receiverRole === "customer" ? appt.contactEmail : undefined) ??
-      receiverProfile?.email ??
-      "";
-
-    await ctx.runMutation(
-      internal.notifications.createAppointmentRescheduleDecision,
-      {
-        receiverUserId,
-        to: receiverEmail,
-        appointmentId: args.appointment.id,
-        accepted: args.accepted,
-        notes: args.accepted ? undefined : body,
-        barbershopName: barbershop.name,
-        role: receiverRole,
-      },
-    );
-
-    await track(ctx, {
-      distinctId: userId,
-      event: "appointment_reschedule_decided",
-      properties: {
-        appointmentId: args.appointment.id,
-        barbershopId: appt.barbershopId,
-        accepted: args.accepted,
-        barberId: appt.barbershopMemberId,
-        serviceId: appt.serviceId,
-      },
-      groups: { barbershop: appt.barbershopId },
+    await applyRescheduleDecision(ctx, {
+      accepted: args.accepted,
+      actorUserId: userId,
+      answeredBy: args.answeredBy,
+      appointmentId: args.appointment.id,
+      requireAuthenticatedActor: true,
     });
   },
 });
@@ -1380,6 +1482,8 @@ export const agentBook = zInternalMutation({
       }
     }
 
+    const contactPhone = formatPhoneNumber(args.contactPhone);
+
     const appointmentId = await ctx.db.insert("appointments", {
       userId: args.userId,
       barbershopId: args.barbershopId,
@@ -1387,7 +1491,7 @@ export const agentBook = zInternalMutation({
       barbershopMemberId: args.barbershopMemberId,
       date: args.date,
       customerName: args.customerName,
-      contactPhone: formatPhoneNumber(args.contactPhone),
+      contactPhone,
       contactEmail: args.contactEmail,
       notes: args.notes,
       status: "confirmed",
@@ -1407,25 +1511,21 @@ export const agentBook = zInternalMutation({
       appointmentId,
       barberUserId: barberProfile.userId,
       customerUserId: "user_does_not_exist",
-      to: barberProfile.email,
       sendTo: "barber",
       barbershopName: barbershop.name,
-      receiverPhoneNumber: args.contactPhone,
+      receiverPhoneNumber: contactPhone,
       isStaffCreated: false,
     });
 
-    if (!isAnon && args.contactEmail) {
-      await ctx.runMutation(internal.notifications.createAppointmentCreated, {
-        appointmentId,
-        barberUserId: barberProfile.userId,
-        customerUserId: args.userId,
-        to: args.contactEmail,
-        sendTo: "customer",
-        barbershopName: barbershop.name,
-        receiverPhoneNumber: args.contactPhone,
-        isStaffCreated: false,
-      });
-    }
+    await ctx.runMutation(internal.notifications.createAppointmentCreated, {
+      appointmentId,
+      barberUserId: barberProfile.userId,
+      customerUserId: isAnon ? "user_does_not_exist" : args.userId,
+      sendTo: "customer",
+      barbershopName: barbershop.name,
+      receiverPhoneNumber: contactPhone,
+      isStaffCreated: false,
+    });
 
     await track(ctx, {
       distinctId: args.userId,

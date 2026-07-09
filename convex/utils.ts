@@ -1,5 +1,5 @@
 /**
- * Normalizes a phone value to E.164 (`+<country><national>`) for Twilio/SMS.
+ * Normalizes a phone value to E.164 (`+<country><national>`) for phone channels.
  * Colombian national numbers (10 digits, no country code) get `+57`.
  * Values that already include `+` keep their country code.
  */
