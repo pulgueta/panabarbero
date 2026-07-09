@@ -263,28 +263,6 @@ export async function isWhatsappLimitNotExceeded(
 }
 
 /**
- * Legacy SMS notifications are no longer part of the barbershop quota model.
- * Keep returning true so non-core SMS alerts can still be delivered.
- */
-export async function isSmsLimitNotExceeded(
-  _ctx: QueryCtx | MutationCtx,
-  _barbershopId: Barbershop["_id"],
-): Promise<boolean> {
-  return true;
-}
-
-/**
- * Legacy email notifications are no longer part of the barbershop quota model.
- * Keep returning true so non-core email alerts can still be delivered.
- */
-export async function isEmailLimitNotExceeded(
-  _ctx: QueryCtx | MutationCtx,
-  _barbershopId: Barbershop["_id"],
-): Promise<boolean> {
-  return true;
-}
-
-/**
  * Increment the WhatsApp counter for a barbershop in the current month.
  * Creates the `usage` row if it doesn't exist yet (upsert pattern).
  *

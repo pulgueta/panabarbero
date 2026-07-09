@@ -18,12 +18,7 @@ import { z } from "zod";
 import { zInternalMutation } from ".";
 import { components, internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
-import {
-  incrementEmailSent,
-  incrementSmsSent,
-  isEmailLimitNotExceeded,
-  isSmsLimitNotExceeded,
-} from "./acl";
+import { incrementEmailSent, incrementSmsSent } from "./acl";
 import { errorMessages } from "./errors";
 import { buildNotificationCopy, buildSmsBody } from "./notificationCopy";
 import { isNotificationEnabled, recordInApp } from "./notifications";
@@ -135,8 +130,7 @@ export const prepareLowStockAlert = zInternalMutation({
 
       if (
         isNotificationEnabled("email", profile.notificationsPreferences) &&
-        profile.email &&
-        (await isEmailLimitNotExceeded(ctx, barbershop._id))
+        profile.email
       ) {
         await incrementEmailSent(ctx, barbershop._id);
         emails.push(profile.email);
@@ -144,8 +138,7 @@ export const prepareLowStockAlert = zInternalMutation({
 
       if (
         isNotificationEnabled("sms", profile.notificationsPreferences) &&
-        profile.phoneNumber &&
-        (await isSmsLimitNotExceeded(ctx, barbershop._id))
+        profile.phoneNumber
       ) {
         await incrementSmsSent(ctx, barbershop._id);
         smsTargets.push(profile.phoneNumber);
