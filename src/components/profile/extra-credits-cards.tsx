@@ -22,7 +22,7 @@ import {
   useBarbershopQuotaUsage,
   useExtraCredits,
 } from "@/hooks/billing/use-credits";
-import { usePricingPlans } from "@/hooks/billing/use-pricing";
+import { useConfiguredProducts } from "@/hooks/billing/use-pricing";
 import { cn, formatCurrency } from "@/lib/utils";
 
 interface CreditCardProps {
@@ -150,15 +150,14 @@ export const ExtraCreditsCards: FC<ExtraCreditsCardsProps> = ({
   barbershopId,
   workosOrganizationId,
 }) => {
-  const { data: products, isLoading: productsLoading } = usePricingPlans();
+  const { data: products, isLoading: productsLoading } =
+    useConfiguredProducts();
   const { data: credits, isLoading: creditsLoading } = useExtraCredits();
   const { data: quota } = useBarbershopQuotaUsage(barbershopId);
 
   const isLoading = productsLoading || creditsLoading;
 
-  const whatsappProduct = products?.find(
-    (p) => !p.isRecurring && p.name.toLowerCase().includes("whatsapp"),
-  );
+  const whatsappProduct = products?.extraWhatsApp ?? undefined;
 
   const safeCredits: ExtraCredits | null = credits ?? null;
 
