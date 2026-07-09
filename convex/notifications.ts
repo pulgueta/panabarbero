@@ -543,7 +543,7 @@ export const createBarberRemovedCancellation = zInternalMutation({
     });
     const body = buildSmsBody(copy);
 
-    const phoneNumber = customerProfile?.phoneNumber ?? args.contactPhone;
+    const phoneNumber = args.contactPhone || customerProfile?.phoneNumber;
 
     if (isWhatsAppEnabled(customerProfile) && phoneNumber) {
       await scheduleWhatsAppWithQuota(ctx, {
@@ -594,7 +594,7 @@ export const createServiceDeletedCancellation = zInternalMutation({
     });
     const body = buildSmsBody(copy);
 
-    const phoneNumber = customerProfile?.phoneNumber ?? args.contactPhone;
+    const phoneNumber = args.contactPhone || customerProfile?.phoneNumber;
 
     if (isWhatsAppEnabled(customerProfile) && phoneNumber) {
       await scheduleWhatsAppWithQuota(ctx, {
