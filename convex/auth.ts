@@ -14,7 +14,10 @@ import { getLimitsForProductKey, getTierForProductKey } from "./plans";
 import { polar } from "./polar";
 import type { Appointment, Barbershop, BarbershopMember } from "./schema";
 import { barbershops } from "./schema";
-import { getProfileByUserId } from "./userProfileData";
+import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  getProfileByUserId,
+} from "./userProfileData";
 import {
   DAY_MAP,
   minutesOfDay,
@@ -316,11 +319,7 @@ export const { authKitEvent } = authkit.events({
         userId,
         email,
         name: fullName(firstName, lastName),
-        notificationsPreferences: [
-          { type: "email", enabled: true },
-          { type: "whatsapp", enabled: true },
-          { type: "sms", enabled: false },
-        ],
+        notificationsPreferences: [...DEFAULT_NOTIFICATION_PREFERENCES],
       });
 
       await ctx.scheduler.runAfter(0, internal.emails.sendWelcomeEmail, {

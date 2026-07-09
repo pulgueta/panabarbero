@@ -16,7 +16,10 @@ import { cascadeDeleteBarbershop } from "./barbershopCascade";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
 import { barbershops } from "./schema";
-import { getProfileByUserId } from "./userProfileData";
+import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  getProfileByUserId,
+} from "./userProfileData";
 import { DAY_MAP, formatPhoneNumber } from "./utils";
 
 export const create = zAuthMutation({
@@ -83,11 +86,7 @@ export const create = zAuthMutation({
         name:
           [authUser.firstName, authUser.lastName].filter(Boolean).join(" ") ||
           undefined,
-        notificationsPreferences: [
-          { type: "email", enabled: true },
-          { type: "whatsapp", enabled: true },
-          { type: "sms", enabled: false },
-        ],
+        notificationsPreferences: [...DEFAULT_NOTIFICATION_PREFERENCES],
       });
 
       userProfile = await ctx.db.get(profileId);

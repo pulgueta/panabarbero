@@ -7,8 +7,19 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { errorMessages } from "./errors";
 import { getUserId, requireUserId } from "./identity";
 import { rateLimitOrThrow } from "./ratelimit";
-import { userProfileData } from "./schema";
+import { type UserProfileData, userProfileData } from "./schema";
 import { formatPhoneNumber } from "./utils";
+
+/**
+ * Channel defaults for freshly created profiles — shared by every path that
+ * inserts a `userProfileData` row so the seeds can't drift.
+ */
+export const DEFAULT_NOTIFICATION_PREFERENCES: UserProfileData["notificationsPreferences"] =
+  [
+    { type: "email", enabled: true },
+    { type: "whatsapp", enabled: true },
+    { type: "sms", enabled: false },
+  ];
 
 export const getProfileByUserId = async (
   ctx: QueryCtx | MutationCtx,
