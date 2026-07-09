@@ -52,18 +52,6 @@ export const sendNotification = zInternalAction({
         })
       : buildTextTemplateComponents(args.body);
 
-    if (args.rescheduleAction) {
-      return await whatsapp.send(ctx, {
-        to: args.to,
-        type: "template",
-        template: {
-          name: args.template.name,
-          language: args.template.language,
-          components,
-        },
-      });
-    }
-
     return await whatsapp.send(ctx, {
       to: args.to,
       type: "template",
