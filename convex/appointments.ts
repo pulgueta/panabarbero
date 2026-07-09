@@ -1521,14 +1521,19 @@ export const agentBook = zInternalMutation({
       receiverPhoneNumber: contactPhone,
     });
 
-    await ctx.runMutation(internal.notifications.createAppointmentCreated, {
-      appointmentId,
-      barberUserId: barberProfile.userId,
-      customerUserId: isAnon ? "user_does_not_exist" : args.userId,
-      sendTo: "customer",
-      barbershopName: barbershop.name,
-      receiverPhoneNumber: contactPhone,
-    });
+    // Anonymous agent bookings never notify the customer: the phone is
+    // caller-supplied and unverified, so sending would be an unauthenticated
+    // arbitrary-recipient WhatsApp send (and burn the shop's quota).
+    if (!isAnon) {
+      await ctx.runMutation(internal.notifications.createAppointmentCreated, {
+        appointmentId,
+        barberUserId: barberProfile.userId,
+        customerUserId: args.userId,
+        sendTo: "customer",
+        barbershopName: barbershop.name,
+        receiverPhoneNumber: contactPhone,
+      });
+    }
 
     await track(ctx, {
       distinctId: args.userId,
