@@ -16,7 +16,6 @@ import {
   barberByUserIdQueryOptions,
   barberScheduleQueryOptions,
 } from "@/hooks/use-barbershop-members";
-import { useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute(
   "/_authedRoutes/profile/barbershops/schedule/",
@@ -73,7 +72,9 @@ const ScheduleFallback: FC = () => (
 );
 
 function RouteComponent() {
-  const { data: user } = useSession();
+  const userId = Route.useRouteContext({
+    select: (context) => context.userId,
+  });
 
   return (
     <DashboardPage>
@@ -86,7 +87,7 @@ function RouteComponent() {
 
       <DashboardPageContent>
         <Suspense fallback={<ScheduleFallback />}>
-          <BarberScheduleCard userId={user?.id ?? ""} hideHeader />
+          <BarberScheduleCard userId={userId ?? ""} hideHeader />
         </Suspense>
       </DashboardPageContent>
     </DashboardPage>
