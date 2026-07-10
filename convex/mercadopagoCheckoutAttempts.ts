@@ -120,6 +120,7 @@ export const complete = zInternalMutation({
     currencyId: z.string(),
     initPoint: z.string(),
     nextPaymentDate: z.string().optional(),
+    trialDays: z.number().int().positive(),
     remoteUpdatedAt: z.number().optional(),
   }),
   handler: async (ctx, args) => {
@@ -155,6 +156,7 @@ export const complete = zInternalMutation({
       initPoint: args.initPoint,
       externalReference: attempt.checkoutReference,
       nextPaymentDate: args.nextPaymentDate,
+      trialDays: args.trialDays,
       remoteUpdatedAt: args.remoteUpdatedAt,
       updatedAt: now,
     } as const;
