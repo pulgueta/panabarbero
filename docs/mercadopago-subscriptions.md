@@ -60,7 +60,9 @@ Paid access requires both conditions:
 - The normalized agreement status is `active`
 - `paidThrough` is later than the current server time
 
-Only an approved authorized-payment invoice extends `paidThrough`. Rejected or pending payments do not extend access. A refund or chargeback against the payment that granted the current period revokes access, and the scheduled expiry mutation refreshes reactive clients when an unpaid period ends.
+Only a financially entitling authorized-payment invoice extends `paidThrough`. Approved and partially refunded payments keep the paid period; rejected or pending payments do not extend it. A full refund or unresolved chargeback against the payment that granted the current period revokes access, while a reimbursed chargeback restores it. The scheduled expiry mutation refreshes reactive clients when an unpaid period ends.
+
+If a payment webhook is missed, the user can request reconciliation from the pricing card. The action fetches the authorized-payment page by preapproval, replays it oldest-first through the same validated idempotent recorder used by webhooks, and never grants access from agreement authorization alone.
 
 Webhook reconciliation validates the stored preapproval id, checkout reference, product key, amount, currency, frequency, and frequency type against the server catalog. Remote timestamps prevent older events from overwriting newer agreement or payment state.
 
@@ -72,13 +74,13 @@ See Mercado Pago's [authorized payment lifecycle](https://www.mercadopago.com.co
 
 Users must cancel the current paid agreement before choosing another paid plan or returning to Free. A paused or authorized agreement still blocks a new checkout because it can resume billing. The free plan cannot be cancelled.
 
-Account deletion first verifies and cancels every remotely open agreement. It also waits for any still-payable credit checkout to expire. If Mercado Pago cannot confirm the remote state or cancellation, account deletion stops. After remote cancellation succeeds, Convex removes the billing rows and payer data.
+Account deletion first verifies and cancels every remotely open agreement. It also waits for any still-payable credit checkout to expire. If Mercado Pago cannot confirm the remote state or cancellation, in-app deletion stops. If WorkOS deletes a user externally, Convex snapshots and expires still-payable Checkout Pro preferences, retains the subscription provider identifiers, and retries remote cleanup with bounded backoff before deleting billing rows.
 
 ## One-time credit lifecycle
 
 Only a barbershop owner can create a credit checkout. `credits.createCheckoutIntent` stores the barbershop, product key, credit count, amount, currency, checkout reference, and idempotency key before the action creates a Checkout Pro preference.
 
-The Checkout Pro preference uses binary payment mode and expires after 30 minutes, so account deletion cannot orphan a pending, indefinitely payable link. The `payment` webhook fetches the payment from Mercado Pago and validates it against the immutable intent. An approved payment grants credits once. Refunds and chargebacks remove the unused portion of the granted pack; a reimbursed chargeback can restore the reversed credits without duplicating the original grant.
+The Checkout Pro preference uses binary payment mode and expires after 30 minutes, so account deletion cannot orphan a pending, indefinitely payable link. The `payment` webhook fetches the payment from Mercado Pago and validates it against the immutable intent. An approved payment grants credits once. Cumulative partial refunds reduce the pack proportionally; full refunds and unresolved chargebacks remove the remaining unused portion. A reimbursed chargeback restores only credits that were actually removed, without duplicating credits already consumed.
 
 ## Configure each environment
 
