@@ -3,7 +3,12 @@
 /** MercadoPago checkout, cancellation, and account-deletion network actions. */
 
 import { ConvexError } from "convex/values";
-import { MercadoPagoConfig, PreApproval, Preference } from "mercadopago";
+import {
+  Invoice,
+  MercadoPagoConfig,
+  PreApproval,
+  Preference,
+} from "mercadopago";
 import { z } from "zod";
 
 import { zAuthAction, zInternalAction } from ".";
@@ -17,6 +22,7 @@ import {
   MP_FREE_PRODUCT_KEY,
   MP_PAID_PRODUCT_KEYS,
 } from "./mercadopagoPlans";
+import { processAuthorizedPayment } from "./mercadopagoWebhooks";
 import { siteUrl } from "./notificationCopy";
 import { CREDIT_PRODUCT_KEYS } from "./plans";
 
@@ -38,6 +44,7 @@ interface OpenPaidRow {
   preapprovalId: string;
   productKey: string;
   status: "active" | "paused" | "pending" | "canceled";
+  paidThrough?: number;
 }
 
 interface CheckoutAttempt {
@@ -98,8 +105,8 @@ function assertPreapprovalMatchesCheckout(
     subscription.external_reference !== checkout.checkoutReference ||
     amount !== plan.amountCop ||
     recurring?.currency_id !== MP_CURRENCY_ID ||
-    recurring.frequency !== plan.frequency ||
-    recurring.frequency_type !== plan.frequencyType
+    recurring?.frequency !== plan.frequency ||
+    recurring?.frequency_type !== plan.frequencyType
   ) {
     throw new ConvexError(
       "La suscripción de Mercado Pago no coincide con el checkout creado por PanaBarbero.",
@@ -183,6 +190,48 @@ async function applyRemotePreapproval(
 }
 
 /**
+ * Payment-backed entitlement is written by webhooks, which are at-least-once:
+ * an authorized agreement whose latest invoice was never recorded (missed
+ * delivery, or activity predating payment-backed entitlement) would keep a
+ * paying subscriber on the free tier. Pull the newest invoice and run it
+ * through the same validated recording path the webhook uses.
+ */
+async function backfillEntitlementFromInvoices(
+  ctx: ActionCtx,
+  preapprovalId: string,
+) {
+  let latest: Parameters<typeof processAuthorizedPayment>[1] | undefined;
+
+  try {
+    const found = await new Invoice(mpConfig()).search({
+      options: { preapproval_id: preapprovalId, limit: 10 },
+    });
+
+    for (const invoice of found.results ?? []) {
+      const invoiceAt = remoteTimestamp(
+        invoice.debit_date ?? invoice.date_created,
+      );
+      const latestAt = latest
+        ? remoteTimestamp(latest.debit_date ?? latest.date_created)
+        : Number.NEGATIVE_INFINITY;
+      if (invoiceAt > latestAt) {
+        latest = invoice;
+      }
+    }
+  } catch (error) {
+    console.error(
+      `[mercadopago] no se pudieron consultar las facturas de ${preapprovalId}`,
+      error,
+    );
+    return;
+  }
+
+  if (latest) {
+    await processAuthorizedPayment(ctx, latest);
+  }
+}
+
+/**
  * Refresh every locally open agreement from MercadoPago. Unknown/unreachable
  * remote state blocks checkout; only an exact remote `pending` is sweepable.
  */
@@ -219,6 +268,13 @@ async function reconcileOpenPaidRows(ctx: ActionCtx, userId: string) {
       abandonedPending.push(row);
     } else if (!isTerminalStatus(remote.status)) {
       hasLiveSubscription = true;
+
+      if (
+        remote.status === "authorized" &&
+        (row.paidThrough ?? 0) <= Date.now()
+      ) {
+        await backfillEntitlementFromInvoices(ctx, row.preapprovalId);
+      }
     }
   }
 

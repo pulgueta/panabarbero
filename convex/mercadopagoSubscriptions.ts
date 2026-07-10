@@ -185,6 +185,7 @@ export const listOpenPaidSubscriptions = zInternalQuery({
                   preapprovalId: row.preapprovalId,
                   productKey: row.productKey,
                   status: row.status,
+                  paidThrough: row.paidThrough,
                 },
               ]
             : [],
@@ -578,11 +579,13 @@ export async function deleteUserBillingData(ctx: MutationCtx, userId: string) {
     await ctx.db.delete(payment._id);
   }
 
-  const attempt = await ctx.db
+  // `acquire` keeps one attempt per user, but deletion must survive even a
+  // violated invariant — never abort account cleanup on `.unique()`.
+  const attempts = await ctx.db
     .query("mercadopagoCheckoutAttempts")
     .withIndex("by_userId", (q) => q.eq("userId", userId))
-    .unique();
-  if (attempt) {
+    .take(DELETE_BATCH_SIZE);
+  for (const attempt of attempts) {
     await ctx.db.delete(attempt._id);
   }
 

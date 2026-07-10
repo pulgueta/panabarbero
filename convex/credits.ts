@@ -260,6 +260,8 @@ export const applyPayment = zInternalMutation({
       checkoutReference: checkout.checkoutReference,
       barbershopId: checkout.barbershopId,
       type: checkout.type,
+      // Credit count of the pack — NOT money. The COP price lives on
+      // `mercadopagoCreditCheckouts.amount`; `refundedAmount` here is COP.
       amount: checkout.credits,
       status: args.status,
       statusDetail: args.statusDetail,

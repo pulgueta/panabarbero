@@ -71,8 +71,8 @@ function validateRemoteSubscription(
     remote.external_reference === stored.externalReference &&
     Number(recurring?.transaction_amount) === plan.amountCop &&
     recurring?.currency_id === MP_CURRENCY_ID &&
-    recurring.frequency === plan.frequency &&
-    recurring.frequency_type === plan.frequencyType
+    recurring?.frequency === plan.frequency &&
+    recurring?.frequency_type === plan.frequencyType
   );
 }
 
@@ -114,7 +114,7 @@ function calculatePaidThrough(invoice: InvoiceResponse, productKey: string) {
   return paidThrough.getTime();
 }
 
-async function processAuthorizedPayment(
+export async function processAuthorizedPayment(
   ctx: ActionCtx,
   invoice: InvoiceResponse,
   override?: PaymentOverride,
