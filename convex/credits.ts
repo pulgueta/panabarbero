@@ -129,9 +129,15 @@ export async function hasUnexpiredCheckout(
     .first());
 }
 
-export const hasUnexpiredCheckoutForUser = zInternalQuery({
+export const listUnexpiredCheckoutsForUser = zInternalQuery({
   args: z.object({ userId: z.string(), now: z.number() }),
-  handler: (ctx, args) => hasUnexpiredCheckout(ctx, args.userId, args.now),
+  handler: async (ctx, args) =>
+    await ctx.db
+      .query("mercadopagoCreditCheckouts")
+      .withIndex("by_userId_and_expiresAt", (q) =>
+        q.eq("userId", args.userId).gt("expiresAt", args.now),
+      )
+      .take(100),
 });
 
 async function applyCreditBalanceDelta(

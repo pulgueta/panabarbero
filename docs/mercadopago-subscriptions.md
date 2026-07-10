@@ -74,7 +74,7 @@ See Mercado Pago's [authorized payment lifecycle](https://www.mercadopago.com.co
 
 Users must cancel the current paid agreement before choosing another paid plan or returning to Free. A paused or authorized agreement still blocks a new checkout because it can resume billing. The free plan cannot be cancelled.
 
-Account deletion first verifies and cancels every remotely open agreement. It also waits for any still-payable credit checkout to expire. If Mercado Pago cannot confirm the remote state or cancellation, in-app deletion stops. If WorkOS deletes a user externally, Convex snapshots and expires still-payable Checkout Pro preferences, retains the subscription provider identifiers, and retries remote cleanup with bounded backoff before deleting billing rows.
+Account deletion removes the WorkOS login before any irreversible billing cancellation. Convex snapshots and expires still-payable Checkout Pro preferences, retains the subscription provider identifiers, and retries remote cancellation with bounded backoff before deleting billing rows. The same idempotent cleanup runs whether deletion starts in the app or externally in WorkOS.
 
 ## One-time credit lifecycle
 

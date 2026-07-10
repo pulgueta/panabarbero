@@ -25,6 +25,7 @@ import {
   isMpPaidProductKey,
   MP_CURRENCY_ID,
 } from "./mercadopagoPlans";
+import { isWebhookTimestampWithinTolerance } from "./mercadopagoWebhookSignature";
 
 type InvoiceResponse = Awaited<ReturnType<Invoice["get"]>>;
 type PaymentResponse = Awaited<ReturnType<Payment["get"]>>;
@@ -354,7 +355,6 @@ export const processWebhookEvent = zInternalAction({
         xRequestId: args.xRequestId,
         dataId: args.dataId,
         secret,
-        toleranceSeconds: 300,
       });
     } catch (error) {
       if (error instanceof InvalidWebhookSignatureError) {
@@ -362,6 +362,11 @@ export const processWebhookEvent = zInternalAction({
         return 401;
       }
       throw error;
+    }
+
+    if (!isWebhookTimestampWithinTolerance(args.xSignature, Date.now(), 300)) {
+      console.error("[mercadopago] firma inválida: TimestampOutOfTolerance");
+      return 401;
     }
 
     if (

@@ -5,6 +5,7 @@ import {
   calculateCreditPaymentTransition,
   classifyPaymentState,
 } from "../convex/mercadopagoPaymentState.ts";
+import { isWebhookTimestampWithinTolerance } from "../convex/mercadopagoWebhookSignature.ts";
 
 const baseCreditState = {
   credits: 1000,
@@ -15,6 +16,47 @@ const baseCreditState = {
   previousReversedCredits: 0,
   wasEverGranted: true,
 };
+
+test("webhook timestamp tolerance compares Unix seconds to milliseconds safely", () => {
+  const nowMs = 1_700_000_000_000;
+
+  assert.equal(
+    isWebhookTimestampWithinTolerance(
+      "ts=1700000000,v1=signature",
+      nowMs,
+      300,
+    ),
+    true,
+  );
+  assert.equal(
+    isWebhookTimestampWithinTolerance(
+      "ts=1699999700,v1=signature",
+      nowMs,
+      300,
+    ),
+    true,
+  );
+  assert.equal(
+    isWebhookTimestampWithinTolerance(
+      "ts=1699999699,v1=signature",
+      nowMs,
+      300,
+    ),
+    false,
+  );
+  assert.equal(
+    isWebhookTimestampWithinTolerance(
+      "ts=1700000301,v1=signature",
+      nowMs,
+      300,
+    ),
+    false,
+  );
+  assert.equal(
+    isWebhookTimestampWithinTolerance("v1=signature", nowMs, 300),
+    false,
+  );
+});
 
 test("approved, pending, and rejected payments have distinct financial states", () => {
   assert.deepEqual(

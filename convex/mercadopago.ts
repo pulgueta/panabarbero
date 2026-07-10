@@ -760,28 +760,10 @@ async function expireDeletedUserCreditCheckouts(
   }
 }
 
-/** Cancel every remotely open agreement before deleting the user's login. */
-export const cancelUserBillingForDeletion = zInternalAction({
-  args: z.object({ userId: z.string() }),
-  handler: async (ctx, args) => {
-    const hasPayableCreditCheckout = await ctx.runQuery(
-      internal.credits.hasUnexpiredCheckoutForUser,
-      { userId: args.userId, now: Date.now() },
-    );
-    if (hasPayableCreditCheckout) {
-      throw new ConvexError(
-        "Espera a que venza tu checkout de créditos antes de eliminar la cuenta.",
-      );
-    }
-
-    await cancelAllUserPaidAgreements(ctx, args.userId);
-  },
-});
-
 /**
- * WorkOS may delete a user outside the app, after it is too late to block the
- * operation. Keep local provider IDs until every remote agreement is terminal;
- * retry with bounded backoff instead of ever abandoning a billable agreement.
+ * WorkOS deletion is the first irreversible step. Keep local provider IDs until
+ * every remote agreement is terminal; retry with bounded backoff instead of
+ * ever abandoning a billable agreement.
  */
 export const cleanupDeletedUserBilling = zInternalAction({
   args: z.object({
