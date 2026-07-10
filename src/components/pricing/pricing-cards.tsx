@@ -29,6 +29,7 @@ import { getPlanBenefits } from "@/config/plan-benefits";
 import {
   useCreateMpCheckout,
   useMpSubscription,
+  useReconcileMpSubscription,
   useSubscribeMpFree,
 } from "@/hooks/billing/use-mercadopago";
 import { useSession } from "@/hooks/use-session";
@@ -83,6 +84,8 @@ export const PricingCards: FC = () => {
     useCreateMpCheckout();
   const { mutateAsync: subscribeFree, isPending: isSubscribingFree } =
     useSubscribeMpFree();
+  const { mutateAsync: reconcileSubscription, isPending: isReconciling } =
+    useReconcileMpSubscription();
 
   const [intervalChoice, setIntervalChoice] = useState<Interval | null>(null);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
@@ -130,6 +133,19 @@ export const PricingCards: FC = () => {
       toast.error(getConvexErrorMessage(error));
     } finally {
       setPendingKey(null);
+    }
+  }
+
+  async function handleReconcile() {
+    try {
+      const result = await reconcileSubscription({});
+      if (result.confirmed) {
+        toast.success("Pago confirmado. Tu plan ya está activo.");
+      } else {
+        toast.info("Mercado Pago todavía no reporta un pago aprobado.");
+      }
+    } catch (error) {
+      toast.error(getConvexErrorMessage(error));
     }
   }
 
@@ -228,6 +244,15 @@ export const PricingCards: FC = () => {
                   </Button>
                 ) : isLivePaidCard ? (
                   <div className="flex w-full flex-col items-center gap-2">
+                    {isCurrent && (
+                      <Badge
+                        variant="success"
+                        className="w-full justify-center py-2"
+                      >
+                        <CheckCircleIcon />
+                        Plan actual
+                      </Badge>
+                    )}
                     {livePaid?.status === "paused" && (
                       <p className="text-center text-muted-foreground text-xs">
                         Tu suscripción está pausada en Mercado Pago.
@@ -240,9 +265,20 @@ export const PricingCards: FC = () => {
                     )}
                     {livePaid?.status === "active" &&
                       activeProductKey !== livePaid.productKey && (
-                        <p className="text-center text-muted-foreground text-xs">
-                          Estamos confirmando el primer pago en Mercado Pago.
-                        </p>
+                        <div className="flex w-full flex-col gap-2">
+                          <p className="text-center text-muted-foreground text-xs">
+                            Estamos verificando el pago más reciente en Mercado
+                            Pago.
+                          </p>
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={handleReconcile}
+                            disabled={isReconciling}
+                          >
+                            {isReconciling ? "Verificando…" : "Verificar pago"}
+                          </Button>
+                        </div>
                       )}
                     <CancelSubscriptionDialog
                       planName={t.name}
@@ -270,11 +306,11 @@ export const PricingCards: FC = () => {
                     Plan actual
                   </Badge>
                 ) : livePaid ? (
-                  <p className="w-full rounded-lg border border-dashed px-3 py-2 text-center text-muted-foreground text-sm">
+                  <Button variant="outline" className="w-full" disabled>
                     {isFree
                       ? "Cancela tu suscripción para volver al plan gratis."
                       : "Cancela tu plan actual para cambiar de plan."}
-                  </p>
+                  </Button>
                 ) : isFree ? (
                   <Button
                     variant="outline"

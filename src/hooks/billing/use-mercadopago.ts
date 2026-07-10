@@ -29,6 +29,13 @@ export function useCancelMpSubscription() {
   });
 }
 
+/** Reconcile the current paid agreement against Mercado Pago invoices. */
+export function useReconcileMpSubscription() {
+  return useMutation({
+    mutationFn: useConvexAction(api.mercadopago.reconcileSubscription),
+  });
+}
+
 /** Activate the free plan (local row, no MercadoPago preapproval). */
 export function useSubscribeMpFree() {
   return useMutation({
