@@ -11,6 +11,7 @@
     "build": "vite build",
     "start": "node .output/server/index.mjs",
     "preview": "vite preview",
+    "test:billing": "node --experimental-strip-types --test tests/mercadopago-payment-state.test.ts",
     "lint": "biome lint --write --unsafe .",
     "format": "biome format --write .",
     "doctor:full": "react-doctor . --project panabarbero --verbose --scope full",

@@ -261,9 +261,9 @@ export const extraCredits = zodTable("extraCredits", (id) => ({
   barbershopId: id("barbershops"),
   smsCredits: z.number(),
   emailCredits: z.number(),
-  /** Cumulative SMS credits ever purchased — used as the progress-bar ceiling. */
+  /** Purchased SMS credits still backed by non-refunded payments. */
   smsPurchasedTotal: z.number(),
-  /** Cumulative email credits ever purchased — used as the progress-bar ceiling. */
+  /** Purchased email credits still backed by non-refunded payments. */
   emailPurchasedTotal: z.number(),
 }));
 
@@ -283,6 +283,8 @@ export const creditPurchases = zodTable("creditPurchases", (id) => ({
   granted: z.boolean(),
   /** Credits removed when a grant is reversed; restored if the dispute resolves. */
   reversedCredits: z.number().optional(),
+  /** Cumulative credits no longer backed by the payment's refunded COP amount. */
+  refundedCredits: z.number().optional(),
   purchasedAt: z.number().optional(),
   remoteUpdatedAt: z.number().optional(),
   updatedAt: z.number(),

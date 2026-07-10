@@ -17,6 +17,10 @@ import { zInternalAction } from ".";
 import { internal } from "./_generated/api";
 import type { ActionCtx } from "./_generated/server";
 import {
+  classifyPaymentState,
+  isEntitlingPaymentStatus,
+} from "./mercadopagoPaymentState";
+import {
   getMpPlan,
   isMpPaidProductKey,
   MP_CURRENCY_ID,
@@ -149,15 +153,17 @@ export async function processAuthorizedPayment(
 
   const paymentId = invoice.payment?.id;
   const invoicePayment = invoice.payment;
-  const paymentStatus =
-    override?.status ??
-    (invoicePayment?.status === "charged_back" &&
-    invoicePayment.status_detail === "reimbursed"
-      ? "reimbursed"
-      : invoicePayment?.status);
-  if (!invoice.id || !paymentId || !paymentStatus) {
+  if (!invoice.id || !paymentId || !invoicePayment?.status) {
     return 200;
   }
+  const paymentStatus = override?.status
+    ? override.status
+    : classifyPaymentState({
+        status: invoicePayment.status,
+        statusDetail: invoicePayment.status_detail,
+        transactionAmount: Number(invoice.transaction_amount),
+        refundedAmount: 0,
+      }).canonicalStatus;
 
   await ctx.runMutation(
     internal.mercadopagoSubscriptions.recordAuthorizedPayment,
@@ -166,10 +172,9 @@ export async function processAuthorizedPayment(
       invoiceId: String(invoice.id),
       paymentId: String(paymentId),
       paymentStatus,
-      paidThrough:
-        paymentStatus === "approved" || paymentStatus === "reimbursed"
-          ? calculatePaidThrough(invoice, stored.productKey)
-          : undefined,
+      paidThrough: isEntitlingPaymentStatus(paymentStatus)
+        ? calculatePaidThrough(invoice, stored.productKey)
+        : undefined,
       paymentUpdatedAt:
         override?.updatedAt ??
         parsedTimestamp(invoice.last_modified ?? invoice.date_created),
@@ -246,18 +251,18 @@ async function processSubscriptionPayment(
     return 200;
   }
 
-  const reimbursedChargeback =
-    payment.status === "charged_back" && payment.status_detail === "reimbursed";
-  const paymentStatus = reimbursedChargeback
-    ? "reimbursed"
-    : refundedAmount > 0
-      ? "refunded"
-      : payment.status;
+  const financial = classifyPaymentState({
+    status: payment.status,
+    statusDetail: payment.status_detail,
+    transactionAmount: Number(payment.transaction_amount),
+    refundedAmount,
+  });
+  const paymentStatus = financial.canonicalStatus;
   const paymentUpdatedAt = parsedTimestamp(
     payment.date_last_updated ?? payment.date_created,
   );
 
-  if (paymentStatus === "approved" || paymentStatus === "reimbursed") {
+  if (financial.entitling) {
     const numericPaymentId = Number(payment.id);
     if (!Number.isSafeInteger(numericPaymentId)) {
       return 200;

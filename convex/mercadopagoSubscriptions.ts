@@ -8,6 +8,10 @@ import { internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { getUserId } from "./identity";
 import {
+  isEntitlingPaymentStatus,
+  isReversedPaymentStatus,
+} from "./mercadopagoPaymentState";
+import {
   MP_CURRENCY_ID,
   MP_FREE_PRODUCT_KEY,
   type MpSubscriptionStatus,
@@ -310,14 +314,6 @@ export const applyPreapprovalState = zInternalMutation({
   },
 });
 
-const REVERSED_PAYMENT_STATUSES = new Set([
-  "refunded",
-  "charged_back",
-  "cancelled",
-  "canceled",
-]);
-const ENTITLING_PAYMENT_STATUSES = new Set(["approved", "reimbursed"]);
-
 /** Record an invoice transition and extend access only after approved payment. */
 export const recordAuthorizedPayment = zInternalMutation({
   args: z.object({
@@ -369,9 +365,9 @@ export const recordAuthorizedPayment = zInternalMutation({
       agreementStatus,
       args.remoteUpdatedAt,
     );
-    const entitling = ENTITLING_PAYMENT_STATUSES.has(args.paymentStatus);
+    const entitling = isEntitlingPaymentStatus(args.paymentStatus);
     const shouldRevoke =
-      REVERSED_PAYMENT_STATUSES.has(args.paymentStatus) &&
+      isReversedPaymentStatus(args.paymentStatus) &&
       existing.entitlementPaymentId === args.paymentId;
     const updateLastPayment =
       (existing.paymentUpdatedAt ?? 0) <= args.paymentUpdatedAt;
@@ -591,7 +587,8 @@ export async function deleteUserBillingData(ctx: MutationCtx, userId: string) {
 
   if (
     rows.length === DELETE_BATCH_SIZE ||
-    payments.length === DELETE_BATCH_SIZE
+    payments.length === DELETE_BATCH_SIZE ||
+    attempts.length === DELETE_BATCH_SIZE
   ) {
     await ctx.scheduler.runAfter(
       0,

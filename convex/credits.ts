@@ -11,6 +11,7 @@ import { getUsageRow, getUserPlanLimits } from "./acl";
 import { assertShopRole } from "./authz";
 import { errorMessages } from "./errors";
 import { getUserId } from "./identity";
+import { calculateCreditPaymentTransition } from "./mercadopagoPaymentState";
 import {
   isCreditProductKey,
   MP_CREDIT_PACKS,
@@ -209,50 +210,35 @@ export const applyPayment = zInternalMutation({
       .withIndex("by_paymentId", (q) => q.eq("paymentId", args.paymentId))
       .unique();
 
-    if ((existing?.remoteUpdatedAt ?? 0) > args.remoteUpdatedAt) {
+    if ((existing?.remoteUpdatedAt ?? 0) >= args.remoteUpdatedAt) {
       return false;
     }
 
-    const reimbursedChargeback =
-      args.status === "charged_back" && args.statusDetail === "reimbursed";
-    const shouldGrant =
-      (args.status === "approved" || reimbursedChargeback) &&
-      args.refundedAmount === 0;
-    const shouldReverse =
-      args.refundedAmount > 0 ||
-      args.status === "refunded" ||
-      args.status === "cancelled" ||
-      args.status === "canceled" ||
-      (args.status === "charged_back" && !reimbursedChargeback);
-    let granted = existing?.granted ?? false;
-    let reversedCredits = existing?.reversedCredits;
-    let purchasedAt = existing?.purchasedAt;
+    const balance = await getExtraCredits(ctx, checkout.barbershopId);
+    const availableCredits =
+      checkout.type === "sms"
+        ? (balance?.smsCredits ?? 0)
+        : (balance?.emailCredits ?? 0);
+    const transition = calculateCreditPaymentTransition({
+      status: args.status,
+      statusDetail: args.statusDetail,
+      transactionAmount: args.transactionAmount,
+      refundedAmount: args.refundedAmount,
+      credits: checkout.credits,
+      availableCredits,
+      previouslyGranted: existing?.granted ?? false,
+      previousRefundedCredits: existing?.refundedCredits,
+      previousReversedCredits: existing?.reversedCredits,
+      wasEverGranted: existing?.purchasedAt !== undefined,
+    });
 
-    if (shouldGrant && !granted) {
-      const creditsToRestore = reversedCredits ?? checkout.credits;
+    if (transition.balanceDelta !== 0 || transition.purchasedTotalDelta !== 0) {
       await applyCreditBalanceDelta(
         ctx,
         checkout,
-        creditsToRestore,
-        checkout.credits,
+        transition.balanceDelta,
+        transition.purchasedTotalDelta,
       );
-      granted = true;
-      reversedCredits = undefined;
-      purchasedAt ??= Date.now();
-    } else if (shouldReverse && granted) {
-      const balance = await getExtraCredits(ctx, checkout.barbershopId);
-      const available =
-        checkout.type === "sms"
-          ? (balance?.smsCredits ?? 0)
-          : (balance?.emailCredits ?? 0);
-      reversedCredits = Math.min(Math.max(available, 0), checkout.credits);
-      await applyCreditBalanceDelta(
-        ctx,
-        checkout,
-        -reversedCredits,
-        -checkout.credits,
-      );
-      granted = false;
     }
 
     const fields = {
@@ -263,12 +249,15 @@ export const applyPayment = zInternalMutation({
       // Credit count of the pack — NOT money. The COP price lives on
       // `mercadopagoCreditCheckouts.amount`; `refundedAmount` here is COP.
       amount: checkout.credits,
-      status: args.status,
+      status: transition.canonicalStatus,
       statusDetail: args.statusDetail,
       refundedAmount: args.refundedAmount,
-      granted,
-      reversedCredits,
-      purchasedAt,
+      refundedCredits: transition.refundedCredits,
+      granted: transition.granted,
+      reversedCredits: transition.reversedCredits,
+      purchasedAt:
+        existing?.purchasedAt ??
+        (transition.markPurchased ? Date.now() : undefined),
       remoteUpdatedAt: args.remoteUpdatedAt,
       updatedAt: Date.now(),
     } as const;

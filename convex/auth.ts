@@ -10,10 +10,7 @@ import { assertShopRole, authz, revokeMemberAuthz } from "./authz";
 import { cascadeDeleteBarbershop } from "./barbershopCascade";
 import { getUserId } from "./identity";
 import { releaseForAppointment } from "./inventory";
-import {
-  deleteUserBillingData,
-  getEffectiveSubscription,
-} from "./mercadopagoSubscriptions";
+import { getEffectiveSubscription } from "./mercadopagoSubscriptions";
 import type { Appointment, Barbershop, BarbershopMember } from "./schema";
 import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
@@ -355,7 +352,25 @@ export const { authKitEvent } = authkit.events({
   },
   "user.deleted": async (ctx, event) => {
     const userId = event.data.id;
-    await deleteUserBillingData(ctx, userId);
+    const creditCheckouts = await ctx.db
+      .query("mercadopagoCreditCheckouts")
+      .withIndex("by_userId_and_expiresAt", (q) =>
+        q.eq("userId", userId).gt("expiresAt", Date.now()),
+      )
+      .take(100);
+    await ctx.scheduler.runAfter(
+      0,
+      internal.mercadopago.cleanupDeletedUserBilling,
+      {
+        userId,
+        attempt: 0,
+        creditCheckouts: creditCheckouts.map((checkout) => ({
+          checkoutReference: checkout.checkoutReference,
+          preferenceId: checkout.preferenceId,
+          expiresAt: checkout.expiresAt,
+        })),
+      },
+    );
     const profile = await getProfileByUserId(ctx, userId);
 
     if (!profile) {
