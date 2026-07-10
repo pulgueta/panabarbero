@@ -145,16 +145,33 @@ export const deleteCurrentUser = zAuthAction({
   args: z.object({}),
   handler: async (ctx) => {
     const { userId } = ctx;
+    const creditCheckouts = await ctx.runQuery(
+      internal.credits.listUnexpiredCheckoutsForUser,
+      { userId, now: Date.now() },
+    );
 
     try {
       await authkit.workos.userManagement.deleteUser(userId);
     } catch (error) {
-      if ((error as { status?: number }).status === 404) {
-        return;
+      if ((error as { status?: number }).status !== 404) {
+        throw new ConvexError(
+          "No se pudo eliminar la cuenta. Inténtalo de nuevo.",
+        );
       }
-      throw new ConvexError(
-        "No se pudo eliminar la cuenta. Inténtalo de nuevo.",
-      );
     }
+
+    await ctx.scheduler.runAfter(
+      0,
+      internal.mercadopago.cleanupDeletedUserBilling,
+      {
+        userId,
+        attempt: 0,
+        creditCheckouts: creditCheckouts.map((checkout) => ({
+          checkoutReference: checkout.checkoutReference,
+          preferenceId: checkout.preferenceId,
+          expiresAt: checkout.expiresAt,
+        })),
+      },
+    );
   },
 });

@@ -9,6 +9,7 @@ import {
   SpinnerIcon,
   XIcon,
 } from "@phosphor-icons/react";
+import { useDebouncer } from "@tanstack/react-pacer";
 import type { MarkerOptions, PopupOptions } from "maplibre-gl";
 import { default as MapLibreGL } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -195,7 +196,6 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
   const [isLoaded, setIsLoaded] = useState(false);
   const [isStyleLoaded, setIsStyleLoaded] = useState(false);
   const currentStyleRef = useRef<MapStyleOption | null>(null);
-  const styleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const internalUpdateRef = useRef(false);
   const resolvedTheme = useResolvedTheme(themeProp);
 
@@ -215,12 +215,17 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
   // Expose the map instance to the parent component
   useImperativeHandle(ref, () => mapInstance as MapLibreGL.Map, [mapInstance]);
 
-  const clearStyleTimeout = useCallback(() => {
-    if (styleTimeoutRef.current) {
-      clearTimeout(styleTimeoutRef.current);
-      styleTimeoutRef.current = null;
-    }
-  }, []);
+  const styleLoadDebouncer = useDebouncer(
+    (map: MapLibreGL.Map) => {
+      setIsStyleLoaded(true);
+      if (projection) {
+        map.setProjection(projection);
+      }
+    },
+    {
+      wait: 100,
+    },
+  );
 
   // Initialize the map
   useEffect(() => {
@@ -242,16 +247,10 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
     });
 
     const styleDataHandler = () => {
-      clearStyleTimeout();
       // Delay to ensure style is fully processed before allowing layer operations
       // This is a workaround to avoid race conditions with the style loading
       // else we have to force update every layer on setStyle change
-      styleTimeoutRef.current = setTimeout(() => {
-        setIsStyleLoaded(true);
-        if (projection) {
-          map.setProjection(projection);
-        }
-      }, 100);
+      styleLoadDebouncer.maybeExecute(map);
     };
     const loadHandler = () => setIsLoaded(true);
 
@@ -267,7 +266,7 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
     setMapInstance(map);
 
     return () => {
-      clearStyleTimeout();
+      styleLoadDebouncer.cancel();
       map.off("load", loadHandler);
       map.off("styledata", styleDataHandler);
       map.off("move", handleMove);
@@ -316,12 +315,12 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
 
     if (currentStyleRef.current === newStyle) return;
 
-    clearStyleTimeout();
+    styleLoadDebouncer.cancel();
     currentStyleRef.current = newStyle;
     setIsStyleLoaded(false);
 
     mapInstance.setStyle(newStyle, { diff: true });
-  }, [mapInstance, resolvedTheme, mapStyles, clearStyleTimeout]);
+  }, [mapInstance, resolvedTheme, mapStyles, styleLoadDebouncer]);
 
   const contextValue = useMemo(
     () => ({

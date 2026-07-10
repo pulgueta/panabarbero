@@ -68,7 +68,7 @@ const HOME_FAQS = [
   {
     question: "¿Es gratis usar PanaBarbero?",
     answer:
-      "Sí. El plan gratuito está disponible para barberías pequeñas con hasta 3 barberos. Para equipos más grandes o funcionalidades avanzadas, existen planes de pago con más capacidad.",
+      "Sí. El plan gratuito permite invitar hasta 5 barberos. Para equipos más grandes o funcionalidades avanzadas, existen planes de pago con más capacidad.",
   },
   {
     question: "¿Qué notificaciones reciben los clientes y barberos?",
@@ -78,7 +78,7 @@ const HOME_FAQS = [
   {
     question: "¿Puedo agregar más barberos a mi barbería?",
     answer:
-      "Sí. Puedes invitar a tu equipo por email o SMS. Cada barbero tiene su propio panel de citas y los clientes pueden elegir a qué barbero reservarle directamente.",
+      "Sí. Puedes invitar a tu equipo por email. Cada barbero tiene su propio panel de citas y los clientes pueden elegir a qué barbero reservarle directamente.",
   },
   {
     question: "¿Los clientes pueden reagendar una cita?",

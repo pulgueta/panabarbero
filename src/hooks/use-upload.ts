@@ -1,5 +1,5 @@
-import { useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
+import { useConvexMutation } from "@convex-dev/react-query";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -25,7 +25,9 @@ export function getLogoUrl(logoKey: string | null | undefined): string | null {
   return `${clientEnv.VITE_STORAGE_URL}/${logoKey}`;
 }
 
-export function useUpload(opts: { type: "profile-photo" | "barbershop-logo" }) {
+export function useUpload(opts: {
+  type: "profile-photo" | "barbershop-logo" | "inventory-item";
+}) {
   const [uploading, setUploading] = useState<boolean>(false);
 
   const deleteFileMutation = useMutation({

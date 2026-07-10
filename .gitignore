@@ -94,3 +94,8 @@ android
 *.mobileprovision
 *.orig.*
 .react-email
+
+# Contains live MCP bearer tokens
+.codex/config.toml
+
+.playwright*

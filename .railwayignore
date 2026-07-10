@@ -1,5 +1,0 @@
-# Agent/dev tooling — never part of the deployed app. The skill symlinks under
-# .claude/skills (e.g. web-haptics -> ../../.agents/skills/web-haptics) break
-# Railway's BuildKit context copy ("cannot replace to directory ... with file").
-.claude/
-.agents/

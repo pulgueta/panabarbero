@@ -7,13 +7,6 @@ import { httpAction } from "./_generated/server";
 import { authkit } from "./auth.config";
 import { errorMessages } from "./errors";
 import { siteUrl } from "./notificationCopy";
-import {
-  CREDIT_KEY_TO_TYPE,
-  CREDIT_PRODUCT_KEYS,
-  CREDITS_PER_PURCHASE,
-  type CreditProductKey,
-} from "./plans";
-import { polar } from "./polar";
 import { r2 } from "./r2";
 import { twilio } from "./twilio";
 
@@ -85,6 +78,17 @@ http.route({
         });
       }
 
+      case "inventory-item": {
+        const key = await r2.store(ctx, blob, {
+          key: `assets/inventory/${crypto.randomUUID()}`,
+        });
+
+        return new Response(JSON.stringify(key), {
+          status: 200,
+          headers,
+        });
+      }
+
       default:
         throw new ConvexError(errorMessages.notFound("archivo"));
     }
@@ -94,42 +98,62 @@ http.route({
 twilio.registerRoutes(http);
 authkit.registerRoutes(http);
 
-polar.registerRoutes(http, {
-  events: {
-    "order.paid": async (ctx, event) => {
-      const order = event.data;
+/**
+ * MercadoPago webhook (subscriptions + one-time credit payments). Signature
+ * verification + resource fetch happen in a
+ * `"use node"` action; this route only forwards the values it needs and maps the
+ * returned HTTP status back to MercadoPago.
+ */
+http.route({
+  path: "/mercadopago/webhook",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const url = new URL(request.url);
 
-      if (!order.paid || !order.productId) {
-        return;
-      }
+    // Signed webhooks carry `data.id` in the query string — that is the value
+    // MercadoPago hashed, so prefer it for signature validation.
+    const queryDataId =
+      url.searchParams.get("data.id") ??
+      url.searchParams.get("id") ??
+      undefined;
 
-      const productIdToKey = Object.fromEntries(
-        CREDIT_PRODUCT_KEYS.map((key) => [polar.products[key], key]),
-      ) as Record<string, CreditProductKey>;
+    let bodyType: string | undefined;
+    let bodyDataId: string | undefined;
+    let bodyPaymentId: string | undefined;
+    try {
+      const body = (await request.json()) as {
+        type?: string;
+        topic?: string;
+        data?: { id?: string | number; payment_id?: string | number };
+      };
+      bodyType = body.type ?? body.topic;
+      bodyDataId =
+        body.data?.id !== undefined ? String(body.data.id) : undefined;
+      bodyPaymentId =
+        body.data?.payment_id !== undefined
+          ? String(body.data.payment_id)
+          : undefined;
+    } catch {
+      // IPN pings may have no JSON body — fall back to query params.
+    }
 
-      const creditKey = productIdToKey[order.productId];
+    const status = await ctx.runAction(
+      internal.mercadopagoWebhooks.processWebhookEvent,
+      {
+        xSignature: request.headers.get("x-signature") ?? undefined,
+        xRequestId: request.headers.get("x-request-id") ?? undefined,
+        dataId: queryDataId ?? bodyDataId,
+        paymentId: bodyPaymentId,
+        type:
+          bodyType ??
+          url.searchParams.get("type") ??
+          url.searchParams.get("topic") ??
+          undefined,
+      },
+    );
 
-      if (!creditKey) {
-        return;
-      }
-
-      const barbershopId = order.metadata?.barbershopId as string;
-
-      if (!barbershopId) {
-        return;
-      }
-
-      const type = CREDIT_KEY_TO_TYPE[creditKey];
-      const amount = CREDITS_PER_PURCHASE[creditKey];
-
-      await ctx.runMutation(internal.credits.addPurchasedCredits, {
-        orderId: order.id,
-        barbershopId,
-        type,
-        amount,
-      });
-    },
-  },
+    return new Response(null, { status });
+  }),
 });
 
 export default http;

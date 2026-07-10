@@ -21,15 +21,12 @@ export function useNavRoutes() {
   const { data: rolesData } = useBarbershopMemberRoles(user?.id ?? "");
 
   const isOwner = rolesData?.isOwner ?? false;
+  const isMember = isOwner || isStaff || isBarber;
 
   const routes = user
-    ? isOwner
-      ? authenticatedRoutes.owner
-      : isStaff
-        ? authenticatedRoutes.staff
-        : isBarber
-          ? authenticatedRoutes.barber
-          : authenticatedRoutes.navigation.filter((r) => r.to !== "/")
+    ? isMember
+      ? authenticatedRoutes.member
+      : authenticatedRoutes.navigation.filter((r) => r.to !== "/")
     : publicRoutes.navigation;
 
   return { routes, user, isBarber, isStaff, isOwner };

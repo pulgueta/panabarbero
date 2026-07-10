@@ -2,7 +2,15 @@ import type { ReactDoctorConfig } from "react-doctor/api";
 
 export default {
   ignore: {
-    files: ["node_modules", "convex/_generated", ".agents/**", ".claude/**"],
+    // Design system ignored due to out-of-the-box configuration and working by default.
+    files: [
+      "node_modules",
+      "convex/_generated",
+      ".output/**",
+      ".agents/**",
+      ".claude/**",
+      "src/components/ui/**",
+    ],
 
     // Rules silenced everywhere — each is either a verified false positive for
     // this stack (TanStack Start + Convex + react-hook-form) or a family the
@@ -68,6 +76,22 @@ export default {
       {
         files: ["src/components/markdown.tsx"],
         rules: ["react-doctor/no-danger"],
+      },
+
+      // Recharts-backed dashboard charts. The route they live on is already
+      // code-split (autoCodeSplitting), so a further per-component dynamic
+      // import buys nothing beyond a loading flicker.
+      {
+        files: [
+          "src/components/analytics/appointments-trend-chart.tsx",
+          "src/components/analytics/revenue-trend-chart.tsx",
+          "src/components/analytics/top-breakdown-chart.tsx",
+          "src/components/analytics/weekday-chart.tsx",
+          "src/components/inventory/category-breakdown-chart.tsx",
+          "src/components/inventory/movement-trend-chart.tsx",
+          "src/components/reviews/shop/rating-trend.tsx",
+        ],
+        rules: ["react-doctor/prefer-dynamic-import"],
       },
     ],
   },

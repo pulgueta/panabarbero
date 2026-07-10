@@ -4,6 +4,8 @@ import type { ConvexQueryClient } from "@convex-dev/react-query";
 import { IconContext } from "@phosphor-icons/react";
 import { PostHogProvider } from "@posthog/react";
 import { TanStackDevtools } from "@tanstack/react-devtools";
+import { FormDevtoolsPanel } from "@tanstack/react-form-devtools";
+import { pacerDevtoolsPlugin } from "@tanstack/react-pacer-devtools";
 import type { QueryClient } from "@tanstack/react-query";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
@@ -12,6 +14,7 @@ import {
   HeadContent,
   Outlet,
   Scripts,
+  useLocation,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import type { ConvexReactClient } from "convex/react";
@@ -19,7 +22,6 @@ import type { ConvexReactClient } from "convex/react";
 import { DefaultCatchBoundary } from "@/components/layout/error-component";
 import { Header } from "@/components/layout/header";
 import { LoadingComponent } from "@/components/layout/loading-component";
-import { BottomNav } from "@/components/layout/nav/bottom-nav";
 import { MobileTopBar } from "@/components/layout/nav/mobile-top-bar";
 import { NotFoundComponent } from "@/components/layout/not-found-component";
 import { PostHogAuthSync } from "@/components/layout/posthog-auth-sync";
@@ -94,6 +96,11 @@ const ICON_CONTEXT_VALUE = { weight: "bold", size: 24 } as const;
 
 const RootDocument = ({ children }: { children: React.ReactNode }) => {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useLocation({ select: (location) => location.pathname });
+
+  // The dashboard (/profile/barbershops/*) is an app frame with its own
+  // sidebar shell — the site chrome stays out of it.
+  const hasSiteChrome = !pathname.startsWith("/profile/barbershops");
 
   return (
     <html lang="es" suppressHydrationWarning>
@@ -116,14 +123,14 @@ const RootDocument = ({ children }: { children: React.ReactNode }) => {
               <IconContext.Provider value={ICON_CONTEXT_VALUE}>
                 <Toaster richColors position="top-center" />
 
-                <MobileTopBar />
-                <Header />
+                {hasSiteChrome && (
+                  <>
+                    <MobileTopBar />
+                    <Header />
+                  </>
+                )}
 
-                <div className="pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
-                  {children}
-                </div>
-
-                <BottomNav />
+                {children}
               </IconContext.Provider>
             </ThemeProvider>
 
@@ -144,6 +151,11 @@ const RootDocument = ({ children }: { children: React.ReactNode }) => {
               name: "TanStack Query",
               render: <ReactQueryDevtoolsPanel />,
             },
+            {
+              name: "TanStack Form",
+              render: <FormDevtoolsPanel />,
+            },
+            pacerDevtoolsPlugin(),
           ]}
         />
       </body>

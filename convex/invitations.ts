@@ -1,6 +1,6 @@
 import type { Locale } from "@workos-inc/node";
-import { ConvexError } from "convex/values";
 import { zid } from "convex-helpers/server/zod4";
+import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zAuthAction, zInternalMutation, zInternalQuery } from ".";
@@ -9,7 +9,7 @@ import type { ActionCtx } from "./_generated/server";
 import { assertBarberInviteAllowed, assertStaffInviteAllowed } from "./acl";
 import { track } from "./analytics";
 import { authkit } from "./auth.config";
-import { assertCanManageTeam, assertOwner } from "./authz";
+import { assertCanManageTeam, assertOwner, syncMemberAuthz } from "./authz";
 import { getByUserIdFn } from "./barbershopMembers";
 import { errorMessages } from "./errors";
 import { requireUserId } from "./identity";
@@ -406,6 +406,14 @@ export const syncWorkosMembership = zInternalMutation({
 
       await ctx.db.patch(existingMember._id, { roles, isActive: true });
 
+      // Mirror the (re)activated role set into the authz component.
+      await syncMemberAuthz(ctx, {
+        userId: args.userId,
+        barbershopId: barbershop._id,
+        previousRoles: existingMember.isActive ? existingMember.roles : [],
+        nextRoles: roles,
+      });
+
       if (!wasAlreadyBarber && appRole === "barber") {
         await ctx.runMutation(
           internal.barbershopMemberServices.assignAllServicesToBarber,
@@ -432,6 +440,14 @@ export const syncWorkosMembership = zInternalMutation({
       roles: [appRole],
       isActive: true,
       joinedAt: Date.now(),
+    });
+
+    // Mirror the new membership into the authz component.
+    await syncMemberAuthz(ctx, {
+      userId: args.userId,
+      barbershopId: barbershop._id,
+      previousRoles: [],
+      nextRoles: [appRole],
     });
 
     if (appRole === "barber") {

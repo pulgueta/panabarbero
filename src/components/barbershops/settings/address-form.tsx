@@ -110,7 +110,7 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
   const invalid = !fullAddressRef.current || !state || !city;
 
   return (
-    <div className="space-y-4">
+    <div className="flex h-full flex-1 flex-col justify-between gap-4">
       <FieldGroup className="gap-4">
         <div className="grid grid-cols-2 gap-4">
           <Field data-invalid={!fullAddressRef.current}>

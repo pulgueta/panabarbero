@@ -74,7 +74,11 @@ interface CreateAppointmentFormProps {
   initialValues: Partial<
     Pick<
       AppointmentFormValues,
-      "customerName" | "contactPhone" | "contactEmail" | "barbershopMemberId"
+      | "customerName"
+      | "contactPhone"
+      | "contactEmail"
+      | "barbershopMemberId"
+      | "date"
     >
   >;
   onSuccess: () => void;
@@ -120,7 +124,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
   } = useAppointmentActions();
 
   const defaultValues: AppointmentFormValues = {
-    date: undefined,
+    date: initialValues.date,
     customerName: initialValues.customerName ?? "",
     contactPhone: initialValues.contactPhone ?? "",
     contactEmail: initialValues.contactEmail,

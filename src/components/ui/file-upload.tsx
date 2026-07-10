@@ -9,6 +9,7 @@ import {
   FileVideoIcon,
   FileZipIcon,
 } from "@phosphor-icons/react";
+import { useDebouncer, useThrottler } from "@tanstack/react-pacer";
 import type {
   ChangeEvent,
   ClipboardEvent,
@@ -319,7 +320,13 @@ function FileUpload(props: FileUploadProps) {
 
         case "SET_PROGRESS": {
           const fileState = files.get(action.file);
-          if (fileState) {
+          // Progress is throttled with a trailing call, so a stale update can
+          // land after success/error — never demote a terminal status.
+          if (
+            fileState &&
+            fileState.status !== "success" &&
+            fileState.status !== "error"
+          ) {
             files.set(action.file, {
               ...fileState,
               progress: action.progress,
@@ -420,20 +427,32 @@ function FileUpload(props: FileUploadProps) {
     [accept],
   );
 
-  const onProgress = useLazyRef(() => {
-    let frame = 0;
-    return (file: File, progress: number) => {
-      if (frame) return;
-      frame = requestAnimationFrame(() => {
-        frame = 0;
-        store.dispatch({
-          type: "SET_PROGRESS",
-          file,
-          progress: Math.min(Math.max(0, progress), 100),
-        });
+  const progressThrottler = useThrottler(
+    ({ file, progress }: { file: File; progress: number }) => {
+      store.dispatch({
+        type: "SET_PROGRESS",
+        file,
+        progress: Math.min(Math.max(0, progress), 100),
       });
-    };
-  }).current;
+    },
+    {
+      wait: 16,
+    },
+  );
+
+  const invalidResetDebouncer = useDebouncer(
+    () => store.dispatch({ type: "SET_INVALID", invalid: false }),
+    {
+      wait: 2000,
+    },
+  );
+
+  const onProgress = useCallback(
+    (file: File, progress: number) => {
+      progressThrottler.maybeExecute({ file, progress });
+    },
+    [progressThrottler],
+  );
 
   useEffect(() => {
     if (isControlled) {
@@ -590,9 +609,7 @@ function FileUpload(props: FileUploadProps) {
 
       if (invalid) {
         store.dispatch({ type: "SET_INVALID", invalid });
-        setTimeout(() => {
-          store.dispatch({ type: "SET_INVALID", invalid: false });
-        }, 2000);
+        invalidResetDebouncer.maybeExecute();
       }
 
       if (acceptedFiles.length > 0) {
@@ -625,6 +642,7 @@ function FileUpload(props: FileUploadProps) {
       isControlled,
       propsRef,
       onFilesUpload,
+      invalidResetDebouncer,
       maxFiles,
       acceptTypes,
       maxSize,
@@ -1110,7 +1128,7 @@ function FileUploadItemPreview(props: FileUploadItemPreviewProps) {
         // @ts-expect-error: extra field for base-ui
         "data-slot": "file-upload-preview",
         className: cn(
-          "relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded border bg-accent/50 [&>svg]:size-10",
+          "relative flex size-10 shrink-0 items-center justify-center rounded border bg-accent/50 [&>svg]:size-10",
           className,
         ),
         children: (

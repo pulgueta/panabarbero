@@ -33,8 +33,8 @@ auth architecture rationale.
       `barbershops.create`).
 
 > New accounts have **no barbershop membership** — they are plain users
-> (informally "customers"). There is **no plan/tier on the user**; plans live on
-> the owner's Polar subscription, not on the account.
+> (informally "customers"). There is **no plan/tier on the user**; plan limits
+> resolve from the owner's effective billing entitlement, not from the member's account.
 
 ### 2. Email Verification / Password Recovery
 
@@ -148,10 +148,10 @@ simply users with no membership row.
 ### 10. Pricing & Plan Information
 
 - [ ] Navigate to `/pricing`
-- [ ] View plan tiers (Free / Pro / Premium — backed by Polar products; see
-      `convex/plans.ts`)
-- [ ] An **active Polar subscription is required to create a barbershop**
-      (`assertIsSubscribed`)
+- [ ] View plan tiers (Free / Pro / Premium; paid products use Mercado Pago and
+      all limits come from `convex/plans.ts`)
+- [ ] An **active billing entitlement is required to create a barbershop**
+      (`assertIsSubscribed`); paid plans require an approved payment
 - [ ] Owners see subscription status in the `Planes` profile tab
 
 ### 11. Error Handling & Edge Cases

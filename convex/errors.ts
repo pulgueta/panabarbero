@@ -11,6 +11,7 @@ export const errorMessages = {
   barbershopClosedOnSelectedDay:
     "La barbería no está abierta en el día seleccionado",
   barbershopAlreadyExists: "Ya tienes una barbería registrada.",
+  barbershopInactive: "Esta barbería no está aceptando citas en este momento.",
   requiredAccount:
     "El usuario debe tener una cuenta en el sistema para ser invitado.",
   rateLimitExceeded: `Has excedido el límite de solicitudes. Intenta después.`,
@@ -35,4 +36,17 @@ export const errorMessages = {
     "Solo puedes reseñar una visita que haya sido completada.",
   reviewImmutable:
     "Una reseña publicada no se puede modificar; solo eliminarla.",
+
+  // Inventory
+  insufficientStock: "No hay stock suficiente para completar esta operación.",
+  itemArchived: "Este producto está archivado.",
+  itemNotSellable: "Este producto no está marcado para la venta.",
+  invalidQuantity: "La cantidad debe ser mayor a 0.",
+  idempotencyKeyConflict:
+    "Esta clave de idempotencia ya se usó en otra operación.",
+  salePriceRequired:
+    "El precio de venta es requerido para productos vendibles.",
+  duplicateRecipeItem: "No repitas productos en la receta.",
+  durableNotConsumable:
+    "Los productos durables no se consumen, no se venden ni se marcan como merma. Usa un ajuste para corregir su cantidad.",
 } as const;

@@ -116,7 +116,7 @@ async function scheduleEmailWithQuota(
  * Persist an in-app notification row for a specific user. Silently ignored
  * for guest/unknown recipients so existing SMS + email paths keep working.
  */
-async function recordInApp(
+export async function recordInApp(
   ctx: MutationCtx,
   opts: {
     userId: string;
@@ -658,82 +658,6 @@ export const createPastAppointmentReminder = zInternalMutation({
       userId: barberProfile.userId,
       copy,
     });
-  },
-});
-
-/**
- * Invite an authenticated customer to review a completed visit, across their
- * enabled channels (email + SMS + in-app). Carries the single-use review code
- * in the deep link and the in-app payload.
- */
-export const createReviewInvite = zInternalMutation({
-  args: z.object({
-    customerUserId: z.string(),
-    barbershopId: zid("barbershops"),
-    barbershopUuid: z.string(),
-    barbershopName: z.string(),
-    reviewCode: z.uuidv4(),
-    serviceName: z.string(),
-    to: z.string().optional(),
-    receiverPhoneNumber: z.string().optional(),
-  }),
-  handler: async (ctx, args) => {
-    let customerProfile: UserProfileData | null = null;
-
-    if (args.customerUserId !== "user_does_not_exist") {
-      customerProfile = await getProfileByUserId(ctx, args.customerUserId);
-    }
-
-    const copy = buildNotificationCopy({
-      kind: "review_invite",
-      barbershopName: args.barbershopName,
-      barbershopUuid: args.barbershopUuid,
-      reviewCode: args.reviewCode,
-      serviceName: args.serviceName,
-    });
-    const body = copy.description;
-    const smsBody = buildSmsBody(copy);
-
-    const to = resolveCustomerEmail(args.to, customerProfile?.email);
-    const emailEnabled = isCustomerEmailEnabled(customerProfile);
-
-    if (emailEnabled && to) {
-      await scheduleEmailWithQuota(ctx, args.barbershopId, () =>
-        ctx.scheduler.runAfter(0, internal.emails.sendReviewInviteEmail, {
-          to,
-          body,
-          url: copy.href,
-        }),
-      );
-    }
-
-    const phoneNumber =
-      customerProfile?.phoneNumber || args.receiverPhoneNumber;
-    const smsEnabled = customerProfile
-      ? isNotificationEnabled("sms", customerProfile.notificationsPreferences)
-      : !!phoneNumber;
-
-    if (smsEnabled && phoneNumber) {
-      await scheduleSmsWithQuota(ctx, {
-        body: smsBody,
-        to: phoneNumber,
-        barbershopId: args.barbershopId,
-      });
-    }
-
-    if (customerProfile?.userId) {
-      await recordInApp(ctx, {
-        userId: customerProfile.userId,
-        copy,
-        payload: {
-          barbershopId: args.barbershopId,
-          barbershopName: args.barbershopName,
-          barbershopUuid: args.barbershopUuid,
-          reviewCode: args.reviewCode,
-          serviceName: args.serviceName,
-        },
-      });
-    }
   },
 });
 

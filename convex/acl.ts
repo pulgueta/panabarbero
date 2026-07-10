@@ -10,6 +10,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { usageTriggers } from "./aggregates";
 import { getExtraCredits } from "./credits";
 import { errorMessages } from "./errors";
+import { getEffectiveSubscription } from "./mercadopagoSubscriptions";
 import {
   getCurrentYearMonth,
   getLimitsForProductKey,
@@ -17,15 +18,15 @@ import {
   type PlanLimits,
   type PlanTier,
 } from "./plans";
-import { polar } from "./polar";
 import type { Barbershop } from "./schema";
 
 /**
- * Fetch the active Polar subscription for a given `userId`.
- * Returns `null` when the user has no active subscription.
+ * Fetch the effective MercadoPago subscription for a given `userId`. The
+ * `effectiveProductKey` is payment- and status-gated, so an unpaid, paused, or
+ * canceled paid agreement resolves to the local free entitlement when present.
  */
 async function getSubscription(ctx: QueryCtx | MutationCtx, userId: string) {
-  return polar.getCurrentSubscription(ctx, { userId });
+  return getEffectiveSubscription(ctx, userId);
 }
 
 /**
@@ -37,7 +38,7 @@ export async function getUserPlanTier(
   userId: string,
 ): Promise<PlanTier> {
   const sub = await getSubscription(ctx, userId);
-  return getTierForProductKey(sub?.productKey);
+  return getTierForProductKey(sub.effectiveProductKey);
 }
 
 /**
@@ -49,7 +50,7 @@ export async function getUserPlanLimits(
   userId: string,
 ): Promise<PlanLimits> {
   const sub = await getSubscription(ctx, userId);
-  return getLimitsForProductKey(sub?.productKey);
+  return getLimitsForProductKey(sub.effectiveProductKey);
 }
 
 /**
@@ -62,7 +63,7 @@ export async function assertIsSubscribed(
 ): Promise<void> {
   const sub = await getSubscription(ctx, userId);
 
-  if (!sub || (sub.status !== "active" && sub.status !== "trialing")) {
+  if (!sub.isSubscribed) {
     throw new ConvexError(errorMessages.subscriptionRequired);
   }
 }
@@ -91,6 +92,47 @@ export async function assertCanCreateStaffAppointment(
       errorMessages.planLimitExceeded("crear citas por tus clientes"),
     );
   }
+}
+
+/**
+ * Assert the barbershop's plan includes the inventory module (pro / premium).
+ * Always resolved against the **owner's** subscription — staff/barbers hold
+ * no plan of their own.
+ */
+export async function assertInventoryAllowed(
+  ctx: QueryCtx | MutationCtx,
+  barbershopId: Barbershop["_id"],
+): Promise<void> {
+  const barbershop = await ctx.db.get(barbershopId);
+
+  if (!barbershop) {
+    throw new ConvexError(errorMessages.notFound("barbería"));
+  }
+
+  const limits = await getUserPlanLimits(ctx, barbershop.ownerId);
+
+  if (!limits.inventoryEnabled) {
+    throw new ConvexError(errorMessages.planLimitExceeded("inventario"));
+  }
+}
+
+/**
+ * Non-throwing variant of {@link assertInventoryAllowed} for the appointment
+ * lifecycle hooks, which must never fail a booking over inventory gating.
+ */
+export async function isInventoryAllowed(
+  ctx: QueryCtx | MutationCtx,
+  barbershopId: Barbershop["_id"],
+): Promise<boolean> {
+  const barbershop = await ctx.db.get(barbershopId);
+
+  if (!barbershop) {
+    return false;
+  }
+
+  const limits = await getUserPlanLimits(ctx, barbershop.ownerId);
+
+  return limits.inventoryEnabled;
 }
 
 /**

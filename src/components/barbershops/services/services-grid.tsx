@@ -6,15 +6,15 @@ import type {
 import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
 
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
+  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { cn, formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 
 interface ServicesGridProps {
   services: Service[];
@@ -41,30 +41,30 @@ export const ServicesGrid: FC<ServicesGridProps> = ({
         <Card key={service._id}>
           <CardHeader className="border-b">
             <CardTitle>{service.name}</CardTitle>
+            <CardDescription>
+              Duración: {service.duration} minutos
+            </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <p className="text-lg">
+          <CardFooter className="justify-between">
+            <p>
               Valor:{" "}
-              <span className="font-semibold text-foreground tabular-nums">
+              <span className="font-semibold tabular-nums">
                 {formatCurrency(service.price)}
               </span>
             </p>
-            <p className="text-muted-foreground text-sm">
-              Duración: {service.duration} min
-            </p>
-          </CardContent>
-          <CardFooter>
-            <Link
-              to="/barbershops/$barbershopUuid/book"
-              params={{ barbershopUuid }}
-              search={{ serviceId: service._id }}
-              className={cn(
-                buttonVariants({ variant: "default" }),
-                "w-full justify-center",
-              )}
+
+            <Button
+              nativeButton={false}
+              render={
+                <Link
+                  to="/barbershops/$barbershopUuid/book"
+                  params={{ barbershopUuid }}
+                  search={{ serviceId: service._id }}
+                />
+              }
             >
               Reservar
-            </Link>
+            </Button>
           </CardFooter>
         </Card>
       ))}

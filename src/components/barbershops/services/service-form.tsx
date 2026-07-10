@@ -117,23 +117,26 @@ export const ServiceForm: FC<ServiceFormProps> = ({
         <div className="grid grid-cols-2 gap-4">
           <form.AppField name="duration">
             {(field) => (
-              <field.TextField
+              <field.AddonField
                 label="Duración"
-                description="En minutos"
                 placeholder="30"
                 type="number"
-                className="w-full tabular-nums"
+                min={1}
+                addonEnd="min"
+                className="tabular-nums"
               />
             )}
           </form.AppField>
 
           <form.AppField name="price">
             {(field) => (
-              <field.TextField
+              <field.AddonField
                 label="Precio"
+                addonStart="COP"
                 placeholder="30000"
                 type="number"
-                className="w-full tabular-nums"
+                min={0}
+                className="tabular-nums"
               />
             )}
           </form.AppField>

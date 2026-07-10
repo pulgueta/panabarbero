@@ -1,13 +1,11 @@
 import {
-  CalendarIcon,
   ChatCircleIcon,
   CurrencyDollarIcon,
-  GearSixIcon,
   HouseIcon,
   ScissorsIcon,
   SparkleIcon,
+  SquaresFourIcon,
   UserIcon,
-  UsersIcon,
 } from "@phosphor-icons/react";
 
 export const APP_NAME = "PanaBarbero" as const;
@@ -42,6 +40,40 @@ export const publicRoutes = {
   ],
 };
 
+/**
+ * Site-chrome navigation for barbershop members. The dashboard sections
+ * themselves (Citas, Servicios, …) live in the dashboard sidebar
+ * (`src/components/dashboard/dashboard-nav.ts`); the site shell links into
+ * the panel once.
+ */
+const memberNavigation = [
+  {
+    label: "Panel",
+    to: "/profile/barbershops/appointments",
+    icon: SquaresFourIcon,
+  },
+  {
+    label: "Barberías",
+    to: "/barbershops",
+    icon: ScissorsIcon,
+  },
+  {
+    label: "Precios",
+    to: "/pricing",
+    icon: CurrencyDollarIcon,
+  },
+  {
+    label: "Pana",
+    to: "/chat",
+    icon: ChatCircleIcon,
+  },
+  {
+    label: "Perfil",
+    to: "/profile",
+    icon: UserIcon,
+  },
+];
+
 export const authenticatedRoutes = {
   navigation: [
     ...publicRoutes.navigation.filter((route) => route.to !== "/"),
@@ -51,80 +83,5 @@ export const authenticatedRoutes = {
       icon: UserIcon,
     },
   ],
-  barber: [
-    {
-      label: "Citas",
-      to: "/profile/barbershops/appointments",
-      icon: CalendarIcon,
-    },
-    {
-      label: "Pana",
-      to: "/chat",
-      icon: ChatCircleIcon,
-    },
-    {
-      label: "Perfil",
-      to: "/profile",
-      icon: UserIcon,
-    },
-  ],
-  staff: [
-    {
-      label: "Citas",
-      to: "/profile/barbershops/appointments",
-      icon: CalendarIcon,
-    },
-    {
-      label: "Equipo",
-      to: "/profile/barbershops/team",
-      icon: UsersIcon,
-    },
-    {
-      label: "Servicios",
-      to: "/profile/barbershops/services",
-      icon: ScissorsIcon,
-    },
-    {
-      label: "Pana",
-      to: "/chat",
-      icon: ChatCircleIcon,
-    },
-    {
-      label: "Perfil",
-      to: "/profile",
-      icon: UserIcon,
-    },
-  ],
-  owner: [
-    {
-      label: "Citas",
-      to: "/profile/barbershops/appointments",
-      icon: CalendarIcon,
-    },
-    {
-      label: "Servicios",
-      to: "/profile/barbershops/services",
-      icon: ScissorsIcon,
-    },
-    {
-      label: "Equipo",
-      to: "/profile/barbershops/team",
-      icon: UsersIcon,
-    },
-    {
-      label: "Ajustes",
-      to: "/profile/barbershops/settings",
-      icon: GearSixIcon,
-    },
-    {
-      label: "Pana",
-      to: "/chat",
-      icon: ChatCircleIcon,
-    },
-    {
-      label: "Perfil",
-      to: "/profile",
-      icon: UserIcon,
-    },
-  ],
+  member: memberNavigation,
 };

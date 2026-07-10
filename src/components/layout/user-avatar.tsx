@@ -9,6 +9,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
+import { getInitials } from "@/lib/utils";
 
 interface UserAvatarProps {
   user: {
@@ -22,14 +23,7 @@ interface UserAvatarProps {
 export function UserAvatar({ user }: UserAvatarProps) {
   const { signOut } = useAuth();
 
-  const initials = user.name
-    ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : user.email?.[0]?.toUpperCase() || "U";
+  const initials = getInitials(user.name, user.email);
 
   return (
     <Popover>

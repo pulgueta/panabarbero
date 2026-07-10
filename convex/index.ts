@@ -20,6 +20,8 @@ import {
   query,
 } from "./_generated/server";
 import { requireUserId } from "./identity";
+import type { RateLimitName } from "./ratelimit";
+import { rateLimitOrThrow } from "./ratelimit";
 
 export const zQuery = zCustomQuery(query, NoOp);
 export const zInternalQuery = zCustomQuery(internalQuery, NoOp);
@@ -34,11 +36,23 @@ export const zAuthQuery = zCustomQuery(
 );
 export const zAuthMutation = zCustomMutation(
   mutation,
-  customCtx(async (ctx: MutationCtx) => ({ userId: await requireUserId(ctx) })),
+  customCtx(async (ctx: MutationCtx, extra: { ratelimit?: RateLimitName }) => {
+    const userId = await requireUserId(ctx);
+
+    await rateLimitOrThrow(ctx, extra.ratelimit ?? "authWrite", userId);
+
+    return { userId };
+  }),
 );
 export const zAuthAction = zCustomAction(
   action,
-  customCtx(async (ctx: ActionCtx) => ({ userId: await requireUserId(ctx) })),
+  customCtx(async (ctx: ActionCtx, extra: { ratelimit?: RateLimitName }) => {
+    const userId = await requireUserId(ctx);
+
+    await rateLimitOrThrow(ctx, extra.ratelimit ?? "authWrite", userId);
+
+    return { userId };
+  }),
 );
 
 function jsonSafeZid<TableName extends string>(

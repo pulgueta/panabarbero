@@ -117,7 +117,7 @@ export const LocationForm: FC<LocationFormProps> = ({ barbershop }) => {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="flex h-full flex-1 flex-col gap-3">
       <div className="relative h-60 w-full overflow-hidden rounded-xl border">
         <MapCanvas onViewportChange={setViewport} viewport={mapViewport}>
           <MapControls showLocate />
@@ -144,65 +144,71 @@ export const LocationForm: FC<LocationFormProps> = ({ barbershop }) => {
         </p>
       )}
 
-      {isEditing ? (
-        <div className="space-y-2">
-          <Button
-            className="w-full"
-            disabled={setLocationMutation.isPending}
-            onClick={onSave}
-          >
-            {setLocationMutation.isPending ? <Spinner /> : "Guardar ubicación"}
-          </Button>
-
-          {(canUseGeo || location) && (
-            <div className="flex flex-col gap-2 min-[380px]:flex-row">
-              {canUseGeo && (
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  disabled={status === "prompting"}
-                  onClick={onUseMyLocation}
-                >
-                  {status === "prompting" ? (
-                    <Spinner />
-                  ) : (
-                    <CrosshairIcon weight="bold" />
-                  )}
-                  Usar mi ubicación
-                </Button>
-              )}
-
-              {location && (
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  disabled={removeLocationMutation.isPending}
-                  onClick={() => setConfirmOpen(true)}
-                >
-                  Quitar ubicación
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="flex gap-2">
-          <Button className="flex-1" onClick={() => setIsEditing(true)}>
-            Activar mapa
-          </Button>
-
-          {location && (
+      <div className="mt-auto">
+        {isEditing ? (
+          <div className="space-y-2">
             <Button
-              variant="outline"
-              className="flex-1"
-              disabled={removeLocationMutation.isPending}
-              onClick={() => setConfirmOpen(true)}
+              className="w-full"
+              disabled={setLocationMutation.isPending}
+              onClick={onSave}
             >
-              Quitar ubicación
+              {setLocationMutation.isPending ? (
+                <Spinner />
+              ) : (
+                "Guardar ubicación"
+              )}
             </Button>
-          )}
-        </div>
-      )}
+
+            {(canUseGeo || location) && (
+              <div className="flex flex-col gap-2 min-[380px]:flex-row">
+                {canUseGeo && (
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    disabled={status === "prompting"}
+                    onClick={onUseMyLocation}
+                  >
+                    {status === "prompting" ? (
+                      <Spinner />
+                    ) : (
+                      <CrosshairIcon weight="bold" />
+                    )}
+                    Usar mi ubicación
+                  </Button>
+                )}
+
+                {location && (
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    disabled={removeLocationMutation.isPending}
+                    onClick={() => setConfirmOpen(true)}
+                  >
+                    Quitar ubicación
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <Button className="flex-1" onClick={() => setIsEditing(true)}>
+              Activar mapa
+            </Button>
+
+            {location && (
+              <Button
+                variant="outline"
+                className="flex-1"
+                disabled={removeLocationMutation.isPending}
+                onClick={() => setConfirmOpen(true)}
+              >
+                Quitar ubicación
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
 
       <ResponsiveModal open={confirmOpen} onOpenChange={setConfirmOpen}>
         <ResponsiveModalContent>

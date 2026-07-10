@@ -18,4 +18,5 @@ export const subjects = {
   past_appointment_reminder: "Recordatorio de cita pasada",
   review_invite: "Califica tu visita",
   review_needs_attention: "Tu reseña necesita atención",
+  low_stock: "Inventario bajo",
 } satisfies Record<string, string>;

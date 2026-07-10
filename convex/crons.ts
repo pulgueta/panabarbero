@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { zInternalMutation } from ".";
 import { internal } from "./_generated/api";
+import { completedAppointmentsAggregate } from "./aggregates";
 
 const crons = cronJobs();
 
@@ -27,17 +28,33 @@ export const cleanupAppointments = zInternalMutation({
       )
       .collect();
 
-    await Promise.all(
-      appointments.map((appointment) => ctx.db.delete(appointment._id)),
-    );
+    for (const appointment of appointments) {
+      // Reviews are content and outlive their appointment (name snapshots by
+      // design) — keep reviewed appointments so `reviews.appointmentId`
+      // never dangles and no published rating is lost.
+      const review = await ctx.db
+        .query("reviews")
+        .withIndex("by_appointmentId", (q) =>
+          q.eq("appointmentId", appointment._id),
+        )
+        .first();
+
+      if (review) {
+        continue;
+      }
+
+      if (appointment.status === "completed") {
+        await completedAppointmentsAggregate.deleteIfExists(ctx, {
+          namespace: appointment.barbershopId,
+          key: appointment.date,
+          id: appointment._id,
+        });
+      }
+
+      await ctx.db.delete(appointment._id);
+    }
   },
 });
-
-crons.interval(
-  "Sync existing products from Polar",
-  { hours: 24 },
-  internal.polar.syncExistingProducts,
-);
 
 crons.interval(
   "Cleanup soft-deleted appointments",
@@ -49,6 +66,12 @@ crons.interval(
   "Cleanup unread-tracking data",
   { hours: 24 },
   internal.inAppNotifications.cleanupUnreads,
+);
+
+crons.interval(
+  "Rollup old inventory movements",
+  { hours: 24 * 7 },
+  internal.inventory.rollupOldMovements,
 );
 
 export default crons;

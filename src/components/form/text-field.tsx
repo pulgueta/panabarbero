@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useFieldContext } from "./form-context";
+import { numberSelectOnFocus, useFieldContext } from "./form-context";
 
 interface TextFieldProps extends ComponentProps<typeof Input> {
   label: string;
@@ -22,6 +22,8 @@ interface TextFieldProps extends ComponentProps<typeof Input> {
 export const TextField: FC<TextFieldProps> = ({
   label,
   description,
+  onFocus,
+  type,
   ...props
 }) => {
   const field = useFieldContext<string>();
@@ -36,9 +38,11 @@ export const TextField: FC<TextFieldProps> = ({
       <Input
         id={field.name}
         name={field.name}
+        type={type}
         value={field.state.value}
         onBlur={field.handleBlur}
         onChange={(e) => field.handleChange(e.target.value)}
+        onFocus={numberSelectOnFocus(type, onFocus)}
         aria-invalid={isInvalid}
         {...props}
       />

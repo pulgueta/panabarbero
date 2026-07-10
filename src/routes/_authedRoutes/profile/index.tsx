@@ -25,10 +25,6 @@ import {
   getExtraCreditsQueryOptions,
 } from "@/hooks/billing/use-credits";
 import {
-  getPricingPlansQueryOptions,
-  getSubscriptionQueryOptions,
-} from "@/hooks/billing/use-pricing";
-import {
   appointmentsByUserQueryOptions,
   useAppointmentsByUser,
 } from "@/hooks/use-appointments";
@@ -177,8 +173,6 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
 
       // Tab-specific data — every consumer lives inside a <Suspense>-wrapped
       // lazy tab, so prime the cache without blocking the shell or default tab.
-      void context.queryClient.prefetchQuery(getPricingPlansQueryOptions());
-      void context.queryClient.prefetchQuery(getSubscriptionQueryOptions());
       void context.queryClient.prefetchQuery(getExtraCreditsQueryOptions());
       void context.queryClient.prefetchQuery(
         unreadNotificationsCountQueryOptions(),
@@ -198,7 +192,6 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
       if (appointments) {
         void context.queryClient.prefetchQuery(
           servicesByIdsQueryOptions(
-            // @ts-expect-error - appointments is defined
             appointments.page.map((appointment) => appointment.serviceId),
           ),
         );

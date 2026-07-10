@@ -72,7 +72,7 @@ export function LocationFirstRun() {
               "Arrastra el pin hasta tu zona o elige tu ciudad abajo."
             )}
           </p>
-          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <div className="flex flex-col gap-2 md:flex-row md:justify-end">
             <Button onClick={dismiss} size="sm" variant="ghost">
               Elegir manualmente
             </Button>
@@ -87,10 +87,10 @@ export function LocationFirstRun() {
           </div>
         </div>
       ) : (
-        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col items-start gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start gap-3">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <NavigationArrowIcon className="size-5" weight="fill" />
+              <NavigationArrowIcon className="size-4" weight="fill" />
             </span>
             <div className="space-y-0.5">
               <p className="font-medium text-sm">¿Ver barberías cerca de ti?</p>
@@ -102,24 +102,14 @@ export function LocationFirstRun() {
             </div>
           </div>
 
-          <div className="flex w-full shrink-0 gap-2 sm:w-auto">
+          <div className="flex w-full shrink-0 flex-col gap-2 md:w-auto md:flex-row">
             {!failed && (
-              <Button
-                className="flex-1 sm:flex-none"
-                disabled={isLocating}
-                onClick={handleUseLocation}
-                size="sm"
-              >
-                {isLocating ? <Spinner /> : <NavigationArrowIcon />}
+              <Button disabled={isLocating} onClick={handleUseLocation}>
+                {isLocating && <Spinner />}
                 Usar mi ubicación
               </Button>
             )}
-            <Button
-              className="flex-1 sm:flex-none"
-              onClick={dismiss}
-              size="sm"
-              variant="outline"
-            >
+            <Button onClick={dismiss} variant="outline">
               Elegir manualmente
             </Button>
           </div>

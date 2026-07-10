@@ -5,6 +5,8 @@ import { components } from "./_generated/api";
 import { errorMessages } from "./errors";
 
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
+  authWrite: { kind: "fixed window", rate: 10, period: 60 * MINUTE },
+  billingReconcile: { kind: "fixed window", rate: 6, period: 60 * MINUTE },
   requestReschedule: { kind: "fixed window", rate: 1, period: 30 * MINUTE },
   createAppointment: {
     kind: "token bucket",
@@ -109,18 +111,6 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     period: MINUTE,
     capacity: 10,
   },
-  addServiceToBarber: {
-    kind: "token bucket",
-    rate: 10,
-    period: MINUTE,
-    capacity: 10,
-  },
-  removeServiceFromBarber: {
-    kind: "token bucket",
-    rate: 10,
-    period: MINUTE,
-    capacity: 10,
-  },
   createReview: { kind: "fixed window", rate: 3, period: MINUTE },
   updateReview: { kind: "token bucket", rate: 5, period: MINUTE, capacity: 5 },
   deleteReview: { kind: "token bucket", rate: 5, period: MINUTE, capacity: 5 },
@@ -169,6 +159,10 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     period: MINUTE,
     capacity: 5,
   },
+  // The `upload` action stores an arbitrary caller-supplied Blob + object key,
+  // so keep it on an hourly cap to bound storage-abuse/DoS exposure rather than
+  // the looser per-minute bucket.
+  r2: { kind: "fixed window", rate: 20, period: 60 * MINUTE },
   aiSendMessage: {
     kind: "fixed window",
     period: 5 * 1000,
@@ -193,9 +187,58 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     rate: 2_000,
     capacity: 6_000,
   },
+  createInventoryItem: {
+    kind: "token bucket",
+    rate: 10,
+    period: MINUTE,
+    capacity: 10,
+  },
+  updateInventoryItem: {
+    kind: "token bucket",
+    rate: 10,
+    period: MINUTE,
+    capacity: 10,
+  },
+  archiveInventoryItem: { kind: "fixed window", rate: 5, period: 10 * MINUTE },
+  receiveStock: {
+    kind: "token bucket",
+    rate: 10,
+    period: MINUTE,
+    capacity: 10,
+  },
+  adjustStock: {
+    kind: "token bucket",
+    rate: 10,
+    period: MINUTE,
+    capacity: 10,
+  },
+  recordConsumption: {
+    kind: "token bucket",
+    rate: 30,
+    period: MINUTE,
+    capacity: 15,
+  },
+  recordSale: {
+    kind: "token bucket",
+    rate: 30,
+    period: MINUTE,
+    capacity: 15,
+  },
+  reserveStock: {
+    kind: "token bucket",
+    rate: 10,
+    period: MINUTE,
+    capacity: 10,
+  },
+  setServiceRecipe: {
+    kind: "token bucket",
+    rate: 10,
+    period: MINUTE,
+    capacity: 10,
+  },
 });
 
-type RateLimitName = keyof NonNullable<typeof rateLimiter.limits>;
+export type RateLimitName = keyof NonNullable<typeof rateLimiter.limits>;
 
 export const rateLimitOrThrow = async (
   ctx: RunMutationCtx,

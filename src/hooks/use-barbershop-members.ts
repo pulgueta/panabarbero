@@ -80,13 +80,23 @@ export function useStaffByBarbershopId(barbershopId: Barbershop["_id"]) {
 }
 
 export function useServicesForBarber(
-  barbershopMemberId: BarbershopMember["_id"],
+  barbershopMemberId: BarbershopMember["_id"] | undefined,
 ) {
-  return useQuery(servicesForBarberQueryOptions(barbershopMemberId));
+  return useQuery(
+    convexQuery(
+      api.barbershopMemberServices.getServicesForBarber,
+      barbershopMemberId ? { id: barbershopMemberId } : "skip",
+    ),
+  );
 }
 
-export function useBarbersForService(serviceId: Service["_id"]) {
-  return useQuery(barbersForServiceQueryOptions(serviceId));
+export function useBarbersForService(serviceId: Service["_id"] | undefined) {
+  return useQuery(
+    convexQuery(
+      api.barbershopMemberServices.getBarbersForService,
+      serviceId ? { id: serviceId } : "skip",
+    ),
+  );
 }
 
 // ---------------------------------------------------------------------------

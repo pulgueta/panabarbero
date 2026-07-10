@@ -1,6 +1,6 @@
-import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import type { Barbershop } from "@convex/schema";
+import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
 
 export function getExtraCreditsQueryOptions() {

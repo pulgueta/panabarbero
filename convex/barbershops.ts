@@ -13,11 +13,13 @@ import { groupIdentifyBarbershop, track } from "./analytics";
 import { authkit } from "./auth.config";
 import { assertOwner } from "./authz";
 import { cascadeDeleteBarbershop } from "./barbershopCascade";
+import { hasUnexpiredCheckout } from "./credits";
 import { errorMessages } from "./errors";
+import { ensureFreeSubscription } from "./mercadopagoSubscriptions";
 import { rateLimitOrThrow } from "./ratelimit";
 import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
-import { DAY_MAP, formatPhoneNumber } from "./utils";
+import { formatPhoneNumber } from "./utils";
 
 export const create = zAuthMutation({
   args: z.object({
@@ -26,6 +28,11 @@ export const create = zAuthMutation({
   }),
   handler: async (ctx, args) => {
     const { userId } = ctx;
+
+    // Every authenticated owner is entitled to at least the free plan; seed the
+    // local free entitlement idempotently so `assertIsSubscribed` resolves when
+    // no paid subscription exists.
+    await ensureFreeSubscription(ctx, userId);
 
     await Promise.all([
       assertIsSubscribed(ctx, userId),
@@ -245,7 +252,7 @@ export const getByUuid = zQuery({
   handler: async (ctx, args) => {
     const barbershop = await getByUuidFn(ctx, args.uuid);
 
-    if (!barbershop) return null;
+    if (!barbershop || !barbershop.isActive) return null;
 
     const services = await ctx.runQuery(api.barbershops.getServices, {
       id: barbershop._id,
@@ -307,6 +314,12 @@ export const deleteCascade = zAuthMutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
+    if (await hasUnexpiredCheckout(ctx, userId, Date.now())) {
+      throw new ConvexError(
+        "Espera a que venza tu checkout de créditos antes de eliminar la barbería.",
+      );
+    }
+
     await cascadeDeleteBarbershop(ctx, barbershop);
   },
 });
@@ -321,36 +334,6 @@ export const getAvailability = zQuery({
     }
 
     return barbershop.availability;
-  },
-});
-
-export const getAvailabilityForDate = zQuery({
-  args: z.object({
-    barbershop: barbershops.tools.id,
-    date: z.number(),
-  }),
-  handler: async (ctx, args) => {
-    const barbershop = await ctx.db.get(args.barbershop.id);
-
-    if (!barbershop) {
-      return null;
-    }
-
-    const day = DAY_MAP[new Date(args.date).getDay()];
-
-    const dayAvailability = barbershop.availability.find(
-      (a) => a.weekDay.day === day,
-    );
-
-    if (!dayAvailability) {
-      return { isActive: false, openAt: undefined, closeAt: undefined };
-    }
-
-    return {
-      isActive: dayAvailability.weekDay.isActive,
-      openAt: dayAvailability.openAt,
-      closeAt: dayAvailability.closeAt,
-    };
   },
 });
 
