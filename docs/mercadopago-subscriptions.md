@@ -1,204 +1,129 @@
-# MercadoPago Subscriptions — parallel integration (test)
+# Mercado Pago billing architecture
 
-A complete MercadoPago **Subscriptions (Preapproval)** integration that runs
-**in parallel to Polar**. Nothing about the live Polar path is touched; this is a
-self-contained stack that could replace Polar for every subscription-related
-concern with a one-line swap (see [Swapping Polar → MercadoPago](#swapping-polar--mercadopago)).
+PanaBarbero uses Mercado Pago for recurring paid plans and one-time SMS or email credit packs. Convex owns checkout identity, authorization, plan limits, and entitlement state; a redirect or an authorized preapproval never grants access by itself.
 
-Market: Colombia (`MCO`), currency `COP`, copy in Spanish (es-CO).
+Market: Colombia (`MCO`). Currency: Colombian pesos (`COP`). User-facing copy: Spanish (`es-CO`).
 
----
+## Billing surfaces
 
-## What was built
+Each billing layer has one responsibility:
 
-| Layer | File | Purpose |
+| Surface | Canonical files | Responsibility |
 | --- | --- | --- |
-| Plan catalog (pure TS) | `convex/mercadopagoPlans.ts` | `productKey` → `{ tier, interval, amountCop, frequency, reason }`, status normalizer. Mirrors Polar amounts; reuses tiers from `convex/plans.ts`. |
-| Schema | `convex/schema.ts` → `mercadopagoSubscriptions` | One row per subscription. Indexes `by_userId`, `by_preapprovalId`. |
-| DB layer + resolver | `convex/mercadopagoSubscriptions.ts` | `getCurrentMpSubscription` (ACL-shaped), `upsertByPreapproval`, `subscribeFree`, `getMySubscription`. |
-| SDK actions (`"use node"`) | `convex/mercadopago.ts` | `createSubscriptionCheckout`, `cancelSubscription`, `processWebhookEvent`. Uses the official `mercadopago` Node SDK. |
-| Webhook route | `convex/http.ts` → `POST /mercadopago/webhook` | Additive; forwards to `processWebhookEvent`. Does **not** touch the Polar routes. |
-| Client hooks | `src/hooks/billing/use-mercadopago.ts` | Reactive subscription query + checkout/cancel/free mutations. |
-| Test surface | `src/routes/mercadopago.tsx`, `src/components/mercadopago/` | `/mercadopago` page: plan cards, current status, subscribe (redirect), cancel. |
+| Catalog | `convex/plans.ts`, `convex/mercadopagoPlans.ts` | Stable product keys, prices, intervals, credit packs, and plan limits |
+| Subscription checkout | `convex/mercadopago.ts`, `convex/mercadopagoCheckoutAttempts.ts` | Durable checkout claim, hosted checkout creation, reconciliation, cancellation, and free-plan activation |
+| Subscription entitlement | `convex/mercadopagoSubscriptions.ts` | Agreement state, approved payment periods, bounded reads, and the client-safe subscription result |
+| Credit checkout | `convex/mercadopago.ts`, `convex/credits.ts` | Server-owned credit intent, Checkout Pro preference, grants, refunds, and chargebacks |
+| Webhooks | `convex/http.ts`, `convex/mercadopagoWebhooks.ts` | Signature validation, remote resource fetches, catalog validation, and ordered state transitions |
+| Client | `src/hooks/billing/use-mercadopago.ts`, `src/components/pricing/` | Pricing, redirect, pending state, cancellation confirmation, and plan management |
 
-All server functions use the project's Zod wrappers (`zAuthAction`,
-`zAuthMutation`, `zInternalAction`, `zInternalMutation`, `zQuery`) and Zod
-schemas via `zodTable`.
+The billing tables are:
 
----
+- `mercadopagoSubscriptions`: one row per remote preapproval, plus the local free entitlement
+- `mercadopagoSubscriptionPayments`: one ordered lifecycle row per recurring payment
+- `mercadopagoCheckoutAttempts`: one durable subscription checkout claim per user
+- `mercadopagoCreditCheckouts`: immutable catalog terms for each credit checkout
+- `creditPurchases`: one lifecycle record per Mercado Pago payment
 
-## Checkout model — why "preapproval without a plan, pending"
+## Plan catalog and limits
 
-MercadoPago offers two subscription models:
+The server reads prices and limits from local catalogs. The client never submits an amount or grants its own access.
 
-1. **With an associated plan** (`preapproval_plan` template + subscribers). The
-   hosted plan link works, **but the resulting subscriber cannot carry our
-   `external_reference`**, so a webhook cannot be mapped back to a PanaBarbero
-   `userId`. (Creating a subscriber against a plan via API additionally requires
-   a `card_token_id` — i.e. client-side PCI card tokenization — and status
-   `authorized`.)
-2. **Without a plan, created as `pending`** ← **what we use.** We set
-   `external_reference = "<userId>|<productKey>"` and `payer_email` ourselves,
-   MercadoPago returns an `init_point` hosted-checkout URL, and the buyer picks a
-   payment method there. This mirrors Polar's hosted-checkout redirect, needs no
-   card tokenization on our side, and keeps the webhook → user mapping intact.
+| Tier | Product keys | Invited barbers | Receptionists |
+| --- | --- | ---: | ---: |
+| Free (`free`) | `independiente` | 5 | 0 |
+| Barbería (`pro`) | `barberiaMonthly`, `barberiaYearly` | 10 | 1 |
+| Barbería Profesional (`premium`) | `barberiaProfMonthly`, `barberiaProfYearly` | Unlimited | 3 |
 
-The free tier (`independiente`, $0) never hits MercadoPago — it is a local row
-written by `subscribeFree` (MercadoPago cannot bill a $0 recurrence). This still
-satisfies `assertIsSubscribed`, exactly like a Polar free subscription.
+The free plan has no remote preapproval because Mercado Pago cannot charge a zero-value recurrence. `subscribeFree` reconciles every open paid agreement before creating the local entitlement.
 
-### Lifecycle
+## Subscription checkout lifecycle
 
-```
-UI "Suscribirse"
-  └─ createSubscriptionCheckout (zAuthAction)
-       ├─ PreApproval.create({ status:"pending", auto_recurring, external_reference, payer_email, back_url })
-       ├─ upsertByPreapproval → row { status:"pending" }
-       └─ returns init_point
-  └─ browser redirect → MercadoPago hosted checkout
-       └─ buyer authorizes with a card
-            └─ MercadoPago → POST /mercadopago/webhook  (type: subscription_preapproval)
-                 └─ processWebhookEvent: validate x-signature → PreApproval.get(id)
-                      └─ upsertByPreapproval → row { status:"active" }  (mpStatus "authorized")
-```
+The checkout action serializes creation per user and reuses one stable idempotency key for retries of the same intent:
 
-Status mapping (`normalizeMpStatus`): `authorized → active`, `pending → pending`,
-`paused → paused`, `cancelled → canceled`. The normalized `status` uses the same
-vocabulary the ACL already gates on (`active`/`trialing`).
+1. `createSubscriptionCheckout` validates the paid product key and uses a validated payer email or the authenticated account email.
+2. `mercadopagoCheckoutAttempts.acquire` atomically creates or resumes the per-user checkout claim.
+3. The action fetches every locally open preapproval from Mercado Pago. An unreachable or unverified remote state blocks checkout.
+4. The action cancels only remote preapprovals confirmed as abandoned and `pending`. Any live agreement blocks a second checkout.
+5. `PreApproval.create` receives the server-owned reference, catalog amount, interval, currency, and the claim's stable idempotency key.
+6. The completion mutation stores the preapproval and reusable hosted checkout URL in the same transaction.
+7. The browser redirects to Mercado Pago. Returning to PanaBarbero shows a pending state until a payment webhook proves access.
 
----
+Concurrent requests cannot create independent claims for the same user. Convex transaction conflicts serialize the indexed read and insert, while Mercado Pago deduplicates retries with the persisted idempotency key.
 
-## Environment variables (Convex dashboard)
+## Paid entitlement lifecycle
 
-| Variable | Status | Notes |
-| --- | --- | --- |
-| `MERCADOPAGO_ACCESS_TOKEN` | ✅ set (`TEST-…`) | Seller token. Used by every SDK call. |
-| `MERCADOPAGO_PUBLIC_KEY` | ✅ set (`TEST-…`) | **Not required** for the redirect flow (only needed if we ever add client-side card tokenization). |
-| `MERCADOPAGO_WEBHOOK_SECRET` | ✅ set + verified | Signature secret for the app. A real `subscription_preapproval` webhook from MercadoPago was delivered and returned **HTTP 200** (signature validated), confirming the stored secret matches MercadoPago's signing secret. Without it, `processWebhookEvent` returns 500 and access never flips to `active`. |
-| `MERCADOPAGO_IDEMPOTENCY_KEY` | set, unused | We generate a fresh idempotency key per `create` call (`crypto.randomUUID()`), which is the correct behavior; a single static key would collapse distinct subscriptions. |
+Agreement state and paid access are separate. A `subscription_preapproval` event may mark the agreement `authorized`, but it does not grant a paid plan.
 
-The webhook must be registered on **the app that owns
-`MERCADOPAGO_ACCESS_TOKEN`** (in dev that is currently the test seller's app;
-in production, the real PanaBarbero app `944815793526367`):
+Paid access requires both conditions:
 
-- URL (prod + sandbox): `https://grandiose-sturgeon-51.convex.site/mercadopago/webhook`
-- Topics: `subscription_preapproval`, `subscription_authorized_payment`, and
-  **`payment` (Pagos)**. The `payment` topic is required for credit-pack
-  grants — without it Checkout Pro redirects still succeed but
-  `addPurchasedCredits` never runs.
-- Secret: copy the *Clave secreta* from that app's webhook config and set it
-  as `MERCADOPAGO_WEBHOOK_SECRET`.
+- The normalized agreement status is `active`
+- `paidThrough` is later than the current server time
 
-```sh
-pnpx convex env set MERCADOPAGO_WEBHOOK_SECRET "<full-secret-from-dashboard>"
-```
+Only an approved authorized-payment invoice extends `paidThrough`. Rejected or pending payments do not extend access. A refund or chargeback against the payment that granted the current period revokes access, and the scheduled expiry mutation refreshes reactive clients when an unpaid period ends.
 
----
+Webhook reconciliation validates the stored preapproval id, checkout reference, product key, amount, currency, frequency, and frequency type against the server catalog. Remote timestamps prevent older events from overwriting newer agreement or payment state.
 
-## Manual testing guide
+See Mercado Pago's [authorized payment lifecycle](https://www.mercadopago.com.co/developers/en/docs/subscriptions/integration-configuration/subscription-no-associated-plan/authorized-payments) for the provider-side payment model.
 
-### 0. One-time setup
+## Cancellation and plan changes
 
-1. Reveal the webhook secret (above) and `convex env set MERCADOPAGO_WEBHOOK_SECRET`.
-2. Make sure Convex has the latest functions pushed (`pnpx convex dev --once` or `pnpm dev`).
-3. Start the app (`pnpm dev`) and open **`/pricing`** (or the profile's
-   **Planes** tab) while logged in.
+`cancelSubscription` changes the open preapproval to `cancelled` at Mercado Pago and verifies the returned terminal state before updating Convex. Cancellation is immediate: the paid entitlement stops because the agreement is no longer active, even if a prior `paidThrough` timestamp is still in the future.
 
-### 1. Credentials you need
+Users must cancel the current paid agreement before choosing another paid plan or returning to Free. A paused or authorized agreement still blocks a new checkout because it can resume billing. The free plan cannot be cancelled.
 
-| What | Value / where |
+Account deletion first verifies and cancels every remotely open agreement. It also waits for any still-payable credit checkout to expire. If Mercado Pago cannot confirm the remote state or cancellation, account deletion stops. After remote cancellation succeeds, Convex removes the billing rows and payer data.
+
+## One-time credit lifecycle
+
+Only a barbershop owner can create a credit checkout. `credits.createCheckoutIntent` stores the barbershop, product key, credit count, amount, currency, checkout reference, and idempotency key before the action creates a Checkout Pro preference.
+
+The Checkout Pro preference uses binary payment mode and expires after 30 minutes, so account deletion cannot orphan a pending, indefinitely payable link. The `payment` webhook fetches the payment from Mercado Pago and validates it against the immutable intent. An approved payment grants credits once. Refunds and chargebacks remove the unused portion of the granted pack; a reimbursed chargeback can restore the reversed credits without duplicating the original grant.
+
+## Configure each environment
+
+Configure Mercado Pago variables in the matching Convex deployment. Test and production must use different Mercado Pago applications, access tokens, webhook secrets, and callback URLs.
+
+| Variable | Required value |
 | --- | --- |
-| Seller token | Already in Convex (`MERCADOPAGO_ACCESS_TOKEN`). |
-| Webhook secret | Dashboard → app `944815793526367` → Webhooks → reveal. Set in Convex. |
-| **Test buyer** | `TESTUSER8236605759905604647` (user id `3524783609`). Password: dashboard → app → **Test accounts**, or `https://www.mercadopago.com.co/developers/panel/app/4533703913087261/test-users`. Balance loaded. |
+| `MERCADOPAGO_ACCESS_TOKEN` | Private seller token from the Mercado Pago application for this environment |
+| `MERCADOPAGO_WEBHOOK_SECRET` | Signature secret from that application's webhook integration |
+| `SITE_URL` | Public application origin used for checkout return URLs, for example `https://your_app.example` |
 
-> If you need to (re)generate or reveal a credential, paste it here and I can wire
-> it in. Never commit these — they stay in the Convex dashboard.
+Convex provides `CONVEX_SITE_URL` automatically for each deployment; credit preferences append `/mercadopago/webhook` to that system URL. The hosted redirect flow does not require a client-side Mercado Pago public key. Idempotency keys are generated and persisted per checkout, so there is no static idempotency environment variable.
 
-### 2. MCO test card (use at the hosted checkout)
+Register the same full webhook URL in the Mercado Pago application and enable these topics:
 
-| Type | Number | CVV | Exp | Cardholder | Doc |
-| --- | --- | --- | --- | --- | --- |
-| Visa credit | `4013 5406 8274 6260` | `123` | `11/30` | `APRO` (approved) | `123456789` |
-| Mastercard credit | `5254 1336 7440 3564` | `123` | `11/30` | `APRO` | `123456789` |
+- `subscription_preapproval`: agreement authorization, pause, and cancellation
+- `subscription_authorized_payment`: recurring invoice status and paid-period entitlement
+- `payment`: credit-pack grants, refunds, and subscription payment reconciliation
+- Chargebacks (`topic_chargebacks_wh` in webhook payloads): disputed payment reversal or restoration
 
-Change the cardholder name to force other outcomes: `OTHE` (declined),
-`CONT` (pending), `FUND` (insufficient funds), etc.
+The `payment` topic is required even when subscription topics are enabled because credit purchases use Checkout Pro payments. See Mercado Pago's [webhook configuration](https://www.mercadopago.com.co/developers/en/docs/subscriptions/additional-content/your-integrations/notifications/webhooks) and [chargeback notifications](https://www.mercadopago.com.co/developers/en/docs/checkout-pro/chargebacks/notifications).
 
-### 3. Happy path
+## Verify a deployment
 
-1. On `/mercadopago`, optionally type a **payer email** into the field.
-   - Use a normal email (e.g. a Gmail). **Do not use an `@testuser.com`
-     address** — MercadoPago returns a 500 for those on preapproval creation.
-   - Leave it blank to use your account email (must differ from the seller
-     account email `retardix456@gmail.com`).
-2. Click **Suscribirse** on a paid plan → you're redirected to
-   `mercadopago.com.co/subscriptions/checkout?preapproval_id=…`.
-3. Log in there as the **test buyer** and pay with the `APRO` test card.
-4. You return to `/mercadopago?status=success` (banner: "Estamos confirmando tu
-   pago…"). The subscription card flips **Pendiente → Activa** automatically once
-   the `subscription_preapproval` webhook lands (usually seconds).
-5. **Cancel** with the "Cancelar suscripción" button → MercadoPago status
-   `cancelled`, local status `Cancelada`.
-6. **Free plan**: "Activar plan gratis" writes a local `active` row with no
-   MercadoPago call.
+Run billing tests through `/pricing` or the **Planes** profile tab. There is no separate payer test route.
 
-### 4. Verifying without the UI
+1. Configure the test Mercado Pago application, test credentials, full webhook URL, and all required topics.
+2. Push the current Convex functions with `pnpx convex dev --once`.
+3. Sign in with a PanaBarbero owner account and select a paid plan.
+4. Complete the hosted checkout with a Mercado Pago test buyer from the matching test application.
+5. Confirm the UI remains pending after authorization and becomes entitled only after an approved authorized-payment event.
+6. Confirm a second checkout is blocked while the paid agreement is pending, authorized, or paused.
+7. Cancel from the **Planes** tab and confirm access ends immediately.
+8. Buy a credit pack and confirm one approved `payment` event grants it once.
+9. Exercise a refund or chargeback in the test environment and confirm the available grant or entitlement is reversed.
 
-```sh
-# Inspect stored rows
-pnpx convex data mercadopagoSubscriptions --limit 10
+Inspect webhook delivery in the Mercado Pago developer dashboard and billing state in the Convex data browser. Never copy access tokens, webhook secrets, real application ids, personal emails, or test-account passwords into this repository.
 
-# Drive the checkout action as any user (impersonation)
-pnpx convex run mercadopago:createSubscriptionCheckout \
-  '{"productKey":"barberiaMonthly","payerEmail":"comprador_prueba@gmail.com"}' \
-  --identity '{"subject":"user_test01","issuer":"https://t","name":"T"}'
+## Production invariants
 
-# Resolve the effective subscription for that user
-pnpx convex run mercadopagoSubscriptions:getMySubscription '{}' \
-  --identity '{"subject":"user_test01","issuer":"https://t","name":"T"}'
-```
+Keep these rules intact when changing billing code:
 
-Webhook delivery health: dashboard → app → Webhooks, or the MCP
-`notifications_history` tool.
-
-> A smoke-test row (`userId: "user_smoketest01"`, status `pending`) exists in the
-> **dev** deployment from validation. Harmless (fake user); delete it from the
-> Convex data browser if you want a clean slate.
-
----
-
-## Swapping Polar → MercadoPago
-
-The integration is a drop-in because `getCurrentMpSubscription(ctx, userId)`
-returns the same `{ productKey, status }` shape the ACL reads from
-`polar.getCurrentSubscription`. To make MercadoPago authoritative **without
-removing Polar**, change three call sites:
-
-- `convex/acl.ts` → `getSubscription` : call `getCurrentMpSubscription(ctx, userId)`.
-- `convex/auth.ts` → `getUserSubscription` and `getBarbershopOwnerSubscription` :
-  same substitution.
-
-Everything downstream (`getTierForProductKey`, `getLimitsForProductKey`,
-`PLAN_LIMITS`, all `assert*` guards, the client `usePlan` hook) is provider-
-agnostic and needs no changes, because both providers speak the same
-`productKey` vocabulary from `convex/plans.ts`.
-
-For the client, `api.mercadopagoSubscriptions.getMySubscription` mirrors
-`api.auth.getUserSubscription`, so the pricing/settings UI can point at either.
-
----
-
-## Known caveats / follow-ups
-
-- **`payer_email` domain**: `@testuser.com` addresses 500 on preapproval
-  creation. Use real-looking emails.
-- **One effective subscription per user**: the resolver picks the highest-
-  priority row (`active > trialing > paused > pending > canceled`). Switching
-  plans creates a new preapproval; the old one should be canceled (the "Cancelar"
-  button, or a future auto-cancel-on-switch step).
-- **Recurring-payment webhooks** (`subscription_authorized_payment`) are received
-  and signature-checked but currently ignored — access is driven entirely by the
-  preapproval status. Wire them up if you want per-invoice records.
-- **Proration / plan changes / free trials**: not implemented (Polar parity is
-  tier-gating only).
+- Never grant access from a redirect, a client argument, or preapproval authorization alone
+- Never create a remote checkout before persisting its server-owned identity and idempotency key
+- Never trust a webhook's mutable reference without matching a stored checkout and the local catalog
+- Never fail open when remote agreement state cannot be verified
+- Never allow a paid plan switch while an authorized, paused, pending, or unverified agreement may still bill
+- Keep client subscription results free of payer emails, checkout URLs, provider ids, and internal document ids

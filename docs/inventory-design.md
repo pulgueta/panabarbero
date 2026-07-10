@@ -205,7 +205,7 @@ the only code path allowed to write `inventoryLevels`/`inventoryMovements`
 Steps, in order, all in one transaction:
 
 1. **Dedupe** — if `idempotencyKey` present, `by_idempotencyKey` lookup; if a
-   row exists, return it (no-op). Mirrors `creditPurchases.orderId`
+   row exists, return it (no-op). Mirrors `creditPurchases.paymentId`
    (`convex/credits.ts:40`).
 2. **Load item** — throw `notFound("producto")`; archived items
    (`deletedAt` set) reject everything except `adjustment` and `return`
@@ -524,7 +524,7 @@ swap `authz.require` for two `assertShopRole` wrappers (the in-house fallback
 stays a ~20-line diff).
 
 **Plan gating — DECIDED: Pro + Premium**, resolved against the **owner's**
-Polar subscription (staff/barbers hold no plan):
+effective billing entitlement (staff/barbers hold no plan):
 
 - `PLAN_LIMITS.inventoryEnabled`: free `false`, pro `true`, premium `true`
   (`convex/plans.ts` — pure TS, flows to the client via `usePlan` free).
