@@ -1,4 +1,4 @@
-/** MercadoPago subscription persistence and payment-backed entitlement logic. */
+/** MercadoPago subscription persistence and paid-plan entitlement logic. */
 
 import { ConvexError } from "convex/values";
 import { z } from "zod";
@@ -17,6 +17,10 @@ import {
   type MpSubscriptionStatus,
   normalizeMpStatus,
 } from "./mercadopagoPlans";
+import {
+  hasActivePaidEntitlement,
+  initialTrialEndsAt,
+} from "./mercadopagoSubscriptionState";
 import { getLimitsForProductKey, getTierForProductKey } from "./plans";
 import type { MercadopagoSubscription } from "./schema";
 
@@ -88,15 +92,11 @@ function pickDisplayRow(
 }
 
 function hasEntitlement(row: MercadopagoSubscription, now: number) {
-  if (row.status !== "active") {
-    return false;
-  }
-
   if (!row.preapprovalId) {
-    return row.productKey === MP_FREE_PRODUCT_KEY;
+    return row.status === "active" && row.productKey === MP_FREE_PRODUCT_KEY;
   }
 
-  return (row.paidThrough ?? 0) > now;
+  return hasActivePaidEntitlement(row, now);
 }
 
 function pickEntitlementRow(
@@ -284,6 +284,13 @@ export const applyPreapprovalState = zInternalMutation({
       return false;
     }
 
+    const trialEndsAt = initialTrialEndsAt({
+      existingTrialEndsAt: existing.trialEndsAt,
+      mpStatus: args.mpStatus,
+      nextPaymentDate: args.nextPaymentDate,
+      trialDays: existing.trialDays,
+    });
+
     await ctx.db.patch(existing._id, {
       status,
       mpStatus: args.mpStatus,
@@ -292,6 +299,7 @@ export const applyPreapprovalState = zInternalMutation({
       ...(args.nextPaymentDate !== undefined && {
         nextPaymentDate: args.nextPaymentDate,
       }),
+      ...(trialEndsAt !== undefined && { trialEndsAt }),
       ...(args.remoteUpdatedAt !== undefined && {
         remoteUpdatedAt: args.remoteUpdatedAt,
       }),
@@ -308,6 +316,16 @@ export const applyPreapprovalState = zInternalMutation({
       if (attempt) {
         await ctx.db.delete(attempt._id);
       }
+    } else if (
+      existing.trialEndsAt === undefined &&
+      trialEndsAt !== undefined &&
+      trialEndsAt > Date.now()
+    ) {
+      await ctx.scheduler.runAt(
+        trialEndsAt,
+        internal.mercadopagoSubscriptions.refreshTrialEntitlement,
+        { preapprovalId: args.preapprovalId, trialEndsAt },
+      );
     }
 
     return true;
@@ -450,6 +468,27 @@ export const refreshEntitlement = zInternalMutation({
     if (
       row?.paidThrough === args.paidThrough &&
       row.paidThrough <= Date.now()
+    ) {
+      await ctx.db.patch(row._id, { updatedAt: Date.now() });
+    }
+  },
+});
+
+/** Trigger reactive clients if the first charge is delayed past trial expiry. */
+export const refreshTrialEntitlement = zInternalMutation({
+  args: z.object({ preapprovalId: z.string(), trialEndsAt: z.number() }),
+  handler: async (ctx, args) => {
+    const row = await ctx.db
+      .query("mercadopagoSubscriptions")
+      .withIndex("by_preapprovalId", (q) =>
+        q.eq("preapprovalId", args.preapprovalId),
+      )
+      .unique();
+
+    if (
+      row?.trialEndsAt === args.trialEndsAt &&
+      row.trialEndsAt <= Date.now() &&
+      (row.paidThrough ?? 0) <= Date.now()
     ) {
       await ctx.db.patch(row._id, { updatedAt: Date.now() });
     }

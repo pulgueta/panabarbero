@@ -1,6 +1,6 @@
 # Mercado Pago billing architecture
 
-PanaBarbero uses Mercado Pago for recurring paid plans and one-time SMS or email credit packs. Convex owns checkout identity, authorization, plan limits, and entitlement state; a redirect or an authorized preapproval never grants access by itself.
+PanaBarbero uses Mercado Pago for recurring paid plans and one-time SMS or email credit packs. Convex owns checkout identity, authorization, plan limits, and entitlement state; a redirect never grants access by itself.
 
 Market: Colombia (`MCO`). Currency: Colombian pesos (`COP`). User-facing copy: Spanish (`es-CO`).
 
@@ -12,7 +12,7 @@ Each billing layer has one responsibility:
 | --- | --- | --- |
 | Catalog | `convex/plans.ts`, `convex/mercadopagoPlans.ts` | Stable product keys, prices, intervals, credit packs, and plan limits |
 | Subscription checkout | `convex/mercadopago.ts`, `convex/mercadopagoCheckoutAttempts.ts` | Durable checkout claim, hosted checkout creation, reconciliation, cancellation, and free-plan activation |
-| Subscription entitlement | `convex/mercadopagoSubscriptions.ts` | Agreement state, approved payment periods, bounded reads, and the client-safe subscription result |
+| Subscription entitlement | `convex/mercadopagoSubscriptions.ts` | Agreement state, free-trial and approved-payment periods, bounded reads, and the client-safe subscription result |
 | Credit checkout | `convex/mercadopago.ts`, `convex/credits.ts` | Server-owned credit intent, Checkout Pro preference, grants, refunds, and chargebacks |
 | Webhooks | `convex/http.ts`, `convex/mercadopagoWebhooks.ts` | Signature validation, remote resource fetches, catalog validation, and ordered state transitions |
 | Client | `src/hooks/billing/use-mercadopago.ts`, `src/components/pricing/` | Pricing, redirect, pending state, cancellation confirmation, and plan management |
@@ -45,26 +45,26 @@ The checkout action serializes creation per user and reuses one stable idempoten
 2. `mercadopagoCheckoutAttempts.acquire` atomically creates or resumes the per-user checkout claim.
 3. The action fetches every locally open preapproval from Mercado Pago. An unreachable or unverified remote state blocks checkout.
 4. The action cancels only remote preapprovals confirmed as abandoned and `pending`. Any live agreement blocks a second checkout.
-5. `PreApproval.create` receives the server-owned reference, catalog amount, interval, currency, and the claim's stable idempotency key.
+5. `PreApproval.create` receives the server-owned reference, catalog amount, interval, currency, 14-day free trial, and the claim's stable idempotency key.
 6. The completion mutation stores the preapproval and reusable hosted checkout URL in the same transaction.
-7. The browser redirects to Mercado Pago. Returning to PanaBarbero shows a pending state until a payment webhook proves access.
+7. The browser redirects to Mercado Pago. Returning to PanaBarbero shows a pending state until Mercado Pago authorizes the trial or an approved payment proves access.
 
 Concurrent requests cannot create independent claims for the same user. Convex transaction conflicts serialize the indexed read and insert, while Mercado Pago deduplicates retries with the persisted idempotency key.
 
 ## Paid entitlement lifecycle
 
-Agreement state and paid access are separate. A `subscription_preapproval` event may mark the agreement `authorized`, but it does not grant a paid plan.
+Agreement state and paid access are separate. A `subscription_preapproval` event may mark the agreement `authorized`; it grants trial access only when the local checkout configured a free trial and Mercado Pago confirms a future first charge date.
 
 Paid access requires both conditions:
 
 - The normalized agreement status is `active`
-- `paidThrough` is later than the current server time
+- `trialEndsAt` or `paidThrough` is later than the current server time
 
-Only a financially entitling authorized-payment invoice extends `paidThrough`. Approved and partially refunded payments keep the paid period; rejected or pending payments do not extend it. A full refund or unresolved chargeback against the payment that granted the current period revokes access, while a reimbursed chargeback restores it. The scheduled expiry mutation refreshes reactive clients when an unpaid period ends.
+The first provider-confirmed `next_payment_date` fixes `trialEndsAt`; later agreement updates cannot extend it. Only a financially entitling authorized-payment invoice extends `paidThrough`. Approved and partially refunded payments keep the paid period; rejected or pending payments do not extend it. A full refund or unresolved chargeback against the payment that granted the current period revokes access, while a reimbursed chargeback restores it. Scheduled expiry mutations refresh reactive clients when a trial or unpaid period ends.
 
-If a payment webhook is missed, the user can request reconciliation from the pricing card. The action fetches the authorized-payment page by preapproval, replays it oldest-first through the same validated idempotent recorder used by webhooks, and never grants access from agreement authorization alone.
+If a payment webhook is missed, the user can request reconciliation from the pricing card. The action fetches the authorized-payment page by preapproval and replays it oldest-first through the same validated idempotent recorder used by webhooks. Agreement authorization grants access only for a locally configured, provider-confirmed trial.
 
-Webhook reconciliation validates the stored preapproval id, checkout reference, product key, amount, currency, frequency, and frequency type against the server catalog. Remote timestamps prevent older events from overwriting newer agreement or payment state.
+Webhook reconciliation validates the stored preapproval id, checkout reference, product key, amount, currency, frequency, frequency type, and free-trial configuration against the server catalog. Remote timestamps prevent older events from overwriting newer agreement or payment state.
 
 See Mercado Pago's [authorized payment lifecycle](https://www.mercadopago.com.co/developers/en/docs/subscriptions/integration-configuration/subscription-no-associated-plan/authorized-payments) for the provider-side payment model.
 

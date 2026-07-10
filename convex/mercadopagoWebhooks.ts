@@ -25,6 +25,7 @@ import {
   isMpPaidProductKey,
   MP_CURRENCY_ID,
 } from "./mercadopagoPlans";
+import { isExpectedFreeTrial } from "./mercadopagoSubscriptionState";
 import { isWebhookTimestampWithinTolerance } from "./mercadopagoWebhookSignature";
 
 type InvoiceResponse = Awaited<ReturnType<Invoice["get"]>>;
@@ -36,6 +37,7 @@ interface StoredSubscription {
   productKey: string;
   externalReference?: string;
   lastInvoiceId?: string;
+  trialDays?: number;
 }
 
 interface PaymentOverride {
@@ -77,7 +79,9 @@ function validateRemoteSubscription(
     Number(recurring?.transaction_amount) === plan.amountCop &&
     recurring?.currency_id === MP_CURRENCY_ID &&
     recurring?.frequency === plan.frequency &&
-    recurring?.frequency_type === plan.frequencyType
+    recurring?.frequency_type === plan.frequencyType &&
+    (stored.trialDays === undefined ||
+      isExpectedFreeTrial(recurring?.free_trial))
   );
 }
 
