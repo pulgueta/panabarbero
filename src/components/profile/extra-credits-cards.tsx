@@ -1,9 +1,10 @@
-import { CheckoutLink } from "@convex-dev/polar/react";
-import { api } from "@convex/_generated/api";
-import type { Barbershop, ExtraCredits } from "@convex/schema";
-import type { FC } from "react";
+import { MP_CREDIT_PACK_LIST } from "@convex/mercadopagoPlans";
+import type { CreditProductKey } from "@convex/plans";
+import type { Barbershop } from "@convex/schema";
+import { type FC, useState } from "react";
+import { toast } from "sonner";
 
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -17,43 +18,54 @@ import {
   ProgressLabel,
   ProgressValue,
 } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   useBarbershopQuotaUsage,
   useExtraCredits,
 } from "@/hooks/billing/use-credits";
-import { usePricingPlans } from "@/hooks/billing/use-pricing";
-import { cn, formatCurrency } from "@/lib/utils";
+import { useCreateMpCreditCheckout } from "@/hooks/billing/use-mercadopago";
+import { formatCurrency } from "@/lib/utils";
+
+function getErrorMessage(error: unknown): string {
+  if (
+    error &&
+    typeof error === "object" &&
+    "data" in error &&
+    typeof (error as { data: unknown }).data === "string"
+  ) {
+    return (error as { data: string }).data;
+  }
+  return "Ocurrió un error. Intenta de nuevo.";
+}
 
 interface CreditCardProps {
-  productId: string;
+  productKey: CreditProductKey;
   name: string;
   description: string;
   priceCop: number;
   currentCredits: number;
   maxCredits: number;
   barbershopId: string;
-  workosOrganizationId?: string;
-  isLoading: boolean;
   planQuotaUsed: number;
   planQuotaMax: number;
   planQuotaKind: "sms" | "email";
 }
 
 const CreditCard: FC<CreditCardProps> = ({
-  productId,
+  productKey,
   name,
   description,
   priceCop,
   currentCredits,
   maxCredits,
   barbershopId,
-  workosOrganizationId,
-  isLoading,
   planQuotaUsed,
   planQuotaMax,
   planQuotaKind,
 }) => {
+  const { mutateAsync: createCheckout, isPending } =
+    useCreateMpCreditCheckout();
+  const [redirecting, setRedirecting] = useState(false);
+
   const hasCredits = currentCredits > 0;
   const percentage = maxCredits > 0 ? (currentCredits / maxCredits) * 100 : 0;
 
@@ -67,6 +79,20 @@ const CreditCard: FC<CreditCardProps> = ({
     planQuotaMax > 0 && planRemaining > 0
       ? Math.min(100, (planRemaining / planQuotaMax) * 100)
       : 0;
+
+  async function handleBuy() {
+    setRedirecting(true);
+    try {
+      const result = await createCheckout({ productKey, barbershopId });
+      if (!result.initPoint) {
+        throw new Error("No se recibió la URL de checkout de MercadoPago.");
+      }
+      window.location.href = result.initPoint;
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+      setRedirecting(false);
+    }
+  }
 
   return (
     <Card className="min-h-115">
@@ -110,113 +136,62 @@ const CreditCard: FC<CreditCardProps> = ({
         </div>
       </CardContent>
       <CardFooter>
-        {isLoading ? (
-          <Skeleton className="h-10 w-full" />
-        ) : (
-          <CheckoutLink
-            polarApi={{
-              generateCheckoutLink: api.polar.generateCheckoutLink,
-            }}
-            productIds={[productId]}
-            metadata={{
-              barbershopId,
-              ...(workosOrganizationId ? { workosOrganizationId } : {}),
-            }}
-            className={cn(buttonVariants({ className: "w-full" }))}
-            lazy
-            locale="es-CO"
-          >
-            Comprar créditos
-          </CheckoutLink>
-        )}
+        <Button
+          className="w-full"
+          onClick={handleBuy}
+          disabled={isPending || redirecting}
+        >
+          {redirecting ? "Redirigiendo…" : "Comprar créditos"}
+        </Button>
       </CardFooter>
     </Card>
   );
 };
 
-function getCopPrice(
-  product:
-    | { prices: Array<{ priceCurrency?: string; priceAmount?: number }> }
-    | undefined,
-) {
-  if (!product) return 0;
-
-  const copPrice = product.prices.find((p) => p.priceCurrency === "cop");
-
-  return (copPrice?.priceAmount ?? 0) / 100;
-}
-
 interface ExtraCreditsCardsProps {
   barbershopId: Barbershop["_id"];
-  workosOrganizationId?: Barbershop["workosOrganizationId"];
 }
 
 export const ExtraCreditsCards: FC<ExtraCreditsCardsProps> = ({
   barbershopId,
-  workosOrganizationId,
 }) => {
-  const { data: products, isLoading: productsLoading } = usePricingPlans();
-  const { data: credits, isLoading: creditsLoading } = useExtraCredits();
+  const { data: credits } = useExtraCredits();
   const { data: quota } = useBarbershopQuotaUsage(barbershopId);
 
-  const isLoading = productsLoading || creditsLoading;
-
-  // Find the one-time credit products
-  const smsProduct = products?.find(
-    (p) => !p.isRecurring && p.name.toLowerCase().includes("sms"),
-  );
-  const emailProduct = products?.find(
-    (p) => !p.isRecurring && p.name.toLowerCase().includes("correo"),
-  );
-
-  const safeCredits: ExtraCredits | null = credits ?? null;
-
-  // Use the cumulative purchased total as the progress-bar ceiling so the bar
-  // accurately reflects depletion across all purchases (not just one pack).
-  const smsMax = safeCredits?.smsPurchasedTotal ?? 0;
-  const emailMax = safeCredits?.emailPurchasedTotal ?? 0;
-
-  if (!smsProduct && !emailProduct) {
+  if (!quota) {
     return null;
   }
 
+  // The cumulative purchased total is the progress-bar ceiling so the bar
+  // reflects depletion across all purchases (not just the latest pack).
+  const smsMax = credits?.smsPurchasedTotal ?? 0;
+  const emailMax = credits?.emailPurchasedTotal ?? 0;
+
   return (
     <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
-      {smsProduct && quota && (
-        <CreditCard
-          productId={smsProduct.id}
-          name={smsProduct.name}
-          description={smsProduct.description ?? "Créditos de SMS adicionales"}
-          priceCop={getCopPrice(smsProduct)}
-          currentCredits={safeCredits?.smsCredits ?? 0}
-          maxCredits={smsMax}
-          barbershopId={barbershopId}
-          workosOrganizationId={workosOrganizationId}
-          isLoading={isLoading}
-          planQuotaUsed={quota.smsUsed}
-          planQuotaMax={quota.maxSmsPerMonth ?? 0}
-          planQuotaKind="sms"
-        />
-      )}
+      {MP_CREDIT_PACK_LIST.map((pack) => {
+        const isSms = pack.type === "sms";
 
-      {emailProduct && quota && (
-        <CreditCard
-          productId={emailProduct.id}
-          name={emailProduct.name}
-          description={
-            emailProduct.description ?? "Créditos de correo adicionales"
-          }
-          priceCop={getCopPrice(emailProduct)}
-          currentCredits={safeCredits?.emailCredits ?? 0}
-          maxCredits={emailMax}
-          barbershopId={barbershopId}
-          workosOrganizationId={workosOrganizationId}
-          isLoading={isLoading}
-          planQuotaUsed={quota.emailsUsed}
-          planQuotaMax={quota.maxEmailPerMonth ?? 0}
-          planQuotaKind="email"
-        />
-      )}
+        return (
+          <CreditCard
+            key={pack.productKey}
+            productKey={pack.productKey}
+            name={pack.title}
+            description={pack.description}
+            priceCop={pack.amountCop}
+            currentCredits={
+              isSms ? (credits?.smsCredits ?? 0) : (credits?.emailCredits ?? 0)
+            }
+            maxCredits={isSms ? smsMax : emailMax}
+            barbershopId={barbershopId}
+            planQuotaUsed={isSms ? quota.smsUsed : quota.emailsUsed}
+            planQuotaMax={
+              (isSms ? quota.maxSmsPerMonth : quota.maxEmailPerMonth) ?? 0
+            }
+            planQuotaKind={pack.type}
+          />
+        );
+      })}
     </div>
   );
 };

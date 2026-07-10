@@ -43,3 +43,13 @@ export function useSubscribeMpFree() {
     mutationFn: useConvexMutation(api.mercadopagoSubscriptions.subscribeFree),
   });
 }
+
+/**
+ * Create a hosted MercadoPago Checkout Pro session for a one-time SMS/email
+ * credit pack; resolves with `{ initPoint, preferenceId }`.
+ */
+export function useCreateMpCreditCheckout() {
+  return useMutation({
+    mutationFn: useConvexAction(api.mercadopago.createCreditCheckout),
+  });
+}

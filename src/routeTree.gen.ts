@@ -14,7 +14,6 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as PricingRouteImport } from './routes/pricing'
-import { Route as MercadopagoRouteImport } from './routes/mercadopago'
 import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
 import { Route as CallbackRouteImport } from './routes/callback'
 import { Route as AiRouteImport } from './routes/ai'
@@ -93,11 +92,6 @@ const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MercadopagoRoute = MercadopagoRouteImport.update({
-  id: '/mercadopago',
-  path: '/mercadopago',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
@@ -421,7 +415,6 @@ export interface FileRoutesByFullPath {
   '/ai': typeof AiRoute
   '/callback': typeof CallbackRoute
   '/llms.txt': typeof LlmsDottxtRoute
-  '/mercadopago': typeof MercadopagoRoute
   '/pricing': typeof PricingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -480,7 +473,6 @@ export interface FileRoutesByTo {
   '/ai': typeof AiRoute
   '/callback': typeof CallbackRoute
   '/llms.txt': typeof LlmsDottxtRoute
-  '/mercadopago': typeof MercadopagoRoute
   '/pricing': typeof PricingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -536,7 +528,6 @@ export interface FileRoutesById {
   '/ai': typeof AiRoute
   '/callback': typeof CallbackRoute
   '/llms.txt': typeof LlmsDottxtRoute
-  '/mercadopago': typeof MercadopagoRoute
   '/pricing': typeof PricingRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -598,7 +589,6 @@ export interface FileRouteTypes {
     | '/ai'
     | '/callback'
     | '/llms.txt'
-    | '/mercadopago'
     | '/pricing'
     | '/privacy-policy'
     | '/robots.txt'
@@ -657,7 +647,6 @@ export interface FileRouteTypes {
     | '/ai'
     | '/callback'
     | '/llms.txt'
-    | '/mercadopago'
     | '/pricing'
     | '/privacy-policy'
     | '/robots.txt'
@@ -712,7 +701,6 @@ export interface FileRouteTypes {
     | '/ai'
     | '/callback'
     | '/llms.txt'
-    | '/mercadopago'
     | '/pricing'
     | '/privacy-policy'
     | '/robots.txt'
@@ -775,7 +763,6 @@ export interface RootRouteChildren {
   AiRoute: typeof AiRoute
   CallbackRoute: typeof CallbackRoute
   LlmsDottxtRoute: typeof LlmsDottxtRoute
-  MercadopagoRoute: typeof MercadopagoRoute
   PricingRoute: typeof PricingRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
@@ -822,13 +809,6 @@ declare module '@tanstack/react-router' {
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof PricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mercadopago': {
-      id: '/mercadopago'
-      path: '/mercadopago'
-      fullPath: '/mercadopago'
-      preLoaderRoute: typeof MercadopagoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/llms.txt': {
@@ -1457,7 +1437,6 @@ const rootRouteChildren: RootRouteChildren = {
   AiRoute: AiRoute,
   CallbackRoute: CallbackRoute,
   LlmsDottxtRoute: LlmsDottxtRoute,
-  MercadopagoRoute: MercadopagoRoute,
   PricingRoute: PricingRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
