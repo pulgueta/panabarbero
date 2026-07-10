@@ -5,8 +5,9 @@ Business and administrative flows for the **owner** role, plus the **staff**
 persona and `customer-flow.md` for the booking experience an owner manages.
 
 > **Ground truth corrections vs. older drafts:**
-> - Creating a barbershop **requires an active Polar subscription**
->   (`assertIsSubscribed`). It is not free-tier by default.
+> - Creating a barbershop **requires an active billing entitlement**
+>   (`assertIsSubscribed`). The free plan is local; paid access requires a
+>   Mercado Pago payment that covers the current period.
 > - `ownerIsBarber` is a **creation-time decision** that sets whether the owner
 >   also attends clients (roles `["owner","barber"]` vs `["owner"]`).
 > - A new barbershop starts **inactive** (`isActive: false`) and activates when
@@ -24,7 +25,7 @@ persona and `customer-flow.md` for the booking experience an owner manages.
 
 `convex/barbershops.ts` `create` + `src/components/barbershops/create-barbershop-form.tsx`.
 
-- [ ] **Requires an active Polar subscription** — `assertIsSubscribed(ctx, userId)`
+- [ ] **Requires an active billing entitlement** — `assertIsSubscribed(ctx, userId)`
       throws `subscriptionRequired` otherwise
 - [ ] Fields: `name` (≥3 chars), `address.fullAddress`, `address.details?`,
       `city`, `state`, `zipCode?`, `contactPhone?`, `gracePeriodMinutes`
@@ -97,21 +98,21 @@ no codes, hosted acceptance, webhook sync. App role → WorkOS slug:
 
 ### 10. Plan Limits (source: `convex/plans.ts`, enforced in `convex/acl.ts`)
 
-Polar product → plan key: `independiente → free`,
+Product key → plan tier: `independiente → free`,
 `barberiaMonthly`/`barberiaYearly → pro`,
 `barberiaProfMonthly`/`barberiaProfYearly → premium`. **Limits are always checked
 against the owner's plan**, even when staff perform the action.
 
 | Limit | Free | Pro | Premium |
 |---|---|---|---|
-| `maxInvitedBarbers` | 2 | 5 | 10 |
+| `maxInvitedBarbers` | 5 | 10 | Ilimitado |
 | `maxStaff` | 0 | 1 | 3 |
 | `maxSmsPerMonth` | 200 | 1,000 | 3,000 |
 | `maxEmailPerMonth` | 50 | 500 | 1,500 |
 | `staffCanCreateAppointments` | ❌ | ✅ | ✅ |
 | `panaManagement` (AI agent) | ❌ | ✅ | ✅ |
 
-- [ ] **Free:** can invite up to 2 barbers; **0 staff** (staff invites rejected
+- [ ] **Free:** can invite up to 5 barbers; **0 staff** (staff invites rejected
       outright); no staff-created appointments; no Pana management
 - [ ] **Pro / Premium:** raise the caps above and unlock staff booking + Pana
       management
@@ -183,7 +184,8 @@ member must have the `barber` role.
 - [ ] SMS/email usage is metered monthly against the plan quota
       (`isSmsLimitNotExceeded` / `isEmailLimitNotExceeded`), with purchased
       credits added on top
-- [ ] Upgrading raises the caps in §10; the subscription is a Polar product
+- [ ] Upgrading raises the caps in §10; paid products are billed through
+      Mercado Pago
 
 ### 24. Activate / Deactivate Barbershop
 

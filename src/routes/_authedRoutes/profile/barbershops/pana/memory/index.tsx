@@ -4,7 +4,7 @@ import {
   TrendUpIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import {
   DashboardPage,
@@ -54,6 +54,9 @@ export const Route = createFileRoute(
   staticData: { breadcrumb: "Memoria" },
   staleTime: cacheTime.high,
   gcTime: cacheTime.extreme,
+  beforeLoad: () => {
+    throw redirect({ to: "/profile/barbershops/pana" });
+  },
 });
 
 function PanaMemoryRoute() {

@@ -87,16 +87,10 @@ export const Route = createFileRoute(
     const barbershop = opts.context.dashboardBarbershop;
     const roles = opts.context.dashboardRoles;
 
-    const isBarber = roles?.roles?.includes("barber") ?? false;
-
+    // Inventory is owner/staff only. Barbers are scoped to their appointments
+    // and schedule.
     if (!roles?.isOwner && !roles?.isStaff) {
-      // The overview is management analytics (money + trends) — barbers work
-      // from the product list instead.
-      throw redirect({
-        to: isBarber
-          ? "/profile/barbershops/inventory/products"
-          : "/profile/barbershops/appointments",
-      });
+      throw redirect({ to: "/profile/barbershops/appointments" });
     }
 
     if (barbershop?._id) {

@@ -1,6 +1,6 @@
 # Términos de Servicio
 
-_Última actualización: 20 de junio de 2026_
+_Última actualización: 9 de julio de 2026_
 
 ## 1. Introducción
 
@@ -31,14 +31,14 @@ Usted es responsable de mantener la confidencialidad de sus credenciales de acce
 
 ## 6. Pagos y Suscripciones
 
-PanaBarbero ofrece funcionalidades de pago para barberías a través de planes de suscripción. Los pagos son procesados por nuestro proveedor externo [Polar](https://polar.sh). Al suscribirse a un plan de pago, usted acepta:
+PanaBarbero ofrece funcionalidades de pago para barberías a través de planes de suscripción. Los pagos son procesados por nuestro proveedor externo [Mercado Pago](https://www.mercadopago.com.co/). Al suscribirse a un plan de pago, usted acepta:
 
-- Proporcionar información de pago válida y actualizada a Polar.
+- Proporcionar información de pago válida y actualizada a Mercado Pago.
 - Que los cargos se realizarán de forma recurrente según el ciclo de facturación seleccionado.
-- Que puede cancelar su suscripción en cualquier momento. La cancelación será efectiva al final del período de facturación vigente.
+- Que puede cancelar su suscripción en cualquier momento. La cancelación y la terminación del acceso al plan de pago son efectivas de inmediato.
 - Que los precios pueden cambiar con previo aviso de al menos 30 días.
 
-La información de pago (tarjetas de crédito, datos bancarios, etc.) es gestionada exclusivamente por Polar. PanaBarbero no almacena información financiera en sus servidores.
+Los datos de tarjeta o de cuenta bancaria son gestionados por Mercado Pago. PanaBarbero almacena referencias, estados, montos y otros datos operativos necesarios para conciliar pagos, pero no almacena el número completo de la tarjeta, el código de seguridad ni las credenciales bancarias.
 
 ## 7. Uso Aceptable
 
@@ -88,6 +88,8 @@ Usted puede eliminar su cuenta en cualquier momento desde la configuración de s
 Al eliminar su cuenta, el propietario de una barbería acepta expresamente que:
 
 - **La eliminación es inmediata e irreversible.** La barbería, todos sus servicios, registros de citas, membresías del equipo y demás datos asociados serán eliminados de forma permanente en el momento en que se procese la solicitud.
+- **Las suscripciones abiertas deben cancelarse primero.** La eliminación solo continúa cuando Mercado Pago confirma la cancelación remota; si no es posible verificarla, la cuenta no se elimina.
+- **Los enlaces de compra de créditos deben vencer primero.** Si existe un checkout de créditos todavía pagable, la eliminación espera a que termine su ventana de 30 minutos.
 - **Las citas futuras serán canceladas automáticamente.** Los clientes que cuenten con dirección de correo electrónico registrada recibirán una notificación de cancelación.
 - **El propietario asume plena responsabilidad** por cualquier perjuicio, queja o reclamación que los clientes afectados puedan presentar como consecuencia directa o indirecta de la eliminación de la cuenta.
 - **Los clientes afectados deben dirigir sus reclamaciones directamente al ex-propietario** fuera de la plataforma. PanaBarbero no actúa como mediador en dichas reclamaciones ni asume responsabilidad alguna por daños económicos, morales o de cualquier otra índole derivados de la eliminación voluntaria de la cuenta.
@@ -130,4 +132,4 @@ Si tiene preguntas o inquietudes sobre estos Términos de Servicio, puede contac
 
 ---
 
-_Proveedores tecnológicos de terceros referenciados en estos Términos: [WorkOS](https://workos.com) (autenticación), [Polar](https://polar.sh) (pagos), [Convex](https://convex.dev) (base de datos), [Railway](https://railway.com) (infraestructura)._
+_Proveedores tecnológicos de terceros referenciados en estos Términos: [WorkOS](https://workos.com) (autenticación), [Mercado Pago](https://www.mercadopago.com.co/) (pagos), [Convex](https://convex.dev) (base de datos), [Railway](https://railway.com) (infraestructura)._

@@ -47,15 +47,8 @@ export const Route = createFileRoute(
     const barbershop = opts.context.dashboardBarbershop;
     const roles = opts.context.dashboardRoles;
 
-    const isBarber = roles?.roles?.includes("barber") ?? false;
-
     if (!roles?.isOwner && !roles?.isStaff) {
-      // The ledger exposes costs — managers only; barbers use the product list.
-      throw redirect({
-        to: isBarber
-          ? "/profile/barbershops/inventory/products"
-          : "/profile/barbershops/appointments",
-      });
+      throw redirect({ to: "/profile/barbershops/appointments" });
     }
 
     if (barbershop?._id) {

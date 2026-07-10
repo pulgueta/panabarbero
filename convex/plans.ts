@@ -4,8 +4,8 @@
  * This module is pure TypeScript with no Convex runtime dependencies so it can
  * be imported from both Convex server functions and client-side code.
  *
- * Tier derivation is based on `subscription.productKey` (a stable string
- * configured in the Polar constructor), NOT on product IDs or price amounts.
+ * Tier derivation is based on the stable `subscription.productKey`, not on
+ * remote resource IDs or price amounts.
  */
 
 export const PLAN_PRODUCT_KEYS = [
@@ -19,8 +19,7 @@ export const PLAN_PRODUCT_KEYS = [
 export type ProductKey = (typeof PLAN_PRODUCT_KEYS)[number];
 
 /**
- * One-time credit product keys — used in the Polar constructor and webhook
- * handler to identify credit purchases.
+ * One-time credit product keys used by the MercadoPago checkout catalog.
  */
 export const CREDIT_PRODUCT_KEYS = ["extraSms", "extraEmails"] as const;
 
@@ -77,7 +76,7 @@ export interface PlanLimits {
 
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
   free: {
-    maxInvitedBarbers: 2,
+    maxInvitedBarbers: 5,
     maxStaff: 0,
     maxSmsPerMonth: 200,
     maxEmailPerMonth: 50,
@@ -88,7 +87,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     inventoryEnabled: false,
   },
   pro: {
-    maxInvitedBarbers: 5,
+    maxInvitedBarbers: 10,
     maxStaff: 1,
     maxSmsPerMonth: 1000,
     maxEmailPerMonth: 500,
@@ -99,7 +98,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     inventoryEnabled: true,
   },
   premium: {
-    maxInvitedBarbers: 10,
+    maxInvitedBarbers: null,
     maxStaff: 3,
     maxSmsPerMonth: 3000,
     maxEmailPerMonth: 1500,

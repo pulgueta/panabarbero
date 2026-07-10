@@ -84,9 +84,7 @@ export const Route = createFileRoute(
     const barbershop = opts.context.dashboardBarbershop;
     const roles = opts.context.dashboardRoles;
 
-    const isBarber = roles?.roles?.includes("barber") ?? false;
-
-    if (!roles?.isOwner && !roles?.isStaff && !isBarber) {
+    if (!roles?.isOwner && !roles?.isStaff) {
       throw redirect({ to: "/profile/barbershops/appointments" });
     }
 

@@ -261,9 +261,9 @@ export const extraCredits = zodTable("extraCredits", (id) => ({
   barbershopId: id("barbershops"),
   smsCredits: z.number(),
   emailCredits: z.number(),
-  /** Cumulative SMS credits ever purchased — used as the progress-bar ceiling. */
+  /** Purchased SMS credits still backed by non-refunded payments. */
   smsPurchasedTotal: z.number(),
-  /** Cumulative email credits ever purchased — used as the progress-bar ceiling. */
+  /** Purchased email credits still backed by non-refunded payments. */
   emailPurchasedTotal: z.number(),
 }));
 
@@ -272,11 +272,22 @@ export const extraCredits = zodTable("extraCredits", (id) => ({
  * webhook retries) and purchase history.
  */
 export const creditPurchases = zodTable("creditPurchases", (id) => ({
-  orderId: z.string(),
+  paymentId: z.string(),
+  checkoutReference: z.string(),
   barbershopId: id("barbershops"),
   type: z.enum(["sms", "email"]),
   amount: z.number(),
-  purchasedAt: z.number(),
+  status: z.string(),
+  statusDetail: z.string().optional(),
+  refundedAmount: z.number().optional(),
+  granted: z.boolean(),
+  /** Credits removed when a grant is reversed; restored if the dispute resolves. */
+  reversedCredits: z.number().optional(),
+  /** Cumulative credits no longer backed by the payment's refunded COP amount. */
+  refundedCredits: z.number().optional(),
+  purchasedAt: z.number().optional(),
+  remoteUpdatedAt: z.number().optional(),
+  updatedAt: z.number(),
 }));
 
 export const notificationKinds = [
@@ -480,7 +491,7 @@ export const inventoryMovements = zodTable("inventoryMovements", (id) => ({
   reason: z.string().max(300).optional(),
   actorUserId: z.string(),
   relatedAppointmentId: id("appointments").optional(),
-  /** Dedupe for webhook/import-originated movements (creditPurchases.orderId pattern). */
+  /** Dedupe for webhook/import-originated movements (creditPurchases.paymentId pattern). */
   idempotencyKey: z.string().optional(),
 }));
 
@@ -518,6 +529,97 @@ export const inventoryMovementSummaries = zodTable(
   }),
 );
 
+/** MercadoPago subscription agreements and their paid entitlement state. */
+export const mercadopagoSubscriptions = zodTable(
+  "mercadopagoSubscriptions",
+  () => ({
+    userId: z.string(),
+    /** Shared vocabulary with `convex/plans.ts` — drives the plan tier. */
+    productKey: z.string(),
+    /** App-normalized agreement status. Paid access also requires `paidThrough`. */
+    status: z.enum(["active", "pending", "paused", "canceled"]),
+    /** Raw MercadoPago preapproval status (authorized/pending/paused/cancelled). */
+    mpStatus: z.string().optional(),
+    /** MercadoPago preapproval id. Absent for the free plan. */
+    preapprovalId: z.string().optional(),
+    payerEmail: z.string().optional(),
+    reason: z.string().optional(),
+    /** Amount charged per cycle, in whole COP pesos. */
+    amount: z.number().optional(),
+    currencyId: z.string().optional(),
+    /** Hosted checkout URL returned for a pending preapproval. */
+    initPoint: z.string().optional(),
+    /** Immutable checkout reference used to correlate trusted local state. */
+    externalReference: z.string().optional(),
+    /** ISO date of the next scheduled charge, when known. */
+    nextPaymentDate: z.string().optional(),
+    /** Latest MercadoPago `last_modified` applied to the agreement. */
+    remoteUpdatedAt: z.number().optional(),
+    /** Paid access remains valid through this timestamp while status is active. */
+    paidThrough: z.number().optional(),
+    lastInvoiceId: z.string().optional(),
+    lastPaymentId: z.string().optional(),
+    lastPaymentStatus: z.string().optional(),
+    entitlementPaymentId: z.string().optional(),
+    /** Payment/invoice ordering key, separate from agreement ordering. */
+    paymentUpdatedAt: z.number().optional(),
+    updatedAt: z.number(),
+  }),
+);
+
+/** Per-payment lifecycle ordering for recurring subscription invoices. */
+export const mercadopagoSubscriptionPayments = zodTable(
+  "mercadopagoSubscriptionPayments",
+  () => ({
+    userId: z.string(),
+    preapprovalId: z.string(),
+    paymentId: z.string(),
+    invoiceId: z.string(),
+    status: z.string(),
+    paidThrough: z.number().optional(),
+    remoteUpdatedAt: z.number(),
+    updatedAt: z.number(),
+  }),
+);
+
+/** One durable, idempotent subscription checkout claim per user. */
+export const mercadopagoCheckoutAttempts = zodTable(
+  "mercadopagoCheckoutAttempts",
+  () => ({
+    userId: z.string(),
+    productKey: z.string(),
+    payerEmail: z.string(),
+    checkoutReference: z.string(),
+    idempotencyKey: z.string(),
+    state: z.enum(["creating", "ready"]),
+    leaseExpiresAt: z.number(),
+    preapprovalId: z.string().optional(),
+    initPoint: z.string().optional(),
+    createdAt: z.number(),
+    updatedAt: z.number(),
+  }),
+);
+
+/** Immutable server-owned intent for each one-time credit checkout. */
+export const mercadopagoCreditCheckouts = zodTable(
+  "mercadopagoCreditCheckouts",
+  (id) => ({
+    userId: z.string(),
+    barbershopId: id("barbershops"),
+    productKey: z.string(),
+    type: z.enum(["sms", "email"]),
+    credits: z.number(),
+    amount: z.number(),
+    currencyId: z.string(),
+    checkoutReference: z.string(),
+    idempotencyKey: z.string(),
+    preferenceId: z.string().optional(),
+    expiresAt: z.number(),
+    createdAt: z.number(),
+    updatedAt: z.number(),
+  }),
+);
+
 export default defineSchema({
   userProfileData: userProfileData
     .table()
@@ -544,6 +646,7 @@ export default defineSchema({
     .table()
     .index("by_userProfileDataId", ["userProfileDataId"])
     .index("by_barbershopId", ["barbershopId"])
+    .index("by_barbershopId_and_isActive", ["barbershopId", "isActive"])
     .index("by_isActive", ["isActive"]),
 
   services: services
@@ -584,6 +687,10 @@ export default defineSchema({
     .table()
     .index("by_uuid", ["uuid"])
     .index("by_barbershopMemberId", ["barbershopMemberId"])
+    .index("by_barbershopMemberId_and_serviceId", [
+      "barbershopMemberId",
+      "serviceId",
+    ])
     .index("by_barbershopId", ["barbershopId"])
     .index("by_serviceId", ["serviceId"]),
 
@@ -593,7 +700,7 @@ export default defineSchema({
 
   creditPurchases: creditPurchases
     .table()
-    .index("by_orderId", ["orderId"])
+    .index("by_paymentId", ["paymentId"])
     .index("by_barbershopId", ["barbershopId"]),
 
   inAppNotifications: inAppNotifications
@@ -640,6 +747,33 @@ export default defineSchema({
     .table()
     .index("by_barbershopId_and_month", ["barbershopId", "month"])
     .index("by_itemId_and_month", ["itemId", "month"]),
+
+  mercadopagoSubscriptions: mercadopagoSubscriptions
+    .table()
+    .index("by_userId", ["userId"])
+    .index("by_userId_and_status", ["userId", "status"])
+    .index("by_userId_and_productKey", ["userId", "productKey"])
+    .index("by_preapprovalId", ["preapprovalId"])
+    .index("by_externalReference", ["externalReference"]),
+
+  mercadopagoSubscriptionPayments: mercadopagoSubscriptionPayments
+    .table()
+    .index("by_paymentId", ["paymentId"])
+    .index("by_preapprovalId", ["preapprovalId"])
+    .index("by_userId", ["userId"]),
+
+  mercadopagoCheckoutAttempts: mercadopagoCheckoutAttempts
+    .table()
+    .index("by_userId", ["userId"])
+    .index("by_checkoutReference", ["checkoutReference"])
+    .index("by_preapprovalId", ["preapprovalId"]),
+
+  mercadopagoCreditCheckouts: mercadopagoCreditCheckouts
+    .table()
+    .index("by_checkoutReference", ["checkoutReference"])
+    .index("by_preferenceId", ["preferenceId"])
+    .index("by_barbershopId", ["barbershopId"])
+    .index("by_userId_and_expiresAt", ["userId", "expiresAt"]),
 });
 
 export type UserProfileData = output<typeof userProfileData.schema>;
@@ -678,4 +812,16 @@ export type InventoryPresentationUnit =
 export type ServiceInventoryUsage = output<typeof serviceInventoryUsage.schema>;
 export type InventoryMovementSummary = output<
   typeof inventoryMovementSummaries.schema
+>;
+export type MercadopagoSubscription = output<
+  typeof mercadopagoSubscriptions.schema
+>;
+export type MercadopagoSubscriptionPayment = output<
+  typeof mercadopagoSubscriptionPayments.schema
+>;
+export type MercadopagoCheckoutAttempt = output<
+  typeof mercadopagoCheckoutAttempts.schema
+>;
+export type MercadopagoCreditCheckout = output<
+  typeof mercadopagoCreditCheckouts.schema
 >;

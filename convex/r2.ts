@@ -33,17 +33,6 @@ export const deleteR2Object = zMutation({
   },
 });
 
-export const uploadR2Object = zMutation({
-  args: z.object({
-    key: z.string(),
-  }),
-  handler: async (ctx, args) => {
-    await rateLimitOrThrow(ctx, "uploadBarbershopLogo", args.key);
-
-    return await r2.generateUploadUrl(args.key);
-  },
-});
-
 /**
  * z.file() is not supported in convex, must be a file.
  */
@@ -52,6 +41,7 @@ export const upload = zAuthAction({
     file: z.instanceof(Blob),
     key: z.string(),
   }),
+  ratelimit: "r2",
   handler: async (ctx, args) => {
     return await r2.store(ctx, args.file, {
       key: args.key,

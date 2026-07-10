@@ -1,5 +1,5 @@
 import {
-  BrainIcon,
+  // BrainIcon, // Conocimiento: no planeado todavía (ver PANA_NAV)
   ChatCircleIcon,
   ListIcon,
   NotePencilIcon,
@@ -38,18 +38,18 @@ const PANA_NAV = [
     to: "/profile/barbershops/pana",
     icon: ChatCircleIcon,
   },
-  {
-    label: "Conocimiento",
-    description: "Datos que Pana usa sobre la barbería.",
-    to: "/profile/barbershops/pana/knowledge",
-    icon: BrainIcon,
-  },
-  {
-    label: "Memoria",
-    description: "Preferencias y señales de seguimiento.",
-    to: "/profile/barbershops/pana/memory",
-    icon: SparkleIcon,
-  },
+  // {
+  //   label: "Conocimiento",
+  //   description: "Datos que Pana usa sobre la barbería.",
+  //   to: "/profile/barbershops/pana/knowledge",
+  //   icon: BrainIcon,
+  // },
+  // {
+  //   label: "Memoria",
+  //   description: "Preferencias y señales de seguimiento.",
+  //   to: "/profile/barbershops/pana/memory",
+  //   icon: SparkleIcon,
+  // },
 ] as const;
 
 export const Route = createFileRoute("/_authedRoutes/profile/barbershops/pana")(

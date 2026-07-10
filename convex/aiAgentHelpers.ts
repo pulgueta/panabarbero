@@ -3,12 +3,12 @@ import { z } from "zod";
 
 import { zInternalQuery } from ".";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { getUserPlanLimits } from "./acl";
 import { getBarbershopMemberByUserId, memberHasAnyRole } from "./authz";
 import { getByUserIdFn, getEffectiveSchedule } from "./barbershopMembers";
 import { errorMessages } from "./errors";
 import { unreads } from "./notifications";
 import { getLimitsForProductKey } from "./plans";
-import { polar } from "./polar";
 import type {
   Appointment,
   Barbershop,
@@ -198,8 +198,9 @@ export const getMembersByBarbershopId = zInternalQuery({
   handler: async (ctx, args) => {
     const members = await ctx.db
       .query("barbershopMembers")
-      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-      .filter((q) => q.eq(q.field("isActive"), true))
+      .withIndex("by_barbershopId_and_isActive", (q) =>
+        q.eq("barbershopId", args.id).eq("isActive", true),
+      )
       .collect();
 
     const barbers = members.filter((m) => m.roles.includes("barber"));
@@ -251,10 +252,9 @@ export async function resolvePanaAccessForUserId(
   }
 
   const barbershop = await ctx.db.get(member.barbershopId);
-  const subscription = barbershop
-    ? await polar.getCurrentSubscription(ctx, { userId: barbershop.ownerId })
-    : null;
-  const limits = getLimitsForProductKey(subscription?.productKey);
+  const limits = barbershop
+    ? await getUserPlanLimits(ctx, barbershop.ownerId)
+    : getLimitsForProductKey(undefined);
 
   return {
     isShopMember: true,
@@ -307,10 +307,9 @@ export const getAgentActorContext = zInternalQuery({
     if (!member) return { isMember: false as const };
 
     const barbershop = await ctx.db.get(member.barbershopId);
-    const subscription = barbershop
-      ? await polar.getCurrentSubscription(ctx, { userId: barbershop.ownerId })
-      : null;
-    const limits = getLimitsForProductKey(subscription?.productKey);
+    const limits = barbershop
+      ? await getUserPlanLimits(ctx, barbershop.ownerId)
+      : getLimitsForProductKey(undefined);
 
     return {
       isMember: true as const,
@@ -345,7 +344,7 @@ export const getMyBarbershopData = zInternalQuery({
 
     if (!barbershop) return { isMember: false as const };
 
-    const [services, members, subscription] = await Promise.all([
+    const [services, members, limits] = await Promise.all([
       ctx.db
         .query("services")
         .withIndex("by_barbershopId", (q) =>
@@ -354,15 +353,12 @@ export const getMyBarbershopData = zInternalQuery({
         .collect(),
       ctx.db
         .query("barbershopMembers")
-        .withIndex("by_barbershopId", (q) =>
-          q.eq("barbershopId", barbershop._id),
+        .withIndex("by_barbershopId_and_isActive", (q) =>
+          q.eq("barbershopId", barbershop._id).eq("isActive", true),
         )
-        .filter((q) => q.eq(q.field("isActive"), true))
         .collect(),
-      polar.getCurrentSubscription(ctx, { userId: barbershop.ownerId }),
+      getUserPlanLimits(ctx, barbershop.ownerId),
     ]);
-
-    const limits = getLimitsForProductKey(subscription?.productKey);
 
     const barbers = await Promise.all(
       members

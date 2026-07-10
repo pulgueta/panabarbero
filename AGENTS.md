@@ -1,7 +1,7 @@
 
 # AGENTS.md
 
-PanaBarbero is a barbershop marketplace + management app: **TanStack Start (SSR) + Convex + WorkOS AuthKit + Polar + Tailwind v4 / Base UI**. Package manager is **pnpm only**. All user-facing copy is **Spanish (es-CO)**.
+PanaBarbero is a barbershop marketplace + management app: **TanStack Start (SSR) + Convex + WorkOS AuthKit + Mercado Pago + Tailwind v4 / Base UI**. Package manager is **pnpm only**. All user-facing copy is **Spanish (es-CO)**.
 
 > [!IMPORTANT]
 > **Code patterns, style, and architecture live in `ARCHITECTURE.md`** — read the relevant section before touching a subsystem. This file (`AGENTS.md`) covers only *how to behave*. Keep both updated as the project evolves.

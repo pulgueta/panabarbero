@@ -24,7 +24,7 @@ const PLAN_LABELS = {
 const PLAN_DESCRIPTIONS = {
   free: "Lo esencial para empezar a recibir citas.",
   pro: "Equipo, inventario y más capacidad para hacer crecer tu barbería.",
-  premium: "Todas las funciones de PanaBarbero, sin límites.",
+  premium: "Todas las funciones de PanaBarbero con nuestra mayor capacidad.",
 } as const;
 
 interface BillingPlanCardProps {
@@ -50,7 +50,7 @@ function FeatureRow({ label, enabled }: { label: string; enabled: boolean }) {
 /**
  * Current-plan summary for the Facturación settings page. Reads the owner's
  * plan tier via `useBarbershopPlan` and links to the existing `/pricing`
- * surface (checkout + Polar customer portal) to manage the subscription.
+ * surface (checkout + MercadoPago management) to manage the subscription.
  */
 export const BillingPlanCard: FC<BillingPlanCardProps> = ({ barbershopId }) => {
   const { planTier, planLimits, isLoading } = useBarbershopPlan(barbershopId);

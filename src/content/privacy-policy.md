@@ -1,6 +1,6 @@
 # Política de Privacidad
 
-_Última actualización: 20 de junio de 2026_
+_Última actualización: 9 de julio de 2026_
 
 ## 1. Introducción
 
@@ -29,7 +29,7 @@ El proceso de registro, inicio de sesión y gestión de sesiones es gestionado e
 
 ### 2.4 Información de pago
 
-La información de pago (tarjetas de crédito, datos bancarios, etc.) es recopilada y procesada exclusivamente por [Polar](https://polar.sh), nuestro proveedor de pagos. PanaBarbero no almacena, procesa ni tiene acceso a su información financiera.
+La información necesaria para completar un pago, como los datos de tarjeta o de cuenta bancaria, es recopilada y procesada por [Mercado Pago](https://www.mercadopago.com.co/), nuestro proveedor de pagos. PanaBarbero almacena los datos operativos necesarios para gestionar la facturación, como el correo del pagador, producto, monto, moneda, identificadores del pago o suscripción, estado y reembolsos. PanaBarbero no almacena el número completo de la tarjeta, el código de seguridad ni las credenciales bancarias.
 
 ## 3. Uso de la Información
 
@@ -47,7 +47,7 @@ Utilizamos la información recopilada para:
 
 ## 4. Herramientas de Analítica
 
-Utilizamos únicamente **Cloudflare Web Analytics** para medir el rendimiento de la plataforma y obtener métricas de uso agregadas. Cloudflare Web Analytics recopila datos de forma anónima, no utiliza cookies ni identificadores de seguimiento basados en terceros y está diseñada para respetar la privacidad de los usuarios.
+Utilizamos [PostHog](https://posthog.com) para analizar el uso de la plataforma, registrar eventos de producto, diagnosticar errores y observar el funcionamiento de las funciones de inteligencia artificial. PostHog puede procesar páginas visitadas, interacciones, información técnica del dispositivo y metadatos de errores o eventos. Cuando inicia sesión, asociamos estos eventos con su identificador de WorkOS, nombre y correo electrónico para entender el uso de la cuenta y prestar soporte.
 
 ## 5. Almacenamiento de Datos
 
@@ -57,7 +57,7 @@ Los datos de identidad (credenciales, sesiones, membresías de organización) se
 
 PanaBarbero no vende, alquila ni comparte su información personal con terceros con fines comerciales. Solo compartimos información en los siguientes casos:
 
-- **Proveedores de servicio:** Compartimos datos necesarios con nuestros proveedores tecnológicos (WorkOS, Convex, Polar, Vercel) exclusivamente para la prestación del servicio. En particular, WorkOS recibe sus datos de identidad para gestionar la autenticación; Convex almacena los datos de aplicación; Polar procesa la información de suscripción.
+- **Proveedores de servicio:** Compartimos los datos necesarios con nuestros proveedores tecnológicos exclusivamente para prestar el servicio. WorkOS gestiona la identidad y autenticación; Convex almacena los datos de la aplicación; Mercado Pago procesa pagos y suscripciones; PostHog procesa analítica, diagnóstico y observabilidad; Vercel procesa las solicitudes que usan nuestros servicios de inteligencia artificial.
 - **Información de citas:** Cuando agenda una cita, su nombre y datos de contacto se comparten con la barbería correspondiente para la prestación del servicio.
 - **Obligaciones legales:** Podemos divulgar información cuando sea requerido por ley, regulación, proceso legal o solicitud gubernamental aplicable en Colombia.
 
@@ -93,12 +93,13 @@ Conservamos su información personal mientras su cuenta esté activa o mientras 
 - Su perfil de usuario (nombre, correo electrónico, teléfono e imagen).
 - Sus reseñas publicadas en la plataforma.
 - Sus notificaciones dentro de la aplicación.
-- Si es **propietario de una barbería**: la barbería completa con todos sus servicios, citas, membresías del equipo, metadatos y registros financieros asociados.
+- Si es **propietario de una barbería**: la barbería completa con todos sus servicios, citas, membresías del equipo, metadatos y registros operativos de facturación almacenados por PanaBarbero.
 - Si es **miembro del equipo**: su membresía y las asignaciones de servicio correspondientes.
 
 **Datos que pueden ser retenidos:**
 
 - Los registros de citas en las que usted participó como cliente en barberías de terceros pueden ser conservados por dichas barberías con fines operativos y de historial. Estos registros contienen únicamente la información de contacto que usted proporcionó al momento de agendar (nombre, teléfono, correo electrónico) y no están vinculados a su cuenta una vez eliminada.
+- Mercado Pago puede conservar los registros de pagos y transacciones conforme a sus obligaciones legales y a su propia política de privacidad.
 
 Lo anterior aplica salvo que la ley colombiana nos obligue a conservar ciertos datos por un período determinado.
 

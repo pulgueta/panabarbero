@@ -5,8 +5,7 @@ import { z } from "zod";
 import { zInternalAction, zInternalMutation, zInternalQuery } from ".";
 import { components, internal } from "./_generated/api";
 import type { ActionCtx } from "./_generated/server";
-import { getLimitsForProductKey } from "./plans";
-import { polar } from "./polar";
+import { getUserPlanLimits } from "./acl";
 import type { Barbershop } from "./schema";
 
 /**
@@ -126,10 +125,7 @@ export const getShopKnowledgeData = zInternalQuery({
       .withIndex("by_barbershopId", (q) => q.eq("barbershopId", barbershopId))
       .collect();
 
-    const subscription = await polar.getCurrentSubscription(ctx, {
-      userId: shop.ownerId,
-    });
-    const limits = getLimitsForProductKey(subscription?.productKey);
+    const limits = await getUserPlanLimits(ctx, shop.ownerId);
 
     return {
       isPremium: limits.panaKnowledgeBase,
