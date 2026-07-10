@@ -198,7 +198,7 @@ without an account/membership. Acquisition:
 | **staff** (recepcionista) | Accepting an invitation whose role is `staff`. | Inviting staff requires the owner's plan to allow it (`assertStaffInviteAllowed` — pro/premium only; free plan rejects with "límite de personal"). |
 | **customer** | Plain signup. No membership row. | Booking needs name + phone; email optional. |
 
-Invitations: backed by **WorkOS Organization Invitations** (`convex/invitations.ts`
+Invitations: backed by **WorkOS Organization Invitations** (`convex/invitations.ts`)
 
 - `convex/workosOrgs.ts`; Each barbershop maps to a WorkOS org (`externalId = barbershopId`);
 `invite` calls `userManagement.sendInvitation` with a `roleSlug`, acceptance is
