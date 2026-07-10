@@ -45,6 +45,7 @@ import type * as mercadopago from "../mercadopago.js";
 import type * as mercadopagoCheckoutAttempts from "../mercadopagoCheckoutAttempts.js";
 import type * as mercadopagoPaymentState from "../mercadopagoPaymentState.js";
 import type * as mercadopagoPlans from "../mercadopagoPlans.js";
+import type * as mercadopagoSubscriptionState from "../mercadopagoSubscriptionState.js";
 import type * as mercadopagoSubscriptions from "../mercadopagoSubscriptions.js";
 import type * as mercadopagoWebhookSignature from "../mercadopagoWebhookSignature.js";
 import type * as mercadopagoWebhooks from "../mercadopagoWebhooks.js";
@@ -109,6 +110,7 @@ declare const fullApi: ApiFromModules<{
   mercadopagoCheckoutAttempts: typeof mercadopagoCheckoutAttempts;
   mercadopagoPaymentState: typeof mercadopagoPaymentState;
   mercadopagoPlans: typeof mercadopagoPlans;
+  mercadopagoSubscriptionState: typeof mercadopagoSubscriptionState;
   mercadopagoSubscriptions: typeof mercadopagoSubscriptions;
   mercadopagoWebhookSignature: typeof mercadopagoWebhookSignature;
   mercadopagoWebhooks: typeof mercadopagoWebhooks;

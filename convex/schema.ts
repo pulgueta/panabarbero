@@ -536,7 +536,7 @@ export const mercadopagoSubscriptions = zodTable(
     userId: z.string(),
     /** Shared vocabulary with `convex/plans.ts` — drives the plan tier. */
     productKey: z.string(),
-    /** App-normalized agreement status. Paid access also requires `paidThrough`. */
+    /** App-normalized agreement status. Paid access requires payment or trial time. */
     status: z.enum(["active", "pending", "paused", "canceled"]),
     /** Raw MercadoPago preapproval status (authorized/pending/paused/cancelled). */
     mpStatus: z.string().optional(),
@@ -553,9 +553,13 @@ export const mercadopagoSubscriptions = zodTable(
     externalReference: z.string().optional(),
     /** ISO date of the next scheduled charge, when known. */
     nextPaymentDate: z.string().optional(),
+    /** Free-trial duration configured when this agreement was created. */
+    trialDays: z.number().int().positive().optional(),
+    /** Provider-confirmed first charge timestamp that ends the free trial. */
+    trialEndsAt: z.number().optional(),
     /** Latest MercadoPago `last_modified` applied to the agreement. */
     remoteUpdatedAt: z.number().optional(),
-    /** Paid access remains valid through this timestamp while status is active. */
+    /** Paid access remains valid through this timestamp after a successful charge. */
     paidThrough: z.number().optional(),
     lastInvoiceId: z.string().optional(),
     lastPaymentId: z.string().optional(),

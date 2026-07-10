@@ -193,7 +193,7 @@ without an account/membership. Acquisition:
 
 | Role | How acquired | Gating |
 |---|---|---|
-| **owner** | Creating a barbershop (`barbershops.create`) inserts an `["owner", ...]` member. Requires an **active billing entitlement** (`assertIsSubscribed`). Paid Mercado Pago plans grant access only after an approved payment; the free plan is local. | `ownerIsBarber` decides whether `"barber"` is also added, i.e. whether the owner attends clients. |
+| **owner** | Creating a barbershop (`barbershops.create`) inserts an `["owner", ...]` member. Requires an **active billing entitlement** (`assertIsSubscribed`). Paid Mercado Pago plans grant access during a provider-confirmed free trial or after an approved payment; the free plan is local. | `ownerIsBarber` decides whether `"barber"` is also added, i.e. whether the owner attends clients. |
 | **barber** | Accepting an invitation whose metadata role is `barber`. | — |
 | **staff** (recepcionista) | Accepting an invitation whose role is `staff`. | Inviting staff requires the owner's plan to allow it (`assertStaffInviteAllowed` — pro/premium only; free plan rejects with "límite de personal"). |
 | **customer** | Plain signup. No membership row. | Booking needs name + phone; email optional. |

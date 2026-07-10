@@ -22,6 +22,10 @@ import {
   MP_FREE_PRODUCT_KEY,
   MP_PAID_PRODUCT_KEYS,
 } from "./mercadopagoPlans";
+import {
+  isExpectedFreeTrial,
+  MP_FREE_TRIAL_DAYS,
+} from "./mercadopagoSubscriptionState";
 import { processAuthorizedPayment } from "./mercadopagoWebhooks";
 import { siteUrl } from "./notificationCopy";
 import { CREDIT_PRODUCT_KEYS } from "./plans";
@@ -116,7 +120,8 @@ function assertPreapprovalMatchesCheckout(
     amount !== plan.amountCop ||
     recurring?.currency_id !== MP_CURRENCY_ID ||
     recurring?.frequency !== plan.frequency ||
-    recurring?.frequency_type !== plan.frequencyType
+    recurring?.frequency_type !== plan.frequencyType ||
+    !isExpectedFreeTrial(recurring?.free_trial)
   ) {
     throw new ConvexError(
       "La suscripción de Mercado Pago no coincide con el checkout creado por PanaBarbero.",
@@ -134,6 +139,16 @@ async function materializeSubscriptionCheckout(
   }
 
   const plan = getMpPlan(attempt.productKey);
+  const autoRecurring = {
+    frequency: plan.frequency,
+    frequency_type: plan.frequencyType,
+    transaction_amount: plan.amountCop,
+    currency_id: MP_CURRENCY_ID,
+    free_trial: {
+      frequency: MP_FREE_TRIAL_DAYS,
+      frequency_type: "days",
+    },
+  };
   const subscription = await new PreApproval(mpConfig()).create({
     body: {
       reason: plan.reason,
@@ -141,12 +156,7 @@ async function materializeSubscriptionCheckout(
       payer_email: attempt.payerEmail,
       back_url: `${siteUrl()}/profile?tab=plans&subscription=success`,
       status: "pending",
-      auto_recurring: {
-        frequency: plan.frequency,
-        frequency_type: plan.frequencyType,
-        transaction_amount: plan.amountCop,
-        currency_id: MP_CURRENCY_ID,
-      },
+      auto_recurring: autoRecurring,
     },
     requestOptions: { idempotencyKey: attempt.idempotencyKey },
   });
@@ -169,6 +179,7 @@ async function materializeSubscriptionCheckout(
     currencyId: MP_CURRENCY_ID,
     initPoint: subscription.init_point,
     nextPaymentDate: subscription.next_payment_date,
+    trialDays: MP_FREE_TRIAL_DAYS,
     remoteUpdatedAt: remoteTimestamp(subscription.last_modified),
   });
 

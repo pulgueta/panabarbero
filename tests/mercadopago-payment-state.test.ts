@@ -6,6 +6,12 @@ import {
   classifyPaymentState,
 } from "../convex/mercadopagoPaymentState.ts";
 import { isWebhookTimestampWithinTolerance } from "../convex/mercadopagoWebhookSignature.ts";
+import {
+  hasActivePaidEntitlement,
+  initialTrialEndsAt,
+  isExpectedFreeTrial,
+  MP_FREE_TRIAL_DAYS,
+} from "../convex/mercadopagoSubscriptionState.ts";
 
 const baseCreditState = {
   credits: 1000,
@@ -237,4 +243,65 @@ test("partially refunded subscription payments remain financially entitling", ()
   assert.equal(state.canonicalStatus, "partially_refunded");
   assert.equal(state.entitling, true);
   assert.equal(state.reversed, false);
+});
+
+test("the configured Mercado Pago trial is 14 days", () => {
+  assert.equal(
+    isExpectedFreeTrial({
+      frequency: MP_FREE_TRIAL_DAYS,
+      frequency_type: "days",
+    }),
+    true,
+  );
+  assert.equal(
+    isExpectedFreeTrial({ frequency: 7, frequency_type: "days" }),
+    false,
+  );
+});
+
+test("an authorized trial grants paid access until the first charge", () => {
+  const now = Date.parse("2026-07-10T12:00:00.000Z");
+  const nextPaymentDate = "2026-07-24T12:00:00.000Z";
+  const trialEndsAt = initialTrialEndsAt({
+    mpStatus: "authorized",
+    nextPaymentDate,
+    trialDays: MP_FREE_TRIAL_DAYS,
+  });
+
+  assert.equal(trialEndsAt, Date.parse(nextPaymentDate));
+  assert.equal(
+    hasActivePaidEntitlement({ status: "active", trialEndsAt }, now),
+    true,
+  );
+  assert.equal(
+    hasActivePaidEntitlement(
+      { status: "active", trialEndsAt },
+      Date.parse(nextPaymentDate) + 1,
+    ),
+    false,
+  );
+  assert.equal(
+    initialTrialEndsAt({
+      existingTrialEndsAt: trialEndsAt,
+      mpStatus: "authorized",
+      nextPaymentDate: "2026-07-25T12:00:00.000Z",
+      trialDays: MP_FREE_TRIAL_DAYS,
+    }),
+    trialEndsAt,
+  );
+});
+
+test("cancellation revokes trial access immediately", () => {
+  const now = Date.parse("2026-07-10T12:00:00.000Z");
+
+  assert.equal(
+    hasActivePaidEntitlement(
+      {
+        status: "canceled",
+        trialEndsAt: now + MP_FREE_TRIAL_DAYS * 24 * 60 * 60 * 1000,
+      },
+      now,
+    ),
+    false,
+  );
 });
