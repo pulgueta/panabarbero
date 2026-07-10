@@ -3,13 +3,17 @@ import { lazy, Suspense } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { ThemeToggler } from "../layout/theme-toggler";
 import { DashboardBreadcrumbs } from "./dashboard-breadcrumbs";
 import { DASHBOARD_GUTTER_X } from "./dashboard-gutter";
 
 const NotificationsBell = lazy(() =>
   import("@/components/notifications/notifications-bell").then((mod) => ({
     default: mod.NotificationsBell,
+  })),
+);
+const ThemeToggler = lazy(() =>
+  import("../layout/theme-toggler").then((mod) => ({
+    default: mod.ThemeToggler,
   })),
 );
 

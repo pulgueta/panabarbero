@@ -15,7 +15,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { APP_NAME } from "@/config";
 import { useNavRoutes } from "@/hooks/use-nav-routes";
 import { cn } from "@/lib/utils";
-import { ThemeToggler } from "../theme-toggler";
 import { getMobileMenuGroups, useNavSearch } from "./nav-data";
 import { useActiveRoute } from "./use-active-route";
 
@@ -27,6 +26,11 @@ const UserAvatar = lazy(() =>
 const NotificationsBell = lazy(() =>
   import("@/components/notifications/notifications-bell").then((mod) => ({
     default: mod.NotificationsBell,
+  })),
+);
+const ThemeToggler = lazy(() =>
+  import("../theme-toggler").then((mod) => ({
+    default: mod.ThemeToggler,
   })),
 );
 
