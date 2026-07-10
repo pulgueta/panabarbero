@@ -77,14 +77,17 @@ vocabulary the ACL already gates on (`active`/`trialing`).
 | `MERCADOPAGO_WEBHOOK_SECRET` | ✅ set + verified | Signature secret for the app. A real `subscription_preapproval` webhook from MercadoPago was delivered and returned **HTTP 200** (signature validated), confirming the stored secret matches MercadoPago's signing secret. Without it, `processWebhookEvent` returns 500 and access never flips to `active`. |
 | `MERCADOPAGO_IDEMPOTENCY_KEY` | set, unused | We generate a fresh idempotency key per `create` call (`crypto.randomUUID()`), which is the correct behavior; a single static key would collapse distinct subscriptions. |
 
-The webhook has already been registered on the **PanaBarbero** app
-(`944815793526367`):
+The webhook must be registered on **the app that owns
+`MERCADOPAGO_ACCESS_TOKEN`** (in dev that is currently the test seller's app;
+in production, the real PanaBarbero app `944815793526367`):
 
 - URL (prod + sandbox): `https://grandiose-sturgeon-51.convex.site/mercadopago/webhook`
-- Topics: `subscription_preapproval`, `subscription_authorized_payment`
-- Secret: starts with `08faf84…` — **reveal the full value** at
-  `developers/panel/app/944815793526367/webhooks` and set it as
-  `MERCADOPAGO_WEBHOOK_SECRET`.
+- Topics: `subscription_preapproval`, `subscription_authorized_payment`, and
+  **`payment` (Pagos)**. The `payment` topic is required for credit-pack
+  grants — without it Checkout Pro redirects still succeed but
+  `addPurchasedCredits` never runs.
+- Secret: copy the *Clave secreta* from that app's webhook config and set it
+  as `MERCADOPAGO_WEBHOOK_SECRET`.
 
 ```sh
 pnpx convex env set MERCADOPAGO_WEBHOOK_SECRET "<full-secret-from-dashboard>"
@@ -98,7 +101,8 @@ pnpx convex env set MERCADOPAGO_WEBHOOK_SECRET "<full-secret-from-dashboard>"
 
 1. Reveal the webhook secret (above) and `convex env set MERCADOPAGO_WEBHOOK_SECRET`.
 2. Make sure Convex has the latest functions pushed (`pnpx convex dev --once` or `pnpm dev`).
-3. Start the app (`pnpm dev`) and open **`/mercadopago`** while logged in.
+3. Start the app (`pnpm dev`) and open **`/pricing`** (or the profile's
+   **Planes** tab) while logged in.
 
 ### 1. Credentials you need
 
