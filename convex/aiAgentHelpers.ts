@@ -198,7 +198,7 @@ export const getMembersByBarbershopId = zInternalQuery({
   handler: async (ctx, args) => {
     const members = await ctx.db
       .query("barbershopMembers")
-      .withIndex("by_barbershopId_and_active", (q) =>
+      .withIndex("by_barbershopId_and_isActive", (q) =>
         q.eq("barbershopId", args.id).eq("isActive", true),
       )
       .collect();
@@ -353,7 +353,7 @@ export const getMyBarbershopData = zInternalQuery({
         .collect(),
       ctx.db
         .query("barbershopMembers")
-        .withIndex("by_barbershopId_and_active", (q) =>
+        .withIndex("by_barbershopId_and_isActive", (q) =>
           q.eq("barbershopId", barbershop._id).eq("isActive", true),
         )
         .collect(),

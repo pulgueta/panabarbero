@@ -10,7 +10,10 @@ import { assertShopRole, authz, revokeMemberAuthz } from "./authz";
 import { cascadeDeleteBarbershop } from "./barbershopCascade";
 import { getUserId } from "./identity";
 import { releaseForAppointment } from "./inventory";
-import { getEffectiveSubscription } from "./mercadopagoSubscriptions";
+import {
+  deleteUserBillingData,
+  getEffectiveSubscription,
+} from "./mercadopagoSubscriptions";
 import type { Appointment, Barbershop, BarbershopMember } from "./schema";
 import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
@@ -352,6 +355,7 @@ export const { authKitEvent } = authkit.events({
   },
   "user.deleted": async (ctx, event) => {
     const userId = event.data.id;
+    await deleteUserBillingData(ctx, userId);
     const profile = await getProfileByUserId(ctx, userId);
 
     if (!profile) {

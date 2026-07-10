@@ -4,8 +4,8 @@
  * This module is pure TypeScript with no Convex runtime dependencies so it can
  * be imported from both Convex server functions and client-side code.
  *
- * Tier derivation is based on `subscription.productKey` (a stable string
- * configured in the Polar constructor), NOT on product IDs or price amounts.
+ * Tier derivation is based on the stable `subscription.productKey`, not on
+ * remote resource IDs or price amounts.
  */
 
 export const PLAN_PRODUCT_KEYS = [
@@ -19,8 +19,7 @@ export const PLAN_PRODUCT_KEYS = [
 export type ProductKey = (typeof PLAN_PRODUCT_KEYS)[number];
 
 /**
- * One-time credit product keys — used in the Polar constructor and webhook
- * handler to identify credit purchases.
+ * One-time credit product keys used by the MercadoPago checkout catalog.
  */
 export const CREDIT_PRODUCT_KEYS = ["extraSms", "extraEmails"] as const;
 

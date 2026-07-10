@@ -13,6 +13,7 @@ import { groupIdentifyBarbershop, track } from "./analytics";
 import { authkit } from "./auth.config";
 import { assertOwner } from "./authz";
 import { cascadeDeleteBarbershop } from "./barbershopCascade";
+import { hasUnexpiredCheckout } from "./credits";
 import { errorMessages } from "./errors";
 import { ensureFreeSubscription } from "./mercadopagoSubscriptions";
 import { rateLimitOrThrow } from "./ratelimit";
@@ -311,6 +312,12 @@ export const deleteCascade = zAuthMutation({
 
     if (!barbershop || barbershop.ownerId !== userId) {
       throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    if (await hasUnexpiredCheckout(ctx, userId, Date.now())) {
+      throw new ConvexError(
+        "Espera a que venza tu checkout de créditos antes de eliminar la barbería.",
+      );
     }
 
     await cascadeDeleteBarbershop(ctx, barbershop);

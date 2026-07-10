@@ -2,17 +2,10 @@
  * MercadoPago subscription plan catalog — pure TypeScript, no Convex runtime
  * dependencies, so it can be imported from both server functions and the client.
  *
- * This is the MercadoPago counterpart to the Polar product configuration. Tier
- * derivation still flows through `convex/plans.ts` (`productKey` → tier), so a
- * MercadoPago subscription and a Polar subscription that share a `productKey`
- * resolve to the exact same plan limits. That is what makes MercadoPago a
- * drop-in replacement for Polar without changing any gating logic.
- *
- * Amounts mirror the Polar COP prices (Polar stores COP in minor units / ×100;
- * MercadoPago charges COP as whole pesos, so the values below are the displayed
- * peso amounts). The free tier (`independiente`) has no MercadoPago subscription
- * — it is represented by a local row only, since MercadoPago cannot create a
- * $0 recurring charge.
+ * Tier derivation still flows through `convex/plans.ts` (`productKey` → tier).
+ * MercadoPago charges COP as whole pesos, so catalog amounts below are the
+ * displayed and charged values. The free tier (`independiente`) is a local
+ * entitlement because MercadoPago cannot create a $0 recurring charge.
  */
 
 import type { CreditProductKey, PlanTier, ProductKey } from "./plans";
@@ -167,18 +160,8 @@ export function isCreditProductKey(
   return !!key && (CREDIT_PRODUCT_KEYS as readonly string[]).includes(key);
 }
 
-/**
- * App-normalized subscription status. Deliberately matches the vocabulary the
- * ACL layer already expects from Polar (`active` / `trialing` gate access), so
- * `getCurrentMpSubscription` is a shape-for-shape substitute for
- * `polar.getCurrentSubscription`.
- */
-export type MpSubscriptionStatus =
-  | "active"
-  | "pending"
-  | "paused"
-  | "canceled"
-  | "trialing";
+/** App-normalized MercadoPago agreement status. */
+export type MpSubscriptionStatus = "active" | "pending" | "paused" | "canceled";
 
 /**
  * Map a raw MercadoPago preapproval status to the app-normalized status.

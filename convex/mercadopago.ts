@@ -1,33 +1,9 @@
 "use node";
 
-/**
- * MercadoPago Subscriptions (Preapproval) integration — network layer.
- *
- * Runs in the Node runtime because it uses the official `mercadopago` Node SDK
- * (`PreApproval` for the recurring-billing agreement, `WebhookSignatureValidator`
- * for HMAC verification). All persistence is delegated to
- * `convex/mercadopagoSubscriptions.ts` via internal mutations so this file never
- * touches the database directly.
- *
- * Checkout model: **subscription without an associated plan, created as
- * `pending`**. MercadoPago returns an `init_point` hosted-checkout URL; the buyer
- * picks a payment method there and authorizes the recurrence. This mirrors
- * Polar's hosted-checkout redirect and avoids any client-side card tokenization.
- *
- * Environment variables (set in the Convex dashboard):
- *   - MERCADOPAGO_ACCESS_TOKEN  — TEST-... or APP_USR-... seller token
- *   - MERCADOPAGO_WEBHOOK_SECRET — signature secret from the webhook config
- */
+/** MercadoPago checkout, cancellation, and account-deletion network actions. */
 
 import { ConvexError } from "convex/values";
-import {
-  InvalidWebhookSignatureError,
-  MercadoPagoConfig,
-  Payment,
-  PreApproval,
-  Preference,
-  WebhookSignatureValidator,
-} from "mercadopago";
+import { MercadoPagoConfig, PreApproval, Preference } from "mercadopago";
 import { z } from "zod";
 
 import { zAuthAction, zInternalAction } from ".";
@@ -36,21 +12,46 @@ import type { ActionCtx } from "./_generated/server";
 import { errorMessages } from "./errors";
 import {
   getMpPlan,
-  isCreditProductKey,
-  MP_CREDIT_PACKS,
+  isMpPaidProductKey,
   MP_CURRENCY_ID,
   MP_FREE_PRODUCT_KEY,
   MP_PAID_PRODUCT_KEYS,
-  type MpSubscriptionStatus,
-  normalizeMpStatus,
 } from "./mercadopagoPlans";
 import { siteUrl } from "./notificationCopy";
 import { CREDIT_PRODUCT_KEYS } from "./plans";
 
 const paidProductKeySchema = z.enum(MP_PAID_PRODUCT_KEYS);
 const creditProductKeySchema = z.enum(CREDIT_PRODUCT_KEYS);
+const CREDIT_CHECKOUT_TTL_MS = 30 * 60 * 1000;
 
-/** Build an SDK config from the seller access token. Throws if unset. */
+type PreapprovalResponse = Awaited<ReturnType<PreApproval["get"]>>;
+
+interface RemotePreapprovalState {
+  status?: string;
+  payer_email?: string;
+  reason?: string;
+  next_payment_date?: string | number;
+  last_modified?: string | number;
+}
+
+interface OpenPaidRow {
+  preapprovalId: string;
+  productKey: string;
+  status: "active" | "paused" | "pending" | "canceled";
+}
+
+interface CheckoutAttempt {
+  userId: string;
+  productKey: string;
+  payerEmail: string;
+  checkoutReference: string;
+  idempotencyKey: string;
+  state: "creating" | "ready";
+  leaseExpiresAt: number;
+  preapprovalId?: string;
+  initPoint?: string;
+}
+
 function mpConfig(): MercadoPagoConfig {
   const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
 
@@ -63,68 +64,160 @@ function mpConfig(): MercadoPagoConfig {
   return new MercadoPagoConfig({ accessToken });
 }
 
-interface OpenPaidRow {
-  preapprovalId: string;
-  productKey: string;
-  status: MpSubscriptionStatus;
+function remoteTimestamp(value: string | number | undefined) {
+  if (value === undefined) {
+    return Date.now();
+  }
+
+  const parsed =
+    typeof value === "number"
+      ? value < 1_000_000_000_000
+        ? value * 1000
+        : value
+      : Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : Date.now();
+}
+
+function isTerminalStatus(status: string | undefined) {
+  return status === "cancelled" || status === "canceled";
+}
+
+function assertPreapprovalMatchesCheckout(
+  subscription: PreapprovalResponse,
+  checkout: Pick<CheckoutAttempt, "checkoutReference" | "productKey">,
+) {
+  if (!isMpPaidProductKey(checkout.productKey)) {
+    throw new ConvexError("El checkout contiene un plan desconocido.");
+  }
+
+  const plan = getMpPlan(checkout.productKey);
+  const recurring = subscription.auto_recurring;
+  const amount = Number(recurring?.transaction_amount);
+
+  if (
+    subscription.external_reference !== checkout.checkoutReference ||
+    amount !== plan.amountCop ||
+    recurring?.currency_id !== MP_CURRENCY_ID ||
+    recurring.frequency !== plan.frequency ||
+    recurring.frequency_type !== plan.frequencyType
+  ) {
+    throw new ConvexError(
+      "La suscripción de Mercado Pago no coincide con el checkout creado por PanaBarbero.",
+    );
+  }
+}
+
+/** Create or recover one remote checkout from its durable immutable claim. */
+async function materializeSubscriptionCheckout(
+  ctx: ActionCtx,
+  attempt: CheckoutAttempt,
+) {
+  if (!isMpPaidProductKey(attempt.productKey)) {
+    throw new ConvexError("El checkout contiene un plan desconocido.");
+  }
+
+  const plan = getMpPlan(attempt.productKey);
+  const subscription = await new PreApproval(mpConfig()).create({
+    body: {
+      reason: plan.reason,
+      external_reference: attempt.checkoutReference,
+      payer_email: attempt.payerEmail,
+      back_url: `${siteUrl()}/profile?tab=plans&subscription=success`,
+      status: "pending",
+      auto_recurring: {
+        frequency: plan.frequency,
+        frequency_type: plan.frequencyType,
+        transaction_amount: plan.amountCop,
+        currency_id: MP_CURRENCY_ID,
+      },
+    },
+    requestOptions: { idempotencyKey: attempt.idempotencyKey },
+  });
+
+  if (!subscription.id || !subscription.init_point) {
+    throw new ConvexError(
+      "Mercado Pago no devolvió un enlace de pago para la suscripción.",
+    );
+  }
+
+  assertPreapprovalMatchesCheckout(subscription, attempt);
+
+  await ctx.runMutation(internal.mercadopagoCheckoutAttempts.complete, {
+    checkoutReference: attempt.checkoutReference,
+    preapprovalId: subscription.id,
+    mpStatus: subscription.status ?? "pending",
+    payerEmail: subscription.payer_email ?? attempt.payerEmail,
+    reason: subscription.reason ?? plan.reason,
+    amount: plan.amountCop,
+    currencyId: MP_CURRENCY_ID,
+    initPoint: subscription.init_point,
+    nextPaymentDate: subscription.next_payment_date,
+    remoteUpdatedAt: remoteTimestamp(subscription.last_modified),
+  });
+
+  return {
+    initPoint: subscription.init_point,
+    preapprovalId: subscription.id,
+  };
+}
+
+async function applyRemotePreapproval(
+  ctx: ActionCtx,
+  preapprovalId: string,
+  subscription: RemotePreapprovalState,
+) {
+  await ctx.runMutation(
+    internal.mercadopagoSubscriptions.applyPreapprovalState,
+    {
+      preapprovalId,
+      mpStatus: subscription.status ?? "pending",
+      payerEmail: subscription.payer_email,
+      reason: subscription.reason,
+      nextPaymentDate:
+        subscription.next_payment_date !== undefined
+          ? String(subscription.next_payment_date)
+          : undefined,
+      remoteUpdatedAt: remoteTimestamp(subscription.last_modified),
+    },
+  );
 }
 
 /**
- * Reconcile the user's open paid preapprovals against MercadoPago's live
- * status, mirroring any drift locally (webhooks can be missed), and partition
- * them for the checkout guard. Classification uses the RAW remote status: only
- * an exact remote `pending` is sweepable, and any status this integration
- * doesn't model counts as live (`normalizeMpStatus` defaults unknowns to
- * `pending`, which would mark a billable agreement as sweepable). A row whose
- * remote state can't be verified fails closed — a local `pending` one is
- * skipped (it cannot bill), anything else blocks.
+ * Refresh every locally open agreement from MercadoPago. Unknown/unreachable
+ * remote state blocks checkout; only an exact remote `pending` is sweepable.
  */
 async function reconcileOpenPaidRows(ctx: ActionCtx, userId: string) {
-  const openPaid: OpenPaidRow[] = await ctx.runQuery(
+  const result: {
+    rows: OpenPaidRow[];
+    hasOverflow: boolean;
+  } = await ctx.runQuery(
     internal.mercadopagoSubscriptions.listOpenPaidSubscriptions,
     { userId },
   );
-
   const abandonedPending: OpenPaidRow[] = [];
-  let hasLiveSubscription = false;
+  let hasLiveSubscription = result.hasOverflow;
 
-  for (const row of openPaid) {
-    let remoteStatus: string | undefined;
+  for (const row of result.rows) {
+    let remote: PreapprovalResponse;
 
     try {
-      const remote = await new PreApproval(mpConfig()).get({
+      remote = await new PreApproval(mpConfig()).get({
         id: row.preapprovalId,
       });
-      remoteStatus = remote.status;
-
-      if (remoteStatus && normalizeMpStatus(remoteStatus) !== row.status) {
-        await ctx.runMutation(
-          internal.mercadopagoSubscriptions.upsertByPreapproval,
-          {
-            userId,
-            productKey: row.productKey,
-            preapprovalId: row.preapprovalId,
-            mpStatus: remoteStatus,
-          },
-        );
-      }
     } catch (error) {
       console.error(
         `[mercadopago] no se pudo consultar el preapproval ${row.preapprovalId}`,
         error,
       );
-    }
-
-    if (remoteStatus === "pending") {
-      abandonedPending.push(row);
+      hasLiveSubscription = true;
       continue;
     }
 
-    const isTerminalRemote =
-      remoteStatus === "cancelled" || remoteStatus === "canceled";
-    const isUnverifiedLocalPending = !remoteStatus && row.status === "pending";
+    await applyRemotePreapproval(ctx, row.preapprovalId, remote);
 
-    if (!isTerminalRemote && !isUnverifiedLocalPending) {
+    if (remote.status === "pending") {
+      abandonedPending.push(row);
+    } else if (!isTerminalStatus(remote.status)) {
       hasLiveSubscription = true;
     }
   }
@@ -132,77 +225,121 @@ async function reconcileOpenPaidRows(ctx: ActionCtx, userId: string) {
   return { abandonedPending, hasLiveSubscription };
 }
 
-/**
- * Cancel abandoned `pending` checkouts at MercadoPago so a stale init_point
- * can never authorize a second recurrence later. A pending preapproval has no
- * payment method attached and cannot bill, so a failed cancel is logged and
- * retried on the next checkout instead of blocking this one.
- */
+async function cancelRemotePreapproval(
+  ctx: ActionCtx,
+  userId: string,
+  row: Pick<OpenPaidRow, "preapprovalId">,
+) {
+  let canceled: Awaited<ReturnType<PreApproval["update"]>>;
+
+  try {
+    canceled = await new PreApproval(mpConfig()).update({
+      id: row.preapprovalId,
+      body: { status: "cancelled" },
+    });
+  } catch (error) {
+    console.error(
+      `[mercadopago] no se pudo cancelar ${row.preapprovalId}`,
+      error,
+    );
+    throw new ConvexError(
+      "No pudimos confirmar la cancelación en Mercado Pago. No se creó ningún checkout nuevo.",
+    );
+  }
+
+  if (!isTerminalStatus(canceled.status)) {
+    throw new ConvexError(
+      "Mercado Pago no confirmó la cancelación. No se creó ningún checkout nuevo.",
+    );
+  }
+
+  await applyRemotePreapproval(ctx, row.preapprovalId, canceled);
+  await ctx.runMutation(internal.mercadopagoCheckoutAttempts.clear, {
+    userId,
+    preapprovalId: row.preapprovalId,
+  });
+}
+
 async function sweepAbandonedPending(
   ctx: ActionCtx,
   userId: string,
   rows: OpenPaidRow[],
 ) {
   for (const row of rows) {
-    try {
-      const cancelled = await new PreApproval(mpConfig()).update({
-        id: row.preapprovalId,
-        body: { status: "cancelled" },
-      });
-
-      await ctx.runMutation(
-        internal.mercadopagoSubscriptions.upsertByPreapproval,
-        {
-          userId,
-          productKey: row.productKey,
-          preapprovalId: row.preapprovalId,
-          mpStatus: cancelled.status ?? "cancelled",
-        },
-      );
-    } catch (error) {
-      console.error(
-        `[mercadopago] preapproval pendiente ${row.preapprovalId} no cancelado`,
-        error,
-      );
-    }
+    await cancelRemotePreapproval(ctx, userId, row);
   }
 }
 
-/**
- * Create a subscription checkout for a paid plan and return the MercadoPago
- * hosted-checkout URL to redirect the buyer to. A local `pending` row is
- * recorded immediately; the webhook promotes it to `active` once the buyer
- * authorizes the recurrence.
- */
+/** Reuse a safe pending link or clear a terminal/abandoned ready checkout. */
+async function resolveReadyAttempt(
+  ctx: ActionCtx,
+  requestedProductKey: string,
+  requestedPayerEmail: string,
+  attempt: CheckoutAttempt,
+) {
+  if (
+    attempt.state !== "ready" ||
+    !attempt.preapprovalId ||
+    !attempt.initPoint
+  ) {
+    return null;
+  }
+
+  let remote: PreapprovalResponse;
+  try {
+    remote = await new PreApproval(mpConfig()).get({
+      id: attempt.preapprovalId,
+    });
+  } catch (error) {
+    console.error(
+      `[mercadopago] checkout ${attempt.checkoutReference} no verificable`,
+      error,
+    );
+    throw new ConvexError(
+      "No pudimos verificar tu checkout anterior. Inténtalo de nuevo más tarde.",
+    );
+  }
+
+  assertPreapprovalMatchesCheckout(remote, attempt);
+  await applyRemotePreapproval(ctx, attempt.preapprovalId, remote);
+
+  if (remote.status === "pending") {
+    if (
+      attempt.productKey === requestedProductKey &&
+      attempt.payerEmail === requestedPayerEmail
+    ) {
+      return {
+        initPoint: attempt.initPoint,
+        preapprovalId: attempt.preapprovalId,
+      };
+    }
+
+    await cancelRemotePreapproval(ctx, attempt.userId, {
+      preapprovalId: attempt.preapprovalId,
+    });
+    return null;
+  }
+
+  if (isTerminalStatus(remote.status)) {
+    await ctx.runMutation(internal.mercadopagoCheckoutAttempts.clear, {
+      userId: attempt.userId,
+      preapprovalId: attempt.preapprovalId,
+    });
+    return null;
+  }
+
+  throw new ConvexError(
+    "Ya tienes una suscripción abierta. Para cambiar de plan, primero cancélala desde tu perfil o desde tu cuenta de Mercado Pago.",
+  );
+}
+
 export const createSubscriptionCheckout = zAuthAction({
   args: z.object({
     productKey: paidProductKeySchema,
-    /**
-     * Override the payer email. Defaults to the authenticated user's email.
-     * In the sandbox use a MercadoPago **test buyer** email here.
-     */
     payerEmail: z.email().optional(),
   }),
   handler: async (ctx, args) => {
     const { userId } = ctx;
-    const plan = getMpPlan(args.productKey);
-
-    // A cancelled preapproval is terminal at MercadoPago (only paused ones can
-    // be reactivated), so nothing that can still bill may ever be cancelled
-    // implicitly here: switching plans requires an explicit cancel from the
-    // profile, since MercadoPago has no atomic plan-switch for plan-less
-    // preapprovals. Only abandoned `pending` checkouts are cleaned up.
-    const { abandonedPending, hasLiveSubscription } =
-      await reconcileOpenPaidRows(ctx, userId);
-
-    if (hasLiveSubscription) {
-      throw new ConvexError(
-        "Ya tienes una suscripción activa. Para cambiar de plan, primero cancélala desde tu perfil o desde tu cuenta de MercadoPago.",
-      );
-    }
-
-    await sweepAbandonedPending(ctx, userId, abandonedPending);
-
     const payerEmail =
       args.payerEmail ??
       (await ctx.runQuery(api.auth.getCurrentUser, {}))?.email;
@@ -213,142 +350,193 @@ export const createSubscriptionCheckout = zAuthAction({
       );
     }
 
-    const externalReference = `${userId}|${args.productKey}`;
-    const preApproval = new PreApproval(mpConfig());
-
-    const subscription = await preApproval.create({
-      body: {
-        reason: plan.reason,
-        external_reference: externalReference,
-        payer_email: payerEmail,
-        back_url: `${siteUrl()}/profile?tab=plans&subscription=success`,
-        status: "pending",
-        auto_recurring: {
-          frequency: plan.frequency,
-          frequency_type: plan.frequencyType,
-          transaction_amount: plan.amountCop,
-          currency_id: MP_CURRENCY_ID,
+    for (let pass = 0; pass < 2; pass += 1) {
+      const checkoutReference = crypto.randomUUID();
+      const acquired: CheckoutAttempt = await ctx.runMutation(
+        internal.mercadopagoCheckoutAttempts.acquire,
+        {
+          userId,
+          productKey: args.productKey,
+          payerEmail,
+          checkoutReference,
+          idempotencyKey: crypto.randomUUID(),
         },
-      },
-      requestOptions: { idempotencyKey: crypto.randomUUID() },
-    });
-
-    if (!subscription.id || !subscription.init_point) {
-      throw new ConvexError(
-        "MercadoPago no devolvió un enlace de pago para la suscripción.",
       );
+
+      if (acquired.state === "ready") {
+        const existing = await resolveReadyAttempt(
+          ctx,
+          args.productKey,
+          payerEmail,
+          acquired,
+        );
+        if (existing) {
+          return existing;
+        }
+        continue;
+      }
+
+      try {
+        if (acquired.checkoutReference !== checkoutReference) {
+          const recovered = await materializeSubscriptionCheckout(
+            ctx,
+            acquired,
+          );
+          const existing = await resolveReadyAttempt(
+            ctx,
+            args.productKey,
+            payerEmail,
+            {
+              ...acquired,
+              state: "ready",
+              ...recovered,
+            },
+          );
+          if (existing) {
+            return existing;
+          }
+          continue;
+        }
+
+        const { abandonedPending, hasLiveSubscription } =
+          await reconcileOpenPaidRows(ctx, userId);
+
+        if (hasLiveSubscription) {
+          await ctx.runMutation(internal.mercadopagoCheckoutAttempts.clear, {
+            userId,
+          });
+          throw new ConvexError(
+            "Ya tienes una suscripción abierta. Para cambiar de plan, primero cancélala desde tu perfil o desde tu cuenta de Mercado Pago.",
+          );
+        }
+
+        await sweepAbandonedPending(ctx, userId, abandonedPending);
+        return await materializeSubscriptionCheckout(ctx, acquired);
+      } catch (error) {
+        await ctx.runMutation(
+          internal.mercadopagoCheckoutAttempts.releaseLease,
+          { checkoutReference: acquired.checkoutReference },
+        );
+        throw error;
+      }
     }
 
-    await ctx.runMutation(
-      internal.mercadopagoSubscriptions.upsertByPreapproval,
-      {
-        userId,
-        productKey: args.productKey,
-        preapprovalId: subscription.id,
-        mpStatus: subscription.status ?? "pending",
-        payerEmail: subscription.payer_email ?? payerEmail,
-        reason: subscription.reason ?? plan.reason,
-        amount: plan.amountCop,
-        currencyId: MP_CURRENCY_ID,
-        initPoint: subscription.init_point,
-        externalReference,
-        nextPaymentDate: subscription.next_payment_date,
-      },
+    throw new ConvexError(
+      "No pudimos preparar el checkout. Inténtalo de nuevo.",
     );
-
-    return {
-      initPoint: subscription.init_point,
-      preapprovalId: subscription.id,
-    };
   },
 });
 
-/**
- * Cancel the current user's paid subscription at MercadoPago and mirror the new
- * `cancelled` status locally.
- */
 export const cancelSubscription = zAuthAction({
   args: z.object({}),
   handler: async (ctx) => {
     const { userId } = ctx;
-
-    const current = await ctx.runQuery(
-      api.mercadopagoSubscriptions.getMySubscription,
-      {},
+    const target = await ctx.runQuery(
+      internal.mercadopagoSubscriptions.getOpenPaidSubscription,
+      { userId },
     );
 
-    // Cancel targets the LIVE paid preapproval, never the effective row: a
-    // paused paid subscription is shadowed by the active free row on status
-    // priority yet must stay cancellable (MercadoPago resumes billing a paused
-    // preapproval on the next successful retry). Abandoned `pending` rows are
-    // not subscriptions — the checkout sweep owns those.
-    const target = current?.livePaid;
-
-    if (!target) {
+    if (!target?.preapprovalId) {
+      const current = await ctx.runQuery(
+        api.mercadopagoSubscriptions.getMySubscription,
+        {},
+      );
       if (current?.productKey === MP_FREE_PRODUCT_KEY) {
         throw new ConvexError("No puedes cancelar el plan gratis.");
       }
       throw new ConvexError(errorMessages.notFound("suscripción"));
     }
 
-    const preApproval = new PreApproval(mpConfig());
-    const updated = await preApproval.update({
-      id: target.preapprovalId,
-      body: { status: "cancelled" },
+    await cancelRemotePreapproval(ctx, userId, {
+      preapprovalId: target.preapprovalId,
     });
-
-    await ctx.runMutation(
-      internal.mercadopagoSubscriptions.upsertByPreapproval,
-      {
-        userId,
-        productKey: target.productKey,
-        preapprovalId: target.preapprovalId,
-        mpStatus: updated.status ?? "cancelled",
-      },
-    );
-
-    return { status: updated.status ?? "cancelled" };
+    await ctx.runMutation(internal.mercadopagoSubscriptions.seedFree, {
+      userId,
+    });
+    return { status: "cancelled" };
   },
 });
 
-/**
- * Create a hosted MercadoPago Checkout Pro preference for a one-time SMS/email
- * credit pack and return the `init_point` to redirect the buyer to. Credits are
- * never granted here — only a verified `payment` webhook grants them, exactly
- * once, after fetching the approved payment from MercadoPago.
- */
+/** Reconcile every paid agreement before activating the local free entitlement. */
+export const subscribeFree = zAuthAction({
+  args: z.object({}),
+  handler: async (ctx): Promise<string> => {
+    const { userId } = ctx;
+    const attempt: CheckoutAttempt | null = await ctx.runQuery(
+      internal.mercadopagoCheckoutAttempts.getForUser,
+      { userId },
+    );
+
+    if (attempt?.state === "creating") {
+      if (attempt.leaseExpiresAt > Date.now()) {
+        throw new ConvexError(
+          "Hay un checkout de pago en curso. Espera a que termine antes de activar el plan gratis.",
+        );
+      }
+
+      await materializeSubscriptionCheckout(ctx, attempt);
+    }
+
+    if (attempt?.state === "ready") {
+      await resolveReadyAttempt(ctx, MP_FREE_PRODUCT_KEY, "", attempt);
+    }
+
+    const { abandonedPending, hasLiveSubscription } =
+      await reconcileOpenPaidRows(ctx, userId);
+    if (hasLiveSubscription) {
+      throw new ConvexError(
+        "Tienes una suscripción de pago abierta. Cancélala antes de activar el plan gratis.",
+      );
+    }
+
+    await sweepAbandonedPending(ctx, userId, abandonedPending);
+    return await ctx.runMutation(
+      internal.mercadopagoSubscriptions.activateFree,
+      { userId },
+    );
+  },
+});
+
 export const createCreditCheckout = zAuthAction({
   args: z.object({
     productKey: creditProductKeySchema,
     barbershopId: z.string(),
   }),
   handler: async (ctx, args) => {
-    const { userId } = ctx;
-
-    // Only the barbershop owner may buy credits for it (throws otherwise).
-    const barbershop = await ctx.runQuery(
-      internal.credits.getOwnedBarbershopForCredits,
-      { barbershopId: args.barbershopId, userId },
+    const checkoutReference = crypto.randomUUID();
+    const idempotencyKey = crypto.randomUUID();
+    const now = Date.now();
+    const expiresAt = now + CREDIT_CHECKOUT_TTL_MS;
+    const intent = await ctx.runMutation(
+      internal.credits.createCheckoutIntent,
+      {
+        userId: ctx.userId,
+        barbershopId: args.barbershopId,
+        productKey: args.productKey,
+        checkoutReference,
+        idempotencyKey,
+        expiresAt,
+      },
     );
-
-    const pack = MP_CREDIT_PACKS[args.productKey];
-    // `<userId>|<barbershopId>|<productKey>` — the webhook re-derives the
-    // barbershop and amount from here; nothing about the grant is client-owned.
-    const externalReference = `${userId}|${barbershop._id}|${args.productKey}`;
 
     const preference = await new Preference(mpConfig()).create({
       body: {
         items: [
           {
-            id: args.productKey,
-            title: pack.title,
-            description: pack.description,
+            id: intent.productKey,
+            title: intent.title,
+            description: intent.description,
             quantity: 1,
-            unit_price: pack.amountCop,
-            currency_id: MP_CURRENCY_ID,
+            unit_price: intent.amount,
+            currency_id: intent.currencyId,
           },
         ],
-        external_reference: externalReference,
+        external_reference: intent.checkoutReference,
+        notification_url: `${process.env.CONVEX_SITE_URL}/mercadopago/webhook`,
+        binary_mode: true,
+        expires: true,
+        expiration_date_from: new Date(now - 60_000).toISOString(),
+        expiration_date_to: new Date(expiresAt).toISOString(),
         back_urls: {
           success: `${siteUrl()}/profile?tab=plans&credits=success`,
           failure: `${siteUrl()}/profile?tab=plans&credits=failure`,
@@ -356,153 +544,83 @@ export const createCreditCheckout = zAuthAction({
         },
         auto_return: "approved",
       },
-      requestOptions: { idempotencyKey: crypto.randomUUID() },
+      requestOptions: { idempotencyKey: intent.idempotencyKey },
     });
 
-    if (!preference.init_point) {
+    if (!preference.id || !preference.init_point) {
       throw new ConvexError(
-        "MercadoPago no devolvió un enlace de pago para los créditos.",
+        "Mercado Pago no devolvió un enlace de pago para los créditos.",
       );
     }
+
+    await ctx.runMutation(internal.credits.completeCheckoutIntent, {
+      checkoutReference,
+      preferenceId: preference.id,
+    });
 
     return { initPoint: preference.init_point, preferenceId: preference.id };
   },
 });
 
-/**
- * Process a MercadoPago webhook notification. Called by the `/mercadopago/webhook`
- * HTTP route with the values needed for signature verification. Returns the HTTP
- * status the route should reply with (200 acknowledged, 401 bad signature, 500
- * transient error → MercadoPago retries).
- *
- * Only `subscription_preapproval` events change access; other topics are
- * acknowledged and ignored.
- */
-export const processWebhookEvent = zInternalAction({
-  args: z.object({
-    xSignature: z.string().optional(),
-    xRequestId: z.string().optional(),
-    dataId: z.string().optional(),
-    type: z.string().optional(),
-  }),
+/** Cancel every remotely open agreement before deleting the user's login. */
+export const cancelUserBillingForDeletion = zInternalAction({
+  args: z.object({ userId: z.string() }),
   handler: async (ctx, args) => {
-    const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
-
-    if (!secret) {
-      console.error(
-        "[mercadopago] MERCADOPAGO_WEBHOOK_SECRET no configurado — no se puede validar la firma.",
-      );
-      return 500;
-    }
-
-    try {
-      WebhookSignatureValidator.validate({
-        xSignature: args.xSignature,
-        xRequestId: args.xRequestId,
-        dataId: args.dataId,
-        secret,
-      });
-    } catch (error) {
-      if (error instanceof InvalidWebhookSignatureError) {
-        console.error(`[mercadopago] firma inválida: ${error.reason}`);
-        return 401;
-      }
-      throw error;
-    }
-
-    if (!args.dataId) {
-      return 200;
-    }
-
-    // One-time credit purchases (Checkout Pro) arrive as `payment` events. Grant
-    // credits only from an APPROVED payment fetched from MercadoPago, keyed by
-    // payment id for idempotency, with the charged amount validated against our
-    // server-owned catalog so the client can never inflate a grant.
-    if (args.type === "payment") {
-      const payment = await new Payment(mpConfig()).get({ id: args.dataId });
-
-      if (payment.status !== "approved") {
-        return 200;
-      }
-
-      const ref = payment.external_reference;
-      if (!ref || !ref.includes("|")) {
-        return 200;
-      }
-
-      const [, creditBarbershopId, creditProductKey] = ref.split("|");
-      if (!creditBarbershopId || !isCreditProductKey(creditProductKey)) {
-        return 200;
-      }
-
-      const pack = MP_CREDIT_PACKS[creditProductKey];
-
-      if (Number(payment.transaction_amount) !== pack.amountCop) {
-        console.error(
-          `[mercadopago] pago ${payment.id} con monto inesperado (${payment.transaction_amount})`,
-        );
-        return 200;
-      }
-
-      await ctx.runMutation(internal.credits.addPurchasedCredits, {
-        orderId: String(payment.id),
-        barbershopId: creditBarbershopId,
-        type: pack.type,
-        amount: pack.credits,
-      });
-
-      return 200;
-    }
-
-    // Only subscription lifecycle changes affect plan access. (`subscription_
-    // authorized_payment` recurring-charge events are acknowledged but not yet
-    // reconciled for delinquency — see docs/mercadopago-subscriptions.md.)
-    if (args.type !== "subscription_preapproval") {
-      return 200;
-    }
-
-    const subscription = await new PreApproval(mpConfig()).get({
-      id: args.dataId,
-    });
-
-    const externalReference = subscription.external_reference;
-    if (!externalReference || !externalReference.includes("|")) {
-      console.error(
-        `[mercadopago] preapproval ${args.dataId} sin external_reference mapeable`,
-      );
-      return 200;
-    }
-
-    const [userId, productKey] = externalReference.split("|");
-    if (!userId || !productKey) {
-      return 200;
-    }
-
-    // MercadoPago's `/preapproval` response can return `transaction_amount` as a
-    // string even though the SDK types it as a number; coerce before the
-    // `z.number()`-validated mutation, and omit it when it isn't a finite value.
-    const rawAmount = subscription.auto_recurring?.transaction_amount;
-    const amount =
-      rawAmount != null && Number.isFinite(Number(rawAmount))
-        ? Number(rawAmount)
-        : undefined;
-
-    await ctx.runMutation(
-      internal.mercadopagoSubscriptions.upsertByPreapproval,
-      {
-        userId,
-        productKey,
-        preapprovalId: subscription.id ?? args.dataId,
-        mpStatus: subscription.status ?? "pending",
-        payerEmail: subscription.payer_email,
-        reason: subscription.reason,
-        amount,
-        currencyId: subscription.auto_recurring?.currency_id,
-        externalReference,
-        nextPaymentDate: subscription.next_payment_date,
-      },
+    const hasPayableCreditCheckout = await ctx.runQuery(
+      internal.credits.hasUnexpiredCheckoutForUser,
+      { userId: args.userId, now: Date.now() },
     );
+    if (hasPayableCreditCheckout) {
+      throw new ConvexError(
+        "Espera a que venza tu checkout de créditos antes de eliminar la cuenta.",
+      );
+    }
 
-    return 200;
+    const attempt: CheckoutAttempt | null = await ctx.runQuery(
+      internal.mercadopagoCheckoutAttempts.getForUser,
+      { userId: args.userId },
+    );
+    if (attempt?.state === "creating") {
+      if (attempt.leaseExpiresAt > Date.now()) {
+        throw new ConvexError(
+          "No se puede eliminar la cuenta mientras se crea un checkout.",
+        );
+      }
+
+      await materializeSubscriptionCheckout(ctx, attempt);
+    }
+
+    const open: { rows: OpenPaidRow[]; hasOverflow: boolean } =
+      await ctx.runQuery(
+        internal.mercadopagoSubscriptions.listOpenPaidSubscriptions,
+        { userId: args.userId },
+      );
+    if (open.hasOverflow) {
+      throw new ConvexError(
+        "No se pudo verificar todo el historial de suscripciones.",
+      );
+    }
+
+    for (const row of open.rows) {
+      let remote: PreapprovalResponse;
+      try {
+        remote = await new PreApproval(mpConfig()).get({
+          id: row.preapprovalId,
+        });
+      } catch (error) {
+        console.error(
+          `[mercadopago] no se pudo verificar ${row.preapprovalId} al borrar la cuenta`,
+          error,
+        );
+        throw new ConvexError(
+          "No pudimos confirmar la cancelación de tu suscripción. Tu cuenta no fue eliminada.",
+        );
+      }
+
+      await applyRemotePreapproval(ctx, row.preapprovalId, remote);
+      if (!isTerminalStatus(remote.status)) {
+        await cancelRemotePreapproval(ctx, args.userId, row);
+      }
+    }
   },
 });

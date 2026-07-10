@@ -22,9 +22,8 @@ import type { Barbershop } from "./schema";
 
 /**
  * Fetch the effective MercadoPago subscription for a given `userId`. The
- * `effectiveProductKey` is status-gated (only `active`/`trialing` confers a paid
- * tier), so a pending/paused/canceled paid row — or no row at all — resolves to
- * free.
+ * `effectiveProductKey` is payment- and status-gated, so an unpaid, paused, or
+ * canceled paid agreement resolves to the local free entitlement when present.
  */
 async function getSubscription(ctx: QueryCtx | MutationCtx, userId: string) {
   return getEffectiveSubscription(ctx, userId);
@@ -64,7 +63,7 @@ export async function assertIsSubscribed(
 ): Promise<void> {
   const sub = await getSubscription(ctx, userId);
 
-  if (!sub || (sub.status !== "active" && sub.status !== "trialing")) {
+  if (!sub.isSubscribed) {
     throw new ConvexError(errorMessages.subscriptionRequired);
   }
 }

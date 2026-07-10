@@ -119,24 +119,31 @@ http.route({
 
     let bodyType: string | undefined;
     let bodyDataId: string | undefined;
+    let bodyPaymentId: string | undefined;
     try {
       const body = (await request.json()) as {
         type?: string;
         topic?: string;
-        data?: { id?: string };
+        data?: { id?: string | number; payment_id?: string | number };
       };
       bodyType = body.type ?? body.topic;
-      bodyDataId = body.data?.id;
+      bodyDataId =
+        body.data?.id !== undefined ? String(body.data.id) : undefined;
+      bodyPaymentId =
+        body.data?.payment_id !== undefined
+          ? String(body.data.payment_id)
+          : undefined;
     } catch {
       // IPN pings may have no JSON body — fall back to query params.
     }
 
     const status = await ctx.runAction(
-      internal.mercadopago.processWebhookEvent,
+      internal.mercadopagoWebhooks.processWebhookEvent,
       {
         xSignature: request.headers.get("x-signature") ?? undefined,
         xRequestId: request.headers.get("x-request-id") ?? undefined,
         dataId: queryDataId ?? bodyDataId,
+        paymentId: bodyPaymentId,
         type:
           bodyType ??
           url.searchParams.get("type") ??

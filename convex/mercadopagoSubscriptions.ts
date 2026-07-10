@@ -1,22 +1,10 @@
-/**
- * MercadoPago subscription database layer + tier resolver.
- *
- * This is the read/write half of the MercadoPago integration (the network half
- * lives in `convex/mercadopago.ts`, a `"use node"` action file). Nothing here
- * imports the SDK, so it runs in the fast V8 runtime and can be called from
- * queries, mutations, and the webhook path alike.
- *
- * `getCurrentMpSubscription` returns a `{ productKey, status }`-shaped row that
- * is a drop-in substitute for `polar.getCurrentSubscription`. Swapping the two
- * calls in `convex/acl.ts` (and the two `convex/auth.ts` subscription queries)
- * is all it takes to make MercadoPago the source of truth — see
- * `docs/mercadopago-subscriptions.md`.
- */
+/** MercadoPago subscription persistence and payment-backed entitlement logic. */
 
 import { ConvexError } from "convex/values";
 import { z } from "zod";
 
-import { zAuthMutation, zInternalMutation, zInternalQuery, zQuery } from ".";
+import { zInternalMutation, zInternalQuery, zQuery } from ".";
+import { internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { getUserId } from "./identity";
 import {
@@ -28,47 +16,49 @@ import {
 import { getLimitsForProductKey, getTierForProductKey } from "./plans";
 import type { MercadopagoSubscription } from "./schema";
 
-/**
- * Effective-subscription priority. When a user has several rows (e.g. an old
- * canceled attempt plus a fresh authorized one) the lowest priority wins.
- */
+const SUBSCRIPTION_STATUSES: readonly MpSubscriptionStatus[] = [
+  "active",
+  "paused",
+  "pending",
+  "canceled",
+];
+const OPEN_PAID_STATUSES: readonly MpSubscriptionStatus[] = [
+  "active",
+  "paused",
+  "pending",
+];
+const ROWS_PER_STATUS = 10;
+const DELETE_BATCH_SIZE = 100;
+
 const STATUS_PRIORITY: Record<MpSubscriptionStatus, number> = {
   active: 0,
-  trialing: 1,
-  paused: 2,
-  pending: 3,
-  canceled: 4,
+  paused: 1,
+  pending: 2,
+  canceled: 3,
 };
 
-/**
- * Resolve the effective MercadoPago subscription for a user, or `null` when the
- * user has never interacted with MercadoPago. Shape-compatible with
- * `polar.getCurrentSubscription` for the fields the ACL reads (`productKey`,
- * `status`).
- *
- * Unlike Polar's `getCurrentSubscription` (which only surfaces the active row),
- * this returns the effective row across **all** statuses so the UI can render
- * `pending` / `paused` / `canceled` states. Any entitlement derivation (tier,
- * limits) MUST therefore gate on `status` being `active` / `trialing` — a
- * canceled or pending paid row must never confer a paid tier. See the
- * status-aware derivation in `getMySubscription` and mirror it when swapping
- * this in for Polar in `convex/acl.ts`.
- */
-export async function getCurrentMpSubscription(
+async function collectRowsByStatuses(
   ctx: QueryCtx | MutationCtx,
   userId: string,
-): Promise<MercadopagoSubscription | null> {
-  return pickEffectiveRow(await collectUserRows(ctx, userId));
+  statuses: readonly MpSubscriptionStatus[],
+  limit = ROWS_PER_STATUS,
+) {
+  const batches = await Promise.all(
+    statuses.map((status) =>
+      ctx.db
+        .query("mercadopagoSubscriptions")
+        .withIndex("by_userId_and_status", (q) =>
+          q.eq("userId", userId).eq("status", status),
+        )
+        .order("desc")
+        .take(limit),
+    ),
+  );
+
+  return batches.flat();
 }
 
-function collectUserRows(ctx: QueryCtx | MutationCtx, userId: string) {
-  return ctx.db
-    .query("mercadopagoSubscriptions")
-    .withIndex("by_userId", (q) => q.eq("userId", userId))
-    .collect();
-}
-
-function pickEffectiveRow(
+function pickDisplayRow(
   rows: MercadopagoSubscription[],
 ): MercadopagoSubscription | null {
   if (rows.length === 0) {
@@ -83,49 +73,83 @@ function pickEffectiveRow(
       return rowPriority < bestPriority ? row : best;
     }
 
-    // Same status → a real preapproval (paid) outranks a local free row, so an
-    // active paid subscription is never shadowed by a free row activated later
-    // (this only affects equal-status ties; a canceled paid row still loses to
-    // an active free row on priority above and correctly falls back to free).
     const bestIsPaid = !!best.preapprovalId;
     const rowIsPaid = !!row.preapprovalId;
     if (rowIsPaid !== bestIsPaid) {
       return rowIsPaid ? row : best;
     }
 
-    // Otherwise prefer the most recently created row.
     return row._creationTime > best._creationTime ? row : best;
   });
 }
 
-/**
- * The single MercadoPago-backed effective subscription for a user — the source
- * of truth for plan gating. Replaces `polar.getCurrentSubscription`: the ACL and
- * the `auth.*` subscription queries all read from here.
- *
- * Only an `active`/`trialing` row confers a paid tier; a `pending`, `paused`, or
- * `canceled` paid row (and a user with no MercadoPago rows at all) resolves to
- * free. `productKey` is the RAW row key so the UI can still label a canceled
- * plan; the tier is derived from the status-gated `effectiveProductKey`.
- */
+function hasEntitlement(row: MercadopagoSubscription, now: number) {
+  if (row.status !== "active") {
+    return false;
+  }
+
+  if (!row.preapprovalId) {
+    return row.productKey === MP_FREE_PRODUCT_KEY;
+  }
+
+  return (row.paidThrough ?? 0) > now;
+}
+
+function pickEntitlementRow(
+  rows: MercadopagoSubscription[],
+  now = Date.now(),
+): MercadopagoSubscription | null {
+  const entitled = rows.filter((row) => hasEntitlement(row, now));
+
+  if (entitled.length === 0) {
+    return null;
+  }
+
+  return entitled.reduce((best, row) => {
+    const bestIsPaid = !!best.preapprovalId;
+    const rowIsPaid = !!row.preapprovalId;
+
+    if (rowIsPaid !== bestIsPaid) {
+      return rowIsPaid ? row : best;
+    }
+
+    return (row.paidThrough ?? row._creationTime) >
+      (best.paidThrough ?? best._creationTime)
+      ? row
+      : best;
+  });
+}
+
+function pickOpenPaidRow(rows: MercadopagoSubscription[]) {
+  return (
+    rows
+      .filter(
+        (row) => !!row.preapprovalId && OPEN_PAID_STATUSES.includes(row.status),
+      )
+      .sort(
+        (a, b) =>
+          STATUS_PRIORITY[a.status] - STATUS_PRIORITY[b.status] ||
+          b._creationTime - a._creationTime,
+      )[0] ?? null
+  );
+}
+
+/** The single paid-or-free entitlement used by every ACL and plan resolver. */
 export async function getEffectiveSubscription(
   ctx: QueryCtx | MutationCtx,
   userId: string,
 ) {
-  const subscription = await getCurrentMpSubscription(ctx, userId);
-  const isSubscribed =
-    subscription?.status === "active" || subscription?.status === "trialing";
-  const effectiveProductKey = isSubscribed
-    ? subscription?.productKey
-    : undefined;
+  const rows = await collectRowsByStatuses(ctx, userId, SUBSCRIPTION_STATUSES);
+  const entitlement = pickEntitlementRow(rows);
+  const effectiveProductKey = entitlement?.productKey;
   const planTier = getTierForProductKey(effectiveProductKey);
   const planLimits = getLimitsForProductKey(effectiveProductKey);
 
   return {
-    productKey: subscription?.productKey,
+    productKey: effectiveProductKey,
     effectiveProductKey,
-    status: subscription?.status,
-    isSubscribed,
+    status: entitlement?.status,
+    isSubscribed: !!entitlement,
     planTier,
     planLimits,
     isFree: planTier === "free",
@@ -134,93 +158,111 @@ export async function getEffectiveSubscription(
   };
 }
 
-/**
- * Statuses under which a paid preapproval can still bill or be reactivated at
- * MercadoPago (a paused one resumes on a successful payment retry).
- */
-const LIVE_PAID_STATUSES: readonly MpSubscriptionStatus[] = [
-  "active",
-  "trialing",
-  "paused",
-];
-
-/**
- * The user's live paid preapproval, even when the effective-subscription
- * resolver shadows it (a paused paid row loses to the seeded active free row
- * on status priority). Cancellation and plan-switch gating key off this —
- * never off the effective row — so a paused subscription stays cancellable
- * and visible in the UI.
- */
-function pickLivePaidRow(
-  rows: MercadopagoSubscription[],
-): MercadopagoSubscription | null {
-  const live = rows
-    .filter(
-      (row) => !!row.preapprovalId && LIVE_PAID_STATUSES.includes(row.status),
-    )
-    .sort(
-      (a, b) =>
-        LIVE_PAID_STATUSES.indexOf(a.status) -
-        LIVE_PAID_STATUSES.indexOf(b.status),
-    );
-
-  return live[0] ?? null;
-}
-
-/**
- * All of a user's paid preapprovals that MercadoPago could still act on
- * (anything not canceled — including abandoned `pending` checkouts, which the
- * effective-subscription resolver hides behind an active free row). The
- * subscription-checkout action cancels each of these before creating a new
- * preapproval so recurring charges can never stack.
- */
+/** Bounded checkout guard input plus an overflow fail-closed signal. */
 export const listOpenPaidSubscriptions = zInternalQuery({
   args: z.object({ userId: z.string() }),
   handler: async (ctx, args) => {
-    const rows = await ctx.db
-      .query("mercadopagoSubscriptions")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .collect();
-
-    return rows.flatMap((row) =>
-      row.preapprovalId && row.status !== "canceled"
-        ? [
-            {
-              preapprovalId: row.preapprovalId,
-              productKey: row.productKey,
-              status: row.status,
-            },
-          ]
-        : [],
+    const batches = await Promise.all(
+      OPEN_PAID_STATUSES.map((status) =>
+        ctx.db
+          .query("mercadopagoSubscriptions")
+          .withIndex("by_userId_and_status", (q) =>
+            q.eq("userId", args.userId).eq("status", status),
+          )
+          .order("desc")
+          .take(ROWS_PER_STATUS + 1),
+      ),
     );
+    const hasOverflow = batches.some((batch) => batch.length > ROWS_PER_STATUS);
+
+    return {
+      hasOverflow,
+      rows: batches.flatMap((batch) =>
+        batch.slice(0, ROWS_PER_STATUS).flatMap((row) =>
+          row.preapprovalId
+            ? [
+                {
+                  preapprovalId: row.preapprovalId,
+                  productKey: row.productKey,
+                  status: row.status,
+                },
+              ]
+            : [],
+        ),
+      ),
+    };
   },
 });
 
-/**
- * Upsert a subscription row from a MercadoPago preapproval. Called both after
- * creating a checkout (with the freshly-created preapproval) and from the
- * webhook (on every subsequent lifecycle change). Keyed by `preapprovalId` so
- * repeated webhooks are idempotent. Only fields that are present in `args` are
- * written, so a lifecycle webhook never clears the stored `initPoint`.
- */
-export const upsertByPreapproval = zInternalMutation({
+export const getByPreapproval = zInternalQuery({
+  args: z.object({ preapprovalId: z.string() }),
+  handler: async (ctx, args) =>
+    ctx.db
+      .query("mercadopagoSubscriptions")
+      .withIndex("by_preapprovalId", (q) =>
+        q.eq("preapprovalId", args.preapprovalId),
+      )
+      .unique(),
+});
+
+export const getByExternalReference = zInternalQuery({
+  args: z.object({ externalReference: z.string() }),
+  handler: async (ctx, args) =>
+    ctx.db
+      .query("mercadopagoSubscriptions")
+      .withIndex("by_externalReference", (q) =>
+        q.eq("externalReference", args.externalReference),
+      )
+      .unique(),
+});
+
+export const getOpenPaidSubscription = zInternalQuery({
+  args: z.object({ userId: z.string() }),
+  handler: async (ctx, args) => {
+    const rows = await collectRowsByStatuses(
+      ctx,
+      args.userId,
+      OPEN_PAID_STATUSES,
+    );
+    return pickOpenPaidRow(rows);
+  },
+});
+
+function isStaleAgreementUpdate(
+  existing: MercadopagoSubscription,
+  incomingStatus: MpSubscriptionStatus,
+  incomingUpdatedAt: number | undefined,
+) {
+  if (existing.remoteUpdatedAt !== undefined) {
+    if (incomingUpdatedAt === undefined) {
+      return true;
+    }
+    if (incomingUpdatedAt < existing.remoteUpdatedAt) {
+      return true;
+    }
+    if (
+      incomingUpdatedAt === existing.remoteUpdatedAt &&
+      existing.status === "canceled" &&
+      incomingStatus !== "canceled"
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/** Apply mutable remote state without allowing it to rewrite checkout ownership. */
+export const applyPreapprovalState = zInternalMutation({
   args: z.object({
-    userId: z.string(),
-    productKey: z.string(),
     preapprovalId: z.string(),
     mpStatus: z.string(),
     payerEmail: z.string().optional(),
     reason: z.string().optional(),
-    amount: z.number().optional(),
-    currencyId: z.string().optional(),
-    initPoint: z.string().optional(),
-    externalReference: z.string().optional(),
     nextPaymentDate: z.string().optional(),
+    remoteUpdatedAt: z.number().optional(),
   }),
   handler: async (ctx, args) => {
-    const status = normalizeMpStatus(args.mpStatus);
-    const now = Date.now();
-
     const existing = await ctx.db
       .query("mercadopagoSubscriptions")
       .withIndex("by_preapprovalId", (q) =>
@@ -228,75 +270,214 @@ export const upsertByPreapproval = zInternalMutation({
       )
       .unique();
 
-    if (existing) {
-      await ctx.db.patch(existing._id, {
-        userId: args.userId,
-        productKey: args.productKey,
-        status,
-        mpStatus: args.mpStatus,
-        ...(args.payerEmail !== undefined && { payerEmail: args.payerEmail }),
-        ...(args.reason !== undefined && { reason: args.reason }),
-        ...(args.amount !== undefined && { amount: args.amount }),
-        ...(args.currencyId !== undefined && { currencyId: args.currencyId }),
-        ...(args.initPoint !== undefined && { initPoint: args.initPoint }),
-        ...(args.externalReference !== undefined && {
-          externalReference: args.externalReference,
-        }),
-        ...(args.nextPaymentDate !== undefined && {
-          nextPaymentDate: args.nextPaymentDate,
-        }),
-        updatedAt: now,
-      });
-      return existing._id;
+    if (!existing) {
+      return false;
     }
 
-    return ctx.db.insert("mercadopagoSubscriptions", {
-      userId: args.userId,
-      productKey: args.productKey,
+    const status = normalizeMpStatus(args.mpStatus);
+    if (isStaleAgreementUpdate(existing, status, args.remoteUpdatedAt)) {
+      return false;
+    }
+
+    await ctx.db.patch(existing._id, {
       status,
       mpStatus: args.mpStatus,
-      preapprovalId: args.preapprovalId,
-      payerEmail: args.payerEmail,
-      reason: args.reason,
-      amount: args.amount,
-      currencyId: args.currencyId,
-      initPoint: args.initPoint,
-      externalReference: args.externalReference,
-      nextPaymentDate: args.nextPaymentDate,
-      updatedAt: now,
+      ...(args.payerEmail !== undefined && { payerEmail: args.payerEmail }),
+      ...(args.reason !== undefined && { reason: args.reason }),
+      ...(args.nextPaymentDate !== undefined && {
+        nextPaymentDate: args.nextPaymentDate,
+      }),
+      ...(args.remoteUpdatedAt !== undefined && {
+        remoteUpdatedAt: args.remoteUpdatedAt,
+      }),
+      updatedAt: Date.now(),
     });
+
+    if (status === "canceled") {
+      const attempt = await ctx.db
+        .query("mercadopagoCheckoutAttempts")
+        .withIndex("by_preapprovalId", (q) =>
+          q.eq("preapprovalId", args.preapprovalId),
+        )
+        .unique();
+      if (attempt) {
+        await ctx.db.delete(attempt._id);
+      }
+    }
+
+    return true;
   },
 });
 
-/**
- * Subscribe the current user to the free plan. MercadoPago cannot bill a $0
- * recurring charge, so the free tier is a local-only row (no preapproval). This
- * satisfies `assertIsSubscribed` the same way a Polar free subscription does.
- */
-/**
- * Idempotently ensure the user holds an active local free entitlement row (no
- * MercadoPago preapproval). This is the "represent free as a local active
- * entitlement" primitive — called before the first barbershop creation and by
- * the `subscribeFree` UI action. Safe to run alongside a paid row: the
- * effective-sub resolver prefers an active paid preapproval over the free row.
- */
+const REVERSED_PAYMENT_STATUSES = new Set([
+  "refunded",
+  "charged_back",
+  "cancelled",
+  "canceled",
+]);
+const ENTITLING_PAYMENT_STATUSES = new Set(["approved", "reimbursed"]);
+
+/** Record an invoice transition and extend access only after approved payment. */
+export const recordAuthorizedPayment = zInternalMutation({
+  args: z.object({
+    preapprovalId: z.string(),
+    invoiceId: z.string(),
+    paymentId: z.string(),
+    paymentStatus: z.string(),
+    paidThrough: z.number().optional(),
+    paymentUpdatedAt: z.number(),
+    mpStatus: z.string(),
+    remoteUpdatedAt: z.number().optional(),
+    nextPaymentDate: z.string().optional(),
+  }),
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("mercadopagoSubscriptions")
+      .withIndex("by_preapprovalId", (q) =>
+        q.eq("preapprovalId", args.preapprovalId),
+      )
+      .unique();
+
+    if (!existing) {
+      return false;
+    }
+
+    const payment = await ctx.db
+      .query("mercadopagoSubscriptionPayments")
+      .withIndex("by_paymentId", (q) => q.eq("paymentId", args.paymentId))
+      .unique();
+
+    if (payment && payment.remoteUpdatedAt >= args.paymentUpdatedAt) {
+      return false;
+    }
+
+    if (
+      payment &&
+      (payment.userId !== existing.userId ||
+        payment.preapprovalId !== args.preapprovalId)
+    ) {
+      throw new ConvexError(
+        "El pago no coincide con la suscripción que lo registró.",
+      );
+    }
+
+    const now = Date.now();
+    const agreementStatus = normalizeMpStatus(args.mpStatus);
+    const applyAgreement = !isStaleAgreementUpdate(
+      existing,
+      agreementStatus,
+      args.remoteUpdatedAt,
+    );
+    const entitling = ENTITLING_PAYMENT_STATUSES.has(args.paymentStatus);
+    const shouldRevoke =
+      REVERSED_PAYMENT_STATUSES.has(args.paymentStatus) &&
+      existing.entitlementPaymentId === args.paymentId;
+    const updateLastPayment =
+      (existing.paymentUpdatedAt ?? 0) <= args.paymentUpdatedAt;
+    let paidThrough = existing.paidThrough;
+    let entitlementPaymentId = existing.entitlementPaymentId;
+
+    if (
+      entitling &&
+      args.paidThrough !== undefined &&
+      args.paidThrough >= (existing.paidThrough ?? 0)
+    ) {
+      paidThrough = args.paidThrough;
+      entitlementPaymentId = args.paymentId;
+    } else if (shouldRevoke) {
+      paidThrough = Math.min(existing.paidThrough ?? now, now);
+    }
+
+    await ctx.db.patch(existing._id, {
+      ...(applyAgreement && {
+        status: agreementStatus,
+        mpStatus: args.mpStatus,
+        ...(args.remoteUpdatedAt !== undefined && {
+          remoteUpdatedAt: args.remoteUpdatedAt,
+        }),
+      }),
+      ...(args.nextPaymentDate !== undefined && {
+        nextPaymentDate: args.nextPaymentDate,
+      }),
+      paidThrough,
+      entitlementPaymentId,
+      ...(updateLastPayment && {
+        lastInvoiceId: args.invoiceId,
+        lastPaymentId: args.paymentId,
+        lastPaymentStatus: args.paymentStatus,
+        paymentUpdatedAt: args.paymentUpdatedAt,
+      }),
+      updatedAt: now,
+    });
+
+    const paymentFields = {
+      userId: existing.userId,
+      preapprovalId: args.preapprovalId,
+      paymentId: args.paymentId,
+      invoiceId: args.invoiceId,
+      status: args.paymentStatus,
+      paidThrough: args.paidThrough ?? payment?.paidThrough,
+      remoteUpdatedAt: args.paymentUpdatedAt,
+      updatedAt: now,
+    } as const;
+
+    if (payment) {
+      await ctx.db.patch(payment._id, paymentFields);
+    } else {
+      await ctx.db.insert("mercadopagoSubscriptionPayments", paymentFields);
+    }
+
+    if (entitling && paidThrough !== undefined && paidThrough > now) {
+      await ctx.scheduler.runAt(
+        paidThrough,
+        internal.mercadopagoSubscriptions.refreshEntitlement,
+        { preapprovalId: args.preapprovalId, paidThrough },
+      );
+    }
+
+    return true;
+  },
+});
+
+/** Trigger reactive clients when a paid period expires without a later renewal. */
+export const refreshEntitlement = zInternalMutation({
+  args: z.object({ preapprovalId: z.string(), paidThrough: z.number() }),
+  handler: async (ctx, args) => {
+    const row = await ctx.db
+      .query("mercadopagoSubscriptions")
+      .withIndex("by_preapprovalId", (q) =>
+        q.eq("preapprovalId", args.preapprovalId),
+      )
+      .unique();
+
+    if (
+      row?.paidThrough === args.paidThrough &&
+      row.paidThrough <= Date.now()
+    ) {
+      await ctx.db.patch(row._id, { updatedAt: Date.now() });
+    }
+  },
+});
+
+/** Seed the local free fallback without displacing a paid entitlement. */
 export async function ensureFreeSubscription(ctx: MutationCtx, userId: string) {
   const now = Date.now();
-
-  const rows = await ctx.db
+  const existingFree = await ctx.db
     .query("mercadopagoSubscriptions")
-    .withIndex("by_userId", (q) => q.eq("userId", userId))
-    .collect();
-
-  const existingFree = rows.find(
-    (row) => row.productKey === MP_FREE_PRODUCT_KEY && !row.preapprovalId,
-  );
+    .withIndex("by_userId_and_productKey", (q) =>
+      q.eq("userId", userId).eq("productKey", MP_FREE_PRODUCT_KEY),
+    )
+    .order("desc")
+    .first();
 
   if (existingFree) {
-    if (existingFree.status !== "active") {
+    if (
+      existingFree.status !== "active" ||
+      existingFree.mpStatus !== undefined
+    ) {
       await ctx.db.patch(existingFree._id, {
         status: "active",
-        mpStatus: "authorized",
+        mpStatus: undefined,
         updatedAt: now,
       });
     }
@@ -307,50 +488,37 @@ export async function ensureFreeSubscription(ctx: MutationCtx, userId: string) {
     userId,
     productKey: MP_FREE_PRODUCT_KEY,
     status: "active",
-    mpStatus: "authorized",
     currencyId: MP_CURRENCY_ID,
     amount: 0,
     updatedAt: now,
   });
 }
 
-export const subscribeFree = zAuthMutation({
-  args: z.object({}),
-  handler: async (ctx) => {
-    const { userId } = ctx;
+export const seedFree = zInternalMutation({
+  args: z.object({ userId: z.string() }),
+  handler: (ctx, args) => ensureFreeSubscription(ctx, args.userId),
+});
 
-    const rows = await ctx.db
-      .query("mercadopagoSubscriptions")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
-      .collect();
-
-    // Refuse while a still-billing paid preapproval exists — a local free row
-    // would shadow it (hiding the cancel button) while MercadoPago keeps
-    // charging. This mutation can't reach the SDK to cancel remotely, so require
-    // an explicit cancel first.
-    const activePaid = rows.find(
-      (row) =>
-        !!row.preapprovalId &&
-        (row.status === "active" ||
-          row.status === "trialing" ||
-          row.status === "paused"),
+export const activateFree = zInternalMutation({
+  args: z.object({ userId: z.string() }),
+  handler: async (ctx, args) => {
+    const openPaid = await collectRowsByStatuses(
+      ctx,
+      args.userId,
+      OPEN_PAID_STATUSES,
     );
 
-    if (activePaid) {
+    if (openPaid.some((row) => !!row.preapprovalId)) {
       throw new ConvexError(
-        "Tienes una suscripción de pago activa. Cancélala antes de activar el plan gratis.",
+        "Tienes un checkout o una suscripción de pago abierta. Resuélvela antes de activar el plan gratis.",
       );
     }
 
-    return ensureFreeSubscription(ctx, userId);
+    return ensureFreeSubscription(ctx, args.userId);
   },
 });
 
-/**
- * Current-user subscription for the UI. Mirrors the return shape of
- * `auth.getUserSubscription` (Polar) so the client can consume either provider
- * with the same fields. Returns `null` when unauthenticated.
- */
+/** Client-safe DTO: provider identifiers, checkout URLs, and payer PII stay private. */
 export const getMySubscription = zQuery({
   args: z.object({}),
   handler: async (ctx) => {
@@ -360,39 +528,77 @@ export const getMySubscription = zQuery({
       return null;
     }
 
-    const rows = await collectUserRows(ctx, userId);
-    const subscription = pickEffectiveRow(rows);
-    const isSubscribed =
-      subscription?.status === "active" || subscription?.status === "trialing";
-
-    // Only an effectively-active subscription grants a paid tier. A canceled,
-    // paused, or pending paid row must not confer Pro/Premium entitlements.
-    const effectiveProductKey = isSubscribed
-      ? subscription?.productKey
-      : undefined;
+    const rows = await collectRowsByStatuses(
+      ctx,
+      userId,
+      SUBSCRIPTION_STATUSES,
+    );
+    const display = pickDisplayRow(rows);
+    const entitlement = pickEntitlementRow(rows);
+    const effectiveProductKey = entitlement?.productKey;
     const planTier = getTierForProductKey(effectiveProductKey);
     const planLimits = getLimitsForProductKey(effectiveProductKey);
-
-    // Surfaced separately from the effective row because a paused paid
-    // preapproval is shadowed by the active free row yet still needs a cancel
-    // button and must keep the plan-switch paths closed.
-    const livePaid = pickLivePaidRow(rows);
+    const livePaid = pickOpenPaidRow(rows);
 
     return {
-      ...subscription,
+      productKey: display?.productKey,
+      status: display?.status,
+      nextPaymentDate: display?.nextPaymentDate,
+      effectiveProductKey,
       planTier,
       planLimits,
-      isSubscribed,
+      isSubscribed: !!entitlement,
       isFree: planTier === "free",
       isPro: planTier === "pro",
       isPremium: planTier === "premium",
-      livePaid: livePaid?.preapprovalId
-        ? {
-            productKey: livePaid.productKey,
-            status: livePaid.status,
-            preapprovalId: livePaid.preapprovalId,
-          }
+      livePaid: livePaid
+        ? { productKey: livePaid.productKey, status: livePaid.status }
         : null,
     };
   },
+});
+
+/** Delete billing PII in bounded batches after account cancellation/deletion. */
+export async function deleteUserBillingData(ctx: MutationCtx, userId: string) {
+  const [rows, payments] = await Promise.all([
+    ctx.db
+      .query("mercadopagoSubscriptions")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .take(DELETE_BATCH_SIZE),
+    ctx.db
+      .query("mercadopagoSubscriptionPayments")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .take(DELETE_BATCH_SIZE),
+  ]);
+
+  for (const row of rows) {
+    await ctx.db.delete(row._id);
+  }
+  for (const payment of payments) {
+    await ctx.db.delete(payment._id);
+  }
+
+  const attempt = await ctx.db
+    .query("mercadopagoCheckoutAttempts")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .unique();
+  if (attempt) {
+    await ctx.db.delete(attempt._id);
+  }
+
+  if (
+    rows.length === DELETE_BATCH_SIZE ||
+    payments.length === DELETE_BATCH_SIZE
+  ) {
+    await ctx.scheduler.runAfter(
+      0,
+      internal.mercadopagoSubscriptions.deleteUserBillingRows,
+      { userId },
+    );
+  }
+}
+
+export const deleteUserBillingRows = zInternalMutation({
+  args: z.object({ userId: z.string() }),
+  handler: (ctx, args) => deleteUserBillingData(ctx, args.userId),
 });

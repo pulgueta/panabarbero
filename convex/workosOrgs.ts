@@ -146,15 +146,23 @@ export const deleteCurrentUser = zAuthAction({
   handler: async (ctx) => {
     const { userId } = ctx;
 
+    await ctx.runAction(internal.mercadopago.cancelUserBillingForDeletion, {
+      userId,
+    });
+
     try {
       await authkit.workos.userManagement.deleteUser(userId);
     } catch (error) {
-      if ((error as { status?: number }).status === 404) {
-        return;
+      if ((error as { status?: number }).status !== 404) {
+        throw new ConvexError(
+          "No se pudo eliminar la cuenta. Inténtalo de nuevo.",
+        );
       }
-      throw new ConvexError(
-        "No se pudo eliminar la cuenta. Inténtalo de nuevo.",
-      );
     }
+
+    await ctx.runMutation(
+      internal.mercadopagoSubscriptions.deleteUserBillingRows,
+      { userId },
+    );
   },
 });
