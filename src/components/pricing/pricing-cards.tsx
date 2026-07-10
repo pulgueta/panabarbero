@@ -1,5 +1,9 @@
 import type { MpPaidProductKey } from "@convex/mercadopagoPlans";
-import { getMpPlan, MP_FREE_PRODUCT_KEY } from "@convex/mercadopagoPlans";
+import {
+  getMpPlan,
+  isMpPaidProductKey,
+  MP_FREE_PRODUCT_KEY,
+} from "@convex/mercadopagoPlans";
 import type { PlanTier } from "@convex/plans";
 import { CheckCircleIcon, XCircleIcon } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
@@ -28,6 +32,7 @@ import {
   useSubscribeMpFree,
 } from "@/hooks/billing/use-mercadopago";
 import { useSession } from "@/hooks/use-session";
+import { getConvexErrorMessage } from "@/lib/convex-errors";
 import { cn, formatCurrency } from "@/lib/utils";
 
 type Interval = "month" | "year";
@@ -65,18 +70,6 @@ const TIERS: TierConfig[] = [
   },
 ];
 
-function getErrorMessage(error: unknown): string {
-  if (
-    error &&
-    typeof error === "object" &&
-    "data" in error &&
-    typeof (error as { data: unknown }).data === "string"
-  ) {
-    return (error as { data: string }).data;
-  }
-  return "Ocurrió un error. Intenta de nuevo.";
-}
-
 /**
  * MercadoPago-backed pricing cards for `/pricing`. Renders the three tiers with
  * a monthly/yearly toggle, benefits from the local catalog, and buttons wired
@@ -91,7 +84,7 @@ export const PricingCards: FC = () => {
   const { mutateAsync: subscribeFree, isPending: isSubscribingFree } =
     useSubscribeMpFree();
 
-  const [interval, setInterval] = useState<Interval>("month");
+  const [intervalChoice, setIntervalChoice] = useState<Interval | null>(null);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
 
   const isAuthed = !!session?.id;
@@ -108,6 +101,15 @@ export const PricingCards: FC = () => {
   // effective subscription and would be invisible here otherwise.
   const livePaid = subscription?.livePaid ?? null;
 
+  // Default the toggle to the live subscription's billing interval so a
+  // yearly subscriber lands on the view that shows their cancel controls
+  // instead of having to discover the "Anual" tab first.
+  const livePaidKey = livePaid?.productKey;
+  const liveInterval = isMpPaidProductKey(livePaidKey)
+    ? getMpPlan(livePaidKey).interval
+    : undefined;
+  const interval = intervalChoice ?? liveInterval ?? "month";
+
   async function handleSubscribe(productKey: MpPaidProductKey) {
     setPendingKey(productKey);
     try {
@@ -117,7 +119,7 @@ export const PricingCards: FC = () => {
       }
       window.location.href = result.initPoint;
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      toast.error(getConvexErrorMessage(error));
       setPendingKey(null);
     }
   }
@@ -128,7 +130,7 @@ export const PricingCards: FC = () => {
       await subscribeFree({});
       toast.success("Plan gratis activado.");
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      toast.error(getConvexErrorMessage(error));
     } finally {
       setPendingKey(null);
     }
@@ -142,7 +144,7 @@ export const PricingCards: FC = () => {
             key={value}
             type="button"
             aria-pressed={interval === value}
-            onClick={() => setInterval(value)}
+            onClick={() => setIntervalChoice(value)}
             className={cn(
               "rounded-md px-4 py-1.5 font-medium text-sm transition-colors",
               interval === value
@@ -280,7 +282,7 @@ export const PricingCards: FC = () => {
                     onClick={() => productKey && handleSubscribe(productKey)}
                     disabled={isCreatingCheckout}
                   >
-                    {isCreatingCheckout ? "Redirigiendo…" : "Suscribirse"}
+                    {isPending ? "Redirigiendo…" : "Suscribirse"}
                   </Button>
                 )}
               </CardFooter>

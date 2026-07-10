@@ -23,19 +23,8 @@ import {
   useExtraCredits,
 } from "@/hooks/billing/use-credits";
 import { useCreateMpCreditCheckout } from "@/hooks/billing/use-mercadopago";
+import { getConvexErrorMessage } from "@/lib/convex-errors";
 import { formatCurrency } from "@/lib/utils";
-
-function getErrorMessage(error: unknown): string {
-  if (
-    error &&
-    typeof error === "object" &&
-    "data" in error &&
-    typeof (error as { data: unknown }).data === "string"
-  ) {
-    return (error as { data: string }).data;
-  }
-  return "Ocurrió un error. Intenta de nuevo.";
-}
 
 interface CreditCardProps {
   productKey: CreditProductKey;
@@ -89,7 +78,7 @@ const CreditCard: FC<CreditCardProps> = ({
       }
       window.location.href = result.initPoint;
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      toast.error(getConvexErrorMessage(error));
       setRedirecting(false);
     }
   }
