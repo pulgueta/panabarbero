@@ -49,7 +49,6 @@ import type * as notificationCopy from "../notificationCopy.js";
 import type * as notificationSubjects from "../notificationSubjects.js";
 import type * as notifications from "../notifications.js";
 import type * as plans from "../plans.js";
-import type * as polar from "../polar.js";
 import type * as posthog from "../posthog.js";
 import type * as r2 from "../r2.js";
 import type * as ratelimit from "../ratelimit.js";
@@ -110,7 +109,6 @@ declare const fullApi: ApiFromModules<{
   notificationSubjects: typeof notificationSubjects;
   notifications: typeof notifications;
   plans: typeof plans;
-  polar: typeof polar;
   posthog: typeof posthog;
   r2: typeof r2;
   ratelimit: typeof ratelimit;
@@ -158,7 +156,6 @@ export declare const components: {
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
   r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
   migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
-  polar: import("@convex-dev/polar/_generated/component.js").ComponentApi<"polar">;
   posthog: import("@posthog/convex/_generated/component.js").ComponentApi<"posthog">;
   unreadTracking: import("convex-unread-tracking/_generated/component.js").ComponentApi<"unreadTracking">;
   convexCascadingDelete: import("@00akshatsinha00/convex-cascading-delete/_generated/component.js").ComponentApi<"convexCascadingDelete">;

@@ -577,6 +577,7 @@ export default defineSchema({
     .table()
     .index("by_userProfileDataId", ["userProfileDataId"])
     .index("by_barbershopId", ["barbershopId"])
+    .index("by_barbershopId_and_active", ["barbershopId", "isActive"])
     .index("by_isActive", ["isActive"]),
 
   services: services
@@ -617,6 +618,10 @@ export default defineSchema({
     .table()
     .index("by_uuid", ["uuid"])
     .index("by_barbershopMemberId", ["barbershopMemberId"])
+    .index("by_barbershopMemberId_and_serviceId", [
+      "barbershopMemberId",
+      "serviceId",
+    ])
     .index("by_barbershopId", ["barbershopId"])
     .index("by_serviceId", ["serviceId"]),
 

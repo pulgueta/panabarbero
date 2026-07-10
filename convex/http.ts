@@ -7,13 +7,6 @@ import { httpAction } from "./_generated/server";
 import { authkit } from "./auth.config";
 import { errorMessages } from "./errors";
 import { siteUrl } from "./notificationCopy";
-import {
-  CREDIT_KEY_TO_TYPE,
-  CREDIT_PRODUCT_KEYS,
-  CREDITS_PER_PURCHASE,
-  type CreditProductKey,
-} from "./plans";
-import { polar } from "./polar";
 import { r2 } from "./r2";
 import { twilio } from "./twilio";
 
@@ -105,47 +98,9 @@ http.route({
 twilio.registerRoutes(http);
 authkit.registerRoutes(http);
 
-polar.registerRoutes(http, {
-  events: {
-    "order.paid": async (ctx, event) => {
-      const order = event.data;
-
-      if (!order.paid || !order.productId) {
-        return;
-      }
-
-      const productIdToKey = Object.fromEntries(
-        CREDIT_PRODUCT_KEYS.map((key) => [polar.products[key], key]),
-      ) as Record<string, CreditProductKey>;
-
-      const creditKey = productIdToKey[order.productId];
-
-      if (!creditKey) {
-        return;
-      }
-
-      const barbershopId = order.metadata?.barbershopId as string;
-
-      if (!barbershopId) {
-        return;
-      }
-
-      const type = CREDIT_KEY_TO_TYPE[creditKey];
-      const amount = CREDITS_PER_PURCHASE[creditKey];
-
-      await ctx.runMutation(internal.credits.addPurchasedCredits, {
-        orderId: order.id,
-        barbershopId,
-        type,
-        amount,
-      });
-    },
-  },
-});
-
 /**
- * MercadoPago Subscriptions webhook. Parallel to the Polar routes above — it
- * does not touch Polar. Signature verification + resource fetch happen in a
+ * MercadoPago webhook (subscriptions + one-time credit payments). Signature
+ * verification + resource fetch happen in a
  * `"use node"` action; this route only forwards the values it needs and maps the
  * returned HTTP status back to MercadoPago.
  */

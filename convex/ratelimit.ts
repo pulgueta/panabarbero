@@ -158,12 +158,10 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     period: MINUTE,
     capacity: 5,
   },
-  r2: {
-    kind: "token bucket",
-    rate: 5,
-    period: MINUTE,
-    capacity: 5,
-  },
+  // The `upload` action stores an arbitrary caller-supplied Blob + object key,
+  // so keep it on an hourly cap to bound storage-abuse/DoS exposure rather than
+  // the looser per-minute bucket.
+  r2: { kind: "fixed window", rate: 20, period: 60 * MINUTE },
   aiSendMessage: {
     kind: "fixed window",
     period: 5 * 1000,

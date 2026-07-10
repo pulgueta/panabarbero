@@ -77,7 +77,7 @@ export interface PlanLimits {
 
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
   free: {
-    maxInvitedBarbers: 2,
+    maxInvitedBarbers: 5,
     maxStaff: 0,
     maxSmsPerMonth: 200,
     maxEmailPerMonth: 50,
@@ -88,7 +88,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     inventoryEnabled: false,
   },
   pro: {
-    maxInvitedBarbers: 5,
+    maxInvitedBarbers: 10,
     maxStaff: 1,
     maxSmsPerMonth: 1000,
     maxEmailPerMonth: 500,
@@ -99,7 +99,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     inventoryEnabled: true,
   },
   premium: {
-    maxInvitedBarbers: 10,
+    maxInvitedBarbers: null,
     maxStaff: 3,
     maxSmsPerMonth: 3000,
     maxEmailPerMonth: 1500,

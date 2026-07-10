@@ -5,7 +5,7 @@
 
 import { ConvexError } from "convex/values";
 import { z } from "zod";
-import { zInternalMutation, zQuery } from ".";
+import { zInternalMutation, zInternalQuery, zQuery } from ".";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { getUsageRow, getUserPlanLimits } from "./acl";
 import { assertShopRole } from "./authz";
@@ -112,6 +112,31 @@ export const getMyExtraCredits = zQuery({
     }
 
     return getExtraCredits(ctx, barbershop._id);
+  },
+});
+
+/**
+ * Owner-only ownership gate for the MercadoPago credit checkout. Called from the
+ * `"use node"` checkout action (which can't touch the db) to verify the caller
+ * owns the barbershop before a Preference is created. Throws otherwise.
+ */
+export const getOwnedBarbershopForCredits = zInternalQuery({
+  args: z.object({
+    barbershopId: barbershops.tools.id.shape.id,
+    userId: z.string(),
+  }),
+  handler: async (ctx, args) => {
+    const barbershop = await ctx.db.get(args.barbershopId);
+
+    if (!barbershop) {
+      throw new ConvexError(errorMessages.notFound("barbería"));
+    }
+
+    if (barbershop.ownerId !== args.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    return { _id: barbershop._id };
   },
 });
 

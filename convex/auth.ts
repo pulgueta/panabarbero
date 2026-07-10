@@ -10,8 +10,7 @@ import { assertShopRole, authz, revokeMemberAuthz } from "./authz";
 import { cascadeDeleteBarbershop } from "./barbershopCascade";
 import { getUserId } from "./identity";
 import { releaseForAppointment } from "./inventory";
-import { getLimitsForProductKey, getTierForProductKey } from "./plans";
-import { polar } from "./polar";
+import { getEffectiveSubscription } from "./mercadopagoSubscriptions";
 import type { Appointment, Barbershop, BarbershopMember } from "./schema";
 import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
@@ -50,15 +49,12 @@ async function findAvailableBarberForSlot(
   for (const candidate of candidates) {
     const hasService = await ctx.db
       .query("barbershopMemberServices")
-      .withIndex("by_barbershopMemberId", (q) =>
-        q.eq("barbershopMemberId", candidate._id),
+      .withIndex("by_barbershopMemberId_and_serviceId", (q) =>
+        q
+          .eq("barbershopMemberId", candidate._id)
+          .eq("serviceId", appointment.serviceId),
       )
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("serviceId"), appointment.serviceId),
-          q.neq(q.field("isActive"), false),
-        ),
-      )
+      .filter((q) => q.neq(q.field("isActive"), false))
       .first();
 
     if (!hasService) continue;
@@ -513,26 +509,7 @@ export const getUserSubscription = zQuery({
       return null;
     }
 
-    const subscription = await polar.getCurrentSubscription(ctx, {
-      userId,
-    });
-
-    const planTier = getTierForProductKey(subscription?.productKey);
-    const planLimits = getLimitsForProductKey(subscription?.productKey);
-
-    return {
-      ...subscription,
-      isSubscribed:
-        subscription?.status === "active" ||
-        subscription?.status === "trialing",
-      productPlanId: subscription?.productId,
-      planTier,
-      planLimits,
-      // Backward-compatible boolean helpers
-      isFree: planTier === "free",
-      isPro: planTier === "pro",
-      isPremium: planTier === "premium",
-    };
+    return getEffectiveSubscription(ctx, userId);
   },
 });
 
@@ -558,24 +535,6 @@ export const getBarbershopOwnerSubscription = zQuery({
 
     await assertShopRole(ctx, args.id, userId, ["barber", "owner", "staff"]);
 
-    const subscription = await polar.getCurrentSubscription(ctx, {
-      userId: barbershop.ownerId,
-    });
-
-    const planTier = getTierForProductKey(subscription?.productKey);
-    const planLimits = getLimitsForProductKey(subscription?.productKey);
-
-    return {
-      ...subscription,
-      isSubscribed:
-        subscription?.status === "active" ||
-        subscription?.status === "trialing",
-      productPlanId: subscription?.productId,
-      planTier,
-      planLimits,
-      isFree: planTier === "free",
-      isPro: planTier === "pro",
-      isPremium: planTier === "premium",
-    };
+    return getEffectiveSubscription(ctx, barbershop.ownerId);
   },
 });

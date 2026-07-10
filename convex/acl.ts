@@ -10,6 +10,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { usageTriggers } from "./aggregates";
 import { getExtraCredits } from "./credits";
 import { errorMessages } from "./errors";
+import { getEffectiveSubscription } from "./mercadopagoSubscriptions";
 import {
   getCurrentYearMonth,
   getLimitsForProductKey,
@@ -17,15 +18,16 @@ import {
   type PlanLimits,
   type PlanTier,
 } from "./plans";
-import { polar } from "./polar";
 import type { Barbershop } from "./schema";
 
 /**
- * Fetch the active Polar subscription for a given `userId`.
- * Returns `null` when the user has no active subscription.
+ * Fetch the effective MercadoPago subscription for a given `userId`. The
+ * `effectiveProductKey` is status-gated (only `active`/`trialing` confers a paid
+ * tier), so a pending/paused/canceled paid row — or no row at all — resolves to
+ * free.
  */
 async function getSubscription(ctx: QueryCtx | MutationCtx, userId: string) {
-  return polar.getCurrentSubscription(ctx, { userId });
+  return getEffectiveSubscription(ctx, userId);
 }
 
 /**
@@ -37,7 +39,7 @@ export async function getUserPlanTier(
   userId: string,
 ): Promise<PlanTier> {
   const sub = await getSubscription(ctx, userId);
-  return getTierForProductKey(sub?.productKey);
+  return getTierForProductKey(sub.effectiveProductKey);
 }
 
 /**
@@ -49,7 +51,7 @@ export async function getUserPlanLimits(
   userId: string,
 ): Promise<PlanLimits> {
   const sub = await getSubscription(ctx, userId);
-  return getLimitsForProductKey(sub?.productKey);
+  return getLimitsForProductKey(sub.effectiveProductKey);
 }
 
 /**
