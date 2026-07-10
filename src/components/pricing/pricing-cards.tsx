@@ -88,10 +88,7 @@ export const PricingCards: FC = () => {
   const [pendingKey, setPendingKey] = useState<string | null>(null);
 
   const isAuthed = !!session?.id;
-  const activeProductKey =
-    subscription?.status === "active" || subscription?.status === "trialing"
-      ? subscription?.productKey
-      : undefined;
+  const activeProductKey = subscription?.effectiveProductKey;
 
   // A preapproval that is authorized or paused at MercadoPago can still bill
   // (or be reactivated), so every plan-switch path stays closed while one
@@ -115,7 +112,7 @@ export const PricingCards: FC = () => {
     try {
       const result = await createCheckout({ productKey });
       if (!result.initPoint) {
-        throw new Error("No se recibió la URL de checkout de MercadoPago.");
+        throw new Error("No se recibió la URL de checkout de Mercado Pago.");
       }
       window.location.href = result.initPoint;
     } catch (error) {
@@ -233,9 +230,20 @@ export const PricingCards: FC = () => {
                   <div className="flex w-full flex-col items-center gap-2">
                     {livePaid?.status === "paused" && (
                       <p className="text-center text-muted-foreground text-xs">
-                        Tu suscripción está pausada en MercadoPago.
+                        Tu suscripción está pausada en Mercado Pago.
                       </p>
                     )}
+                    {livePaid?.status === "pending" && (
+                      <p className="text-center text-muted-foreground text-xs">
+                        Tu checkout está pendiente en Mercado Pago.
+                      </p>
+                    )}
+                    {livePaid?.status === "active" &&
+                      activeProductKey !== livePaid.productKey && (
+                        <p className="text-center text-muted-foreground text-xs">
+                          Estamos confirmando el primer pago en Mercado Pago.
+                        </p>
+                      )}
                     <CancelSubscriptionDialog
                       planName={t.name}
                       trigger={
@@ -250,7 +258,7 @@ export const PricingCards: FC = () => {
                       rel="noreferrer"
                       className="text-muted-foreground text-xs underline-offset-4 hover:underline"
                     >
-                      Gestionar en MercadoPago
+                      Gestionar en Mercado Pago
                     </a>
                   </div>
                 ) : isCurrent ? (

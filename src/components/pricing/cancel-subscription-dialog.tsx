@@ -72,7 +72,7 @@ export const CancelSubscriptionDialog: FC<CancelSubscriptionDialogProps> = ({
               rel="noreferrer"
               className="font-medium text-foreground underline underline-offset-4"
             >
-              tu cuenta de MercadoPago
+              tu cuenta de Mercado Pago
             </a>
             .
           </ResponsiveModalDescription>

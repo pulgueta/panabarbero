@@ -74,7 +74,7 @@ const CreditCard: FC<CreditCardProps> = ({
     try {
       const result = await createCheckout({ productKey, barbershopId });
       if (!result.initPoint) {
-        throw new Error("No se recibió la URL de checkout de MercadoPago.");
+        throw new Error("No se recibió la URL de checkout de Mercado Pago.");
       }
       window.location.href = result.initPoint;
     } catch (error) {

@@ -1,26 +1,18 @@
 import { api } from "@convex/_generated/api";
-import {
-  convexQuery,
-  useConvexAction,
-  useConvexMutation,
-} from "@convex-dev/react-query";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { convexQuery, useConvexAction } from "@convex-dev/react-query";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 
 /**
- * Client hooks for the parallel MercadoPago subscription surface.
- *
- * Mirrors `use-pricing.ts` (Polar) so either provider can drive the same UI.
- * Queries are Convex-reactive, so no manual invalidation is needed after the
- * mutations/actions below — the subscription card updates on its own.
+ * Client hooks for MercadoPago billing. Queries are Convex-reactive, so the
+ * subscription card updates without manual invalidation.
  */
 
 export function getMpSubscriptionQueryOptions() {
   return convexQuery(api.mercadopagoSubscriptions.getMySubscription, {});
 }
 
-/** Non-suspense: gracefully returns `null` while loading / unauthenticated. */
 export function useMpSubscription() {
-  return useQuery(getMpSubscriptionQueryOptions());
+  return useSuspenseQuery(getMpSubscriptionQueryOptions());
 }
 
 /** Create a paid-plan checkout; resolves with `{ initPoint, preapprovalId }`. */
@@ -40,7 +32,7 @@ export function useCancelMpSubscription() {
 /** Activate the free plan (local row, no MercadoPago preapproval). */
 export function useSubscribeMpFree() {
   return useMutation({
-    mutationFn: useConvexMutation(api.mercadopagoSubscriptions.subscribeFree),
+    mutationFn: useConvexAction(api.mercadopago.subscribeFree),
   });
 }
 

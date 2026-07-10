@@ -61,10 +61,7 @@ export function usePlan(): UsePlanResult {
 
   const planTier: PlanTier = subscription?.planTier ?? "free";
   const planLimits: PlanLimits = subscription?.planLimits ?? PLAN_LIMITS.free;
-  const isSubscribed =
-    subscription?.isSubscribed ||
-    subscription?.status === "active" ||
-    subscription?.status === "trialing";
+  const isSubscribed = subscription?.isSubscribed ?? false;
 
   return {
     planTier,
@@ -103,10 +100,7 @@ export function useBarbershopPlan(
 
   const planTier: PlanTier = subscription?.planTier ?? "free";
   const planLimits: PlanLimits = subscription?.planLimits ?? PLAN_LIMITS.free;
-  const isSubscribed =
-    subscription?.isSubscribed ||
-    subscription?.status === "active" ||
-    subscription?.status === "trialing";
+  const isSubscribed = subscription?.isSubscribed ?? false;
 
   return {
     planTier,
