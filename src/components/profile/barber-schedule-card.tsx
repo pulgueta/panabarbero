@@ -88,10 +88,15 @@ const ScheduleContent: FC<{ memberId: BarbershopMember["_id"] }> = ({
   );
 };
 
-export const BarberScheduleCard: FC<{
+interface BarberScheduleCardProps {
   userId: string;
   hideHeader?: boolean;
-}> = ({ userId, hideHeader = false }) => {
+}
+
+export const BarberScheduleCard: FC<BarberScheduleCardProps> = ({
+  userId,
+  hideHeader = false,
+}) => {
   const { data: member } = useBarberByUserId(userId);
 
   if (!member) return null;

@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import type { FC } from "react";
 import { Suspense } from "react";
+
 import {
   DashboardPage,
   DashboardPageContent,
@@ -26,7 +27,7 @@ export const Route = createFileRoute(
   staticData: { breadcrumb: "Mi horario" },
   staleTime: cacheTime.high,
   gcTime: cacheTime.extreme,
-  loader: async (opts) => {
+  beforeLoad: (opts) => {
     const userId = opts.context.userId;
     const roles = opts.context.dashboardRoles;
 
@@ -37,12 +38,15 @@ export const Route = createFileRoute(
       throw redirect({ to: "/profile/barbershops/appointments" });
     }
 
-    const member = await opts.context.queryClient.ensureQueryData(
-      barberByUserIdQueryOptions(userId),
+    return { userId };
+  },
+  loader: async ({ context }) => {
+    const member = await context.queryClient.ensureQueryData(
+      barberByUserIdQueryOptions(context.userId),
     );
 
     if (member?._id) {
-      await opts.context.queryClient.ensureQueryData(
+      await context.queryClient.ensureQueryData(
         barberScheduleQueryOptions(member._id),
       );
     }
@@ -87,7 +91,7 @@ function RouteComponent() {
 
       <DashboardPageContent>
         <Suspense fallback={<ScheduleFallback />}>
-          <BarberScheduleCard userId={userId ?? ""} hideHeader />
+          <BarberScheduleCard userId={userId} hideHeader />
         </Suspense>
       </DashboardPageContent>
     </DashboardPage>
