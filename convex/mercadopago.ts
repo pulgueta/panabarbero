@@ -32,6 +32,7 @@ import { z } from "zod";
 
 import { zAuthAction, zInternalAction } from ".";
 import { api, internal } from "./_generated/api";
+import type { ActionCtx } from "./_generated/server";
 import { errorMessages } from "./errors";
 import {
   getMpPlan,
@@ -40,6 +41,7 @@ import {
   MP_CURRENCY_ID,
   MP_FREE_PRODUCT_KEY,
   MP_PAID_PRODUCT_KEYS,
+  type MpSubscriptionStatus,
   normalizeMpStatus,
 } from "./mercadopagoPlans";
 import { siteUrl } from "./notificationCopy";
@@ -59,6 +61,111 @@ function mpConfig(): MercadoPagoConfig {
   }
 
   return new MercadoPagoConfig({ accessToken });
+}
+
+interface OpenPaidRow {
+  preapprovalId: string;
+  productKey: string;
+  status: MpSubscriptionStatus;
+}
+
+/**
+ * Reconcile the user's open paid preapprovals against MercadoPago's live
+ * status, mirroring any drift locally (webhooks can be missed), and partition
+ * them for the checkout guard. Classification uses the RAW remote status: only
+ * an exact remote `pending` is sweepable, and any status this integration
+ * doesn't model counts as live (`normalizeMpStatus` defaults unknowns to
+ * `pending`, which would mark a billable agreement as sweepable). A row whose
+ * remote state can't be verified fails closed — a local `pending` one is
+ * skipped (it cannot bill), anything else blocks.
+ */
+async function reconcileOpenPaidRows(ctx: ActionCtx, userId: string) {
+  const openPaid: OpenPaidRow[] = await ctx.runQuery(
+    internal.mercadopagoSubscriptions.listOpenPaidSubscriptions,
+    { userId },
+  );
+
+  const abandonedPending: OpenPaidRow[] = [];
+  let hasLiveSubscription = false;
+
+  for (const row of openPaid) {
+    let remoteStatus: string | undefined;
+
+    try {
+      const remote = await new PreApproval(mpConfig()).get({
+        id: row.preapprovalId,
+      });
+      remoteStatus = remote.status;
+
+      if (remoteStatus && normalizeMpStatus(remoteStatus) !== row.status) {
+        await ctx.runMutation(
+          internal.mercadopagoSubscriptions.upsertByPreapproval,
+          {
+            userId,
+            productKey: row.productKey,
+            preapprovalId: row.preapprovalId,
+            mpStatus: remoteStatus,
+          },
+        );
+      }
+    } catch (error) {
+      console.error(
+        `[mercadopago] no se pudo consultar el preapproval ${row.preapprovalId}`,
+        error,
+      );
+    }
+
+    if (remoteStatus === "pending") {
+      abandonedPending.push(row);
+      continue;
+    }
+
+    const isTerminalRemote =
+      remoteStatus === "cancelled" || remoteStatus === "canceled";
+    const isUnverifiedLocalPending = !remoteStatus && row.status === "pending";
+
+    if (!isTerminalRemote && !isUnverifiedLocalPending) {
+      hasLiveSubscription = true;
+    }
+  }
+
+  return { abandonedPending, hasLiveSubscription };
+}
+
+/**
+ * Cancel abandoned `pending` checkouts at MercadoPago so a stale init_point
+ * can never authorize a second recurrence later. A pending preapproval has no
+ * payment method attached and cannot bill, so a failed cancel is logged and
+ * retried on the next checkout instead of blocking this one.
+ */
+async function sweepAbandonedPending(
+  ctx: ActionCtx,
+  userId: string,
+  rows: OpenPaidRow[],
+) {
+  for (const row of rows) {
+    try {
+      const cancelled = await new PreApproval(mpConfig()).update({
+        id: row.preapprovalId,
+        body: { status: "cancelled" },
+      });
+
+      await ctx.runMutation(
+        internal.mercadopagoSubscriptions.upsertByPreapproval,
+        {
+          userId,
+          productKey: row.productKey,
+          preapprovalId: row.preapprovalId,
+          mpStatus: cancelled.status ?? "cancelled",
+        },
+      );
+    } catch (error) {
+      console.error(
+        `[mercadopago] preapproval pendiente ${row.preapprovalId} no cancelado`,
+        error,
+      );
+    }
+  }
 }
 
 /**
@@ -82,72 +189,11 @@ export const createSubscriptionCheckout = zAuthAction({
 
     // A cancelled preapproval is terminal at MercadoPago (only paused ones can
     // be reactivated), so nothing that can still bill may ever be cancelled
-    // implicitly here. Reconcile every open paid row against MercadoPago's
-    // live status first (webhooks can be missed), then:
-    //   - a row still authorized/paused BLOCKS the new checkout — switching
-    //     plans requires an explicit cancel from the profile, since MercadoPago
-    //     has no atomic plan-switch for plan-less preapprovals;
-    //   - rows still `pending` (abandoned checkouts, no payment method
-    //     attached) are cancelled so a stale init_point can never authorize a
-    //     second recurrence later.
-    const openPaid = await ctx.runQuery(
-      internal.mercadopagoSubscriptions.listOpenPaidSubscriptions,
-      { userId },
-    );
-
-    const abandonedPending: typeof openPaid = [];
-    let hasLiveSubscription = false;
-
-    for (const row of openPaid) {
-      let remoteStatus: string | undefined;
-
-      try {
-        const remote = await new PreApproval(mpConfig()).get({
-          id: row.preapprovalId,
-        });
-        remoteStatus = remote.status;
-
-        if (remoteStatus && normalizeMpStatus(remoteStatus) !== row.status) {
-          await ctx.runMutation(
-            internal.mercadopagoSubscriptions.upsertByPreapproval,
-            {
-              userId,
-              productKey: row.productKey,
-              preapprovalId: row.preapprovalId,
-              mpStatus: remoteStatus,
-            },
-          );
-        }
-      } catch (error) {
-        // Remote state unreachable — fail closed on the local status below: a
-        // row that locally claims it can bill still blocks the new checkout.
-        console.error(
-          `[mercadopago] no se pudo consultar el preapproval ${row.preapprovalId}`,
-          error,
-        );
-      }
-
-      // Classify on the RAW remote status, not the normalized one: only an
-      // exact remote `pending` may be swept, and any status this integration
-      // doesn't model fails closed as live (`normalizeMpStatus` defaults
-      // unknowns to `pending`, which would mark a billable agreement as
-      // sweepable). A row whose remote state could not be verified is never
-      // cancelled either — a local `pending` one is just skipped (it cannot
-      // bill), anything else blocks.
-      if (remoteStatus === "pending") {
-        abandonedPending.push(row);
-        continue;
-      }
-
-      const isTerminalRemote =
-        remoteStatus === "cancelled" || remoteStatus === "canceled";
-      const isUnverifiedLocalPending =
-        !remoteStatus && row.status === "pending";
-
-      if (!isTerminalRemote && !isUnverifiedLocalPending) {
-        hasLiveSubscription = true;
-      }
-    }
+    // implicitly here: switching plans requires an explicit cancel from the
+    // profile, since MercadoPago has no atomic plan-switch for plan-less
+    // preapprovals. Only abandoned `pending` checkouts are cleaned up.
+    const { abandonedPending, hasLiveSubscription } =
+      await reconcileOpenPaidRows(ctx, userId);
 
     if (hasLiveSubscription) {
       throw new ConvexError(
@@ -155,40 +201,11 @@ export const createSubscriptionCheckout = zAuthAction({
       );
     }
 
-    for (const row of abandonedPending) {
-      try {
-        const cancelled = await new PreApproval(mpConfig()).update({
-          id: row.preapprovalId,
-          body: { status: "cancelled" },
-        });
-
-        await ctx.runMutation(
-          internal.mercadopagoSubscriptions.upsertByPreapproval,
-          {
-            userId,
-            productKey: row.productKey,
-            preapprovalId: row.preapprovalId,
-            mpStatus: cancelled.status ?? "cancelled",
-          },
-        );
-      } catch (error) {
-        // A `pending` preapproval has no payment method attached and cannot
-        // bill, so a failed cleanup never blocks the new checkout — log it and
-        // let the next checkout attempt retry the cancel.
-        console.error(
-          `[mercadopago] preapproval pendiente ${row.preapprovalId} no cancelado`,
-          error,
-        );
-      }
-    }
+    await sweepAbandonedPending(ctx, userId, abandonedPending);
 
     const payerEmail =
       args.payerEmail ??
-      (
-        (await ctx.runQuery(api.auth.getCurrentUser, {})) as {
-          email?: string;
-        } | null
-      )?.email;
+      (await ctx.runQuery(api.auth.getCurrentUser, {}))?.email;
 
     if (!payerEmail) {
       throw new ConvexError(
@@ -260,18 +277,12 @@ export const cancelSubscription = zAuthAction({
       {},
     );
 
-    // Prefer the live paid preapproval over the effective row: a paused paid
-    // subscription is shadowed by the active free row on status priority, yet
-    // it must stay cancellable — MercadoPago resumes billing a paused
-    // preapproval on the next successful payment retry.
-    const target =
-      current?.livePaid ??
-      (current?.preapprovalId && current.productKey
-        ? {
-            preapprovalId: current.preapprovalId,
-            productKey: current.productKey,
-          }
-        : null);
+    // Cancel targets the LIVE paid preapproval, never the effective row: a
+    // paused paid subscription is shadowed by the active free row on status
+    // priority yet must stay cancellable (MercadoPago resumes billing a paused
+    // preapproval on the next successful retry). Abandoned `pending` rows are
+    // not subscriptions — the checkout sweep owns those.
+    const target = current?.livePaid;
 
     if (!target) {
       if (current?.productKey === MP_FREE_PRODUCT_KEY) {

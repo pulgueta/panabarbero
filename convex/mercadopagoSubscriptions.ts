@@ -58,11 +58,19 @@ export async function getCurrentMpSubscription(
   ctx: QueryCtx | MutationCtx,
   userId: string,
 ): Promise<MercadopagoSubscription | null> {
-  const rows = await ctx.db
+  return pickEffectiveRow(await collectUserRows(ctx, userId));
+}
+
+function collectUserRows(ctx: QueryCtx | MutationCtx, userId: string) {
+  return ctx.db
     .query("mercadopagoSubscriptions")
     .withIndex("by_userId", (q) => q.eq("userId", userId))
     .collect();
+}
 
+function pickEffectiveRow(
+  rows: MercadopagoSubscription[],
+): MercadopagoSubscription | null {
   if (rows.length === 0) {
     return null;
   }
@@ -143,15 +151,9 @@ const LIVE_PAID_STATUSES: readonly MpSubscriptionStatus[] = [
  * never off the effective row — so a paused subscription stays cancellable
  * and visible in the UI.
  */
-export async function getLivePaidSubscription(
-  ctx: QueryCtx | MutationCtx,
-  userId: string,
-): Promise<MercadopagoSubscription | null> {
-  const rows = await ctx.db
-    .query("mercadopagoSubscriptions")
-    .withIndex("by_userId", (q) => q.eq("userId", userId))
-    .collect();
-
+function pickLivePaidRow(
+  rows: MercadopagoSubscription[],
+): MercadopagoSubscription | null {
   const live = rows
     .filter(
       (row) => !!row.preapprovalId && LIVE_PAID_STATUSES.includes(row.status),
@@ -358,7 +360,8 @@ export const getMySubscription = zQuery({
       return null;
     }
 
-    const subscription = await getCurrentMpSubscription(ctx, userId);
+    const rows = await collectUserRows(ctx, userId);
+    const subscription = pickEffectiveRow(rows);
     const isSubscribed =
       subscription?.status === "active" || subscription?.status === "trialing";
 
@@ -373,7 +376,7 @@ export const getMySubscription = zQuery({
     // Surfaced separately from the effective row because a paused paid
     // preapproval is shadowed by the active free row yet still needs a cancel
     // button and must keep the plan-switch paths closed.
-    const livePaid = await getLivePaidSubscription(ctx, userId);
+    const livePaid = pickLivePaidRow(rows);
 
     return {
       ...subscription,
