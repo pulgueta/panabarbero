@@ -266,6 +266,7 @@ export const applyPreapprovalState = zInternalMutation({
     reason: z.string().optional(),
     nextPaymentDate: z.string().optional(),
     remoteUpdatedAt: z.number().optional(),
+    hasBillingActivity: z.boolean(),
   }),
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -286,6 +287,10 @@ export const applyPreapprovalState = zInternalMutation({
 
     const trialEndsAt = initialTrialEndsAt({
       existingTrialEndsAt: existing.trialEndsAt,
+      hasBillingActivity: args.hasBillingActivity,
+      hasPaymentState:
+        existing.lastPaymentId !== undefined ||
+        existing.paymentUpdatedAt !== undefined,
       mpStatus: args.mpStatus,
       nextPaymentDate: args.nextPaymentDate,
       trialDays: existing.trialDays,

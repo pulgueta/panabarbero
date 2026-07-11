@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { zInternalMutation, zInternalQuery } from ".";
 import { normalizeMpStatus } from "./mercadopagoPlans";
+import { trialDaysForCheckout } from "./mercadopagoSubscriptionState";
 
 const CHECKOUT_LEASE_MS = 5 * 60 * 1000;
 
@@ -61,8 +62,17 @@ export const acquire = zInternalMutation({
       };
     }
 
+    const consumedTrial = await ctx.db
+      .query("mercadopagoSubscriptions")
+      .withIndex("by_userId_and_trialEndsAt", (q) =>
+        q.eq("userId", args.userId).gt("trialEndsAt", 0),
+      )
+      .first();
+    const trialDays = trialDaysForCheckout(consumedTrial !== null);
+
     const id = await ctx.db.insert("mercadopagoCheckoutAttempts", {
       ...args,
+      trialDays,
       state: "creating",
       leaseExpiresAt: now + CHECKOUT_LEASE_MS,
       createdAt: now,
@@ -75,6 +85,7 @@ export const acquire = zInternalMutation({
       payerEmail: args.payerEmail,
       checkoutReference: args.checkoutReference,
       idempotencyKey: args.idempotencyKey,
+      trialDays,
       state: "creating" as const,
       leaseExpiresAt: now + CHECKOUT_LEASE_MS,
       createdAt: now,
@@ -120,7 +131,7 @@ export const complete = zInternalMutation({
     currencyId: z.string(),
     initPoint: z.string(),
     nextPaymentDate: z.string().optional(),
-    trialDays: z.number().int().positive(),
+    trialDays: z.number().int().positive().nullable(),
     remoteUpdatedAt: z.number().optional(),
   }),
   handler: async (ctx, args) => {
@@ -156,7 +167,7 @@ export const complete = zInternalMutation({
       initPoint: args.initPoint,
       externalReference: attempt.checkoutReference,
       nextPaymentDate: args.nextPaymentDate,
-      trialDays: args.trialDays,
+      trialDays: args.trialDays ?? undefined,
       remoteUpdatedAt: args.remoteUpdatedAt,
       updatedAt: now,
     } as const;
@@ -179,6 +190,7 @@ export const complete = zInternalMutation({
       state: "ready",
       preapprovalId: args.preapprovalId,
       initPoint: args.initPoint,
+      trialDays: args.trialDays,
       leaseExpiresAt: now,
       updatedAt: now,
     });

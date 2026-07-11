@@ -7,10 +7,14 @@ import {
 } from "../convex/mercadopagoPaymentState.ts";
 import { isWebhookTimestampWithinTolerance } from "../convex/mercadopagoWebhookSignature.ts";
 import {
+  getFreeTrialDays,
   hasActivePaidEntitlement,
+  hasRemoteBillingActivity,
   initialTrialEndsAt,
   isExpectedFreeTrial,
   MP_FREE_TRIAL_DAYS,
+  shouldBlockTrialActivation,
+  trialDaysForCheckout,
 } from "../convex/mercadopagoSubscriptionState.ts";
 
 const baseCreditState = {
@@ -247,14 +251,20 @@ test("partially refunded subscription payments remain financially entitling", ()
 
 test("the configured Mercado Pago trial is 14 days", () => {
   assert.equal(
-    isExpectedFreeTrial({
-      frequency: MP_FREE_TRIAL_DAYS,
-      frequency_type: "days",
-    }),
+    isExpectedFreeTrial(
+      {
+        frequency: MP_FREE_TRIAL_DAYS,
+        frequency_type: "days",
+      },
+      MP_FREE_TRIAL_DAYS,
+    ),
     true,
   );
   assert.equal(
-    isExpectedFreeTrial({ frequency: 7, frequency_type: "days" }),
+    isExpectedFreeTrial(
+      { frequency: 7, frequency_type: "days" },
+      MP_FREE_TRIAL_DAYS,
+    ),
     false,
   );
 });
@@ -263,6 +273,8 @@ test("an authorized trial grants paid access until the first charge", () => {
   const now = Date.parse("2026-07-10T12:00:00.000Z");
   const nextPaymentDate = "2026-07-24T12:00:00.000Z";
   const trialEndsAt = initialTrialEndsAt({
+    hasBillingActivity: false,
+    hasPaymentState: false,
     mpStatus: "authorized",
     nextPaymentDate,
     trialDays: MP_FREE_TRIAL_DAYS,
@@ -283,6 +295,8 @@ test("an authorized trial grants paid access until the first charge", () => {
   assert.equal(
     initialTrialEndsAt({
       existingTrialEndsAt: trialEndsAt,
+      hasBillingActivity: false,
+      hasPaymentState: false,
       mpStatus: "authorized",
       nextPaymentDate: "2026-07-25T12:00:00.000Z",
       trialDays: MP_FREE_TRIAL_DAYS,
@@ -299,6 +313,70 @@ test("cancellation revokes trial access immediately", () => {
       {
         status: "canceled",
         trialEndsAt: now + MP_FREE_TRIAL_DAYS * 24 * 60 * 60 * 1000,
+      },
+      now,
+    ),
+    false,
+  );
+});
+
+test("a consumed trial is not offered on a later checkout", () => {
+  assert.equal(trialDaysForCheckout(false), MP_FREE_TRIAL_DAYS);
+  assert.equal(trialDaysForCheckout(true), null);
+});
+
+test("historical trial durations validate against their persisted value", () => {
+  const remoteTrial = { frequency: 14, frequency_type: "days" };
+
+  assert.equal(getFreeTrialDays(remoteTrial), 14);
+  assert.equal(isExpectedFreeTrial(remoteTrial, 14), true);
+  assert.equal(isExpectedFreeTrial(remoteTrial, 7), false);
+  assert.equal(isExpectedFreeTrial(null, null), true);
+});
+
+test("billing activity cannot be minted into trial entitlement", () => {
+  const nextPaymentDate = "2026-08-10T12:00:00.000Z";
+
+  assert.equal(
+    initialTrialEndsAt({
+      hasBillingActivity: true,
+      hasPaymentState: false,
+      mpStatus: "authorized",
+      nextPaymentDate,
+      trialDays: MP_FREE_TRIAL_DAYS,
+    }),
+    undefined,
+  );
+  assert.equal(
+    initialTrialEndsAt({
+      hasBillingActivity: false,
+      hasPaymentState: true,
+      mpStatus: "authorized",
+      nextPaymentDate,
+      trialDays: MP_FREE_TRIAL_DAYS,
+    }),
+    undefined,
+  );
+  assert.equal(hasRemoteBillingActivity({ charged_quantity: 1 }), true);
+  assert.equal(shouldBlockTrialActivation(undefined, undefined), true);
+  assert.equal(shouldBlockTrialActivation(undefined, "failed"), true);
+  assert.equal(shouldBlockTrialActivation(undefined, "processed"), true);
+  assert.equal(shouldBlockTrialActivation(undefined, "empty"), false);
+  assert.equal(
+    shouldBlockTrialActivation({ charged_quantity: 1 }, "empty"),
+    true,
+  );
+});
+
+test("a payment transition disables historical trial entitlement", () => {
+  const now = Date.parse("2026-07-10T12:00:00.000Z");
+
+  assert.equal(
+    hasActivePaidEntitlement(
+      {
+        status: "active",
+        trialEndsAt: now + 24 * 60 * 60 * 1000,
+        paymentUpdatedAt: now,
       },
       now,
     ),

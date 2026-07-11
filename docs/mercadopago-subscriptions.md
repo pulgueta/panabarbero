@@ -42,10 +42,10 @@ The free plan has no remote preapproval because Mercado Pago cannot charge a zer
 The checkout action serializes creation per user and reuses one stable idempotency key for retries of the same intent:
 
 1. `createSubscriptionCheckout` validates the paid product key and uses a validated payer email or the authenticated account email.
-2. `mercadopagoCheckoutAttempts.acquire` atomically creates or resumes the per-user checkout claim.
+2. `mercadopagoCheckoutAttempts.acquire` atomically creates or resumes the per-user checkout claim and stores whether this account is still eligible for its one free trial.
 3. The action fetches every locally open preapproval from Mercado Pago. An unreachable or unverified remote state blocks checkout.
 4. The action cancels only remote preapprovals confirmed as abandoned and `pending`. Any live agreement blocks a second checkout.
-5. `PreApproval.create` receives the server-owned reference, catalog amount, interval, currency, 14-day free trial, and the claim's stable idempotency key.
+5. `PreApproval.create` receives the server-owned reference, catalog amount, interval, currency, and the claim's stable idempotency key. The 14-day free trial is included only when no earlier subscription row proves that this account already activated one.
 6. The completion mutation stores the preapproval and reusable hosted checkout URL in the same transaction.
 7. The browser redirects to Mercado Pago. Returning to PanaBarbero shows a pending state until Mercado Pago authorizes the trial or an approved payment proves access.
 
@@ -58,9 +58,9 @@ Agreement state and paid access are separate. A `subscription_preapproval` event
 Paid access requires both conditions:
 
 - The normalized agreement status is `active`
-- `trialEndsAt` or `paidThrough` is later than the current server time
+- An unused `trialEndsAt` or `paidThrough` is later than the current server time
 
-The first provider-confirmed `next_payment_date` fixes `trialEndsAt`; later agreement updates cannot extend it. Only a financially entitling authorized-payment invoice extends `paidThrough`. Approved and partially refunded payments keep the paid period; rejected or pending payments do not extend it. A full refund or unresolved chargeback against the payment that granted the current period revokes access, while a reimbursed chargeback restores it. Scheduled expiry mutations refresh reactive clients when a trial or unpaid period ends.
+The first provider-confirmed `next_payment_date` fixes `trialEndsAt` only while neither local payment state nor Mercado Pago's charge summary reports billing activity. Invoice reconciliation runs before a late agreement update can initialize trial access. Once any payment transition exists, entitlement comes only from `paidThrough`; an old trial timestamp cannot survive a refund or chargeback. Only a financially entitling authorized-payment invoice extends `paidThrough`. Approved and partially refunded payments keep the paid period; rejected or pending payments do not extend it. A full refund or unresolved chargeback against the payment that granted the current period revokes the affected access, while a reimbursed chargeback restores only the access removed by that chargeback. Scheduled expiry mutations refresh reactive clients when a trial or unpaid period ends.
 
 If a payment webhook is missed, the user can request reconciliation from the pricing card. The action fetches the authorized-payment page by preapproval and replays it oldest-first through the same validated idempotent recorder used by webhooks. Agreement authorization grants access only for a locally configured, provider-confirmed trial.
 
@@ -72,7 +72,7 @@ See Mercado Pago's [authorized payment lifecycle](https://www.mercadopago.com.co
 
 `cancelSubscription` changes the open preapproval to `cancelled` at Mercado Pago and verifies the returned terminal state before updating Convex. Cancellation is immediate: the paid entitlement stops because the agreement is no longer active, even if a prior `paidThrough` timestamp is still in the future.
 
-Users must cancel the current paid agreement before choosing another paid plan or returning to Free. A paused or authorized agreement still blocks a new checkout because it can resume billing. The free plan cannot be cancelled.
+Users must cancel the current paid agreement before choosing another paid plan or returning to Free. A paused or authorized agreement still blocks a new checkout because it can resume billing. Canceling a trial does not restore trial eligibility; later checkouts omit the free trial. The free plan cannot be cancelled.
 
 Account deletion removes the WorkOS login before any irreversible billing cancellation. Convex snapshots and expires still-payable Checkout Pro preferences, retains the subscription provider identifiers, and retries remote cancellation with bounded backoff before deleting billing rows. The same idempotent cleanup runs whether deletion starts in the app or externally in WorkOS.
 
@@ -111,7 +111,7 @@ Run billing tests through `/pricing` or the **Planes** profile tab. There is no 
 2. Push the current Convex functions with `pnpx convex dev --once`.
 3. Sign in with a PanaBarbero owner account and select a paid plan.
 4. Complete the hosted checkout with a Mercado Pago test buyer from the matching test application.
-5. Confirm the UI remains pending after authorization and becomes entitled only after an approved authorized-payment event.
+5. For a first-time trial checkout, confirm an active agreement plus a provider-confirmed future first-charge date grants the paid plan without an immediate charge. For a non-trial checkout, confirm access remains pending until an approved authorized-payment event. Paused and cancelled agreements must never qualify.
 6. Confirm a second checkout is blocked while the paid agreement is pending, authorized, or paused.
 7. Cancel from the **Planes** tab and confirm access ends immediately.
 8. Buy a credit pack and confirm one approved `payment` event grants it once.
@@ -123,7 +123,7 @@ Inspect webhook delivery in the Mercado Pago developer dashboard and billing sta
 
 Keep these rules intact when changing billing code:
 
-- Never grant access from a redirect, a client argument, or preapproval authorization alone
+- Never grant access from a redirect or client argument; preapproval authorization grants access only for the persisted, unused trial and its provider-confirmed first-charge date
 - Never create a remote checkout before persisting its server-owned identity and idempotency key
 - Never trust a webhook's mutable reference without matching a stored checkout and the local catalog
 - Never fail open when remote agreement state cannot be verified
