@@ -19,8 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
       - name: Runs React Doctor
-        uses: millionco/react-doctor@ced746f518f11e8283d488c4ff31c44e478bb0e5 # v2
+        uses: millionco/react-doctor@ced746f518f11e8283d488c4ff31c44e478bb0e5 # v2.2.6
