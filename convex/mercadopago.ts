@@ -3,12 +3,7 @@
 /** MercadoPago checkout, cancellation, and account-deletion network actions. */
 
 import { ConvexError } from "convex/values";
-import {
-  Invoice,
-  MercadoPagoConfig,
-  PreApproval,
-  Preference,
-} from "mercadopago";
+import { MercadoPagoConfig, PreApproval, Preference } from "mercadopago";
 import { z } from "zod";
 
 import { zAuthAction, zInternalAction } from ".";
@@ -23,10 +18,12 @@ import {
   MP_PAID_PRODUCT_KEYS,
 } from "./mercadopagoPlans";
 import {
+  getFreeTrialDays,
+  hasRemoteBillingActivity,
   isExpectedFreeTrial,
-  MP_FREE_TRIAL_DAYS,
+  shouldBlockTrialActivation,
 } from "./mercadopagoSubscriptionState";
-import { processAuthorizedPayment } from "./mercadopagoWebhooks";
+import { reconcileSubscriptionInvoices } from "./mercadopagoWebhooks";
 import { siteUrl } from "./notificationCopy";
 import { CREDIT_PRODUCT_KEYS } from "./plans";
 
@@ -43,6 +40,10 @@ interface RemotePreapprovalState {
   reason?: string;
   next_payment_date?: string | number;
   last_modified?: string | number;
+  summarized?: {
+    charged_quantity?: number | null;
+    last_charged_date?: string | null;
+  };
 }
 
 interface OpenPaidRow {
@@ -60,6 +61,7 @@ interface CheckoutAttempt {
   idempotencyKey: string;
   state: "creating" | "ready";
   leaseExpiresAt: number;
+  trialDays?: number | null;
   preapprovalId?: string;
   initPoint?: string;
 }
@@ -106,6 +108,7 @@ function isTerminalStatus(status: string | undefined) {
 function assertPreapprovalMatchesCheckout(
   subscription: PreapprovalResponse,
   checkout: Pick<CheckoutAttempt, "checkoutReference" | "productKey">,
+  trialDays: number | null,
 ) {
   if (!isMpPaidProductKey(checkout.productKey)) {
     throw new ConvexError("El checkout contiene un plan desconocido.");
@@ -121,12 +124,21 @@ function assertPreapprovalMatchesCheckout(
     recurring?.currency_id !== MP_CURRENCY_ID ||
     recurring?.frequency !== plan.frequency ||
     recurring?.frequency_type !== plan.frequencyType ||
-    !isExpectedFreeTrial(recurring?.free_trial)
+    !isExpectedFreeTrial(recurring?.free_trial, trialDays)
   ) {
     throw new ConvexError(
       "La suscripción de Mercado Pago no coincide con el checkout creado por PanaBarbero.",
     );
   }
+}
+
+function expectedTrialDays(
+  subscription: PreapprovalResponse,
+  attempt: CheckoutAttempt,
+) {
+  return attempt.trialDays === undefined
+    ? (getFreeTrialDays(subscription.auto_recurring?.free_trial) ?? null)
+    : attempt.trialDays;
 }
 
 /** Create or recover one remote checkout from its durable immutable claim. */
@@ -144,10 +156,12 @@ async function materializeSubscriptionCheckout(
     frequency_type: plan.frequencyType,
     transaction_amount: plan.amountCop,
     currency_id: MP_CURRENCY_ID,
-    free_trial: {
-      frequency: MP_FREE_TRIAL_DAYS,
-      frequency_type: "days",
-    },
+    ...(typeof attempt.trialDays === "number" && {
+      free_trial: {
+        frequency: attempt.trialDays,
+        frequency_type: "days",
+      },
+    }),
   };
   const subscription = await new PreApproval(mpConfig()).create({
     body: {
@@ -167,7 +181,8 @@ async function materializeSubscriptionCheckout(
     );
   }
 
-  assertPreapprovalMatchesCheckout(subscription, attempt);
+  const trialDays = expectedTrialDays(subscription, attempt);
+  assertPreapprovalMatchesCheckout(subscription, attempt, trialDays);
 
   await ctx.runMutation(internal.mercadopagoCheckoutAttempts.complete, {
     checkoutReference: attempt.checkoutReference,
@@ -179,7 +194,7 @@ async function materializeSubscriptionCheckout(
     currencyId: MP_CURRENCY_ID,
     initPoint: subscription.init_point,
     nextPaymentDate: subscription.next_payment_date,
-    trialDays: MP_FREE_TRIAL_DAYS,
+    trialDays,
     remoteUpdatedAt: remoteTimestamp(subscription.last_modified),
   });
 
@@ -193,6 +208,7 @@ async function applyRemotePreapproval(
   ctx: ActionCtx,
   preapprovalId: string,
   subscription: RemotePreapprovalState,
+  blockTrialActivation = subscription.status === "authorized",
 ) {
   await ctx.runMutation(
     internal.mercadopagoSubscriptions.applyPreapprovalState,
@@ -206,43 +222,11 @@ async function applyRemotePreapproval(
           ? String(subscription.next_payment_date)
           : undefined,
       remoteUpdatedAt: remoteTimestamp(subscription.last_modified),
+      hasBillingActivity:
+        blockTrialActivation ||
+        hasRemoteBillingActivity(subscription.summarized),
     },
   );
-}
-
-/**
- * Payment-backed entitlement is written by webhooks, which are at-least-once:
- * an authorized agreement whose invoices were never recorded (missed
- * delivery, or activity predating payment-backed entitlement) would keep a
- * paying subscriber on the free tier. Replay the bounded API page oldest-first
- * through the same validated, per-payment idempotent path the webhook uses.
- */
-async function backfillEntitlementFromInvoices(
-  ctx: ActionCtx,
-  preapprovalId: string,
-) {
-  try {
-    const found = await new Invoice(mpConfig()).search({
-      options: { preapproval_id: preapprovalId },
-    });
-
-    const invoices = [...(found.results ?? [])].sort(
-      (a, b) =>
-        remoteTimestamp(a.last_modified ?? a.date_created, 0) -
-        remoteTimestamp(b.last_modified ?? b.date_created, 0),
-    );
-    for (const invoice of invoices) {
-      await processAuthorizedPayment(ctx, invoice);
-    }
-
-    return invoices.length > 0 ? "processed" : "empty";
-  } catch (error) {
-    console.error(
-      `[mercadopago] no se pudieron consultar las facturas de ${preapprovalId}`,
-      error,
-    );
-    return "failed";
-  }
 }
 
 /**
@@ -278,9 +262,8 @@ async function reconcileOpenPaidRows(ctx: ActionCtx, userId: string) {
       continue;
     }
 
-    await applyRemotePreapproval(ctx, row.preapprovalId, remote);
-
     if (remote.status === "pending") {
+      await applyRemotePreapproval(ctx, row.preapprovalId, remote);
       abandonedPending.push(row);
     } else if (!isTerminalStatus(remote.status)) {
       hasLiveSubscription = true;
@@ -289,10 +272,22 @@ async function reconcileOpenPaidRows(ctx: ActionCtx, userId: string) {
         remote.status === "authorized" &&
         (row.paidThrough ?? 0) <= Date.now()
       ) {
-        reconciliationFailed =
-          (await backfillEntitlementFromInvoices(ctx, row.preapprovalId)) ===
-            "failed" || reconciliationFailed;
+        const backfill = await reconcileSubscriptionInvoices(
+          ctx,
+          row.preapprovalId,
+        );
+        reconciliationFailed = backfill === "failed" || reconciliationFailed;
+        await applyRemotePreapproval(
+          ctx,
+          row.preapprovalId,
+          remote,
+          shouldBlockTrialActivation(remote.summarized, backfill),
+        );
+      } else {
+        await applyRemotePreapproval(ctx, row.preapprovalId, remote);
       }
+    } else {
+      await applyRemotePreapproval(ctx, row.preapprovalId, remote);
     }
   }
 
@@ -374,8 +369,18 @@ async function resolveReadyAttempt(
     );
   }
 
-  assertPreapprovalMatchesCheckout(remote, attempt);
-  await applyRemotePreapproval(ctx, attempt.preapprovalId, remote);
+  const trialDays = expectedTrialDays(remote, attempt);
+  assertPreapprovalMatchesCheckout(remote, attempt, trialDays);
+  const invoiceReconciliation =
+    remote.status === "authorized" && trialDays !== null
+      ? await reconcileSubscriptionInvoices(ctx, attempt.preapprovalId)
+      : undefined;
+  await applyRemotePreapproval(
+    ctx,
+    attempt.preapprovalId,
+    remote,
+    shouldBlockTrialActivation(remote.summarized, invoiceReconciliation),
+  );
 
   if (remote.status === "pending") {
     if (

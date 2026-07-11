@@ -25,7 +25,10 @@ import {
   isMpPaidProductKey,
   MP_CURRENCY_ID,
 } from "./mercadopagoPlans";
-import { isExpectedFreeTrial } from "./mercadopagoSubscriptionState";
+import {
+  isExpectedFreeTrial,
+  shouldBlockTrialActivation,
+} from "./mercadopagoSubscriptionState";
 import { isWebhookTimestampWithinTolerance } from "./mercadopagoWebhookSignature";
 
 type InvoiceResponse = Awaited<ReturnType<Invoice["get"]>>;
@@ -38,6 +41,7 @@ interface StoredSubscription {
   externalReference?: string;
   lastInvoiceId?: string;
   trialDays?: number;
+  trialEndsAt?: number;
 }
 
 interface PaymentOverride {
@@ -81,7 +85,7 @@ function validateRemoteSubscription(
     recurring?.frequency === plan.frequency &&
     recurring?.frequency_type === plan.frequencyType &&
     (stored.trialDays === undefined ||
-      isExpectedFreeTrial(recurring?.free_trial))
+      isExpectedFreeTrial(recurring?.free_trial, stored.trialDays))
   );
 }
 
@@ -190,6 +194,34 @@ export async function processAuthorizedPayment(
   );
 
   return 200;
+}
+
+export async function reconcileSubscriptionInvoices(
+  ctx: ActionCtx,
+  preapprovalId: string,
+) {
+  try {
+    const found = await new Invoice(mpConfig()).search({
+      options: { preapproval_id: preapprovalId },
+    });
+    const invoices = [...(found.results ?? [])].sort(
+      (a, b) =>
+        parsedTimestamp(a.last_modified ?? a.date_created, 0) -
+        parsedTimestamp(b.last_modified ?? b.date_created, 0),
+    );
+
+    for (const invoice of invoices) {
+      await processAuthorizedPayment(ctx, invoice);
+    }
+
+    return invoices.length > 0 ? ("processed" as const) : ("empty" as const);
+  } catch (error) {
+    console.error(
+      `[mercadopago] no se pudieron consultar las facturas de ${preapprovalId}`,
+      error,
+    );
+    return "failed" as const;
+  }
 }
 
 async function processCreditPayment(
@@ -410,6 +442,14 @@ export const processWebhookEvent = zInternalAction({
       return 200;
     }
 
+    const invoiceReconciliation =
+      remote.status === "authorized" &&
+      stored.trialDays !== undefined &&
+      stored.trialEndsAt === undefined &&
+      stored.lastInvoiceId === undefined
+        ? await reconcileSubscriptionInvoices(ctx, args.dataId)
+        : undefined;
+
     await ctx.runMutation(
       internal.mercadopagoSubscriptions.applyPreapprovalState,
       {
@@ -419,6 +459,9 @@ export const processWebhookEvent = zInternalAction({
         reason: remote.reason,
         nextPaymentDate: remote.next_payment_date,
         remoteUpdatedAt: parsedTimestamp(remote.last_modified),
+        hasBillingActivity:
+          stored.lastInvoiceId !== undefined ||
+          shouldBlockTrialActivation(remote.summarized, invoiceReconciliation),
       },
     );
 

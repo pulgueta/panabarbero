@@ -599,6 +599,8 @@ export const mercadopagoCheckoutAttempts = zodTable(
     leaseExpiresAt: z.number(),
     preapprovalId: z.string().optional(),
     initPoint: z.string().optional(),
+    /** Trial days, null when consumed, undefined on legacy attempts. */
+    trialDays: z.number().int().positive().nullable().optional(),
     createdAt: z.number(),
     updatedAt: z.number(),
   }),
@@ -755,6 +757,7 @@ export default defineSchema({
   mercadopagoSubscriptions: mercadopagoSubscriptions
     .table()
     .index("by_userId", ["userId"])
+    .index("by_userId_and_trialEndsAt", ["userId", "trialEndsAt"])
     .index("by_userId_and_status", ["userId", "status"])
     .index("by_userId_and_productKey", ["userId", "productKey"])
     .index("by_preapprovalId", ["preapprovalId"])
