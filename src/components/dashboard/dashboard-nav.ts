@@ -68,7 +68,7 @@ const groups: DashboardNavGroup[] = [
           {
             label: "Resumen",
             to: "/profile/barbershops/inventory",
-            roles: ["owner", "staff"],
+            roles: ["owner", "staff", "barber"],
           },
           {
             label: "Productos",
@@ -78,7 +78,7 @@ const groups: DashboardNavGroup[] = [
           {
             label: "Ventas",
             to: "/profile/barbershops/inventory/sales",
-            roles: ["owner", "staff"],
+            roles: ["owner", "staff", "barber"],
           },
           {
             label: "Movimientos",

@@ -67,7 +67,11 @@ export const Route = createFileRoute(
   beforeLoad: (opts) => {
     const roles = opts.context.dashboardRoles;
 
-    if (!roles?.isOwner && !roles?.isStaff) {
+    if (
+      !roles?.isOwner &&
+      !roles?.isStaff &&
+      !roles?.roles?.includes("barber")
+    ) {
       throw redirect({ to: "/profile/barbershops/appointments" });
     }
   },
@@ -124,7 +128,11 @@ const NoBarbershop: FC = () => (
   </Empty>
 );
 
-const SalesBody: FC<{ barbershop: Barbershop }> = ({ barbershop }) => {
+interface SalesBodyProps {
+  barbershop: Barbershop;
+}
+
+const SalesBody: FC<SalesBodyProps> = ({ barbershop }) => {
   const { planLimits, isLoading } = useBarbershopPlan(barbershop._id);
   if (isLoading) return <SalesSkeleton />;
   if (!planLimits.inventoryEnabled) return <InventoryUpsell />;

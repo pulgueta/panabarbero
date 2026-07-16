@@ -1448,7 +1448,7 @@ export async function consumeForAppointment(
 // ---------------------------------------------------------------------------
 
 /**
- * Viewers need at least `inventory:consume` (barbers get the reduced view).
+ * Viewers need `inventory:view` (barbers get the reduced view).
  * Returns whether the caller may see costs/valuation (`inventory:manage`).
  */
 async function assertCanViewInventory(
@@ -1459,12 +1459,12 @@ async function assertCanViewInventory(
   await assertInventoryAllowed(ctx, barbershopId);
 
   const scope = barbershopScope(barbershopId);
-  const [canManage, canConsume] = await Promise.all([
+  const [canManage, canView] = await Promise.all([
     authz.can(ctx, userId, "inventory:manage", scope),
-    authz.can(ctx, userId, "inventory:consume", scope),
+    authz.can(ctx, userId, "inventory:view", scope),
   ]);
 
-  if (!canManage && !canConsume) {
+  if (!canManage && !canView) {
     throw new ConvexError(errorMessages.unauthorized);
   }
 

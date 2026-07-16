@@ -8,6 +8,7 @@ import { assertInventoryAllowed } from "./acl";
 import { track } from "./analytics";
 import { authz, barbershopScope } from "./authz";
 import { errorMessages } from "./errors";
+import { requireUserId } from "./identity";
 import { recordMovement } from "./inventory";
 import { auditLog } from "./log";
 import { r2 } from "./r2";
@@ -81,12 +82,7 @@ async function assertCanSell(
 ) {
   await Promise.all([
     assertInventoryAllowed(ctx, barbershopId),
-    authz.require(
-      ctx,
-      userId,
-      "inventory:manage",
-      barbershopScope(barbershopId),
-    ),
+    authz.require(ctx, userId, "inventory:sell", barbershopScope(barbershopId)),
   ]);
 }
 
@@ -150,10 +146,10 @@ export const deleteOrphanProof = zAuthMutation({
 export const assertSellAccess = zInternalQuery({
   args: z.object({
     barbershop: barbershops.tools.id,
-    userId: z.string(),
   }),
   handler: async (ctx, args) => {
-    await assertCanSell(ctx, args.barbershop.id, args.userId);
+    const userId = await requireUserId(ctx);
+    await assertCanSell(ctx, args.barbershop.id, userId);
   },
 });
 
@@ -171,7 +167,6 @@ export const finalizeProofUpload = zAuthAction({
   handler: async (ctx, args) => {
     await ctx.runQuery(internal.inventorySales.assertSellAccess, {
       barbershop: args.barbershop,
-      userId: ctx.userId,
     });
 
     if (!args.key.startsWith(`assets/sales/${args.barbershop.id}/`)) {

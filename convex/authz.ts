@@ -17,16 +17,15 @@ const permissions = definePermissions({
   inventory: {
     manage: true,
     consume: true,
+    view: true,
+    sell: true,
   },
 });
 
 const roles = defineRoles(permissions, {
-  owner: { inventory: ["manage", "consume"] },
-  staff: { inventory: ["manage", "consume"] },
-  // Barbers have no inventory access — their scope is appointments and their
-  // own schedule. Automatic service-consumption records movements directly
-  // (audit-only actor), so it does not depend on this capability.
-  barber: { inventory: [] },
+  owner: { inventory: ["manage", "consume", "view", "sell"] },
+  staff: { inventory: ["manage", "consume", "view", "sell"] },
+  barber: { inventory: ["view", "sell"] },
 });
 
 /**
