@@ -523,14 +523,23 @@ export const listRecent = zAuthQuery({
           .collect();
 
         return {
-          ...sale,
+          _id: sale._id,
+          _creationTime: sale._creationTime,
+          totalAmount: sale.totalAmount,
+          paymentMethod: sale.paymentMethod,
+          customerName: sale.customerName,
+          customerDocumentType: sale.customerDocumentType,
+          customerDocumentNumber: sale.customerDocumentNumber,
+          customerPhone: sale.customerPhone,
+          notes: sale.notes,
           actorName: actorNames.get(sale.actorUserId),
           proofUrl: sale.proofKey
             ? await r2.getUrl(sale.proofKey, { expiresIn: 15 * 60 })
             : undefined,
-          lines: lines.map(
-            ({ unitCostAtTime: _unitCostAtTime, ...line }) => line,
-          ),
+          lines: lines.map((line) => ({
+            itemName: line.itemName,
+            quantity: line.quantity,
+          })),
         };
       }),
     );

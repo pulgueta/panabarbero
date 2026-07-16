@@ -135,7 +135,9 @@ export async function cascadeDeleteBarbershop(
   for (const sale of inventorySales) {
     if (sale.proofKey) {
       try {
-        await ctx.runMutation(api.r2.deleteR2Object, { key: sale.proofKey });
+        await ctx.runMutation(internal.r2.deleteR2ObjectForCascade, {
+          key: sale.proofKey,
+        });
       } catch {
         // Non-fatal: object may already be gone
       }
