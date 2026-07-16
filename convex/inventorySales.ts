@@ -6,7 +6,7 @@ import { internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { assertInventoryAllowed } from "./acl";
 import { track } from "./analytics";
-import { assertShopRole } from "./authz";
+import { authz, barbershopScope } from "./authz";
 import { errorMessages } from "./errors";
 import { recordMovement } from "./inventory";
 import { auditLog } from "./log";
@@ -81,7 +81,12 @@ async function assertCanSell(
 ) {
   await Promise.all([
     assertInventoryAllowed(ctx, barbershopId),
-    assertShopRole(ctx, barbershopId, userId, ["owner", "staff", "barber"]),
+    authz.require(
+      ctx,
+      userId,
+      "inventory:manage",
+      barbershopScope(barbershopId),
+    ),
   ]);
 }
 
