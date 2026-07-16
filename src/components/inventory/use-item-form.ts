@@ -155,7 +155,6 @@ export function useItemForm({
 
   const {
     uploadFile: { isUploading, uploadFile },
-    deleteFileMutation: { mutateAsync: deleteFile },
   } = useUpload({ type: "inventory-item" });
 
   const {
@@ -286,15 +285,6 @@ export function useItemForm({
 
         if (itemId) {
           await updateItem({ id: itemId, data });
-
-          // Replacing the photo orphans the old object — best-effort cleanup.
-          if (currentImageKey && imageKey !== currentImageKey) {
-            try {
-              await deleteFile({ key: currentImageKey });
-            } catch {
-              // Non-fatal: old object may already be gone
-            }
-          }
 
           haptic.trigger("success");
           toast.success("Producto actualizado exitosamente");

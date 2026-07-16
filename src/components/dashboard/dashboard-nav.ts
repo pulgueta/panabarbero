@@ -63,16 +63,22 @@ const groups: DashboardNavGroup[] = [
         label: "Inventario",
         to: "/profile/barbershops/inventory",
         icon: PackageIcon,
-        roles: ["owner", "staff"],
+        roles: ["owner", "staff", "barber"],
         children: [
           {
             label: "Resumen",
             to: "/profile/barbershops/inventory",
-            roles: ["owner", "staff"],
+            roles: ["owner", "staff", "barber"],
           },
           {
             label: "Productos",
             to: "/profile/barbershops/inventory/products",
+            roles: ["owner", "staff"],
+          },
+          {
+            label: "Ventas",
+            to: "/profile/barbershops/inventory/sales",
+            roles: ["owner", "staff", "barber"],
           },
           {
             label: "Movimientos",

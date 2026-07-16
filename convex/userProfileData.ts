@@ -2,7 +2,7 @@ import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zAuthMutation, zInternalMutation, zQuery } from ".";
-import { api } from "./_generated/api";
+import { internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { errorMessages } from "./errors";
 import { getUserId, requireUserId } from "./identity";
@@ -29,6 +29,16 @@ export const getProfileByEmail = async (
     .withIndex("by_email", (q) => q.eq("email", email))
     .unique();
 };
+
+function getProfilePhotoKey(image: string | undefined) {
+  if (!image) return undefined;
+
+  try {
+    return new URL(image).pathname.replace(/^\//, "");
+  } catch {
+    return undefined;
+  }
+}
 
 export const getMyProfile = zQuery({
   args: userProfileData.schema.pick({ userId: true }).partial(),
@@ -157,17 +167,28 @@ export const setProfilePhotoKey = zAuthMutation({
       throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
 
-    if (args.previousKey) {
+    const previousKey = args.previousKey;
+
+    if (previousKey) {
+      if (
+        !previousKey.startsWith("assets/profile-photos/") ||
+        getProfilePhotoKey(profile.image) !== previousKey
+      ) {
+        throw new ConvexError(errorMessages.unauthorized);
+      }
+    }
+
+    await ctx.db.patch(profile._id, { image: args.imageUrl });
+
+    if (previousKey) {
       try {
-        await ctx.runMutation(api.r2.deleteR2Object, {
-          key: args.previousKey,
+        await ctx.runMutation(internal.r2.deleteR2Object, {
+          key: previousKey,
         });
       } catch {
         // Non-fatal: old object may already be gone
       }
     }
-
-    await ctx.db.patch(profile._id, { image: args.imageUrl });
   },
 });
 
@@ -186,17 +207,28 @@ export const removeProfilePhoto = zAuthMutation({
       throw new ConvexError(errorMessages.notFound("perfil de usuario"));
     }
 
-    if (args.previousKey) {
+    const previousKey = args.previousKey;
+
+    if (previousKey) {
+      if (
+        !previousKey.startsWith("assets/profile-photos/") ||
+        getProfilePhotoKey(profile.image) !== previousKey
+      ) {
+        throw new ConvexError(errorMessages.unauthorized);
+      }
+    }
+
+    await ctx.db.patch(profile._id, { image: undefined });
+
+    if (previousKey) {
       try {
-        await ctx.runMutation(api.r2.deleteR2Object, {
-          key: args.previousKey,
+        await ctx.runMutation(internal.r2.deleteR2Object, {
+          key: previousKey,
         });
       } catch {
         // Non-fatal: old object may already be gone
       }
     }
-
-    await ctx.db.patch(profile._id, { image: undefined });
   },
 });
 

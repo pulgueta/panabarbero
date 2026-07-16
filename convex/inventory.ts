@@ -22,6 +22,7 @@ import {
   zInternalMutation,
   zInternalQuery,
 } from ".";
+import { internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { assertInventoryAllowed, isInventoryAllowed } from "./acl";
 import { inventoryMovementsAggregate, inventoryTriggers } from "./aggregates";
@@ -37,12 +38,14 @@ import type {
   InventoryLevel,
   InventoryMovement,
   InventoryMovementType,
+  InventorySale,
   Service,
 } from "./schema";
 import {
   barbershops,
   inventoryCategories,
   inventoryItems,
+  inventoryMovementTypeSchema,
   services,
 } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
@@ -124,6 +127,7 @@ type RecordMovementArgs = {
   reason?: string;
   locationId?: string;
   relatedAppointmentId?: Appointment["_id"];
+  relatedSaleId?: InventorySale["_id"];
   idempotencyKey?: string;
   /**
    * Lifecycle paths (appointment hooks) must never throw over stock: clamp
@@ -359,6 +363,7 @@ export async function recordMovement(
     reason,
     actorUserId: args.actorUserId,
     relatedAppointmentId: args.relatedAppointmentId,
+    relatedSaleId: args.relatedSaleId,
     idempotencyKey: args.idempotencyKey,
   });
 
@@ -380,6 +385,7 @@ export async function recordMovement(
       quantity,
       reason,
       relatedAppointmentId: args.relatedAppointmentId,
+      relatedSaleId: args.relatedSaleId,
     },
     generateDiff: true,
     severity: "info",
@@ -702,6 +708,20 @@ export const updateItem = zAuthMutation({
       tags: inventoryAuditTags(item.barbershopId, item._id),
       retentionCategory: "inventory",
     });
+
+    if (
+      item.imageKey &&
+      data.imageKey !== undefined &&
+      data.imageKey !== item.imageKey
+    ) {
+      try {
+        await ctx.runMutation(internal.r2.deleteR2Object, {
+          key: item.imageKey,
+        });
+      } catch {
+        // Non-fatal: old object may already be gone.
+      }
+    }
   },
 });
 
@@ -1026,51 +1046,6 @@ export const recordConsumption = zAuthMutation({
         itemId: item._id,
         barbershopId: item.barbershopId,
         quantity: result.quantityApplied,
-      },
-      groups: { barbershop: item.barbershopId },
-    });
-
-    return result;
-  },
-});
-
-export const recordSale = zAuthMutation({
-  args: z.object({
-    item: inventoryItems.tools.id,
-    quantity: quantitySchema,
-  }),
-  ratelimit: "recordSale",
-  handler: async (ctx, args) => {
-    const { userId } = ctx;
-    const item = await requireItemInShop(ctx, args.item.id);
-
-    await assertCanRecordConsumption(ctx, item.barbershopId, userId);
-
-    if (item.stockBehavior === "durable") {
-      throw new ConvexError(errorMessages.durableNotConsumable);
-    }
-
-    if (!item.isSellable) {
-      throw new ConvexError(errorMessages.itemNotSellable);
-    }
-
-    const result = await recordMovement(ctx, {
-      barbershopId: item.barbershopId,
-      itemId: item._id,
-      type: "sale",
-      quantity: args.quantity,
-      actorUserId: userId,
-      salePriceAtTime: item.salePrice,
-    });
-
-    await track(ctx, {
-      distinctId: userId,
-      event: "product_sold",
-      properties: {
-        itemId: item._id,
-        barbershopId: item.barbershopId,
-        quantity: result.quantityApplied,
-        revenue: result.quantityApplied * (item.salePrice ?? 0),
       },
       groups: { barbershop: item.barbershopId },
     });
@@ -1488,7 +1463,7 @@ export async function consumeForAppointment(
 // ---------------------------------------------------------------------------
 
 /**
- * Viewers need at least `inventory:consume` (barbers get the reduced view).
+ * Viewers need `inventory:view` (barbers get the reduced view).
  * Returns whether the caller may see costs/valuation (`inventory:manage`).
  */
 async function assertCanViewInventory(
@@ -1499,12 +1474,12 @@ async function assertCanViewInventory(
   await assertInventoryAllowed(ctx, barbershopId);
 
   const scope = barbershopScope(barbershopId);
-  const [canManage, canConsume] = await Promise.all([
+  const [canManage, canView] = await Promise.all([
     authz.can(ctx, userId, "inventory:manage", scope),
-    authz.can(ctx, userId, "inventory:consume", scope),
+    authz.can(ctx, userId, "inventory:view", scope),
   ]);
 
-  if (!canManage && !canConsume) {
+  if (!canManage && !canView) {
     throw new ConvexError(errorMessages.unauthorized);
   }
 
@@ -2098,6 +2073,17 @@ export const listShopMovements = zAuthQuery({
   args: z.object({
     barbershop: barbershops.tools.id,
     paginationOpts: convexToZod(paginationOptsValidator),
+    /** Optional ledger filters. Equality combinations use compound indexes. */
+    filters: z
+      .object({
+        type: inventoryMovementTypeSchema.optional(),
+        itemId: inventoryItems.tools.id.shape.id.optional(),
+        actorUserId: z.string().optional(),
+        /** Window bounds in epoch ms; ride the index's `_creationTime`. */
+        startTime: z.number().optional(),
+        endTime: z.number().optional(),
+      })
+      .optional(),
   }),
   handler: async (ctx, args) => {
     const { userId } = ctx;
@@ -2112,13 +2098,110 @@ export const listShopMovements = zAuthQuery({
       ),
     ]);
 
-    const result = await ctx.db
-      .query("inventoryMovements")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershop.id),
-      )
-      .order("desc")
-      .paginate(args.paginationOpts);
+    const { type, itemId, actorUserId, startTime, endTime } =
+      args.filters ?? {};
+
+    // A product filter reads `by_itemId`, which is not shop-scoped. Assert
+    // ownership up-front (same guard `listMovements` uses) so the range can
+    // never surface another shop's ledger.
+    if (itemId !== undefined) {
+      const item = await ctx.db.get(itemId);
+
+      if (!item || item.barbershopId !== args.barbershop.id) {
+        throw new ConvexError(errorMessages.notFound("producto"));
+      }
+    }
+
+    // Unconditional creation-time bounds keep the index chain flat: an absent
+    // bound widens to the full range without changing which index is scanned.
+    const startBound = startTime ?? 0;
+    const endBound = endTime ?? Number.MAX_SAFE_INTEGER;
+
+    // Index priority = the most-specific active equality combination.
+    const base =
+      itemId !== undefined && type !== undefined && actorUserId !== undefined
+        ? ctx.db
+            .query("inventoryMovements")
+            .withIndex("by_itemId_and_type_and_actorUserId", (q) =>
+              q
+                .eq("itemId", itemId)
+                .eq("type", type)
+                .eq("actorUserId", actorUserId)
+                .gte("_creationTime", startBound)
+                .lt("_creationTime", endBound),
+            )
+        : itemId !== undefined && type !== undefined
+          ? ctx.db
+              .query("inventoryMovements")
+              .withIndex("by_itemId_and_type", (q) =>
+                q
+                  .eq("itemId", itemId)
+                  .eq("type", type)
+                  .gte("_creationTime", startBound)
+                  .lt("_creationTime", endBound),
+              )
+          : itemId !== undefined && actorUserId !== undefined
+            ? ctx.db
+                .query("inventoryMovements")
+                .withIndex("by_itemId_and_actorUserId", (q) =>
+                  q
+                    .eq("itemId", itemId)
+                    .eq("actorUserId", actorUserId)
+                    .gte("_creationTime", startBound)
+                    .lt("_creationTime", endBound),
+                )
+            : itemId !== undefined
+              ? ctx.db
+                  .query("inventoryMovements")
+                  .withIndex("by_itemId", (q) =>
+                    q
+                      .eq("itemId", itemId)
+                      .gte("_creationTime", startBound)
+                      .lt("_creationTime", endBound),
+                  )
+              : type !== undefined && actorUserId !== undefined
+                ? ctx.db
+                    .query("inventoryMovements")
+                    .withIndex(
+                      "by_barbershopId_and_type_and_actorUserId",
+                      (q) =>
+                        q
+                          .eq("barbershopId", args.barbershop.id)
+                          .eq("type", type)
+                          .eq("actorUserId", actorUserId)
+                          .gte("_creationTime", startBound)
+                          .lt("_creationTime", endBound),
+                    )
+                : type !== undefined
+                  ? ctx.db
+                      .query("inventoryMovements")
+                      .withIndex("by_barbershopId_and_type", (q) =>
+                        q
+                          .eq("barbershopId", args.barbershop.id)
+                          .eq("type", type)
+                          .gte("_creationTime", startBound)
+                          .lt("_creationTime", endBound),
+                      )
+                  : actorUserId !== undefined
+                    ? ctx.db
+                        .query("inventoryMovements")
+                        .withIndex("by_barbershopId_and_actorUserId", (q) =>
+                          q
+                            .eq("barbershopId", args.barbershop.id)
+                            .eq("actorUserId", actorUserId)
+                            .gte("_creationTime", startBound)
+                            .lt("_creationTime", endBound),
+                        )
+                    : ctx.db
+                        .query("inventoryMovements")
+                        .withIndex("by_barbershopId", (q) =>
+                          q
+                            .eq("barbershopId", args.barbershop.id)
+                            .gte("_creationTime", startBound)
+                            .lt("_creationTime", endBound),
+                        );
+
+    const result = await base.order("desc").paginate(args.paginationOpts);
 
     // Accountability: resolve each actor once per page so the ledger shows
     // WHO moved stock, not just what moved.

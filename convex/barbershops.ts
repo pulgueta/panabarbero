@@ -617,7 +617,7 @@ export const setLogoKey = zAuthMutation({
 
     if (barbershop.logoKey) {
       try {
-        await ctx.runMutation(api.r2.deleteR2Object, {
+        await ctx.runMutation(internal.r2.deleteR2Object, {
           key: barbershop.logoKey,
         });
       } catch {
@@ -649,7 +649,7 @@ export const removeLogoKey = zAuthMutation({
 
     if (barbershop.logoKey) {
       try {
-        await ctx.runMutation(api.r2.deleteR2Object, {
+        await ctx.runMutation(internal.r2.deleteR2Object, {
           key: barbershop.logoKey,
         });
       } catch {

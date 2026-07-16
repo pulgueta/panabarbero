@@ -1,6 +1,11 @@
-import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
-import type { Barbershop, InventoryItem, Service } from "@convex/schema";
+import type {
+  Barbershop,
+  InventoryItem,
+  InventoryMovementType,
+  Service,
+} from "@convex/schema";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import type { FunctionReturnType } from "convex/server";
 
@@ -104,17 +109,39 @@ export function movementTrendQueryOptions(barbershopId: Barbershop["_id"]) {
   });
 }
 
+/** Server-side ledger filters. Every field is index-backed in `listShopMovements`. */
+export type MovementFilters = {
+  type?: InventoryMovementType;
+  itemId?: InventoryItem["_id"];
+  actorUserId?: string;
+  startTime?: number;
+  endTime?: number;
+};
+
+/** Drop undefined keys so an unfiltered call keys identically to the loader prefetch. */
+function pruneFilters(filters: MovementFilters): MovementFilters {
+  const entries = Object.entries(filters).filter(
+    ([, value]) => value !== undefined,
+  );
+
+  return Object.fromEntries(entries);
+}
+
 export function shopMovementsPaginatedQueryOptions(
   barbershopId: Barbershop["_id"],
   cursor: string | null = null,
   numItems = 10,
+  filters?: MovementFilters,
 ) {
+  const active = filters ? pruneFilters(filters) : {};
+
   return convexQuery(api.inventory.listShopMovements, {
     barbershop: { id: barbershopId },
     paginationOpts: {
       cursor,
       numItems,
     },
+    ...(Object.keys(active).length > 0 ? { filters: active } : {}),
   });
 }
 
@@ -176,9 +203,10 @@ export function usePaginatedShopMovements(
   barbershopId: Barbershop["_id"],
   cursor: string | null,
   numItems = 10,
+  filters?: MovementFilters,
 ) {
   return useQuery(
-    shopMovementsPaginatedQueryOptions(barbershopId, cursor, numItems),
+    shopMovementsPaginatedQueryOptions(barbershopId, cursor, numItems, filters),
   );
 }
 
@@ -204,9 +232,6 @@ export function useInventoryActions() {
   const recordConsumptionMutation = useMutation({
     mutationFn: useConvexMutation(api.inventory.recordConsumption),
   });
-  const recordSaleMutation = useMutation({
-    mutationFn: useConvexMutation(api.inventory.recordSale),
-  });
   const recordWasteMutation = useMutation({
     mutationFn: useConvexMutation(api.inventory.recordWaste),
   });
@@ -222,7 +247,6 @@ export function useInventoryActions() {
     receiveStockMutation,
     adjustStockMutation,
     recordConsumptionMutation,
-    recordSaleMutation,
     recordWasteMutation,
     setServiceRecipeMutation,
   };

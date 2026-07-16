@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import type { InventoryOverviewRow } from "@/hooks/use-inventory";
-import { formatCurrency } from "@/lib/utils";
 
 import type { StockAdjustDialogState } from "./use-stock-adjust-dialog";
 
@@ -123,22 +122,6 @@ export const StockAdjustFormFields: FC<StockAdjustFormFieldsProps> = ({
         </form.AppField>
       ) : null}
 
-      {state.operation === "sale" && typeof item.salePrice === "number" && (
-        <form.Subscribe selector={(state) => state.values.quantity}>
-          {(quantity) => {
-            const salePrice = item.salePrice ?? 0;
-            const units = Number(quantity) > 0 ? Number(quantity) : 0;
-
-            return (
-              <p className="text-muted-foreground text-sm tabular-nums">
-                Total de la venta: {formatCurrency(units * salePrice)} (
-                {formatCurrency(salePrice)} c/u)
-              </p>
-            );
-          }}
-        </form.Subscribe>
-      )}
-
       {state.operation === "receive" && (
         <form.AppField name="unitCost">
           {(field) => (
@@ -217,18 +200,16 @@ export const StockAdjustFormFields: FC<StockAdjustFormFieldsProps> = ({
         </>
       )}
 
-      {state.operation !== "sale" && (
-        <form.AppField name="reason">
-          {(field) => (
-            <field.TextField
-              label="Motivo"
-              description={reasonRequired ? "Requerido" : "Opcional"}
-              placeholder="Conteo mensual"
-              className="w-full"
-            />
-          )}
-        </form.AppField>
-      )}
+      <form.AppField name="reason">
+        {(field) => (
+          <field.TextField
+            label="Motivo"
+            description={reasonRequired ? "Requerido" : "Opcional"}
+            placeholder="Conteo mensual"
+            className="w-full"
+          />
+        )}
+      </form.AppField>
     </FieldGroup>
   );
 };

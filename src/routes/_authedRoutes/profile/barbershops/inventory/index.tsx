@@ -34,6 +34,7 @@ import {
   useBarbershopPlan,
 } from "@/hooks/billing/use-plan";
 import {
+  type InventoryOverviewRow,
   inventoryOverviewQueryOptions,
   lowStockQueryOptions,
   monthlyConsumptionQueryOptions,
@@ -86,10 +87,10 @@ export const Route = createFileRoute(
   loader: async (opts) => {
     const barbershop = opts.context.dashboardBarbershop;
     const roles = opts.context.dashboardRoles;
+    const canManage = Boolean(roles?.isOwner || roles?.isStaff);
+    const canView = canManage || Boolean(roles?.roles?.includes("barber"));
 
-    // Inventory is owner/staff only. Barbers are scoped to their appointments
-    // and schedule.
-    if (!roles?.isOwner && !roles?.isStaff) {
+    if (!canView) {
       throw redirect({ to: "/profile/barbershops/appointments" });
     }
 
@@ -109,26 +110,29 @@ export const Route = createFileRoute(
         inventoryOverviewQueryOptions(barbershop._id),
       );
 
-      // Leaves: prime the KPI strip, charts and recent activity without blocking.
-      void opts.context.queryClient.prefetchQuery(
-        valuationQueryOptions(barbershop._id),
-      );
-      void opts.context.queryClient.prefetchQuery(
-        lowStockQueryOptions(barbershop._id),
-      );
-      void opts.context.queryClient.prefetchQuery(
-        monthlyConsumptionQueryOptions(barbershop._id),
-      );
-      void opts.context.queryClient.prefetchQuery(
-        movementTrendQueryOptions(barbershop._id),
-      );
-      void opts.context.queryClient.prefetchQuery(
-        shopMovementsPaginatedQueryOptions(
-          barbershop._id,
-          null,
-          RECENT_MOVEMENTS_PAGE_SIZE,
-        ),
-      );
+      // The remaining widgets expose costs and the full movement ledger.
+      if (canManage) {
+        // Leaves: prime the KPI strip, charts and recent activity without blocking.
+        void opts.context.queryClient.prefetchQuery(
+          valuationQueryOptions(barbershop._id),
+        );
+        void opts.context.queryClient.prefetchQuery(
+          lowStockQueryOptions(barbershop._id),
+        );
+        void opts.context.queryClient.prefetchQuery(
+          monthlyConsumptionQueryOptions(barbershop._id),
+        );
+        void opts.context.queryClient.prefetchQuery(
+          movementTrendQueryOptions(barbershop._id),
+        );
+        void opts.context.queryClient.prefetchQuery(
+          shopMovementsPaginatedQueryOptions(
+            barbershop._id,
+            null,
+            RECENT_MOVEMENTS_PAGE_SIZE,
+          ),
+        );
+      }
     }
   },
 });
@@ -170,8 +174,65 @@ interface OverviewBodyProps {
   barbershopId: Barbershop["_id"];
 }
 
+interface BarberInventorySummaryProps {
+  rows: InventoryOverviewRow[];
+}
+
+const BarberInventorySummary: FC<BarberInventorySummaryProps> = ({ rows }) => {
+  const sellableCount = rows.filter((row) => row.isSellable).length;
+  const lowStockCount = rows.filter((row) => row.belowReorder).length;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardDescription>Productos activos</CardDescription>
+            <CardTitle className="tabular-nums">{rows.length}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardDescription>Disponibles para venta</CardDescription>
+            <CardTitle className="tabular-nums">{sellableCount}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardDescription>Alertas de stock</CardDescription>
+            <CardTitle className="tabular-nums">{lowStockCount}</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Vista operativa</CardTitle>
+          <CardDescription>
+            Puedes consultar existencias y registrar ventas. Los costos, la
+            valorización y el historial completo están reservados para la
+            administración.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            nativeButton={false}
+            render={<Link to="/profile/barbershops/inventory/sales" />}
+          >
+            Ir a ventas
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
 const OverviewBody: FC<OverviewBodyProps> = ({ barbershopId }) => {
   const { data: overview } = useInventoryOverview(barbershopId);
+
+  if (!overview.canManage) {
+    return <BarberInventorySummary rows={overview.rows} />;
+  }
 
   return (
     <div className="space-y-6">

@@ -1,6 +1,7 @@
 "use node";
 
 import { ConvexError } from "convex/values";
+import { createElement } from "react";
 import { render } from "react-email";
 import { UseSend } from "usesend-js";
 import { z } from "zod";
@@ -15,9 +16,14 @@ import {
   PastAppointmentReminderEmail,
   RescheduleRequestAcceptEmail,
   RescheduleRequestDeniedEmail,
+  SaleReceiptEmail,
   WelcomeEmail,
 } from "../emails/emails";
 import { zInternalAction } from ".";
+import {
+  inventorySalePaymentMethods,
+  salePaymentMethodLabels as salePaymentMethodEmailLabels,
+} from "./inventorySalesShared";
 import {
   deepLinks,
   formatLowStockRemaining,
@@ -356,6 +362,69 @@ export const sendLowStockEmail = zInternalAction({
     await sendEmail({
       to: args.to,
       subject: subjects.low_stock,
+      html,
+    });
+  },
+});
+
+const copFormatter = new Intl.NumberFormat("es-CO", {
+  style: "currency",
+  currency: "COP",
+  maximumFractionDigits: 0,
+});
+
+const saleDateFormatter = new Intl.DateTimeFormat("es-CO", {
+  dateStyle: "long",
+  timeStyle: "short",
+  timeZone: "America/Bogota",
+});
+
+export const sendSaleReceiptEmail = zInternalAction({
+  args: z.object({
+    to: z.string(),
+    customerName: z.string(),
+    customerDocument: z.string().optional(),
+    barbershopName: z.string(),
+    receiptNumber: z.string(),
+    soldAt: z.number(),
+    paymentMethod: z.enum(inventorySalePaymentMethods),
+    paymentReference: z.string().optional(),
+    totalAmount: z.number(),
+    lines: z.array(
+      z.object({
+        name: z.string(),
+        quantity: z.number(),
+        unitPrice: z.number(),
+        lineTotal: z.number(),
+      }),
+    ),
+  }),
+  handler: async (_ctx, args) => {
+    const subject = `Recibo de tu compra en ${args.barbershopName}`;
+
+    const html = await render(
+      createElement(SaleReceiptEmail, {
+        subject,
+        barbershopName: args.barbershopName,
+        receiptNumber: args.receiptNumber,
+        soldAtLabel: saleDateFormatter.format(args.soldAt),
+        customerName: args.customerName,
+        customerDocument: args.customerDocument,
+        lines: args.lines.map((line) => ({
+          name: line.name,
+          quantity: line.quantity,
+          unitPrice: copFormatter.format(line.unitPrice),
+          lineTotal: copFormatter.format(line.lineTotal),
+        })),
+        total: copFormatter.format(args.totalAmount),
+        paymentMethodLabel: salePaymentMethodEmailLabels[args.paymentMethod],
+        paymentReference: args.paymentReference,
+      }),
+    );
+
+    await sendEmail({
+      to: args.to,
+      subject,
       html,
     });
   },

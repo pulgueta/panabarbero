@@ -1,6 +1,8 @@
 import type { FunctionReference } from "convex/server";
+import { z } from "zod";
 
-import { api, internal } from "./_generated/api";
+import { zInternalMutation } from ".";
+import { internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
 import {
   completedAppointmentsAggregate,
@@ -15,7 +17,20 @@ import {
   withCascadeTriggers,
 } from "./cascade";
 import { barbershopGeospatial } from "./geospatial";
+import { r2 } from "./r2";
 import type { Appointment, Barbershop, BarbershopMember } from "./schema";
+import { barbershops } from "./schema";
+
+/**
+ * Bounded sale scan for the inline-vs-batched decision. Every sale contributes
+ * at least two estimated rows (the sale plus ≥1 line), so seeing more than
+ * `INLINE_CASCADE_LIMIT / 2` sales already forces batched mode — reading the
+ * rest would only risk the per-transaction read budget on high-volume shops.
+ */
+const SALE_SCAN_CAP = INLINE_CASCADE_LIMIT / 2 + 1;
+
+/** Sales examined per invocation of the paged proof cleanup below. */
+const PROOF_CLEANUP_PAGE_SIZE = 200;
 
 /**
  * Structural teardown shared by `barbershops.deleteCascade` and the
@@ -31,6 +46,9 @@ import type { Appointment, Barbershop, BarbershopMember } from "./schema";
  *    aggregates stay in sync. Small trees delete atomically inline; trees
  *    above `INLINE_CASCADE_LIMIT` run in scheduled batches (the shop is
  *    deactivated up front so nothing books into a half-deleted barbershop).
+ *    In batched mode the sale-proof cleanup pages through `inventorySales`
+ *    first (`deleteSaleProofsPage`) and starts the cascade from its last page,
+ *    keeping every transaction inside the per-mutation read budget.
  *
  * The caller MUST have already authorized the deletion — this helper performs
  * no ownership/role check. It returns the fetched `appointments` and `members`
@@ -51,8 +69,8 @@ export async function cascadeDeleteBarbershop(
     await ctx.db.patch(barbershopId, { isActive: false });
   }
 
-  const [appointments, members, reviews, inventoryItemRows] = await Promise.all(
-    [
+  const [appointments, members, reviews, inventoryItemRows, inventorySales] =
+    await Promise.all([
       ctx.db
         .query("appointments")
         .withIndex("by_barbershopId", (q) => q.eq("barbershopId", barbershopId))
@@ -69,8 +87,16 @@ export async function cascadeDeleteBarbershop(
         .query("inventoryItems")
         .withIndex("by_barbershopId", (q) => q.eq("barbershopId", barbershopId))
         .collect(),
-    ],
-  );
+      ctx.db
+        .query("inventorySales")
+        .withIndex("by_barbershopId", (q) => q.eq("barbershopId", barbershopId))
+        .take(SALE_SCAN_CAP),
+    ]);
+
+  // Cap hit ⇒ the sale tree alone exceeds the inline budget; the rows are
+  // handled by the paged cleanup + batched cascade without ever being fully
+  // read here.
+  const salesTruncated = inventorySales.length >= SALE_SCAN_CAP;
 
   // Cancel pending scheduled notifications before deleting appointment rows.
   const scheduledIds = appointments.flatMap((appointment) =>
@@ -113,7 +139,9 @@ export async function cascadeDeleteBarbershop(
 
   if (barbershop.logoKey) {
     try {
-      await ctx.runMutation(api.r2.deleteR2Object, { key: barbershop.logoKey });
+      await ctx.runMutation(internal.r2.deleteR2Object, {
+        key: barbershop.logoKey,
+      });
     } catch {
       // Non-fatal: object may already be gone
     }
@@ -122,7 +150,9 @@ export async function cascadeDeleteBarbershop(
   for (const item of inventoryItemRows) {
     if (item.imageKey) {
       try {
-        await ctx.runMutation(api.r2.deleteR2Object, { key: item.imageKey });
+        await ctx.runMutation(internal.r2.deleteR2Object, {
+          key: item.imageKey,
+        });
       } catch {
         // Non-fatal: object may already be gone
       }
@@ -163,35 +193,48 @@ export async function cascadeDeleteBarbershop(
   // Row teardown. The movements ledger dominates large shops; its aggregate
   // gives the count in O(log n) without reading the rows. The estimate skips
   // the small tables (services, usage, credits…) on purpose — it only picks
-  // inline vs batched, and those never move the total by thousands.
+  // inline vs batched, and those never move the total by thousands. The sales
+  // rollups (inventorySalesDaily/Items) are skipped too: their row count is
+  // bounded by the sales + lines terms already in the sum, so the true tree
+  // stays within ~2x the estimate — far inside the per-mutation budgets.
   const movementCount = await inventoryMovementsAggregate.count(ctx, {
     namespace: barbershopId,
   });
+  const saleLineCount = inventorySales.reduce(
+    (count, sale) => count + sale.lineCount,
+    0,
+  );
   const estimatedRows =
     appointments.length +
     members.length +
     reviews.length +
     inventoryItemRows.length +
+    inventorySales.length +
+    saleLineCount +
     movementCount;
 
-  const cascadeCtx = withCascadeTriggers(ctx);
-
-  if (estimatedRows > INLINE_CASCADE_LIMIT) {
-    await cascadingDelete.deleteWithCascadeBatched(
-      cascadeCtx,
-      "barbershops",
-      barbershopId,
-      {
-        // The component types the ref as public, but createFunctionHandle
-        // accepts internal refs — and the worker must not be public.
-        batchHandlerRef: internal.cascade
-          .batchDeleteHandler as unknown as FunctionReference<"mutation">,
-        batchSize: CASCADE_BATCH_SIZE,
-      },
+  if (salesTruncated || estimatedRows > INLINE_CASCADE_LIMIT) {
+    // Batched mode: the sale proofs are cleaned in pages first — the full row
+    // set may not fit one transaction's read budget — and the last page kicks
+    // off the batched cascade, so every proofKey is read before its row dies.
+    await ctx.scheduler.runAfter(
+      0,
+      internal.barbershopCascade.deleteSaleProofsPage,
+      { barbershopId, cursor: null },
     );
   } else {
+    for (const sale of inventorySales) {
+      if (sale.proofKey) {
+        try {
+          await r2.deleteObject(ctx, sale.proofKey);
+        } catch {
+          // Non-fatal: object may already be gone
+        }
+      }
+    }
+
     await cascadingDelete.deleteWithCascade(
-      cascadeCtx,
+      withCascadeTriggers(ctx),
       "barbershops",
       barbershopId,
     );
@@ -199,3 +242,67 @@ export async function cascadeDeleteBarbershop(
 
   return { appointments, members };
 }
+
+async function startBatchedTeardown(
+  ctx: MutationCtx,
+  barbershopId: Barbershop["_id"],
+) {
+  await cascadingDelete.deleteWithCascadeBatched(
+    withCascadeTriggers(ctx),
+    "barbershops",
+    barbershopId,
+    {
+      // The component types the ref as public, but createFunctionHandle
+      // accepts internal refs — and the worker must not be public.
+      batchHandlerRef: internal.cascade
+        .batchDeleteHandler as unknown as FunctionReference<"mutation">,
+      batchSize: CASCADE_BATCH_SIZE,
+    },
+  );
+}
+
+/**
+ * Paged sale-proof cleanup for batched teardowns. Each invocation reads one
+ * page of the shop's sales, deletes their R2 proofs, and reschedules itself;
+ * the final page starts the batched row cascade. Rows are stable meanwhile:
+ * the shop is tombstoned and member authz is revoked before this is scheduled,
+ * so nothing can write new sales, and no rows are deleted until the cascade
+ * this job launches at the end.
+ */
+export const deleteSaleProofsPage = zInternalMutation({
+  args: z.object({
+    barbershopId: barbershops.tools.id.shape.id,
+    cursor: z.union([z.string(), z.null()]),
+  }),
+  handler: async (ctx, args) => {
+    const result = await ctx.db
+      .query("inventorySales")
+      .withIndex("by_barbershopId", (q) =>
+        q.eq("barbershopId", args.barbershopId),
+      )
+      .paginate({ numItems: PROOF_CLEANUP_PAGE_SIZE, cursor: args.cursor });
+
+    for (const sale of result.page) {
+      if (sale.proofKey) {
+        try {
+          await r2.deleteObject(ctx, sale.proofKey);
+        } catch {
+          // Non-fatal: object may already be gone
+        }
+      }
+    }
+
+    if (result.isDone) {
+      await startBatchedTeardown(ctx, args.barbershopId);
+      return null;
+    }
+
+    await ctx.scheduler.runAfter(
+      0,
+      internal.barbershopCascade.deleteSaleProofsPage,
+      { barbershopId: args.barbershopId, cursor: result.continueCursor },
+    );
+
+    return null;
+  },
+});

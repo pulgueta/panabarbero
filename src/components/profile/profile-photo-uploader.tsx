@@ -68,7 +68,6 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
 
   const {
     uploadFile: { uploadFile, isUploading },
-    deleteFileMutation: { mutateAsync: deleteFile, isPending: isDeletingOld },
   } = useUpload({
     type: "profile-photo",
   });
@@ -80,7 +79,7 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
     },
   } = useProfilePhotoActions();
 
-  const isRemoving = isDeletingOld || isRemovingPhoto;
+  const isRemoving = isRemovingPhoto;
   const isBusy = isUploading || isRemoving;
   const hasQueuedFiles = queuedFiles.length > 0;
   const currentPhotoUrl = session?.image;
@@ -133,12 +132,9 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
     try {
       const key = await uploadFile(file);
 
-      if (previousKey) {
-        await deleteFile({ key: previousKey });
-      }
-
       await setProfilePhotoKey({
         imageUrl: `${clientEnv.VITE_STORAGE_URL}/${key}`,
+        previousKey: previousKey ?? undefined,
       });
 
       toast.success("Foto de perfil actualizada");

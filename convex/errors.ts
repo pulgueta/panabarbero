@@ -46,6 +46,11 @@ export const errorMessages = {
     "Esta clave de idempotencia ya se usó en otra operación.",
   salePriceRequired:
     "El precio de venta es requerido para productos vendibles.",
+  duplicateSaleItem: "No repitas productos en la misma venta.",
+  invalidSaleProof:
+    "El comprobante debe ser una imagen o un PDF de máximo 8 MB.",
+  invalidSaleTotal: "El total de la venta no es válido.",
+  invalidSaleCustomerPhone: "El celular del cliente no es válido.",
   duplicateRecipeItem: "No repitas productos en la receta.",
   durableNotConsumable:
     "Los productos durables no se consumen, no se venden ni se marcan como merma. Usa un ajuste para corregir su cantidad.",

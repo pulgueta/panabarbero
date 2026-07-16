@@ -1,7 +1,7 @@
 import { R2 } from "@convex-dev/r2";
 import { z } from "zod";
 
-import { zAuthAction, zMutation } from ".";
+import { zAuthAction, zInternalMutation } from ".";
 import { components } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { requireUserId } from "./identity";
@@ -9,20 +9,14 @@ import { rateLimitOrThrow } from "./ratelimit";
 
 export const r2 = new R2(components.r2);
 
-export const {
-  generateUploadUrl,
-  listMetadata,
-  deleteObject,
-  getMetadata,
-  syncMetadata,
-  onSyncMetadata,
-} = r2.clientApi<DataModel>({
-  checkUpload: async (ctx) => {
-    await requireUserId(ctx);
-  },
-});
+export const { generateUploadUrl, syncMetadata, onSyncMetadata } =
+  r2.clientApi<DataModel>({
+    checkUpload: async (ctx) => {
+      await requireUserId(ctx);
+    },
+  });
 
-export const deleteR2Object = zMutation({
+export const deleteR2Object = zInternalMutation({
   args: z.object({
     key: z.string(),
   }),

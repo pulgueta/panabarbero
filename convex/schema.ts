@@ -3,6 +3,9 @@ import type { output } from "zod";
 import { z } from "zod";
 
 import { zodTable } from ".";
+import { inventorySalePaymentMethods } from "./inventorySalesShared";
+
+export { inventorySalePaymentMethods };
 
 export const userProfileData = zodTable("userProfileData", () => ({
   userId: z.string(),
@@ -491,9 +494,98 @@ export const inventoryMovements = zodTable("inventoryMovements", (id) => ({
   reason: z.string().max(300).optional(),
   actorUserId: z.string(),
   relatedAppointmentId: id("appointments").optional(),
+  relatedSaleId: id("inventorySales").optional(),
   /** Dedupe for webhook/import-originated movements (creditPurchases.paymentId pattern). */
   idempotencyKey: z.string().optional(),
 }));
+
+/** Document types accepted on Colombian (DIAN) receipts. */
+export const inventorySaleDocumentTypes = [
+  "cc",
+  "ce",
+  "nit",
+  "ti",
+  "pp",
+  "ppt",
+] as const;
+
+/** One completed retail transaction. Product details live on immutable line snapshots. */
+export const inventorySales = zodTable("inventorySales", (id) => ({
+  barbershopId: id("barbershops"),
+  actorUserId: z.string(),
+  totalAmount: z.number().int().min(0),
+  lineCount: z.number().int().min(1),
+  /** Optional here for pre-existing rows; required on new sales. */
+  paymentMethod: z.enum(inventorySalePaymentMethods).optional(),
+  /** Approval/transfer number to reconcile digital payments. */
+  paymentReference: z.string().max(60).optional(),
+  /** Customer asked for a receipt — customer identity fields become required. */
+  receiptIssued: z.boolean().optional(),
+  /** Walk-in sales stay anonymous; buyer data enables follow-up and invoicing. */
+  customerName: z.string().max(120).optional(),
+  customerDocumentType: z.enum(inventorySaleDocumentTypes).optional(),
+  customerDocumentNumber: z.string().max(20).optional(),
+  /** E.164 (`+57…`) — normalized like appointments.contactPhone. */
+  customerPhone: z.string().max(16).optional(),
+  customerEmail: z.string().max(255).optional(),
+  notes: z.string().max(300).optional(),
+  proofKey: z.string().optional(),
+  proofFileName: z.string().max(180).optional(),
+  proofContentType: z.string().max(80).optional(),
+  proofSize: z.number().int().positive().optional(),
+}));
+
+/** Immutable identity, pricing and cost snapshots for every product in a sale. */
+export const inventorySaleLines = zodTable("inventorySaleLines", (id) => ({
+  saleId: id("inventorySales"),
+  barbershopId: id("barbershops"),
+  itemId: id("inventoryItems"),
+  movementId: id("inventoryMovements"),
+  itemName: z.string(),
+  sku: z.string().optional(),
+  category: z.enum(inventoryCategories),
+  unit: z.enum(inventoryUnits),
+  brand: z.string().optional(),
+  model: z.string().optional(),
+  customLabel: z.string().optional(),
+  presentationValue: z.number().int().positive().optional(),
+  presentationUnit: z.enum(inventoryPresentationUnits).optional(),
+  quantity: z.number().int().positive(),
+  unitPrice: z.number().int().min(0),
+  unitCostAtTime: z.number().int().min(0),
+  lineTotal: z.number().int().min(0),
+}));
+
+/**
+ * Per-day sales rollup, written by `registerSale` alongside every sale. The
+ * dashboard reads these instead of the raw sales/lines so its cost scales with
+ * the window's days (≤62 rows) rather than the shop's transaction volume, which
+ * on a retail-heavy shop would eventually exceed the per-query scan limit and
+ * break the page for good.
+ */
+export const inventorySalesDaily = zodTable("inventorySalesDaily", (id) => ({
+  barbershopId: id("barbershops"),
+  /** "YYYY-MM-DD", America/Bogota. */
+  date: z.string(),
+  revenue: z.number().int().min(0),
+  saleCount: z.number().int().min(0),
+  unitsSold: z.number().int().min(0),
+}));
+
+/** Per-day, per-item slice of the sales rollup — backs the best-sellers chart. */
+export const inventorySalesDailyItems = zodTable(
+  "inventorySalesDailyItems",
+  (id) => ({
+    barbershopId: id("barbershops"),
+    itemId: id("inventoryItems"),
+    /** "YYYY-MM-DD", America/Bogota. */
+    date: z.string(),
+    /** Snapshot like `inventorySaleLines.itemName` — survives renames/archival. */
+    itemName: z.string(),
+    units: z.number().int().min(0),
+    revenue: z.number().int().min(0),
+  }),
+);
 
 /**
  * Per-service consumption recipe: booking auto-reserves these lines,
@@ -736,12 +828,53 @@ export default defineSchema({
   inventoryMovements: inventoryMovements
     .table()
     .index("by_itemId", ["itemId"])
+    .index("by_itemId_and_type", ["itemId", "type"])
+    .index("by_itemId_and_actorUserId", ["itemId", "actorUserId"])
+    .index("by_itemId_and_type_and_actorUserId", [
+      "itemId",
+      "type",
+      "actorUserId",
+    ])
     .index("by_barbershopId", ["barbershopId"])
+    .index("by_barbershopId_and_type", ["barbershopId", "type"])
+    .index("by_barbershopId_and_actorUserId", ["barbershopId", "actorUserId"])
+    .index("by_barbershopId_and_type_and_actorUserId", [
+      "barbershopId",
+      "type",
+      "actorUserId",
+    ])
     .index("by_barbershopId_and_idempotencyKey", [
       "barbershopId",
       "idempotencyKey",
     ])
-    .index("by_relatedAppointmentId", ["relatedAppointmentId"]),
+    .index("by_relatedAppointmentId", ["relatedAppointmentId"])
+    .index("by_relatedSaleId", ["relatedSaleId"]),
+
+  inventorySales: inventorySales
+    .table()
+    .index("by_barbershopId", ["barbershopId"])
+    .index("by_proofKey", ["proofKey"])
+    .index("by_actorUserId", ["actorUserId"]),
+
+  inventorySaleLines: inventorySaleLines
+    .table()
+    .index("by_saleId", ["saleId"])
+    .index("by_barbershopId", ["barbershopId"])
+    .index("by_itemId", ["itemId"]),
+
+  // Both rollup indexes serve double duty: the dashboard's bounded date range
+  // scan, and registerSale's point lookup for the row it folds a sale into.
+  inventorySalesDaily: inventorySalesDaily
+    .table()
+    .index("by_barbershopId_and_date", ["barbershopId", "date"]),
+
+  inventorySalesDailyItems: inventorySalesDailyItems
+    .table()
+    .index("by_barbershopId_and_date_and_itemId", [
+      "barbershopId",
+      "date",
+      "itemId",
+    ]),
 
   serviceInventoryUsage: serviceInventoryUsage
     .table()
@@ -810,6 +943,12 @@ export type NotificationKind = (typeof notificationKinds)[number];
 export type InventoryItem = output<typeof inventoryItems.schema>;
 export type InventoryLevel = output<typeof inventoryLevels.schema>;
 export type InventoryMovement = output<typeof inventoryMovements.schema>;
+export type InventorySale = output<typeof inventorySales.schema>;
+export type InventorySaleLine = output<typeof inventorySaleLines.schema>;
+export type InventorySalePaymentMethod =
+  (typeof inventorySalePaymentMethods)[number];
+export type InventorySaleDocumentType =
+  (typeof inventorySaleDocumentTypes)[number];
 export type InventoryMovementType = (typeof inventoryMovementTypes)[number];
 export type InventoryCategory = (typeof inventoryCategories)[number];
 export type InventoryUnit = (typeof inventoryUnits)[number];
