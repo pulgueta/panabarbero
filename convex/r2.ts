@@ -1,11 +1,9 @@
 import { R2 } from "@convex-dev/r2";
-import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zAuthAction, zInternalMutation } from ".";
 import { components } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
-import { errorMessages } from "./errors";
 import { requireUserId } from "./identity";
 import { rateLimitOrThrow } from "./ratelimit";
 
@@ -24,15 +22,6 @@ export const deleteR2Object = zInternalMutation({
   }),
   handler: async (ctx, args) => {
     await rateLimitOrThrow(ctx, "deleteR2Object", args.key);
-
-    const linkedSale = await ctx.db
-      .query("inventorySales")
-      .withIndex("by_proofKey", (q) => q.eq("proofKey", args.key))
-      .unique();
-
-    if (linkedSale) {
-      throw new ConvexError(errorMessages.invalidSaleProof);
-    }
 
     return await r2.deleteObject(ctx, args.key);
   },
