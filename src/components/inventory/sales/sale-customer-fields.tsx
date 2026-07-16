@@ -11,6 +11,10 @@ import { PhoneInput } from "@/components/ui/phone-input";
 import { saleDocumentTypeLabels } from "./labels";
 import type { SaleForm } from "./use-sale-form";
 
+interface SaleCustomerFieldsProps {
+  form: SaleForm;
+}
+
 const documentTypeOptions = inventorySaleDocumentTypes.map((value) => ({
   value,
   label: saleDocumentTypeLabels[value],
@@ -21,7 +25,7 @@ const documentTypeOptions = inventorySaleDocumentTypes.map((value) => ({
  * name, document and phone become required; without it everything stays
  * optional follow-up data.
  */
-export const SaleCustomerFields: FC<{ form: SaleForm }> = ({ form }) => (
+export const SaleCustomerFields: FC<SaleCustomerFieldsProps> = ({ form }) => (
   <>
     <div className="flex flex-col gap-2">
       <form.AppField name="issueReceipt">

@@ -4,13 +4,17 @@ import type { FC } from "react";
 import { salePaymentMethodLabels } from "./labels";
 import type { SaleForm } from "./use-sale-form";
 
+interface SalePaymentFieldsProps {
+  form: SaleForm;
+}
+
 const paymentMethodOptions = inventorySalePaymentMethods.map((value) => ({
   value,
   label: salePaymentMethodLabels[value],
 }));
 
 /** Step 2 — how the sale was paid, plus internal notes. */
-export const SalePaymentFields: FC<{ form: SaleForm }> = ({ form }) => (
+export const SalePaymentFields: FC<SalePaymentFieldsProps> = ({ form }) => (
   <>
     <div className="grid gap-4 sm:grid-cols-2">
       <form.AppField name="paymentMethod">
