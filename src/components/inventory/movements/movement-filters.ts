@@ -1,5 +1,7 @@
+import { errorMessages } from "@convex/errors";
 import type { InventoryMovementType } from "@convex/schema";
 import { inventoryMovementTypes } from "@convex/schema";
+import { ConvexError } from "convex/values";
 
 import { inventoryMovementTypeData } from "@/components/inventory/labels";
 
@@ -84,9 +86,13 @@ export function movementDirection(
       return quantity < 0
         ? { sign: "-", tone: "out" }
         : { sign: "+", tone: "in" };
-    default:
-      // reservation, release — reserved bucket only, neutral to on-hand.
+    case "reservation":
+    case "release":
       return { sign: "", tone: "reserved" };
+    default:
+      throw new ConvexError(
+        errorMessages.notFound(`tipo de movimiento ${type satisfies never}`),
+      );
   }
 }
 
