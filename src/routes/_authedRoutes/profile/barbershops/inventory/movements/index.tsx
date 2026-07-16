@@ -10,9 +10,8 @@ import {
   DashboardPageHeading,
 } from "@/components/dashboard/dashboard-page";
 import { DashboardPending } from "@/components/dashboard/dashboard-pending";
-import { ShopMovementList } from "@/components/inventory/shop-movement-list";
+import { MovementLedger } from "@/components/inventory/movements/movement-ledger";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Empty,
   EmptyContent,
@@ -123,14 +122,7 @@ const MovementsBody: FC<MovementsBodyProps> = ({ barbershop }) => {
   }
 
   return (
-    <Card>
-      <CardContent>
-        <ShopMovementList
-          barbershopId={barbershop._id}
-          pageSize={LEDGER_PAGE_SIZE}
-        />
-      </CardContent>
-    </Card>
+    <MovementLedger barbershopId={barbershop._id} pageSize={LEDGER_PAGE_SIZE} />
   );
 };
 
