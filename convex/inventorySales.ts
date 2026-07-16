@@ -386,41 +386,43 @@ export const registerSale = zAuthMutation({
       proofSize: args.proof?.size,
     });
 
-    for (const line of preparedLines) {
-      const movement = await recordMovement(ctx, {
-        barbershopId: args.barbershop.id,
-        itemId: line.item._id,
-        type: "sale",
-        quantity: line.quantity,
-        actorUserId: ctx.userId,
-        salePriceAtTime: line.unitPrice,
-        relatedSaleId: saleId,
-      });
+    await Promise.all(
+      preparedLines.map(async (line) => {
+        const movement = await recordMovement(ctx, {
+          barbershopId: args.barbershop.id,
+          itemId: line.item._id,
+          type: "sale",
+          quantity: line.quantity,
+          actorUserId: ctx.userId,
+          salePriceAtTime: line.unitPrice,
+          relatedSaleId: saleId,
+        });
 
-      if (!movement.movementId) {
-        throw new ConvexError(errorMessages.invalidQuantity);
-      }
+        if (!movement.movementId) {
+          throw new ConvexError(errorMessages.invalidQuantity);
+        }
 
-      await ctx.db.insert("inventorySaleLines", {
-        saleId,
-        barbershopId: args.barbershop.id,
-        itemId: line.item._id,
-        movementId: movement.movementId,
-        itemName: line.item.name,
-        sku: line.item.sku,
-        category: line.item.category,
-        unit: line.item.unit,
-        brand: line.item.brand,
-        model: line.item.model,
-        customLabel: line.item.customLabel,
-        presentationValue: line.item.presentationValue,
-        presentationUnit: line.item.presentationUnit,
-        quantity: line.quantity,
-        unitPrice: line.unitPrice,
-        unitCostAtTime: line.item.unitCost,
-        lineTotal: line.lineTotal,
-      });
-    }
+        await ctx.db.insert("inventorySaleLines", {
+          saleId,
+          barbershopId: args.barbershop.id,
+          itemId: line.item._id,
+          movementId: movement.movementId,
+          itemName: line.item.name,
+          sku: line.item.sku,
+          category: line.item.category,
+          unit: line.item.unit,
+          brand: line.item.brand,
+          model: line.item.model,
+          customLabel: line.item.customLabel,
+          presentationValue: line.item.presentationValue,
+          presentationUnit: line.item.presentationUnit,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          unitCostAtTime: line.item.unitCost,
+          lineTotal: line.lineTotal,
+        });
+      }),
+    );
 
     await auditLog.logChange(ctx, {
       action: "inventory.sale.created",
