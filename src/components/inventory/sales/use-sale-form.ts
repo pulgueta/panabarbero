@@ -37,13 +37,11 @@ const paymentStepSchema = z.object({
 });
 
 /**
- * Receipt on → the customer identity is required; receipt off → everything is
- * optional, but any partial data must still be coherent (name present, the
- * document complete) so follow-up records stay usable.
+ * The customer identity is always required — it goes on the sale's receipt.
+ * Only the email is optional; when present, the receipt is emailed.
  */
 const customerStepSchema = z
   .object({
-    issueReceipt: z.boolean(),
     customerName: z.string().trim().max(120),
     customerDocumentType: z.union([
       z.enum(inventorySaleDocumentTypes),
@@ -58,39 +56,19 @@ const customerStepSchema = z
       ctx.addIssue({ code: "custom", path: [path], message });
     };
 
-    const hasAnyData = Boolean(
-      values.customerName ||
-        values.customerDocumentType ||
-        values.customerDocumentNumber ||
-        values.customerPhone ||
-        values.customerEmail,
-    );
-
-    if ((values.issueReceipt || hasAnyData) && values.customerName.length < 3) {
+    if (values.customerName.length < 3) {
       issue("customerName", "Ingresa el nombre del cliente");
     }
 
-    if (values.issueReceipt && !values.customerDocumentType) {
-      issue("customerDocumentType", "Selecciona el tipo de documento");
-    }
-    if (
-      (values.issueReceipt || values.customerDocumentType) &&
-      !documentNumberPattern.test(values.customerDocumentNumber)
-    ) {
-      issue("customerDocumentNumber", "Ingresa un número de documento válido");
-    }
-    if (
-      !values.issueReceipt &&
-      values.customerDocumentNumber &&
-      !values.customerDocumentType
-    ) {
+    if (!values.customerDocumentType) {
       issue("customerDocumentType", "Selecciona el tipo de documento");
     }
 
-    if (
-      (values.issueReceipt || values.customerPhone) &&
-      !phonePattern.test(values.customerPhone)
-    ) {
+    if (!documentNumberPattern.test(values.customerDocumentNumber)) {
+      issue("customerDocumentNumber", "Ingresa un número de documento válido");
+    }
+
+    if (!phonePattern.test(values.customerPhone)) {
       issue("customerPhone", "Ingresa un celular válido");
     }
 

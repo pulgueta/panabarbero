@@ -50,11 +50,7 @@ export const errorMessages = {
   invalidSaleProof:
     "El comprobante debe ser una imagen o un PDF de máximo 8 MB.",
   invalidSaleTotal: "El total de la venta no es válido.",
-  incompleteSaleCustomerDocument:
-    "Completa el tipo y el número de documento del cliente.",
   invalidSaleCustomerPhone: "El celular del cliente no es válido.",
-  receiptRequiresCustomer:
-    "Para emitir un recibo, registra el nombre, el documento y el celular del cliente.",
   duplicateRecipeItem: "No repitas productos en la receta.",
   durableNotConsumable:
     "Los productos durables no se consumen, no se venden ni se marcan como merma. Usa un ajuste para corregir su cantidad.",

@@ -74,10 +74,6 @@ export const SaleBuilder: FC<SaleBuilderProps> = ({
     form.store,
     (state) => state.values.customerName,
   );
-  const issueReceipt = useSelector(
-    form.store,
-    (state) => state.values.issueReceipt,
-  );
   const customerEmail = useSelector(
     form.store,
     (state) => state.values.customerEmail,
@@ -323,10 +319,7 @@ export const SaleBuilder: FC<SaleBuilderProps> = ({
                 total={total}
                 paymentMethod={paymentMethod}
                 customerName={customerName.trim() || undefined}
-                issueReceipt={issueReceipt}
-                receiptEmail={
-                  issueReceipt ? customerEmail.trim() || undefined : undefined
-                }
+                receiptEmail={customerEmail.trim() || undefined}
                 confirmStep={confirmStep}
                 isConfirming={isConfirming}
                 onCancelConfirm={() => setConfirmStep(false)}

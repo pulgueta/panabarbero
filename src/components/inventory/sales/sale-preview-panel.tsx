@@ -30,7 +30,6 @@ interface SalePreviewPanelProps {
   total: number;
   paymentMethod: InventorySalePaymentMethod;
   customerName?: string;
-  issueReceipt: boolean;
   /** Set when the receipt will also be emailed to the customer. */
   receiptEmail?: string;
   /** Two-step confirm: a responsive dialog asks for explicit confirmation first. */
@@ -50,7 +49,6 @@ export const SalePreviewPanel: FC<SalePreviewPanelProps> = ({
   total,
   paymentMethod,
   customerName,
-  issueReceipt,
   receiptEmail,
   confirmStep,
   isConfirming,
@@ -121,16 +119,14 @@ export const SalePreviewPanel: FC<SalePreviewPanelProps> = ({
               <span className="truncate font-medium">{customerName}</span>
             </div>
           ) : null}
-          {issueReceipt ? (
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-muted-foreground">Recibo</span>
-              <span className="truncate font-medium">
-                {receiptEmail
-                  ? `Se enviará a ${receiptEmail}`
-                  : "Sin envío por correo"}
-              </span>
-            </div>
-          ) : null}
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-muted-foreground">Recibo</span>
+            <span className="truncate font-medium">
+              {receiptEmail
+                ? `Se enviará a ${receiptEmail}`
+                : "Sin envío por correo"}
+            </span>
+          </div>
         </div>
 
         {proof ? (

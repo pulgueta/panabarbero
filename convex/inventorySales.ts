@@ -52,15 +52,14 @@ const saleCustomerSchema = z.object({
     .trim()
     .min(3, { error: "El nombre del cliente debe tener al menos 3 caracteres" })
     .max(120),
-  documentType: z.enum(inventorySaleDocumentTypes).optional(),
+  documentType: z.enum(inventorySaleDocumentTypes),
   documentNumber: z
     .string()
     .trim()
     .regex(/^(?=.*[0-9A-Za-z])[0-9A-Za-z-]{3,20}$/, {
       error: "El número de documento no es válido",
-    })
-    .optional(),
-  phone: z.string().trim().min(7).max(16).optional(),
+    }),
+  phone: z.string().trim().min(7).max(16),
   email: z.email({ error: "El correo del cliente no es válido" }).optional(),
 });
 
@@ -332,8 +331,7 @@ export const registerSale = zAuthMutation({
     lines: saleLinesSchema,
     paymentMethod: z.enum(inventorySalePaymentMethods),
     paymentReference: z.string().trim().max(60).optional(),
-    issueReceipt: z.boolean().optional(),
-    customer: saleCustomerSchema.optional(),
+    customer: saleCustomerSchema,
     notes: z.string().trim().max(300).optional(),
     proof: proofSchema.optional(),
   }),
@@ -348,30 +346,9 @@ export const registerSale = zAuthMutation({
     }
 
     const customer = args.customer;
-    const issueReceipt = args.issueReceipt ?? false;
+    const customerPhone = formatPhoneNumber(customer.phone);
 
-    if (
-      issueReceipt &&
-      (!customer ||
-        !customer.documentType ||
-        !customer.documentNumber ||
-        !customer.phone)
-    ) {
-      throw new ConvexError(errorMessages.receiptRequiresCustomer);
-    }
-
-    if (
-      customer &&
-      Boolean(customer.documentType) !== Boolean(customer.documentNumber)
-    ) {
-      throw new ConvexError(errorMessages.incompleteSaleCustomerDocument);
-    }
-
-    const customerPhone = customer?.phone
-      ? formatPhoneNumber(customer.phone)
-      : undefined;
-
-    if (customer?.phone && !customerPhone) {
+    if (!customerPhone) {
       throw new ConvexError(errorMessages.invalidSaleCustomerPhone);
     }
 
@@ -451,12 +428,12 @@ export const registerSale = zAuthMutation({
       lineCount: preparedLines.length,
       paymentMethod: args.paymentMethod,
       paymentReference: args.paymentReference || undefined,
-      receiptIssued: issueReceipt || undefined,
-      customerName: customer?.name,
-      customerDocumentType: customer?.documentType,
-      customerDocumentNumber: customer?.documentNumber,
+      receiptIssued: customer.email ? true : undefined,
+      customerName: customer.name,
+      customerDocumentType: customer.documentType,
+      customerDocumentNumber: customer.documentNumber,
       customerPhone,
-      customerEmail: customer?.email,
+      customerEmail: customer.email,
       notes: args.notes || undefined,
       proofKey: args.proof?.key,
       proofFileName: args.proof?.fileName,
@@ -528,8 +505,7 @@ export const registerSale = zAuthMutation({
         totalAmount,
         lineCount: preparedLines.length,
         paymentMethod: args.paymentMethod,
-        hasCustomer: Boolean(customer),
-        receiptIssued: issueReceipt,
+        receiptIssued: Boolean(customer.email),
         hasProof: Boolean(args.proof),
       },
       generateDiff: true,
@@ -547,23 +523,19 @@ export const registerSale = zAuthMutation({
         lineCount: preparedLines.length,
         revenue: totalAmount,
         paymentMethod: args.paymentMethod,
-        hasCustomer: Boolean(customer),
-        receiptIssued: issueReceipt,
+        receiptIssued: Boolean(customer.email),
         hasProof: Boolean(args.proof),
       },
       groups: { barbershop: args.barbershop.id },
     });
 
-    if (issueReceipt && customer?.email) {
+    if (customer.email) {
       const barbershop = await ctx.db.get(args.barbershop.id);
 
       await ctx.scheduler.runAfter(0, internal.emails.sendSaleReceiptEmail, {
         to: customer.email,
         customerName: customer.name,
-        customerDocument:
-          customer.documentType && customer.documentNumber
-            ? `${customer.documentType.toUpperCase()} ${customer.documentNumber}`
-            : undefined,
+        customerDocument: `${customer.documentType.toUpperCase()} ${customer.documentNumber}`,
         barbershopName: barbershop?.name ?? "PanaBarbero",
         receiptNumber: saleId.slice(-8).toUpperCase(),
         soldAt: Date.now(),

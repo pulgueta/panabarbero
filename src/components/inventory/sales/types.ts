@@ -19,8 +19,6 @@ export interface SaleFormValues {
   lines: SaleDraftLine[];
   paymentMethod: InventorySalePaymentMethod;
   paymentReference: string;
-  /** Receipt for the customer — makes the customer identity fields required. */
-  issueReceipt: boolean;
   customerName: string;
   customerDocumentType: InventorySaleDocumentType | "";
   customerDocumentNumber: string;
@@ -34,7 +32,6 @@ export const saleFormDefaults: SaleFormValues = {
   lines: [],
   paymentMethod: "cash",
   paymentReference: "",
-  issueReceipt: false,
   customerName: "",
   customerDocumentType: "",
   customerDocumentNumber: "",
