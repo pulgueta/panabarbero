@@ -122,7 +122,11 @@ const MovementsBody: FC<MovementsBodyProps> = ({ barbershop }) => {
   }
 
   return (
-    <MovementLedger barbershopId={barbershop._id} pageSize={LEDGER_PAGE_SIZE} />
+    <MovementLedger
+      key={barbershop._id}
+      barbershopId={barbershop._id}
+      pageSize={LEDGER_PAGE_SIZE}
+    />
   );
 };
 

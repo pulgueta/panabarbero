@@ -11,9 +11,9 @@ import {
 } from "@/components/inventory/movements/movement-filter-bar";
 import {
   datePresetToStart,
+  type MovementFilterState,
   movementDateTimeFormatter,
   movementDirection,
-  type MovementFilterState,
   movementToneClass,
 } from "@/components/inventory/movements/movement-filters";
 import { Badge } from "@/components/ui/badge";
@@ -123,9 +123,9 @@ export const MovementLedger: FC<MovementLedgerProps> = ({
     });
   }, []);
 
-  const sig = `${serverFilters.type ?? ""}|${serverFilters.itemId ?? ""}|${
-    serverFilters.actorUserId ?? ""
-  }|${serverFilters.startTime ?? ""}`;
+  const sig = `${barbershopId}|${serverFilters.type ?? ""}|${
+    serverFilters.itemId ?? ""
+  }|${serverFilters.actorUserId ?? ""}|${serverFilters.startTime ?? ""}`;
 
   return (
     <div className="overflow-hidden rounded-xl border bg-card">
@@ -309,7 +309,11 @@ const LedgerFetcher: FC<LedgerFetcherProps> = ({
   return null;
 };
 
-const LedgerRow: FC<{ movement: InventoryMovementRow }> = ({ movement }) => {
+interface MovementRowProps {
+  movement: InventoryMovementRow;
+}
+
+const LedgerRow: FC<MovementRowProps> = ({ movement }) => {
   const { label, variant } = inventoryMovementTypeData[movement.type];
   const { sign, tone } = movementDirection(movement.type, movement.quantity);
   const magnitude = Math.abs(movement.quantity);
@@ -345,7 +349,7 @@ const LedgerRow: FC<{ movement: InventoryMovementRow }> = ({ movement }) => {
   );
 };
 
-const LedgerCard: FC<{ movement: InventoryMovementRow }> = ({ movement }) => {
+const LedgerCard: FC<MovementRowProps> = ({ movement }) => {
   const { label, variant } = inventoryMovementTypeData[movement.type];
   const { sign, tone } = movementDirection(movement.type, movement.quantity);
   const magnitude = Math.abs(movement.quantity);
@@ -385,9 +389,7 @@ const LedgerCard: FC<{ movement: InventoryMovementRow }> = ({ movement }) => {
   );
 };
 
-const MovementDetail: FC<{ movement: InventoryMovementRow }> = ({
-  movement,
-}) => {
+const MovementDetail: FC<MovementRowProps> = ({ movement }) => {
   const hasSalePrice =
     movement.type === "sale" && typeof movement.salePriceAtTime === "number";
 
