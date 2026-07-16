@@ -20,12 +20,15 @@ import {
 } from "../emails/emails";
 import { zInternalAction } from ".";
 import {
+  inventorySalePaymentMethods,
+  salePaymentMethodLabels as salePaymentMethodEmailLabels,
+} from "./inventorySalesShared";
+import {
   deepLinks,
   formatLowStockRemaining,
   siteUrl,
 } from "./notificationCopy";
 import { subjects } from "./notifications";
-import { inventorySalePaymentMethods } from "./schema";
 
 export const from = "Soporte de PanaBarbero <contacto@mail.panabarbero.com>";
 
@@ -362,18 +365,6 @@ export const sendLowStockEmail = zInternalAction({
     });
   },
 });
-
-const salePaymentMethodEmailLabels: Record<
-  (typeof inventorySalePaymentMethods)[number],
-  string
-> = {
-  cash: "Efectivo",
-  card: "Tarjeta débito o crédito",
-  nequi: "Nequi",
-  daviplata: "Daviplata",
-  transfer: "Transferencia bancaria",
-  other: "Otro método",
-};
 
 const copFormatter = new Intl.NumberFormat("es-CO", {
   style: "currency",

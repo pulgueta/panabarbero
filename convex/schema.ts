@@ -3,6 +3,9 @@ import type { output } from "zod";
 import { z } from "zod";
 
 import { zodTable } from ".";
+import { inventorySalePaymentMethods } from "./inventorySalesShared";
+
+export { inventorySalePaymentMethods };
 
 export const userProfileData = zodTable("userProfileData", () => ({
   userId: z.string(),
@@ -495,16 +498,6 @@ export const inventoryMovements = zodTable("inventoryMovements", (id) => ({
   /** Dedupe for webhook/import-originated movements (creditPurchases.paymentId pattern). */
   idempotencyKey: z.string().optional(),
 }));
-
-/** Payment rails common in Colombian retail. */
-export const inventorySalePaymentMethods = [
-  "cash",
-  "card",
-  "nequi",
-  "daviplata",
-  "transfer",
-  "other",
-] as const;
 
 /** Document types accepted on Colombian (DIAN) receipts. */
 export const inventorySaleDocumentTypes = [

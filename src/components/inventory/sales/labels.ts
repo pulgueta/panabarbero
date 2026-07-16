@@ -1,19 +1,6 @@
-import type {
-  InventorySaleDocumentType,
-  InventorySalePaymentMethod,
-} from "@convex/schema";
+import type { InventorySaleDocumentType } from "@convex/schema";
 
-export const salePaymentMethodLabels: Record<
-  InventorySalePaymentMethod,
-  string
-> = {
-  cash: "Efectivo",
-  card: "Tarjeta débito o crédito",
-  nequi: "Nequi",
-  daviplata: "Daviplata",
-  transfer: "Transferencia bancaria",
-  other: "Otro método",
-};
+export { salePaymentMethodLabels } from "@convex/inventorySalesShared";
 
 export const saleDocumentTypeLabels: Record<InventorySaleDocumentType, string> =
   {
