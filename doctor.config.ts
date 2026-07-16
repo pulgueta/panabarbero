@@ -5,7 +5,7 @@ export default {
     // Design system ignored due to out-of-the-box configuration and working by default.
     files: [
       "node_modules",
-      "convex/_generated",
+      "convex/**",
       ".output/**",
       ".agents/**",
       ".claude/**",
@@ -89,6 +89,8 @@ export default {
           "src/components/analytics/weekday-chart.tsx",
           "src/components/inventory/category-breakdown-chart.tsx",
           "src/components/inventory/movement-trend-chart.tsx",
+          "src/components/inventory/sales/sales-revenue-chart.tsx",
+          "src/components/inventory/sales/top-products-chart.tsx",
           "src/components/reviews/shop/rating-trend.tsx",
         ],
         rules: ["react-doctor/prefer-dynamic-import"],
