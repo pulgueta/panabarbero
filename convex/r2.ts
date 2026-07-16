@@ -2,7 +2,7 @@ import { R2 } from "@convex-dev/r2";
 import { ConvexError } from "convex/values";
 import { z } from "zod";
 
-import { zAuthAction, zMutation } from ".";
+import { zAuthAction, zInternalMutation } from ".";
 import { components } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { errorMessages } from "./errors";
@@ -18,7 +18,7 @@ export const { generateUploadUrl, syncMetadata, onSyncMetadata } =
     },
   });
 
-export const deleteR2Object = zMutation({
+export const deleteR2Object = zInternalMutation({
   args: z.object({
     key: z.string(),
   }),
@@ -28,7 +28,7 @@ export const deleteR2Object = zMutation({
     const linkedSale = await ctx.db
       .query("inventorySales")
       .withIndex("by_proofKey", (q) => q.eq("proofKey", args.key))
-      .first();
+      .unique();
 
     if (linkedSale) {
       throw new ConvexError(errorMessages.invalidSaleProof);

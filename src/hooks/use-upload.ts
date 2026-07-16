@@ -1,6 +1,3 @@
-import { api } from "@convex/_generated/api";
-import { useConvexMutation } from "@convex-dev/react-query";
-import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { clientEnv } from "@/env/client";
@@ -29,10 +26,6 @@ export function useUpload(opts: {
   type: "profile-photo" | "barbershop-logo" | "inventory-item";
 }) {
   const [uploading, setUploading] = useState<boolean>(false);
-
-  const deleteFileMutation = useMutation({
-    mutationFn: useConvexMutation(api.r2.deleteR2Object),
-  });
 
   const uploadFile = async (image: File) => {
     setUploading(true);
@@ -64,7 +57,6 @@ export function useUpload(opts: {
   };
 
   return {
-    deleteFileMutation,
     uploadFile: {
       isUploading: uploading,
       uploadFile,

@@ -2,7 +2,7 @@ import type { FunctionReference } from "convex/server";
 import { z } from "zod";
 
 import { zInternalMutation } from ".";
-import { api, internal } from "./_generated/api";
+import { internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
 import {
   completedAppointmentsAggregate,
@@ -139,7 +139,9 @@ export async function cascadeDeleteBarbershop(
 
   if (barbershop.logoKey) {
     try {
-      await ctx.runMutation(api.r2.deleteR2Object, { key: barbershop.logoKey });
+      await ctx.runMutation(internal.r2.deleteR2Object, {
+        key: barbershop.logoKey,
+      });
     } catch {
       // Non-fatal: object may already be gone
     }
@@ -148,7 +150,9 @@ export async function cascadeDeleteBarbershop(
   for (const item of inventoryItemRows) {
     if (item.imageKey) {
       try {
-        await ctx.runMutation(api.r2.deleteR2Object, { key: item.imageKey });
+        await ctx.runMutation(internal.r2.deleteR2Object, {
+          key: item.imageKey,
+        });
       } catch {
         // Non-fatal: object may already be gone
       }

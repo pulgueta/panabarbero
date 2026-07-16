@@ -22,6 +22,7 @@ import {
   zInternalMutation,
   zInternalQuery,
 } from ".";
+import { internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { assertInventoryAllowed, isInventoryAllowed } from "./acl";
 import { inventoryMovementsAggregate, inventoryTriggers } from "./aggregates";
@@ -707,6 +708,20 @@ export const updateItem = zAuthMutation({
       tags: inventoryAuditTags(item.barbershopId, item._id),
       retentionCategory: "inventory",
     });
+
+    if (
+      item.imageKey &&
+      data.imageKey !== undefined &&
+      data.imageKey !== item.imageKey
+    ) {
+      try {
+        await ctx.runMutation(internal.r2.deleteR2Object, {
+          key: item.imageKey,
+        });
+      } catch {
+        // Non-fatal: old object may already be gone.
+      }
+    }
   },
 });
 
