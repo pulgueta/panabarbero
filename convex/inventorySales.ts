@@ -11,7 +11,7 @@ import { errorMessages } from "./errors";
 import { recordMovement } from "./inventory";
 import { auditLog } from "./log";
 import { r2 } from "./r2";
-import type { Barbershop } from "./schema";
+import type { Barbershop, InventoryItem } from "./schema";
 import {
   barbershops,
   inventoryItems,
@@ -248,6 +248,88 @@ export const listSellableItems = zAuthQuery({
   },
 });
 
+/**
+ * Folds one sale into its Bogotá day's rollup rows, which `getSalesMetrics`
+ * reads in place of the raw sales/lines.
+ *
+ * Increment-only on purpose: nothing outside the barbershop cascade (which
+ * deletes the rollup rows too) ever removes a sale, so these counters never
+ * need to walk backwards. The day row is one hot document per shop, so two
+ * sales rung up in the same instant contend and one retries — a non-issue at a
+ * register's volume, and the append-then-fold alternative would just move the
+ * unbounded scan back into the dashboard.
+ */
+async function foldSaleIntoRollup(
+  ctx: MutationCtx,
+  args: {
+    barbershopId: Barbershop["_id"];
+    date: string;
+    revenue: number;
+    unitsSold: number;
+    lines: {
+      itemId: InventoryItem["_id"];
+      itemName: string;
+      units: number;
+      revenue: number;
+    }[];
+  },
+) {
+  const day = await ctx.db
+    .query("inventorySalesDaily")
+    .withIndex("by_barbershopId_and_date", (q) =>
+      q.eq("barbershopId", args.barbershopId).eq("date", args.date),
+    )
+    .unique();
+
+  if (day) {
+    await ctx.db.patch(day._id, {
+      revenue: day.revenue + args.revenue,
+      saleCount: day.saleCount + 1,
+      unitsSold: day.unitsSold + args.unitsSold,
+    });
+  } else {
+    await ctx.db.insert("inventorySalesDaily", {
+      barbershopId: args.barbershopId,
+      date: args.date,
+      revenue: args.revenue,
+      saleCount: 1,
+      unitsSold: args.unitsSold,
+    });
+  }
+
+  // `registerSale` rejects duplicate items in one sale, so each line maps to a
+  // distinct rollup row.
+  for (const line of args.lines) {
+    const existing = await ctx.db
+      .query("inventorySalesDailyItems")
+      .withIndex("by_barbershopId_and_date_and_itemId", (q) =>
+        q
+          .eq("barbershopId", args.barbershopId)
+          .eq("date", args.date)
+          .eq("itemId", line.itemId),
+      )
+      .unique();
+
+    if (existing) {
+      // itemName left alone: the chart labels an item by the first name seen in
+      // the window, matching the line snapshots it used to aggregate.
+      await ctx.db.patch(existing._id, {
+        units: existing.units + line.units,
+        revenue: existing.revenue + line.revenue,
+      });
+    } else {
+      await ctx.db.insert("inventorySalesDailyItems", {
+        barbershopId: args.barbershopId,
+        itemId: line.itemId,
+        date: args.date,
+        itemName: line.itemName,
+        units: line.units,
+        revenue: line.revenue,
+      });
+    }
+  }
+}
+
 export const registerSale = zAuthMutation({
   args: z.object({
     barbershop: barbershops.tools.id,
@@ -424,6 +506,22 @@ export const registerSale = zAuthMutation({
       }),
     );
 
+    await foldSaleIntoRollup(ctx, {
+      barbershopId: args.barbershop.id,
+      date: toColombiaDateKey(Date.now()),
+      revenue: totalAmount,
+      unitsSold: preparedLines.reduce(
+        (units, line) => units + line.quantity,
+        0,
+      ),
+      lines: preparedLines.map((line) => ({
+        itemId: line.item._id,
+        itemName: line.item.name,
+        units: line.quantity,
+        revenue: line.lineTotal,
+      })),
+    });
+
     await auditLog.logChange(ctx, {
       action: "inventory.sale.created",
       actorId: ctx.userId,
@@ -554,9 +652,12 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
  * KPIs, daily revenue trend and top products for the sales dashboard.
- * Scans sales/lines since the previous Bogotá month via the index range —
- * retail sales are one row per transaction (not a movement ledger), so a
- * two-month window stays small and an aggregate component would be overkill.
+ *
+ * Reads the per-day rollups `registerSale` maintains rather than the sales and
+ * lines themselves, so the cost is bounded by the window (≤62 day rows, and
+ * ≤ catalog × 30 item rows) instead of growing with the shop's transaction
+ * volume — a retail-heavy shop would otherwise cross the per-query scan limit
+ * and lose the page entirely.
  */
 export const getSalesMetrics = zAuthQuery({
   args: z.object({ barbershop: barbershops.tools.id }),
@@ -564,34 +665,43 @@ export const getSalesMetrics = zAuthQuery({
     await assertCanSell(ctx, args.barbershop.id, ctx.userId);
 
     const now = Date.now();
-    const currentMonth = toColombiaDateKey(now).slice(0, 7);
+    const todayKey = toColombiaDateKey(now);
+    const currentMonth = todayKey.slice(0, 7);
     const [year, monthNumber] = currentMonth.split("-").map(Number);
     const previousMonth =
       monthNumber === 1
         ? `${year - 1}-12`
         : `${year}-${String(monthNumber - 1).padStart(2, "0")}`;
 
-    const monthStartMs = colombiaDateKeyToMs(`${currentMonth}-01`);
-    const previousMonthStartMs = colombiaDateKeyToMs(`${previousMonth}-01`);
-    const todayStartMs = colombiaDateKeyToMs(toColombiaDateKey(now));
-    const trendStartMs = todayStartMs - (SALES_TREND_DAYS - 1) * DAY_MS;
-    const windowStartMs = Math.min(previousMonthStartMs, trendStartMs);
+    const trendStartMs =
+      colombiaDateKeyToMs(todayKey) - (SALES_TREND_DAYS - 1) * DAY_MS;
+    const trendStartKey = toColombiaDateKey(trendStartMs);
+    const previousMonthStartKey = `${previousMonth}-01`;
+    // Both keys are ISO dates, so lexicographic order is chronological order.
+    const windowStartKey =
+      previousMonthStartKey < trendStartKey
+        ? previousMonthStartKey
+        : trendStartKey;
 
-    const [sales, lines] = await Promise.all([
+    // Bounding both ranges at today keeps the row count structural rather than
+    // relying on no row ever carrying a future date.
+    const [days, dayItems] = await Promise.all([
       ctx.db
-        .query("inventorySales")
-        .withIndex("by_barbershopId", (q) =>
+        .query("inventorySalesDaily")
+        .withIndex("by_barbershopId_and_date", (q) =>
           q
             .eq("barbershopId", args.barbershop.id)
-            .gte("_creationTime", windowStartMs),
+            .gte("date", windowStartKey)
+            .lte("date", todayKey),
         )
         .collect(),
       ctx.db
-        .query("inventorySaleLines")
-        .withIndex("by_barbershopId", (q) =>
+        .query("inventorySalesDailyItems")
+        .withIndex("by_barbershopId_and_date_and_itemId", (q) =>
           q
             .eq("barbershopId", args.barbershop.id)
-            .gte("_creationTime", windowStartMs),
+            .gte("date", trendStartKey)
+            .lte("date", todayKey),
         )
         .collect(),
     ]);
@@ -605,47 +715,44 @@ export const getSalesMetrics = zAuthQuery({
 
     let monthRevenue = 0;
     let monthSaleCount = 0;
+    let monthUnitsSold = 0;
     let previousRevenue = 0;
     let previousSaleCount = 0;
 
-    for (const sale of sales) {
-      if (sale._creationTime >= monthStartMs) {
-        monthRevenue += sale.totalAmount;
-        monthSaleCount += 1;
-      } else if (sale._creationTime >= previousMonthStartMs) {
-        previousRevenue += sale.totalAmount;
-        previousSaleCount += 1;
+    for (const day of days) {
+      const month = day.date.slice(0, 7);
+
+      if (month === currentMonth) {
+        monthRevenue += day.revenue;
+        monthSaleCount += day.saleCount;
+        monthUnitsSold += day.unitsSold;
+      } else if (month === previousMonth) {
+        previousRevenue += day.revenue;
+        previousSaleCount += day.saleCount;
       }
 
-      const day = daily.get(toColombiaDateKey(sale._creationTime));
+      const point = daily.get(day.date);
 
-      if (day) {
-        day.revenue += sale.totalAmount;
-        day.saleCount += 1;
+      if (point) {
+        point.revenue = day.revenue;
+        point.saleCount = day.saleCount;
       }
     }
 
-    let monthUnitsSold = 0;
     const byItem = new Map<
       string,
       { itemName: string; units: number; revenue: number }
     >();
 
-    for (const line of lines) {
-      if (line._creationTime >= monthStartMs) {
-        monthUnitsSold += line.quantity;
-      }
-
-      if (line._creationTime >= trendStartMs) {
-        const entry = byItem.get(line.itemId) ?? {
-          itemName: line.itemName,
-          units: 0,
-          revenue: 0,
-        };
-        entry.units += line.quantity;
-        entry.revenue += line.lineTotal;
-        byItem.set(line.itemId, entry);
-      }
+    for (const row of dayItems) {
+      const entry = byItem.get(row.itemId) ?? {
+        itemName: row.itemName,
+        units: 0,
+        revenue: 0,
+      };
+      entry.units += row.units;
+      entry.revenue += row.revenue;
+      byItem.set(row.itemId, entry);
     }
 
     return {

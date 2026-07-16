@@ -63,6 +63,16 @@ const cascadeRules = defineCascadeRules({
       field: "barbershopId",
     },
     {
+      to: "inventorySalesDaily",
+      via: "by_barbershopId_and_date",
+      field: "barbershopId",
+    },
+    {
+      to: "inventorySalesDailyItems",
+      via: "by_barbershopId_and_date_and_itemId",
+      field: "barbershopId",
+    },
+    {
       to: "serviceInventoryUsage",
       via: "by_barbershopId",
       field: "barbershopId",

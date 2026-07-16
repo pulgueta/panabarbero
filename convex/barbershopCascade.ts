@@ -189,7 +189,10 @@ export async function cascadeDeleteBarbershop(
   // Row teardown. The movements ledger dominates large shops; its aggregate
   // gives the count in O(log n) without reading the rows. The estimate skips
   // the small tables (services, usage, credits…) on purpose — it only picks
-  // inline vs batched, and those never move the total by thousands.
+  // inline vs batched, and those never move the total by thousands. The sales
+  // rollups (inventorySalesDaily/Items) are skipped too: their row count is
+  // bounded by the sales + lines terms already in the sum, so the true tree
+  // stays within ~2x the estimate — far inside the per-mutation budgets.
   const movementCount = await inventoryMovementsAggregate.count(ctx, {
     namespace: barbershopId,
   });

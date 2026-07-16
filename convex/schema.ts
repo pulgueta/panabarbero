@@ -557,6 +557,37 @@ export const inventorySaleLines = zodTable("inventorySaleLines", (id) => ({
 }));
 
 /**
+ * Per-day sales rollup, written by `registerSale` alongside every sale. The
+ * dashboard reads these instead of the raw sales/lines so its cost scales with
+ * the window's days (≤62 rows) rather than the shop's transaction volume, which
+ * on a retail-heavy shop would eventually exceed the per-query scan limit and
+ * break the page for good.
+ */
+export const inventorySalesDaily = zodTable("inventorySalesDaily", (id) => ({
+  barbershopId: id("barbershops"),
+  /** "YYYY-MM-DD", America/Bogota. */
+  date: z.string(),
+  revenue: z.number().int().min(0),
+  saleCount: z.number().int().min(0),
+  unitsSold: z.number().int().min(0),
+}));
+
+/** Per-day, per-item slice of the sales rollup — backs the best-sellers chart. */
+export const inventorySalesDailyItems = zodTable(
+  "inventorySalesDailyItems",
+  (id) => ({
+    barbershopId: id("barbershops"),
+    itemId: id("inventoryItems"),
+    /** "YYYY-MM-DD", America/Bogota. */
+    date: z.string(),
+    /** Snapshot like `inventorySaleLines.itemName` — survives renames/archival. */
+    itemName: z.string(),
+    units: z.number().int().min(0),
+    revenue: z.number().int().min(0),
+  }),
+);
+
+/**
  * Per-service consumption recipe: booking auto-reserves these lines,
  * completion auto-consumes, every cancellation path auto-releases.
  */
@@ -830,6 +861,20 @@ export default defineSchema({
     .index("by_saleId", ["saleId"])
     .index("by_barbershopId", ["barbershopId"])
     .index("by_itemId", ["itemId"]),
+
+  // Both rollup indexes serve double duty: the dashboard's bounded date range
+  // scan, and registerSale's point lookup for the row it folds a sale into.
+  inventorySalesDaily: inventorySalesDaily
+    .table()
+    .index("by_barbershopId_and_date", ["barbershopId", "date"]),
+
+  inventorySalesDailyItems: inventorySalesDailyItems
+    .table()
+    .index("by_barbershopId_and_date_and_itemId", [
+      "barbershopId",
+      "date",
+      "itemId",
+    ]),
 
   serviceInventoryUsage: serviceInventoryUsage
     .table()
