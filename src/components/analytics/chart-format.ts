@@ -2,11 +2,13 @@
 
 const shortMonthFormatter = new Intl.DateTimeFormat("es-CO", {
   month: "short",
+  timeZone: "America/Bogota",
 });
 
 const longMonthFormatter = new Intl.DateTimeFormat("es-CO", {
   month: "long",
   year: "numeric",
+  timeZone: "America/Bogota",
 });
 
 /** Mid-month UTC noon avoids any timezone nudging the label into a neighbor month. */
@@ -28,10 +30,12 @@ export function formatMonthLong(monthKey: string): string {
 const shortDayFormatter = new Intl.DateTimeFormat("es-CO", {
   day: "numeric",
   month: "short",
+  timeZone: "America/Bogota",
 });
 
 const longDayFormatter = new Intl.DateTimeFormat("es-CO", {
   dateStyle: "long",
+  timeZone: "America/Bogota",
 });
 
 /** UTC noon avoids any timezone nudging the label into a neighbor day. */
