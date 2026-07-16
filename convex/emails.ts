@@ -1,6 +1,7 @@
 "use node";
 
 import { ConvexError } from "convex/values";
+import { createElement } from "react";
 import { render } from "react-email";
 import { UseSend } from "usesend-js";
 import { z } from "zod";
@@ -402,7 +403,7 @@ export const sendSaleReceiptEmail = zInternalAction({
     const subject = `Recibo de tu compra en ${args.barbershopName}`;
 
     const html = await render(
-      SaleReceiptEmail({
+      createElement(SaleReceiptEmail, {
         subject,
         barbershopName: args.barbershopName,
         receiptNumber: args.receiptNumber,

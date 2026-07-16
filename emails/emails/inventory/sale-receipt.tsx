@@ -1,3 +1,4 @@
+import type { FC } from "react";
 import {
   Body,
   Column,
@@ -38,7 +39,7 @@ export interface SaleReceiptEmailProps {
   paymentReference?: string;
 }
 
-export const SaleReceiptEmail = ({
+export const SaleReceiptEmail: FC<SaleReceiptEmailProps> = ({
   subject = "Recibo de tu compra",
   barbershopName,
   receiptNumber,
@@ -49,7 +50,7 @@ export const SaleReceiptEmail = ({
   total,
   paymentMethodLabel,
   paymentReference,
-}: SaleReceiptEmailProps) => {
+}) => {
   return (
     <Html lang="es" dir="ltr">
       <Head />
