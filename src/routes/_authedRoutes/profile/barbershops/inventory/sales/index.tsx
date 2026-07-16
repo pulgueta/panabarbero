@@ -64,13 +64,15 @@ export const Route = createFileRoute(
   staticData: { breadcrumb: "Ventas" },
   staleTime: cacheTime.low,
   gcTime: cacheTime.medium,
-  loader: async ({ context }) => {
-    const barbershop = context.dashboardBarbershop;
-    const roles = context.dashboardRoles;
+  beforeLoad: (opts) => {
+    const roles = opts.context.dashboardRoles;
 
     if (!roles?.isOwner && !roles?.isStaff) {
       throw redirect({ to: "/profile/barbershops/appointments" });
     }
+  },
+  loader: async ({ context }) => {
+    const barbershop = context.dashboardBarbershop;
 
     if (!barbershop?._id) return;
 
