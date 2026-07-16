@@ -2,7 +2,7 @@ import { R2 } from "@convex-dev/r2";
 import { ConvexError } from "convex/values";
 import { z } from "zod";
 
-import { zAuthAction, zInternalMutation, zMutation } from ".";
+import { zAuthAction, zMutation } from ".";
 import { components } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { errorMessages } from "./errors";
@@ -34,15 +34,6 @@ export const deleteR2Object = zMutation({
       throw new ConvexError(errorMessages.invalidSaleProof);
     }
 
-    return await r2.deleteObject(ctx, args.key);
-  },
-});
-
-export const deleteR2ObjectForCascade = zInternalMutation({
-  args: z.object({
-    key: z.string(),
-  }),
-  handler: async (ctx, args) => {
     return await r2.deleteObject(ctx, args.key);
   },
 });
