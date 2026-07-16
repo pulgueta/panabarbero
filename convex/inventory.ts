@@ -2058,11 +2058,7 @@ export const listShopMovements = zAuthQuery({
   args: z.object({
     barbershop: barbershops.tools.id,
     paginationOpts: convexToZod(paginationOptsValidator),
-    /**
-     * Optional ledger filters. Each dimension has a matching index; the most
-     * selective active filter drives the index, and any second categorical
-     * filter trims the already index-bounded page in JS (never a table scan).
-     */
+    /** Optional ledger filters. Equality combinations use compound indexes. */
     filters: z
       .object({
         type: inventoryMovementTypeSchema.optional(),
@@ -2106,67 +2102,95 @@ export const listShopMovements = zAuthQuery({
     const startBound = startTime ?? 0;
     const endBound = endTime ?? Number.MAX_SAFE_INTEGER;
 
-    // Index priority = selectivity. One product's ledger is the tightest
-    // range, then a single type, then a single actor, else the whole shop.
+    // Index priority = the most-specific active equality combination.
     const base =
-      itemId !== undefined
+      itemId !== undefined && type !== undefined && actorUserId !== undefined
         ? ctx.db
             .query("inventoryMovements")
-            .withIndex("by_itemId", (q) =>
+            .withIndex("by_itemId_and_type_and_actorUserId", (q) =>
               q
                 .eq("itemId", itemId)
+                .eq("type", type)
+                .eq("actorUserId", actorUserId)
                 .gte("_creationTime", startBound)
                 .lt("_creationTime", endBound),
             )
-        : type !== undefined
+        : itemId !== undefined && type !== undefined
           ? ctx.db
               .query("inventoryMovements")
-              .withIndex("by_barbershopId_and_type", (q) =>
+              .withIndex("by_itemId_and_type", (q) =>
                 q
-                  .eq("barbershopId", args.barbershop.id)
+                  .eq("itemId", itemId)
                   .eq("type", type)
                   .gte("_creationTime", startBound)
                   .lt("_creationTime", endBound),
               )
-          : actorUserId !== undefined
+          : itemId !== undefined && actorUserId !== undefined
             ? ctx.db
                 .query("inventoryMovements")
-                .withIndex("by_barbershopId_and_actorUserId", (q) =>
+                .withIndex("by_itemId_and_actorUserId", (q) =>
                   q
-                    .eq("barbershopId", args.barbershop.id)
+                    .eq("itemId", itemId)
                     .eq("actorUserId", actorUserId)
                     .gte("_creationTime", startBound)
                     .lt("_creationTime", endBound),
                 )
-            : ctx.db
-                .query("inventoryMovements")
-                .withIndex("by_barbershopId", (q) =>
-                  q
-                    .eq("barbershopId", args.barbershop.id)
-                    .gte("_creationTime", startBound)
-                    .lt("_creationTime", endBound),
-                );
+            : itemId !== undefined
+              ? ctx.db
+                  .query("inventoryMovements")
+                  .withIndex("by_itemId", (q) =>
+                    q
+                      .eq("itemId", itemId)
+                      .gte("_creationTime", startBound)
+                      .lt("_creationTime", endBound),
+                  )
+              : type !== undefined && actorUserId !== undefined
+                ? ctx.db
+                    .query("inventoryMovements")
+                    .withIndex(
+                      "by_barbershopId_and_type_and_actorUserId",
+                      (q) =>
+                        q
+                          .eq("barbershopId", args.barbershop.id)
+                          .eq("type", type)
+                          .eq("actorUserId", actorUserId)
+                          .gte("_creationTime", startBound)
+                          .lt("_creationTime", endBound),
+                    )
+                : type !== undefined
+                  ? ctx.db
+                      .query("inventoryMovements")
+                      .withIndex("by_barbershopId_and_type", (q) =>
+                        q
+                          .eq("barbershopId", args.barbershop.id)
+                          .eq("type", type)
+                          .gte("_creationTime", startBound)
+                          .lt("_creationTime", endBound),
+                      )
+                  : actorUserId !== undefined
+                    ? ctx.db
+                        .query("inventoryMovements")
+                        .withIndex("by_barbershopId_and_actorUserId", (q) =>
+                          q
+                            .eq("barbershopId", args.barbershop.id)
+                            .eq("actorUserId", actorUserId)
+                            .gte("_creationTime", startBound)
+                            .lt("_creationTime", endBound),
+                        )
+                    : ctx.db
+                        .query("inventoryMovements")
+                        .withIndex("by_barbershopId", (q) =>
+                          q
+                            .eq("barbershopId", args.barbershop.id)
+                            .gte("_creationTime", startBound)
+                            .lt("_creationTime", endBound),
+                        );
 
     const result = await base.order("desc").paginate(args.paginationOpts);
 
-    // Residual categorical dimensions the chosen index didn't already pin —
-    // only when two filters combine (e.g. product + type). The page is already
-    // scoped by the index range, so this trims a bounded set, never scans.
-    const usedTypeIndex = itemId === undefined && type !== undefined;
-    const usedActorIndex =
-      itemId === undefined && type === undefined && actorUserId !== undefined;
-
-    const page = result.page.filter(
-      (movement) =>
-        (type === undefined || usedTypeIndex || movement.type === type) &&
-        (actorUserId === undefined ||
-          usedActorIndex ||
-          movement.actorUserId === actorUserId),
-    );
-
     // Accountability: resolve each actor once per page so the ledger shows
     // WHO moved stock, not just what moved.
-    const actorIds = [...new Set(page.map((m) => m.actorUserId))];
+    const actorIds = [...new Set(result.page.map((m) => m.actorUserId))];
     const actorNames = new Map(
       await Promise.all(
         actorIds.map(async (actorId) => {
@@ -2178,7 +2202,7 @@ export const listShopMovements = zAuthQuery({
 
     return {
       ...result,
-      page: page.map((movement) => ({
+      page: result.page.map((movement) => ({
         ...movement,
         actorName: actorNames.get(movement.actorUserId),
       })),

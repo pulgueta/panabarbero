@@ -797,9 +797,21 @@ export default defineSchema({
   inventoryMovements: inventoryMovements
     .table()
     .index("by_itemId", ["itemId"])
+    .index("by_itemId_and_type", ["itemId", "type"])
+    .index("by_itemId_and_actorUserId", ["itemId", "actorUserId"])
+    .index("by_itemId_and_type_and_actorUserId", [
+      "itemId",
+      "type",
+      "actorUserId",
+    ])
     .index("by_barbershopId", ["barbershopId"])
     .index("by_barbershopId_and_type", ["barbershopId", "type"])
     .index("by_barbershopId_and_actorUserId", ["barbershopId", "actorUserId"])
+    .index("by_barbershopId_and_type_and_actorUserId", [
+      "barbershopId",
+      "type",
+      "actorUserId",
+    ])
     .index("by_barbershopId_and_idempotencyKey", [
       "barbershopId",
       "idempotencyKey",
