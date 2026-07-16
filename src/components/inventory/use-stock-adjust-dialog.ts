@@ -15,12 +15,11 @@ import {
   parseSignedInteger,
 } from "@/lib/inventory-form";
 
-type StockOperation = "receive" | "consume" | "sale" | "adjust" | "waste";
+type StockOperation = "receive" | "consume" | "adjust" | "waste";
 
 const successMessages: Record<StockOperation, string> = {
   receive: "Recepción registrada exitosamente",
   consume: "Consumo registrado exitosamente",
-  sale: "Venta registrada exitosamente",
   adjust: "Ajuste registrado exitosamente",
   waste: "Merma registrada exitosamente",
 };
@@ -62,7 +61,6 @@ export function useStockAdjustDialog({
     receiveStockMutation: { mutateAsync: receiveStock },
     adjustStockMutation: { mutateAsync: adjustStock },
     recordConsumptionMutation: { mutateAsync: recordConsumption },
-    recordSaleMutation: { mutateAsync: recordSale },
     recordWasteMutation: { mutateAsync: recordWaste },
   } = useInventoryActions();
 
@@ -78,20 +76,12 @@ export function useStockAdjustDialog({
       : [
           { value: "receive", label: "Recibir" },
           { value: "consume", label: "Consumir" },
-          ...(item.isSellable
-            ? [{ value: "sale" as const, label: "Vender" }]
-            : []),
           { value: "adjust", label: "Ajustar" },
           { value: "waste", label: "Merma" },
         ]
     : isDurable
       ? []
-      : [
-          { value: "consume", label: "Consumir" },
-          ...(item.isSellable
-            ? [{ value: "sale" as const, label: "Vender" }]
-            : []),
-        ];
+      : [{ value: "consume", label: "Consumir" }];
 
   const defaultValues: StockAdjustFormValues = {
     quantity: 1,
@@ -155,21 +145,6 @@ export function useStockAdjustDialog({
               item: { id: item._id },
               quantity,
               reason: reason || undefined,
-            });
-            break;
-          }
-          case "sale": {
-            const quantity = parsePositiveIntegerQuantity(value.quantity);
-
-            if (!quantity) {
-              haptic.trigger("error");
-              toast.error(invalidQuantityMessage);
-              return;
-            }
-
-            await recordSale({
-              item: { id: item._id },
-              quantity,
             });
             break;
           }
