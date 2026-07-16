@@ -2,6 +2,7 @@ import type { Barbershop } from "@convex/schema";
 import { ArrowSquareOutIcon, ReceiptIcon } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { InventorySaleRow } from "@/hooks/use-inventory-sales";
-import { useRecentSales } from "@/hooks/use-inventory-sales";
+import {
+  useInventorySaleProofUrl,
+  useRecentSales,
+} from "@/hooks/use-inventory-sales";
+import { getConvexErrorMessage } from "@/lib/convex-errors";
 import { formatCurrency } from "@/lib/utils";
 import { saleDocumentTypeShortLabels, salePaymentMethodLabels } from "./labels";
 
@@ -63,24 +68,52 @@ const SalePaymentBadge: FC<{ sale: InventorySaleRow }> = ({ sale }) =>
     <span className="text-muted-foreground">—</span>
   );
 
-const ProofLink: FC<{ sale: InventorySaleRow }> = ({ sale }) => {
-  const url = sale.proofUrl;
-  if (!url)
+const ProofLink: FC<{
+  barbershopId: Barbershop["_id"];
+  sale: InventorySaleRow;
+}> = ({ barbershopId, sale }) => {
+  const getProofUrl = useInventorySaleProofUrl();
+
+  if (!sale.hasProof)
     return <span className="text-muted-foreground">Sin comprobante</span>;
+
+  const openProof = async () => {
+    const proofWindow = window.open("about:blank", "_blank");
+
+    if (!proofWindow) {
+      toast.error("Permite las ventanas emergentes para ver el comprobante");
+      return;
+    }
+
+    proofWindow.opener = null;
+
+    try {
+      const url = await getProofUrl(barbershopId, sale._id);
+
+      if (!url) {
+        proofWindow.close();
+        toast.error("El comprobante ya no está disponible");
+        return;
+      }
+
+      proofWindow.location.replace(url);
+    } catch (error) {
+      proofWindow.close();
+      toast.error(getConvexErrorMessage(error));
+    }
+  };
 
   return (
     <Button
-      nativeButton={false}
+      type="button"
       variant="link"
       size="sm"
       className="h-auto p-0"
-      render={
-        <a href={url} target="_blank" rel="noreferrer">
-          Ver comprobante
-          <ArrowSquareOutIcon />
-        </a>
-      }
-    />
+      onClick={openProof}
+    >
+      Ver comprobante
+      <ArrowSquareOutIcon />
+    </Button>
   );
 };
 
@@ -156,7 +189,7 @@ export const RecentSales: FC<RecentSalesProps> = ({ barbershopId }) => {
                       {sale.notes}
                     </p>
                   ) : null}
-                  <ProofLink sale={sale} />
+                  <ProofLink barbershopId={barbershopId} sale={sale} />
                 </article>
               ))}
             </div>
@@ -213,7 +246,7 @@ export const RecentSales: FC<RecentSalesProps> = ({ barbershopId }) => {
                         <SalePaymentBadge sale={sale} />
                       </TableCell>
                       <TableCell>
-                        <ProofLink sale={sale} />
+                        <ProofLink barbershopId={barbershopId} sale={sale} />
                       </TableCell>
                       <TableCell className="text-right font-medium tabular-nums">
                         {formatCurrency(sale.totalAmount)}

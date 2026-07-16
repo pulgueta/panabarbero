@@ -5,7 +5,11 @@ import {
   useConvexAction,
   useConvexMutation,
 } from "@convex-dev/react-query";
-import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import type { FunctionReturnType } from "convex/server";
 
 import { isSaleProofContentType } from "@/lib/inventory-sale-proof";
@@ -44,6 +48,28 @@ export function useSellableItems(barbershopId: Barbershop["_id"]) {
 
 export function useRecentSales(barbershopId: Barbershop["_id"], limit = 20) {
   return useSuspenseQuery(recentSalesQueryOptions(barbershopId, limit));
+}
+
+export function saleProofUrlQueryOptions(
+  barbershopId: Barbershop["_id"],
+  saleId: InventorySaleRow["_id"],
+) {
+  return {
+    ...convexQuery(api.inventorySales.getProofUrl, {
+      barbershop: { id: barbershopId },
+      sale: { id: saleId },
+    }),
+    // Signed URLs must be minted on every click and discarded immediately.
+    staleTime: 0,
+    gcTime: 0,
+  };
+}
+
+export function useInventorySaleProofUrl() {
+  const queryClient = useQueryClient();
+
+  return (barbershopId: Barbershop["_id"], saleId: InventorySaleRow["_id"]) =>
+    queryClient.fetchQuery(saleProofUrlQueryOptions(barbershopId, saleId));
 }
 
 export function salesMetricsQueryOptions(barbershopId: Barbershop["_id"]) {

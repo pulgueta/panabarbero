@@ -18,6 +18,7 @@ import {
   inventoryItems,
   inventorySaleDocumentTypes,
   inventorySalePaymentMethods,
+  inventorySales,
 } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
 import {
@@ -133,7 +134,7 @@ export const deleteOrphanProof = zAuthMutation({
     const linkedSale = await ctx.db
       .query("inventorySales")
       .withIndex("by_proofKey", (q) => q.eq("proofKey", args.key))
-      .first();
+      .unique();
 
     if (linkedSale) {
       throw new ConvexError(errorMessages.invalidSaleProof);
@@ -386,7 +387,7 @@ export const registerSale = zAuthMutation({
         ctx.db
           .query("inventorySales")
           .withIndex("by_proofKey", (q) => q.eq("proofKey", proof.key))
-          .first(),
+          .unique(),
       ]);
 
       if (
@@ -626,9 +627,7 @@ export const listRecent = zAuthQuery({
           customerPhone: sale.customerPhone,
           notes: sale.notes,
           actorName: actorNames.get(sale.actorUserId),
-          proofUrl: sale.proofKey
-            ? await r2.getUrl(sale.proofKey, { expiresIn: 15 * 60 })
-            : undefined,
+          hasProof: sale.proofKey !== undefined,
           lines: lines.map((line) => ({
             itemName: line.itemName,
             quantity: line.quantity,
@@ -636,6 +635,30 @@ export const listRecent = zAuthQuery({
         };
       }),
     );
+  },
+});
+
+export const getProofUrl = zAuthQuery({
+  args: z.object({
+    barbershop: barbershops.tools.id,
+    sale: inventorySales.tools.id,
+  }),
+  handler: async (ctx, args) => {
+    await assertCanSell(ctx, args.barbershop.id, ctx.userId);
+
+    const sale = await ctx.db.get(args.sale.id);
+
+    if (!sale) {
+      throw new ConvexError(errorMessages.notFound("venta"));
+    }
+    if (sale.barbershopId !== args.barbershop.id) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+    if (!sale.proofKey) {
+      return null;
+    }
+
+    return await r2.getUrl(sale.proofKey, { expiresIn: 15 * 60 });
   },
 });
 
