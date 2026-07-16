@@ -78,6 +78,7 @@ const groups: DashboardNavGroup[] = [
           {
             label: "Ventas",
             to: "/profile/barbershops/inventory/sales",
+            roles: ["owner", "staff"],
           },
           {
             label: "Movimientos",

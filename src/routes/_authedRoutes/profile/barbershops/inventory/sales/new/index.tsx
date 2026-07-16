@@ -1,6 +1,11 @@
 import type { Barbershop } from "@convex/schema";
 import { PackageIcon } from "@phosphor-icons/react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  redirect,
+  useNavigate,
+} from "@tanstack/react-router";
 import { type FC, Suspense } from "react";
 
 import {
@@ -42,6 +47,12 @@ export const Route = createFileRoute(
   gcTime: cacheTime.medium,
   loader: async ({ context }) => {
     const barbershop = context.dashboardBarbershop;
+    const roles = context.dashboardRoles;
+
+    if (!roles?.isOwner && !roles?.isStaff) {
+      throw redirect({ to: "/profile/barbershops/appointments" });
+    }
+
     if (!barbershop?._id) return;
 
     const plan = await context.queryClient.ensureQueryData(
