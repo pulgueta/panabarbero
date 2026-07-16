@@ -180,12 +180,17 @@ export async function cascadeDeleteBarbershop(
   const movementCount = await inventoryMovementsAggregate.count(ctx, {
     namespace: barbershopId,
   });
+  const saleLineCount = inventorySales.reduce(
+    (count, sale) => count + sale.lineCount,
+    0,
+  );
   const estimatedRows =
     appointments.length +
     members.length +
     reviews.length +
     inventoryItemRows.length +
     inventorySales.length +
+    saleLineCount +
     movementCount;
 
   const cascadeCtx = withCascadeTriggers(ctx);
