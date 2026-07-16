@@ -32,8 +32,8 @@ export const SaleCustomerFields: FC<SaleCustomerFieldsProps> = ({ form }) => (
         {(field) => <field.SwitchField label="Emitir recibo al cliente" />}
       </form.AppField>
       <p className="text-muted-foreground text-xs">
-        Enviaremos el detalle de la compra al cliente. Requiere su nombre,
-        documento y celular.
+        Registraremos estos datos en el recibo. Si agregas un correo, también se
+        lo enviaremos por email. Requiere nombre, documento y celular.
       </p>
     </div>
 

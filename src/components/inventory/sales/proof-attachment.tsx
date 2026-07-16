@@ -4,7 +4,7 @@ import {
   UploadSimpleIcon,
 } from "@phosphor-icons/react";
 import type { ChangeEventHandler, FC } from "react";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -49,19 +49,21 @@ export const ProofAttachment: FC<ProofAttachmentProps> = ({
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const attachTriggerRef = useRef<HTMLButtonElement>(null);
-
-  const previewUrl = useMemo(
-    () =>
-      file && file.type !== "application/pdf"
-        ? URL.createObjectURL(file)
-        : undefined,
-    [file],
-  );
+  const [previewUrl, setPreviewUrl] = useState<string>();
 
   useEffect(() => {
-    if (!previewUrl) return;
-    return () => URL.revokeObjectURL(previewUrl);
-  }, [previewUrl]);
+    if (!file || file.type === "application/pdf") {
+      setPreviewUrl(undefined);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+
+  const imagePreviewUrl =
+    file?.type !== "application/pdf" ? previewUrl : undefined;
 
   const onInputChange: ChangeEventHandler<HTMLInputElement> = (event) => {
     const selected = event.target.files?.[0];
@@ -105,11 +107,11 @@ export const ProofAttachment: FC<ProofAttachmentProps> = ({
           state={isUploading ? "uploading" : "done"}
           className="w-full"
         >
-          <AttachmentMedia variant={previewUrl ? "image" : "icon"}>
+          <AttachmentMedia variant={imagePreviewUrl ? "image" : "icon"}>
             {isUploading ? (
               <Spinner />
-            ) : previewUrl ? (
-              <img src={previewUrl} alt={`Comprobante ${file.name}`} />
+            ) : imagePreviewUrl ? (
+              <img src={imagePreviewUrl} alt={`Comprobante ${file.name}`} />
             ) : (
               <FilePdfIcon />
             )}

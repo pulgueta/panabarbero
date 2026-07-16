@@ -161,7 +161,7 @@ export const SalePreviewPanel: FC<SalePreviewPanelProps> = ({
     <ResponsiveModal
       open={confirmStep}
       onOpenChange={(open) => {
-        if (!open) onCancelConfirm();
+        if (!open && !isConfirming) onCancelConfirm();
       }}
     >
       <ResponsiveModalContent>

@@ -16,7 +16,7 @@ export const saleFormSteps = [
   { label: "Cliente" },
 ];
 
-const documentNumberPattern = /^[0-9A-Za-z-]{3,20}$/;
+const documentNumberPattern = /^(?=.*[0-9A-Za-z])[0-9A-Za-z-]{3,20}$/;
 /** The PhoneInput emits E.164, so a length check is enough client-side. */
 const phonePattern = /^\+\d{9,15}$/;
 const emailSchema = z.email();

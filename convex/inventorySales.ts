@@ -56,7 +56,7 @@ const saleCustomerSchema = z.object({
   documentNumber: z
     .string()
     .trim()
-    .regex(/^[0-9A-Za-z-]{3,20}$/, {
+    .regex(/^(?=.*[0-9A-Za-z])[0-9A-Za-z-]{3,20}$/, {
       error: "El número de documento no es válido",
     })
     .optional(),

@@ -2,7 +2,7 @@ import type { Barbershop } from "@convex/schema";
 import { PackageIcon } from "@phosphor-icons/react";
 import { useSelector } from "@tanstack/react-store";
 import type { FC } from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
@@ -44,6 +44,7 @@ export const SaleBuilder: FC<SaleBuilderProps> = ({
   const [search, setSearch] = useState("");
   const [proofFile, setProofFile] = useState<File>();
   const [confirmStep, setConfirmStep] = useState(false);
+  const confirmSaleInFlightRef = useRef(false);
 
   const haptic = useWebHaptics();
 
@@ -148,40 +149,55 @@ export const SaleBuilder: FC<SaleBuilderProps> = ({
   };
 
   const confirmSale = async (lines: ResolvedSaleLine[]) => {
-    const proof = proofFile;
-    const contentType =
-      proof && isSaleProofContentType(proof.type) ? proof.type : undefined;
-
-    if (proof && !contentType) {
-      haptic.trigger("error");
-      toast.error("Solo se permiten imágenes o archivos PDF");
-      return;
-    }
+    if (confirmSaleInFlightRef.current) return;
+    confirmSaleInFlightRef.current = true;
 
     let proofKey: string | undefined;
 
     try {
-      if (proof) {
-        proofKey = await uploadProof({ barbershopId, file: proof });
+      const proof = proofFile;
+      const contentType =
+        proof && isSaleProofContentType(proof.type) ? proof.type : undefined;
+
+      if (proof && !contentType) {
+        haptic.trigger("error");
+        toast.error("Solo se permiten imágenes o archivos PDF");
+        return;
       }
 
-      await registerSale({
-        barbershop: { id: barbershopId },
-        lines: lines.map((line) => ({
-          item: { id: line.itemId },
-          quantity: line.quantity,
-        })),
-        ...buildSaleDetailsPayload(form.state.values),
-        proof:
-          proof && proofKey && contentType
-            ? {
-                key: proofKey,
-                fileName: proof.name,
-                contentType,
-                size: proof.size,
-              }
-            : undefined,
-      });
+      try {
+        if (proof) {
+          proofKey = await uploadProof({ barbershopId, file: proof });
+        }
+
+        await registerSale({
+          barbershop: { id: barbershopId },
+          lines: lines.map((line) => ({
+            item: { id: line.itemId },
+            quantity: line.quantity,
+          })),
+          ...buildSaleDetailsPayload(form.state.values),
+          proof:
+            proof && proofKey && contentType
+              ? {
+                  key: proofKey,
+                  fileName: proof.name,
+                  contentType,
+                  size: proof.size,
+                }
+              : undefined,
+        });
+      } catch (error) {
+        if (proofKey) {
+          void deleteProof({
+            barbershop: { id: barbershopId },
+            key: proofKey,
+          }).catch(() => undefined);
+        }
+        haptic.trigger("error");
+        toast.error(getConvexErrorMessage(error));
+        return;
+      }
 
       form.reset();
       setProofFile(undefined);
@@ -190,15 +206,8 @@ export const SaleBuilder: FC<SaleBuilderProps> = ({
       haptic.trigger("success");
       toast.success("Venta registrada exitosamente");
       onRegistered?.();
-    } catch (error) {
-      if (proofKey) {
-        void deleteProof({
-          barbershop: { id: barbershopId },
-          key: proofKey,
-        }).catch(() => undefined);
-      }
-      haptic.trigger("error");
-      toast.error(getConvexErrorMessage(error));
+    } finally {
+      confirmSaleInFlightRef.current = false;
     }
   };
 
@@ -237,6 +246,7 @@ export const SaleBuilder: FC<SaleBuilderProps> = ({
     <form.Subscribe selector={(state) => state.values.lines}>
       {(draftLines) => {
         const lines = resolveLines(draftLines);
+        const hasUnresolvedLines = lines.length !== draftLines.length;
         const total = lines.reduce((sum, line) => sum + line.lineTotal, 0);
         const selectedIds = new Set(draftLines.map((line) => line.itemId));
 
@@ -320,7 +330,22 @@ export const SaleBuilder: FC<SaleBuilderProps> = ({
                 confirmStep={confirmStep}
                 isConfirming={isConfirming}
                 onCancelConfirm={() => setConfirmStep(false)}
-                onConfirm={() => void confirmSale(lines)}
+                onConfirm={() => {
+                  if (hasUnresolvedLines) {
+                    form.setFieldValue(
+                      "lines",
+                      draftLines.filter((line) => itemById.has(line.itemId)),
+                    );
+                    setConfirmStep(false);
+                    haptic.trigger("error");
+                    toast.error(
+                      "Uno de los productos ya no está disponible. Revisa la venta.",
+                    );
+                    return;
+                  }
+
+                  void confirmSale(lines);
+                }}
               />
             </div>
           </div>
