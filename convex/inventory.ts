@@ -37,12 +37,14 @@ import type {
   InventoryLevel,
   InventoryMovement,
   InventoryMovementType,
+  InventorySale,
   Service,
 } from "./schema";
 import {
   barbershops,
   inventoryCategories,
   inventoryItems,
+  inventoryMovementTypeSchema,
   services,
 } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
@@ -124,6 +126,7 @@ type RecordMovementArgs = {
   reason?: string;
   locationId?: string;
   relatedAppointmentId?: Appointment["_id"];
+  relatedSaleId?: InventorySale["_id"];
   idempotencyKey?: string;
   /**
    * Lifecycle paths (appointment hooks) must never throw over stock: clamp
@@ -359,6 +362,7 @@ export async function recordMovement(
     reason,
     actorUserId: args.actorUserId,
     relatedAppointmentId: args.relatedAppointmentId,
+    relatedSaleId: args.relatedSaleId,
     idempotencyKey: args.idempotencyKey,
   });
 
@@ -380,6 +384,7 @@ export async function recordMovement(
       quantity,
       reason,
       relatedAppointmentId: args.relatedAppointmentId,
+      relatedSaleId: args.relatedSaleId,
     },
     generateDiff: true,
     severity: "info",
@@ -1026,51 +1031,6 @@ export const recordConsumption = zAuthMutation({
         itemId: item._id,
         barbershopId: item.barbershopId,
         quantity: result.quantityApplied,
-      },
-      groups: { barbershop: item.barbershopId },
-    });
-
-    return result;
-  },
-});
-
-export const recordSale = zAuthMutation({
-  args: z.object({
-    item: inventoryItems.tools.id,
-    quantity: quantitySchema,
-  }),
-  ratelimit: "recordSale",
-  handler: async (ctx, args) => {
-    const { userId } = ctx;
-    const item = await requireItemInShop(ctx, args.item.id);
-
-    await assertCanRecordConsumption(ctx, item.barbershopId, userId);
-
-    if (item.stockBehavior === "durable") {
-      throw new ConvexError(errorMessages.durableNotConsumable);
-    }
-
-    if (!item.isSellable) {
-      throw new ConvexError(errorMessages.itemNotSellable);
-    }
-
-    const result = await recordMovement(ctx, {
-      barbershopId: item.barbershopId,
-      itemId: item._id,
-      type: "sale",
-      quantity: args.quantity,
-      actorUserId: userId,
-      salePriceAtTime: item.salePrice,
-    });
-
-    await track(ctx, {
-      distinctId: userId,
-      event: "product_sold",
-      properties: {
-        itemId: item._id,
-        barbershopId: item.barbershopId,
-        quantity: result.quantityApplied,
-        revenue: result.quantityApplied * (item.salePrice ?? 0),
       },
       groups: { barbershop: item.barbershopId },
     });
@@ -2098,6 +2058,21 @@ export const listShopMovements = zAuthQuery({
   args: z.object({
     barbershop: barbershops.tools.id,
     paginationOpts: convexToZod(paginationOptsValidator),
+    /**
+     * Optional ledger filters. Each dimension has a matching index; the most
+     * selective active filter drives the index, and any second categorical
+     * filter trims the already index-bounded page in JS (never a table scan).
+     */
+    filters: z
+      .object({
+        type: inventoryMovementTypeSchema.optional(),
+        itemId: inventoryItems.tools.id.shape.id.optional(),
+        actorUserId: z.string().optional(),
+        /** Window bounds in epoch ms; ride the index's `_creationTime`. */
+        startTime: z.number().optional(),
+        endTime: z.number().optional(),
+      })
+      .optional(),
   }),
   handler: async (ctx, args) => {
     const { userId } = ctx;
@@ -2112,17 +2087,86 @@ export const listShopMovements = zAuthQuery({
       ),
     ]);
 
-    const result = await ctx.db
-      .query("inventoryMovements")
-      .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershop.id),
-      )
-      .order("desc")
-      .paginate(args.paginationOpts);
+    const { type, itemId, actorUserId, startTime, endTime } =
+      args.filters ?? {};
+
+    // A product filter reads `by_itemId`, which is not shop-scoped. Assert
+    // ownership up-front (same guard `listMovements` uses) so the range can
+    // never surface another shop's ledger.
+    if (itemId !== undefined) {
+      const item = await ctx.db.get(itemId);
+
+      if (!item || item.barbershopId !== args.barbershop.id) {
+        throw new ConvexError(errorMessages.notFound("producto"));
+      }
+    }
+
+    // Unconditional creation-time bounds keep the index chain flat: an absent
+    // bound widens to the full range without changing which index is scanned.
+    const startBound = startTime ?? 0;
+    const endBound = endTime ?? Number.MAX_SAFE_INTEGER;
+
+    // Index priority = selectivity. One product's ledger is the tightest
+    // range, then a single type, then a single actor, else the whole shop.
+    const base =
+      itemId !== undefined
+        ? ctx.db
+            .query("inventoryMovements")
+            .withIndex("by_itemId", (q) =>
+              q
+                .eq("itemId", itemId)
+                .gte("_creationTime", startBound)
+                .lt("_creationTime", endBound),
+            )
+        : type !== undefined
+          ? ctx.db
+              .query("inventoryMovements")
+              .withIndex("by_barbershopId_and_type", (q) =>
+                q
+                  .eq("barbershopId", args.barbershop.id)
+                  .eq("type", type)
+                  .gte("_creationTime", startBound)
+                  .lt("_creationTime", endBound),
+              )
+          : actorUserId !== undefined
+            ? ctx.db
+                .query("inventoryMovements")
+                .withIndex("by_barbershopId_and_actorUserId", (q) =>
+                  q
+                    .eq("barbershopId", args.barbershop.id)
+                    .eq("actorUserId", actorUserId)
+                    .gte("_creationTime", startBound)
+                    .lt("_creationTime", endBound),
+                )
+            : ctx.db
+                .query("inventoryMovements")
+                .withIndex("by_barbershopId", (q) =>
+                  q
+                    .eq("barbershopId", args.barbershop.id)
+                    .gte("_creationTime", startBound)
+                    .lt("_creationTime", endBound),
+                );
+
+    const result = await base.order("desc").paginate(args.paginationOpts);
+
+    // Residual categorical dimensions the chosen index didn't already pin —
+    // only when two filters combine (e.g. product + type). The page is already
+    // scoped by the index range, so this trims a bounded set, never scans.
+    const usedTypeIndex = itemId === undefined && type !== undefined;
+    const usedActorIndex =
+      itemId === undefined && type === undefined && actorUserId !== undefined;
+
+    const page = result.page.filter(
+      (movement) =>
+        (type === undefined || usedTypeIndex || movement.type === type) &&
+        (actorUserId === undefined ||
+          usedActorIndex ||
+          movement.actorUserId === actorUserId),
+    );
 
     // Accountability: resolve each actor once per page so the ledger shows
     // WHO moved stock, not just what moved.
-    const actorIds = [...new Set(result.page.map((m) => m.actorUserId))];
+    const actorIds = [...new Set(page.map((m) => m.actorUserId))];
     const actorNames = new Map(
       await Promise.all(
         actorIds.map(async (actorId) => {
@@ -2134,7 +2178,7 @@ export const listShopMovements = zAuthQuery({
 
     return {
       ...result,
-      page: result.page.map((movement) => ({
+      page: page.map((movement) => ({
         ...movement,
         actorName: actorNames.get(movement.actorUserId),
       })),

@@ -491,8 +491,76 @@ export const inventoryMovements = zodTable("inventoryMovements", (id) => ({
   reason: z.string().max(300).optional(),
   actorUserId: z.string(),
   relatedAppointmentId: id("appointments").optional(),
+  relatedSaleId: id("inventorySales").optional(),
   /** Dedupe for webhook/import-originated movements (creditPurchases.paymentId pattern). */
   idempotencyKey: z.string().optional(),
+}));
+
+/** Payment rails common in Colombian retail. */
+export const inventorySalePaymentMethods = [
+  "cash",
+  "card",
+  "nequi",
+  "daviplata",
+  "transfer",
+  "other",
+] as const;
+
+/** Document types accepted on Colombian (DIAN) receipts. */
+export const inventorySaleDocumentTypes = [
+  "cc",
+  "ce",
+  "nit",
+  "ti",
+  "pp",
+  "ppt",
+] as const;
+
+/** One completed retail transaction. Product details live on immutable line snapshots. */
+export const inventorySales = zodTable("inventorySales", (id) => ({
+  barbershopId: id("barbershops"),
+  actorUserId: z.string(),
+  totalAmount: z.number().int().min(0),
+  lineCount: z.number().int().min(1),
+  /** Optional here for pre-existing rows; required on new sales. */
+  paymentMethod: z.enum(inventorySalePaymentMethods).optional(),
+  /** Approval/transfer number to reconcile digital payments. */
+  paymentReference: z.string().max(60).optional(),
+  /** Customer asked for a receipt — customer identity fields become required. */
+  receiptIssued: z.boolean().optional(),
+  /** Walk-in sales stay anonymous; buyer data enables follow-up and invoicing. */
+  customerName: z.string().max(120).optional(),
+  customerDocumentType: z.enum(inventorySaleDocumentTypes).optional(),
+  customerDocumentNumber: z.string().max(20).optional(),
+  /** E.164 (`+57…`) — normalized like appointments.contactPhone. */
+  customerPhone: z.string().max(16).optional(),
+  customerEmail: z.string().max(255).optional(),
+  notes: z.string().max(300).optional(),
+  proofKey: z.string().optional(),
+  proofFileName: z.string().max(180).optional(),
+  proofContentType: z.string().max(80).optional(),
+  proofSize: z.number().int().positive().optional(),
+}));
+
+/** Immutable identity, pricing and cost snapshots for every product in a sale. */
+export const inventorySaleLines = zodTable("inventorySaleLines", (id) => ({
+  saleId: id("inventorySales"),
+  barbershopId: id("barbershops"),
+  itemId: id("inventoryItems"),
+  movementId: id("inventoryMovements"),
+  itemName: z.string(),
+  sku: z.string().optional(),
+  category: z.enum(inventoryCategories),
+  unit: z.enum(inventoryUnits),
+  brand: z.string().optional(),
+  model: z.string().optional(),
+  customLabel: z.string().optional(),
+  presentationValue: z.number().int().positive().optional(),
+  presentationUnit: z.enum(inventoryPresentationUnits).optional(),
+  quantity: z.number().int().positive(),
+  unitPrice: z.number().int().min(0),
+  unitCostAtTime: z.number().int().min(0),
+  lineTotal: z.number().int().min(0),
 }));
 
 /**
@@ -737,11 +805,26 @@ export default defineSchema({
     .table()
     .index("by_itemId", ["itemId"])
     .index("by_barbershopId", ["barbershopId"])
+    .index("by_barbershopId_and_type", ["barbershopId", "type"])
+    .index("by_barbershopId_and_actorUserId", ["barbershopId", "actorUserId"])
     .index("by_barbershopId_and_idempotencyKey", [
       "barbershopId",
       "idempotencyKey",
     ])
-    .index("by_relatedAppointmentId", ["relatedAppointmentId"]),
+    .index("by_relatedAppointmentId", ["relatedAppointmentId"])
+    .index("by_relatedSaleId", ["relatedSaleId"]),
+
+  inventorySales: inventorySales
+    .table()
+    .index("by_barbershopId", ["barbershopId"])
+    .index("by_proofKey", ["proofKey"])
+    .index("by_actorUserId", ["actorUserId"]),
+
+  inventorySaleLines: inventorySaleLines
+    .table()
+    .index("by_saleId", ["saleId"])
+    .index("by_barbershopId", ["barbershopId"])
+    .index("by_itemId", ["itemId"]),
 
   serviceInventoryUsage: serviceInventoryUsage
     .table()
@@ -810,6 +893,12 @@ export type NotificationKind = (typeof notificationKinds)[number];
 export type InventoryItem = output<typeof inventoryItems.schema>;
 export type InventoryLevel = output<typeof inventoryLevels.schema>;
 export type InventoryMovement = output<typeof inventoryMovements.schema>;
+export type InventorySale = output<typeof inventorySales.schema>;
+export type InventorySaleLine = output<typeof inventorySaleLines.schema>;
+export type InventorySalePaymentMethod =
+  (typeof inventorySalePaymentMethods)[number];
+export type InventorySaleDocumentType =
+  (typeof inventorySaleDocumentTypes)[number];
 export type InventoryMovementType = (typeof inventoryMovementTypes)[number];
 export type InventoryCategory = (typeof inventoryCategories)[number];
 export type InventoryUnit = (typeof inventoryUnits)[number];

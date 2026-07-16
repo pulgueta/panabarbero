@@ -51,8 +51,8 @@ export async function cascadeDeleteBarbershop(
     await ctx.db.patch(barbershopId, { isActive: false });
   }
 
-  const [appointments, members, reviews, inventoryItemRows] = await Promise.all(
-    [
+  const [appointments, members, reviews, inventoryItemRows, inventorySales] =
+    await Promise.all([
       ctx.db
         .query("appointments")
         .withIndex("by_barbershopId", (q) => q.eq("barbershopId", barbershopId))
@@ -69,8 +69,11 @@ export async function cascadeDeleteBarbershop(
         .query("inventoryItems")
         .withIndex("by_barbershopId", (q) => q.eq("barbershopId", barbershopId))
         .collect(),
-    ],
-  );
+      ctx.db
+        .query("inventorySales")
+        .withIndex("by_barbershopId", (q) => q.eq("barbershopId", barbershopId))
+        .collect(),
+    ]);
 
   // Cancel pending scheduled notifications before deleting appointment rows.
   const scheduledIds = appointments.flatMap((appointment) =>
@@ -129,6 +132,16 @@ export async function cascadeDeleteBarbershop(
     }
   }
 
+  for (const sale of inventorySales) {
+    if (sale.proofKey) {
+      try {
+        await ctx.runMutation(api.r2.deleteR2Object, { key: sale.proofKey });
+      } catch {
+        // Non-fatal: object may already be gone
+      }
+    }
+  }
+
   if (barbershop.workosOrganizationId) {
     await ctx.scheduler.runAfter(0, internal.workosOrgs.deleteOrganization, {
       workosOrganizationId: barbershop.workosOrganizationId,
@@ -172,6 +185,7 @@ export async function cascadeDeleteBarbershop(
     members.length +
     reviews.length +
     inventoryItemRows.length +
+    inventorySales.length +
     movementCount;
 
   const cascadeCtx = withCascadeTriggers(ctx);

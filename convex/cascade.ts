@@ -56,6 +56,12 @@ const cascadeRules = defineCascadeRules({
     { to: "inventoryItems", via: "by_barbershopId", field: "barbershopId" },
     { to: "inventoryLevels", via: "by_barbershopId", field: "barbershopId" },
     { to: "inventoryMovements", via: "by_barbershopId", field: "barbershopId" },
+    { to: "inventorySales", via: "by_barbershopId", field: "barbershopId" },
+    {
+      to: "inventorySaleLines",
+      via: "by_barbershopId",
+      field: "barbershopId",
+    },
     {
       to: "serviceInventoryUsage",
       via: "by_barbershopId",

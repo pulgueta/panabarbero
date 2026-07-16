@@ -38,6 +38,7 @@ import type * as inAppNotifications from "../inAppNotifications.js";
 import type * as index from "../index.js";
 import type * as inventory from "../inventory.js";
 import type * as inventoryAlerts from "../inventoryAlerts.js";
+import type * as inventorySales from "../inventorySales.js";
 import type * as invitations from "../invitations.js";
 import type * as invitationsSchema from "../invitationsSchema.js";
 import type * as log from "../log.js";
@@ -103,6 +104,7 @@ declare const fullApi: ApiFromModules<{
   index: typeof index;
   inventory: typeof inventory;
   inventoryAlerts: typeof inventoryAlerts;
+  inventorySales: typeof inventorySales;
   invitations: typeof invitations;
   invitationsSchema: typeof invitationsSchema;
   log: typeof log;
