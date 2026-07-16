@@ -1,9 +1,9 @@
 import type { FunctionReference } from "convex/server";
-import { v } from "convex/values";
+import { z } from "zod";
 
+import { zInternalMutation } from ".";
 import { api, internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
-import { internalMutation } from "./_generated/server";
 import {
   completedAppointmentsAggregate,
   inventoryMovementsAggregate,
@@ -19,6 +19,7 @@ import {
 import { barbershopGeospatial } from "./geospatial";
 import { r2 } from "./r2";
 import type { Appointment, Barbershop, BarbershopMember } from "./schema";
+import { barbershops } from "./schema";
 
 /**
  * Bounded sale scan for the inline-vs-batched decision. Every sale contributes
@@ -261,12 +262,11 @@ async function startBatchedTeardown(
  * so nothing can write new sales, and no rows are deleted until the cascade
  * this job launches at the end.
  */
-export const deleteSaleProofsPage = internalMutation({
-  args: {
-    barbershopId: v.id("barbershops"),
-    cursor: v.union(v.string(), v.null()),
-  },
-  returns: v.null(),
+export const deleteSaleProofsPage = zInternalMutation({
+  args: z.object({
+    barbershopId: barbershops.tools.id.shape.id,
+    cursor: z.union([z.string(), z.null()]),
+  }),
   handler: async (ctx, args) => {
     const result = await ctx.db
       .query("inventorySales")
@@ -295,6 +295,7 @@ export const deleteSaleProofsPage = internalMutation({
       internal.barbershopCascade.deleteSaleProofsPage,
       { barbershopId: args.barbershopId, cursor: result.continueCursor },
     );
+
     return null;
   },
 });
