@@ -113,7 +113,10 @@ export const getOperationsBreakdown = zAuthQuery({
       ctx.db
         .query("appointments")
         .withIndex("by_barbershopId_and_date", (q) =>
-          q.eq("barbershopId", barbershopId).gte("date", since).lte("date", now),
+          q
+            .eq("barbershopId", barbershopId)
+            .gte("date", since)
+            .lte("date", now),
         )
         .collect(),
       ctx.db

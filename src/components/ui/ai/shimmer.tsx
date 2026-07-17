@@ -1,8 +1,8 @@
-import { cn } from "@/lib/utils";
 import type { MotionProps } from "motion/react";
 import { domAnimation, LazyMotion, m } from "motion/react";
 import type { CSSProperties, ElementType, JSX } from "react";
 import { memo, useMemo } from "react";
+import { cn } from "@/lib/utils";
 
 type MotionHTMLProps = MotionProps & Record<string, unknown>;
 

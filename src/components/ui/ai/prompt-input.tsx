@@ -1,17 +1,9 @@
 import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupTextarea,
-} from "@/components/ui/input-group";
-import { Spinner } from "@/components/ui/spinner";
-import { cn } from "@/lib/utils";
-import type { ChatStatus, FileUIPart, SourceDocumentUIPart } from "ai";
-import {
   ArrowBendDownLeftIcon,
   SquareIcon,
   XIcon,
 } from "@phosphor-icons/react";
+import type { ChatStatus, FileUIPart, SourceDocumentUIPart } from "ai";
 import type {
   ChangeEvent,
   ChangeEventHandler,
@@ -32,6 +24,14 @@ import {
   useRef,
   useState,
 } from "react";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupTextarea,
+} from "@/components/ui/input-group";
+import { Spinner } from "@/components/ui/spinner";
+import { cn } from "@/lib/utils";
 
 // ============================================================================
 // Helpers

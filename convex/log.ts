@@ -1,5 +1,5 @@
-import { AuditLog } from "convex-audit-log";
 import { ConvexError } from "convex/values";
+import { AuditLog } from "convex-audit-log";
 import { z } from "zod";
 
 import { zAuthQuery } from ".";
