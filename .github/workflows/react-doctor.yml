@@ -3,6 +3,7 @@ name: React Doctor
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  workflow_call:
 
 permissions:
   contents: read
@@ -18,8 +19,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Runs React Doctor
-        uses: millionco/react-doctor@v2
+        id: doctor
+        uses: millionco/react-doctor@938008119a288f2fb47c66a69cd9279a21f31784 # v2.2.7
+
+      # The action never fails on findings for non-PR events, so gate release
+      # (tag) runs on its outputs: block on error-severity findings or on a
+      # scan that produced no score (i.e. it never completed).
+      - name: Enforce release gate
+        if: github.ref_type == 'tag'
+        env:
+          ERROR_COUNT: ${{ steps.doctor.outputs.error-count }}
+          SCORE: ${{ steps.doctor.outputs.score }}
+        run: |
+          if [ -z "$SCORE" ]; then
+            echo "React Doctor scan did not complete; blocking the release." >&2
+            exit 1
+          fi
+          if [ "${ERROR_COUNT:-0}" != "0" ]; then
+            echo "React Doctor found ${ERROR_COUNT} error-severity issue(s); blocking the release." >&2
+            exit 1
+          fi

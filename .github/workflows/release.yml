@@ -1,0 +1,165 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  VERCEL_CLI_VERSION: "56.3.0"
+  VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+
+jobs:
+  validate-tag:
+    name: Validate release tag
+    runs-on: ubuntu-latest
+    outputs:
+      is_prerelease: ${{ steps.tag.outputs.is_prerelease }}
+    steps:
+      - name: Validate semantic version
+        id: tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z][0-9A-Za-z.-]*)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Release tags must use vMAJOR.MINOR.PATCH with optional SemVer prerelease/build metadata." >&2
+            exit 1
+          fi
+
+          tag_without_build_metadata="${RELEASE_TAG%%+*}"
+          if [[ "$tag_without_build_metadata" == *-* ]]; then
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.tag.outputs.is_prerelease == 'false'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require stable tags to point at main
+        if: steps.tag.outputs.is_prerelease == 'false'
+        run: |
+          commit="$(git rev-parse "${GITHUB_SHA}^{commit}")"
+          if ! git merge-base --is-ancestor "$commit" origin/main; then
+            echo "Stable release tags must point at a commit reachable from origin/main." >&2
+            exit 1
+          fi
+
+  biome:
+    name: Biome
+    needs: validate-tag
+    if: ${{ needs.validate-tag.outputs.is_prerelease == 'false' }}
+    uses: ./.github/workflows/biome.yaml
+
+  react-doctor:
+    name: React Doctor
+    needs: validate-tag
+    if: ${{ needs.validate-tag.outputs.is_prerelease == 'false' }}
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    uses: ./.github/workflows/react-doctor.yml
+
+  preview:
+    name: Deploy preview
+    needs: validate-tag
+    if: ${{ needs.validate-tag.outputs.is_prerelease == 'true' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: preview
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup
+        uses: ./.github/setup
+
+      - name: Pull Vercel preview settings
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: pnpm dlx "vercel@${VERCEL_CLI_VERSION}" pull --yes --environment=preview
+
+      # --cmd only exports the injected deployment URLs; the app build runs in
+      # the next step, in a process tree that never held CONVEX_DEPLOY_KEY.
+      - name: Deploy Convex preview
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          base="${RELEASE_TAG%%-*}"
+          pnpm convex deploy --preview-name "release-${base//./-}" \
+            --cmd 'echo "VITE_CONVEX_URL=$VITE_CONVEX_URL" >> "$GITHUB_ENV" && echo "VITE_CONVEX_SITE_URL=$VITE_CONVEX_SITE_URL" >> "$GITHUB_ENV"'
+
+      - name: Build Vercel artifact
+        run: pnpm dlx "vercel@${VERCEL_CLI_VERSION}" build
+
+      - name: Deploy Vercel preview
+        id: deploy
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          url="$(pnpm dlx "vercel@${VERCEL_CLI_VERSION}" deploy --prebuilt --yes --meta "githubCommitSha=${GITHUB_SHA}" --meta "releaseTag=${RELEASE_TAG}")"
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+
+  production:
+    name: Deploy production
+    needs: [validate-tag, biome, react-doctor]
+    if: ${{ needs.validate-tag.outputs.is_prerelease == 'false' }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release-production
+      cancel-in-progress: false
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup
+        uses: ./.github/setup
+
+      - name: Pull Vercel production settings
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: pnpm dlx "vercel@${VERCEL_CLI_VERSION}" pull --yes --environment=production
+
+      # Same split as the preview job: the build never sees CONVEX_DEPLOY_KEY.
+      - name: Deploy Convex production
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+        run: >-
+          pnpm convex deploy
+          --cmd 'echo "VITE_CONVEX_URL=$VITE_CONVEX_URL" >> "$GITHUB_ENV" && echo "VITE_CONVEX_SITE_URL=$VITE_CONVEX_SITE_URL" >> "$GITHUB_ENV"'
+
+      - name: Build Vercel artifact
+        run: pnpm dlx "vercel@${VERCEL_CLI_VERSION}" build --prod
+
+      - name: Deploy Vercel production
+        id: deploy
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          url="$(pnpm dlx "vercel@${VERCEL_CLI_VERSION}" deploy --prebuilt --prod --yes --meta "githubCommitSha=${GITHUB_SHA}" --meta "releaseTag=${RELEASE_TAG}")"
+          echo "url=${url}" >> "$GITHUB_OUTPUT"

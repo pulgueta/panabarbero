@@ -6,6 +6,7 @@ on:
   push:
     branches: ["main"]
   merge_group:
+  workflow_call:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,15 +17,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup
         uses: ./.github/setup
 
-      - name: Lint
-        run: pnpm lint
-
-      - name: Format
-        run: pnpm format
+      - name: Check
+        run: pnpm exec biome ci .

@@ -10,8 +10,8 @@ import {
   XCircleIcon,
 } from "@phosphor-icons/react";
 import {
-  animate,
   AnimatePresence,
+  animate,
   domAnimation,
   LazyMotion,
   m,

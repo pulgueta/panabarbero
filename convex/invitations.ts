@@ -1,6 +1,6 @@
 import type { Locale } from "@workos-inc/node";
-import { zid } from "convex-helpers/server/zod4";
 import { ConvexError } from "convex/values";
+import { zid } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import { zAuthAction, zInternalMutation, zInternalQuery } from ".";
