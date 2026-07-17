@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  VERCEL_CLI_VERSION: "55.0.0"
+  VERCEL_CLI_VERSION: "56.3.0"
   VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
 
@@ -40,6 +40,22 @@ jobs:
             echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Checkout
+        if: steps.tag.outputs.is_prerelease == 'false'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require stable tags to point at main
+        if: steps.tag.outputs.is_prerelease == 'false'
+        run: |
+          commit="$(git rev-parse "${GITHUB_SHA}^{commit}")"
+          if ! git merge-base --is-ancestor "$commit" origin/main; then
+            echo "Stable release tags must point at a commit reachable from origin/main." >&2
+            exit 1
+          fi
+
   biome:
     name: Biome
     uses: ./.github/workflows/biome.yaml
@@ -60,6 +76,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup
         uses: ./.github/setup
@@ -74,9 +91,8 @@ jobs:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: >-
-          pnpm exec convex deploy --preview-name "release-${RELEASE_TAG}"
-          --cmd-url-env-var-name VITE_CONVEX_URL
-          --cmd 'VITE_CONVEX_SITE_URL="${VITE_CONVEX_URL/.cloud/.site}" pnpm dlx "vercel@${VERCEL_CLI_VERSION}" build'
+          pnpm convex deploy --preview-name "release-${RELEASE_TAG}"
+          --cmd 'env -u CONVEX_DEPLOY_KEY pnpm dlx "vercel@${VERCEL_CLI_VERSION}" build'
 
       - name: Deploy Vercel preview
         id: deploy
@@ -92,6 +108,9 @@ jobs:
     needs: [validate-tag, preview]
     if: ${{ needs.validate-tag.outputs.is_prerelease == 'false' }}
     runs-on: ubuntu-latest
+    concurrency:
+      group: release-production
+      cancel-in-progress: false
     environment:
       name: production
       url: ${{ steps.deploy.outputs.url }}
@@ -100,6 +119,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup
         uses: ./.github/setup
@@ -113,8 +133,7 @@ jobs:
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
         run: >-
-          pnpm exec convex deploy --cmd-url-env-var-name VITE_CONVEX_URL
-          --cmd 'VITE_CONVEX_SITE_URL="${VITE_CONVEX_URL/.cloud/.site}" pnpm dlx "vercel@${VERCEL_CLI_VERSION}" build --prod'
+          pnpm convex deploy --cmd 'env -u CONVEX_DEPLOY_KEY pnpm dlx "vercel@${VERCEL_CLI_VERSION}" build --prod'
 
       - name: Deploy Vercel production
         id: deploy
