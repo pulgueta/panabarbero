@@ -66,6 +66,10 @@ jobs:
     name: React Doctor
     needs: validate-tag
     if: ${{ needs.validate-tag.outputs.is_prerelease == 'false' }}
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
     uses: ./.github/workflows/react-doctor.yml
 
   preview:
@@ -91,13 +95,19 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: pnpm dlx "vercel@${VERCEL_CLI_VERSION}" pull --yes --environment=preview
 
-      - name: Deploy Convex preview and build Vercel artifact
+      # --cmd only exports the injected deployment URLs; the app build runs in
+      # the next step, in a process tree that never held CONVEX_DEPLOY_KEY.
+      - name: Deploy Convex preview
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: >-
-          pnpm convex deploy --preview-name "release-${RELEASE_TAG%%-*}"
-          --cmd 'env -u CONVEX_DEPLOY_KEY pnpm dlx "vercel@${VERCEL_CLI_VERSION}" build'
+        run: |
+          base="${RELEASE_TAG%%-*}"
+          pnpm convex deploy --preview-name "release-${base//./-}" \
+            --cmd 'echo "VITE_CONVEX_URL=$VITE_CONVEX_URL" >> "$GITHUB_ENV" && echo "VITE_CONVEX_SITE_URL=$VITE_CONVEX_SITE_URL" >> "$GITHUB_ENV"'
+
+      - name: Build Vercel artifact
+        run: pnpm dlx "vercel@${VERCEL_CLI_VERSION}" build
 
       - name: Deploy Vercel preview
         id: deploy
@@ -134,11 +144,16 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: pnpm dlx "vercel@${VERCEL_CLI_VERSION}" pull --yes --environment=production
 
-      - name: Deploy Convex production and build Vercel artifact
+      # Same split as the preview job: the build never sees CONVEX_DEPLOY_KEY.
+      - name: Deploy Convex production
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
         run: >-
-          pnpm convex deploy --cmd 'env -u CONVEX_DEPLOY_KEY pnpm dlx "vercel@${VERCEL_CLI_VERSION}" build --prod'
+          pnpm convex deploy
+          --cmd 'echo "VITE_CONVEX_URL=$VITE_CONVEX_URL" >> "$GITHUB_ENV" && echo "VITE_CONVEX_SITE_URL=$VITE_CONVEX_SITE_URL" >> "$GITHUB_ENV"'
+
+      - name: Build Vercel artifact
+        run: pnpm dlx "vercel@${VERCEL_CLI_VERSION}" build --prod
 
       - name: Deploy Vercel production
         id: deploy
