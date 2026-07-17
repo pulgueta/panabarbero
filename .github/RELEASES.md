@@ -3,7 +3,7 @@
 Pushing a SemVer tag starts the CLI-only release workflow:
 
 - `vX.Y.Z-<prerelease>` (rc, staging, demo, …) deploys Convex and Vercel preview environments immediately — no quality checks, no approvals. All prereleases of the same version share the `release-vX-Y-Z` Convex preview deployment (dots become dashes; Convex deployment names only allow alphanumerics, dashes, and slashes), so `-rc.2` reuses the backend and data `-rc.1` created.
-- `vX.Y.Z` runs the Biome and React Doctor workflows as blocking gates (read-only `biome ci`; React Doctor fails the run on error-severity findings), then deploys production through the `production` GitHub Environment (approval only if that environment has required reviewers).
+- `vX.Y.Z` runs the Biome and React Doctor workflows as blocking gates (read-only `biome ci`; React Doctor fails the run on error-severity findings or an incomplete scan), then deploys production through the `production` GitHub Environment (approval only if that environment has required reviewers).
 
 The two paths are independent: a failed check only blocks production. Stable tags must point at a commit reachable from `origin/main`; prerelease tags may target any commit so previews can validate unmerged work. Tags are the only release trigger, so an agent or maintainer releases a verified commit with:
 
