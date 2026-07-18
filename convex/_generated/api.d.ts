@@ -65,6 +65,7 @@ import type * as services from "../services.js";
 import type * as tracing from "../tracing.js";
 import type * as twilio from "../twilio.js";
 import type * as userProfileData from "../userProfileData.js";
+import type * as usesend from "../usesend.js";
 import type * as utils from "../utils.js";
 import type * as workosOrgs from "../workosOrgs.js";
 
@@ -132,6 +133,7 @@ declare const fullApi: ApiFromModules<{
   tracing: typeof tracing;
   twilio: typeof twilio;
   userProfileData: typeof userProfileData;
+  usesend: typeof usesend;
   utils: typeof utils;
   workosOrgs: typeof workosOrgs;
 }>;
@@ -171,6 +173,7 @@ export declare const components: {
   r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
   migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
   posthog: import("@posthog/convex/_generated/component.js").ComponentApi<"posthog">;
+  usesend: import("@pulgueta/usesend-convex/_generated/component.js").ComponentApi<"usesend">;
   unreadTracking: import("convex-unread-tracking/_generated/component.js").ComponentApi<"unreadTracking">;
   convexCascadingDelete: import("@00akshatsinha00/convex-cascading-delete/_generated/component.js").ComponentApi<"convexCascadingDelete">;
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;

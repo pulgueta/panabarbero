@@ -12,6 +12,7 @@ import authkit from "@convex-dev/workos-authkit/convex.config";
 import workpool from "@convex-dev/workpool/convex.config";
 import authz from "@djpanda/convex-authz/convex.config";
 import posthog from "@posthog/convex/convex.config";
+import usesend from "@pulgueta/usesend-convex/convex.config";
 import { defineApp } from "convex/server";
 import { v } from "convex/values";
 import auditLog from "convex-audit-log/convex.config";
@@ -41,6 +42,7 @@ app.use(posthog, {
       app.env.POSTHOG_FLAGS_POLLING_INTERVAL_SECONDS,
   },
 });
+app.use(usesend);
 app.use(unreads);
 app.use(cascadingDelete);
 app.use(agent);
