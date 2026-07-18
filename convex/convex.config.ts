@@ -24,6 +24,8 @@ const app = defineApp({
     POSTHOG_HOST: v.optional(v.string()),
     POSTHOG_PERSONAL_API_KEY: v.optional(v.string()),
     POSTHOG_FLAGS_POLLING_INTERVAL_SECONDS: v.optional(v.string()),
+    USESEND_API_KEY: v.string(),
+    USESEND_BASE_URL: v.optional(v.string()),
   },
 });
 app.use(authkit);
@@ -42,7 +44,12 @@ app.use(posthog, {
       app.env.POSTHOG_FLAGS_POLLING_INTERVAL_SECONDS,
   },
 });
-app.use(usesend);
+app.use(usesend, {
+  env: {
+    USESEND_API_KEY: app.env.USESEND_API_KEY,
+    USESEND_BASE_URL: app.env.USESEND_BASE_URL,
+  },
+});
 app.use(unreads);
 app.use(cascadingDelete);
 app.use(agent);

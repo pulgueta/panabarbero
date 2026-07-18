@@ -100,7 +100,7 @@ twilio.registerRoutes(http);
 authkit.registerRoutes(http);
 
 http.route({
-  path: "/usesend-webhook",
+  path: "/usesend/webhook",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
     return await usesend.handleUseSendEventWebhook(ctx, request);
