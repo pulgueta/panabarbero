@@ -135,8 +135,9 @@ const form = useAppForm({
   `@pulgueta/usesend-convex` component. React Email templates are rendered to
   HTML and plain text, then enqueued through the component so recipients,
   content, delivery IDs, and status metadata are retained durably. Component
-  cleanup runs daily from `convex/crons.ts` using the package retention
-  defaults.
+  delivery events enter through the signed `/usesend-webhook` route in
+  `convex/http.ts`; cleanup runs daily from `convex/crons.ts` using the package
+  retention defaults.
 - **Reviews backend** (`convex/convex.config.ts`): a 4th `@convex-dev/aggregate`
   instance `aggregateReviewRatings` (running average rating) and a
   `@convex-dev/workpool` pool `reviewModerationWorkpool` (async review moderation).
