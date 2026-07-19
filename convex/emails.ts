@@ -1,8 +1,10 @@
 "use node";
 
-import type { RunMutationCtx } from "@pulgueta/usesend-convex";
-import { createElement, type ReactNode } from "react";
-import { render } from "react-email";
+import {
+  type RunMutationCtx,
+  type SendReactEmailOptions,
+  sendReactEmail,
+} from "@pulgueta/usesend-convex/react-email";
 import { z } from "zod";
 import {
   AccountDeletedEmail,
@@ -33,19 +35,11 @@ import { emailFrom, usesend } from "./usesend";
 
 async function sendEmail(
   ctx: RunMutationCtx,
-  opts: { to: string; subject: string; react: ReactNode },
+  opts: Omit<SendReactEmailOptions, "from">,
 ) {
-  const [html, text] = await Promise.all([
-    render(opts.react),
-    render(opts.react, { plainText: true }),
-  ]);
-
-  await usesend.sendEmail(ctx, {
-    to: opts.to,
+  await sendReactEmail(usesend, ctx, {
     from: emailFrom,
-    subject: opts.subject,
-    html,
-    text,
+    ...opts,
   });
 }
 
@@ -370,7 +364,7 @@ export const sendSaleReceiptEmail = zInternalAction({
     await sendEmail(ctx, {
       to: args.to,
       subject,
-      react: createElement(SaleReceiptEmail, {
+      react: SaleReceiptEmail({
         subject,
         barbershopName: args.barbershopName,
         receiptNumber: args.receiptNumber,
