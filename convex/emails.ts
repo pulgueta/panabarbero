@@ -1,7 +1,8 @@
 "use node";
 
-import { sendReactEmail } from "@pulgueta/usesend-convex/react-email";
-import { createElement, type ReactElement } from "react";
+import type { RunMutationCtx } from "@pulgueta/usesend-convex";
+import { createElement, type ReactNode } from "react";
+import { render } from "react-email";
 import { z } from "zod";
 import {
   AccountDeletedEmail,
@@ -31,14 +32,20 @@ import { subjects } from "./notifications";
 import { emailFrom, usesend } from "./usesend";
 
 async function sendEmail(
-  ctx: Parameters<typeof sendReactEmail>[1],
-  opts: { to: string; subject: string; react: ReactElement },
+  ctx: RunMutationCtx,
+  opts: { to: string; subject: string; react: ReactNode },
 ) {
-  await sendReactEmail(usesend, ctx, {
+  const [html, text] = await Promise.all([
+    render(opts.react),
+    render(opts.react, { plainText: true }),
+  ]);
+
+  await usesend.sendEmail(ctx, {
     to: opts.to,
     from: emailFrom,
     subject: opts.subject,
-    react: opts.react,
+    html,
+    text,
   });
 }
 
