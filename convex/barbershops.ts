@@ -1,9 +1,10 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 
+import { convexToZod, zid } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
-import { convexToZod, zid } from "convex-helpers/server/zod4";
 import { z } from "zod";
+
 import { zAuthMutation, zInternalMutation, zQuery } from ".";
 import { api, internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
@@ -184,39 +185,37 @@ export const getActive = zQuery({
     city: z.string().optional(),
     state: z.string().optional(),
     userId: z.string().optional(),
+    minRating: z.number().min(0).max(5).optional(),
+    minReviews: z.number().int().min(0).optional(),
+    sortBy: z.enum(["rating", "reviews", "name"]).optional(),
   }),
   handler: async (ctx, args) => {
-    const barbershops = await ctx.db
-      .query("barbershops")
-      .withIndex("by_isActive", (q) => q.eq("isActive", true))
-      .filter((q) =>
-        args.userId
-          ? q.and(
-              q.neq(q.field("ownerId"), args.userId),
-              args.city && args.state
-                ? q.and(
-                    q.eq(q.field("city"), args.city),
-                    q.eq(q.field("state"), args.state),
-                  )
-                : q.or(
-                    q.eq(q.field("city"), args.city),
-                    q.eq(q.field("state"), args.state),
-                  ),
-            )
-          : q.and(
-              args.city && args.state
-                ? q.and(
-                    q.eq(q.field("city"), args.city),
-                    q.eq(q.field("state"), args.state),
-                  )
-                : q.or(
-                    q.eq(q.field("city"), args.city),
-                    q.eq(q.field("state"), args.state),
-                  ),
-            ),
-      )
-      .order("asc")
-      .collect();
+    // Index-backed read (location index when set, isActive otherwise), then
+    // JS-residual filtering: owner exclusion here, rating/review thresholds
+    // after the aggregate decorates each row.
+    const hasLocation = Boolean(args.city && args.state);
+    const rows = hasLocation
+      ? await ctx.db
+          .query("barbershops")
+          .withIndex("by_city_and_state_and_isActive", (q) =>
+            q
+              .eq("city", args.city!)
+              .eq("state", args.state!)
+              .eq("isActive", true),
+          )
+          .order("asc")
+          .collect()
+      : await ctx.db
+          .query("barbershops")
+          .withIndex("by_isActive", (q) => q.eq("isActive", true))
+          .order("asc")
+          .collect();
+
+    const barbershops = rows.filter(
+      (barbershop) =>
+        barbershop.isActive &&
+        (!args.userId || barbershop.ownerId !== args.userId),
+    );
 
     const withRatings = await Promise.all(
       barbershops.map(async (barbershop) => {
@@ -241,7 +240,25 @@ export const getActive = zQuery({
       }),
     );
 
-    return withRatings.filter((barbershop) => barbershop.services?.length);
+    const filtered = withRatings.filter(
+      (barbershop) =>
+        barbershop.services?.length &&
+        (barbershop.averageRating ?? 0) >= (args.minRating ?? 0) &&
+        (barbershop.reviewCount ?? 0) >= (args.minReviews ?? 0),
+    );
+
+    const sorters: Record<
+      NonNullable<typeof args.sortBy>,
+      (a: (typeof filtered)[number], b: (typeof filtered)[number]) => number
+    > = {
+      rating: (a, b) =>
+        (b.averageRating ?? 0) - (a.averageRating ?? 0) ||
+        (b.reviewCount ?? 0) - (a.reviewCount ?? 0),
+      reviews: (a, b) => (b.reviewCount ?? 0) - (a.reviewCount ?? 0),
+      name: (a, b) => a.name.localeCompare(b.name, "es"),
+    };
+
+    return filtered.sort(sorters[args.sortBy ?? "rating"]);
   },
 });
 

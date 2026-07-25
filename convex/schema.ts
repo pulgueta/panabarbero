@@ -728,6 +728,7 @@ export default defineSchema({
     .table()
     .index("by_ownerId", ["ownerId"])
     .index("by_city_and_state", ["city", "state"])
+    .index("by_city_and_state_and_isActive", ["city", "state", "isActive"])
     .index("by_isActive", ["isActive"])
     .searchIndex("by_name_search", {
       searchField: "name",

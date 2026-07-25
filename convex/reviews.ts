@@ -1,7 +1,7 @@
 import { vOnCompleteArgs, Workpool } from "@convex-dev/workpool";
+import { convexToZod } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import {
@@ -324,6 +324,16 @@ export const getByBarbershop = zQuery({
 export const getBarbershopRating = zQuery({
   args: z.object({ barbershopId: barbershops.tools.id.shape.id }),
   handler: (ctx, args) => getBarbershopRatingValue(ctx, args.barbershopId),
+});
+
+/**
+ * Public: per-star published-review histogram for the detail page's reviews
+ * card. Same bounded index scan the dashboard stats use.
+ */
+export const getBarbershopRatingDistribution = zQuery({
+  args: z.object({ barbershopId: barbershops.tools.id.shape.id }),
+  handler: (ctx, args) =>
+    getPublishedRatingDistribution(ctx, args.barbershopId),
 });
 
 /**
@@ -813,6 +823,41 @@ export const listForShop = zAuthQuery({
 });
 
 /**
+ * Per-star histogram of published, unflagged reviews — a bounded scan of the
+ * rating index, counting in JS. Shared by the public detail page and the
+ * dashboard stats.
+ */
+async function getPublishedRatingDistribution(
+  ctx: QueryCtx,
+  barbershopId: Barbershop["_id"],
+) {
+  const perStar = await Promise.all(
+    STAR_RATINGS.map((star) =>
+      ctx.db
+        .query("reviews")
+        .withIndex("by_barbershopId_and_rating", (q) =>
+          q.eq("barbershopId", barbershopId).eq("rating", star),
+        )
+        .collect(),
+    ),
+  );
+
+  const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } as Record<
+    1 | 2 | 3 | 4 | 5,
+    number
+  >;
+
+  STAR_RATINGS.forEach((star, index) => {
+    distribution[star] = perStar[index].filter(
+      (review) =>
+        review.publishedAt !== undefined && review.flaggedAt === undefined,
+    ).length;
+  });
+
+  return distribution;
+}
+
+/**
  * Headline review stats for the dashboard. Average + published total come from
  * the O(log n) rating aggregate (which only ever holds published, unflagged
  * reviews). The per-star histogram is a bounded scan of the rating index,
@@ -827,7 +872,7 @@ export const getShopReviewStats = zAuthQuery({
 
     await assertCanViewReviewAnalytics(ctx, barbershopId, userId);
 
-    const [{ average, count }, flagged, perStar] = await Promise.all([
+    const [{ average, count }, flagged, distribution] = await Promise.all([
       getBarbershopRatingValue(ctx, barbershopId),
       ctx.db
         .query("reviews")
@@ -835,29 +880,8 @@ export const getShopReviewStats = zAuthQuery({
           q.eq("barbershopId", barbershopId).gt("flaggedAt", 0),
         )
         .collect(),
-      Promise.all(
-        STAR_RATINGS.map((star) =>
-          ctx.db
-            .query("reviews")
-            .withIndex("by_barbershopId_and_rating", (q) =>
-              q.eq("barbershopId", barbershopId).eq("rating", star),
-            )
-            .collect(),
-        ),
-      ),
+      getPublishedRatingDistribution(ctx, barbershopId),
     ]);
-
-    const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } as Record<
-      1 | 2 | 3 | 4 | 5,
-      number
-    >;
-
-    STAR_RATINGS.forEach((star, index) => {
-      distribution[star] = perStar[index].filter(
-        (review) =>
-          review.publishedAt !== undefined && review.flaggedAt === undefined,
-      ).length;
-    });
 
     return {
       average,
