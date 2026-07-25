@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { FREE_MAX_BARBERS } from "@/config/home-faqs";
 import { cn } from "@/lib/utils";
 
 const numberFmt = new Intl.NumberFormat("es-CO");
@@ -96,7 +97,9 @@ export const PlanComparison: FC = () => (
           <TableBody>
             {ROW_LABELS.map((label) => (
               <TableRow key={label}>
-                <TableCell className="px-5 py-3 font-medium">{label}</TableCell>
+                <TableHead className="px-5 py-3 font-medium" scope="row">
+                  {label}
+                </TableHead>
                 {COLUMNS.map((column) => (
                   <TableCell
                     className={cn(
@@ -122,8 +125,8 @@ export const PlanComparison: FC = () => (
         ¿Dudas sobre qué plan te sirve?
       </h2>
       <p className="max-w-prose text-pretty text-muted-foreground text-sm">
-        Empieza gratis con hasta 5 barberos y cambia de plan cuando necesites
-        inventario y Pana IA. Sin permanencia mínima.
+        Empieza gratis con hasta {FREE_MAX_BARBERS} barberos y cambia de plan
+        cuando necesites inventario y Pana IA. Sin permanencia mínima.
       </p>
       <Button nativeButton={false} render={<Link to="/login" />} size="lg">
         Comenzar gratis
