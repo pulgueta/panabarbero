@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cacheTime } from "@/config/cache";
-import { HOME_FAQS } from "@/config/home-faqs";
+import { FREE_MAX_BARBERS, HOME_FAQS } from "@/config/home-faqs";
 import {
   breadcrumbStructuredData,
   faqStructuredData,
@@ -116,102 +116,108 @@ function RouteComponent() {
 
   return (
     <BorderContainer>
-      <section className="flex flex-col items-center gap-5 py-12 text-center md:py-16">
-        <h1 className="max-w-3xl text-balance font-semibold text-4xl tracking-tighter md:text-5xl lg:text-6xl">
-          Tu barbería organizada. Tu agenda llena.
-        </h1>
-        <p className="max-w-xl text-pretty text-muted-foreground md:text-lg">
-          Así se ve una barbería funcionando en PanaBarbero: las citas entran
-          solas, el stock se cuenta solo y tú solo confirmas de vez en cuando.
-        </p>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button size="lg" render={<Link to="/login" />} nativeButton={false}>
-            Registrar mi barbería
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            render={
-              <Link
-                to="/barbershops"
-                search={{ city: persistedCity, state: persistedState }}
-              />
-            }
-            nativeButton={false}
-          >
-            Buscar barberías
-          </Button>
-        </div>
-        <p className="text-muted-foreground text-sm">
-          Gratis hasta 5 barberos. Sin tarjeta de crédito.
-        </p>
-      </section>
-
-      <DashboardDemo />
-
-      <Separator className="my-12" />
-
-      <Suspense>
-        <ModuleSections />
-      </Suspense>
-
-      <Separator className="my-12" />
-
-      <Hydrate
-        when={visible({ rootMargin: "200px" })}
-        fallback={<Skeleton className="h-96 w-full rounded-xl" />}
-      >
-        <MetricsSection />
-      </Hydrate>
-
-      <Separator className="my-12" />
-
-      <Suspense>
-        <StepsSection />
-      </Suspense>
-
-      <Separator className="my-12" />
-
-      <section className="space-y-8">
-        <div className="space-y-2">
-          <h2 className="text-balance text-center font-semibold text-3xl tracking-tighter md:text-4xl">
-            Precios
-          </h2>
-          <p className="text-pretty text-center text-muted-foreground">
-            Empieza gratis y crece cuando tu barbería crezca.
+      <main>
+        <section className="flex flex-col items-center gap-5 py-12 text-center md:py-16">
+          <h1 className="max-w-3xl text-balance font-semibold text-4xl tracking-tighter md:text-5xl lg:text-6xl">
+            Tu barbería organizada. Tu agenda llena.
+          </h1>
+          <p className="max-w-xl text-pretty text-muted-foreground md:text-lg">
+            Así se ve una barbería funcionando en PanaBarbero: las citas entran
+            solas, el stock se cuenta solo y tú solo confirmas de vez en cuando.
           </p>
-        </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button
+              size="lg"
+              render={<Link to="/login" />}
+              nativeButton={false}
+            >
+              Registrar mi barbería
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              render={
+                <Link
+                  to="/barbershops"
+                  search={{ city: persistedCity, state: persistedState }}
+                />
+              }
+              nativeButton={false}
+            >
+              Buscar barberías
+            </Button>
+          </div>
+          <p className="text-muted-foreground text-sm">
+            Gratis hasta {FREE_MAX_BARBERS} barberos. Sin tarjeta de crédito.
+          </p>
+        </section>
+
+        <DashboardDemo />
+
+        <Separator className="my-12" />
+
+        <Suspense>
+          <ModuleSections />
+        </Suspense>
+
+        <Separator className="my-12" />
 
         <Hydrate
           when={visible({ rootMargin: "200px" })}
-          fallback={<ProfileTabSkeleton />}
+          fallback={<Skeleton className="h-96 w-full rounded-xl" />}
         >
-          <PricingCards />
+          <MetricsSection />
         </Hydrate>
 
-        <div className="flex justify-center">
-          <Button
-            variant="ghost"
-            render={<Link to="/pricing" />}
-            nativeButton={false}
+        <Separator className="my-12" />
+
+        <Suspense>
+          <StepsSection />
+        </Suspense>
+
+        <Separator className="my-12" />
+
+        <section className="space-y-8">
+          <div className="space-y-2">
+            <h2 className="text-balance text-center font-semibold text-3xl tracking-tighter md:text-4xl">
+              Precios
+            </h2>
+            <p className="text-pretty text-center text-muted-foreground">
+              Empieza gratis y crece cuando tu barbería crezca.
+            </p>
+          </div>
+
+          <Hydrate
+            when={visible({ rootMargin: "200px" })}
+            fallback={<ProfileTabSkeleton />}
           >
-            Ver comparación completa
-            <ArrowRightIcon weight="bold" className="size-4" />
-          </Button>
-        </div>
-      </section>
+            <PricingCards />
+          </Hydrate>
 
-      <Separator className="my-12" />
+          <div className="flex justify-center">
+            <Button
+              variant="ghost"
+              render={<Link to="/pricing" />}
+              nativeButton={false}
+            >
+              Ver comparación completa
+              <ArrowRightIcon weight="bold" className="size-4" />
+            </Button>
+          </div>
+        </section>
 
-      <Suspense>
-        <FaqSection />
-      </Suspense>
+        <Separator className="my-12" />
 
-      <Separator className="my-12" />
+        <Suspense>
+          <FaqSection />
+        </Suspense>
 
-      <Hydrate when={visible({ rootMargin: "200px" })}>
-        <CtaSection />
-      </Hydrate>
+        <Separator className="my-12" />
+
+        <Hydrate when={visible({ rootMargin: "200px" })}>
+          <CtaSection />
+        </Hydrate>
+      </main>
 
       <Suspense>
         <LandingFooter />

@@ -164,7 +164,7 @@ const InventoryDemoCard: FC = () => {
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                 <div
                   className={cn(
-                    "h-full rounded-full transition-all duration-500",
+                    "h-full rounded-full transition-[width,background-color] duration-500",
                     low ? "bg-warning" : "bg-foreground",
                   )}
                   style={{ width: `${percent}%` }}
@@ -205,7 +205,7 @@ const TeamDemoCard: FC = () => {
           <div className="flex w-28 items-center gap-2">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
               <div
-                className="h-full rounded-full bg-foreground transition-all duration-500"
+                className="h-full rounded-full bg-foreground transition-[width] duration-500"
                 style={{ width: `${barber.occupancy}%` }}
               />
             </div>

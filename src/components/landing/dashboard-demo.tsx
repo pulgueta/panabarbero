@@ -80,11 +80,22 @@ const SECTION_CRUMBS: Record<DashSection, string> = {
   pana: "Pana",
 };
 
-const SectionHeader: FC<{
+/** Every demo view renders straight off one immutable simulation snapshot. */
+interface SimViewProps {
+  sim: LandingSimState;
+}
+
+interface SectionHeaderProps {
   title: string;
   description: string;
   action?: { icon: Icon; label: string; tour?: string };
-}> = ({ title, description, action }) => (
+}
+
+const SectionHeader: FC<SectionHeaderProps> = ({
+  title,
+  description,
+  action,
+}) => (
   <div className="flex items-center justify-between gap-4">
     <div className="flex flex-col gap-0.5">
       <span className="font-semibold text-sm tracking-tight">{title}</span>
@@ -102,7 +113,7 @@ const SectionHeader: FC<{
   </div>
 );
 
-const CitasView: FC<{ sim: LandingSimState }> = ({ sim }) => {
+const CitasView: FC<SimViewProps> = ({ sim }) => {
   const kpis = [
     { label: "Citas hoy", value: String(sim.citasHoy) },
     { label: "Caja del día", value: formatCop(sim.caja) },
@@ -183,7 +194,7 @@ const CitasView: FC<{ sim: LandingSimState }> = ({ sim }) => {
   );
 };
 
-const ServiciosView: FC<{ sim: LandingSimState }> = ({ sim }) => (
+const ServiciosView: FC<SimViewProps> = ({ sim }) => (
   <>
     <SectionHeader
       title="Servicios"
@@ -229,7 +240,7 @@ const ServiciosView: FC<{ sim: LandingSimState }> = ({ sim }) => (
   </>
 );
 
-const InventarioView: FC<{ sim: LandingSimState }> = ({ sim }) => (
+const InventarioView: FC<SimViewProps> = ({ sim }) => (
   <>
     <SectionHeader
       title="Inventario"
@@ -271,7 +282,7 @@ const InventarioView: FC<{ sim: LandingSimState }> = ({ sim }) => (
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                 <div
                   className={cn(
-                    "h-full rounded-full transition-all duration-500",
+                    "h-full rounded-full transition-[width,background-color] duration-500",
                     low ? "bg-warning" : "bg-foreground",
                   )}
                   style={{ width: `${percent}%` }}
@@ -295,7 +306,7 @@ const InventarioView: FC<{ sim: LandingSimState }> = ({ sim }) => (
   </>
 );
 
-const EquipoView: FC<{ sim: LandingSimState }> = ({ sim }) => (
+const EquipoView: FC<SimViewProps> = ({ sim }) => (
   <>
     <SectionHeader
       title="Equipo"
@@ -329,7 +340,7 @@ const EquipoView: FC<{ sim: LandingSimState }> = ({ sim }) => (
           <div className="flex w-28 items-center gap-2">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
               <div
-                className="h-full rounded-full bg-foreground transition-all duration-500"
+                className="h-full rounded-full bg-foreground transition-[width] duration-500"
                 style={{ width: `${barber.occupancy}%` }}
               />
             </div>
@@ -343,7 +354,7 @@ const EquipoView: FC<{ sim: LandingSimState }> = ({ sim }) => (
   </>
 );
 
-const PanaView: FC<{ sim: LandingSimState }> = ({ sim }) => {
+const PanaView: FC<SimViewProps> = ({ sim }) => {
   const exchange = currentPanaExchange(sim);
   const nextTopic = (sim.panaTopic + 1) % 3;
 

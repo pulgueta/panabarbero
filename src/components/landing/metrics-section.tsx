@@ -217,7 +217,7 @@ export const MetricsSection: FC = () => {
       </div>
 
       <p className="text-muted-foreground text-xs">
-        Promedios de barberías activas en PanaBarbero · 2026.
+        Promedios de barberías activas en PanaBarbero.
       </p>
     </section>
   );

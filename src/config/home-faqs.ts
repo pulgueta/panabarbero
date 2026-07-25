@@ -1,7 +1,12 @@
+import { PLAN_LIMITS } from "@convex/plans";
+
 export interface HomeFaq {
   question: string;
   answer: string;
 }
+
+/** Free-tier barber cap, so copy can never drift from the enforced limit. */
+export const FREE_MAX_BARBERS = PLAN_LIMITS.free.maxInvitedBarbers ?? 0;
 
 /**
  * Single source for the home-page FAQ: feeds both the visible accordion and
@@ -30,8 +35,7 @@ export const HOME_FAQS: HomeFaq[] = [
   },
   {
     question: "¿Es gratis usar PanaBarbero?",
-    answer:
-      "Sí. El plan gratuito permite invitar hasta 5 barberos, con agenda y reservas en línea incluidas. Para equipos más grandes, inventario y Pana IA, existen planes de pago con más capacidad.",
+    answer: `Sí. El plan gratuito permite invitar hasta ${FREE_MAX_BARBERS} barberos, con agenda y reservas en línea incluidas. Para equipos más grandes, inventario y Pana IA, existen planes de pago con más capacidad.`,
   },
   {
     question: "¿Puedo cambiar de plan en cualquier momento?",

@@ -50,11 +50,15 @@ const TOPICS = [
   "Crea una cita para Felipe",
 ] as const;
 
-const messageText = (message: UIMessage): string =>
-  message.parts
-    .filter((part) => part.type === "text")
-    .map((part) => part.text)
-    .join("");
+const messageText = (message: UIMessage): string => {
+  let text = "";
+
+  for (const part of message.parts) {
+    if (part.type === "text") text += part.text;
+  }
+
+  return text;
+};
 
 /**
  * Offline chat: `createChat` has no predefined turns, so every send hits the
@@ -164,9 +168,10 @@ export function PanaLiveChat() {
   });
 
   const isBusy = status === "submitted" || status === "streaming";
-  const asked = new Set(
-    messages.filter((m) => m.role === "user").map(messageText),
-  );
+  const asked = new Set<string>();
+  for (const message of messages) {
+    if (message.role === "user") asked.add(messageText(message));
+  }
 
   const ask = useCallback(
     (question: string) => {

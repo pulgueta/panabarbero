@@ -50,6 +50,8 @@ export interface SimToast {
 }
 
 export interface SimBarber {
+  /** Stable identity — never derive a barber from array position or initials. */
+  id: string;
   initials: string;
   name: string;
   role: string;
@@ -117,8 +119,12 @@ const INITIAL_AGENDA: SimAppointment[] = [
   },
 ];
 
+/** The barber the scripted "Crea una cita para Felipe" step books into. */
+const BOOKING_BARBER_ID = "valentina";
+
 const INITIAL_TEAM: SimBarber[] = [
   {
+    id: "camilo",
     initials: "CT",
     name: "Camilo Torres",
     role: "Barbero senior",
@@ -126,6 +132,7 @@ const INITIAL_TEAM: SimBarber[] = [
     occupancy: 60,
   },
   {
+    id: BOOKING_BARBER_ID,
     initials: "VR",
     name: "Valentina Ruiz",
     role: "Barbera",
@@ -133,6 +140,7 @@ const INITIAL_TEAM: SimBarber[] = [
     occupancy: 52,
   },
   {
+    id: "sebastian",
     initials: "SC",
     name: "Sebastián Cruz",
     role: "Barbero",
@@ -177,6 +185,21 @@ export interface PanaExchange {
 }
 
 /** Q&A pairs whose answers are computed from the live sim state. */
+const firstName = (barber: SimBarber) => barber.name.split(" ")[0];
+
+/** "Camilo va en 60%, Valentina en 52% y Sebastián en 44%" — any team size. */
+const occupancyPhrase = (team: SimBarber[]) => {
+  const parts = team.map((barber, index) =>
+    index === 0
+      ? `${firstName(barber)} va en ${barber.occupancy}%`
+      : `${firstName(barber)} en ${barber.occupancy}%`,
+  );
+
+  if (parts.length < 2) return parts.join("");
+
+  return `${parts.slice(0, -1).join(", ")} y ${parts.at(-1)}`;
+};
+
 export const panaExchanges = (state: LandingSimState): PanaExchange[] => [
   {
     question: "¿Cómo va mi día?",
@@ -184,7 +207,7 @@ export const panaExchanges = (state: LandingSimState): PanaExchange[] => [
   },
   {
     question: "¿Cómo va la ocupación del equipo?",
-    answer: `Camilo va en ${state.team[0].occupancy}%, Valentina en ${state.team[1].occupancy}% y Sebastián en ${state.team[2].occupancy}%. Queda espacio en la tarde.`,
+    answer: `${occupancyPhrase(state.team)}. Queda espacio en la tarde.`,
   },
   {
     question: "Crea una cita para Felipe",
@@ -252,7 +275,7 @@ function bookAppointment(state: LandingSimState): LandingSimState {
     citasHoy: state.citasHoy + 1,
     ocupacion: 79,
     team: state.team.map((barber) =>
-      barber.initials === "VR"
+      barber.id === BOOKING_BARBER_ID
         ? { ...barber, citas: barber.citas + 1, occupancy: 60 }
         : barber,
     ),
