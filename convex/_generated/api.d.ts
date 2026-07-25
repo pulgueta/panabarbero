@@ -183,6 +183,7 @@ export declare const components: {
   aggregateSmsSent: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateSmsSent">;
   aggregateEmailsSent: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateEmailsSent">;
   aggregateReviewRatings: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateReviewRatings">;
+  aggregateReviewStars: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateReviewStars">;
   aggregateInventoryValue: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateInventoryValue">;
   aggregateInventoryMovements: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateInventoryMovements">;
   workflow: import("@convex-dev/workflow/_generated/component.js").ComponentApi<"workflow">;
