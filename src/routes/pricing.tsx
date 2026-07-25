@@ -12,6 +12,11 @@ const PricingCards = lazy(() =>
     default: module.PricingCards,
   })),
 );
+const PlanComparison = lazy(() =>
+  import("@/components/pricing/plan-comparison").then((module) => ({
+    default: module.PlanComparison,
+  })),
+);
 
 export const Route = createFileRoute("/pricing")({
   component: PricingPage,
@@ -47,6 +52,7 @@ function PricingPage() {
 
       <Suspense fallback={<ProfileTabSkeleton />}>
         <PricingCards />
+        <PlanComparison />
       </Suspense>
     </BorderContainer>
   );
