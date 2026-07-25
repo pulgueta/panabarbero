@@ -98,14 +98,7 @@ http.route({
 
 twilio.registerRoutes(http);
 authkit.registerRoutes(http);
-
-http.route({
-  path: "/usesend/webhook",
-  method: "POST",
-  handler: httpAction(async (ctx, request) => {
-    return await usesend.handleUseSendEventWebhook(ctx, request);
-  }),
-});
+usesend.registerRoutes(http);
 
 /**
  * MercadoPago webhook (subscriptions + one-time credit payments). Signature

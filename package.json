@@ -42,7 +42,7 @@
     "@posthog/ai": "^8.0.0",
     "@posthog/convex": "^2.0.15",
     "@posthog/react": "^1.10.0",
-    "@pulgueta/usesend-convex": "0.2.2",
+    "@pulgueta/usesend-convex": "0.3.0",
     "@streamdown/cjk": "^1.0.3",
     "@t3-oss/env-core": "0.13.11",
     "@tailwindcss/typography": "0.5.20",
