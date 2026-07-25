@@ -12,6 +12,7 @@ import authkit from "@convex-dev/workos-authkit/convex.config";
 import workpool from "@convex-dev/workpool/convex.config";
 import authz from "@djpanda/convex-authz/convex.config";
 import posthog from "@posthog/convex/convex.config";
+import usesend from "@pulgueta/usesend-convex/convex.config";
 import { defineApp } from "convex/server";
 import { v } from "convex/values";
 import auditLog from "convex-audit-log/convex.config";
@@ -23,6 +24,8 @@ const app = defineApp({
     POSTHOG_HOST: v.optional(v.string()),
     POSTHOG_PERSONAL_API_KEY: v.optional(v.string()),
     POSTHOG_FLAGS_POLLING_INTERVAL_SECONDS: v.optional(v.string()),
+    USESEND_API_KEY: v.string(),
+    USESEND_BASE_URL: v.optional(v.string()),
   },
 });
 app.use(authkit);
@@ -39,6 +42,12 @@ app.use(posthog, {
     POSTHOG_PERSONAL_API_KEY: app.env.POSTHOG_PERSONAL_API_KEY,
     POSTHOG_FLAGS_POLLING_INTERVAL_SECONDS:
       app.env.POSTHOG_FLAGS_POLLING_INTERVAL_SECONDS,
+  },
+});
+app.use(usesend, {
+  env: {
+    USESEND_API_KEY: app.env.USESEND_API_KEY,
+    USESEND_BASE_URL: app.env.USESEND_BASE_URL,
   },
 });
 app.use(unreads);

@@ -17,5 +17,6 @@ minimumReleaseAgeExclude:
   - react-doctor@0.6.2
   - react-email@6.6.6
   - shadcn@4.13.0
+  - '@pulgueta/usesend-convex@0.2.2 || 0.3.0'
 patchedDependencies:
   '@tanstack/router-core@1.171.9': patches/@tanstack__router-core@1.171.9.patch

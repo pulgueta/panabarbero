@@ -9,6 +9,7 @@ import { errorMessages } from "./errors";
 import { siteUrl } from "./notificationCopy";
 import { r2 } from "./r2";
 import { twilio } from "./twilio";
+import { usesend } from "./usesend";
 
 const http = httpRouter();
 
@@ -97,6 +98,7 @@ http.route({
 
 twilio.registerRoutes(http);
 authkit.registerRoutes(http);
+usesend.registerRoutes(http);
 
 /**
  * MercadoPago webhook (subscriptions + one-time credit payments). Signature

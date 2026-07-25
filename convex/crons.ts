@@ -2,7 +2,7 @@ import { cronJobs } from "convex/server";
 import { z } from "zod";
 
 import { zInternalMutation } from ".";
-import { internal } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import { completedAppointmentsAggregate } from "./aggregates";
 
 const crons = cronJobs();
@@ -56,6 +56,20 @@ export const cleanupAppointments = zInternalMutation({
   },
 });
 
+export const cleanupUseSend = zInternalMutation({
+  args: z.object({}),
+  handler: async (ctx) => {
+    await Promise.all([
+      ctx.scheduler.runAfter(0, components.usesend.lib.cleanupOldEmails, {}),
+      ctx.scheduler.runAfter(
+        0,
+        components.usesend.lib.cleanupAbandonedEmails,
+        {},
+      ),
+    ]);
+  },
+});
+
 crons.interval(
   "Cleanup soft-deleted appointments",
   { hours: 24 * 7 },
@@ -66,6 +80,12 @@ crons.interval(
   "Cleanup unread-tracking data",
   { hours: 24 },
   internal.inAppNotifications.cleanupUnreads,
+);
+
+crons.interval(
+  "Cleanup useSend email metadata",
+  { hours: 24 },
+  internal.crons.cleanupUseSend,
 );
 
 crons.interval(

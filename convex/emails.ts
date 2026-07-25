@@ -1,9 +1,10 @@
 "use node";
 
-import { ConvexError } from "convex/values";
-import { createElement } from "react";
-import { render } from "react-email";
-import { UseSend } from "usesend-js";
+import {
+  type RunMutationCtx,
+  type SendReactEmailOptions,
+  sendReactEmail,
+} from "@pulgueta/usesend-convex/react-email";
 import { z } from "zod";
 import {
   AccountDeletedEmail,
@@ -30,39 +31,29 @@ import {
   siteUrl,
 } from "./notificationCopy";
 import { subjects } from "./notifications";
+import { emailFrom, usesend } from "./usesend";
 
-export const from = "Soporte de PanaBarbero <contacto@mail.panabarbero.com>";
-
-const usesend = new UseSend(process.env.USESEND_API_KEY);
-
-async function sendEmail(opts: { to: string; subject: string; html: string }) {
-  const { error } = await usesend.emails.send({
-    to: opts.to,
-    from,
-    subject: opts.subject,
-    html: opts.html,
+async function sendEmail(
+  ctx: RunMutationCtx,
+  opts: Omit<SendReactEmailOptions, "from">,
+) {
+  await sendReactEmail(usesend, ctx, {
+    from: emailFrom,
+    ...opts,
   });
-
-  if (error) {
-    throw new ConvexError(error.message);
-  }
 }
 
 export const sendPastAppointmentReminderEmail = zInternalAction({
   args: z.object({
     to: z.string(),
   }),
-  handler: async (_ctx, args) => {
-    const html = await render(
-      PastAppointmentReminderEmail({
-        subject: subjects.past_appointment_reminder,
-      }),
-    );
-
-    await sendEmail({
+  handler: async (ctx, args) => {
+    await sendEmail(ctx, {
       to: args.to,
       subject: subjects.past_appointment_reminder,
-      html,
+      react: PastAppointmentReminderEmail({
+        subject: subjects.past_appointment_reminder,
+      }),
     });
   },
 });
@@ -72,18 +63,14 @@ export const sendAppointmentReminderEmail = zInternalAction({
     body: z.string(),
     to: z.string(),
   },
-  handler: async (_ctx, args) => {
-    const html = await render(
-      AppointmentReminderEmail({
+  handler: async (ctx, args) => {
+    await sendEmail(ctx, {
+      to: args.to,
+      subject: subjects.appointment_reminder,
+      react: AppointmentReminderEmail({
         body: args.body,
         subject: subjects.appointment_reminder,
       }),
-    );
-
-    await sendEmail({
-      to: args.to,
-      subject: subjects.appointment_reminder,
-      html,
     });
   },
 });
@@ -95,19 +82,15 @@ export const sendAppointmentCancelled = zInternalAction({
     to: z.string(),
     body: z.string(),
   }),
-  handler: async (_ctx, args) => {
-    const html = await render(
-      AppointmentCancelledEmail({
+  handler: async (ctx, args) => {
+    await sendEmail(ctx, {
+      to: args.to,
+      subject: subjects.appointment_cancelled,
+      react: AppointmentCancelledEmail({
         notes: args.notes,
         subject: subjects.appointment_cancelled,
         body: args.body,
       }),
-    );
-
-    await sendEmail({
-      to: args.to,
-      subject: subjects.appointment_cancelled,
-      html,
     });
   },
 });
@@ -118,24 +101,20 @@ export const sendAppointmentRescheduleRequestEmail = zInternalAction({
     body: z.string(),
     sendTo: z.enum(["barber", "customer"]),
   }),
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
     const requestUrl =
       args.sendTo === "barber"
         ? `${process.env.SITE_URL}/profile/barbershops/appointments`
         : `${process.env.SITE_URL}/profile?tab=appointments`;
 
-    const html = await render(
-      AppointmentRescheduleRequestEmail({
+    await sendEmail(ctx, {
+      to: args.to,
+      subject: subjects.appointment_rescheduled_request,
+      react: AppointmentRescheduleRequestEmail({
         requestUrl,
         subject: subjects.appointment_rescheduled_request,
         body: args.body,
       }),
-    );
-
-    await sendEmail({
-      to: args.to,
-      subject: subjects.appointment_rescheduled_request,
-      html,
     });
   },
 });
@@ -145,18 +124,14 @@ export const sendAppointmentRescheduledAcceptedEmail = zInternalAction({
     to: z.string(),
     body: z.string(),
   }),
-  handler: async (_ctx, args) => {
-    const html = await render(
-      RescheduleRequestAcceptEmail({
+  handler: async (ctx, args) => {
+    await sendEmail(ctx, {
+      to: args.to,
+      subject: subjects.appointment_rescheduled_accepted,
+      react: RescheduleRequestAcceptEmail({
         subject: subjects.appointment_rescheduled_accepted,
         body: args.body,
       }),
-    );
-
-    await sendEmail({
-      to: args.to,
-      subject: subjects.appointment_rescheduled_accepted,
-      html,
     });
   },
 });
@@ -166,18 +141,14 @@ export const sendAppointmentRescheduledDeniedEmail = zInternalAction({
     to: z.string(),
     body: z.string(),
   }),
-  handler: async (_ctx, args) => {
-    const html = await render(
-      RescheduleRequestDeniedEmail({
+  handler: async (ctx, args) => {
+    await sendEmail(ctx, {
+      to: args.to,
+      subject: subjects.appointment_rescheduled_denied,
+      react: RescheduleRequestDeniedEmail({
         subject: subjects.appointment_rescheduled_denied,
         body: args.body,
       }),
-    );
-
-    await sendEmail({
-      to: args.to,
-      subject: subjects.appointment_rescheduled_denied,
-      html,
     });
   },
 });
@@ -188,19 +159,15 @@ export const sendAppointmentCreatedToUserEmail = zInternalAction({
     body: z.string(),
     subject: z.string(),
   }),
-  handler: async (_ctx, args) => {
-    const html = await render(
-      AppointmentCreatedEmail({
+  handler: async (ctx, args) => {
+    await sendEmail(ctx, {
+      to: args.to,
+      subject: args.subject,
+      react: AppointmentCreatedEmail({
         sendTo: "customer",
         subject: args.subject,
         body: args.body,
       }),
-    );
-
-    await sendEmail({
-      to: args.to,
-      subject: args.subject,
-      html,
     });
   },
 });
@@ -211,20 +178,16 @@ export const sendAppointmentCreatedToBarberEmail = zInternalAction({
     body: z.string(),
     subject: z.string(),
   }),
-  handler: async (_ctx, args) => {
-    const html = await render(
-      AppointmentCreatedEmail({
+  handler: async (ctx, args) => {
+    await sendEmail(ctx, {
+      to: args.to,
+      subject: args.subject,
+      react: AppointmentCreatedEmail({
         sendTo: "barber",
         requestUrl: `${process.env.SITE_URL}/profile/barbershops`,
         subject: args.subject,
         body: args.body,
       }),
-    );
-
-    await sendEmail({
-      to: args.to,
-      subject: args.subject,
-      html,
     });
   },
 });
@@ -239,16 +202,17 @@ export const sendAppointmentReassignedEmails = zInternalAction({
       }),
     ),
   }),
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
     for (const n of args.notifications) {
       const subject = `Tu cita en ${n.barbershopName} ha sido reasignada`;
-      const html = await render(
-        AppointmentReassignedEmail({
+      await sendEmail(ctx, {
+        to: n.to,
+        subject,
+        react: AppointmentReassignedEmail({
           barbershopName: n.barbershopName,
           newBarberName: n.newBarberName,
         }),
-      );
-      await sendEmail({ to: n.to, subject, html });
+      });
     }
   },
 });
@@ -261,7 +225,7 @@ export const sendMemberDepartureSummaryToOwner = zInternalAction({
     reassignedCount: z.number(),
     cancelledCount: z.number(),
   }),
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
     const subject = `Miembro de ${args.barbershopName} eliminó su cuenta`;
     const parts: string[] = [
       `El miembro ${args.barberName} de ${args.barbershopName} ha eliminado su cuenta en PanaBarbero.`,
@@ -283,14 +247,15 @@ export const sendMemberDepartureSummaryToOwner = zInternalAction({
       "Revisa el panel de tu barbería para ver el estado actualizado de las citas.",
     );
 
-    const html = await render(
-      AccountDeletedEmail({
+    await sendEmail(ctx, {
+      to: args.to,
+      subject,
+      react: AccountDeletedEmail({
         subject,
         body: parts.join(" "),
         url: siteUrl(),
       }),
-    );
-    await sendEmail({ to: args.to, subject, html });
+    });
   },
 });
 
@@ -304,7 +269,7 @@ export const sendAccountDeletedNotifications = zInternalAction({
       }),
     ),
   }),
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
     for (const notification of args.notifications) {
       const isStaff = notification.affectedAs === "staff";
       const subject = isStaff
@@ -314,11 +279,11 @@ export const sendAccountDeletedNotifications = zInternalAction({
         ? `Lamentamos informarte que la barbería ${notification.barbershopName} ha cerrado su cuenta y ha sido eliminada de PanaBarbero. Los registros de membresía del equipo han sido eliminados. Si tienes alguna pregunta, contáctanos.`
         : `Lamentamos informarte que tu cita en la barbería ${notification.barbershopName} ha sido cancelada, ya que la barbería ha cerrado su cuenta en PanaBarbero. Te invitamos a explorar otras barberías disponibles en nuestra plataforma.`;
 
-      const html = await render(
-        AccountDeletedEmail({ subject, body, url: siteUrl() }),
-      );
-
-      await sendEmail({ to: notification.to, subject, html });
+      await sendEmail(ctx, {
+        to: notification.to,
+        subject,
+        react: AccountDeletedEmail({ subject, body, url: siteUrl() }),
+      });
     }
   },
 });
@@ -327,13 +292,11 @@ export const sendWelcomeEmail = zInternalAction({
   args: z.object({
     to: z.string(),
   }),
-  handler: async (_ctx, args) => {
-    const html = await render(WelcomeEmail({}));
-
-    await sendEmail({
+  handler: async (ctx, args) => {
+    await sendEmail(ctx, {
       to: args.to,
       subject: "¡Bienvenido a PanaBarbero!",
-      html,
+      react: WelcomeEmail({}),
     });
   },
 });
@@ -347,9 +310,11 @@ export const sendLowStockEmail = zInternalAction({
     reorderPoint: z.number(),
     barbershopName: z.string(),
   }),
-  handler: async (_ctx, args) => {
-    const html = await render(
-      LowStockEmail({
+  handler: async (ctx, args) => {
+    await sendEmail(ctx, {
+      to: args.to,
+      subject: subjects.low_stock,
+      react: LowStockEmail({
         subject: subjects.low_stock,
         itemName: args.itemName,
         remainingPhrase: formatLowStockRemaining(args.remaining, args.unit),
@@ -357,12 +322,6 @@ export const sendLowStockEmail = zInternalAction({
         barbershopName: args.barbershopName,
         inventoryUrl: deepLinks.inventory(),
       }),
-    );
-
-    await sendEmail({
-      to: args.to,
-      subject: subjects.low_stock,
-      html,
     });
   },
 });
@@ -399,11 +358,13 @@ export const sendSaleReceiptEmail = zInternalAction({
       }),
     ),
   }),
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
     const subject = `Recibo de tu compra en ${args.barbershopName}`;
 
-    const html = await render(
-      createElement(SaleReceiptEmail, {
+    await sendEmail(ctx, {
+      to: args.to,
+      subject,
+      react: SaleReceiptEmail({
         subject,
         barbershopName: args.barbershopName,
         receiptNumber: args.receiptNumber,
@@ -420,12 +381,6 @@ export const sendSaleReceiptEmail = zInternalAction({
         paymentMethodLabel: salePaymentMethodEmailLabels[args.paymentMethod],
         paymentReference: args.paymentReference,
       }),
-    );
-
-    await sendEmail({
-      to: args.to,
-      subject,
-      html,
     });
   },
 });

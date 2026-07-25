@@ -131,6 +131,13 @@ const form = useAppForm({
   importing them from an isolate file breaks codegen (`performance is not defined`).
 - **Components are bundled from `dist/`.** Patching a component's `src` alone
   does nothing — the patch must target the built `dist/` output.
+- **Email delivery** (`convex/usesend.ts`, `convex/emails.ts`) uses the
+  `@pulgueta/usesend-convex` component. React Email templates are rendered to
+  HTML and plain text, then enqueued through the component so recipients,
+  content, delivery IDs, and status metadata are retained durably. Component
+  delivery events enter through the signed `/usesend/webhook` route in
+  `convex/http.ts`; cleanup runs daily from `convex/crons.ts` using the package
+  retention defaults.
 - **Reviews backend** (`convex/convex.config.ts`): a 4th `@convex-dev/aggregate`
   instance `aggregateReviewRatings` (running average rating) and a
   `@convex-dev/workpool` pool `reviewModerationWorkpool` (async review moderation).
