@@ -1,19 +1,14 @@
 import {
-  CalendarCheckIcon,
-  ChatCircleIcon,
-  CheckCircleIcon,
-  CrownIcon,
-  LockKeyIcon,
-  MagnifyingGlassIcon,
-  SparkleIcon,
+  CalendarPlusIcon,
+  ChartLineUpIcon,
+  UsersThreeIcon,
 } from "@phosphor-icons/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 
-import { PanaDemo } from "@/components/landing/pana-demo";
+import { PanaLiveChat } from "@/components/landing/pana-live-chat";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -22,49 +17,31 @@ import {
   softwareApplicationStructuredData,
 } from "@/lib/utils";
 
-const CtaSection = lazy(() =>
-  import("@/components/landing/cta-section").then((module) => ({
-    default: module.CtaSection,
-  })),
-);
-
 const LandingFooter = lazy(() =>
   import("@/components/landing/footer").then((module) => ({
     default: module.LandingFooter,
   })),
 );
 
-const STEPS = [
+const CAPABILITIES = [
   {
-    icon: ChatCircleIcon,
-    title: "Escríbele como hablas",
+    icon: CalendarPlusIcon,
+    title: "Crea y mueve citas",
     description:
-      "Dile a Pana en lenguaje normal: «un corte mañana por la tarde en La Catedral». Sin formularios ni menús.",
+      "Pídele una cita por chat y Pana encuentra el hueco, la agenda y envía la confirmación por SMS.",
   },
   {
-    icon: MagnifyingGlassIcon,
-    title: "Pana busca y verifica",
+    icon: UsersThreeIcon,
+    title: "Conoce la carga de tu equipo",
     description:
-      "Consulta barberías, servicios, barberos y cupos reales en segundos. Nada inventado: todo sale de la plataforma.",
+      "Te dice quién tiene la agenda llena y quién tiene espacio libre, sin abrir el calendario.",
   },
   {
-    icon: CalendarCheckIcon,
-    title: "Reserva con un toque",
+    icon: ChartLineUpIcon,
+    title: "Resume tu negocio",
     description:
-      "Apruebas la tarjeta de confirmación y tu cita queda lista. Sin llamadas ni esperas.",
+      "Citas, confirmaciones y ocupación del día en una frase. Sin abrir reportes ni hojas de cálculo.",
   },
-] as const;
-
-const CLIENT_CAPABILITIES = [
-  "Buscar barberías por ciudad, nombre o cercanía",
-  "Ver servicios, precios, horarios y reseñas",
-  "Reservar, cancelar y reagendar por chat",
-] as const;
-
-const SHOP_CAPABILITIES = [
-  "Consultar y organizar la agenda de tu barbería",
-  "Gestionar tu equipo y servicios conversando",
-  "Resolver dudas de tu negocio sin salir del chat",
 ] as const;
 
 export const Route = createFileRoute("/ai")({
@@ -73,9 +50,10 @@ export const Route = createFileRoute("/ai")({
   ssr: true,
   head: () => ({
     meta: seo({
-      title: "Pana IA - Reserva y gestiona con solo escribir | PanaBarbero",
+      title:
+        "Pana IA - El asistente que ya sabe manejar tu barbería | PanaBarbero",
       description:
-        "Pana es el asistente de IA de PanaBarbero. Reserva tu corte en segundos escribiendo en lenguaje normal, y gestiona tu barbería por chat con los planes pagos.",
+        "Pana vive en tu dashboard de PanaBarbero: crea citas por chat, te dice cómo va tu equipo y resume tu día con datos reales. Incluido en los planes pagos.",
       canonical: getCanonicalUrl("/ai"),
     }),
     links: [{ rel: "canonical", href: getCanonicalUrl("/ai") }],
@@ -86,170 +64,76 @@ export const Route = createFileRoute("/ai")({
 function AiRoute() {
   return (
     <BorderContainer>
-      <main className="grid grid-cols-1 items-center gap-8 py-6 lg:grid-cols-2 lg:gap-12 lg:py-10">
+      <main className="grid grid-cols-1 items-center gap-8 py-6 lg:grid-cols-[1.05fr_1fr] lg:gap-12 lg:py-10">
         <section className="space-y-6">
-          <Badge variant="secondary" className="gap-1.5">
-            <SparkleIcon weight="fill" className="size-3.5 text-primary" />
-            Pana IA
-          </Badge>
-
           <h1 className="text-balance font-semibold text-4xl tracking-tighter md:text-5xl">
-            Reserva y gestiona con solo{" "}
-            <span className="text-primary">escribir</span>.
+            Pana, el asistente que ya sabe manejar tu{" "}
+            <span className="text-primary">barbería</span>.
           </h1>
 
           <p className="max-w-md text-pretty text-muted-foreground">
-            Pana es tu asistente dentro de PanaBarbero. Encuentra barbería, mira
-            disponibilidad y deja tu cita lista en una conversación. Para tu
-            barbería, gestiónala por chat con los planes pagos.
+            Pana vive dentro de tu dashboard y conoce tu agenda, tu equipo y tus
+            servicios. Pregúntale en español y te responde con tus datos reales,
+            no con genéricos.
           </p>
 
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Button nativeButton={false} render={<Link to="/chat" />}>
-              <SparkleIcon weight="fill" className="size-4" />
-              Probar a Pana
+            <Button nativeButton={false} render={<Link to="/pricing" />}>
+              Ver planes con Pana IA
             </Button>
             <Button
               nativeButton={false}
-              render={<Link to="/pricing" />}
+              render={<Link to="/chat" />}
               variant="outline"
             >
-              Ver planes
+              Chatear con Pana
             </Button>
           </div>
         </section>
 
-        <PanaDemo />
+        <PanaLiveChat />
       </main>
 
       <Separator className="my-10" />
 
       <section className="space-y-8">
-        <div className="space-y-2">
-          <h2 className="text-balance text-center font-semibold text-3xl tracking-tighter md:text-4xl">
-            Cómo funciona
-          </h2>
-          <p className="mx-auto max-w-xl text-pretty text-center text-muted-foreground">
-            Tres pasos, una sola conversación. Pana hace el trabajo aburrido por
-            ti.
-          </p>
-        </div>
+        <h2 className="text-balance font-semibold text-3xl tracking-tighter md:text-4xl">
+          Lo que Pana hace por ti
+        </h2>
 
-        <ol className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {STEPS.map((step, index) => {
-            const Icon = step.icon;
+        <ul className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {CAPABILITIES.map((capability) => {
+            const Icon = capability.icon;
             return (
               <li
-                key={step.title}
+                key={capability.title}
                 className="flex flex-col gap-3 rounded-xl border bg-card p-5"
               >
-                <div className="flex items-center justify-between">
-                  <span className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Icon className="size-5" weight="bold" />
-                  </span>
-                  <span className="font-semibold text-2xl text-muted-foreground/40 tabular-nums">
-                    0{index + 1}
-                  </span>
-                </div>
-                <h3 className="font-semibold tracking-tight">{step.title}</h3>
+                <span className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Icon className="size-5" weight="bold" />
+                </span>
+                <h3 className="font-semibold tracking-tight">
+                  {capability.title}
+                </h3>
                 <p className="text-pretty text-muted-foreground text-sm">
-                  {step.description}
+                  {capability.description}
                 </p>
               </li>
             );
           })}
-        </ol>
+        </ul>
       </section>
 
       <Separator className="my-10" />
 
-      <section className="space-y-8">
-        <div className="space-y-2">
-          <h2 className="text-balance text-center font-semibold text-3xl tracking-tighter md:text-4xl">
-            Qué puede hacer Pana
-          </h2>
-          <p className="mx-auto max-w-xl text-pretty text-center text-muted-foreground">
-            Reservar siempre es gratis. Gestionar tu barbería por chat es un
-            beneficio de los planes pagos.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <article className="flex flex-col gap-4 rounded-xl border bg-card p-6">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="font-semibold text-lg tracking-tight">
-                Para clientes
-              </h3>
-              <Badge variant="secondary">Gratis para todos</Badge>
-            </div>
-            <ul className="flex flex-col gap-2.5">
-              {CLIENT_CAPABILITIES.map((item) => (
-                <li key={item} className="flex items-start gap-2 text-sm">
-                  <CheckCircleIcon
-                    className="mt-0.5 size-4 shrink-0 text-primary"
-                    weight="fill"
-                  />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </article>
-
-          <article className="relative flex flex-col gap-4 rounded-xl border border-primary/30 bg-primary/5 p-6 dark:bg-primary/10">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="flex items-center gap-2 font-semibold text-lg tracking-tight">
-                <CrownIcon className="size-5 text-primary" weight="fill" />
-                Para tu barbería
-              </h3>
-              <Badge className="gap-1">
-                <LockKeyIcon className="size-3" weight="bold" />
-                Premium
-              </Badge>
-            </div>
-            <ul className="flex flex-col gap-2.5">
-              {SHOP_CAPABILITIES.map((item) => (
-                <li key={item} className="flex items-start gap-2 text-sm">
-                  <CheckCircleIcon
-                    className="mt-0.5 size-4 shrink-0 text-primary"
-                    weight="fill"
-                  />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </article>
-        </div>
+      <section className="flex flex-col items-center gap-4 py-4 text-center">
+        <h2 className="text-balance font-semibold text-3xl tracking-tighter md:text-4xl">
+          Deja que Pana lleve la cuenta.
+        </h2>
+        <Button nativeButton={false} render={<Link to="/pricing" />} size="lg">
+          Ver planes con Pana IA
+        </Button>
       </section>
-
-      <Separator className="my-10" />
-
-      <section className="rounded-2xl border border-primary/20 bg-linear-to-br from-primary/8 via-card to-card p-8 text-center">
-        <div className="mx-auto flex max-w-xl flex-col items-center gap-4">
-          <span className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <CrownIcon className="size-6" weight="fill" />
-          </span>
-          <h2 className="text-balance font-semibold text-2xl tracking-tighter md:text-3xl">
-            Gestiona tu barbería conversando con Pana
-          </h2>
-          <p className="text-pretty text-muted-foreground">
-            Incluido en{" "}
-            <span className="font-medium text-foreground">Barbería</span> y{" "}
-            <span className="font-medium text-foreground">
-              Barbería Profesional
-            </span>
-            . Lleva tu negocio desde el chat, sin aprender otra herramienta.
-          </p>
-          <Button nativeButton={false} render={<Link to="/pricing" />}>
-            Ver planes
-          </Button>
-        </div>
-      </section>
-
-      <Separator className="my-10" />
-
-      <Suspense>
-        <CtaSection />
-      </Suspense>
 
       <Suspense>
         <LandingFooter />
