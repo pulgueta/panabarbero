@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: false positive */
 
-import { convexToZod, zid } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
+import { convexToZod, zid } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import { zAuthMutation, zInternalMutation, zQuery } from ".";
@@ -182,40 +182,32 @@ export const get = zQuery({
 
 export const getActive = zQuery({
   args: z.object({
-    city: z.string().optional(),
-    state: z.string().optional(),
+    // Location is REQUIRED: it is what bounds this read. Without it the query
+    // would scan every active barbershop in the country and then fan out a
+    // services read + aggregate read per row. The listing route holds the
+    // query until the visitor has picked a city.
+    city: z.string().min(1),
+    state: z.string().min(1),
     userId: z.string().optional(),
     minRating: z.number().min(0).max(5).optional(),
     minReviews: z.number().int().min(0).optional(),
     sortBy: z.enum(["rating", "reviews", "name"]).optional(),
   }),
   handler: async (ctx, args) => {
-    // Index-backed read (location index when set, isActive otherwise), then
-    // JS-residual filtering: owner exclusion here, rating/review thresholds
-    // after the aggregate decorates each row.
-    const hasLocation = Boolean(args.city && args.state);
-    const rows = hasLocation
-      ? await ctx.db
-          .query("barbershops")
-          .withIndex("by_city_and_state_and_isActive", (q) =>
-            q
-              .eq("city", args.city!)
-              .eq("state", args.state!)
-              .eq("isActive", true),
-          )
-          .order("asc")
-          .collect()
-      : await ctx.db
-          .query("barbershops")
-          .withIndex("by_isActive", (q) => q.eq("isActive", true))
-          .order("asc")
-          .collect();
+    // Fully index-backed read (city + state + isActive), then JS-residual
+    // filtering: owner exclusion here, rating/review thresholds after the
+    // aggregate decorates each row.
+    const rows = await ctx.db
+      .query("barbershops")
+      .withIndex("by_city_and_state_and_isActive", (q) =>
+        q.eq("city", args.city).eq("state", args.state).eq("isActive", true),
+      )
+      .order("asc")
+      .collect();
 
-    const barbershops = rows.filter(
-      (barbershop) =>
-        barbershop.isActive &&
-        (!args.userId || barbershop.ownerId !== args.userId),
-    );
+    const barbershops = args.userId
+      ? rows.filter((barbershop) => barbershop.ownerId !== args.userId)
+      : rows;
 
     const withRatings = await Promise.all(
       barbershops.map(async (barbershop) => {
