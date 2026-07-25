@@ -12,9 +12,9 @@ minimumReleaseAgeExclude:
   - miniflare@4.20260617.0
   - wrangler@4.102.0
   - '@react-email/render@2.0.10'
-  - deslop-js@0.6.2 || 0.7.8
-  - oxlint-plugin-react-doctor@0.6.2 || 0.7.8
-  - react-doctor@0.6.2 || 0.7.8
+  - deslop-js@0.6.2 || 0.7.8 || 0.8.1
+  - oxlint-plugin-react-doctor@0.6.2 || 0.7.8 || 0.8.1
+  - react-doctor@0.6.2 || 0.7.8 || 0.8.1
   - react-email@6.6.6
   - shadcn@4.13.0
   - '@pulgueta/usesend-convex@0.2.2 || 0.3.0'
@@ -22,3 +22,4 @@ minimumReleaseAgeExclude:
   - '@ai-sdk/provider-utils@4.0.39'
   - ai@6.0.226
   - convex@1.42.2
+  - '@shadcn/helpers@0.1.0'
