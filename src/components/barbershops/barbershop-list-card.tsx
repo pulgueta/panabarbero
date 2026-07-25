@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StarRating } from "@/components/ui/star-rating";
+import { useIsCurrentlyOpen } from "@/hooks/barbershop/use-is-currently-open";
 import { getLogoUrl } from "@/hooks/use-upload";
-import { isCurrentlyOpen } from "@/lib/schedule-utils";
 
 /** Listing row shape: `barbershops.getActive` decorates each doc with ratings. */
 export type BarbershopListItem = Barbershop & {
@@ -24,7 +24,7 @@ interface BarbershopListCardProps {
 export const BarbershopListCard: FC<BarbershopListCardProps> = ({
   barbershop,
 }) => {
-  const isOpen = isCurrentlyOpen(barbershop.availability);
+  const isOpen = useIsCurrentlyOpen(barbershop.availability);
   const logoUrl = getLogoUrl(barbershop.logoKey);
   const rating = barbershop.averageRating ?? 0;
   const reviewCount = barbershop.reviewCount ?? 0;
@@ -49,15 +49,17 @@ export const BarbershopListCard: FC<BarbershopListCardProps> = ({
           <StorefrontIcon className="size-7 text-muted-foreground/50" />
         )}
 
-        <Badge
-          className="absolute top-2.5 left-2.5"
-          style={{
-            viewTransitionName: `barbershop-${barbershop.uuid}-status`,
-          }}
-          variant={isOpen ? "secondary" : "warning"}
-        >
-          {isOpen ? "Abierto" : "Cerrado"}
-        </Badge>
+        {isOpen !== null && (
+          <Badge
+            className="absolute top-2.5 left-2.5"
+            style={{
+              viewTransitionName: `barbershop-${barbershop.uuid}-status`,
+            }}
+            variant={isOpen ? "secondary" : "warning"}
+          >
+            {isOpen ? "Abierto" : "Cerrado"}
+          </Badge>
+        )}
 
         {reviewCount > 0 && (
           <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 rounded-full border bg-background px-2.5 py-0.5 font-semibold text-xs tabular-nums">

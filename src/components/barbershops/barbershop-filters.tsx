@@ -31,8 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { colombia } from "@/config/colombia";
-import type { BarbershopSort } from "@/routes/barbershops";
+import type { BarbershopSort } from "@/lib/barbershop-sort";
 
 export interface BarbershopRatingFilters {
   /** Minimum average rating (0 = any). */
@@ -208,11 +207,11 @@ export const BarbershopFiltersDrawer: FC<
     (filters.minRating > 0 ? 1 : 0) +
     (filters.minReviews > 0 ? 1 : 0);
 
-  const draftCities = draft.departamento
-    ? (colombia.find(
-        (departamento) => departamento.departamento === draft.departamento,
-      )?.ciudades ?? [])
-    : [];
+  const draftCities = meta.citiesFor(draft.departamento);
+
+  // The listing query needs a complete location, so a departamento on its own
+  // can't be committed — keep "Aplicar" disabled until a ciudad is picked.
+  const canApply = Boolean(draft.departamento && draft.ciudad);
 
   const openDrawer = () => {
     trigger();
@@ -226,6 +225,7 @@ export const BarbershopFiltersDrawer: FC<
   };
 
   const apply = () => {
+    if (!canApply) return;
     trigger();
     actions.applyFilters(draft);
     setOpen(false);
@@ -354,6 +354,7 @@ export const BarbershopFiltersDrawer: FC<
               <div className="flex gap-2">
                 {RATING_OPTIONS.map((option) => (
                   <Button
+                    aria-pressed={draft.minRating === option.value}
                     className="flex-1"
                     key={option.value}
                     onClick={() =>
@@ -375,6 +376,7 @@ export const BarbershopFiltersDrawer: FC<
               <div className="flex gap-2">
                 {REVIEWS_OPTIONS.map((option) => (
                   <Button
+                    aria-pressed={draft.minReviews === option.value}
                     className="flex-1"
                     key={option.value}
                     onClick={() =>
@@ -394,13 +396,20 @@ export const BarbershopFiltersDrawer: FC<
             </div>
           </div>
 
-          <DrawerFooter className="flex-row gap-2 border-t px-4 pt-3">
-            <Button className="flex-1" onClick={clear} variant="outline">
-              Limpiar
-            </Button>
-            <Button className="flex-2" onClick={apply}>
-              Aplicar
-            </Button>
+          <DrawerFooter className="gap-2 border-t px-4 pt-3">
+            {!canApply && (
+              <p className="text-center text-muted-foreground text-xs">
+                Elige departamento y ciudad para aplicar.
+              </p>
+            )}
+            <div className="flex flex-row gap-2">
+              <Button className="flex-1" onClick={clear} variant="outline">
+                Limpiar
+              </Button>
+              <Button className="flex-2" disabled={!canApply} onClick={apply}>
+                Aplicar
+              </Button>
+            </div>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>

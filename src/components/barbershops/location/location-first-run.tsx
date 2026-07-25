@@ -5,6 +5,7 @@ import { useWebHaptics } from "web-haptics/react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useLocation } from "./location-provider";
 
 const LocationMap = lazy(() =>
@@ -20,6 +21,7 @@ const SESSION_KEY = "pb-location-firstrun-dismissed";
  */
 export function LocationFirstRun() {
   const { state, actions, meta } = useLocation();
+  const { isMobile } = useIsMobile();
   const { trigger } = useWebHaptics();
   const [dismissed, setDismissed] = useState(() => {
     if (typeof sessionStorage === "undefined") return false;
@@ -56,9 +58,17 @@ export function LocationFirstRun() {
     <div className="mx-auto w-full max-w-3xl rounded-xl border bg-card p-4">
       {hasPin ? (
         <div className="space-y-3">
-          <Suspense fallback={<Skeleton className="h-60 w-full rounded-xl" />}>
-            <LocationMap />
-          </Suspense>
+          {/* Mobile drives the whole location flow from the filters drawer,
+              which mounts its own map off these same coords. Rendering one
+              here too would put two maplibre WebGL contexts on the page at
+              once, so the pin-drag map is desktop-only. */}
+          {isMobile === false && (
+            <Suspense
+              fallback={<Skeleton className="h-60 w-full rounded-xl" />}
+            >
+              <LocationMap />
+            </Suspense>
+          )}
           <p className="text-pretty text-muted-foreground text-sm">
             {state.pendingMatch?.ciudad ? (
               <>
@@ -66,10 +76,14 @@ export function LocationFirstRun() {
                 <span className="font-medium text-foreground">
                   {state.pendingMatch.ciudad}, {state.pendingMatch.departamento}
                 </span>
-                . Arrastra el pin si necesitas ajustarlo.
+                {isMobile === false
+                  ? ". Arrastra el pin si necesitas ajustarlo."
+                  : "."}
               </>
-            ) : (
+            ) : isMobile === false ? (
               "Arrastra el pin hasta tu zona o elige tu ciudad abajo."
+            ) : (
+              "No pudimos ubicar tu ciudad. Elígela manualmente."
             )}
           </p>
           <div className="flex flex-col gap-2 md:flex-row md:justify-end">

@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StarRating } from "@/components/ui/star-rating";
+import { useIsCurrentlyOpen } from "@/hooks/barbershop/use-is-currently-open";
 import { getLogoUrl } from "@/hooks/use-upload";
-import { isCurrentlyOpen } from "@/lib/schedule-utils";
 
 interface BarbershopListRowProps {
   barbershop: BarbershopListItem;
@@ -18,7 +18,7 @@ interface BarbershopListRowProps {
 export const BarbershopListRow: FC<BarbershopListRowProps> = ({
   barbershop,
 }) => {
-  const isOpen = isCurrentlyOpen(barbershop.availability);
+  const isOpen = useIsCurrentlyOpen(barbershop.availability);
   const logoUrl = getLogoUrl(barbershop.logoKey);
   const rating = barbershop.averageRating ?? 0;
   const reviewCount = barbershop.reviewCount ?? 0;
@@ -32,7 +32,10 @@ export const BarbershopListRow: FC<BarbershopListRowProps> = ({
       }}
     >
       <Avatar className="shrink-0" size="2xl">
-        <AvatarImage src={logoUrl ?? "/default-logo.png"} />
+        <AvatarImage
+          alt={`Logo de ${barbershop.name}`}
+          src={logoUrl ?? "/default-logo.png"}
+        />
         <AvatarFallback>
           {barbershop.name.slice(0, 2).toUpperCase()}
         </AvatarFallback>
@@ -47,14 +50,16 @@ export const BarbershopListRow: FC<BarbershopListRowProps> = ({
             {barbershop.name}
           </h3>
 
-          <Badge
-            style={{
-              viewTransitionName: `barbershop-${barbershop.uuid}-status`,
-            }}
-            variant={isOpen ? "secondary" : "warning"}
-          >
-            {isOpen ? "Abierto" : "Cerrado"}
-          </Badge>
+          {isOpen !== null && (
+            <Badge
+              style={{
+                viewTransitionName: `barbershop-${barbershop.uuid}-status`,
+              }}
+              variant={isOpen ? "secondary" : "warning"}
+            >
+              {isOpen ? "Abierto" : "Cerrado"}
+            </Badge>
+          )}
         </div>
 
         <p

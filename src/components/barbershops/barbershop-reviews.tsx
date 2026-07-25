@@ -19,6 +19,7 @@ import {
   useBarbershopRatingDistribution,
   useReviewsByBarbershop,
 } from "@/hooks/use-reviews";
+import { getInitials } from "@/lib/utils";
 
 const STARS_DESC = [5, 4, 3, 2, 1] as const;
 
@@ -101,12 +102,7 @@ export const BarbershopReviews: FC<BarbershopReviewsProps> = ({
               <div className="flex items-center gap-2.5">
                 <Avatar>
                   <AvatarFallback>
-                    {review.authorName
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .slice(0, 2)
-                      .toUpperCase()}
+                    {getInitials(review.authorName)}
                   </AvatarFallback>
                 </Avatar>
 

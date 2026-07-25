@@ -3,11 +3,12 @@ import type { Barbershop } from "@convex/schema";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 
-import type { BarbershopSort } from "@/routes/barbershops";
+import type { BarbershopSort } from "@/lib/barbershop-sort";
 
+/** `city`/`state` are required — `getActive` is bounded by the location index. */
 export type ActiveBarbershopsPayload = {
-  city?: string | undefined;
-  state?: string | undefined;
+  city: string;
+  state: string;
   userId?: string | undefined;
   minRating?: number | undefined;
   minReviews?: number | undefined;

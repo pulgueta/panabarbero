@@ -3,6 +3,7 @@ import type { FC } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
+import { getInitials } from "@/lib/utils";
 
 const ROLE_LABELS: Record<BarbershopMemberWithName["roles"][number], string> = {
   owner: "Dueño",
@@ -29,14 +30,7 @@ export const BarberTeamSection: FC<BarberTeamSectionProps> = ({ barbers }) => {
             {barber.avatarUrl && (
               <AvatarImage alt={barber.name} src={barber.avatarUrl} />
             )}
-            <AvatarFallback>
-              {barber.name
-                .split(" ")
-                .map((n) => n[0])
-                .join("")
-                .slice(0, 2)
-                .toUpperCase()}
-            </AvatarFallback>
+            <AvatarFallback>{getInitials(barber.name)}</AvatarFallback>
           </Avatar>
 
           <div className="min-w-0">

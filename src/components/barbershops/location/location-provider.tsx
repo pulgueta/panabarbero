@@ -54,6 +54,8 @@ interface LocationContextValue {
     hasLocation: boolean;
     departamentos: string[];
     citiesForSelected: string[];
+    /** Cities of any departamento — for drafts not yet committed to the URL. */
+    citiesFor: (departamento: string | undefined) => string[];
   };
 }
 
@@ -63,6 +65,9 @@ const DEPARTAMENTOS = colombia.map((d) => d.departamento);
 const CITIES_BY_DEPARTAMENTO = new Map(
   colombia.map((d) => [d.departamento, d.ciudades]),
 );
+
+const citiesFor = (departamento: string | undefined) =>
+  departamento ? (CITIES_BY_DEPARTAMENTO.get(departamento) ?? []) : [];
 
 export function useLocation(): LocationContextValue {
   const context = use(LocationContext);
@@ -182,12 +187,15 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     (draft: LocationFiltersDraft) => {
       setPendingMatch(null);
 
-      const hasCompleteLocation = Boolean(draft.departamento && draft.ciudad);
+      // Location is all-or-nothing: the listing query needs both fields, so a
+      // departamento without a ciudad is never committed (the drawer keeps
+      // "Aplicar" disabled until both are set).
+      const { departamento: nextState, ciudad: nextCity } = draft;
 
-      if (hasCompleteLocation) {
-        setStoreState(draft.departamento as string);
-        setStoreCity(draft.ciudad as string);
-      } else if (!draft.departamento) {
+      if (nextState && nextCity) {
+        setStoreState(nextState);
+        setStoreCity(nextCity);
+      } else {
         resetStore();
         setCoords(null);
       }
@@ -196,12 +204,8 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         to: ".",
         search: (prev) => ({
           ...prev,
-          // Departamento-only drafts keep the previous committed location.
-          ...(hasCompleteLocation
-            ? { state: draft.departamento, city: draft.ciudad }
-            : draft.departamento
-              ? {}
-              : { state: undefined, city: undefined }),
+          state: nextState && nextCity ? nextState : undefined,
+          city: nextState && nextCity ? nextCity : undefined,
           rating: draft.minRating > 0 ? draft.minRating : undefined,
           reviews: draft.minReviews > 0 ? draft.minReviews : undefined,
         }),
@@ -260,9 +264,8 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       meta: {
         hasLocation: Boolean(departamento && ciudad),
         departamentos: DEPARTAMENTOS,
-        citiesForSelected: departamento
-          ? (CITIES_BY_DEPARTAMENTO.get(departamento) ?? [])
-          : [],
+        citiesForSelected: citiesFor(departamento),
+        citiesFor,
       },
     }),
     [

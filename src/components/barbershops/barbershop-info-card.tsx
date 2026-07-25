@@ -113,10 +113,6 @@ export const BarbershopInfoCard: FC<BarbershopInfoCardProps> = ({
       : []),
   ];
 
-  const lunchBreak = barbershop.availability.find(
-    (day) => day.lunchStart && day.lunchEnd,
-  );
-
   return (
     <Card className="gap-0 py-0">
       <h2 className="px-4 pt-4 pb-3 font-semibold tracking-tight">
@@ -206,32 +202,35 @@ export const BarbershopInfoCard: FC<BarbershopInfoCardProps> = ({
           <p className="font-medium text-sm">Horario</p>
 
           <div className="space-y-1.5">
-            {barbershop.availability.map((day) => (
-              <div
-                className="flex justify-between gap-3 text-sm"
-                key={day.weekDay.day}
-              >
-                <span className="text-muted-foreground">
-                  {DAY_NAMES[day.weekDay.day]}
-                  {day.lunchStart && day.lunchEnd && (
-                    <span className="text-destructive"> *</span>
-                  )}
-                </span>
-                <span className="tabular-nums">
-                  {day.weekDay.isActive
-                    ? `${day.openAt} - ${day.closeAt}`
-                    : "Cerrado"}
-                </span>
-              </div>
-            ))}
-          </div>
+            {barbershop.availability.map((day) => {
+              // Each day carries its own lunch window, so render it on that
+              // day's row — a single shared footnote would show one shop-wide
+              // break even when the days differ.
+              const hasLunch =
+                day.weekDay.isActive && day.lunchStart && day.lunchEnd;
 
-          {lunchBreak && (
-            <p className="text-muted-foreground text-xs italic">
-              (*): No disponible durante: {lunchBreak.lunchStart} -{" "}
-              {lunchBreak.lunchEnd}
-            </p>
-          )}
+              return (
+                <div className="text-sm" key={day.weekDay.day}>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-muted-foreground">
+                      {DAY_NAMES[day.weekDay.day]}
+                    </span>
+                    <span className="tabular-nums">
+                      {day.weekDay.isActive
+                        ? `${day.openAt} - ${day.closeAt}`
+                        : "Cerrado"}
+                    </span>
+                  </div>
+
+                  {hasLunch && (
+                    <p className="text-right text-muted-foreground text-xs tabular-nums">
+                      Descanso {day.lunchStart} - {day.lunchEnd}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

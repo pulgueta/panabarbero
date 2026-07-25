@@ -5,9 +5,9 @@ import type { FC } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StarRating } from "@/components/ui/star-rating";
+import { useIsCurrentlyOpen } from "@/hooks/barbershop/use-is-currently-open";
 import { useBarbershopRating } from "@/hooks/use-reviews";
 import { getLogoUrl } from "@/hooks/use-upload";
-import { isCurrentlyOpen } from "@/lib/schedule-utils";
 
 type BarbershopHeaderProps = {
   barbershop: Barbershop;
@@ -21,7 +21,7 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = ({
 }) => {
   const { data: rating } = useBarbershopRating(barbershop._id);
 
-  const isOpen = isCurrentlyOpen(barbershop.availability);
+  const isOpen = useIsCurrentlyOpen(barbershop.availability);
   const logoUrl = getLogoUrl(logoKey);
 
   return (
@@ -48,14 +48,16 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = ({
               {barbershop.name}
             </h1>
 
-            <Badge
-              style={{
-                viewTransitionName: `barbershop-${barbershop.uuid}-status`,
-              }}
-              variant={isOpen ? "secondary" : "warning"}
-            >
-              {isOpen ? "Abierto" : "Cerrado"}
-            </Badge>
+            {isOpen !== null && (
+              <Badge
+                style={{
+                  viewTransitionName: `barbershop-${barbershop.uuid}-status`,
+                }}
+                variant={isOpen ? "secondary" : "warning"}
+              >
+                {isOpen ? "Abierto" : "Cerrado"}
+              </Badge>
+            )}
           </div>
 
           <p
