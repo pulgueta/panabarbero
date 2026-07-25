@@ -2,22 +2,32 @@ import type { BarbershopMemberWithName } from "@convex/schema";
 import type { FC } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card } from "@/components/ui/card";
+
+const ROLE_LABELS: Record<BarbershopMemberWithName["roles"][number], string> = {
+  owner: "Dueño",
+  barber: "Barbero",
+  staff: "Staff",
+};
 
 interface BarberTeamSectionProps {
   barbers: BarbershopMemberWithName[];
 }
 
+/** Detail-page team card: one row per member with their roles. */
 export const BarberTeamSection: FC<BarberTeamSectionProps> = ({ barbers }) => {
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <Card className="gap-0 py-0">
+      <h2 className="px-4 pt-4 pb-3 font-semibold tracking-tight">Equipo</h2>
+
       {barbers.map((barber) => (
         <div
+          className="flex items-center gap-3 border-t px-4 py-2.5"
           key={barber._id}
-          className="flex items-center gap-4 rounded-lg border bg-card p-4"
         >
-          <Avatar size="xl">
+          <Avatar size="lg">
             {barber.avatarUrl && (
-              <AvatarImage src={barber.avatarUrl} alt={barber.name} />
+              <AvatarImage alt={barber.name} src={barber.avatarUrl} />
             )}
             <AvatarFallback>
               {barber.name
@@ -29,9 +39,14 @@ export const BarberTeamSection: FC<BarberTeamSectionProps> = ({ barbers }) => {
             </AvatarFallback>
           </Avatar>
 
-          <span className="truncate font-medium">{barber.name}</span>
+          <div className="min-w-0">
+            <p className="truncate font-medium text-sm">{barber.name}</p>
+            <p className="text-muted-foreground text-xs">
+              {barber.roles.map((role) => ROLE_LABELS[role]).join(" · ")}
+            </p>
+          </div>
         </div>
       ))}
-    </div>
+    </Card>
   );
 };

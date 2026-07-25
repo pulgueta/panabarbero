@@ -3,10 +3,15 @@ import type { Barbershop } from "@convex/schema";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 
-import type { BarbershopSearch } from "@/routes/barbershops";
+import type { BarbershopSort } from "@/routes/barbershops";
 
-export type ActiveBarbershopsPayload = BarbershopSearch & {
+export type ActiveBarbershopsPayload = {
+  city?: string | undefined;
+  state?: string | undefined;
   userId?: string | undefined;
+  minRating?: number | undefined;
+  minReviews?: number | undefined;
+  sortBy?: BarbershopSort | undefined;
 };
 
 export function activeBarbershopsQueryOptions(
@@ -45,9 +50,7 @@ export function useBarbershopByUuid(uuid: string) {
   return useSuspenseQuery(barbershopByUuidQueryOptions(uuid));
 }
 
-export function useActiveBarbershops(
-  payload: BarbershopSearch & { userId?: string | undefined },
-) {
+export function useActiveBarbershops(payload: ActiveBarbershopsPayload) {
   return useSuspenseQuery(activeBarbershopsQueryOptions(payload));
 }
 

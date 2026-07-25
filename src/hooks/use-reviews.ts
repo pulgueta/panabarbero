@@ -54,6 +54,14 @@ export function barbershopRatingQueryOptions(barbershopId: Barbershop["_id"]) {
   return convexQuery(api.reviews.getBarbershopRating, { barbershopId });
 }
 
+export function barbershopRatingDistributionQueryOptions(
+  barbershopId: Barbershop["_id"],
+) {
+  return convexQuery(api.reviews.getBarbershopRatingDistribution, {
+    barbershopId,
+  });
+}
+
 export function myReviewsQueryOptions() {
   return convexQuery(api.reviews.getMine, {});
 }
@@ -83,6 +91,15 @@ export function useReviewsByBarbershop(
 /** Live-updating average rating + published-review count for a barbershop. */
 export function useBarbershopRating(barbershopId: Barbershop["_id"]) {
   return useSuspenseQuery(barbershopRatingQueryOptions(barbershopId));
+}
+
+/** Live-updating per-star histogram of a barbershop's published reviews. */
+export function useBarbershopRatingDistribution(
+  barbershopId: Barbershop["_id"],
+) {
+  return useSuspenseQuery(
+    barbershopRatingDistributionQueryOptions(barbershopId),
+  );
 }
 
 /** The current user's own reviews across every moderation state. */

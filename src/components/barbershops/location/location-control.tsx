@@ -1,15 +1,5 @@
-import { MapPinIcon, NavigationArrowIcon } from "@phosphor-icons/react";
-import { lazy, Suspense, useState } from "react";
-import { useWebHaptics } from "web-haptics/react";
+import { lazy, Suspense } from "react";
 
-import { Button } from "@/components/ui/button";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
 import {
   Select,
   SelectContent,
@@ -18,18 +8,34 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Spinner } from "@/components/ui/spinner";
+import { cn } from "@/lib/utils";
 import { useLocation } from "./location-provider";
 
-const LocationMap = lazy(() =>
+export const LocationMap = lazy(() =>
   import("./location-map").then((mod) => ({ default: mod.LocationMap })),
 );
 
-function LocationSelects({ onCitySelected }: { onCitySelected?: () => void }) {
+export function LocationMapSuspense() {
+  return (
+    <Suspense fallback={<Skeleton className="h-60 w-full rounded-xl" />}>
+      <LocationMap />
+    </Suspense>
+  );
+}
+
+export function LocationSelects({
+  onCitySelected,
+  className,
+}: {
+  onCitySelected?: () => void;
+  className?: string;
+}) {
   const { state, actions, meta } = useLocation();
 
   return (
-    <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
+    <div
+      className={cn("grid w-full grid-cols-1 gap-3 sm:grid-cols-2", className)}
+    >
       <Select
         onValueChange={(value) => value && actions.setDepartamento(value)}
         value={state.departamento ?? ""}
@@ -68,100 +74,5 @@ function LocationSelects({ onCitySelected }: { onCitySelected?: () => void }) {
         </SelectContent>
       </Select>
     </div>
-  );
-}
-
-/**
- * Persistent location selector. Desktop shows inline departamento/ciudad
- * selects; mobile shows a tap-to-change trigger that opens a Drawer with the
- * selects, native geolocation, and a confirm-on-map flow.
- */
-export function LocationControl() {
-  const { state, actions, meta } = useLocation();
-  const { trigger } = useWebHaptics();
-  const [open, setOpen] = useState(false);
-
-  const label = meta.hasLocation
-    ? `${state.ciudad}, ${state.departamento}`
-    : "Elige tu ubicación";
-
-  const handleLocate = () => {
-    trigger();
-    actions.requestGeolocation();
-  };
-
-  const handleConfirm = () => {
-    trigger();
-    actions.confirmPin();
-    setOpen(false);
-  };
-
-  return (
-    <>
-      <div className="hidden md:block">
-        <LocationSelects />
-      </div>
-
-      <div className="md:hidden">
-        <Button
-          className="w-full justify-start gap-2"
-          onClick={() => {
-            trigger();
-            setOpen(true);
-          }}
-          variant="outline"
-        >
-          <MapPinIcon className="text-primary" weight="fill" />
-          <span className="truncate">{label}</span>
-        </Button>
-
-        <Drawer onOpenChange={setOpen} open={open}>
-          <DrawerContent className="px-4 pb-4">
-            <DrawerHeader className="px-0">
-              <DrawerTitle>¿Dónde te encuentras?</DrawerTitle>
-              <DrawerDescription>
-                Usa tu ubicación o elige tu departamento y ciudad.
-              </DrawerDescription>
-            </DrawerHeader>
-
-            <div className="space-y-4">
-              <Button
-                className="w-full"
-                disabled={state.status === "prompting"}
-                onClick={handleLocate}
-              >
-                {state.status === "prompting" ? (
-                  <Spinner />
-                ) : (
-                  <NavigationArrowIcon weight="fill" />
-                )}
-                Usar mi ubicación
-              </Button>
-
-              {state.coords ? (
-                <Suspense
-                  fallback={<Skeleton className="h-60 w-full rounded-xl" />}
-                >
-                  <LocationMap />
-                </Suspense>
-              ) : null}
-
-              {state.pendingMatch?.ciudad ? (
-                <Button
-                  className="w-full"
-                  onClick={handleConfirm}
-                  variant="secondary"
-                >
-                  <MapPinIcon weight="fill" />
-                  Confirmar {state.pendingMatch.ciudad}
-                </Button>
-              ) : null}
-
-              <LocationSelects onCitySelected={() => setOpen(false)} />
-            </div>
-          </DrawerContent>
-        </Drawer>
-      </div>
-    </>
   );
 }

@@ -16,6 +16,14 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import { type ReverseGeocodeResult, reverseGeocode } from "@/lib/geocode";
 import { useLocationStore } from "@/store/barbershop-filters";
 
+/** Drawer draft committed by `applyFilters` in a single navigation. */
+export interface LocationFiltersDraft {
+  departamento: string | undefined;
+  ciudad: string | undefined;
+  minRating: number;
+  minReviews: number;
+}
+
 interface LocationContextValue {
   state: {
     departamento: string | undefined;
@@ -29,6 +37,14 @@ interface LocationContextValue {
     requestGeolocation: () => void;
     setDepartamento: (departamento: string) => void;
     setCiudad: (ciudad: string) => void;
+    /** Commits both fields in a single navigation (drawer "Aplicar"). */
+    setLocation: (departamento: string, ciudad: string) => void;
+    /**
+     * Commits location + rating filters in ONE navigation. Two back-to-back
+     * `navigate` calls race on the same `prev` search, so any flow that
+     * changes both must go through here.
+     */
+    applyFilters: (draft: LocationFiltersDraft) => void;
     /** Moves the pin (map drag / locate) and re-resolves the match. */
     setPin: (coords: GeoCoords) => void;
     confirmPin: () => void;
@@ -124,7 +140,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       setStoreState(next);
       navigate({
         to: ".",
-        search: () => ({ state: next, city: undefined }),
+        search: (prev) => ({ ...prev, state: next, city: undefined }),
         replace: false,
       });
     },
@@ -137,11 +153,62 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       setStoreCity(next);
       navigate({
         to: ".",
-        search: () => ({ state: departamento, city: next }),
+        search: (prev) => ({ ...prev, state: departamento, city: next }),
         replace: false,
       });
     },
     [navigate, setStoreCity, departamento],
+  );
+
+  const setLocation = useCallback(
+    (nextDepartamento: string, nextCiudad: string) => {
+      setPendingMatch(null);
+      setStoreState(nextDepartamento);
+      setStoreCity(nextCiudad);
+      navigate({
+        to: ".",
+        search: (prev) => ({
+          ...prev,
+          state: nextDepartamento,
+          city: nextCiudad,
+        }),
+        replace: false,
+      });
+    },
+    [navigate, setStoreState, setStoreCity],
+  );
+
+  const applyFilters = useCallback(
+    (draft: LocationFiltersDraft) => {
+      setPendingMatch(null);
+
+      const hasCompleteLocation = Boolean(draft.departamento && draft.ciudad);
+
+      if (hasCompleteLocation) {
+        setStoreState(draft.departamento as string);
+        setStoreCity(draft.ciudad as string);
+      } else if (!draft.departamento) {
+        resetStore();
+        setCoords(null);
+      }
+
+      navigate({
+        to: ".",
+        search: (prev) => ({
+          ...prev,
+          // Departamento-only drafts keep the previous committed location.
+          ...(hasCompleteLocation
+            ? { state: draft.departamento, city: draft.ciudad }
+            : draft.departamento
+              ? {}
+              : { state: undefined, city: undefined }),
+          rating: draft.minRating > 0 ? draft.minRating : undefined,
+          reviews: draft.minReviews > 0 ? draft.minReviews : undefined,
+        }),
+        replace: false,
+      });
+    },
+    [navigate, setStoreState, setStoreCity, resetStore],
   );
 
   const confirmPin = useCallback(() => {
@@ -150,7 +217,8 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     setStoreCity(pendingMatch.ciudad);
     navigate({
       to: ".",
-      search: () => ({
+      search: (prev) => ({
+        ...prev,
         state: pendingMatch.departamento,
         city: pendingMatch.ciudad,
       }),
@@ -165,7 +233,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     setPendingMatch(null);
     navigate({
       to: ".",
-      search: () => ({ state: undefined, city: undefined }),
+      search: (prev) => ({ ...prev, state: undefined, city: undefined }),
       replace: false,
     });
   }, [navigate, resetStore]);
@@ -183,6 +251,8 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         requestGeolocation: geo.request,
         setDepartamento,
         setCiudad,
+        setLocation,
+        applyFilters,
         setPin: (next) => void resolvePin(next),
         confirmPin,
         reset,
@@ -204,6 +274,8 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       pendingMatch,
       setDepartamento,
       setCiudad,
+      setLocation,
+      applyFilters,
       confirmPin,
       reset,
       resolvePin,

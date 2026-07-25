@@ -1,21 +1,40 @@
-import { BuildingsIcon } from "@phosphor-icons/react";
-import { createFileRoute, useSearch } from "@tanstack/react-router";
-import { lazy, Suspense } from "react";
+import {
+  BuildingsIcon,
+  ImagesIcon,
+  SquaresFourIcon,
+  StorefrontIcon,
+} from "@phosphor-icons/react";
+import {
+  createFileRoute,
+  useNavigate,
+  useSearch,
+} from "@tanstack/react-router";
+import { lazy, Suspense, useState } from "react";
 import { z } from "zod";
-
+import type { BarbershopRatingFilters } from "@/components/barbershops/barbershop-filters";
+import { EMPTY_RATING_FILTERS } from "@/components/barbershops/barbershop-filters";
+import type { BarbershopListView } from "@/components/barbershops/barbershop-grid";
 import { BarbershopLoadingGrid } from "@/components/barbershops/barbershop-loading-grid";
 import { LocationFirstRun } from "@/components/barbershops/location/location-first-run";
 import { LocationProvider } from "@/components/barbershops/location/location-provider";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
+import { Button } from "@/components/ui/button";
 import {
   Empty,
+  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   activeBarbershopsQueryOptions,
   useActiveBarbershops,
@@ -29,15 +48,32 @@ const BarbershopFilters = lazy(() =>
     default: module.BarbershopFilters,
   })),
 );
+const BarbershopFiltersDrawer = lazy(() =>
+  import("@/components/barbershops/barbershop-filters").then((module) => ({
+    default: module.BarbershopFiltersDrawer,
+  })),
+);
+const BarbershopSortSelect = lazy(() =>
+  import("@/components/barbershops/barbershop-filters").then((module) => ({
+    default: module.BarbershopSortSelect,
+  })),
+);
 const BarbershopGrid = lazy(() =>
   import("@/components/barbershops/barbershop-grid").then((module) => ({
     default: module.BarbershopGrid,
   })),
 );
 
+export const BARBERSHOP_SORTS = ["rating", "reviews", "name"] as const;
+
+export type BarbershopSort = (typeof BARBERSHOP_SORTS)[number];
+
 export type BarbershopSearch = {
   city?: string;
   state?: string;
+  rating?: number;
+  reviews?: number;
+  sort?: BarbershopSort;
 };
 
 const toCompleteLocation = (location?: BarbershopSearch) => {
@@ -54,19 +90,32 @@ const toCompleteLocation = (location?: BarbershopSearch) => {
 const searchSchema = z.object({
   city: z.string().optional(),
   state: z.string().optional(),
+  rating: z.number().min(0).max(5).optional().catch(undefined),
+  reviews: z.number().int().min(0).optional().catch(undefined),
+  sort: z.enum(BARBERSHOP_SORTS).optional().catch(undefined),
 });
 
 export const Route = createFileRoute("/barbershops/")({
   validateSearch: searchSchema,
-  loaderDeps: ({ search }) => toCompleteLocation(search),
+  loaderDeps: ({ search }) => ({
+    ...toCompleteLocation(search),
+    rating: search.rating,
+    reviews: search.reviews,
+    sort: search.sort,
+  }),
   ssr: "data-only",
   loader: async (opts) => {
-    // Primary content: the grid blocks on the barbershop list.
+    // Primary content: the grid blocks on the barbershop list. Every filter is
+    // part of the query args, so each combination gets its own Convex cache
+    // entry and toggling filters back resolves from cache with no delay.
     await opts.context.queryClient.ensureQueryData(
       activeBarbershopsQueryOptions({
         city: opts.deps.city,
         state: opts.deps.state,
         userId: opts.context.userId ?? undefined,
+        minRating: opts.deps.rating,
+        minReviews: opts.deps.reviews,
+        sortBy: opts.deps.sort,
       }),
     );
   },
@@ -100,46 +149,169 @@ export const Route = createFileRoute("/barbershops/")({
 function BarbershopsPage() {
   const { data: user } = useSession();
   const search = useSearch({ from: "/barbershops/" });
+  const navigate = useNavigate({ from: "/barbershops/" });
   const completeLocation = toCompleteLocation(search);
 
   const { data: barbershops } = useActiveBarbershops({
     city: completeLocation.city,
     state: completeLocation.state,
     userId: user?.id ?? undefined,
+    minRating: search.rating,
+    minReviews: search.reviews,
+    sortBy: search.sort,
   });
 
-  const hasLocation = !!(search.city && search.state);
+  const [view, setView] = useState<BarbershopListView>("gallery");
+
+  // URL search params are the filter state; navigation (replace, no scroll
+  // reset) is the only setter so links stay shareable and back/forward works.
+  const filters: BarbershopRatingFilters = {
+    minRating: search.rating ?? 0,
+    minReviews: search.reviews ?? 0,
+  };
+
+  const setFilters = (next: BarbershopRatingFilters) =>
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        rating: next.minRating > 0 ? next.minRating : undefined,
+        reviews: next.minReviews > 0 ? next.minReviews : undefined,
+      }),
+      replace: true,
+      resetScroll: false,
+    });
+
+  const setSort = (next: BarbershopSort) =>
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        sort: next === "rating" ? undefined : next,
+      }),
+      replace: true,
+      resetScroll: false,
+    });
+
+  const hasRatingFilters = filters.minRating > 0 || filters.minReviews > 0;
 
   return (
     <BorderContainer>
       <LocationProvider>
-        <header className="flex flex-col items-center justify-between gap-2.5 pt-4 pb-2">
-          <section className="w-full space-y-4">
+        <header className="flex flex-wrap items-end justify-between gap-4 pt-4">
+          <div className="space-y-1">
             <h1
-              className="text-balance text-center font-semibold text-2xl tracking-tight md:text-3xl"
+              className="font-semibold text-2xl tracking-tight md:text-3xl"
               style={{
                 viewTransitionName: "barbershops",
               }}
             >
-              Encuentra barberías cerca de ti
+              Barberías
             </h1>
-          </section>
+            <p className="text-pretty text-muted-foreground text-sm">
+              Encuentra una barbería cerca de ti y reserva tu próxima cita.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="md:hidden">
+              <Suspense fallback={<Skeleton className="h-9 w-24" />}>
+                <BarbershopFiltersDrawer filters={filters} />
+              </Suspense>
+            </div>
+
+            <TooltipProvider>
+              <fieldset
+                aria-label="Vista de resultados"
+                className="flex items-center gap-0.5 rounded-lg border bg-background p-0.5"
+              >
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        aria-label="Vista de galería"
+                        aria-pressed={view === "gallery"}
+                        onClick={() => setView("gallery")}
+                        size="icon"
+                        variant={view === "gallery" ? "secondary" : "ghost"}
+                      >
+                        <ImagesIcon />
+                      </Button>
+                    }
+                  />
+                  <TooltipContent>Vista de galería</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        aria-label="Vista de cuadrícula"
+                        aria-pressed={view === "grid"}
+                        onClick={() => setView("grid")}
+                        size="icon"
+                        variant={view === "grid" ? "secondary" : "ghost"}
+                      >
+                        <SquaresFourIcon />
+                      </Button>
+                    }
+                  />
+                  <TooltipContent>Vista de cuadrícula</TooltipContent>
+                </Tooltip>
+              </fieldset>
+            </TooltipProvider>
+          </div>
         </header>
 
         <LocationFirstRun />
 
-        <Suspense
-          fallback={<Skeleton className="mx-auto h-14 w-full max-w-3xl" />}
-        >
-          <div className="mx-auto w-full max-w-3xl rounded-xl border bg-accent/20 p-4">
-            <BarbershopFilters />
+        <div className="hidden md:block">
+          <Suspense fallback={<Skeleton className="h-9 w-full max-w-3xl" />}>
+            <BarbershopFilters filters={filters} onFiltersChange={setFilters} />
+          </Suspense>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-muted-foreground text-sm tabular-nums">
+            {barbershops.length}{" "}
+            {barbershops.length === 1 ? "barbería" : "barberías"}
+          </p>
+
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground text-sm">Ordenar por</span>
+            <Suspense fallback={<Skeleton className="h-9 w-44" />}>
+              <BarbershopSortSelect
+                onValueChange={setSort}
+                value={search.sort ?? "rating"}
+              />
+            </Suspense>
           </div>
-        </Suspense>
+        </div>
 
         <Suspense fallback={<BarbershopLoadingGrid />}>
-          <BarbershopGrid barbershops={barbershops} />
+          <BarbershopGrid barbershops={barbershops} view={view} />
 
-          {hasLocation && barbershops.length < 1 && (
+          {hasRatingFilters && barbershops.length < 1 && (
+            <Empty className="bg-accent/20 dark:bg-accent/20">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <StorefrontIcon className="size-6" />
+                </EmptyMedia>
+                <EmptyTitle>No hay barberías con esos filtros.</EmptyTitle>
+                <EmptyDescription>
+                  Limpia los filtros para ver todas las barberías disponibles.
+                </EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                <Button
+                  onClick={() => setFilters(EMPTY_RATING_FILTERS)}
+                  variant="outline"
+                >
+                  Limpiar filtros
+                </Button>
+              </EmptyContent>
+            </Empty>
+          )}
+
+          {!hasRatingFilters && barbershops.length < 1 && (
             <Empty className="bg-accent/20 dark:bg-accent/20">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
