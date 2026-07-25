@@ -1,6 +1,6 @@
 import { ListIcon, SquaresFourIcon } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, memo, Suspense, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -40,9 +40,10 @@ const ThemeToggler = lazy(() =>
  * bottom tab bar. Hidden on desktop and inside the dashboard shell, which
  * bring their own chrome.
  */
-export function MobileTopBar() {
-  const { user, isBarber, isStaff, isOwner } = useNavRoutes();
+export const MobileTopBar = memo(() => {
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const { user, isBarber, isStaff, isOwner } = useNavRoutes();
   const navSearch = useNavSearch();
 
   const isMember = isBarber || isStaff || isOwner;
@@ -198,4 +199,4 @@ export function MobileTopBar() {
       </Drawer>
     </>
   );
-}
+});
