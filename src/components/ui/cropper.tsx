@@ -1688,10 +1688,10 @@ function CropperArea(props: CropperAreaProps) {
 }
 
 export {
+  //
+  type Area as CropperAreaData,
   Cropper,
   CropperArea,
   CropperImage,
-  //
-  type Area as CropperAreaData,
   type Shape as CropperShape,
 };

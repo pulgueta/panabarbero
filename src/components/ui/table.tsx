@@ -76,4 +76,4 @@ function TableCell({ className, ...props }: ComponentProps<"td">) {
   );
 }
 
-export { Table, TableHeader, TableBody, TableHead, TableRow, TableCell };
+export { Table, TableBody, TableCell, TableHead, TableHeader, TableRow };

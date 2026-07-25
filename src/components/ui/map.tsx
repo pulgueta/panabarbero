@@ -1840,6 +1840,7 @@ function MapClusterLayer<
   return null;
 }
 
+export type { MapArcDatum, MapArcEvent, MapRef, MapViewport };
 export {
   Map,
   MapArc,
@@ -1854,5 +1855,3 @@ export {
   MarkerTooltip,
   useMap,
 };
-
-export type { MapArcDatum, MapArcEvent, MapRef, MapViewport };
