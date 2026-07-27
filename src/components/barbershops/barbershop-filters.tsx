@@ -211,7 +211,11 @@ export const BarbershopFiltersDrawer: FC<
 
   // The listing query needs a complete location, so a departamento on its own
   // can't be committed — keep "Aplicar" disabled until a ciudad is picked.
-  const canApply = Boolean(draft.departamento && draft.ciudad);
+  // A fully empty draft is fine: applying it resets the listing back to the
+  // location picker (this is how "Limpiar" gets committed).
+  const canApply =
+    Boolean(draft.departamento && draft.ciudad) ||
+    (!draft.departamento && !draft.ciudad);
 
   const openDrawer = () => {
     trigger();

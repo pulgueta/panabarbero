@@ -14,7 +14,7 @@ interface BarbershopListRowProps {
   barbershop: BarbershopListItem;
 }
 
-/** List-view row: compact identity + rating with a direct booking CTA. */
+/** List-view row: compact identity + rating linking to the shop detail page. */
 export const BarbershopListRow: FC<BarbershopListRowProps> = ({
   barbershop,
 }) => {
@@ -106,7 +106,7 @@ export const BarbershopListRow: FC<BarbershopListRowProps> = ({
         }
         size="sm"
       >
-        Reservar
+        Ver barbería
       </Button>
     </Card>
   );
