@@ -106,7 +106,7 @@ const transport = chat.transport({
         .output({ barbero: "Valentina", hora: "hoy 12:45", precio: "$25.000" });
       writer.sleep(250);
       writer.text(
-        "Listo: corte clásico con Valentina, hoy a las 12:45. Le envié la confirmación por SMS.",
+        "Te propongo corte clásico con Valentina, hoy a las 12:45. Confirma y la agendo al instante.",
       );
       return;
     }

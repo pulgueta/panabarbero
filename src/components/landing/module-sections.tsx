@@ -275,7 +275,7 @@ const MODULES: ModuleBlock[] = [
     bullets: [
       "Precio y duración por servicio, en pesos colombianos.",
       "Pausa un servicio sin borrarlo y reactívalo cuando quieras.",
-      "Cada barbero ofrece sus propios servicios y tarifas.",
+      "Cada barbero elige qué servicios ofrece.",
     ],
     demo: <ServicesDemoCard />,
   },

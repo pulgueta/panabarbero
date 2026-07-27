@@ -212,7 +212,7 @@ export const panaExchanges = (state: LandingSimState): PanaExchange[] => [
   {
     question: "Crea una cita para Felipe",
     answer:
-      "Listo: corte clásico con Valentina, hoy a las 12:45. Le envié la confirmación por SMS.",
+      "Te propongo corte clásico con Valentina, hoy a las 12:45. Confirma y la agendo al instante.",
   },
 ];
 
@@ -249,7 +249,7 @@ function confirmNextAppointment(state: LandingSimState): LandingSimState {
       state,
       "confirmed",
       "Cita confirmada",
-      `${target.name} · respondió por SMS`,
+      `${target.name} · recordatorio enviado por SMS`,
     ),
   };
 }
@@ -323,7 +323,7 @@ const SCRIPT: ScriptStep[] = [
       toasts: pushToast(
         state,
         "stock",
-        "Orden de compra creada",
+        "Entrada registrada",
         "Cera mate · +24 uds",
       ),
     }),
