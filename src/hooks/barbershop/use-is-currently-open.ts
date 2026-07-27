@@ -23,7 +23,13 @@ export function useIsCurrentlyOpen(
       return;
     }
 
-    setIsOpen(isCurrentlyOpen(availability));
+    const update = () => setIsOpen(isCurrentlyOpen(availability));
+
+    // Recompute periodically so the badge crosses open/close/lunch
+    // boundaries while the page stays open.
+    update();
+    const id = setInterval(update, 60_000);
+    return () => clearInterval(id);
   }, [availability]);
 
   return isOpen;
