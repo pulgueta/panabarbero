@@ -158,7 +158,7 @@ rules. Prefer `crypto.randomUUID()` over nanoid for any generated id.
 
 ## 2. Authentication (the highest-risk subsystem)
 
-WorkOS AuthKit (`@workos/authkit-tanstack-react-start` 0.6.0 +
+WorkOS AuthKit (`@workos/authkit-tanstack-react-start` 0.11.0 +
 `@convex-dev/workos-authkit` 0.2.7). The only remaining pnpm patch is
 `@tanstack/router-core`.
 
