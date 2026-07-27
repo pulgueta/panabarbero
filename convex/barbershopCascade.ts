@@ -8,6 +8,8 @@ import {
   completedAppointmentsAggregate,
   inventoryMovementsAggregate,
   reviewRatingsAggregate,
+  reviewStarsAggregate,
+  reviewStarsNamespace,
 } from "./aggregates";
 import { getMemberWorkosUserId, revokeMemberAuthz } from "./authz";
 import {
@@ -131,6 +133,11 @@ export async function cascadeDeleteBarbershop(
     if (review.publishedAt) {
       await reviewRatingsAggregate.deleteIfExists(ctx, {
         namespace: barbershopId,
+        key: review._creationTime,
+        id: review._id,
+      });
+      await reviewStarsAggregate.deleteIfExists(ctx, {
+        namespace: reviewStarsNamespace(barbershopId, review.rating),
         key: review._creationTime,
         id: review._id,
       });
