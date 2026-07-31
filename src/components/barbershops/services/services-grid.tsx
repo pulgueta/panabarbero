@@ -1,73 +1,61 @@
-import type {
-  Barbershop,
-  BarbershopMemberWithName,
-  Service,
-} from "@convex/schema";
+import type { Service } from "@convex/schema";
 import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 
 interface ServicesGridProps {
   services: Service[];
-  barbers: BarbershopMemberWithName[];
-  barbershopId: Barbershop["_id"];
   barbershopUuid: string;
 }
 
+/** Detail-page services card: one bookable row per service. */
 export const ServicesGrid: FC<ServicesGridProps> = ({
   services,
   barbershopUuid,
 }) => {
-  const viewTransitionName =
-    services.length > 0
-      ? `barbershop-${services[0].barbershopId}-services`
-      : undefined;
-
   return (
-    <article
-      className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
-      style={{ viewTransitionName }}
-    >
-      {services.map((service) => (
-        <Card key={service._id}>
-          <CardHeader className="border-b">
-            <CardTitle>{service.name}</CardTitle>
-            <CardDescription>
-              Duración: {service.duration} minutos
-            </CardDescription>
-          </CardHeader>
-          <CardFooter className="justify-between">
-            <p>
-              Valor:{" "}
-              <span className="font-semibold tabular-nums">
+    <Card className="gap-0 py-0">
+      <h2 className="border-b p-4 font-semibold tracking-tight">Servicios</h2>
+
+      <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+        {services.map((service) => (
+          <div
+            className="flex min-w-0 items-center justify-between p-4"
+            key={service._id}
+          >
+            <div className="min-w-0">
+              <p className="truncate font-medium text-sm">{service.name}</p>
+              <p className="text-muted-foreground text-xs">
+                {service.duration} min
+              </p>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-3">
+              <span className="font-semibold text-sm tabular-nums">
                 {formatCurrency(service.price)}
               </span>
-            </p>
 
-            <Button
-              nativeButton={false}
-              render={
-                <Link
-                  to="/barbershops/$barbershopUuid/book"
-                  params={{ barbershopUuid }}
-                  search={{ serviceId: service._id }}
-                />
-              }
-            >
-              Reservar
-            </Button>
-          </CardFooter>
-        </Card>
-      ))}
-    </article>
+              <Button
+                nativeButton={false}
+                render={
+                  <Link
+                    params={{ barbershopUuid }}
+                    search={{ serviceId: service._id }}
+                    to="/barbershops/$barbershopUuid/book"
+                  />
+                }
+                size="sm"
+                variant="outline"
+              >
+                Reservar
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 };

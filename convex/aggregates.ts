@@ -110,6 +110,52 @@ export async function getBarbershopRatingValue(
   return { average: count > 0 ? sum / count : 0, count };
 }
 
+/** The five star buckets, high to low, as rendered by the detail-page card. */
+export const STAR_RATINGS = [1, 2, 3, 4, 5] as const;
+
+export type StarRating = (typeof STAR_RATINGS)[number];
+
+/**
+ * Counts published reviews per (barbershop, star). Same lifecycle as
+ * `reviewRatingsAggregate` — inserted on publish, removed on unpublish/delete —
+ * so every write path must maintain both in lockstep.
+ *
+ * Namespace: `${barbershopId}:${rating}`
+ * Key:       review _creationTime (id disambiguates ties)
+ * Id:        reviewId
+ */
+export const reviewStarsAggregate = new DirectAggregate<{
+  Namespace: string;
+  Key: number;
+  Id: Review["_id"];
+}>(components.aggregateReviewStars);
+
+export const reviewStarsNamespace = (
+  barbershopId: Barbershop["_id"],
+  rating: number,
+) => `${barbershopId}:${rating}`;
+
+/**
+ * Per-star histogram of published, unflagged reviews — five O(log n) aggregate
+ * counts, no table scan. Shared by the public detail page and dashboard stats.
+ */
+export async function getPublishedRatingDistribution(
+  ctx: QueryCtx,
+  barbershopId: Barbershop["_id"],
+) {
+  const counts = await Promise.all(
+    STAR_RATINGS.map((star) =>
+      reviewStarsAggregate.count(ctx, {
+        namespace: reviewStarsNamespace(barbershopId, star),
+      }),
+    ),
+  );
+
+  return Object.fromEntries(
+    STAR_RATINGS.map((star, index) => [star, counts[index]]),
+  ) as Record<StarRating, number>;
+}
+
 /**
  * Triggers that keep `smsUsageAggregate` and `emailUsageAggregate` in sync
  * automatically whenever the `usage` table is written through `usageTriggers`.

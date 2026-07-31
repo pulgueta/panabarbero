@@ -13,7 +13,13 @@ import {
 } from ".";
 import { components, internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { getBarbershopRatingValue, reviewRatingsAggregate } from "./aggregates";
+import {
+  getBarbershopRatingValue,
+  getPublishedRatingDistribution,
+  reviewRatingsAggregate,
+  reviewStarsAggregate,
+  reviewStarsNamespace,
+} from "./aggregates";
 import { track } from "./analytics";
 import { assertShopRole } from "./authz";
 import { errorMessages } from "./errors";
@@ -70,6 +76,12 @@ async function publishReview(ctx: MutationCtx, reviewId: Review["_id"]) {
     key: review._creationTime,
     id: review._id,
     sumValue: review.rating,
+  });
+
+  await reviewStarsAggregate.insert(ctx, {
+    namespace: reviewStarsNamespace(review.barbershopId, review.rating),
+    key: review._creationTime,
+    id: review._id,
   });
 }
 
@@ -267,6 +279,12 @@ export const deleteReview = zAuthMutation({
         key: review._creationTime,
         id: review._id,
       });
+
+      await reviewStarsAggregate.deleteIfExists(ctx, {
+        namespace: reviewStarsNamespace(review.barbershopId, review.rating),
+        key: review._creationTime,
+        id: review._id,
+      });
     }
 
     // Reviews that predate the durable `reviewedAt` stamp never marked their
@@ -324,6 +342,16 @@ export const getByBarbershop = zQuery({
 export const getBarbershopRating = zQuery({
   args: z.object({ barbershopId: barbershops.tools.id.shape.id }),
   handler: (ctx, args) => getBarbershopRatingValue(ctx, args.barbershopId),
+});
+
+/**
+ * Public: per-star published-review histogram for the detail page's reviews
+ * card. Same bounded index scan the dashboard stats use.
+ */
+export const getBarbershopRatingDistribution = zQuery({
+  args: z.object({ barbershopId: barbershops.tools.id.shape.id }),
+  handler: (ctx, args) =>
+    getPublishedRatingDistribution(ctx, args.barbershopId),
 });
 
 /**
@@ -603,12 +631,19 @@ export const applyModeration = zInternalMutation({
       return;
     }
 
-    // Keep the rating aggregate self-consistent: any path that un-publishes a
-    // review must drop its aggregate entry, so a flagged review can never keep
-    // contributing to the public average. Mirrors publishReview/deleteReview.
+    // Keep the rating aggregates self-consistent: any path that un-publishes a
+    // review must drop both aggregate entries, so a flagged review can never
+    // keep contributing to the public average or histogram. Mirrors
+    // publishReview/deleteReview.
     if (review.publishedAt) {
       await reviewRatingsAggregate.deleteIfExists(ctx, {
         namespace: review.barbershopId,
+        key: review._creationTime,
+        id: review._id,
+      });
+
+      await reviewStarsAggregate.deleteIfExists(ctx, {
+        namespace: reviewStarsNamespace(review.barbershopId, review.rating),
         key: review._creationTime,
         id: review._id,
       });
@@ -678,9 +713,6 @@ export const onModerationComplete = zInternalMutation({
 // ---------------------------------------------------------------------------
 // Owner-facing review analytics ("Reseñas" dashboard)
 // ---------------------------------------------------------------------------
-
-/** Star ratings, ascending — the fixed histogram buckets. */
-const STAR_RATINGS = [1, 2, 3, 4, 5] as const;
 
 /** Months of history returned by the rating trend. */
 const TREND_MONTHS = 6;
@@ -815,9 +847,8 @@ export const listForShop = zAuthQuery({
 /**
  * Headline review stats for the dashboard. Average + published total come from
  * the O(log n) rating aggregate (which only ever holds published, unflagged
- * reviews). The per-star histogram is a bounded scan of the rating index,
- * counting published+unflagged rows in JS; `flaggedCount` reads the sparse
- * flagged index only.
+ * reviews). The per-star histogram is five O(log n) counts off the star
+ * aggregate; `flaggedCount` reads the sparse flagged index only.
  */
 export const getShopReviewStats = zAuthQuery({
   args: z.object({ barbershop: barbershops.tools.id }),
@@ -827,7 +858,7 @@ export const getShopReviewStats = zAuthQuery({
 
     await assertCanViewReviewAnalytics(ctx, barbershopId, userId);
 
-    const [{ average, count }, flagged, perStar] = await Promise.all([
+    const [{ average, count }, flagged, distribution] = await Promise.all([
       getBarbershopRatingValue(ctx, barbershopId),
       ctx.db
         .query("reviews")
@@ -835,29 +866,8 @@ export const getShopReviewStats = zAuthQuery({
           q.eq("barbershopId", barbershopId).gt("flaggedAt", 0),
         )
         .collect(),
-      Promise.all(
-        STAR_RATINGS.map((star) =>
-          ctx.db
-            .query("reviews")
-            .withIndex("by_barbershopId_and_rating", (q) =>
-              q.eq("barbershopId", barbershopId).eq("rating", star),
-            )
-            .collect(),
-        ),
-      ),
+      getPublishedRatingDistribution(ctx, barbershopId),
     ]);
-
-    const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } as Record<
-      1 | 2 | 3 | 4 | 5,
-      number
-    >;
-
-    STAR_RATINGS.forEach((star, index) => {
-      distribution[star] = perStar[index].filter(
-        (review) =>
-          review.publishedAt !== undefined && review.flaggedAt === undefined,
-      ).length;
-    });
 
     return {
       average,

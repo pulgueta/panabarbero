@@ -59,6 +59,7 @@ app.use(aggregate, { name: "aggregateCompletedAppointments" });
 app.use(aggregate, { name: "aggregateSmsSent" });
 app.use(aggregate, { name: "aggregateEmailsSent" });
 app.use(aggregate, { name: "aggregateReviewRatings" });
+app.use(aggregate, { name: "aggregateReviewStars" });
 app.use(aggregate, { name: "aggregateInventoryValue" });
 app.use(aggregate, { name: "aggregateInventoryMovements" });
 app.use(workflow);

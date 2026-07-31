@@ -17,9 +17,11 @@ const socialLinks = [
   },
 ];
 
-const legalLinks = [
+const footerLinks = [
   { label: "Política de privacidad", to: "/privacy-policy" as const },
   { label: "Términos de servicio", to: "/tos" as const },
+  { label: "Precios", to: "/pricing" as const },
+  { label: "Pana IA", to: "/ai" as const },
 ];
 
 export const LandingFooter: FC = () => {
@@ -33,9 +35,8 @@ export const LandingFooter: FC = () => {
           </span>
         </div>
 
-        {/* Legal links */}
-        <nav className="flex items-center gap-4" aria-label="Legal">
-          {legalLinks.map((link) => (
+        <nav className="flex items-center gap-4" aria-label="Enlaces">
+          {footerLinks.map((link) => (
             <Link
               key={link.to}
               to={link.to}

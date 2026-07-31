@@ -202,7 +202,7 @@ export async function hasShopRole(
 ): Promise<boolean> {
   const member = await getBarbershopMemberByUserId(ctx, barbershopId, userId);
 
-  if (!member || !member.isActive) {
+  if (!member?.isActive) {
     return false;
   }
 
@@ -366,7 +366,7 @@ export async function assertCanMutateAppointment(
     userId,
   );
 
-  if (!member || !member.isActive) {
+  if (!member?.isActive) {
     throw new ConvexError(errorMessages.unauthorized);
   }
 
@@ -396,7 +396,7 @@ export async function canViewAppointment(
     userId,
   );
 
-  if (!member || !member.isActive) {
+  if (!member?.isActive) {
     return false;
   }
 

@@ -3,7 +3,11 @@ import { z } from "zod";
 import { zQuery } from ".";
 import { internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
-import { reviewRatingsAggregate } from "./aggregates";
+import {
+  reviewRatingsAggregate,
+  reviewStarsAggregate,
+  reviewStarsNamespace,
+} from "./aggregates";
 import { identifyUser, track } from "./analytics";
 import { authkit } from "./auth.config";
 import { assertShopRole, authz, revokeMemberAuthz } from "./authz";
@@ -461,6 +465,11 @@ export const { authKitEvent } = authkit.events({
         if (r.publishedAt) {
           await reviewRatingsAggregate.deleteIfExists(ctx, {
             namespace: r.barbershopId,
+            key: r._creationTime,
+            id: r._id,
+          });
+          await reviewStarsAggregate.deleteIfExists(ctx, {
+            namespace: reviewStarsNamespace(r.barbershopId, r.rating),
             key: r._creationTime,
             id: r._id,
           });

@@ -84,7 +84,7 @@ export const getBarbersForService = zQuery({
       assignments.map(async (a) => {
         const member = await ctx.db.get(a.barbershopMemberId);
 
-        if (!member || !member.isActive) return null;
+        if (!member?.isActive) return null;
 
         const profile = await ctx.db.get(member.userProfileDataId);
 

@@ -727,7 +727,9 @@ export default defineSchema({
   barbershops: barbershops
     .table()
     .index("by_ownerId", ["ownerId"])
-    .index("by_city_and_state", ["city", "state"])
+    // Serves city-only and city+state lookups too: Convex indexes match on any
+    // prefix, so a separate `by_city_and_state` would only add write cost.
+    .index("by_city_and_state_and_isActive", ["city", "state", "isActive"])
     .index("by_isActive", ["isActive"])
     .searchIndex("by_name_search", {
       searchField: "name",

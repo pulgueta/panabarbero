@@ -83,7 +83,7 @@ export function validateAppointmentTime(
   schedule: AvailabilityEntry | undefined,
   timestamp: number,
 ): ValidationResult {
-  if (!schedule || !schedule.weekDay.isActive) {
+  if (!schedule?.weekDay.isActive) {
     return {
       valid: false,
       error: "La barbería no atiende en el día seleccionado.",
@@ -122,15 +122,19 @@ export function validateAppointmentTime(
   return { valid: true };
 }
 
+/** Colombia is fixed UTC-5 (no DST) — mirrors `COLOMBIA_OFFSET_MS` in convex/utils.ts. */
+const COLOMBIA_OFFSET_MS = -5 * 60 * 60 * 1000;
+
 /**
  * Determines whether a barbershop is currently open based on its availability
- * schedule, accounting for lunch breaks.
+ * schedule, accounting for lunch breaks. Shop hours are Colombian wall-clock,
+ * so "now" is computed in America/Bogota regardless of the visitor's timezone.
  */
 export function isCurrentlyOpen(
   availability: Barbershop["availability"],
 ): boolean {
-  const now = new Date();
-  const currentDayName = DAY_MAP[now.getDay()];
+  const now = new Date(Date.now() + COLOMBIA_OFFSET_MS);
+  const currentDayName = DAY_MAP[now.getUTCDay()];
 
   const todaySchedule = availability.find(
     (day) => day.weekDay.day === currentDayName && day.weekDay.isActive,
@@ -138,7 +142,7 @@ export function isCurrentlyOpen(
 
   if (!todaySchedule) return false;
 
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const currentMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
   const openMinutes = parseTimeToMinutes(todaySchedule.openAt);
   const closeMinutes = parseTimeToMinutes(todaySchedule.closeAt);
 

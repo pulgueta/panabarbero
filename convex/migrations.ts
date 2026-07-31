@@ -1,7 +1,11 @@
 import { Migrations } from "@convex-dev/migrations";
 import { components } from "./_generated/api.js";
 import type { DataModel } from "./_generated/dataModel.js";
-import { completedAppointmentsAggregate } from "./aggregates";
+import {
+  completedAppointmentsAggregate,
+  reviewStarsAggregate,
+  reviewStarsNamespace,
+} from "./aggregates";
 import { authz, barbershopScope } from "./authz";
 
 export const migrations = new Migrations<DataModel>(components.migrations);
@@ -107,5 +111,28 @@ export const wipeInAppNotifications = migrations.define({
   table: "inAppNotifications",
   migrateOne: async (ctx, doc) => {
     await ctx.db.delete(doc._id);
+  },
+});
+
+/**
+ * Backfill the per-star review aggregate from existing published, unflagged
+ * reviews. `reviewStarsAggregate` was added after reviews shipped, so rows
+ * published before it exist only in `reviewRatingsAggregate` and the detail
+ * page histogram would read zero for them. Idempotent via
+ * `insertIfDoesNotExist`, so it is safe to re-run. Run once with
+ * `npx convex run migrations:run '{fn: "migrations:backfillReviewStars"}'`.
+ */
+export const backfillReviewStars = migrations.define({
+  table: "reviews",
+  migrateOne: async (ctx, review) => {
+    if (review.publishedAt === undefined || review.flaggedAt !== undefined) {
+      return;
+    }
+
+    await reviewStarsAggregate.insertIfDoesNotExist(ctx, {
+      namespace: reviewStarsNamespace(review.barbershopId, review.rating),
+      key: review._creationTime,
+      id: review._id,
+    });
   },
 });

@@ -4,6 +4,7 @@ import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
 import { convexToZod, zid } from "convex-helpers/server/zod4";
 import { z } from "zod";
+
 import { zAuthMutation, zInternalMutation, zQuery } from ".";
 import { api, internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
@@ -181,42 +182,32 @@ export const get = zQuery({
 
 export const getActive = zQuery({
   args: z.object({
-    city: z.string().optional(),
-    state: z.string().optional(),
+    // Location is REQUIRED: it is what bounds this read. Without it the query
+    // would scan every active barbershop in the country and then fan out a
+    // services read + aggregate read per row. The listing route holds the
+    // query until the visitor has picked a city.
+    city: z.string().min(1),
+    state: z.string().min(1),
     userId: z.string().optional(),
+    minRating: z.number().min(0).max(5).optional(),
+    minReviews: z.number().int().min(0).optional(),
+    sortBy: z.enum(["rating", "reviews", "name"]).optional(),
   }),
   handler: async (ctx, args) => {
-    const barbershops = await ctx.db
+    // Fully index-backed read (city + state + isActive), then JS-residual
+    // filtering: owner exclusion here, rating/review thresholds after the
+    // aggregate decorates each row.
+    const rows = await ctx.db
       .query("barbershops")
-      .withIndex("by_isActive", (q) => q.eq("isActive", true))
-      .filter((q) =>
-        args.userId
-          ? q.and(
-              q.neq(q.field("ownerId"), args.userId),
-              args.city && args.state
-                ? q.and(
-                    q.eq(q.field("city"), args.city),
-                    q.eq(q.field("state"), args.state),
-                  )
-                : q.or(
-                    q.eq(q.field("city"), args.city),
-                    q.eq(q.field("state"), args.state),
-                  ),
-            )
-          : q.and(
-              args.city && args.state
-                ? q.and(
-                    q.eq(q.field("city"), args.city),
-                    q.eq(q.field("state"), args.state),
-                  )
-                : q.or(
-                    q.eq(q.field("city"), args.city),
-                    q.eq(q.field("state"), args.state),
-                  ),
-            ),
+      .withIndex("by_city_and_state_and_isActive", (q) =>
+        q.eq("city", args.city).eq("state", args.state).eq("isActive", true),
       )
       .order("asc")
       .collect();
+
+    const barbershops = args.userId
+      ? rows.filter((barbershop) => barbershop.ownerId !== args.userId)
+      : rows;
 
     const withRatings = await Promise.all(
       barbershops.map(async (barbershop) => {
@@ -241,7 +232,25 @@ export const getActive = zQuery({
       }),
     );
 
-    return withRatings.filter((barbershop) => barbershop.services?.length);
+    const filtered = withRatings.filter(
+      (barbershop) =>
+        barbershop.services?.length &&
+        (barbershop.averageRating ?? 0) >= (args.minRating ?? 0) &&
+        (barbershop.reviewCount ?? 0) >= (args.minReviews ?? 0),
+    );
+
+    const sorters: Record<
+      NonNullable<typeof args.sortBy>,
+      (a: (typeof filtered)[number], b: (typeof filtered)[number]) => number
+    > = {
+      rating: (a, b) =>
+        (b.averageRating ?? 0) - (a.averageRating ?? 0) ||
+        (b.reviewCount ?? 0) - (a.reviewCount ?? 0),
+      reviews: (a, b) => (b.reviewCount ?? 0) - (a.reviewCount ?? 0),
+      name: (a, b) => a.name.localeCompare(b.name, "es"),
+    };
+
+    return filtered.sort(sorters[args.sortBy ?? "rating"]);
   },
 });
 
@@ -252,7 +261,7 @@ export const getByUuid = zQuery({
   handler: async (ctx, args) => {
     const barbershop = await getByUuidFn(ctx, args.uuid);
 
-    if (!barbershop || !barbershop.isActive) return null;
+    if (!barbershop?.isActive) return null;
 
     const services = await ctx.runQuery(api.barbershops.getServices, {
       id: barbershop._id,

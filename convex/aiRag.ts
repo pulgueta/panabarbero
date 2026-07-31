@@ -172,7 +172,7 @@ export const reindexShopKnowledge = zInternalAction({
       barbershopId: args.barbershopId,
     });
 
-    if (!data || !data.isPremium) return;
+    if (!data?.isPremium) return;
 
     const hours = data.availability
       .map((a) =>

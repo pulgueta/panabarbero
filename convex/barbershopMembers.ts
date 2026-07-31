@@ -584,8 +584,7 @@ export const toggleBarberRole = zAuthMutation({
         const targetMember = targetMembers[i];
 
         if (
-          !targetMember ||
-          !targetMember.isActive ||
+          !targetMember?.isActive ||
           !targetMember.roles.includes("barber") ||
           targetMember.barbershopId !== member.barbershopId
         ) {

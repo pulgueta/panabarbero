@@ -119,7 +119,7 @@ export const create = zAuthMutation({
       ctx.db.get(appointment.barbershopMemberId),
     ]);
 
-    if (!barber || !barber.isActive) {
+    if (!barber?.isActive) {
       throw new ConvexError(errorMessages.notFound("barbero"));
     }
 
@@ -214,7 +214,7 @@ export const create = zAuthMutation({
       (a) => a.weekDay.day === day,
     );
 
-    if (!dayAvailability || !dayAvailability.weekDay.isActive) {
+    if (!dayAvailability?.weekDay.isActive) {
       throw new ConvexError(errorMessages.barbershopClosedOnSelectedDay);
     }
 
@@ -498,8 +498,7 @@ export const setStatus = zAuthMutation({
     );
 
     if (
-      !member ||
-      !member.isActive ||
+      !member?.isActive ||
       !memberHasAnyRole(member, ["owner", "barber", "staff"])
     ) {
       throw new ConvexError(errorMessages.unauthorized);
@@ -1186,7 +1185,7 @@ export const getAvailableSlots = zQuery({
       (a) => a.weekDay.day === dayKey,
     );
 
-    if (!dayAvailability || !dayAvailability.weekDay.isActive) {
+    if (!dayAvailability?.weekDay.isActive) {
       return [];
     }
 

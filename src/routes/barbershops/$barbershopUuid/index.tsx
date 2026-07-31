@@ -11,16 +11,13 @@ import { z } from "zod";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ServicesSkeleton } from "@/components/layout/skeleton/services-skeleton";
-import { WriteReviewCta } from "@/components/reviews/write-review-cta";
 import { buttonVariants } from "@/components/ui/button";
-import { useCarouselApi } from "@/components/ui/carousel";
 import {
   Empty,
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cacheTime } from "@/config/cache";
 import {
@@ -28,7 +25,7 @@ import {
   barbershopByUuidQueryOptions,
   useBarbershopByUuid,
 } from "@/hooks/barbershop/use-barbershop";
-import { barbershopLocationQueryOptions } from "@/hooks/barbershop/use-barbershop-metadata";
+import { barbershopMetadataQueryOptions } from "@/hooks/barbershop/use-barbershop-metadata";
 import {
   barberByUserIdQueryOptions,
   barbershopMembersByBarbershopIdQueryOptions,
@@ -37,6 +34,7 @@ import {
 } from "@/hooks/use-barbershop-members";
 import { profileQueryOptions } from "@/hooks/use-profile";
 import {
+  barbershopRatingDistributionQueryOptions,
   barbershopRatingQueryOptions,
   reviewableForBarbershopQueryOptions,
   reviewsByBarbershopQueryOptions,
@@ -45,7 +43,6 @@ import {
   servicesQueryOptions,
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
-import { useSession } from "@/hooks/use-session";
 import {
   barbershopSeo,
   barbershopStructuredData,
@@ -66,12 +63,10 @@ const ServicesGrid = lazy(() =>
   })),
 );
 
-const BarbershopLocationSection = lazy(() =>
-  import("@/components/barbershops/barbershop-location-section").then(
-    (module) => ({
-      default: module.BarbershopLocationSection,
-    }),
-  ),
+const BarbershopInfoCard = lazy(() =>
+  import("@/components/barbershops/barbershop-info-card").then((module) => ({
+    default: module.BarbershopInfoCard,
+  })),
 );
 
 const BarberTeamSection = lazy(() =>
@@ -119,18 +114,21 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
     // without blocking. prefetchQuery never throws, and the streaming SSR
     // integration hands these to the components' <Suspense>/<Hydrate>
     // boundaries (availability + per-barber services are for the booking flow,
-    // location feeds the lazily-hydrated map).
+    // metadata feeds the lazily-hydrated info card).
     void context.queryClient.prefetchQuery(
       barbershopAvailabilityQueryOptions(barbershop._id),
     );
     void context.queryClient.prefetchQuery(
-      barbershopLocationQueryOptions(barbershop._id),
+      barbershopMetadataQueryOptions(barbershop._id),
     );
     void context.queryClient.prefetchQuery(
       reviewsByBarbershopQueryOptions(barbershop._id, 6),
     );
     void context.queryClient.prefetchQuery(
       barbershopRatingQueryOptions(barbershop._id),
+    );
+    void context.queryClient.prefetchQuery(
+      barbershopRatingDistributionQueryOptions(barbershop._id),
     );
     if (context.userId) {
       void context.queryClient.prefetchQuery(
@@ -188,14 +186,13 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
   },
 });
 
+const reviewsSkeleton = <Skeleton className="h-72 w-full rounded-xl" />;
+
 function RouteComponent() {
   const { barbershopUuid } = Route.useParams();
   const isAuthed = Route.useRouteContext({
     select: (context) => Boolean(context.userId),
   });
-
-  const { data: user } = useSession();
-  const [_, _setCarouselApi] = useCarouselApi();
 
   const { data: barbershop } = useBarbershopByUuid(barbershopUuid);
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
@@ -203,155 +200,105 @@ function RouteComponent() {
     barbershop?._id!,
   );
 
-  const reviewsSkeleton = (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <Skeleton
-          key={`review-skeleton-${i.toString()}`}
-          className="h-28 w-full rounded-xl"
-        />
-      ))}
-    </div>
-  );
-
   return (
     <BorderContainer>
-      <main className="space-y-4 md:space-y-2">
+      <main className="space-y-5">
         <Link
           to="/barbershops"
           className={cn(
             buttonVariants({
-              variant: "link",
+              variant: "ghost",
+              size: "sm",
             }),
             "text-muted-foreground",
           )}
         >
           <ArrowLeftIcon />
-          Volver a la lista
+          Barberías
         </Link>
 
         <Suspense
           fallback={
-            <div className="space-y-4">
-              <div className="flex gap-4">
-                <Skeleton className="size-28 rounded-2xl sm:size-32" />
-                <div className="flex flex-1 flex-col gap-2 pt-1">
-                  <Skeleton className="h-7 w-48" />
-                  <Skeleton className="h-4 w-full max-w-xs" />
-                  <Skeleton className="h-5 w-24" />
-                </div>
+            <div className="flex gap-4">
+              <Skeleton className="size-16 rounded-xl md:size-18" />
+              <div className="flex flex-1 flex-col gap-2 pt-1">
+                <Skeleton className="h-7 w-48" />
+                <Skeleton className="h-4 w-full max-w-xs" />
+                <Skeleton className="h-5 w-24" />
               </div>
-
-              <Skeleton className="h-4 w-56" />
-              <Skeleton className="h-9 w-44" />
             </div>
           }
         >
           <BarbershopHeader
-            barbershop={barbershop}
-            userId={user?.id!}
-            availability={barbershop?.availability!}
+            barbershop={barbershop!}
             logoKey={barbershop?.logoKey}
           />
         </Suspense>
 
-        <Separator className="my-6" />
+        {barbershop?.description && (
+          <p className="max-w-prose text-pretty text-muted-foreground text-sm leading-relaxed md:text-base">
+            {barbershop.description}
+          </p>
+        )}
 
-        <section className="space-y-4">
-          <h2 className="text-balance font-semibold text-xl tracking-tight">
-            Servicios ofrecidos
-          </h2>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+          <div className="min-w-0 flex-2 space-y-4">
+            <Suspense fallback={<ServicesSkeleton />}>
+              {barbershop?.uuid && services?.length > 0 && (
+                <ServicesGrid
+                  services={services}
+                  barbershopUuid={barbershop.uuid}
+                />
+              )}
 
-          <Suspense fallback={<ServicesSkeleton />}>
-            {barbershop?.uuid && (
-              <ServicesGrid
-                services={services}
-                barbers={barbershopMembers}
-                barbershopId={barbershop?._id!}
-                barbershopUuid={barbershop.uuid}
-              />
-            )}
+              {services?.length < 1 && (
+                <Empty>
+                  <EmptyHeader>
+                    <EmptyTitle>No hay servicios disponibles.</EmptyTitle>
+                    <EmptyDescription>
+                      Cuando se agregue un servicio, podrás verlo aquí.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              )}
+            </Suspense>
 
-            {services?.length < 1 && (
-              <Empty>
-                <EmptyHeader>
-                  <EmptyTitle>No hay servicios disponibles.</EmptyTitle>
-                  <EmptyDescription>
-                    Cuando se agregue un servicio, podrás verlo aquí.
-                  </EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            )}
-          </Suspense>
-        </section>
-
-        {barbershopMembers && barbershopMembers.length > 0 && (
-          <>
-            <Separator className="my-6" />
-
-            <section className="space-y-4">
-              <h2 className="text-balance font-semibold text-xl tracking-tight">
-                Nuestro equipo
-              </h2>
-
+            {barbershopMembers && barbershopMembers.length > 0 && (
               <Hydrate
                 when={visible({ rootMargin: "200px" })}
-                fallback={
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <Skeleton
-                        key={`team-skeleton-${i.toString()}`}
-                        className="h-16 w-full rounded-lg"
-                      />
-                    ))}
-                  </div>
-                }
+                fallback={<Skeleton className="h-48 w-full rounded-xl" />}
               >
                 <BarberTeamSection barbers={barbershopMembers} />
               </Hydrate>
-            </section>
-          </>
-        )}
+            )}
 
-        {/* Heavy interactive map, below the fold: keep it code-split via lazy()
-            and defer hydration (and therefore the chunk download) until it
-            scrolls into view. */}
-        {barbershop?._id && (
-          <Hydrate when={visible({ rootMargin: "200px" })} split={false}>
-            <BarbershopLocationSection
-              barbershopId={barbershop._id}
-              barbershopName={barbershop.name}
-            />
-          </Hydrate>
-        )}
-
-        {barbershop?._id && (
-          <>
-            <Separator className="my-6" />
-
-            <section className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="text-balance font-semibold text-xl tracking-tight">
-                  Reseñas
-                </h2>
-
-                <WriteReviewCta
-                  barbershopId={barbershop._id}
-                  isAuthed={isAuthed}
-                />
-              </div>
-
+            {barbershop?._id && (
               <Hydrate
                 when={visible({ rootMargin: "200px" })}
                 fallback={reviewsSkeleton}
               >
                 <Suspense fallback={reviewsSkeleton}>
-                  <BarbershopReviews barbershopId={barbershop._id} />
+                  <BarbershopReviews
+                    barbershopId={barbershop._id}
+                    isAuthed={isAuthed}
+                  />
                 </Suspense>
               </Hydrate>
-            </section>
-          </>
-        )}
+            )}
+          </div>
+
+          {barbershop?._id && (
+            <aside className="w-full lg:max-w-sm lg:flex-1">
+              <Suspense
+                fallback={<Skeleton className="h-48 w-full rounded-xl" />}
+              >
+                <Hydrate when={visible({ rootMargin: "200px" })} split={false}>
+                  <BarbershopInfoCard barbershop={barbershop} />
+                </Hydrate>
+              </Suspense>
+            </aside>
+          )}
+        </div>
       </main>
     </BorderContainer>
   );
