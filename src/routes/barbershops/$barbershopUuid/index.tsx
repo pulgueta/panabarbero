@@ -13,42 +13,42 @@ import { LoadingComponent } from "@/components/layout/loading-component";
 import { ServicesSkeleton } from "@/components/layout/skeleton/services-skeleton";
 import { buttonVariants } from "@/components/ui/button";
 import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyTitle,
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cacheTime } from "@/config/cache";
 import {
-  barbershopAvailabilityQueryOptions,
-  barbershopByUuidQueryOptions,
-  useBarbershopByUuid,
+    barbershopAvailabilityQueryOptions,
+    barbershopByUuidQueryOptions,
+    useBarbershopByUuid,
 } from "@/hooks/barbershop/use-barbershop";
 import { barbershopMetadataQueryOptions } from "@/hooks/barbershop/use-barbershop-metadata";
 import {
-  barberByUserIdQueryOptions,
-  barbershopMembersByBarbershopIdQueryOptions,
-  servicesForBarberQueryOptions,
-  useBarbershopMembersByBarbershopId,
+    barberByUserIdQueryOptions,
+    barbershopMembersByBarbershopIdQueryOptions,
+    servicesForBarberQueryOptions,
+    useBarbershopMembersByBarbershopId,
 } from "@/hooks/use-barbershop-members";
 import { profileQueryOptions } from "@/hooks/use-profile";
 import {
-  barbershopRatingDistributionQueryOptions,
-  barbershopRatingQueryOptions,
-  reviewableForBarbershopQueryOptions,
-  reviewsByBarbershopQueryOptions,
+    barbershopRatingDistributionQueryOptions,
+    barbershopRatingQueryOptions,
+    reviewableForBarbershopQueryOptions,
+    reviewsByBarbershopQueryOptions,
 } from "@/hooks/use-reviews";
 import {
-  servicesQueryOptions,
-  useServicesFromBarbershop,
+    servicesQueryOptions,
+    useServicesFromBarbershop,
 } from "@/hooks/use-services";
 import {
-  barbershopSeo,
-  barbershopStructuredData,
-  breadcrumbStructuredData,
-  cn,
-  getCanonicalUrl,
+    barbershopSeo,
+    barbershopStructuredData,
+    breadcrumbStructuredData,
+    cn,
+    getCanonicalUrl,
 } from "@/lib/utils";
 
 const BarbershopHeader = lazy(() =>
@@ -242,7 +242,7 @@ function RouteComponent() {
         )}
 
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-          <div className="min-w-0 flex-[2] space-y-4">
+          <div className="min-w-0 flex-2 space-y-4">
             <Suspense fallback={<ServicesSkeleton />}>
               {barbershop?.uuid && services?.length > 0 && (
                 <ServicesGrid

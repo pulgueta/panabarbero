@@ -1,9 +1,7 @@
 import type { Barbershop } from "@convex/schema";
-import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { StarRating } from "@/components/ui/star-rating";
 import { useIsCurrentlyOpen } from "@/hooks/barbershop/use-is-currently-open";
 import { useBarbershopRating } from "@/hooks/use-reviews";
@@ -28,12 +26,12 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = ({
     <section className="flex flex-wrap items-start justify-between gap-4">
       <div className="flex min-w-0 flex-1 items-start gap-4">
         <div
-          className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-muted/40 md:size-18"
+          className="flex size-16 shrink-0 items-center justify-center rounded-xl border bg-muted/40 md:size-32"
           style={{ viewTransitionName: `barbershop-logo-${barbershop.uuid}` }}
         >
           <img
             alt={`Logo de ${barbershop.name}`}
-            className="size-full object-contain p-1.5"
+            className="size-full object-cover rounded-xl"
             loading="lazy"
             src={logoUrl ?? "/default-logo.png"}
           />
@@ -97,18 +95,7 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = ({
         </div>
       </div>
 
-      <Button
-        className="w-full sm:w-auto"
-        nativeButton={false}
-        render={
-          <Link
-            params={{ barbershopUuid: barbershop.uuid }}
-            to="/barbershops/$barbershopUuid/book"
-          />
-        }
-      >
-        Reservar cita
-      </Button>
+
     </section>
   );
 };

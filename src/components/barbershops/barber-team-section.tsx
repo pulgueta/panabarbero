@@ -19,28 +19,30 @@ interface BarberTeamSectionProps {
 export const BarberTeamSection: FC<BarberTeamSectionProps> = ({ barbers }) => {
   return (
     <Card className="gap-0 py-0">
-      <h2 className="px-4 pt-4 pb-3 font-semibold tracking-tight">Equipo</h2>
+      <h2 className="p-4 font-semibold tracking-tight border-b">Equipo</h2>
 
-      {barbers.map((barber) => (
-        <div
-          className="flex items-center gap-3 border-t px-4 py-2.5"
-          key={barber._id}
-        >
-          <Avatar size="lg">
-            {barber.avatarUrl && (
-              <AvatarImage alt={barber.name} src={barber.avatarUrl} />
-            )}
-            <AvatarFallback>{getInitials(barber.name)}</AvatarFallback>
-          </Avatar>
+      <div className="grid md:grid-cols-2 gap-2 lg:grid-cols-3">
+        {barbers.map((barber) => (
+          <div
+            className="flex min-w-0 items-center gap-4 p-4"
+            key={barber._id}
+          >
+            <Avatar size="lg">
+              {barber.avatarUrl && (
+                <AvatarImage alt={barber.name} src={barber.avatarUrl} />
+              )}
+              <AvatarFallback>{getInitials(barber.name)}</AvatarFallback>
+            </Avatar>
 
-          <div className="min-w-0">
-            <p className="truncate font-medium text-sm">{barber.name}</p>
-            <p className="text-muted-foreground text-xs">
-              {barber.roles.map((role) => ROLE_LABELS[role]).join(" · ")}
-            </p>
+            <div className="min-w-0">
+              <p className="truncate font-medium text-sm">{barber.name}</p>
+              <p className="text-muted-foreground text-xs">
+                {barber.roles.map((role) => ROLE_LABELS[role]).join(" · ")}
+              </p>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </Card>
   );
 };
