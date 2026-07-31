@@ -261,7 +261,7 @@ export const getByUuid = zQuery({
   handler: async (ctx, args) => {
     const barbershop = await getByUuidFn(ctx, args.uuid);
 
-    if (!barbershop || !barbershop.isActive) return null;
+    if (!barbershop?.isActive) return null;
 
     const services = await ctx.runQuery(api.barbershops.getServices, {
       id: barbershop._id,

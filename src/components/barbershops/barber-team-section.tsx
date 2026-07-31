@@ -19,14 +19,11 @@ interface BarberTeamSectionProps {
 export const BarberTeamSection: FC<BarberTeamSectionProps> = ({ barbers }) => {
   return (
     <Card className="gap-0 py-0">
-      <h2 className="p-4 font-semibold tracking-tight border-b">Equipo</h2>
+      <h2 className="border-b p-4 font-semibold tracking-tight">Equipo</h2>
 
-      <div className="grid md:grid-cols-2 gap-2 lg:grid-cols-3">
+      <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
         {barbers.map((barber) => (
-          <div
-            className="flex min-w-0 items-center gap-4 p-4"
-            key={barber._id}
-          >
+          <div className="flex min-w-0 items-center gap-4 p-4" key={barber._id}>
             <Avatar size="lg">
               {barber.avatarUrl && (
                 <AvatarImage alt={barber.name} src={barber.avatarUrl} />

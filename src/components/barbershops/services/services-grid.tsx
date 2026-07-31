@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 
-
 interface ServicesGridProps {
   services: Service[];
   barbershopUuid: string;
@@ -17,12 +16,11 @@ export const ServicesGrid: FC<ServicesGridProps> = ({
   services,
   barbershopUuid,
 }) => {
-
   return (
     <Card className="gap-0 py-0">
-      <h2 className="p-4 font-semibold tracking-tight border-b">Servicios</h2>
+      <h2 className="border-b p-4 font-semibold tracking-tight">Servicios</h2>
 
-      <div className="grid md:grid-cols-2 gap-2 lg:grid-cols-3">
+      <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
         {services.map((service) => (
           <div
             className="flex min-w-0 items-center justify-between p-4"

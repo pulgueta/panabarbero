@@ -31,7 +31,7 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = ({
         >
           <img
             alt={`Logo de ${barbershop.name}`}
-            className="size-full object-cover rounded-xl"
+            className="size-full rounded-xl object-cover"
             loading="lazy"
             src={logoUrl ?? "/default-logo.png"}
           />
@@ -94,8 +94,6 @@ export const BarbershopHeader: FC<BarbershopHeaderProps> = ({
           </div>
         </div>
       </div>
-
-
     </section>
   );
 };

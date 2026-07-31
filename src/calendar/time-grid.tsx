@@ -196,7 +196,7 @@ export const TimeGrid: FC<TimeGridProps> = ({
             {days.map((day) => {
               const window = dayWindows[day.getDay()];
               const positioned = packEventsForDay(eventsOnDay(events, day));
-              const closed = !window || !window.isActive;
+              const closed = !window?.isActive;
 
               const shades: Array<{ top: number; height: number }> = [];
               if (closed) {

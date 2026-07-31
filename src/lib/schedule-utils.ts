@@ -83,7 +83,7 @@ export function validateAppointmentTime(
   schedule: AvailabilityEntry | undefined,
   timestamp: number,
 ): ValidationResult {
-  if (!schedule || !schedule.weekDay.isActive) {
+  if (!schedule?.weekDay.isActive) {
     return {
       valid: false,
       error: "La barbería no atiende en el día seleccionado.",
