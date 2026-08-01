@@ -95,6 +95,25 @@ export const sendAppointmentCancelled = zInternalAction({
   },
 });
 
+export const sendAppointmentUpdated = zInternalAction({
+  args: z.object({
+    notes: z.string(),
+    to: z.string(),
+    body: z.string(),
+  }),
+  handler: async (ctx, args) => {
+    await sendEmail(ctx, {
+      to: args.to,
+      subject: subjects.service_line_removed,
+      react: AppointmentCancelledEmail({
+        notes: args.notes,
+        subject: subjects.service_line_removed,
+        body: args.body,
+      }),
+    });
+  },
+});
+
 export const sendAppointmentRescheduleRequestEmail = zInternalAction({
   args: z.object({
     to: z.string(),

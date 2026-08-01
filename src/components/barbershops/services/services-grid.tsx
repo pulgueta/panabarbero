@@ -23,17 +23,19 @@ export const ServicesGrid: FC<ServicesGridProps> = ({
       <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
         {services.map((service) => (
           <div
-            className="flex min-w-0 items-center justify-between p-4"
+            className="grid min-w-0 grid-rows-[1fr_auto] gap-3 p-4"
             key={service._id}
           >
-            <div className="min-w-0">
-              <p className="truncate font-medium text-sm">{service.name}</p>
+            <div className="flex flex-col items-start justify-between gap-2 lg:flex-row lg:items-center">
+              <p className="wrap-break-word font-medium text-sm leading-snug">
+                {service.name}
+              </p>
               <p className="text-muted-foreground text-xs">
                 {service.duration} min
               </p>
             </div>
 
-            <div className="flex shrink-0 items-center gap-3">
+            <div className="flex items-center justify-between gap-3">
               <span className="font-semibold text-sm tabular-nums">
                 {formatCurrency(service.price)}
               </span>

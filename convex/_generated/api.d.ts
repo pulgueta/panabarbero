@@ -17,6 +17,7 @@ import type * as aiChat from "../aiChat.js";
 import type * as aiRag from "../aiRag.js";
 import type * as aiStream from "../aiStream.js";
 import type * as analytics from "../analytics.js";
+import type * as appointmentItems from "../appointmentItems.js";
 import type * as appointments from "../appointments.js";
 import type * as auth from "../auth.js";
 import type * as authz from "../authz.js";
@@ -85,6 +86,7 @@ declare const fullApi: ApiFromModules<{
   aiRag: typeof aiRag;
   aiStream: typeof aiStream;
   analytics: typeof analytics;
+  appointmentItems: typeof appointmentItems;
   appointments: typeof appointments;
   auth: typeof auth;
   authz: typeof authz;

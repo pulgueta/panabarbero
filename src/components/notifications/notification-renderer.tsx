@@ -48,6 +48,7 @@ export const NotificationRenderer: FC<NotificationRendererProps> = ({
     case "appointment_reschedule_denied":
     case "barber_removed_cancellation":
     case "service_deleted_cancellation":
+    case "service_line_removed":
       return <CancellationNotification {...shared} kind={notification.kind} />;
 
     case "appointment_reschedule_request":

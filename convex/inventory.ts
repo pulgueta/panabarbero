@@ -1402,6 +1402,60 @@ export async function releaseForAppointment(
 }
 
 /**
+ * Free the holds attributable to ONE dropped line (`deleteService` drop-line
+ * flow). Reservations aren't tagged per service in the ledger, so this
+ * releases min(outstanding, recipe quantity) per item of the dropped
+ * service's CURRENT recipe. IRON RULE: never throws.
+ */
+export async function releaseServiceLineForAppointment(
+  ctx: MutationCtx,
+  appointment: AppointmentLedgerContext,
+  droppedServiceId: Service["_id"],
+): Promise<void> {
+  const movements = await movementsForAppointment(ctx, appointment._id);
+  const outstanding = outstandingFrom(movements);
+
+  if (outstanding.length === 0) {
+    return;
+  }
+
+  const recipe = await ctx.db
+    .query("serviceInventoryUsage")
+    .withIndex("by_serviceId", (q) => q.eq("serviceId", droppedServiceId))
+    .collect();
+
+  for (const line of recipe) {
+    const entry = outstanding.find(
+      (candidate) => candidate.itemId === line.itemId,
+    );
+
+    if (!entry) {
+      continue;
+    }
+
+    const quantity = Math.min(entry.quantity, line.quantity);
+
+    if (quantity <= 0) {
+      continue;
+    }
+
+    await recordMovement(ctx, {
+      barbershopId: appointment.barbershopId,
+      itemId: line.itemId,
+      type: "release",
+      quantity,
+      locationId: entry.locationId,
+      relatedAppointmentId: appointment._id,
+      reason: "Liberación por servicio removido de la cita",
+      actorUserId: appointment.userId,
+      clampToAvailable: true,
+    });
+
+    entry.quantity -= quantity;
+  }
+}
+
+/**
  * Completion: release the holds, then consume every line's CURRENT recipe
  * (clamped to onHand for strict items, shortfall noted in the reason — the
  * completed-but-stock-changed race never blocks the barber).

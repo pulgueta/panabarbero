@@ -843,3 +843,79 @@ export const createServiceDeletedCancellation = zInternalMutation({
     }
   },
 });
+
+/**
+ * Notification when a multi-service appointment loses one line because that
+ * service was deleted. The rest of the cita stays confirmed — copy and email
+ * subject say "updated", not "cancelled".
+ */
+export const createServiceLineRemoved = zInternalMutation({
+  args: z.object({
+    appointmentId: zid("appointments"),
+    customerUserId: z.string(),
+    serviceName: z.string(),
+    barbershopName: z.string(),
+    contactPhone: z.string(),
+    contactEmail: z.string().optional(),
+  }),
+  handler: async (ctx, args) => {
+    const [customerProfile, appointment] = await Promise.all([
+      getProfileByUserId(ctx, args.customerUserId),
+      ctx.db.get(args.appointmentId),
+    ]);
+
+    const copy = buildNotificationCopy({
+      kind: "service_line_removed",
+      barbershopName: args.barbershopName,
+      serviceName: args.serviceName,
+    });
+    const body = copy.description;
+    const smsBody = buildSmsBody(copy);
+
+    const toEmail = resolveCustomerEmail(
+      args.contactEmail,
+      customerProfile?.email,
+    );
+
+    const emailEnabled = customerProfile
+      ? isNotificationEnabled("email", customerProfile.notificationsPreferences)
+      : true; // Default to enabled for guests
+
+    if (emailEnabled && toEmail) {
+      await scheduleEmailWithQuota(ctx, appointment?.barbershopId, () =>
+        ctx.scheduler.runAfter(0, internal.emails.sendAppointmentUpdated, {
+          notes: `Servicio "${args.serviceName}" removido de la cita`,
+          to: toEmail,
+          body,
+        }),
+      );
+    }
+
+    const phoneNumber = customerProfile?.phoneNumber ?? args.contactPhone;
+
+    const smsEnabled = customerProfile
+      ? isNotificationEnabled("sms", customerProfile.notificationsPreferences)
+      : true; // Default to enabled for guests
+
+    if (smsEnabled) {
+      await scheduleSmsWithQuota(ctx, {
+        body: smsBody,
+        to: phoneNumber,
+        barbershopId: appointment?.barbershopId,
+      });
+    }
+
+    if (customerProfile?.userId) {
+      await recordInApp(ctx, {
+        userId: customerProfile.userId,
+        copy,
+        payload: {
+          appointmentId: args.appointmentId,
+          barbershopId: appointment?.barbershopId,
+          barbershopName: args.barbershopName,
+          serviceName: args.serviceName,
+        },
+      });
+    }
+  },
+});
