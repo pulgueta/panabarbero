@@ -60,6 +60,7 @@ import { cn } from "@/lib/utils";
 // the server (never runs there) to avoid the SSR useLayoutEffect warning.
 const useIsoLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
+const MONTH_VIEW_CONTEXT = { view: "month" } as const;
 
 // An occurrence key encodes the start instant and is also the chip's React key,
 // so committing a move re-keys the chip: React remounts it and the browser
@@ -99,6 +100,16 @@ function restoreChipFocus(
   chip.focus();
 }
 
+function segmentCoversDay(
+  segment: CalendarSegment,
+  dayOffset: number,
+): boolean {
+  return (
+    (segment.colStart ?? 0) <= dayOffset &&
+    dayOffset < (segment.colStart ?? 0) + (segment.colSpan ?? 1)
+  );
+}
+
 interface CalendarMonthViewProps extends useRender.ComponentProps<"div"> {
   maxEventsPerCell?: number | "auto";
 }
@@ -119,6 +130,8 @@ function CalendarMonthView({
     },
   );
   const anchorDate = useCalendarSelector((state) => state.date);
+  const [today, setToday] = useState<Date | null>(null);
+  useEffect(() => setToday(new Date()), []);
 
   const { effective } = useCalendarViewSettings();
   const weeks = useMemo(() => {
@@ -244,8 +257,9 @@ function CalendarMonthView({
                 day,
                 view: "month",
                 isToday:
+                  today !== null &&
                   getDayKey(day, settings.timeZone) ===
-                  getDayKey(new Date(), settings.timeZone),
+                    getDayKey(today, settings.timeZone),
               }) ?? (
                 <>
                   <span className="@max-[36rem]:hidden">
@@ -304,7 +318,7 @@ function CalendarMonthView({
   };
 
   return (
-    <CalendarViewContext.Provider value={{ view: "month" }}>
+    <CalendarViewContext.Provider value={MONTH_VIEW_CONTEXT}>
       {useRender({
         defaultTagName: "div",
         render,
@@ -368,9 +382,6 @@ function CalendarMonthWeek({
   };
   // bars fit within the cap; deeper lanes fall into each day's "+N more"
   const visibleBars = bars.filter((b) => (b.lane ?? 0) < cap);
-  const covers = (b: CalendarSegment, dayOffset: number) =>
-    (b.colStart ?? 0) <= dayOffset &&
-    dayOffset < (b.colStart ?? 0) + (b.colSpan ?? 1);
   // Occurrence keys of the bars hidden in each column (lane >= cap). Threaded to
   // the cell so its "+N more" popover can list the hidden bars WITHOUT re-listing
   // the visible ones (day buckets carry no lane, so the week row - which owns bar
@@ -379,7 +390,9 @@ function CalendarMonthWeek({
     (_, col) =>
       new Set(
         bars
-          .filter((b) => (b.lane ?? 0) >= cap && covers(b, offsets[col]))
+          .filter(
+            (b) => (b.lane ?? 0) >= cap && segmentCoversDay(b, offsets[col]),
+          )
           .map((b) => b.occurrence.key),
       ),
   );
@@ -515,7 +528,9 @@ function CalendarMonthWeek({
           // lane so timed events always sit below every bar in their own cell.
           reservedLanes={visibleBars.reduce(
             (max, b) =>
-              covers(b, offsets[col]) ? Math.max(max, (b.lane ?? 0) + 1) : max,
+              segmentCoversDay(b, offsets[col])
+                ? Math.max(max, (b.lane ?? 0) + 1)
+                : max,
             0,
           )}
           hiddenBarKeys={hiddenBarKeysByCol[col]}
@@ -987,6 +1002,7 @@ function CalendarMonthCell({
     <div
       ref={rootRef}
       role="gridcell"
+      tabIndex={-1}
       data-slot="calendar-month-cell"
       data-today={isToday || undefined}
       data-outside={isOutside || undefined}

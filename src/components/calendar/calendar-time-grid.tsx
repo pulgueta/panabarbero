@@ -339,9 +339,10 @@ function CalendarTimeGrid({
       </>
     ),
   };
+  const viewContext = useMemo(() => ({ view }), [view]);
 
   return (
-    <CalendarViewContext.Provider value={{ view }}>
+    <CalendarViewContext.Provider value={viewContext}>
       {useRender({
         defaultTagName: "div",
         render,
@@ -729,6 +730,13 @@ function CalendarAllDayCell({ day }: { day: Date }) {
 
   return (
     <div
+      role="gridcell"
+      tabIndex={-1}
+      aria-label={`${settings.i18n.labels.allDay}, ${format(
+        toZoned(day, settings.timeZone),
+        settings.i18n.formats.dayAria,
+        { locale: settings.locale },
+      )}`}
       data-slot="calendar-all-day-cell"
       data-cal-day={dayStart.getTime()}
       data-drop-target={isDropTarget ?? undefined}

@@ -521,11 +521,13 @@ function CalendarChip<TData = unknown>({
     render,
     props: mergeProps<"button">(defaultProps, props),
   });
+  const contextValue = useMemo(
+    () => ({ occurrence, segment, isDragging, isSelected }),
+    [occurrence, segment, isDragging, isSelected],
+  );
 
   return (
-    <CalendarChipContext.Provider
-      value={{ occurrence, segment, isDragging, isSelected }}
-    >
+    <CalendarChipContext.Provider value={contextValue}>
       {tooltipOn ? (
         <TooltipProvider delay={tooltipOpts?.delay ?? 600}>
           <Tooltip>

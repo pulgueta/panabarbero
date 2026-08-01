@@ -28,6 +28,8 @@ import { IconStack } from "@/components/calendar/icon-stack";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
+const AGENDA_VIEW_CONTEXT = { view: "agenda" } as const;
+
 // The agenda window length is the agendaDayCount SETTING (the store derives
 // visibleRange from it); a per-view prop here would silently disagree.
 type CalendarAgendaViewProps = useRender.ComponentProps<"div">;
@@ -125,13 +127,11 @@ function CalendarAgendaView({
                 aria-label={`${weekday}, ${dayDate}, ${settings.i18n.labels.events(items.length)}`}
               >
                 {/* Group header: weekday (leading) + full date (trailing) */}
-                <div
+                <h3
                   data-slot="calendar-agenda-day-header"
                   // The day bar is the agenda's only structure, so give it a
                   // heading level: the H key and the rotor can jump between
                   // days, which is the whole point of a long agenda.
-                  role="heading"
-                  aria-level={3}
                   className={cn(
                     "bg-muted/60 sticky top-0 z-10 flex items-baseline justify-between gap-4 border-b px-4 py-2",
                     // The custom ScrollArea's overlay scrollbar (w-2.5 = 10px)
@@ -156,7 +156,7 @@ function CalendarAgendaView({
                   <span className="text-muted-foreground font-medium tabular-nums">
                     {dayDate}
                   </span>
-                </div>
+                </h3>
                 {items.map((segment) => (
                   <CalendarAgendaItem
                     key={segment.occurrence.key}
@@ -200,7 +200,7 @@ function CalendarAgendaView({
   };
 
   return (
-    <CalendarViewContext.Provider value={{ view: "agenda" }}>
+    <CalendarViewContext.Provider value={AGENDA_VIEW_CONTEXT}>
       {useRender({
         defaultTagName: "div",
         render,

@@ -359,6 +359,7 @@ function warnOnce(key: string, message: string) {
 interface CalendarStore<TData> {
   instance: CalendarInstance<TData>;
   setOptions(next: UseCalendarStateOptions<TData>): boolean;
+  flushOptionsNotification(): void;
   notify(): void;
   emitRangeIfChanged(): void;
 }
@@ -426,6 +427,7 @@ function createCalendarStore<TData>(
   // DOM ancestors do not include the calendar.
   let rootEl: HTMLElement | null = null;
   let lastEmittedRangeKey: string | null = null;
+  let pendingOptionsNotification = false;
 
   // Controlled interactions merge, cached on input identity: rebuilding the
   // merged object per snapshot would break Object.is for selector hooks.
@@ -918,8 +920,16 @@ function createCalendarStore<TData>(
         settingsVersion++;
         changed = true;
       }
-      if (changed) invalidate();
+      if (changed) {
+        invalidate();
+        pendingOptionsNotification = true;
+      }
       return changed;
+    },
+    flushOptionsNotification() {
+      if (!pendingOptionsNotification) return;
+      pendingOptionsNotification = false;
+      notify();
     },
     notify,
     emitRangeIfChanged,
@@ -935,14 +945,9 @@ function useCalendarState<TData = unknown>(
   options: UseCalendarStateOptions<TData> = {},
 ): CalendarInstance<TData> {
   const [store] = useState(() => createCalendarStore<TData>(options));
-  const changed = store.setOptions(options);
-  const changedRef = useRef(false);
-  if (changed) changedRef.current = true;
+  store.setOptions(options);
   useLayoutEffect(() => {
-    if (changedRef.current) {
-      changedRef.current = false;
-      store.notify();
-    }
+    store.flushOptionsNotification();
   });
   useEffect(() => {
     store.emitRangeIfChanged();
@@ -984,19 +989,14 @@ function useCalendarSelector<TData = unknown, TSelected = unknown>(
   }
   const isEqual = options?.isEqual ?? Object.is;
   const lastRef = useRef<{ value: TSelected } | null>(null);
-  const selectorRef = useRef(selector);
-  selectorRef.current = selector;
-
-  const getSnapshot = () => {
-    const next = selectorRef.current(
-      instance.getState() as CalendarState<TData>,
-    );
+  const getSnapshot = useCallback(() => {
+    const next = selector(instance.getState() as CalendarState<TData>);
     if (lastRef.current && isEqual(lastRef.current.value, next)) {
       return lastRef.current.value;
     }
     lastRef.current = { value: next };
     return next;
-  };
+  }, [instance, isEqual, selector]);
 
   return useSyncExternalStore(instance.subscribe, getSnapshot, getSnapshot);
 }

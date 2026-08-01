@@ -46,6 +46,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 const EMPTY_ALL_DAY_SEGMENTS: CalendarSegment[] = [];
+const RESOURCE_VIEW_CONTEXT = { view: "resource" } as const;
 
 interface CalendarResourceViewProps extends useRender.ComponentProps<"div"> {
   dayStartHour?: number;
@@ -318,7 +319,7 @@ function CalendarResourceView({
   };
 
   return (
-    <CalendarViewContext.Provider value={{ view: "resource" }}>
+    <CalendarViewContext.Provider value={RESOURCE_VIEW_CONTEXT}>
       {useRender({
         defaultTagName: "div",
         render,
@@ -378,6 +379,9 @@ function CalendarResourceAllDayCell({
   });
   return (
     <div
+      role="gridcell"
+      tabIndex={-1}
+      aria-label={`${settings.i18n.labels.allDay}, ${resource.title}`}
       data-slot="calendar-all-day-cell"
       // data-cal-day makes this a DnD day target: without it collectSurface()
       // finds no cells and dragging an all-day chip silently converts it to
