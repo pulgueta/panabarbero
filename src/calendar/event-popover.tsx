@@ -6,11 +6,13 @@ import { CancelAppointmentDialog } from "@/components/appointments/cancel-appoin
 import { DeleteAppointmentDialog } from "@/components/appointments/delete-appointment-dialog";
 import { MarkAppointmentDialog } from "@/components/appointments/mark-appointment-dialog";
 import { RescheduleRequestDialog } from "@/components/appointments/reschedule-request-dialog";
+import { toZoned } from "@/components/calendar/calendar-lib";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent } from "@/components/ui/popover";
 import { getAppointmentDataByStatus } from "@/lib/appointment-utils";
 
+import { CALENDAR_TIME_ZONE } from "./constants";
 import type { AppointmentCalendarEvent } from "./types";
 
 interface EventPopoverProps {
@@ -21,8 +23,13 @@ interface EventPopoverProps {
   anchor: Element;
 }
 
+// The grid places events in Bogotá; format in the same zone so a viewer
+// abroad does not see a different day or hour than the one they clicked.
 const timeRange = (start: Date, end: Date) =>
-  `${format(start, "HH:mm")}–${format(end, "HH:mm")}`;
+  `${format(toZoned(start, CALENDAR_TIME_ZONE), "HH:mm")}–${format(
+    toZoned(end, CALENDAR_TIME_ZONE),
+    "HH:mm",
+  )}`;
 
 export const EventPopover: FC<EventPopoverProps> = ({
   event,
@@ -57,7 +64,11 @@ export const EventPopover: FC<EventPopoverProps> = ({
             <Badge variant={variant}>{label}</Badge>
           </div>
           <p className="text-muted-foreground text-xs capitalize">
-            {format(appointment.date, "EEEE d 'de' MMMM", { locale: es })}
+            {format(
+              toZoned(new Date(appointment.date), CALENDAR_TIME_ZONE),
+              "EEEE d 'de' MMMM",
+              { locale: es },
+            )}
           </p>
         </header>
 

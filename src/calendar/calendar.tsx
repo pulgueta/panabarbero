@@ -20,6 +20,7 @@ import {
 } from "@/components/calendar/calendar";
 import { CalendarContent } from "@/components/calendar/calendar-content";
 import type { CalendarI18nOverrides } from "@/components/calendar/calendar-i18n";
+import { toZoned } from "@/components/calendar/calendar-lib";
 import {
   CalendarNav,
   CalendarToolbar,
@@ -37,6 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { startOfDay } from "@/lib/utils";
 
 import {
   CALENDAR_AGENDA_DAY_COUNT,
@@ -116,7 +118,9 @@ const CALENDAR_I18N: CalendarI18nOverrides = {
     monthDayHeader: "EEE",
     monthDayHeaderNarrow: "EEEEE",
     timeGridDayHeader: "EEE d",
-    agendaDayHeader: "EEEE d 'de' MMMM",
+    // The agenda header renders the weekday in its own span, so this covers
+    // only the date half.
+    agendaDayHeader: "d 'de' MMMM 'de' yyyy",
     agendaDayNumber: "d",
     agendaWeekday: "EEE",
     moreDayHeader: "EEEE d 'de' MMMM",
@@ -194,7 +198,7 @@ function renderAppointmentEvent({
       </span>
       {view === "month" ? (
         <span className="shrink-0 text-muted-foreground tabular-nums">
-          {format(occurrence.start, "HH:mm")}
+          {format(toZoned(occurrence.start, CALENDAR_TIME_ZONE), "HH:mm")}
         </span>
       ) : data ? (
         <span className="@[8rem]:inline hidden min-w-0 truncate text-muted-foreground">
@@ -306,11 +310,13 @@ export const AppointmentsCalendar: FC<AppointmentsCalendarProps> = ({
     [],
   );
 
+  // The form picks the hour through its own slot picker, so hand it the day
+  // only — a raw click timestamp would ride along invisibly into the booking.
   const handleSlotClick = useCallback(
     (slot: CalendarSlotInfo) => {
       if (!canCreate) return;
       setDetails(null);
-      onCreateAppointment(slot.date);
+      onCreateAppointment(startOfDay(slot.date));
     },
     [canCreate, onCreateAppointment],
   );
@@ -319,7 +325,7 @@ export const AppointmentsCalendar: FC<AppointmentsCalendarProps> = ({
     (slot: CalendarSlotDraft) => {
       if (!canCreate) return;
       setDetails(null);
-      onCreateAppointment(slot.start);
+      onCreateAppointment(startOfDay(slot.start));
     },
     [canCreate, onCreateAppointment],
   );
@@ -342,6 +348,9 @@ export const AppointmentsCalendar: FC<AppointmentsCalendarProps> = ({
         agendaDayCount={CALENDAR_AGENDA_DAY_COUNT}
         scrollToHour={startHour}
         showDayAddButton={canCreate}
+        // No key handler is wired, so the keycap hints would advertise
+        // shortcuts that do nothing.
+        enableShortcuts={false}
         eventTooltip={{ side: "top", delay: 400 }}
         i18n={CALENDAR_I18N}
         classNames={CALENDAR_CLASS_NAMES}

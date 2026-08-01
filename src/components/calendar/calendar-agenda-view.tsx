@@ -113,9 +113,11 @@ function CalendarAgendaView({
             const items = [...(bucket?.allDay ?? []), ...(bucket?.timed ?? [])];
             const zoned = toZoned(day, settings.timeZone);
             const weekday = format(zoned, "EEEE", { locale: settings.locale });
-            const dayDate = format(zoned, "MMMM d, yyyy", {
-              locale: settings.locale,
-            });
+            const dayDate = format(
+              zoned,
+              settings.i18n.formats.agendaDayHeader,
+              { locale: settings.locale },
+            );
             return (
               <div
                 key={day.getTime()}
