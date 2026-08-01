@@ -6,6 +6,7 @@ import {
   reviewStarsAggregate,
   reviewStarsNamespace,
 } from "./aggregates";
+import { normalizeItems } from "./appointmentItems";
 import { authz, barbershopScope } from "./authz";
 
 export const migrations = new Migrations<DataModel>(components.migrations);
@@ -98,6 +99,29 @@ export const backfillCompletedServiceSnapshot = migrations.define({
     await ctx.db.patch(appointment._id, {
       completedServicePrice: service.price,
       completedServiceName: service.name,
+    });
+  },
+});
+
+/**
+ * Backfill canonical line items onto pre-multi-service appointments. Rows that
+ * already carry `items` are skipped; the rest get ONE fixed line synthesized
+ * exactly like `appointmentItems.normalizeItems` — completed rows prefer the
+ * completion-time snapshot, then the live service, then "Servicio" / 0 / 30.
+ * Never touches the revenue aggregate. Idempotent. Run once with
+ * `npx convex run migrations:run '{fn: "migrations:backfillAppointmentItems"}'`.
+ */
+export const backfillAppointmentItems = migrations.define({
+  table: "appointments",
+  migrateOne: async (ctx, appointment) => {
+    if (appointment.items && appointment.items.length > 0) {
+      return;
+    }
+
+    const liveService = await ctx.db.get(appointment.serviceId);
+
+    await ctx.db.patch(appointment._id, {
+      items: normalizeItems(appointment, liveService),
     });
   },
 });
