@@ -143,6 +143,36 @@ const form = useAppForm({
   `@convex-dev/workpool` pool `reviewModerationWorkpool` (async review moderation).
   Functions live in `convex/reviews.ts`; the gateway-LLM moderation action is in
   `convex/reviewModeration.ts` (a `"use node"` file — see §3).
+- **Appointments are line-item based.** `appointments.items[]` is canonical:
+  each line snapshots `serviceId/name/price/priceType/duration` (+ optional
+  `finalPrice`) at booking time; `appointments.serviceId` is only the
+  denormalized primary line (≡ `items[0].serviceId`, kept for `by_serviceId`
+  and legacy readers). ALL line math (totals, joined labels, overlap widths)
+  goes through `convex/appointmentItems.ts` — never hand-roll it. Booking
+  entry points (`create`, `agentBook`, the Pana `serviceIds[]` proposals) take
+  `serviceIds` arrays; availability/overlap use the summed duration, and
+  `conflictDurationMinutes` keeps the legacy `liveService?.duration ?? 0`
+  chain for pre-backfill rows.
+- **"Desde" pricing + completion finals.** `services.priceType`
+  `"starting"` marks the listed price as a binding minimum ("Desde $X").
+  `setStatus("completed")` REQUIRES a `finalPrices` entry ≥ the minimum for
+  every starting line, and patches the row's items in the same transaction as
+  the `completedAppointmentsAggregate` insert (total = Σ finalPrice ?? price;
+  `completedServicePrice/Name` become total / joined-label mirrors). No
+  post-completion edits (v1). Reviews snapshot the joined label
+  ("Corte + Barba") as `serviceName`; `serviceId` stays the primary line.
+- **`deleteService` drop-line semantics.** The sweep scans the shop's future
+  active citas via `by_barbershopId_and_date`: sole-line citas cancel (today's
+  flow), multi-line citas drop the line (block shrinks from the tail,
+  `serviceId` re-points, that line's inventory hold is released via
+  `releaseServiceLineForAppointment`, customers get `service_line_removed`).
+  Two-step confirm throws `WILL_CANCEL:N:WILL_UPDATE:M`.
+- **Migrations** live in `convex/migrations.ts`; run with
+  `npx convex run migrations:run '{fn: "migrations:<name>"}'` (add `--prod`
+  for production). After the multi-service deploy, run
+  `backfillAppointmentItems` once per deployment to synthesize a single fixed
+  line onto pre-existing rows (skips rows that already carry `items`; never
+  touches the revenue aggregate).
 
 **Relations:** §1.1 (the hook that reads it), §2 (identity), §3 (roles/plans
 that gate it), `convex-functions` / `convex-security-check` skills.
