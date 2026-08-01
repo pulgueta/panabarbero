@@ -14,10 +14,22 @@ const RescheduleResponseDialog = lazy(() =>
   })),
 );
 
-const ServiceNameCell: FC<{ appointment: Appointment }> = ({ appointment }) => {
-  // Legacy rows (no snapshot lines) still resolve the live service.
+const LegacyServiceNameCell: FC<{ appointment: Appointment }> = ({
+  appointment,
+}) => {
   const { data: service } = useServiceByAppointmentId(appointment._id);
-  return <span>{appointmentItemsLabel(appointment) ?? service?.name}</span>;
+  return <span>{service?.name}</span>;
+};
+
+const ServiceNameCell: FC<{ appointment: Appointment }> = ({ appointment }) => {
+  const label = appointmentItemsLabel(appointment);
+
+  // Only legacy rows (no snapshot lines) need the live-service subscription.
+  return label ? (
+    <span>{label}</span>
+  ) : (
+    <LegacyServiceNameCell appointment={appointment} />
+  );
 };
 
 const formatDateTime = (ms: number) =>

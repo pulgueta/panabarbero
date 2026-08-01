@@ -2,7 +2,7 @@
 
 import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useMemo } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef } from "react";
 import { z } from "zod";
 
 import { BorderContainer } from "@/components/layout/border-container";
@@ -113,12 +113,22 @@ function RouteComponent() {
     [barbershopMembers],
   );
 
-  // Initialize the services store from the URL search param
+  // Deep-linked service, resolved during render so SSR and the first hydrated
+  // frame show it selected (the store below only fills in after mount).
+  const initialService = useMemo(
+    () => (serviceId ? services?.find((s) => s._id === serviceId) : undefined),
+    [serviceId, services],
+  );
+
+  // Seed the store once: `services` is live query data, and re-running this
+  // would wipe a selection the customer made after landing.
+  const hasSeededStore = useRef(false);
+
   useEffect(() => {
-    if (!serviceId || !services?.length) return;
-    const match = services.find((s) => s._id === serviceId);
-    if (match) setServiceStore({ service: match });
-  }, [serviceId, services]);
+    if (hasSeededStore.current || !initialService) return;
+    hasSeededStore.current = true;
+    setServiceStore({ service: initialService });
+  }, [initialService]);
 
   // Reset store on unmount to prevent stale state leaking into other contexts
   useEffect(() => {
@@ -171,6 +181,7 @@ function RouteComponent() {
                   barbershop={barbershop}
                   services={services ?? EMPTY_MEMBERS}
                   barbers={barbers}
+                  initialService={initialService}
                 />
               </Suspense>
             </section>

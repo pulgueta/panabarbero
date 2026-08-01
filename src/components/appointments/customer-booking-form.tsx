@@ -76,6 +76,8 @@ interface CustomerBookingFormProps {
   barbershop: Barbershop;
   services: Service[];
   barbers: BarbershopMemberWithName[];
+  /** Deep-linked `?serviceId=` match, rendered as selected until the store seeds. */
+  initialService?: Service;
 }
 
 interface BookingFormValues {
@@ -91,6 +93,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
   barbershop,
   services,
   barbers,
+  initialService,
 }) => {
   const barbershopUuid = barbershop.uuid;
   const navigate = useNavigate();
@@ -111,7 +114,19 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
   const { data: user } = useSession();
   const { data: userProfile } = useProfile(user?.id ?? "");
 
-  const selectedServices = useServicesStore();
+  const storeServices = useServicesStore();
+
+  // The store is client-only and seeds after mount, so SSR and the first
+  // hydrated frame fall back to the deep-linked service — same markup on both
+  // sides, and the fallback retires once the seed lands.
+  const [isStoreSeeded, setIsStoreSeeded] = useState(false);
+
+  useEffect(() => setIsStoreSeeded(true), []);
+
+  const selectedServices =
+    !isStoreSeeded && storeServices.length === 0 && initialService
+      ? [initialService]
+      : storeServices;
   const selectedServiceIds = selectedServices.map((service) => service._id);
   const selectedServiceIdSet = new Set(selectedServiceIds);
 
