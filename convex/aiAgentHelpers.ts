@@ -25,7 +25,7 @@ const helperPriceFormatter = new Intl.NumberFormat("es-CO", {
 });
 
 /** "Desde $X" for starting-price services; the plain price otherwise. */
-function formatServicePriceLabel(service: Service): string {
+export function formatServicePriceLabel(service: Service): string {
   return service.priceType === "starting"
     ? `Desde ${helperPriceFormatter.format(service.price)}`
     : helperPriceFormatter.format(service.price);

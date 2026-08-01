@@ -2,6 +2,7 @@ import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 
 import { api, internal } from "./_generated/api";
+import { formatServicePriceLabel } from "./aiAgentHelpers";
 import { itemsLabel, startingLinesMissingFinal } from "./appointmentItems";
 import { errorMessages } from "./errors";
 import type {
@@ -302,15 +303,6 @@ const formatDateOnly = (ms: number): string =>
 
 const formatPrice = (cop: number): string => priceFormatter.format(cop);
 
-/** "Desde $X" for starting-price services; the plain price otherwise. */
-const formatServicePrice = (service: {
-  price: number;
-  priceType?: "fixed" | "starting";
-}): string =>
-  service.priceType === "starting"
-    ? `Desde ${priceFormatter.format(service.price)}`
-    : priceFormatter.format(service.price);
-
 /** "Corte $20.000" / "Barba desde $15.000" — per-line proposal detail. */
 const serviceLineLabel = (service: ServiceDoc): string =>
   service.priceType === "starting"
@@ -410,7 +402,7 @@ const getBarbershopDetails = createTool({
         name: s.name,
         price: s.price,
         priceType: s.priceType ?? "fixed",
-        priceFormatted: formatServicePrice(s),
+        priceFormatted: formatServicePriceLabel(s),
         durationMinutes: s.duration,
       })),
     };
