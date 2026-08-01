@@ -488,30 +488,55 @@ export const assertAppointmentActor = zInternalQuery({
 });
 
 /**
- * Count of future, still-active appointments that a destructive management
- * action would cancel. Lets a propose tool warn the user ("esto cancela N
- * citas") inside the confirmation card before they approve.
+ * Future, still-active appointments a service deletion would touch, split the
+ * same way `services.deleteService` splits them: sole-line citas get
+ * cancelled, multi-line citas only lose the line. Lets the propose tool
+ * disclose both effects in the confirmation card — the AI confirm path runs
+ * the deletion with `force: true`, so this card is the only disclosure.
  */
 export const countImpactedByService = zInternalQuery({
   args: z.object({ serviceId: z.string() }),
   handler: async (ctx, args) => {
+    const serviceId = args.serviceId as Service["_id"];
+    const service = await ctx.db.get(serviceId);
+
+    if (!service) {
+      return { willCancel: 0, willUpdate: 0 };
+    }
+
     const now = Date.now();
-    const impacted = await ctx.db
+    const future = await ctx.db
       .query("appointments")
-      .withIndex("by_serviceId", (q) =>
-        q.eq("serviceId", args.serviceId as Service["_id"]),
+      .withIndex("by_barbershopId_and_date", (q) =>
+        q.eq("barbershopId", service.barbershopId).gte("date", now),
       )
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("deletedAt"), undefined),
-          q.gte(q.field("date"), now),
-        ),
-      )
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
       .collect();
 
-    return impacted.filter((a) =>
-      ACTIVE_APPOINTMENT_STATUSES.includes(a.status),
-    ).length;
+    let willCancel = 0;
+    let willUpdate = 0;
+
+    for (const appt of future) {
+      if (!ACTIVE_APPOINTMENT_STATUSES.includes(appt.status)) {
+        continue;
+      }
+
+      if (appt.items && appt.items.length > 0) {
+        if (!appt.items.some((line) => line.serviceId === serviceId)) {
+          continue;
+        }
+
+        if (appt.items.length === 1) {
+          willCancel += 1;
+        } else {
+          willUpdate += 1;
+        }
+      } else if (appt.serviceId === serviceId) {
+        willCancel += 1;
+      }
+    }
+
+    return { willCancel, willUpdate };
   },
 });
 

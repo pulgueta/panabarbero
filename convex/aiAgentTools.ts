@@ -2,6 +2,8 @@ import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 
 import { api, internal } from "./_generated/api";
+import { itemsLabel, startingLinesMissingFinal } from "./appointmentItems";
+import { errorMessages } from "./errors";
 import type {
   Appointment,
   Barbershop,
@@ -508,13 +510,17 @@ const getMyAppointments = createTool({
     const sliced = filtered.slice(0, 10);
     const enrichedData = await Promise.all(
       sliced.map(async (appt) => {
-        const [shop, service, members] = await Promise.all([
+        // Snapshot lines are canonical; the live service only labels legacy
+        // rows (a renamed/deleted service must not rewrite past bookings).
+        const [shop, legacyService, members] = await Promise.all([
           ctx.runQuery(internal.aiAgentHelpers.getBarbershop, {
             id: appt.barbershopId,
           }) as Promise<BarbershopDoc | null>,
-          ctx.runQuery(api.services.getById, {
-            id: appt.serviceId,
-          }) as Promise<ServiceDoc | null>,
+          appt.items?.length
+            ? Promise.resolve(null)
+            : (ctx.runQuery(api.services.getById, {
+                id: appt.serviceId,
+              }) as Promise<ServiceDoc | null>),
           ctx.runQuery(internal.aiAgentHelpers.getMembersByBarbershopId, {
             id: appt.barbershopId,
           }) as Promise<BarberWithName[]>,
@@ -527,7 +533,9 @@ const getMyAppointments = createTool({
         return {
           appointmentId: appt._id,
           barbershop: shop?.name ?? "",
-          service: service?.name ?? "",
+          service: appt.items?.length
+            ? itemsLabel(appt.items)
+            : (legacyService?.name ?? ""),
           barber: barber?.name ?? "",
           when: formatDate(appt.date),
           status: appt.status,
@@ -612,7 +620,10 @@ const getMyAgenda = createTool({
 
     const sliced = relevant.slice(0, 10);
 
-    const serviceIds = [...new Set(sliced.map((a) => a.serviceId))];
+    // Live lookups only label legacy rows; item-carrying rows use snapshots.
+    const serviceIds = [
+      ...new Set(sliced.flatMap((a) => (a.items?.length ? [] : [a.serviceId]))),
+    ];
     const serviceDocs = (await Promise.all(
       serviceIds.map((id) => ctx.runQuery(api.services.getById, { id })),
     )) as (ServiceDoc | null)[];
@@ -627,7 +638,9 @@ const getMyAgenda = createTool({
       count: sliced.length,
       appointments: sliced.map((a) => ({
         customerName: a.customerName,
-        service: serviceNames.get(a.serviceId) ?? "",
+        service: a.items?.length
+          ? itemsLabel(a.items)
+          : (serviceNames.get(a.serviceId) ?? ""),
         when: formatDate(a.date),
         status: a.status,
         rescheduleProposedWhen:
@@ -786,6 +799,10 @@ const proposeBooking = createTool({
     notes: z.string().optional(),
   }),
   execute: async (ctx, input): Promise<Proposal> => {
+    if (new Set(input.serviceIds).size !== input.serviceIds.length) {
+      throw new Error(errorMessages.duplicateAppointmentService);
+    }
+
     const dateMs = colombiaDateTimeToMs(input.date, input.time);
 
     const [shop, loadedServices, members] = await Promise.all([
@@ -1046,6 +1063,10 @@ const proposeStaffBooking = createTool({
       );
     }
 
+    if (new Set(input.serviceIds).size !== input.serviceIds.length) {
+      throw new Error(errorMessages.duplicateAppointmentService);
+    }
+
     const dateMs = colombiaDateTimeToMs(input.date, input.time);
     const barbershopId = actor.barbershopId as Barbershop["_id"];
 
@@ -1145,6 +1166,22 @@ const proposeManageAppointment = createTool({
 
     if (input.status === "cancelled" && !input.reason) {
       throw new Error("Necesito un motivo breve para cancelar la cita.");
+    }
+
+    // Completion of "desde"-priced lines needs the agreed final prices, which
+    // the chat card cannot collect — `setStatus` would reject the confirm.
+    if (input.status === "completed") {
+      const missing = startingLinesMissingFinal(appt.items ?? []);
+
+      if (missing.length > 0) {
+        throw new Error(
+          `La cita incluye servicios con precio "desde" (${missing
+            .map((line) => line.name)
+            .join(
+              ", ",
+            )}). Márcala como completada desde el panel de citas, donde se ingresa el precio final acordado.`,
+        );
+      }
     }
 
     const labels = {
@@ -1347,11 +1384,23 @@ const proposeDeleteService = createTool({
     const impacted = (await ctx.runQuery(
       internal.aiAgentHelpers.countImpactedByService,
       { serviceId: service._id },
-    )) as number;
+    )) as { willCancel: number; willUpdate: number };
+
+    const effects: string[] = [];
+
+    if (impacted.willCancel > 0) {
+      effects.push(`cancelará ${impacted.willCancel} cita(s) futura(s)`);
+    }
+
+    if (impacted.willUpdate > 0) {
+      effects.push(
+        `quitará el servicio de ${impacted.willUpdate} cita(s) que tienen más servicios`,
+      );
+    }
 
     const warn =
-      impacted > 0
-        ? ` Esto cancelará ${impacted} cita(s) futura(s) y se avisará a esos clientes.`
+      effects.length > 0
+        ? ` Esto ${effects.join(" y ")}; se avisará a esos clientes.`
         : "";
 
     return {
