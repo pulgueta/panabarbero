@@ -8,6 +8,7 @@ import { z } from "zod";
 import {
   AppointmentsCalendar,
   CALENDAR_VIEWS,
+  getCalendarDayTimestamp,
   getRangeDayTimestamps,
 } from "@/calendar";
 import { rescheduledAppointmentRequestsTableColumns } from "@/components/appointments/table/columns";
@@ -67,11 +68,7 @@ const searchSchema = z.object({
     .number()
     .optional()
     .default(() => Date.now())
-    .transform((val) => {
-      const startOfDay = new Date(val);
-      startOfDay.setHours(0, 0, 0, 0);
-      return startOfDay.getTime();
-    }),
+    .transform((value) => getCalendarDayTimestamp(new Date(value))),
   view: z.enum(CALENDAR_VIEWS).optional().default("week"),
 });
 
@@ -281,7 +278,7 @@ function AppointmentsPending() {
           </div>
           <Skeleton className="h-8 w-64" />
         </div>
-        <Skeleton className="h-[60vh] w-full rounded-xl" />
+        <Skeleton className="h-[70vh] max-h-[56rem] min-h-[32rem] w-full rounded-xl" />
       </div>
 
       <div className="space-y-3">
