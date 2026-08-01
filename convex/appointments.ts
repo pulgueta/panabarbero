@@ -497,6 +497,14 @@ export const getById = zQuery({
 export const setStatusSchema = z.object({
   appointment: appointments.tools.id,
   status: z.enum(["completed", "no-show", "cancelled"]),
+  /** Final agreed price per "starting" line — required to complete them. */
+  finalPrices: z
+    .object({
+      serviceId: services.tools.id.shape.id,
+      finalPrice: z.number(),
+    })
+    .array()
+    .optional(),
 });
 
 export const setStatus = zAuthMutation({
@@ -528,18 +536,11 @@ export const setStatus = zAuthMutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    const member = await getBarbershopMemberByUserId(
-      ctx,
-      appt.barbershopId,
-      userId,
-    );
-
-    if (
-      !member?.isActive ||
-      !memberHasAnyRole(member, ["owner", "barber", "staff"])
-    ) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
+    await assertShopRole(ctx, appt.barbershopId, userId, [
+      "owner",
+      "barber",
+      "staff",
+    ]);
 
     let updatedAppointment = null;
 
@@ -547,20 +548,52 @@ export const setStatus = zAuthMutation({
       case "completed": {
         await cancelScheduledNotifications(ctx, appt);
 
+        // Every "starting" line needs its agreed final price (≥ the minimum)
+        // to complete. Finals are snapshotted onto the row in the SAME
+        // transaction as the revenue aggregate write below, so they can never
+        // drift apart.
+        const items = await getAppointmentItems(ctx, appt);
+        const finalByService = new Map(
+          (args.finalPrices ?? []).map((entry) => [
+            entry.serviceId,
+            entry.finalPrice,
+          ]),
+        );
+
+        const itemsWithFinals = items.map((item) => {
+          if (item.priceType !== "starting") {
+            return item;
+          }
+
+          const finalPrice =
+            item.finalPrice ?? finalByService.get(item.serviceId);
+
+          if (finalPrice === undefined) {
+            throw new ConvexError(errorMessages.finalPriceRequired(item.name));
+          }
+
+          if (finalPrice < item.price) {
+            throw new ConvexError(
+              errorMessages.finalPriceBelowMinimum(item.name),
+            );
+          }
+
+          return { ...item, finalPrice };
+        });
+
         updatedAppointment = await ctx.db.patch(appointmentId, {
           status: "completed",
+          items: itemsWithFinals,
           upcomingNotificationId: undefined,
           pastReminderNotificationId: undefined,
         });
 
         // Release the recipe holds and consume the stock the services used.
-        const consumedItems = await getAppointmentItems(ctx, appt);
-
         await consumeForAppointment(ctx, {
           _id: appointmentId,
           barbershopId: appt.barbershopId,
           userId: appt.userId,
-          serviceIds: consumedItems.map((item) => item.serviceId),
+          serviceIds: itemsWithFinals.map((item) => item.serviceId),
         });
 
         await ctx.runMutation(
