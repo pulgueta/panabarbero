@@ -1,3 +1,4 @@
+import type { Locale } from "date-fns";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import type { FC } from "react";
@@ -25,11 +26,11 @@ interface EventPopoverProps {
 
 // The grid places events in Bogotá; format in the same zone so a viewer
 // abroad does not see a different day or hour than the one they clicked.
+const zonedFormat = (date: Date, pattern: string, locale?: Locale) =>
+  format(toZoned(date, CALENDAR_TIME_ZONE), pattern, { locale });
+
 const timeRange = (start: Date, end: Date) =>
-  `${format(toZoned(start, CALENDAR_TIME_ZONE), "HH:mm")}–${format(
-    toZoned(end, CALENDAR_TIME_ZONE),
-    "HH:mm",
-  )}`;
+  `${zonedFormat(start, "HH:mm")}–${zonedFormat(end, "HH:mm")}`;
 
 export const EventPopover: FC<EventPopoverProps> = ({
   event,
@@ -64,11 +65,7 @@ export const EventPopover: FC<EventPopoverProps> = ({
             <Badge variant={variant}>{label}</Badge>
           </div>
           <p className="text-muted-foreground text-xs capitalize">
-            {format(
-              toZoned(new Date(appointment.date), CALENDAR_TIME_ZONE),
-              "EEEE d 'de' MMMM",
-              { locale: es },
-            )}
+            {zonedFormat(new Date(appointment.date), "EEEE d 'de' MMMM", es)}
           </p>
         </header>
 
