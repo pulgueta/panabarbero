@@ -144,8 +144,9 @@ const form = useAppForm({
   Functions live in `convex/reviews.ts`; the gateway-LLM moderation action is in
   `convex/reviewModeration.ts` (a `"use node"` file — see §3).
 - **Appointments are line-item based.** `appointments.items[]` is canonical:
-  each line snapshots `serviceId/name/price/priceType/duration` (+ optional
-  `finalPrice`) at booking time; `appointments.serviceId` is only the
+  each line snapshots `serviceId/name/price/priceType/duration` at booking
+  time and completion adds `finalPrice` to `"starting"` lines;
+  `appointments.serviceId` is only the
   denormalized primary line (≡ `items[0].serviceId`, kept for `by_serviceId`
   and legacy readers). ALL line math (totals, joined labels, overlap widths)
   goes through `convex/appointmentItems.ts` — never hand-roll it. Booking
