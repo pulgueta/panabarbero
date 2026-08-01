@@ -163,6 +163,28 @@ export const create = zAuthMutation({
       selectedServices.push(service);
     }
 
+    // The barber must actively offer every selected line — the UI barber
+    // filter is only an aid; assignments can change between selection and
+    // submit.
+    const assignments = await ctx.db
+      .query("barbershopMemberServices")
+      .withIndex("by_barbershopMemberId", (q) =>
+        q.eq("barbershopMemberId", appointment.barbershopMemberId),
+      )
+      .filter((q) => q.neq(q.field("isActive"), false))
+      .collect();
+    const assignedServiceIds = new Set(
+      assignments.map((assignment) => assignment.serviceId),
+    );
+
+    if (
+      !appointment.serviceIds.every((serviceId) =>
+        assignedServiceIds.has(serviceId),
+      )
+    ) {
+      throw new ConvexError(errorMessages.barberDoesNotOfferService);
+    }
+
     const items = buildItems(selectedServices);
     const totalDuration = itemsTotalDuration(items);
 
@@ -1422,7 +1444,8 @@ export const agentBook = zInternalMutation({
       ctx.db.get(args.barbershopId),
     ]);
 
-    if (!barber) throw new ConvexError(errorMessages.notFound("barbero"));
+    if (!barber?.isActive)
+      throw new ConvexError(errorMessages.notFound("barbero"));
     if (!barbershop) throw new ConvexError(errorMessages.notFound("barbería"));
     if (barber.barbershopId !== args.barbershopId)
       throw new ConvexError(errorMessages.unauthorized);
@@ -1437,6 +1460,26 @@ export const agentBook = zInternalMutation({
         throw new ConvexError(errorMessages.unauthorized);
 
       selectedServices.push(service);
+    }
+
+    // The barber must actively offer every selected line — the UI barber
+    // filter is only an aid; assignments can change between selection and
+    // submit.
+    const assignments = await ctx.db
+      .query("barbershopMemberServices")
+      .withIndex("by_barbershopMemberId", (q) =>
+        q.eq("barbershopMemberId", args.barbershopMemberId),
+      )
+      .filter((q) => q.neq(q.field("isActive"), false))
+      .collect();
+    const assignedServiceIds = new Set(
+      assignments.map((assignment) => assignment.serviceId),
+    );
+
+    if (
+      !args.serviceIds.every((serviceId) => assignedServiceIds.has(serviceId))
+    ) {
+      throw new ConvexError(errorMessages.barberDoesNotOfferService);
     }
 
     const items = buildItems(selectedServices);

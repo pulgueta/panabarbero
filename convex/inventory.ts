@@ -1404,13 +1404,17 @@ export async function releaseForAppointment(
 /**
  * Free the holds attributable to ONE dropped line (`deleteService` drop-line
  * flow). Reservations aren't tagged per service in the ledger, so this
- * releases min(outstanding, recipe quantity) per item of the dropped
- * service's CURRENT recipe. IRON RULE: never throws.
+ * releases min(outstanding surplus, recipe quantity) per item of the dropped
+ * service's CURRENT recipe, where surplus is what exceeds the surviving
+ * lines' remaining needs — a clamped reservation may belong to a surviving
+ * line, and under-releasing self-heals at the terminal states. IRON RULE:
+ * never throws.
  */
 export async function releaseServiceLineForAppointment(
   ctx: MutationCtx,
   appointment: AppointmentLedgerContext,
   droppedServiceId: Service["_id"],
+  survivingServiceIds: Service["_id"][],
 ): Promise<void> {
   const movements = await movementsForAppointment(ctx, appointment._id);
   const outstanding = outstandingFrom(movements);
@@ -1419,10 +1423,23 @@ export async function releaseServiceLineForAppointment(
     return;
   }
 
-  const recipe = await ctx.db
-    .query("serviceInventoryUsage")
-    .withIndex("by_serviceId", (q) => q.eq("serviceId", droppedServiceId))
-    .collect();
+  const [recipe, ...survivingRecipes] = await Promise.all(
+    [droppedServiceId, ...survivingServiceIds].map((serviceId) =>
+      ctx.db
+        .query("serviceInventoryUsage")
+        .withIndex("by_serviceId", (q) => q.eq("serviceId", serviceId))
+        .collect(),
+    ),
+  );
+
+  const neededBySurvivors = new Map<string, number>();
+
+  for (const survivorLine of survivingRecipes.flat()) {
+    neededBySurvivors.set(
+      survivorLine.itemId,
+      (neededBySurvivors.get(survivorLine.itemId) ?? 0) + survivorLine.quantity,
+    );
+  }
 
   for (const line of recipe) {
     const entry = outstanding.find(
@@ -1433,7 +1450,11 @@ export async function releaseServiceLineForAppointment(
       continue;
     }
 
-    const quantity = Math.min(entry.quantity, line.quantity);
+    const surplus = Math.max(
+      0,
+      entry.quantity - (neededBySurvivors.get(line.itemId) ?? 0),
+    );
+    const quantity = Math.min(surplus, line.quantity);
 
     if (quantity <= 0) {
       continue;

@@ -253,7 +253,12 @@ export const deleteService = zAuthMutation({
         (line) => line.serviceId !== args.service.id,
       );
 
-      await releaseServiceLineForAppointment(ctx, appt, args.service.id);
+      await releaseServiceLineForAppointment(
+        ctx,
+        appt,
+        args.service.id,
+        remaining.map((line) => line.serviceId),
+      );
 
       await ctx.db.patch(appt._id, {
         items: remaining,

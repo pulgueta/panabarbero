@@ -6,6 +6,8 @@ export const errorMessages = {
   appointmentUnavailableHours:
     "La barbería no atiende durante el horario seleccionado.",
   duplicateAppointmentService: "No repitas servicios en la misma cita.",
+  barberDoesNotOfferService:
+    "El barbero seleccionado no ofrece todos los servicios elegidos. Elige otro barbero o ajusta los servicios.",
   cannotRescheduleCompleted:
     "No puedes reprogramar una cita que ya fue completada.",
   finalPriceRequired: (serviceName: string) =>

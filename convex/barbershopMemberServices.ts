@@ -112,7 +112,9 @@ async function barbersOfferingAllServices(
     }),
   );
 
-  return barbers.filter((b) => b?.roles?.includes("barber"));
+  return barbers.filter(
+    (b): b is NonNullable<typeof b> => !!b && b.roles.includes("barber"),
+  );
 }
 
 /**
