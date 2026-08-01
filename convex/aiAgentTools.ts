@@ -1174,12 +1174,10 @@ const proposeManageAppointment = createTool({
       const missing = startingLinesMissingFinal(appt.items ?? []);
 
       if (missing.length > 0) {
+        const names = missing.map((line) => line.name).join(", ");
+
         throw new Error(
-          `La cita incluye servicios con precio "desde" (${missing
-            .map((line) => line.name)
-            .join(
-              ", ",
-            )}). Márcala como completada desde el panel de citas, donde se ingresa el precio final acordado.`,
+          `La cita incluye servicios con precio "desde" (${names}). Márcala como completada desde el panel de citas, donde se ingresa el precio final acordado.`,
         );
       }
     }
