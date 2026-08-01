@@ -342,6 +342,16 @@ export function formatCurrency(amount: number, currency = "COP"): string {
   return currencyFormatter.format(amount);
 }
 
+/** "Desde COP 15.000" for starting-price services; the plain price otherwise. */
+export function formatServicePrice(service: {
+  price: number;
+  priceType?: "fixed" | "starting";
+}): string {
+  const price = formatCurrency(service.price);
+
+  return service.priceType === "starting" ? `Desde ${price}` : price;
+}
+
 const longDateFormatter = new Intl.DateTimeFormat("es-CO", {
   day: "2-digit",
   month: "long",

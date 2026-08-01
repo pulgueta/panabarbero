@@ -3,7 +3,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 
 import { DataTableColumnHeader } from "@/components/table/data-table-column-header";
 import { DataTableRowActions } from "@/components/table/data-table-row-actions";
-import { formatCurrency } from "@/lib/utils";
+import { formatServicePrice } from "@/lib/utils";
 
 export type ServiceRow = Service;
 
@@ -47,7 +47,7 @@ export function getServicesTableColumns(
       ),
       cell: ({ row }) => (
         <div className="text-right tabular-nums">
-          {formatCurrency(row.original.price)}
+          {formatServicePrice(row.original)}
         </div>
       ),
     },

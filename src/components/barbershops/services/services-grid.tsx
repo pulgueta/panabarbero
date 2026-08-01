@@ -4,7 +4,7 @@ import type { FC } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/utils";
+import { formatServicePrice } from "@/lib/utils";
 
 interface ServicesGridProps {
   services: Service[];
@@ -37,7 +37,7 @@ export const ServicesGrid: FC<ServicesGridProps> = ({
 
             <div className="flex items-center justify-between gap-3">
               <span className="font-semibold text-sm tabular-nums">
-                {formatCurrency(service.price)}
+                {formatServicePrice(service)}
               </span>
 
               <Button

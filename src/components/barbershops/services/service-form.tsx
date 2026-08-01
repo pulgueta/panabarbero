@@ -44,14 +44,15 @@ export const ServiceForm: FC<ServiceFormProps> = ({
       // @ts-expect-error - convex id schema is not supported by tanstack form
       onSubmit: initialValues ? services.updateSchema : services.insertSchema,
     },
-    defaultValues: initialValues
-      ? initialValues
-      : {
-          name: "",
-          price: 1000,
-          duration: 5,
-          barbershopId: barbershopId,
-        },
+    defaultValues:
+      initialValues ??
+      ({
+        name: "",
+        price: 1000,
+        duration: 5,
+        priceType: "fixed",
+        barbershopId: barbershopId,
+      } as ServiceFormData),
     onSubmit: async ({ value }) => {
       try {
         if (serviceId) {
@@ -61,6 +62,7 @@ export const ServiceForm: FC<ServiceFormProps> = ({
               name: value.name,
               price: Number(value.price),
               duration: Number(value.duration),
+              priceType: value.priceType ?? "fixed",
               barbershopId: barbershopId,
             },
           });
@@ -74,6 +76,7 @@ export const ServiceForm: FC<ServiceFormProps> = ({
             name: value.name,
             price: Number(value.price),
             duration: Number(value.duration),
+            priceType: value.priceType ?? "fixed",
             barbershopId: barbershopId,
           });
 
@@ -141,6 +144,28 @@ export const ServiceForm: FC<ServiceFormProps> = ({
             )}
           </form.AppField>
         </div>
+
+        <form.AppField name="priceType">
+          {(field) => (
+            <field.RadioGroupField
+              label="Tipo de precio"
+              options={[
+                {
+                  value: "fixed",
+                  label: "Precio fijo",
+                  description:
+                    "El cliente paga exactamente el precio publicado.",
+                },
+                {
+                  value: "starting",
+                  label: "Precio desde (mínimo)",
+                  description:
+                    'Se muestra como "Desde $X". El precio final se acuerda con el cliente y se registra al completar la cita.',
+                },
+              ]}
+            />
+          )}
+        </form.AppField>
       </FieldGroup>
 
       <form.AppForm>
