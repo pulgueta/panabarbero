@@ -7,22 +7,27 @@ import type {
 } from "@convex/schema";
 import { convexQuery } from "@convex-dev/react-query";
 import { useQueries } from "@tanstack/react-query";
-import { eachDayOfInterval, startOfDay } from "date-fns";
+import { eachDayOfInterval, startOfDay, subMilliseconds } from "date-fns";
 import { useMemo } from "react";
 
+import {
+  getViewDateRange,
+  zonedStartOfDay,
+} from "@/components/calendar/calendar-lib";
 import {
   appointmentItemsDuration,
   appointmentItemsLabel,
 } from "@/lib/appointment-utils";
 
-import { eventEnd, getFetchRange } from "./helpers";
-import type { CalendarEvent, CalendarView } from "./types";
+import {
+  CALENDAR_AGENDA_DAY_COUNT,
+  CALENDAR_DEFAULT_DAY_COUNT,
+  CALENDAR_TIME_ZONE,
+  STATUS_COLOR,
+} from "./constants";
+import { eventEnd } from "./helpers";
+import type { AppointmentCalendarEvent, CalendarView } from "./types";
 
-/**
- * Query options for a single day's appointments. The calendar is the only
- * caller that fans this out across a range, so the options live here rather
- * than in `src/hooks`. Reused by the route loader to prime the cache.
- */
 export function calendarDayQueryOptions(
   barbershopId: Barbershop["_id"],
   dayMs: number,
@@ -33,37 +38,37 @@ export function calendarDayQueryOptions(
   });
 }
 
-/** Midnight timestamps for every day in a view's visible range. */
+export function getCalendarDayTimestamp(date: Date): number {
+  return zonedStartOfDay(date, CALENDAR_TIME_ZONE).getTime();
+}
+
 export function getRangeDayTimestamps(
   view: CalendarView,
   date: Date,
 ): number[] {
-  const { start, end } = getFetchRange(view, date);
-  return eachDayOfInterval({ start, end }).map((day) =>
-    startOfDay(day).getTime(),
-  );
+  const { visibleRange } = getViewDateRange(view, date, {
+    timeZone: CALENDAR_TIME_ZONE,
+    weekStartsOn: 1,
+    dayCount: CALENDAR_DEFAULT_DAY_COUNT,
+    agendaDayCount: CALENDAR_AGENDA_DAY_COUNT,
+    fixedWeeks: true,
+  });
+
+  return eachDayOfInterval({
+    start: visibleRange.start,
+    end: subMilliseconds(visibleRange.end, 1),
+  }).map((day) => startOfDay(day).getTime());
 }
 
 interface UseCalendarAppointmentsOptions {
   barbershopId: Barbershop["_id"];
   view: CalendarView;
   date: Date;
-  /** A barber member id to isolate, or "all" for every barber. */
   barberFilter: BarbershopMember["_id"] | "all";
   services: Service[];
   barbers: BarbershopMemberWithName[];
 }
 
-/**
- * The single data seam for the calendar. Fetches the visible range as one
- * reactive query per day against the existing day-windowed
- * `getByBarbershopId` (which already applies the "barbers see only their own"
- * server-side filter), then builds and partitions events once.
- *
- * NOTE: month/agenda fan out to ~35–42 day subscriptions to stay within the
- * "single new mutation" backend budget. If an optional `endDate` range arg is
- * ever added to `getByBarbershopId`, collapse the body below to one query.
- */
 export function useCalendarAppointments({
   barbershopId,
   view,
@@ -72,7 +77,7 @@ export function useCalendarAppointments({
   services,
   barbers,
 }: UseCalendarAppointmentsOptions): {
-  events: CalendarEvent[];
+  events: AppointmentCalendarEvent[];
   isLoading: boolean;
 } {
   const dayTimestamps = useMemo(
@@ -89,15 +94,13 @@ export function useCalendarAppointments({
     [barbers],
   );
 
-  // `useQueries` returns a fresh array every render, so a useMemo over it
-  // never sticks; `combine` output is structurally shared instead, keeping
-  // `events` referentially stable while the underlying data is unchanged.
   return useQueries({
-    queries: dayTimestamps.map((ms) =>
-      calendarDayQueryOptions(barbershopId, ms),
+    queries: dayTimestamps.map((dayMs) =>
+      calendarDayQueryOptions(barbershopId, dayMs),
     ),
     combine: (results) => {
-      const built: CalendarEvent[] = [];
+      const events: AppointmentCalendarEvent[] = [];
+
       for (const result of results) {
         for (const appointment of result.data ?? []) {
           if (
@@ -106,29 +109,38 @@ export function useCalendarAppointments({
           ) {
             continue;
           }
-          // Snapshot lines drive width/name when present; legacy rows keep
-          // the live-service join + FALLBACK_DURATION path.
+
           const service = serviceMap.get(appointment.serviceId);
-          built.push({
+          events.push({
             id: appointment._id,
             title: appointment.customerName,
-            start: appointment.date,
-            end: eventEnd(
-              appointment.date,
-              appointmentItemsDuration(appointment) ?? service?.duration,
+            start: new Date(appointment.date),
+            end: new Date(
+              eventEnd(
+                appointment.date,
+                appointmentItemsDuration(appointment) ?? service?.duration,
+              ),
             ),
-            status: appointment.status,
-            barberId: appointment.barbershopMemberId,
-            barberName:
-              barberMap.get(appointment.barbershopMemberId) ?? "Barbero",
-            serviceName:
-              appointmentItemsLabel(appointment) ?? service?.name ?? "Servicio",
-            appointment,
+            color: STATUS_COLOR[appointment.status],
+            readOnly: true,
+            resourceId: appointment.barbershopMemberId,
+            data: {
+              appointment,
+              barberName:
+                barberMap.get(appointment.barbershopMemberId) ?? "Barbero",
+              serviceName:
+                appointmentItemsLabel(appointment) ??
+                service?.name ??
+                "Servicio",
+            },
           });
         }
       }
+
       return {
-        events: built.sort((a, b) => a.start - b.start),
+        events: events.sort(
+          (first, second) => first.start.getTime() - second.start.getTime(),
+        ),
         isLoading: results.some((result) => result.isLoading),
       };
     },
