@@ -143,6 +143,7 @@ export const getShopKnowledgeData = zInternalQuery({
       services: services.map((s) => ({
         name: s.name,
         price: s.price,
+        priceType: s.priceType ?? "fixed",
         durationMinutes: s.duration,
       })),
     };
@@ -186,7 +187,7 @@ export const reindexShopKnowledge = zInternalAction({
       ? data.services
           .map(
             (s) =>
-              `${s.name}: $${s.price.toLocaleString("es-CO")} (${s.durationMinutes} min)`,
+              `${s.name}: ${s.priceType === "starting" ? "desde " : ""}$${s.price.toLocaleString("es-CO")} (${s.durationMinutes} min)`,
           )
           .join("; ")
       : "Sin servicios registrados todavía.";

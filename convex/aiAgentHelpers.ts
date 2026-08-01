@@ -18,6 +18,19 @@ import type {
 import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
 
+const helperPriceFormatter = new Intl.NumberFormat("es-CO", {
+  style: "currency",
+  currency: "COP",
+  maximumFractionDigits: 0,
+});
+
+/** "Desde $X" for starting-price services; the plain price otherwise. */
+function formatServicePriceLabel(service: Service): string {
+  return service.priceType === "starting"
+    ? `Desde ${helperPriceFormatter.format(service.price)}`
+    : helperPriceFormatter.format(service.price);
+}
+
 const ACTIVE_APPOINTMENT_STATUSES: Appointment["status"][] = [
   "pending",
   "confirmed",
@@ -392,6 +405,8 @@ export const getMyBarbershopData = zInternalQuery({
         serviceId: s._id as string,
         name: s.name,
         price: s.price,
+        priceType: s.priceType ?? "fixed",
+        priceFormatted: formatServicePriceLabel(s),
         durationMinutes: s.duration,
       })),
       barbers,
