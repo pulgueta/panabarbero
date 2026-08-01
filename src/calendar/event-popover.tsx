@@ -116,7 +116,7 @@ export const EventPopover: FC<EventPopoverProps> = ({
 
             {needsMark ? (
               <MarkAppointmentDialog
-                appointmentId={appointment._id}
+                appointment={appointment}
                 trigger={
                   <Button variant="outline" size="sm" className="w-full">
                     Marcar cita

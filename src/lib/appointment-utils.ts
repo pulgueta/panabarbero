@@ -57,3 +57,23 @@ export function getAppointmentDataByStatus(status: Appointment["status"]) {
     variant: getAppointmentStatusBadgeVariant(status),
   };
 }
+
+/** Joined snapshot line names ("Corte + Barba"); null for legacy rows. */
+export function appointmentItemsLabel(appointment: Appointment): string | null {
+  if (!appointment.items || appointment.items.length === 0) {
+    return null;
+  }
+
+  return appointment.items.map((item) => item.name).join(" + ");
+}
+
+/** Summed snapshot duration in minutes; null for legacy rows. */
+export function appointmentItemsDuration(
+  appointment: Appointment,
+): number | null {
+  if (!appointment.items || appointment.items.length === 0) {
+    return null;
+  }
+
+  return appointment.items.reduce((total, item) => total + item.duration, 0);
+}

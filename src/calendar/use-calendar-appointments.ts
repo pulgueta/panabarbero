@@ -10,6 +10,11 @@ import { useQueries } from "@tanstack/react-query";
 import { eachDayOfInterval, startOfDay } from "date-fns";
 import { useMemo } from "react";
 
+import {
+  appointmentItemsDuration,
+  appointmentItemsLabel,
+} from "@/lib/appointment-utils";
+
 import { eventEnd, getFetchRange } from "./helpers";
 import type { CalendarEvent, CalendarView } from "./types";
 
@@ -101,17 +106,23 @@ export function useCalendarAppointments({
           ) {
             continue;
           }
+          // Snapshot lines drive width/name when present; legacy rows keep
+          // the live-service join + FALLBACK_DURATION path.
           const service = serviceMap.get(appointment.serviceId);
           built.push({
             id: appointment._id,
             title: appointment.customerName,
             start: appointment.date,
-            end: eventEnd(appointment.date, service?.duration),
+            end: eventEnd(
+              appointment.date,
+              appointmentItemsDuration(appointment) ?? service?.duration,
+            ),
             status: appointment.status,
             barberId: appointment.barbershopMemberId,
             barberName:
               barberMap.get(appointment.barbershopMemberId) ?? "Barbero",
-            serviceName: service?.name ?? "Servicio",
+            serviceName:
+              appointmentItemsLabel(appointment) ?? service?.name ?? "Servicio",
             appointment,
           });
         }

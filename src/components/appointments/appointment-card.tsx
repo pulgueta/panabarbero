@@ -13,7 +13,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getAppointmentDataByStatus } from "@/lib/appointment-utils";
+import {
+  appointmentItemsLabel,
+  getAppointmentDataByStatus,
+} from "@/lib/appointment-utils";
 
 const CancelAppointmentDialog = lazy(() =>
   import("./cancel-appointment-dialog").then((module) => ({
@@ -89,7 +92,7 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
       </CardHeader>
       <CardContent className="space-y-2">
         <p className="text-pretty text-muted-foreground text-sm">
-          Servicio: {service.name}
+          Servicio: {appointmentItemsLabel(appointment) ?? service.name}
         </p>
         <p className="text-pretty text-muted-foreground text-sm">
           {appointment.notes || "No hay notas"}

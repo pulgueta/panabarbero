@@ -6,6 +6,7 @@ import { lazy } from "react";
 import { DataTableColumnHeader } from "@/components/table/data-table-column-header";
 import { Button } from "@/components/ui/button";
 import { useServiceByAppointmentId } from "@/hooks/use-services";
+import { appointmentItemsLabel } from "@/lib/appointment-utils";
 
 const RescheduleResponseDialog = lazy(() =>
   import("../reschedule-response-dialog").then((module) => ({
@@ -13,11 +14,10 @@ const RescheduleResponseDialog = lazy(() =>
   })),
 );
 
-const ServiceNameCell: FC<{ appointmentId: Appointment["_id"] }> = ({
-  appointmentId,
-}) => {
-  const { data: service } = useServiceByAppointmentId(appointmentId);
-  return <span>{service?.name}</span>;
+const ServiceNameCell: FC<{ appointment: Appointment }> = ({ appointment }) => {
+  // Legacy rows (no snapshot lines) still resolve the live service.
+  const { data: service } = useServiceByAppointmentId(appointment._id);
+  return <span>{appointmentItemsLabel(appointment) ?? service?.name}</span>;
 };
 
 const formatDateTime = (ms: number) =>
@@ -49,7 +49,7 @@ export const rescheduledAppointmentRequestsTableColumns: ColumnDef<
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Servicio" />
     ),
-    cell: ({ row }) => <ServiceNameCell appointmentId={row.original._id} />,
+    cell: ({ row }) => <ServiceNameCell appointment={row.original} />,
   },
   {
     accessorKey: "date",

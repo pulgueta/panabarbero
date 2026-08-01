@@ -27,13 +27,31 @@ interface DeleteServiceDialogProps {
   onOpenChange?: (open: boolean) => void;
 }
 
+interface DeleteServiceImpact {
+  /** Citas whose ONLY service is this one — they get cancelled. */
+  cancelCount: number;
+  /** Multi-service citas — they lose this line but survive. */
+  updateCount: number;
+}
+
 /**
- * Parses the "WILL_CANCEL:N" error message from the backend.
- * Returns the appointment count if matched, otherwise null.
+ * Parses the "WILL_CANCEL:N:WILL_UPDATE:M" error message from the backend
+ * (the ":WILL_UPDATE:M" suffix is absent on messages from older deploys).
+ * Returns the impact counts if matched, otherwise null.
  */
-function parseWillCancelError(errorMessage: string): number | null {
-  const match = errorMessage.match(/WILL_CANCEL:(\d+)/);
-  return match ? Number.parseInt(match[1], 10) : null;
+function parseWillCancelError(
+  errorMessage: string,
+): DeleteServiceImpact | null {
+  const match = errorMessage.match(/WILL_CANCEL:(\d+)(?::WILL_UPDATE:(\d+))?/);
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    cancelCount: Number.parseInt(match[1], 10),
+    updateCount: match[2] ? Number.parseInt(match[2], 10) : 0,
+  };
 }
 
 export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
@@ -51,7 +69,10 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
   const [confirmationStep, setConfirmationStep] = useState<
     "initial" | "confirm_cancellation"
   >("initial");
-  const [impactedCount, setImpactedCount] = useState<number>(0);
+  const [impact, setImpact] = useState<DeleteServiceImpact>({
+    cancelCount: 0,
+    updateCount: 0,
+  });
 
   const {
     deleteServiceMutation: {
@@ -66,7 +87,7 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
     onOpenChange?.(newOpen);
     if (!newOpen) {
       setConfirmationStep("initial");
-      setImpactedCount(0);
+      setImpact({ cancelCount: 0, updateCount: 0 });
     }
   };
 
@@ -83,10 +104,10 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
       handleOpenChange(false);
     } catch (error) {
       const errorMessage = getConvexErrorMessage(error);
-      const willCancelCount = parseWillCancelError(errorMessage);
+      const parsedImpact = parseWillCancelError(errorMessage);
 
-      if (willCancelCount !== null && !force) {
-        setImpactedCount(willCancelCount);
+      if (parsedImpact !== null && !force) {
+        setImpact(parsedImpact);
         setConfirmationStep("confirm_cancellation");
       } else {
         haptic.trigger("error");
@@ -99,15 +120,30 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
 
   const dialogTitle = isInitialStep
     ? "Eliminar servicio"
-    : "Confirmar cancelación de citas";
+    : "Confirmar cambios en citas";
+
+  const impactSummary = [
+    impact.cancelCount > 0
+      ? `${impact.cancelCount} cita(s) solo incluyen este servicio y serán canceladas`
+      : null,
+    impact.updateCount > 0
+      ? `${impact.updateCount} cita(s) lo combinan con otros servicios y se actualizarán (se quita este servicio; el resto de la cita sigue confirmada)`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(". ");
 
   const dialogDescription = isInitialStep
     ? "¿Estás seguro que deseas eliminar este servicio? Esta acción no se puede deshacer."
-    : `Este servicio tiene ${impactedCount} cita(s) pendiente(s) que serán canceladas. Los clientes serán notificados.`;
+    : `${impactSummary}. Los clientes serán notificados.`;
 
   const buttonLabel = isInitialStep
     ? "Sí, eliminar"
-    : `Eliminar y cancelar ${impactedCount} cita(s)`;
+    : impact.cancelCount > 0 && impact.updateCount > 0
+      ? `Eliminar (cancela ${impact.cancelCount}, actualiza ${impact.updateCount})`
+      : impact.updateCount > 0
+        ? `Eliminar y actualizar ${impact.updateCount} cita(s)`
+        : `Eliminar y cancelar ${impact.cancelCount} cita(s)`;
 
   return (
     <ResponsiveModal open={open} onOpenChange={handleOpenChange}>
