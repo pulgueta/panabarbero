@@ -216,7 +216,9 @@ const scheduleDayArg = z.object({
 
 const bookArgs = z.object({
   barbershopId: z.string(),
-  serviceId: z.string(),
+  /** Pre-deploy proposals carry a single `serviceId`; new ones `serviceIds`. */
+  serviceId: z.string().optional(),
+  serviceIds: z.string().array().optional(),
   barbershopMemberId: z.string(),
   date: z.number(),
   customerName: z.string(),
@@ -301,6 +303,16 @@ const confirmActionArgs = z.discriminatedUnion("action", [
   }),
 ]);
 
+/** Tolerates proposals minted before the multi-service deploy. */
+const bookServiceIds = (args: {
+  serviceIds?: string[];
+  serviceId?: string;
+}): Service["_id"][] => {
+  const ids = args.serviceIds ?? (args.serviceId ? [args.serviceId] : []);
+
+  return ids as Service["_id"][];
+};
+
 const requireAuthed = (isAnon: boolean) => {
   if (isAnon) {
     throw new ConvexError(
@@ -329,7 +341,7 @@ export const confirmPendingAction = zAction({
         await ctx.runMutation(internal.appointments.agentBook, {
           userId: callerId,
           barbershopId: a.barbershopId as Barbershop["_id"],
-          serviceId: a.serviceId as Service["_id"],
+          serviceIds: bookServiceIds(a),
           barbershopMemberId: a.barbershopMemberId as BarbershopMember["_id"],
           date: a.date,
           customerName: a.customerName,
@@ -348,7 +360,7 @@ export const confirmPendingAction = zAction({
         await ctx.runMutation(api.appointments.create, {
           appointment: {
             barbershopId: a.barbershopId as Barbershop["_id"],
-            serviceId: a.serviceId as Service["_id"],
+            serviceIds: bookServiceIds(a),
             barbershopMemberId: a.barbershopMemberId as BarbershopMember["_id"],
             date: a.date,
             customerName: a.customerName,

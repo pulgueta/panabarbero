@@ -5,6 +5,7 @@ export const errorMessages = {
     "La barbería no está abierta en el horario seleccionado.",
   appointmentUnavailableHours:
     "La barbería no atiende durante el horario seleccionado.",
+  duplicateAppointmentService: "No repitas servicios en la misma cita.",
   cannotRescheduleCompleted:
     "No puedes reprogramar una cita que ya fue completada.",
   notFound: (resource: string) => `El recurso "${resource}" no fue encontrado`,

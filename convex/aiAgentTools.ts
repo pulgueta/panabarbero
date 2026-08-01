@@ -417,7 +417,7 @@ const getAvailability = createTool({
     const slots = (await ctx.runQuery(api.appointments.getAvailableSlots, {
       barbershopId: input.barbershopId as Barbershop["_id"],
       barbershopMemberId: input.barbershopMemberId as BarbershopMember["_id"],
-      serviceId: input.serviceId as Service["_id"],
+      serviceIds: [input.serviceId as Service["_id"]],
       date: dateMs,
     })) as Slot[];
 
@@ -770,7 +770,7 @@ const proposeBooking = createTool({
     const slots = (await ctx.runQuery(api.appointments.getAvailableSlots, {
       barbershopId: shop._id,
       barbershopMemberId: barber._id,
-      serviceId: service._id,
+      serviceIds: [service._id],
       date: dateMs,
     })) as Slot[];
 
@@ -878,7 +878,7 @@ const proposeReschedule = createTool({
     const slots = (await ctx.runQuery(api.appointments.getAvailableSlots, {
       barbershopId: appt.barbershopId,
       barbershopMemberId: appt.barbershopMemberId,
-      serviceId: appt.serviceId,
+      serviceIds: [appt.serviceId],
       date: newDateMs,
     })) as Slot[];
 
@@ -1005,7 +1005,7 @@ const proposeStaffBooking = createTool({
     const slots = (await ctx.runQuery(api.appointments.getAvailableSlots, {
       barbershopId,
       barbershopMemberId: barber._id,
-      serviceId: service._id,
+      serviceIds: [service._id],
       date: dateMs,
     })) as Slot[];
 
