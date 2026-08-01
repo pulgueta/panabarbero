@@ -17,7 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { cn, formatServicePrice } from "@/lib/utils";
 import { useServicesStoreActions } from "@/store/services";
 
 interface ServicesDropdownProps {
@@ -71,9 +71,12 @@ export const ServicesDropdown: FC<ServicesDropdownProps> = ({ services }) => {
                   }}
                 >
                   {service.name}
+                  <span className="ml-auto text-muted-foreground text-xs">
+                    {formatServicePrice(service)}
+                  </span>
                   <CheckIcon
                     className={cn(
-                      "ml-auto size-3",
+                      "size-3",
                       value === service._id ? "opacity-100" : "opacity-0",
                     )}
                   />

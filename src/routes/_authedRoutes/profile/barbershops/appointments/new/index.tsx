@@ -52,7 +52,7 @@ import {
   useServicesByBarbershopId,
 } from "@/hooks/use-services";
 import { useSession } from "@/hooks/use-session";
-import { formatCurrency } from "@/lib/utils";
+import { formatServicePrice } from "@/lib/utils";
 import { useServicesStore } from "@/store/services";
 
 const searchSchema = z.object({
@@ -128,8 +128,10 @@ function RouteComponent() {
   const { data: isStaff } = useIsStaff(userId);
   const { data: currentBarberMember } = useBarberByUserId(userId);
 
-  const service = useServicesStore();
-  const effectiveServiceId = service._id as Service["_id"] | undefined;
+  const storeServices = useServicesStore();
+  const effectiveServiceId = storeServices[0]?._id as
+    | Service["_id"]
+    | undefined;
   const { data: barbersForService } = useBarbersForService(effectiveServiceId);
   const [selectedBarber, setSelectedBarber] = useState<
     BarbershopMemberWithName | undefined
@@ -283,7 +285,7 @@ function RouteComponent() {
                     <dt className="text-muted-foreground">Precio</dt>
                     <dd className="font-medium tabular-nums">
                       {selectedService
-                        ? formatCurrency(selectedService.price)
+                        ? formatServicePrice(selectedService)
                         : "—"}
                     </dd>
                   </div>

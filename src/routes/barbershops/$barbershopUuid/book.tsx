@@ -171,9 +171,6 @@ function RouteComponent() {
                   barbershop={barbershop}
                   services={services ?? EMPTY_MEMBERS}
                   barbers={barbers}
-                  initialServiceId={
-                    serviceId as (typeof services)[0]["_id"] | undefined
-                  }
                 />
               </Suspense>
             </section>

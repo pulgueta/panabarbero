@@ -178,7 +178,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
             notes: value.notes,
             barbershopId,
             barbershopMemberId,
-            serviceId: effectiveServiceId,
+            serviceIds: [effectiveServiceId],
             isStaffCreated: isBarber,
           },
         });
@@ -568,7 +568,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                     barbershopMemberId={
                       barbershopMemberId as BarbershopMemberWithName["_id"]
                     }
-                    serviceId={effectiveServiceId}
+                    serviceIds={effectiveServiceId ? [effectiveServiceId] : []}
                     date={normalizedDate}
                     value={selectedSlotTime}
                     isPending={isPending}
