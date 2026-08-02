@@ -37,12 +37,14 @@ import {
   barberByUserIdQueryOptions,
   barbershopMembersByBarbershopIdQueryOptions,
   isBarberQueryOptions,
+  isOwnerQueryOptions,
   isStaffQueryOptions,
   servicesForBarberQueryOptions,
   useBarberByUserId,
   useBarbersForService,
   useBarbershopMembersByBarbershopId,
   useIsBarber,
+  useIsOwner,
   useIsStaff,
   useServicesForBarber,
 } from "@/hooks/use-barbershop-members";
@@ -80,6 +82,7 @@ export const Route = createFileRoute(
 
     const isBarber = roles?.roles?.includes("barber") ?? false;
     const isStaff = roles?.isStaff ?? false;
+    const isOwner = roles?.isOwner ?? false;
 
     const plan = await context.queryClient.ensureQueryData(
       getBarbershopPlanQueryOptions(barbershop._id),
@@ -87,7 +90,7 @@ export const Route = createFileRoute(
 
     if (
       !plan?.planLimits.staffCanCreateAppointments ||
-      (!isBarber && !isStaff)
+      (!isBarber && !isStaff && !isOwner)
     ) {
       throw redirect({ to: "/profile/barbershops/appointments" });
     }
@@ -99,6 +102,7 @@ export const Route = createFileRoute(
       context.queryClient.ensureQueryData(barberByUserIdQueryOptions(userId)),
       context.queryClient.ensureQueryData(isBarberQueryOptions(userId)),
       context.queryClient.ensureQueryData(isStaffQueryOptions(userId)),
+      context.queryClient.ensureQueryData(isOwnerQueryOptions(userId)),
       context.queryClient.ensureQueryData(
         barbershopAvailabilityQueryOptions(barbershop._id),
       ),
@@ -126,6 +130,7 @@ function RouteComponent() {
   const { data: services } = useServicesByBarbershopId(barbershop?._id!);
   const { data: isBarber } = useIsBarber(userId);
   const { data: isStaff } = useIsStaff(userId);
+  const { data: isOwner } = useIsOwner(userId);
   const { data: currentBarberMember } = useBarberByUserId(userId);
 
   const storeServices = useServicesStore();
@@ -138,7 +143,7 @@ function RouteComponent() {
   >(undefined);
   const { data: barberServices } = useServicesForBarber(selectedBarber?._id);
 
-  const isCreatingOnBehalf = isBarber || isStaff;
+  const isCreatingOnBehalf = isBarber || isStaff || isOwner;
   const showPhoneField =
     isCreatingOnBehalf || (!isCreatingOnBehalf && !userProfile?.phoneNumber);
   const allBarbers = barbershopMembers.filter((member) =>
@@ -167,10 +172,13 @@ function RouteComponent() {
   }, [isBarber, isStaff, currentBarberMember, barbershopMembers]);
 
   useEffect(() => {
-    if (availableBarbers.length === 1 && (!isCreatingOnBehalf || isStaff)) {
+    if (
+      availableBarbers.length === 1 &&
+      (!isCreatingOnBehalf || isStaff || (isOwner && !isBarber))
+    ) {
       setSelectedBarber(availableBarbers[0]!);
     }
-  }, [isCreatingOnBehalf, isStaff, availableBarbers]);
+  }, [isCreatingOnBehalf, isStaff, isOwner, isBarber, availableBarbers]);
 
   const formIds = {
     customerName: useId(),

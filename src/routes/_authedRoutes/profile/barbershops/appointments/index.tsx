@@ -46,10 +46,12 @@ import {
   barberByUserIdQueryOptions,
   barbershopMembersByBarbershopIdQueryOptions,
   isBarberQueryOptions,
+  isOwnerQueryOptions,
   isStaffQueryOptions,
   servicesForBarberQueryOptions,
   useBarbershopMembersByBarbershopId,
   useIsBarber,
+  useIsOwner,
   useIsStaff,
 } from "@/hooks/use-barbershop-members";
 import {
@@ -107,6 +109,7 @@ export const Route = createFileRoute(
       context.queryClient.ensureQueryData(barberByUserIdQueryOptions(userId)),
       context.queryClient.ensureQueryData(isBarberQueryOptions(userId)),
       context.queryClient.ensureQueryData(isStaffQueryOptions(userId)),
+      context.queryClient.ensureQueryData(isOwnerQueryOptions(userId)),
       context.queryClient.ensureQueryData(
         barbershopAvailabilityQueryOptions(barbershopId),
       ),
@@ -117,7 +120,9 @@ export const Route = createFileRoute(
       context.queryClient.ensureQueryData(
         requestRescheduleQueryOptions(barbershopId),
       ),
-    ]).then(([, , , , , , members, requests]) => [members, requests] as const);
+    ]).then(
+      ([, , , , , , , members, requests]) => [members, requests] as const,
+    );
 
     // Calendar range: one day-windowed query per visible day, matching
     // useCalendarAppointments' fan-out so the grid paints without pop-in.
@@ -165,10 +170,11 @@ function RouteComponent() {
   const { canCreateStaffAppointments } = useBarbershopPlan(barbershop?._id!);
   const { data: isBarber } = useIsBarber(session?.id ?? "");
   const { data: isStaff } = useIsStaff(session?.id ?? "");
+  const { data: isOwner } = useIsOwner(session?.id ?? "");
 
-  const isOwner = session?.id ? barbershop?.ownerId === session.id : false;
   const canManage = isStaff || isOwner;
-  const canCreate = canCreateStaffAppointments && (isBarber || isStaff);
+  const canCreate =
+    canCreateStaffAppointments && (isBarber || isStaff || isOwner);
 
   const rescheduleTable = useDataTable({
     data: rescheduledAppointmentRequests,
