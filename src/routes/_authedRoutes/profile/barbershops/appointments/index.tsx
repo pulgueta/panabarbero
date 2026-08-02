@@ -49,6 +49,7 @@ import {
   isOwnerQueryOptions,
   isStaffQueryOptions,
   servicesForBarberQueryOptions,
+  useBarberByUserId,
   useBarbershopMembersByBarbershopId,
   useIsBarber,
   useIsOwner,
@@ -171,13 +172,23 @@ function RouteComponent() {
   const { data: isBarber } = useIsBarber(session?.id ?? "");
   const { data: isStaff } = useIsStaff(session?.id ?? "");
   const { data: isOwner } = useIsOwner(session?.id ?? "");
+  const { data: currentBarberMember } = useBarberByUserId(session?.id ?? "");
 
   const canManage = isStaff || isOwner;
   const canCreate =
     canCreateStaffAppointments && (isBarber || isStaff || isOwner);
 
+  // Barbers without a management role only handle their own appointments, so
+  // they only see their own reschedule requests.
+  const visibleRescheduleRequests =
+    isBarber && !canManage
+      ? rescheduledAppointmentRequests.filter(
+          (request) => request.barbershopMemberId === currentBarberMember?._id,
+        )
+      : rescheduledAppointmentRequests;
+
   const rescheduleTable = useDataTable({
-    data: rescheduledAppointmentRequests,
+    data: visibleRescheduleRequests,
     columns: rescheduledAppointmentRequestsTableColumns,
     pageSize: 10,
   });
