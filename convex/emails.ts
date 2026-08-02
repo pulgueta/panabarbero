@@ -13,6 +13,7 @@ import {
   AppointmentReassignedEmail,
   AppointmentReminderEmail,
   AppointmentRescheduleRequestEmail,
+  AppointmentUpdatedEmail,
   LowStockEmail,
   PastAppointmentReminderEmail,
   RescheduleRequestAcceptEmail,
@@ -105,7 +106,7 @@ export const sendAppointmentUpdated = zInternalAction({
     await sendEmail(ctx, {
       to: args.to,
       subject: subjects.service_line_removed,
-      react: AppointmentCancelledEmail({
+      react: AppointmentUpdatedEmail({
         notes: args.notes,
         subject: subjects.service_line_removed,
         body: args.body,
