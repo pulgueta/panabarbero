@@ -5,13 +5,7 @@ import { ConvexError } from "convex/values";
 import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
-import {
-  zAuthMutation,
-  zAuthQuery,
-  zInternalMutation,
-  zInternalQuery,
-  zQuery,
-} from ".";
+import { zAuthMutation, zInternalMutation, zInternalQuery, zQuery } from ".";
 import { internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
 import { assertCanCreateStaffAppointment } from "./acl";
@@ -436,21 +430,26 @@ export const getRescheduledRequests = zQuery({
   },
 });
 
-export const getByUserId = zAuthQuery({
+export const getByUserId = zQuery({
   args: z.object({
-    userId: z.string(),
+    userId: z.string().optional(),
     paginationOpts: convexToZod(paginationOptsValidator),
   }),
   handler: async (ctx, args) => {
-    const { userId } = ctx;
+    const userId = await getUserId(ctx);
 
-    if (!userId || args.userId !== userId) {
-      throw new ConvexError(errorMessages.unauthorized);
+    // Degrade (don't throw) while the websocket authenticates: this query
+    // re-subscribes before Convex auth lands on callback/full-page loads, and
+    // a throw here unmounts the whole profile route into its error boundary.
+    if (!userId || !args.userId || args.userId !== userId) {
+      return { page: [], isDone: true, continueCursor: "" };
     }
+
+    const targetUserId = args.userId;
 
     const result = await ctx.db
       .query("appointments")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q) => q.eq("userId", targetUserId))
       .order("desc")
       .paginate(args.paginationOpts);
 
