@@ -41,7 +41,7 @@ import {
   isStaffQueryOptions,
   servicesForBarberQueryOptions,
   useBarberByUserId,
-  useBarbersForService,
+  useBarbersForServices,
   useBarbershopMembersByBarbershopId,
   useIsBarber,
   useIsOwner,
@@ -54,8 +54,8 @@ import {
   useServicesByBarbershopId,
 } from "@/hooks/use-services";
 import { useSession } from "@/hooks/use-session";
-import { formatServicePrice } from "@/lib/utils";
-import { useServicesStore } from "@/store/services";
+import { formatCurrency, formatServicePrice } from "@/lib/utils";
+import { resetServiceStore, useServicesStore } from "@/store/services";
 
 const searchSchema = z.object({
   date: z.number().optional(),
@@ -134,14 +134,20 @@ function RouteComponent() {
   const { data: currentBarberMember } = useBarberByUserId(userId);
 
   const storeServices = useServicesStore();
-  const effectiveServiceId = storeServices[0]?._id as
-    | Service["_id"]
-    | undefined;
-  const { data: barbersForService } = useBarbersForService(effectiveServiceId);
+  const effectiveServiceIds = storeServices.map(
+    (nextService) => nextService._id as Service["_id"],
+  );
+  const { data: barbersForServices } =
+    useBarbersForServices(effectiveServiceIds);
   const [selectedBarber, setSelectedBarber] = useState<
     BarbershopMemberWithName | undefined
   >(undefined);
   const { data: barberServices } = useServicesForBarber(selectedBarber?._id);
+
+  // The selection store is shared with the public booking flow; reset it on
+  // unmount so a staff selection never leaks into the next flow (or vice
+  // versa).
+  useEffect(() => () => resetServiceStore(), []);
 
   const isCreatingOnBehalf = isBarber || isStaff || isOwner;
   const showPhoneField =
@@ -149,12 +155,23 @@ function RouteComponent() {
   const allBarbers = barbershopMembers.filter((member) =>
     member.roles.includes("barber"),
   );
-  const availableBarbers = effectiveServiceId
-    ? (barbersForService ?? allBarbers)
+  const availableBarbers = effectiveServiceIds.length
+    ? (barbersForServices ?? allBarbers)
     : allBarbers;
-  const selectedService = services.find(
-    (nextService) => nextService._id === effectiveServiceId,
+  const totalDuration = storeServices.reduce(
+    (total, nextService) => total + nextService.duration,
+    0,
   );
+  const totalPrice = storeServices.reduce(
+    (total, nextService) => total + nextService.price,
+    0,
+  );
+  const hasStartingLine = storeServices.some(
+    (nextService) => nextService.priceType === "starting",
+  );
+  const totalPriceLabel = hasStartingLine
+    ? `Desde ${formatCurrency(totalPrice)}`
+    : formatCurrency(totalPrice);
   const defaultBarberId =
     isBarber && !isStaff
       ? currentBarberMember?._id
@@ -227,7 +244,7 @@ function RouteComponent() {
                 (nextService) => nextService !== null,
               )}
               onBarberChange={setSelectedBarber}
-              effectiveServiceId={effectiveServiceId}
+              effectiveServiceIds={effectiveServiceIds}
               showPhoneField={showPhoneField}
               disabledFields={
                 isCreatingOnBehalf
@@ -275,26 +292,31 @@ function RouteComponent() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <dl className="grid gap-2 text-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="text-muted-foreground">Servicio</dt>
-                    <dd className="max-w-40 truncate font-medium">
-                      {selectedService?.name ?? "Sin seleccionar"}
+                  <div className="flex items-start justify-between gap-3">
+                    <dt className="text-muted-foreground">
+                      {storeServices.length > 1 ? "Servicios" : "Servicio"}
+                    </dt>
+                    <dd className="max-w-40 space-y-0.5 text-right font-medium">
+                      {storeServices.length > 0
+                        ? storeServices.map((nextService) => (
+                            <p key={nextService._id} className="truncate">
+                              {nextService.name} ·{" "}
+                              {formatServicePrice(nextService)}
+                            </p>
+                          ))
+                        : "Sin seleccionar"}
                     </dd>
                   </div>
                   <div className="flex items-center justify-between gap-3">
                     <dt className="text-muted-foreground">Duración</dt>
                     <dd className="font-medium tabular-nums">
-                      {selectedService
-                        ? `${selectedService.duration} min`
-                        : "—"}
+                      {storeServices.length > 0 ? `${totalDuration} min` : "—"}
                     </dd>
                   </div>
                   <div className="flex items-center justify-between gap-3">
                     <dt className="text-muted-foreground">Precio</dt>
                     <dd className="font-medium tabular-nums">
-                      {selectedService
-                        ? formatServicePrice(selectedService)
-                        : "—"}
+                      {storeServices.length > 0 ? totalPriceLabel : "—"}
                     </dd>
                   </div>
                   <div className="flex items-center justify-between gap-3">

@@ -18,7 +18,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn, formatServicePrice } from "@/lib/utils";
-import { useServicesStoreActions } from "@/store/services";
+import { useServicesStore, useServicesStoreActions } from "@/store/services";
 
 interface ServicesDropdownProps {
   services: Service[] | undefined;
@@ -26,9 +26,17 @@ interface ServicesDropdownProps {
 
 export const ServicesDropdown: FC<ServicesDropdownProps> = ({ services }) => {
   const [open, setOpen] = useState<boolean>(false);
-  const [value, setValue] = useState("");
 
-  const { setServiceStore } = useServicesStoreActions();
+  const selectedServices = useServicesStore();
+  const selectedIds = new Set(selectedServices.map((service) => service._id));
+  const { toggleService } = useServicesStoreActions();
+
+  const triggerLabel =
+    selectedServices.length === 0
+      ? "Seleccionar servicios..."
+      : selectedServices.length === 1
+        ? selectedServices[0]?.name
+        : `${selectedServices.length} servicios`;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -43,9 +51,7 @@ export const ServicesDropdown: FC<ServicesDropdownProps> = ({ services }) => {
             aria-controls="services-listbox"
             className="w-full justify-between"
           >
-            {services && value
-              ? services.find((service) => service._id === value)?.name
-              : "Seleccionar servicio..."}
+            {triggerLabel}
             <CaretUpDownIcon className="opacity-50" />
           </Button>
         }
@@ -60,15 +66,9 @@ export const ServicesDropdown: FC<ServicesDropdownProps> = ({ services }) => {
                 <CommandItem
                   key={service._id}
                   value={service._id}
-                  onSelect={(currentValue) => {
-                    setValue(currentValue === value ? "" : currentValue);
-                    setOpen(false);
-                    setServiceStore({
-                      service: {
-                        ...service,
-                      },
-                    });
-                  }}
+                  // The popover stays open so several services can be toggled
+                  // in one visit; it closes on outside click / escape.
+                  onSelect={() => toggleService(service)}
                 >
                   {service.name}
                   <span className="ml-auto text-muted-foreground text-xs">
@@ -77,7 +77,9 @@ export const ServicesDropdown: FC<ServicesDropdownProps> = ({ services }) => {
                   <CheckIcon
                     className={cn(
                       "size-3",
-                      value === service._id ? "opacity-100" : "opacity-0",
+                      selectedIds.has(service._id)
+                        ? "opacity-100"
+                        : "opacity-0",
                     )}
                   />
                 </CommandItem>

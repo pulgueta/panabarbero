@@ -69,8 +69,8 @@ interface CreateAppointmentFormProps {
   barberServices?: Service[] | null;
   onBarberChange?: (barber: BarbershopMemberWithName) => void;
   showPhoneField?: boolean;
-  /** The resolved service ID (from store or prop) used for slot generation. */
-  effectiveServiceId?: Service["_id"];
+  /** The resolved service IDs (from the store) used for slot generation. */
+  effectiveServiceIds: Service["_id"][];
   initialValues: Partial<
     Pick<
       AppointmentFormValues,
@@ -106,7 +106,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
   onBarberChange,
   formIds,
   showPhoneField = false,
-  effectiveServiceId,
+  effectiveServiceIds,
   initialValues,
   onSuccess,
 }) => {
@@ -149,14 +149,17 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
     onSubmit: async ({ value }) => {
       const { date, barbershopMemberId, contactPhone } = value;
 
+      // `selectedSlotTime` gates against a stale time-of-day: slot resets
+      // (barber/service change) clear it while `date` may keep the old hour.
       if (
         date === undefined ||
+        !selectedSlotTime ||
         !barbershopMemberId ||
-        !effectiveServiceId ||
+        effectiveServiceIds.length === 0 ||
         !contactPhone
       ) {
         haptic.trigger("error");
-        toast.error("Selecciona servicio, barbero, fecha y hora.");
+        toast.error("Selecciona al menos un servicio, barbero, fecha y hora.");
         return;
       }
 
@@ -178,7 +181,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
             notes: value.notes,
             barbershopId,
             barbershopMemberId,
-            serviceIds: [effectiveServiceId],
+            serviceIds: effectiveServiceIds,
             isStaffCreated: isBarber,
           },
         });
@@ -218,7 +221,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
   // Reset the chosen slot when the barber or service changes (date reset handled
   // in calendar onSelect). Render-phase adjustment instead of an effect, to
   // avoid an extra render showing the stale slot.
-  const slotKey = `${form.state.values.barbershopMemberId ?? ""}|${effectiveServiceId ?? ""}`;
+  const slotKey = `${form.state.values.barbershopMemberId ?? ""}|${effectiveServiceIds.join(",")}`;
   const [prevSlotKey, setPrevSlotKey] = useState(slotKey);
   if (slotKey !== prevSlotKey) {
     setPrevSlotKey(slotKey);
@@ -542,7 +545,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
               const canShowSlots = !!(
                 date &&
                 barbershopMemberId &&
-                effectiveServiceId
+                effectiveServiceIds.length > 0
               );
               // Normalize to midnight so slot selection (which sets hours)
               // doesn't change query params
@@ -568,7 +571,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                     barbershopMemberId={
                       barbershopMemberId as BarbershopMemberWithName["_id"]
                     }
-                    serviceIds={effectiveServiceId ? [effectiveServiceId] : []}
+                    serviceIds={effectiveServiceIds}
                     date={normalizedDate}
                     value={selectedSlotTime}
                     isPending={isPending}
