@@ -1,5 +1,6 @@
 import { ChatCircleIcon, CrownIcon } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
+import { ConvexError } from "convex/values";
 import type { ChangeEvent, FormEvent } from "react";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -30,6 +31,16 @@ import {
   useSendChatMessage,
 } from "@/hooks/use-chat";
 import { useSession } from "@/hooks/use-session";
+import { getConvexErrorMessage } from "@/lib/convex-errors";
+
+/** ConvexError → its `data` copy; other Errors → their message as-is. */
+function chatErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof ConvexError) {
+    return getConvexErrorMessage(error);
+  }
+
+  return error instanceof Error ? error.message : fallback;
+}
 
 const SUGGESTIONS = [
   "¿Qué barberías hay cerca?",
@@ -96,11 +107,7 @@ export function ChatView({ threadId, routeScope = "public" }: ChatViewProps) {
       try {
         await send(threadId, trimmed);
       } catch (error) {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "No se pudo enviar el mensaje.",
-        );
+        toast.error(chatErrorMessage(error, "No se pudo enviar el mensaje."));
       } finally {
         setIsSending(false);
       }
@@ -137,11 +144,7 @@ export function ChatView({ threadId, routeScope = "public" }: ChatViewProps) {
       try {
         await handleConfirm(proposal);
       } catch (error) {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "No se pudo completar la acción.",
-        );
+        toast.error(chatErrorMessage(error, "No se pudo completar la acción."));
         // Re-throw so the card resets its in-flight state and keeps the buttons.
         throw error;
       }
@@ -153,11 +156,7 @@ export function ChatView({ threadId, routeScope = "public" }: ChatViewProps) {
     try {
       await handleReject();
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "No se pudo cancelar la acción.",
-      );
+      toast.error(chatErrorMessage(error, "No se pudo cancelar la acción."));
       throw error;
     }
   }, [handleReject]);
