@@ -147,6 +147,7 @@ const ServicesDashboard: FC<ServicesDashboardProps> = ({
             name: dialog.row.name,
             price: dialog.row.price,
             duration: dialog.row.duration,
+            priceType: dialog.row.priceType ?? "fixed",
             barbershopId,
           }
         : undefined,

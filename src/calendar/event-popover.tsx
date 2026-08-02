@@ -1,44 +1,45 @@
+import type { Locale } from "date-fns";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import type { FC, ReactElement } from "react";
+import type { FC } from "react";
 
 import { CancelAppointmentDialog } from "@/components/appointments/cancel-appointment-dialog";
 import { DeleteAppointmentDialog } from "@/components/appointments/delete-appointment-dialog";
 import { MarkAppointmentDialog } from "@/components/appointments/mark-appointment-dialog";
 import { RescheduleRequestDialog } from "@/components/appointments/reschedule-request-dialog";
+import { toZoned } from "@/components/calendar/calendar-lib";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent } from "@/components/ui/popover";
 import { getAppointmentDataByStatus } from "@/lib/appointment-utils";
-import type { CalendarEvent } from "./types";
+
+import { CALENDAR_TIME_ZONE } from "./constants";
+import type { AppointmentCalendarEvent } from "./types";
 
 interface EventPopoverProps {
-  event: CalendarEvent;
-  /** Whether the current viewer is a barber (drives cancel-dialog copy). */
+  event: AppointmentCalendarEvent;
   isBarber: boolean;
-  /** The button that anchors the popover — an event chip or timed block. */
-  trigger: ReactElement;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  anchor: Element;
 }
 
-const timeRange = (start: number, end: number) =>
-  `${format(start, "HH:mm")}–${format(end, "HH:mm")}`;
+// The grid places events in Bogotá; format in the same zone so a viewer
+// abroad does not see a different day or hour than the one they clicked.
+const zonedFormat = (date: Date, pattern: string, locale?: Locale) =>
+  format(toZoned(date, CALENDAR_TIME_ZONE), pattern, { locale });
 
-/**
- * Glanceable detail for a booking, anchored to its calendar block. A popover
- * (not a modal) so it can safely launch the existing action dialogs without
- * the modal-opens-modal anti-pattern (DESIGN §9). Action gating mirrors the
- * table's `AppointmentActionsCell` so behaviour is identical across surfaces.
- */
+const timeRange = (start: Date, end: Date) =>
+  `${zonedFormat(start, "HH:mm")}–${zonedFormat(end, "HH:mm")}`;
+
 export const EventPopover: FC<EventPopoverProps> = ({
   event,
   isBarber,
-  trigger,
+  open,
+  onOpenChange,
+  anchor,
 }) => {
-  const { appointment } = event;
+  const { appointment, barberName, serviceName } = event.data;
   const status = appointment.status;
   const { label, variant } = getAppointmentDataByStatus(status);
 
@@ -56,16 +57,15 @@ export const EventPopover: FC<EventPopoverProps> = ({
   const needsMark = isPastDate && !hasSetStatus;
 
   return (
-    <Popover>
-      <PopoverTrigger render={trigger} />
-      <PopoverContent align="start" className="gap-3">
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <PopoverContent anchor={anchor} align="start" className="gap-3">
         <header className="space-y-1">
           <div className="flex items-start justify-between gap-2">
             <p className="font-medium text-sm leading-tight">{event.title}</p>
             <Badge variant={variant}>{label}</Badge>
           </div>
           <p className="text-muted-foreground text-xs capitalize">
-            {format(appointment.date, "EEEE d 'de' MMMM", { locale: es })}
+            {zonedFormat(new Date(appointment.date), "EEEE d 'de' MMMM", es)}
           </p>
         </header>
 
@@ -78,11 +78,11 @@ export const EventPopover: FC<EventPopoverProps> = ({
           </div>
           <div className="flex justify-between gap-2">
             <dt className="text-muted-foreground">Servicio</dt>
-            <dd className="text-right">{event.serviceName}</dd>
+            <dd className="text-right">{serviceName}</dd>
           </div>
           <div className="flex justify-between gap-2">
             <dt className="text-muted-foreground">Barbero</dt>
-            <dd className="text-right">{event.barberName}</dd>
+            <dd className="text-right">{barberName}</dd>
           </div>
           <div className="flex justify-between gap-2">
             <dt className="text-muted-foreground">Teléfono</dt>
@@ -116,7 +116,7 @@ export const EventPopover: FC<EventPopoverProps> = ({
 
             {needsMark ? (
               <MarkAppointmentDialog
-                appointmentId={appointment._id}
+                appointment={appointment}
                 trigger={
                   <Button variant="outline" size="sm" className="w-full">
                     Marcar cita

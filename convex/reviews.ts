@@ -21,6 +21,7 @@ import {
   reviewStarsNamespace,
 } from "./aggregates";
 import { track } from "./analytics";
+import { getAppointmentItems, itemsLabel } from "./appointmentItems";
 import { assertShopRole } from "./authz";
 import { errorMessages } from "./errors";
 import { getUserId } from "./identity";
@@ -165,8 +166,8 @@ export const create = zAuthMutation({
       throw new ConvexError(errorMessages.reviewAlreadyExists);
     }
 
-    const [service, profile] = await Promise.all([
-      ctx.db.get(appointment.serviceId),
+    const [items, profile] = await Promise.all([
+      getAppointmentItems(ctx, appointment),
       getProfileByUserId(ctx, userId),
     ]);
 
@@ -179,7 +180,7 @@ export const create = zAuthMutation({
       barbershopId: appointment.barbershopId,
       appointmentId: appointment._id,
       serviceId: appointment.serviceId,
-      serviceName: service?.name ?? "Servicio",
+      serviceName: itemsLabel(items),
       authorName: profile?.name ?? appointment.customerName,
     });
 
@@ -490,9 +491,9 @@ export const getReviewableAppointments = zAuthQuery({
         continue;
       }
 
-      const [barbershop, service] = await Promise.all([
+      const [barbershop, items] = await Promise.all([
         ctx.db.get(appointment.barbershopId),
-        ctx.db.get(appointment.serviceId),
+        getAppointmentItems(ctx, appointment),
       ]);
 
       if (!barbershop) {
@@ -505,7 +506,7 @@ export const getReviewableAppointments = zAuthQuery({
         barbershopUuid: barbershop.uuid,
         barbershopName: barbershop.name ?? "Barbería",
         logoKey: barbershop.logoKey,
-        serviceName: service?.name ?? "Servicio",
+        serviceName: itemsLabel(items),
         date: appointment.date,
       });
     }
@@ -564,11 +565,11 @@ export const getReviewableForBarbershop = zQuery({
         continue;
       }
 
-      const service = await ctx.db.get(appointment.serviceId);
+      const items = await getAppointmentItems(ctx, appointment);
 
       return {
         appointmentId: appointment._id,
-        serviceName: service?.name ?? "Servicio",
+        serviceName: itemsLabel(items),
         date: appointment.date,
       };
     }

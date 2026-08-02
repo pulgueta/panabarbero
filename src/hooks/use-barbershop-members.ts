@@ -99,6 +99,16 @@ export function useBarbersForService(serviceId: Service["_id"] | undefined) {
   );
 }
 
+/** Barbers assigned to ALL selected services (multi-service booking). */
+export function useBarbersForServices(serviceIds: Service["_id"][]) {
+  return useQuery(
+    convexQuery(
+      api.barbershopMemberServices.getBarbersForServices,
+      serviceIds.length > 0 ? { serviceIds } : "skip",
+    ),
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Barber schedule
 // ---------------------------------------------------------------------------

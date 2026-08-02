@@ -5,17 +5,19 @@ import { ConvexError } from "convex/values";
 import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
-import {
-  zAuthMutation,
-  zAuthQuery,
-  zInternalMutation,
-  zInternalQuery,
-  zQuery,
-} from ".";
+import { zAuthMutation, zInternalMutation, zInternalQuery, zQuery } from ".";
 import { internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
 import { assertCanCreateStaffAppointment } from "./acl";
 import { track } from "./analytics";
+import {
+  buildItems,
+  conflictDurationMinutes,
+  getAppointmentItems,
+  itemsLabel,
+  itemsTotal,
+  itemsTotalDuration,
+} from "./appointmentItems";
 import {
   assertCanMutateAppointment,
   assertShopRole,
@@ -31,7 +33,7 @@ import {
   reserveForAppointment,
 } from "./inventory";
 import { rateLimitOrThrow } from "./ratelimit";
-import type { Appointment, UserProfileData } from "./schema";
+import type { Appointment, Service, UserProfileData } from "./schema";
 import {
   appointments,
   barbershopMembers,
@@ -62,7 +64,9 @@ const dateTimeFormatter = new Intl.DateTimeFormat("es-CO", {
 const createAppointmentArgs = z.object({
   appointment: z.object({
     barbershopId: barbershops.tools.id.shape.id,
-    serviceId: services.tools.id.shape.id,
+    serviceIds: services.tools.id.shape.id
+      .array()
+      .min(1, "Selecciona al menos un servicio"),
     barbershopMemberId: barbershopMembers.tools.id.shape.id,
     date: z.number(),
     contactPhone: z.string(),
@@ -114,8 +118,16 @@ export const create = zAuthMutation({
       await assertCanCreateStaffAppointment(ctx, appointment.barbershopId);
     }
 
-    const [service, barber] = await Promise.all([
-      ctx.db.get(appointment.serviceId),
+    if (
+      new Set(appointment.serviceIds).size !== appointment.serviceIds.length
+    ) {
+      throw new ConvexError(errorMessages.duplicateAppointmentService);
+    }
+
+    const [loadedServices, barber] = await Promise.all([
+      Promise.all(
+        appointment.serviceIds.map((serviceId) => ctx.db.get(serviceId)),
+      ),
       ctx.db.get(appointment.barbershopMemberId),
     ]);
 
@@ -131,13 +143,44 @@ export const create = zAuthMutation({
       throw new ConvexError(errorMessages.notFound("barbero"));
     }
 
-    if (!service) {
-      throw new ConvexError(errorMessages.notFound("servicio"));
+    const selectedServices: Service[] = [];
+
+    for (const service of loadedServices) {
+      if (!service) {
+        throw new ConvexError(errorMessages.notFound("servicio"));
+      }
+
+      if (service.barbershopId !== appointment.barbershopId) {
+        throw new ConvexError(errorMessages.unauthorized);
+      }
+
+      selectedServices.push(service);
     }
 
-    if (service.barbershopId !== appointment.barbershopId) {
-      throw new ConvexError(errorMessages.unauthorized);
+    // The barber must actively offer every selected line — the UI barber
+    // filter is only an aid; assignments can change between selection and
+    // submit.
+    const assignments = await ctx.db
+      .query("barbershopMemberServices")
+      .withIndex("by_barbershopMemberId", (q) =>
+        q.eq("barbershopMemberId", appointment.barbershopMemberId),
+      )
+      .filter((q) => q.neq(q.field("isActive"), false))
+      .collect();
+    const assignedServiceIds = new Set(
+      assignments.map((assignment) => assignment.serviceId),
+    );
+
+    if (
+      !appointment.serviceIds.every((serviceId) =>
+        assignedServiceIds.has(serviceId),
+      )
+    ) {
+      throw new ConvexError(errorMessages.barberDoesNotOfferService);
     }
+
+    const items = buildItems(selectedServices);
+    const totalDuration = itemsTotalDuration(items);
 
     const barberProfile = await ctx.db.get(barber.userProfileDataId);
     let customerProfile: UserProfileData | null = null;
@@ -150,7 +193,7 @@ export const create = zAuthMutation({
       throw new ConvexError(errorMessages.notFound("perfil de barbero"));
     }
 
-    const endsAt = appointment.date + service.duration * MINUTE_MS;
+    const endsAt = appointment.date + totalDuration * MINUTE_MS;
 
     const startOfDay = new Date(appointment.date);
     startOfDay.setHours(0, 0, 0, 0);
@@ -180,14 +223,17 @@ export const create = zAuthMutation({
       )
       .collect();
 
+    // Legacy rows (no items) still size their width off the live service.
     const apptServices = await Promise.all(
-      candidates.map((appt) => ctx.db.get(appt.serviceId)),
+      candidates.map((appt) =>
+        appt.items && appt.items.length > 0 ? null : ctx.db.get(appt.serviceId),
+      ),
     );
 
     for (let i = 0; i < candidates.length; i++) {
       const appt = candidates[i];
-      const apptService = apptServices[i];
-      const apptEnd = appt.date + (apptService?.duration ?? 0) * MINUTE_MS;
+      const width = conflictDurationMinutes(appt, () => apptServices[i]);
+      const apptEnd = appt.date + width * MINUTE_MS;
       const overlaps = appt.date < endsAt && apptEnd > appointment.date;
 
       if (overlaps) {
@@ -218,7 +264,7 @@ export const create = zAuthMutation({
       throw new ConvexError(errorMessages.barbershopClosedOnSelectedDay);
     }
 
-    const endAt = appointment.date + service.duration * MINUTE_MS;
+    const endAt = appointment.date + totalDuration * MINUTE_MS;
 
     if (
       !withinOpenHours(
@@ -245,8 +291,11 @@ export const create = zAuthMutation({
     const appointmentUserId = isStaffCreatingAppointment
       ? (customerProfile?.userId ?? "user_does_not_exist")
       : userId;
-    const { isStaffCreated: _isStaffCreated, ...withoutIsStaffCreated } =
-      appointment;
+    const {
+      isStaffCreated: _isStaffCreated,
+      serviceIds: _serviceIds,
+      ...withoutIsStaffCreated
+    } = appointment;
 
     // Resolve creator member ID for staff-created appointments
     let createdByMemberId: typeof appointment.barbershopMemberId | undefined;
@@ -266,13 +315,15 @@ export const create = zAuthMutation({
       userId: appointmentUserId,
       status: "confirmed",
       createdBy: createdByMemberId,
+      serviceId: items[0].serviceId,
+      items,
     });
 
-    // Reserve the service's inventory recipe (never throws, plan-gated no-op).
+    // Reserve every line's inventory recipe (never throws, plan-gated no-op).
     await reserveForAppointment(ctx, {
       _id: appointmentId,
       barbershopId: appointment.barbershopId,
-      serviceId: appointment.serviceId,
+      serviceIds: appointment.serviceIds,
       userId: appointmentUserId,
     });
 
@@ -336,10 +387,12 @@ export const create = zAuthMutation({
         barbershopId: appointment.barbershopId,
         source: "web",
         isStaffCreated: isStaffCreatingAppointment,
-        serviceId: appointment.serviceId,
-        serviceName: service.name,
-        servicePrice: service.price,
-        durationMinutes: service.duration,
+        serviceId: items[0].serviceId,
+        serviceIds: appointment.serviceIds,
+        itemCount: items.length,
+        serviceName: itemsLabel(items),
+        servicePrice: itemsTotal(items),
+        durationMinutes: totalDuration,
         barberId: appointment.barbershopMemberId,
         customerType: contactEmail ? "registered" : "anonymous",
       },
@@ -377,21 +430,26 @@ export const getRescheduledRequests = zQuery({
   },
 });
 
-export const getByUserId = zAuthQuery({
+export const getByUserId = zQuery({
   args: z.object({
-    userId: z.string(),
+    userId: z.string().optional(),
     paginationOpts: convexToZod(paginationOptsValidator),
   }),
   handler: async (ctx, args) => {
-    const { userId } = ctx;
+    const userId = await getUserId(ctx);
 
-    if (!userId || args.userId !== userId) {
-      throw new ConvexError(errorMessages.unauthorized);
+    // Degrade (don't throw) while the websocket authenticates: this query
+    // re-subscribes before Convex auth lands on callback/full-page loads, and
+    // a throw here unmounts the whole profile route into its error boundary.
+    if (!userId || !args.userId || args.userId !== userId) {
+      return { page: [], isDone: true, continueCursor: "" };
     }
+
+    const targetUserId = args.userId;
 
     const result = await ctx.db
       .query("appointments")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q) => q.eq("userId", targetUserId))
       .order("desc")
       .paginate(args.paginationOpts);
 
@@ -460,6 +518,14 @@ export const getById = zQuery({
 export const setStatusSchema = z.object({
   appointment: appointments.tools.id,
   status: z.enum(["completed", "no-show", "cancelled"]),
+  /** Final agreed price per "starting" line — required to complete them. */
+  finalPrices: z
+    .object({
+      serviceId: services.tools.id.shape.id,
+      finalPrice: z.number(),
+    })
+    .array()
+    .optional(),
 });
 
 export const setStatus = zAuthMutation({
@@ -491,18 +557,11 @@ export const setStatus = zAuthMutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    const member = await getBarbershopMemberByUserId(
-      ctx,
-      appt.barbershopId,
-      userId,
-    );
-
-    if (
-      !member?.isActive ||
-      !memberHasAnyRole(member, ["owner", "barber", "staff"])
-    ) {
-      throw new ConvexError(errorMessages.unauthorized);
-    }
+    await assertShopRole(ctx, appt.barbershopId, userId, [
+      "owner",
+      "barber",
+      "staff",
+    ]);
 
     let updatedAppointment = null;
 
@@ -510,14 +569,53 @@ export const setStatus = zAuthMutation({
       case "completed": {
         await cancelScheduledNotifications(ctx, appt);
 
+        // Every "starting" line needs its agreed final price (≥ the minimum)
+        // to complete. Finals are snapshotted onto the row in the SAME
+        // transaction as the revenue aggregate write below, so they can never
+        // drift apart.
+        const items = await getAppointmentItems(ctx, appt);
+        const finalByService = new Map(
+          (args.finalPrices ?? []).map((entry) => [
+            entry.serviceId,
+            entry.finalPrice,
+          ]),
+        );
+
+        const itemsWithFinals = items.map((item) => {
+          if (item.priceType !== "starting") {
+            return item;
+          }
+
+          const finalPrice =
+            item.finalPrice ?? finalByService.get(item.serviceId);
+
+          if (finalPrice === undefined) {
+            throw new ConvexError(errorMessages.finalPriceRequired(item.name));
+          }
+
+          if (finalPrice < item.price) {
+            throw new ConvexError(
+              errorMessages.finalPriceBelowMinimum(item.name),
+            );
+          }
+
+          return { ...item, finalPrice };
+        });
+
         updatedAppointment = await ctx.db.patch(appointmentId, {
           status: "completed",
+          items: itemsWithFinals,
           upcomingNotificationId: undefined,
           pastReminderNotificationId: undefined,
         });
 
-        // Release the recipe holds and consume the stock the service used.
-        await consumeForAppointment(ctx, appt);
+        // Release the recipe holds and consume the stock the services used.
+        await consumeForAppointment(ctx, {
+          _id: appointmentId,
+          barbershopId: appt.barbershopId,
+          userId: appt.userId,
+          serviceIds: itemsWithFinals.map((item) => item.serviceId),
+        });
 
         await ctx.runMutation(
           internal.barbershopMetadata.incrementCompletedAppointments,
@@ -933,16 +1031,12 @@ export const answerRescheduleRequest = zAuthMutation({
         return;
       }
 
-      const service = await ctx.db.get(appt.serviceId);
-
-      if (!service) {
-        return;
-      }
+      const items = await getAppointmentItems(ctx, appt);
 
       const overlap = await ctx.runQuery(internal.appointments.overlaps, {
         appointment: args.appointment,
         date: appt.proposedDate,
-        endAt: appt.proposedDate + service.duration * MINUTE_MS,
+        endAt: appt.proposedDate + itemsTotalDuration(items) * MINUTE_MS,
       });
 
       if (overlap) {
@@ -1089,12 +1183,6 @@ export const overlaps = zInternalQuery({
       return;
     }
 
-    const service = await ctx.db.get(appointment.serviceId);
-
-    if (!service) {
-      return;
-    }
-
     const startOfDay = new Date(args.date);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(startOfDay);
@@ -1125,13 +1213,15 @@ export const overlaps = zInternalQuery({
     const activeCandidates = candidates.filter((appt) => !appt.deletedAt);
 
     const services = await Promise.all(
-      activeCandidates.map((appt) => ctx.db.get(appt.serviceId)),
+      activeCandidates.map((appt) =>
+        appt.items && appt.items.length > 0 ? null : ctx.db.get(appt.serviceId),
+      ),
     );
 
     for (let i = 0; i < activeCandidates.length; i++) {
       const appt = activeCandidates[i];
-      const svc = services[i];
-      const apptEnd = appt.date + (svc?.duration ?? 0) * MINUTE_MS;
+      const width = conflictDurationMinutes(appt, () => services[i]);
+      const apptEnd = appt.date + width * MINUTE_MS;
       const overlaps = appt.date < args.endAt && apptEnd > args.date;
       if (overlaps) return appt;
     }
@@ -1147,7 +1237,7 @@ export const overlaps = zInternalQuery({
 const SLOT_INTERVAL = 30; // minutes
 
 /**
- * Returns available 30-minute time slots for a given barber + date + service.
+ * Returns available 30-minute time slots for a given barber + date + services.
  *
  * Logic:
  * 1. Get effective schedule for the barber (custom or inherited from barbershop).
@@ -1162,14 +1252,35 @@ export const getAvailableSlots = zQuery({
   args: z.object({
     barbershopId: barbershops.tools.id.shape.id,
     barbershopMemberId: barbershopMembers.tools.id.shape.id,
-    serviceId: services.tools.id.shape.id,
+    serviceIds: services.tools.id.shape.id.array(),
     /** Midnight timestamp of the selected date (any time on that day works). */
     date: z.number(),
+    /**
+     * Snapshot width override (agent reschedule re-check) — skips the live
+     * service lookup so lines whose services were deleted can still move.
+     */
+    durationMinutes: z.number().optional(),
   }),
   handler: async (ctx, args) => {
-    const service = await ctx.db.get(args.serviceId);
+    // Requested width = Σ live durations, or the snapshot override.
+    let serviceDuration = args.durationMinutes ?? 0;
 
-    if (!service) {
+    if (args.durationMinutes === undefined) {
+      const loadedServices = await Promise.all(
+        args.serviceIds.map((serviceId) => ctx.db.get(serviceId)),
+      );
+
+      if (loadedServices.some((service) => !service)) {
+        return [];
+      }
+
+      serviceDuration = loadedServices.reduce(
+        (total, service) => total + (service?.duration ?? 0),
+        0,
+      );
+    }
+
+    if (serviceDuration <= 0) {
       return [];
     }
 
@@ -1207,8 +1318,6 @@ export const getAvailableSlots = zQuery({
       lunchEndMin !== null &&
       !Number.isNaN(lunchStartMin) &&
       !Number.isNaN(lunchEndMin);
-
-    const serviceDuration = service.duration; // in minutes
 
     // Generate candidate slots
     const slots: Array<{ time: string; minutes: number }> = [];
@@ -1277,8 +1386,9 @@ export const getAvailableSlots = zQuery({
     const occupied: Array<{ start: number; end: number }> = [];
 
     for (const appt of existingAppointments) {
-      const apptService = serviceMap.get(appt.serviceId.toString());
-      const apptDuration = apptService?.duration ?? 0;
+      const apptDuration = conflictDurationMinutes(appt, (serviceId) =>
+        serviceMap.get(serviceId.toString()),
+      );
       const apptStartMin = minutesOfDay(appt.date);
       const apptEndMin = apptStartMin + apptDuration;
       occupied.push({ start: apptStartMin, end: apptEndMin });
@@ -1312,7 +1422,9 @@ export const agentBook = zInternalMutation({
   args: z.object({
     userId: z.string(),
     barbershopId: barbershops.tools.id.shape.id,
-    serviceId: services.tools.id.shape.id,
+    serviceIds: services.tools.id.shape.id
+      .array()
+      .min(1, "Selecciona al menos un servicio"),
     barbershopMemberId: barbershopMembers.tools.id.shape.id,
     date: z.number(),
     customerName: z.string(),
@@ -1321,25 +1433,62 @@ export const agentBook = zInternalMutation({
     notes: z.string().optional(),
   }),
   handler: async (ctx, args) => {
-    const [service, barber, barbershop] = await Promise.all([
-      ctx.db.get(args.serviceId),
+    if (new Set(args.serviceIds).size !== args.serviceIds.length) {
+      throw new ConvexError(errorMessages.duplicateAppointmentService);
+    }
+
+    const [loadedServices, barber, barbershop] = await Promise.all([
+      Promise.all(args.serviceIds.map((serviceId) => ctx.db.get(serviceId))),
       ctx.db.get(args.barbershopMemberId),
       ctx.db.get(args.barbershopId),
     ]);
 
-    if (!barber) throw new ConvexError(errorMessages.notFound("barbero"));
-    if (!service) throw new ConvexError(errorMessages.notFound("servicio"));
+    if (!barber?.isActive)
+      throw new ConvexError(errorMessages.notFound("barbero"));
     if (!barbershop) throw new ConvexError(errorMessages.notFound("barbería"));
     if (barber.barbershopId !== args.barbershopId)
       throw new ConvexError(errorMessages.unauthorized);
     if (!barber.userProfileDataId)
       throw new ConvexError(errorMessages.notFound("barbero"));
 
+    const selectedServices: Service[] = [];
+
+    for (const service of loadedServices) {
+      if (!service) throw new ConvexError(errorMessages.notFound("servicio"));
+      if (service.barbershopId !== args.barbershopId)
+        throw new ConvexError(errorMessages.unauthorized);
+
+      selectedServices.push(service);
+    }
+
+    // The barber must actively offer every selected line — the UI barber
+    // filter is only an aid; assignments can change between selection and
+    // submit.
+    const assignments = await ctx.db
+      .query("barbershopMemberServices")
+      .withIndex("by_barbershopMemberId", (q) =>
+        q.eq("barbershopMemberId", args.barbershopMemberId),
+      )
+      .filter((q) => q.neq(q.field("isActive"), false))
+      .collect();
+    const assignedServiceIds = new Set(
+      assignments.map((assignment) => assignment.serviceId),
+    );
+
+    if (
+      !args.serviceIds.every((serviceId) => assignedServiceIds.has(serviceId))
+    ) {
+      throw new ConvexError(errorMessages.barberDoesNotOfferService);
+    }
+
+    const items = buildItems(selectedServices);
+    const totalDuration = itemsTotalDuration(items);
+
     const barberProfile = await ctx.db.get(barber.userProfileDataId);
     if (!barberProfile)
       throw new ConvexError(errorMessages.notFound("perfil de barbero"));
 
-    const endsAt = args.date + service.duration * MINUTE_MS;
+    const endsAt = args.date + totalDuration * MINUTE_MS;
 
     const startOfDay = new Date(args.date);
     startOfDay.setHours(0, 0, 0, 0);
@@ -1367,13 +1516,15 @@ export const agentBook = zInternalMutation({
       .collect();
 
     const candidateServices = await Promise.all(
-      candidates.map((appt) => ctx.db.get(appt.serviceId)),
+      candidates.map((appt) =>
+        appt.items && appt.items.length > 0 ? null : ctx.db.get(appt.serviceId),
+      ),
     );
 
     for (let i = 0; i < candidates.length; i++) {
       const appt = candidates[i];
-      const apptService = candidateServices[i];
-      const apptEnd = appt.date + (apptService?.duration ?? 0) * MINUTE_MS;
+      const width = conflictDurationMinutes(appt, () => candidateServices[i]);
+      const apptEnd = appt.date + width * MINUTE_MS;
       if (appt.date < endsAt && apptEnd > args.date) {
         throw new ConvexError(errorMessages.appointmentOverlaps);
       }
@@ -1382,7 +1533,8 @@ export const agentBook = zInternalMutation({
     const appointmentId = await ctx.db.insert("appointments", {
       userId: args.userId,
       barbershopId: args.barbershopId,
-      serviceId: args.serviceId,
+      serviceId: items[0].serviceId,
+      items,
       barbershopMemberId: args.barbershopMemberId,
       date: args.date,
       customerName: args.customerName,
@@ -1396,7 +1548,7 @@ export const agentBook = zInternalMutation({
     await reserveForAppointment(ctx, {
       _id: appointmentId,
       barbershopId: args.barbershopId,
-      serviceId: args.serviceId,
+      serviceIds: args.serviceIds,
       userId: args.userId,
     });
 
@@ -1433,10 +1585,12 @@ export const agentBook = zInternalMutation({
         appointmentId,
         barbershopId: args.barbershopId,
         source: "agent",
-        serviceId: args.serviceId,
-        serviceName: service.name,
-        servicePrice: service.price,
-        durationMinutes: service.duration,
+        serviceId: items[0].serviceId,
+        serviceIds: args.serviceIds,
+        itemCount: items.length,
+        serviceName: itemsLabel(items),
+        servicePrice: itemsTotal(items),
+        durationMinutes: totalDuration,
         barberId: args.barbershopMemberId,
       },
       groups: { barbershop: args.barbershopId },

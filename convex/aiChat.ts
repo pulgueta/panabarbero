@@ -216,7 +216,9 @@ const scheduleDayArg = z.object({
 
 const bookArgs = z.object({
   barbershopId: z.string(),
-  serviceId: z.string(),
+  /** Pre-deploy proposals carry a single `serviceId`; new ones `serviceIds`. */
+  serviceId: z.string().optional(),
+  serviceIds: z.string().array().optional(),
   barbershopMemberId: z.string(),
   date: z.number(),
   customerName: z.string(),
@@ -245,6 +247,14 @@ const confirmActionArgs = z.discriminatedUnion("action", [
       appointmentId: z.string(),
       status: z.enum(["completed", "no-show", "cancelled"]),
       reason: z.string().optional(),
+      /** Final agreed price per "desde" line, collected on the proposal card. */
+      finalPrices: z
+        .object({
+          serviceId: z.string(),
+          finalPrice: z.number(),
+        })
+        .array()
+        .optional(),
     }),
   }),
   z.object({
@@ -261,6 +271,7 @@ const confirmActionArgs = z.discriminatedUnion("action", [
       barbershopId: z.string(),
       name: z.string(),
       price: z.number(),
+      priceType: z.enum(["fixed", "starting"]).optional(),
       durationMinutes: z.number(),
     }),
   }),
@@ -271,6 +282,7 @@ const confirmActionArgs = z.discriminatedUnion("action", [
       serviceId: z.string(),
       name: z.string().optional(),
       price: z.number().optional(),
+      priceType: z.enum(["fixed", "starting"]).optional(),
       durationMinutes: z.number().optional(),
     }),
   }),
@@ -301,6 +313,16 @@ const confirmActionArgs = z.discriminatedUnion("action", [
   }),
 ]);
 
+/** Tolerates proposals minted before the multi-service deploy. */
+const bookServiceIds = (args: {
+  serviceIds?: string[];
+  serviceId?: string;
+}): Service["_id"][] => {
+  const ids = args.serviceIds ?? (args.serviceId ? [args.serviceId] : []);
+
+  return ids as Service["_id"][];
+};
+
 const requireAuthed = (isAnon: boolean) => {
   if (isAnon) {
     throw new ConvexError(
@@ -329,7 +351,7 @@ export const confirmPendingAction = zAction({
         await ctx.runMutation(internal.appointments.agentBook, {
           userId: callerId,
           barbershopId: a.barbershopId as Barbershop["_id"],
-          serviceId: a.serviceId as Service["_id"],
+          serviceIds: bookServiceIds(a),
           barbershopMemberId: a.barbershopMemberId as BarbershopMember["_id"],
           date: a.date,
           customerName: a.customerName,
@@ -348,7 +370,7 @@ export const confirmPendingAction = zAction({
         await ctx.runMutation(api.appointments.create, {
           appointment: {
             barbershopId: a.barbershopId as Barbershop["_id"],
-            serviceId: a.serviceId as Service["_id"],
+            serviceIds: bookServiceIds(a),
             barbershopMemberId: a.barbershopMemberId as BarbershopMember["_id"],
             date: a.date,
             customerName: a.customerName,
@@ -410,9 +432,15 @@ export const confirmPendingAction = zAction({
           });
           summary = "Listo, cancelé la cita y el cliente queda avisado.";
         } else {
+          // `setStatus` re-validates the finals (required per "desde" line,
+          // never below the minimum), so forged card args can't undercut it.
           await ctx.runMutation(api.appointments.setStatus, {
             appointment: { id: a.appointmentId as Appointment["_id"] },
             status: a.status,
+            finalPrices: a.finalPrices?.map((entry) => ({
+              serviceId: entry.serviceId as Service["_id"],
+              finalPrice: entry.finalPrice,
+            })),
           });
           summary =
             a.status === "completed"
@@ -445,6 +473,7 @@ export const confirmPendingAction = zAction({
         await ctx.runMutation(api.services.create, {
           name: a.name,
           price: a.price,
+          priceType: a.priceType,
           duration: a.durationMinutes,
           barbershopId: a.barbershopId as Barbershop["_id"],
         });
@@ -457,11 +486,13 @@ export const confirmPendingAction = zAction({
         const data: {
           name?: string;
           price?: number;
+          priceType?: "fixed" | "starting";
           duration?: number;
           barbershopId: Barbershop["_id"];
         } = { barbershopId: a.barbershopId as Barbershop["_id"] };
         if (a.name !== undefined) data.name = a.name;
         if (a.price !== undefined) data.price = a.price;
+        if (a.priceType !== undefined) data.priceType = a.priceType;
         if (a.durationMinutes !== undefined) data.duration = a.durationMinutes;
         await ctx.runMutation(api.services.update, {
           id: a.serviceId as Service["_id"],

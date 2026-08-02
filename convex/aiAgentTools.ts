@@ -2,6 +2,9 @@ import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 
 import { api, internal } from "./_generated/api";
+import { formatServicePriceLabel } from "./aiAgentHelpers";
+import { itemsLabel, startingLinesMissingFinal } from "./appointmentItems";
+import { errorMessages } from "./errors";
 import type {
   Appointment,
   Barbershop,
@@ -76,6 +79,8 @@ type MyBarbershopData =
         serviceId: string;
         name: string;
         price: number;
+        priceType: "fixed" | "starting";
+        priceFormatted: string;
         durationMinutes: number;
       }>;
       barbers: Array<{
@@ -114,7 +119,7 @@ const bookProposal = z.object({
   summary: z.string(),
   args: z.object({
     barbershopId: z.string(),
-    serviceId: z.string(),
+    serviceIds: z.string().array(),
     barbershopMemberId: z.string(),
     date: z.number(),
     customerName: z.string(),
@@ -152,7 +157,7 @@ const staffBookProposal = z.object({
   summary: z.string(),
   args: z.object({
     barbershopId: z.string(),
-    serviceId: z.string(),
+    serviceIds: z.string().array(),
     barbershopMemberId: z.string(),
     date: z.number(),
     customerName: z.string(),
@@ -171,6 +176,18 @@ const manageAppointmentProposal = z.object({
     appointmentId: z.string(),
     status: z.enum(["completed", "no-show", "cancelled"]),
     reason: z.string().optional(),
+    /**
+     * "Desde" lines still missing their agreed final price. The proposal card
+     * renders one input per line and sends the values back as `finalPrices`.
+     */
+    startingLines: z
+      .object({
+        serviceId: z.string(),
+        name: z.string(),
+        minimumPrice: z.number(),
+      })
+      .array()
+      .optional(),
   }),
 });
 
@@ -194,6 +211,7 @@ const createServiceProposal = z.object({
     barbershopId: z.string(),
     name: z.string(),
     price: z.number(),
+    priceType: z.enum(["fixed", "starting"]).optional(),
     durationMinutes: z.number(),
   }),
 });
@@ -207,6 +225,7 @@ const updateServiceProposal = z.object({
     serviceId: z.string(),
     name: z.string().optional(),
     price: z.number().optional(),
+    priceType: z.enum(["fixed", "starting"]).optional(),
     durationMinutes: z.number().optional(),
   }),
 });
@@ -298,6 +317,31 @@ const formatDateOnly = (ms: number): string =>
 
 const formatPrice = (cop: number): string => priceFormatter.format(cop);
 
+/** "Corte $20.000" / "Barba desde $15.000" — per-line proposal detail. */
+const serviceLineLabel = (service: ServiceDoc): string =>
+  service.priceType === "starting"
+    ? `${service.name} desde ${formatPrice(service.price)}`
+    : `${service.name} ${formatPrice(service.price)}`;
+
+/** Joined names + total ("desde"-prefixed when any line is starting). */
+const servicesSummary = (selected: ServiceDoc[]) => {
+  const total = selected.reduce((sum, service) => sum + service.price, 0);
+  const hasStarting = selected.some(
+    (service) => service.priceType === "starting",
+  );
+
+  return {
+    label: selected.map((service) => service.name).join(" + "),
+    totalLabel: hasStarting
+      ? `desde ${formatPrice(total)}`
+      : formatPrice(total),
+    detail:
+      selected.length > 1
+        ? ` (${selected.map(serviceLineLabel).join(" + ")})`
+        : "",
+  };
+};
+
 // ---------------------------------------------------------------------------
 // READ TOOLS
 // ---------------------------------------------------------------------------
@@ -371,7 +415,8 @@ const getBarbershopDetails = createTool({
         serviceId: s._id,
         name: s.name,
         price: s.price,
-        priceFormatted: formatPrice(s.price),
+        priceType: s.priceType ?? "fixed",
+        priceFormatted: formatServicePriceLabel(s),
         durationMinutes: s.duration,
       })),
     };
@@ -380,16 +425,18 @@ const getBarbershopDetails = createTool({
 
 const listBarbersForService = createTool({
   description:
-    "Lista los barberos que ofrecen un servicio específico. Necesario antes de proponer una reserva: el `barbershopMemberId` se obtiene aquí.",
+    "Lista los barberos que ofrecen TODOS los servicios seleccionados. Necesario antes de proponer una reserva: el `barbershopMemberId` se obtiene aquí.",
   inputSchema: z.object({
-    serviceId: z
+    serviceIds: z
       .string()
-      .describe("Id del servicio (de `getBarbershopDetails`)"),
+      .array()
+      .min(1)
+      .describe("Ids de los servicios (de `getBarbershopDetails`)"),
   }),
   execute: async (ctx, input) => {
     const barbers = (await ctx.runQuery(
-      api.barbershopMemberServices.getBarbersForService,
-      { id: input.serviceId as Service["_id"] },
+      api.barbershopMemberServices.getBarbersForServices,
+      { serviceIds: input.serviceIds as Service["_id"][] },
     )) as (BarberWithName | null)[];
 
     return barbers.flatMap((b) =>
@@ -400,7 +447,7 @@ const listBarbersForService = createTool({
 
 const getAvailability = createTool({
   description:
-    "Devuelve los horarios disponibles (en formato HH:MM) para reservar con un barbero, en una fecha y un servicio determinados. Úsala SIEMPRE antes de proponer una reserva.",
+    "Devuelve los horarios disponibles (en formato HH:MM) para reservar con un barbero, en una fecha y uno o varios servicios (la cita ocupa la suma de sus duraciones). Úsala SIEMPRE antes de proponer una reserva.",
   inputSchema: z.object({
     barbershopId: z.string().describe("Id interno de la barbería"),
     barbershopMemberId: z
@@ -408,7 +455,7 @@ const getAvailability = createTool({
       .describe(
         "Id del barbero (de `listBarbersForService` o `getMyBarbershop`)",
       ),
-    serviceId: z.string().describe("Id del servicio"),
+    serviceIds: z.string().array().min(1).describe("Ids de los servicios"),
     date: dateField.describe(DATE_DESC),
   }),
   execute: async (ctx, input) => {
@@ -417,7 +464,7 @@ const getAvailability = createTool({
     const slots = (await ctx.runQuery(api.appointments.getAvailableSlots, {
       barbershopId: input.barbershopId as Barbershop["_id"],
       barbershopMemberId: input.barbershopMemberId as BarbershopMember["_id"],
-      serviceId: input.serviceId as Service["_id"],
+      serviceIds: input.serviceIds as Service["_id"][],
       date: dateMs,
     })) as Slot[];
 
@@ -469,13 +516,17 @@ const getMyAppointments = createTool({
     const sliced = filtered.slice(0, 10);
     const enrichedData = await Promise.all(
       sliced.map(async (appt) => {
-        const [shop, service, members] = await Promise.all([
+        // Snapshot lines are canonical; the live service only labels legacy
+        // rows (a renamed/deleted service must not rewrite past bookings).
+        const [shop, legacyService, members] = await Promise.all([
           ctx.runQuery(internal.aiAgentHelpers.getBarbershop, {
             id: appt.barbershopId,
           }) as Promise<BarbershopDoc | null>,
-          ctx.runQuery(api.services.getById, {
-            id: appt.serviceId,
-          }) as Promise<ServiceDoc | null>,
+          appt.items?.length
+            ? Promise.resolve(null)
+            : (ctx.runQuery(api.services.getById, {
+                id: appt.serviceId,
+              }) as Promise<ServiceDoc | null>),
           ctx.runQuery(internal.aiAgentHelpers.getMembersByBarbershopId, {
             id: appt.barbershopId,
           }) as Promise<BarberWithName[]>,
@@ -488,7 +539,9 @@ const getMyAppointments = createTool({
         return {
           appointmentId: appt._id,
           barbershop: shop?.name ?? "",
-          service: service?.name ?? "",
+          service: appt.items?.length
+            ? itemsLabel(appt.items)
+            : (legacyService?.name ?? ""),
           barber: barber?.name ?? "",
           when: formatDate(appt.date),
           status: appt.status,
@@ -573,7 +626,10 @@ const getMyAgenda = createTool({
 
     const sliced = relevant.slice(0, 10);
 
-    const serviceIds = [...new Set(sliced.map((a) => a.serviceId))];
+    // Live lookups only label legacy rows; item-carrying rows use snapshots.
+    const serviceIds = [
+      ...new Set(sliced.flatMap((a) => (a.items?.length ? [] : [a.serviceId]))),
+    ];
     const serviceDocs = (await Promise.all(
       serviceIds.map((id) => ctx.runQuery(api.services.getById, { id })),
     )) as (ServiceDoc | null)[];
@@ -588,7 +644,9 @@ const getMyAgenda = createTool({
       count: sliced.length,
       appointments: sliced.map((a) => ({
         customerName: a.customerName,
-        service: serviceNames.get(a.serviceId) ?? "",
+        service: a.items?.length
+          ? itemsLabel(a.items)
+          : (serviceNames.get(a.serviceId) ?? ""),
         when: formatDate(a.date),
         status: a.status,
         rescheduleProposedWhen:
@@ -726,7 +784,11 @@ const proposeBooking = createTool({
     "Prepara una propuesta de reserva. NO crea la cita: devuelve un resumen y los argumentos para que el usuario confirme en la interfaz. SIEMPRE valida disponibilidad con `getAvailability` antes de llamar a esta herramienta.",
   inputSchema: z.object({
     barbershopId: z.string().describe("Id interno de la barbería"),
-    serviceId: z.string().describe("Id del servicio"),
+    serviceIds: z
+      .string()
+      .array()
+      .min(1)
+      .describe("Ids de los servicios (uno o varios, en el orden pedido)"),
     barbershopMemberId: z.string().describe("Id del barbero"),
     date: dateField.describe(DATE_DESC),
     time: timeField.describe(TIME_DESC),
@@ -743,22 +805,35 @@ const proposeBooking = createTool({
     notes: z.string().optional(),
   }),
   execute: async (ctx, input): Promise<Proposal> => {
+    if (new Set(input.serviceIds).size !== input.serviceIds.length) {
+      throw new Error(errorMessages.duplicateAppointmentService);
+    }
+
     const dateMs = colombiaDateTimeToMs(input.date, input.time);
 
-    const [shop, service, members] = await Promise.all([
+    const [shop, loadedServices, members] = await Promise.all([
       ctx.runQuery(internal.aiAgentHelpers.getBarbershop, {
         id: input.barbershopId,
       }) as Promise<BarbershopDoc | null>,
-      ctx.runQuery(api.services.getById, {
-        id: input.serviceId as Service["_id"],
-      }) as Promise<ServiceDoc | null>,
+      ctx.runQuery(api.services.getByIds, {
+        serviceIds: input.serviceIds.map((serviceId) => ({
+          id: serviceId as Service["_id"],
+        })),
+      }) as Promise<(ServiceDoc | null)[]>,
       ctx.runQuery(internal.aiAgentHelpers.getMembersByBarbershopId, {
         id: input.barbershopId as Barbershop["_id"],
       }) as Promise<BarberWithName[]>,
     ]);
 
     if (!shop) throw new Error("Esa barbería no existe.");
-    if (!service) throw new Error("Ese servicio no existe.");
+
+    const selectedServices = loadedServices.filter(
+      (service): service is ServiceDoc => !!service,
+    );
+
+    if (selectedServices.length !== input.serviceIds.length) {
+      throw new Error("Alguno de esos servicios no existe.");
+    }
 
     const barber = members.find(
       (m: BarberWithName) =>
@@ -770,7 +845,7 @@ const proposeBooking = createTool({
     const slots = (await ctx.runQuery(api.appointments.getAvailableSlots, {
       barbershopId: shop._id,
       barbershopMemberId: barber._id,
-      serviceId: service._id,
+      serviceIds: selectedServices.map((service) => service._id),
       date: dateMs,
     })) as Slot[];
 
@@ -782,13 +857,15 @@ const proposeBooking = createTool({
       );
     }
 
+    const summary = servicesSummary(selectedServices);
+
     return {
       kind: proposalKind,
       action: "book",
-      summary: `Reservar ${service.name} con ${barber.name} en ${shop.name} el ${formatDate(dateMs)} por ${formatPrice(service.price)}.`,
+      summary: `Reservar ${summary.label} con ${barber.name} en ${shop.name} el ${formatDate(dateMs)} por ${summary.totalLabel}${summary.detail}.`,
       args: {
         barbershopId: shop._id,
-        serviceId: service._id,
+        serviceIds: selectedServices.map((service) => service._id),
         barbershopMemberId: barber._id,
         date: dateMs,
         customerName: input.customerName,
@@ -829,15 +906,20 @@ const proposeCancellation = createTool({
       ctx.runQuery(internal.aiAgentHelpers.getBarbershop, {
         id: appt.barbershopId,
       }) as Promise<BarbershopDoc | null>,
-      ctx.runQuery(api.services.getById, {
-        id: appt.serviceId,
-      }) as Promise<ServiceDoc | null>,
+      appt.items?.length
+        ? Promise.resolve(null)
+        : (ctx.runQuery(api.services.getById, {
+            id: appt.serviceId,
+          }) as Promise<ServiceDoc | null>),
     ]);
+    const serviceLabel = appt.items?.length
+      ? itemsLabel(appt.items)
+      : (service?.name ?? "servicio");
 
     return {
       kind: proposalKind,
       action: "cancel",
-      summary: `Cancelar tu cita de ${service?.name ?? "servicio"} en ${shop?.name ?? "la barbería"} programada para el ${formatDate(appt.date)}.`,
+      summary: `Cancelar tu cita de ${serviceLabel} en ${shop?.name ?? "la barbería"} programada para el ${formatDate(appt.date)}.`,
       args: {
         appointmentId: appt._id,
         reason: input.reason,
@@ -875,10 +957,16 @@ const proposeReschedule = createTool({
       throw new Error("La nueva fecha debe ser en el futuro.");
     }
 
+    // Snapshot lines drive the width (durationMinutes) so the re-check works
+    // even if a line's service was edited or deleted after booking.
     const slots = (await ctx.runQuery(api.appointments.getAvailableSlots, {
       barbershopId: appt.barbershopId,
       barbershopMemberId: appt.barbershopMemberId,
-      serviceId: appt.serviceId,
+      serviceIds: appt.items?.map((line) => line.serviceId) ?? [appt.serviceId],
+      durationMinutes: appt.items?.reduce(
+        (total, line) => total + line.duration,
+        0,
+      ),
       date: newDateMs,
     })) as Slot[];
 
@@ -941,7 +1029,11 @@ const proposeStaffBooking = createTool({
   description:
     "Prepara una reserva que un miembro del equipo (barbero o recepcionista) hace POR un cliente de la barbería, asignándola a un barbero. NO crea la cita; devuelve una tarjeta de confirmación. Valida disponibilidad con getAvailability antes. Si quien escribe es barbero y atenderá él mismo, usa su propio `myMemberId` como barbershopMemberId. Requiere sesión y un plan que permita crear citas por clientes.",
   inputSchema: z.object({
-    serviceId: z.string().describe("Id del servicio (de getMyBarbershop)"),
+    serviceIds: z
+      .string()
+      .array()
+      .min(1)
+      .describe("Ids de los servicios (de getMyBarbershop, uno o varios)"),
     barbershopMemberId: z
       .string()
       .describe("Id del barbero que atenderá (de getMyBarbershop)"),
@@ -982,19 +1074,31 @@ const proposeStaffBooking = createTool({
       );
     }
 
+    if (new Set(input.serviceIds).size !== input.serviceIds.length) {
+      throw new Error(errorMessages.duplicateAppointmentService);
+    }
+
     const dateMs = colombiaDateTimeToMs(input.date, input.time);
     const barbershopId = actor.barbershopId as Barbershop["_id"];
 
-    const [service, members] = await Promise.all([
-      ctx.runQuery(api.services.getById, {
-        id: input.serviceId as Service["_id"],
-      }) as Promise<ServiceDoc | null>,
+    const [loadedServices, members] = await Promise.all([
+      ctx.runQuery(api.services.getByIds, {
+        serviceIds: input.serviceIds.map((serviceId) => ({
+          id: serviceId as Service["_id"],
+        })),
+      }) as Promise<(ServiceDoc | null)[]>,
       ctx.runQuery(internal.aiAgentHelpers.getMembersByBarbershopId, {
         id: barbershopId,
       }) as Promise<BarberWithName[]>,
     ]);
 
-    if (!service) throw new Error("Ese servicio no existe.");
+    const selectedServices = loadedServices.filter(
+      (service): service is ServiceDoc => !!service,
+    );
+
+    if (selectedServices.length !== input.serviceIds.length) {
+      throw new Error("Alguno de esos servicios no existe.");
+    }
 
     const barber = members.find(
       (m) => m._id === (input.barbershopMemberId as BarbershopMember["_id"]),
@@ -1005,7 +1109,7 @@ const proposeStaffBooking = createTool({
     const slots = (await ctx.runQuery(api.appointments.getAvailableSlots, {
       barbershopId,
       barbershopMemberId: barber._id,
-      serviceId: service._id,
+      serviceIds: selectedServices.map((service) => service._id),
       date: dateMs,
     })) as Slot[];
 
@@ -1017,13 +1121,15 @@ const proposeStaffBooking = createTool({
       );
     }
 
+    const summary = servicesSummary(selectedServices);
+
     return {
       kind: proposalKind,
       action: "staffBook",
-      summary: `Agendar ${service.name} para ${input.customerName} con ${barber.name} el ${formatDate(dateMs)} (${formatPrice(service.price)}).`,
+      summary: `Agendar ${summary.label} para ${input.customerName} con ${barber.name} el ${formatDate(dateMs)} (${summary.totalLabel}${summary.detail}).`,
       args: {
         barbershopId: barbershopId as string,
-        serviceId: service._id,
+        serviceIds: selectedServices.map((service) => service._id),
         barbershopMemberId: barber._id,
         date: dateMs,
         customerName: input.customerName,
@@ -1073,20 +1179,40 @@ const proposeManageAppointment = createTool({
       throw new Error("Necesito un motivo breve para cancelar la cita.");
     }
 
+    // Completing "desde"-priced lines needs the agreed final prices: surface
+    // them on the card, which collects one final price per pending line.
+    const missingFinals =
+      input.status === "completed"
+        ? startingLinesMissingFinal(appt.items ?? [])
+        : [];
+    const startingLines =
+      missingFinals.length > 0
+        ? missingFinals.map((line) => ({
+            serviceId: line.serviceId,
+            name: line.name,
+            minimumPrice: line.price,
+          }))
+        : undefined;
+
     const labels = {
       completed: "completada",
       "no-show": "no asistió",
       cancelled: "cancelada",
     } as const;
 
+    const summary = `Marcar la cita de ${appt.customerName} (${formatDate(appt.date)}) como ${labels[input.status]}.`;
+
     return {
       kind: proposalKind,
       action: "manageAppointment",
-      summary: `Marcar la cita de ${appt.customerName} (${formatDate(appt.date)}) como ${labels[input.status]}.`,
+      summary: startingLines
+        ? `${summary} Ingresa el precio final acordado de cada servicio con precio "desde".`
+        : summary,
       args: {
         appointmentId: appt._id,
         status: input.status,
         reason: input.reason,
+        startingLines,
       },
     };
   },
@@ -1155,6 +1281,12 @@ const proposeCreateService = createTool({
       .number()
       .min(1000)
       .describe("Precio en pesos colombianos (COP), p. ej. 25000"),
+    priceType: z
+      .enum(["fixed", "starting"])
+      .optional()
+      .describe(
+        "'starting' si el precio es 'desde' (mínimo); 'fixed' si es exacto",
+      ),
     durationMinutes: z.number().min(5).max(480),
   }),
   execute: async (ctx, input): Promise<Proposal> => {
@@ -1172,11 +1304,12 @@ const proposeCreateService = createTool({
     return {
       kind: proposalKind,
       action: "createService",
-      summary: `Crear el servicio "${input.name}" por ${formatPrice(input.price)} (${input.durationMinutes} min).`,
+      summary: `Crear el servicio "${input.name}" ${input.priceType === "starting" ? "desde" : "por"} ${formatPrice(input.price)} (${input.durationMinutes} min).`,
       args: {
         barbershopId: actor.barbershopId as string,
         name: input.name,
         price: input.price,
+        priceType: input.priceType,
         durationMinutes: input.durationMinutes,
       },
     };
@@ -1185,11 +1318,17 @@ const proposeCreateService = createTool({
 
 const proposeUpdateService = createTool({
   description:
-    "Prepara la edición de un servicio (nombre, precio y/o duración — manda solo lo que cambia). NO lo edita; devuelve una tarjeta de confirmación. Solo dueño o recepcionista. Pásale el serviceId de getMyBarbershop.",
+    "Prepara la edición de un servicio (nombre, precio, tipo de precio y/o duración — manda solo lo que cambia). NO lo edita; devuelve una tarjeta de confirmación. Solo dueño o recepcionista. Pásale el serviceId de getMyBarbershop.",
   inputSchema: z.object({
     serviceId: z.string(),
     name: z.string().min(3).optional(),
     price: z.number().min(1000).optional(),
+    priceType: z
+      .enum(["fixed", "starting"])
+      .optional()
+      .describe(
+        "'starting' si el precio es 'desde' (mínimo); 'fixed' si es exacto",
+      ),
     durationMinutes: z.number().min(5).max(480).optional(),
   }),
   execute: async (ctx, input): Promise<Proposal> => {
@@ -1217,15 +1356,22 @@ const proposeUpdateService = createTool({
     if (
       input.name === undefined &&
       input.price === undefined &&
+      input.priceType === undefined &&
       input.durationMinutes === undefined
     ) {
-      throw new Error("Dime qué quieres cambiar: nombre, precio o duración.");
+      throw new Error(
+        "Dime qué quieres cambiar: nombre, precio, tipo de precio o duración.",
+      );
     }
 
     const parts: string[] = [];
     if (input.name !== undefined) parts.push(`nombre a "${input.name}"`);
     if (input.price !== undefined)
       parts.push(`precio a ${formatPrice(input.price)}`);
+    if (input.priceType !== undefined)
+      parts.push(
+        `tipo de precio a ${input.priceType === "starting" ? '"desde"' : "fijo"}`,
+      );
     if (input.durationMinutes !== undefined)
       parts.push(`duración a ${input.durationMinutes} min`);
 
@@ -1238,6 +1384,7 @@ const proposeUpdateService = createTool({
         serviceId: service._id,
         name: input.name,
         price: input.price,
+        priceType: input.priceType,
         durationMinutes: input.durationMinutes,
       },
     };
@@ -1273,11 +1420,23 @@ const proposeDeleteService = createTool({
     const impacted = (await ctx.runQuery(
       internal.aiAgentHelpers.countImpactedByService,
       { serviceId: service._id },
-    )) as number;
+    )) as { willCancel: number; willUpdate: number };
+
+    const effects: string[] = [];
+
+    if (impacted.willCancel > 0) {
+      effects.push(`cancelará ${impacted.willCancel} cita(s) futura(s)`);
+    }
+
+    if (impacted.willUpdate > 0) {
+      effects.push(
+        `quitará el servicio de ${impacted.willUpdate} cita(s) que tienen más servicios`,
+      );
+    }
 
     const warn =
-      impacted > 0
-        ? ` Esto cancelará ${impacted} cita(s) futura(s) y se avisará a esos clientes.`
+      effects.length > 0
+        ? ` Esto ${effects.join(" y ")}; se avisará a esos clientes.`
         : "";
 
     return {

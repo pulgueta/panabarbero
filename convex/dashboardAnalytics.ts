@@ -13,6 +13,7 @@ import { z } from "zod";
 
 import { zAuthQuery } from ".";
 import { completedAppointmentsAggregate } from "./aggregates";
+import { itemsTotal, normalizeItems } from "./appointmentItems";
 import { assertShopRole } from "./authz";
 import type { BarbershopMember, Service } from "./schema";
 import { barbershops } from "./schema";
@@ -156,35 +157,36 @@ export const getOperationsBreakdown = zAuthQuery({
       }
 
       const liveService = serviceById.get(appointment.serviceId);
-      const price =
-        appointment.completedServicePrice ?? liveService?.price ?? 0;
-      const serviceName =
-        appointment.completedServiceName ?? liveService?.name ?? "Servicio";
+      const items = normalizeItems(appointment, liveService);
+      const rowTotal = itemsTotal(items);
 
       totals.completed += 1;
-      totals.revenue += price;
+      totals.revenue += rowTotal;
 
       const barber = perBarber.get(appointment.barbershopMemberId) ?? {
         completed: 0,
         revenue: 0,
       };
       barber.completed += 1;
-      barber.revenue += price;
+      barber.revenue += rowTotal;
       perBarber.set(appointment.barbershopMemberId, barber);
 
-      const service = perService.get(appointment.serviceId) ?? {
-        completed: 0,
-        revenue: 0,
-        name: serviceName,
-      };
-      service.completed += 1;
-      service.revenue += price;
-      // A concrete (snapshot or live) name beats the "Servicio" fallback, so a
-      // deleted service still labels correctly if any of its rows carries one.
-      if (service.name === "Servicio" && serviceName !== "Servicio") {
-        service.name = serviceName;
+      for (const line of items) {
+        const amount = line.finalPrice ?? line.price;
+        const service = perService.get(line.serviceId) ?? {
+          completed: 0,
+          revenue: 0,
+          name: line.name,
+        };
+        service.completed += 1;
+        service.revenue += amount;
+        // A concrete (snapshot or live) name beats the "Servicio" fallback, so
+        // a deleted service still labels correctly if any row carries one.
+        if (service.name === "Servicio" && line.name !== "Servicio") {
+          service.name = line.name;
+        }
+        perService.set(line.serviceId, service);
       }
-      perService.set(appointment.serviceId, service);
 
       const [year, month, day] = toColombiaDateKey(appointment.date)
         .split("-")

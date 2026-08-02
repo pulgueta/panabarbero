@@ -10,7 +10,7 @@ import {
 } from "@phosphor-icons/react";
 import { useCallback } from "react";
 
-import { startOfDay } from "@/lib/utils";
+import { getCalendarDayTimestamp } from "@/calendar/use-calendar-appointments";
 import { useLocationStore } from "@/store/barbershop-filters";
 
 export interface MobileMenuItem {
@@ -69,7 +69,8 @@ export function useNavSearch() {
         return { tab: "account" } as const;
       }
       if (to === "/profile/barbershops/appointments") {
-        return { date: startOfDay(Date.now()).getTime() };
+        // Bogotá day: the calendar route normalizes `date` to that zone.
+        return { date: getCalendarDayTimestamp(new Date()) };
       }
       if (to === "/barbershops") {
         return { city: persistedCity, state: persistedState };

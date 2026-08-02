@@ -50,7 +50,7 @@ import {
   useAppointmentActions,
   useAppointmentFormMetadata,
 } from "@/hooks/use-appointments";
-import { useBarbersForService } from "@/hooks/use-barbershop-members";
+import { useBarbersForServices } from "@/hooks/use-barbershop-members";
 import { useProfile } from "@/hooks/use-profile";
 import { useSession } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
@@ -65,17 +65,19 @@ import {
   formatCurrency,
   formatLongDate,
   formatLongDateTime,
+  formatServicePrice,
   startOfDay,
   toDate,
 } from "@/lib/utils";
-import { setServiceStore, useServicesStore } from "@/store/services";
+import { toggleService, useServicesStore } from "@/store/services";
 import { TimeSlotPicker } from "./time-slot-picker";
 
 interface CustomerBookingFormProps {
   barbershop: Barbershop;
   services: Service[];
   barbers: BarbershopMemberWithName[];
-  initialServiceId?: Service["_id"];
+  /** Deep-linked `?serviceId=` match, rendered as selected until the store seeds. */
+  initialService?: Service;
 }
 
 interface BookingFormValues {
@@ -91,7 +93,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
   barbershop,
   services,
   barbers,
-  initialServiceId,
+  initialService,
 }) => {
   const barbershopUuid = barbershop.uuid;
   const navigate = useNavigate();
@@ -112,16 +114,43 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
   const { data: user } = useSession();
   const { data: userProfile } = useProfile(user?.id ?? "");
 
-  const storeService = useServicesStore();
-  const effectiveServiceId = (storeService._id || initialServiceId) as
-    | Service["_id"]
-    | undefined;
+  const storeServices = useServicesStore();
 
-  const { data: barbersForService } = useBarbersForService(effectiveServiceId);
+  // The store is client-only and seeds after mount, so SSR and the first
+  // hydrated frame fall back to the deep-linked service — same markup on both
+  // sides, and the fallback retires once the seed lands.
+  const [isStoreSeeded, setIsStoreSeeded] = useState(false);
 
-  const availableBarbers = effectiveServiceId
-    ? (barbersForService ?? barbers)
+  useEffect(() => setIsStoreSeeded(true), []);
+
+  const selectedServices =
+    !isStoreSeeded && storeServices.length === 0 && initialService
+      ? [initialService]
+      : storeServices;
+  const selectedServiceIds = selectedServices.map((service) => service._id);
+  const selectedServiceIdSet = new Set(selectedServiceIds);
+
+  const { data: barbersForServices } =
+    useBarbersForServices(selectedServiceIds);
+
+  const availableBarbers = selectedServiceIds.length
+    ? (barbersForServices ?? barbers)
     : barbers;
+
+  const totalDuration = selectedServices.reduce(
+    (total, service) => total + service.duration,
+    0,
+  );
+  const totalPrice = selectedServices.reduce(
+    (total, service) => total + service.price,
+    0,
+  );
+  const hasStartingLine = selectedServices.some(
+    (service) => service.priceType === "starting",
+  );
+  const totalPriceLabel = hasStartingLine
+    ? `Desde ${formatCurrency(totalPrice)}`
+    : formatCurrency(totalPrice);
 
   const {
     createAppointment: {
@@ -179,9 +208,16 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
     onSubmit: async ({ value }) => {
       const { date, barbershopMemberId } = value;
 
-      if (date === undefined || !barbershopMemberId || !effectiveServiceId) {
+      // `selectedSlotTime` gates against a stale time-of-day: slot resets
+      // (barber/service change) clear it while `date` may keep the old hour.
+      if (
+        date === undefined ||
+        !selectedSlotTime ||
+        !barbershopMemberId ||
+        selectedServiceIds.length === 0
+      ) {
         haptic.trigger("error");
-        toast.error("Selecciona servicio, barbero, fecha y hora.");
+        toast.error("Selecciona al menos un servicio, barbero, fecha y hora.");
         return;
       }
 
@@ -203,7 +239,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
             notes: value.notes,
             barbershopId: barbershop._id,
             barbershopMemberId,
-            serviceId: effectiveServiceId,
+            serviceIds: selectedServiceIds,
             isStaffCreated: false,
           },
         });
@@ -305,21 +341,20 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
     }
   }, [availableBarbers, form]);
 
-  const effectiveService = services.find((s) => s._id === effectiveServiceId);
-
   // Barber changes reset the slot at the point of change (select handler /
-  // auto-select effect). Service changes need the same guard so the summary
-  // never shows a stale time for the newly selected service.
-  const previousServiceId = useRef(effectiveServiceId);
+  // auto-select effect). Selection changes need the same guard so the summary
+  // never shows a stale time for the newly selected services.
+  const serviceSelectionKey = selectedServiceIds.join("|");
+  const previousSelectionKey = useRef(serviceSelectionKey);
 
   useEffect(() => {
-    if (previousServiceId.current === effectiveServiceId) {
+    if (previousSelectionKey.current === serviceSelectionKey) {
       return;
     }
 
-    previousServiceId.current = effectiveServiceId;
+    previousSelectionKey.current = serviceSelectionKey;
     setSelectedSlotTime(undefined);
-  }, [effectiveServiceId]);
+  }, [serviceSelectionKey]);
 
   const pendingLabel = "Pendiente";
 
@@ -354,51 +389,55 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                 No hay servicios disponibles.
               </span>
             ) : (
-              <Suspense fallback={<Skeleton className="h-11 w-full" />}>
-                <Select
-                  value={effectiveServiceId}
-                  onValueChange={(value) => {
-                    const match = services.find(
-                      (s) => String(s._id) === String(value),
-                    );
-                    if (match) {
-                      startTransition(() => {
-                        setServiceStore({ service: match });
-                      });
-                    }
-                  }}
-                >
-                  <SelectTrigger id={formIds.serviceId} className="h-11 w-full">
-                    <SelectValue placeholder="Seleccionar servicio...">
-                      {effectiveServiceId
-                        ? (services.find(
-                            (s) => String(s._id) === String(effectiveServiceId),
-                          )?.name ?? "Servicio no disponible")
-                        : undefined}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {services.map((service) => (
-                      <SelectItem key={service._id} value={service._id}>
-                        <div className="flex w-full items-center justify-between gap-2">
-                          <span className="font-medium">{service.name}</span>
-                          <div className="flex flex-col items-end text-muted-foreground text-xs">
-                            <span>{formatCurrency(service.price)}</span>
-                            <span>{service.duration} min</span>
-                          </div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Suspense>
+              <fieldset
+                id={formIds.serviceId}
+                aria-labelledby="booking-service-heading"
+                className="flex flex-col gap-2"
+              >
+                {services.map((service) => {
+                  const checked = selectedServiceIdSet.has(service._id);
+                  const rowId = `${formIds.serviceId}-${service._id}`;
+
+                  return (
+                    <div
+                      key={service._id}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg border p-3 transition-colors",
+                        checked
+                          ? "border-primary/50 bg-primary/5"
+                          : "hover:bg-muted/40",
+                      )}
+                    >
+                      <Checkbox
+                        id={rowId}
+                        checked={checked}
+                        onCheckedChange={() => {
+                          startTransition(() => {
+                            toggleService(service);
+                          });
+                        }}
+                      />
+                      <FieldLabel
+                        htmlFor={rowId}
+                        className="flex flex-1 cursor-pointer items-center justify-between gap-3"
+                      >
+                        <span className="font-medium text-sm">
+                          {service.name}
+                        </span>
+                        <span className="flex flex-col items-end text-muted-foreground text-xs">
+                          <span>{formatServicePrice(service)}</span>
+                          <span>{service.duration} min</span>
+                        </span>
+                      </FieldLabel>
+                    </div>
+                  );
+                })}
+              </fieldset>
             )}
-            {effectiveService && (
+            {selectedServices.length > 0 && (
               <div className="flex flex-wrap gap-2 pt-2">
-                <Badge variant="secondary">
-                  {formatCurrency(effectiveService.price)}
-                </Badge>
-                <Badge variant="outline">{effectiveService.duration} min</Badge>
+                <Badge variant="secondary">{totalPriceLabel}</Badge>
+                <Badge variant="outline">{totalDuration} min</Badge>
               </div>
             )}
           </Field>
@@ -416,7 +455,9 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
 
                 {availableBarbers?.length === 0 ? (
                   <span className="text-muted-foreground text-sm">
-                    No hay barberos disponibles para este servicio.
+                    {selectedServiceIds.length > 1
+                      ? "Ningún barbero ofrece todos los servicios seleccionados."
+                      : "No hay barberos disponibles para este servicio."}
                   </span>
                 ) : availableBarbers?.length === 1 ? (
                   <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
@@ -710,7 +751,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                       dateValue &&
                       normalizedDate &&
                       barberId &&
-                      effectiveServiceId
+                      selectedServiceIds.length > 0
                     ) {
                       return (
                         <Suspense
@@ -728,7 +769,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                           <TimeSlotPicker
                             barbershopId={barbershop._id}
                             barbershopMemberId={barberId}
-                            serviceId={effectiveServiceId}
+                            serviceIds={selectedServiceIds}
                             date={normalizedDate}
                             value={selectedSlotTime}
                             isPending={isPending}
@@ -749,7 +790,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                       ? "Selecciona una fecha para ver los horarios disponibles."
                       : !barberId
                         ? "Elige un barbero para cargar sus horarios."
-                        : "Elige un servicio para ver la disponibilidad.";
+                        : "Elige al menos un servicio para ver la disponibilidad.";
 
                     return (
                       <div className="rounded-lg border border-border/60 bg-background/50 px-3 py-6 text-center">
@@ -840,15 +881,21 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
             const selectedBarberName =
               availableBarbers?.find((b) => b?._id === barberId)?.name ?? null;
 
+            // Until an hour is picked the date value is just the selected
+            // midnight, so formatting its time would show "12:00 a. m.".
             const appointmentDateTimeLabel =
-              date !== undefined ? formatLongDateTime(date) : null;
+              date !== undefined
+                ? selectedSlotTime
+                  ? formatLongDateTime(date)
+                  : `${formatLongDate(date)} · hora por definir`
+                : null;
 
             const timeRangeLabel =
-              selectedSlotTime && effectiveService
+              selectedSlotTime && totalDuration > 0
                 ? `${selectedSlotTime} – ${addMinutesToTime(
                     selectedSlotTime,
-                    effectiveService.duration,
-                  )} (${effectiveService.duration} min)`
+                    totalDuration,
+                  )} (${totalDuration} min)`
                 : null;
 
             const phoneSummaryRaw = contactPhone?.trim() ?? "";
@@ -870,20 +917,36 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                   </div>
                   <div className="min-w-0">
                     <CardDescription className="text-xs">
-                      Servicio
+                      {selectedServices.length > 1 ? "Servicios" : "Servicio"}
                     </CardDescription>
-                    <p
-                      className={cn(
-                        "mt-0.5 text-sm",
-                        effectiveService
-                          ? "font-medium text-foreground"
-                          : "text-muted-foreground",
-                      )}
-                    >
-                      {effectiveService
-                        ? `${effectiveService.name} · ${formatCurrency(effectiveService.price)} · ${effectiveService.duration} min`
-                        : pendingLabel}
-                    </p>
+                    {selectedServices.length > 0 ? (
+                      <div className="mt-0.5 space-y-0.5">
+                        {selectedServices.map((service) => (
+                          <p
+                            key={service._id}
+                            className="font-medium text-foreground text-sm"
+                          >
+                            {service.name} · {formatServicePrice(service)} ·{" "}
+                            {service.duration} min
+                          </p>
+                        ))}
+                        {selectedServices.length > 1 && (
+                          <p className="text-muted-foreground text-xs">
+                            Total: {totalPriceLabel} · {totalDuration} min
+                          </p>
+                        )}
+                        {hasStartingLine && (
+                          <p className="text-muted-foreground text-xs">
+                            El precio final se define al finalizar el servicio;
+                            mínimo {formatCurrency(totalPrice)}.
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="mt-0.5 text-muted-foreground text-sm">
+                        {pendingLabel}
+                      </p>
+                    )}
                   </div>
                   <div className="min-w-0">
                     <CardDescription className="text-xs">

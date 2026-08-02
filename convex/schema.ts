@@ -1,4 +1,5 @@
 import { defineSchema } from "convex/server";
+import { zid } from "convex-helpers/server/zod4";
 import type { output } from "zod";
 import { z } from "zod";
 
@@ -134,6 +135,11 @@ export const services = zodTable("services", (id) => ({
     .number({ error: "La duración es requerida" })
     .min(5, { error: "La duración debe ser mayor a 5 minutos" })
     .max(480, { error: "La duración debe ser menor a 8 horas" }),
+  /**
+   * "starting" prices are a binding minimum shown as "Desde $X"; the final
+   * price is agreed in person and recorded at completion. Absent = fixed.
+   */
+  priceType: z.enum(["fixed", "starting"]).optional(),
   barbershopId: id("barbershops"),
 }));
 
@@ -164,6 +170,24 @@ export const reviews = zodTable("reviews", (id) => ({
   /** Short Spanish explanation shown to the author when a review is flagged. */
   moderationReason: z.string().optional(),
 }));
+
+/**
+ * One booked service line, snapshotted at booking time so name/price/duration
+ * survive later service edits/deletion. `finalPrice` is set at completion for
+ * "starting"-priced lines (agreed in person, must be ≥ `price`).
+ */
+const appointmentItem = (id: typeof zid) =>
+  z.object({
+    serviceId: id("services"),
+    name: z.string(),
+    price: z.number(),
+    priceType: z.enum(["fixed", "starting"]),
+    duration: z.number(),
+    finalPrice: z.number().optional(),
+  });
+
+/** Standalone (real zid) variant for function arg validators. */
+export const appointmentItemSchema = appointmentItem(zid);
 
 export const appointments = zodTable("appointments", (id) => ({
   userId: z.string(),
@@ -235,6 +259,14 @@ export const appointments = zodTable("appointments", (id) => ({
    */
   completedServicePrice: z.number().optional(),
   completedServiceName: z.string().optional(),
+  /**
+   * Canonical booked lines (booking-time snapshots). Optional in the table so
+   * pre-migration rows validate, but written by every new booking; legacy rows
+   * synthesize a single line via `appointmentItems.ts` until the backfill
+   * runs. `serviceId` above stays as the denormalized primary line
+   * (≡ items[0].serviceId).
+   */
+  items: appointmentItem(id).array().optional(),
 }));
 
 export const barbershopMemberServices = zodTable(
@@ -305,6 +337,7 @@ export const notificationKinds = [
   "team_invited",
   "barber_removed_cancellation",
   "service_deleted_cancellation",
+  "service_line_removed",
   "review_invite",
   "review_needs_attention",
   "low_stock",
@@ -934,6 +967,7 @@ export type BarbershopMetadataWithCount = BarbershopMetadata & {
 export type Service = output<typeof services.schema>;
 export type Review = output<typeof reviews.schema>;
 export type Appointment = output<typeof appointments.schema>;
+export type AppointmentItem = output<typeof appointmentItemSchema>;
 export type BarbershopMemberServices = output<
   typeof barbershopMemberServices.schema
 >;

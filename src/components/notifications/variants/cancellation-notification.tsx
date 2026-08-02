@@ -32,6 +32,11 @@ const config = {
     icon: <WarningCircleIcon weight="duotone" />,
     actionLabel: "Ver citas",
   },
+  service_line_removed: {
+    tone: "warning" as const,
+    icon: <WarningCircleIcon weight="duotone" />,
+    actionLabel: "Ver citas",
+  },
 };
 
 export const CancellationNotification: FC<

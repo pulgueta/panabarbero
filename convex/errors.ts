@@ -5,8 +5,15 @@ export const errorMessages = {
     "La barbería no está abierta en el horario seleccionado.",
   appointmentUnavailableHours:
     "La barbería no atiende durante el horario seleccionado.",
+  duplicateAppointmentService: "No repitas servicios en la misma cita.",
+  barberDoesNotOfferService:
+    "El barbero seleccionado no ofrece todos los servicios elegidos. Elige otro barbero o ajusta los servicios.",
   cannotRescheduleCompleted:
     "No puedes reprogramar una cita que ya fue completada.",
+  finalPriceRequired: (serviceName: string) =>
+    `Ingresa el precio final acordado para "${serviceName}" antes de completar la cita.`,
+  finalPriceBelowMinimum: (serviceName: string) =>
+    `El precio final de "${serviceName}" no puede ser menor al precio mínimo publicado.`,
   notFound: (resource: string) => `El recurso "${resource}" no fue encontrado`,
   barbershopClosedOnSelectedDay:
     "La barbería no está abierta en el día seleccionado",

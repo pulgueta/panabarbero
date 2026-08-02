@@ -28,8 +28,9 @@ import {
  * Intentional non-rules:
  * - appointments → reviews: reviews outlive their appointment (author/service
  *   name snapshots) — never cascade them from an appointment.
- * - services → appointments: appointments keep a serviceName snapshot and
- *   survive service deletion (they are soft-cancelled by `deleteService`).
+ * - services → appointments: appointments keep line-item snapshots and
+ *   survive service deletion — `deleteService` soft-cancels sole-line citas
+ *   and drops the line from multi-service ones.
  * - inventoryItems → levels/movements: items are soft-deleted (`archiveItem`);
  *   their ledger rows are only removed by the shop-level rules.
  */

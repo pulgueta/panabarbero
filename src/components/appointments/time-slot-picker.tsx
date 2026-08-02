@@ -8,7 +8,8 @@ import { cn } from "@/lib/utils";
 interface TimeSlotPickerProps {
   barbershopId: Barbershop["_id"];
   barbershopMemberId: BarbershopMember["_id"];
-  serviceId: Service["_id"];
+  /** Selected services — the slot width is the sum of their durations. */
+  serviceIds: Service["_id"][];
   /** Midnight-normalized timestamp of the selected date. */
   date: number;
   /** Currently selected slot time string (e.g. "09:00"). */
@@ -21,7 +22,7 @@ interface TimeSlotPickerProps {
 export const TimeSlotPicker: FC<TimeSlotPickerProps> = ({
   barbershopId,
   barbershopMemberId,
-  serviceId,
+  serviceIds,
   date,
   value,
   isPending,
@@ -30,7 +31,7 @@ export const TimeSlotPicker: FC<TimeSlotPickerProps> = ({
   const { data: slots } = useAvailableSlots({
     barbershopId,
     barbershopMemberId,
-    serviceId,
+    serviceIds,
     date,
   });
 

@@ -1271,10 +1271,15 @@ export const getServiceSupplyCounts = zAuthQuery({
 // whose plan lacks inventory.
 // ---------------------------------------------------------------------------
 
-type AppointmentStockContext = Pick<
+type AppointmentLedgerContext = Pick<
   Appointment,
-  "_id" | "barbershopId" | "serviceId" | "userId"
+  "_id" | "barbershopId" | "userId"
 >;
+
+type AppointmentStockContext = AppointmentLedgerContext & {
+  /** Every booked line's service — recipes reserve/consume per line. */
+  serviceIds: Service["_id"][];
+};
 
 async function movementsForAppointment(
   ctx: MutationCtx,
@@ -1314,7 +1319,7 @@ function outstandingFrom(movements: InventoryMovement[]) {
   return [...outstanding.values()].filter((entry) => entry.quantity > 0);
 }
 
-/** Reserve the service's recipe on booking (both `create` and `agentBook`). */
+/** Reserve every line's recipe on booking (both `create` and `agentBook`). */
 export async function reserveForAppointment(
   ctx: MutationCtx,
   appointment: AppointmentStockContext,
@@ -1335,34 +1340,36 @@ export async function reserveForAppointment(
     return;
   }
 
-  const recipe = await ctx.db
-    .query("serviceInventoryUsage")
-    .withIndex("by_serviceId", (q) => q.eq("serviceId", appointment.serviceId))
-    .collect();
+  for (const serviceId of appointment.serviceIds) {
+    const recipe = await ctx.db
+      .query("serviceInventoryUsage")
+      .withIndex("by_serviceId", (q) => q.eq("serviceId", serviceId))
+      .collect();
 
-  for (const line of recipe) {
-    const item = await ctx.db.get(line.itemId);
+    for (const line of recipe) {
+      const item = await ctx.db.get(line.itemId);
 
-    if (!item || item.deletedAt !== undefined) {
-      continue;
+      if (!item || item.deletedAt !== undefined) {
+        continue;
+      }
+
+      // Legacy recipe lines may predate the durable guard — never hold assets.
+      if (item.stockBehavior === "durable") {
+        continue;
+      }
+
+      // Partial reservations are fine: release/consume work from outstanding.
+      await recordMovement(ctx, {
+        barbershopId: appointment.barbershopId,
+        itemId: line.itemId,
+        type: "reservation",
+        quantity: line.quantity,
+        relatedAppointmentId: appointment._id,
+        reason: "Reserva por cita",
+        actorUserId: appointment.userId,
+        clampToAvailable: true,
+      });
     }
-
-    // Legacy recipe lines may predate the durable guard — never hold assets.
-    if (item.stockBehavior === "durable") {
-      continue;
-    }
-
-    // Partial reservations are fine: release/consume work from outstanding.
-    await recordMovement(ctx, {
-      barbershopId: appointment.barbershopId,
-      itemId: line.itemId,
-      type: "reservation",
-      quantity: line.quantity,
-      relatedAppointmentId: appointment._id,
-      reason: "Reserva por cita",
-      actorUserId: appointment.userId,
-      clampToAvailable: true,
-    });
   }
 }
 
@@ -1374,7 +1381,7 @@ export async function reserveForAppointment(
  */
 export async function releaseForAppointment(
   ctx: MutationCtx,
-  appointment: AppointmentStockContext,
+  appointment: AppointmentLedgerContext,
   reason = "Liberación por cita cancelada",
 ): Promise<void> {
   const movements = await movementsForAppointment(ctx, appointment._id);
@@ -1395,8 +1402,83 @@ export async function releaseForAppointment(
 }
 
 /**
- * Completion: release the holds, then consume the CURRENT recipe (clamped to
- * onHand for strict items, shortfall noted in the reason — the
+ * Free the holds attributable to ONE dropped line (`deleteService` drop-line
+ * flow). Reservations aren't tagged per service in the ledger, so this
+ * releases min(outstanding surplus, recipe quantity) per item of the dropped
+ * service's CURRENT recipe, where surplus is what exceeds the surviving
+ * lines' remaining needs — a clamped reservation may belong to a surviving
+ * line, and under-releasing self-heals at the terminal states. IRON RULE:
+ * never throws.
+ */
+export async function releaseServiceLineForAppointment(
+  ctx: MutationCtx,
+  appointment: AppointmentLedgerContext,
+  droppedServiceId: Service["_id"],
+  survivingServiceIds: Service["_id"][],
+): Promise<void> {
+  const movements = await movementsForAppointment(ctx, appointment._id);
+  const outstanding = outstandingFrom(movements);
+
+  if (outstanding.length === 0) {
+    return;
+  }
+
+  const [recipe, ...survivingRecipes] = await Promise.all(
+    [droppedServiceId, ...survivingServiceIds].map((serviceId) =>
+      ctx.db
+        .query("serviceInventoryUsage")
+        .withIndex("by_serviceId", (q) => q.eq("serviceId", serviceId))
+        .collect(),
+    ),
+  );
+
+  const neededBySurvivors = new Map<string, number>();
+
+  for (const survivorLine of survivingRecipes.flat()) {
+    neededBySurvivors.set(
+      survivorLine.itemId,
+      (neededBySurvivors.get(survivorLine.itemId) ?? 0) + survivorLine.quantity,
+    );
+  }
+
+  for (const line of recipe) {
+    const entry = outstanding.find(
+      (candidate) => candidate.itemId === line.itemId,
+    );
+
+    if (!entry) {
+      continue;
+    }
+
+    const surplus = Math.max(
+      0,
+      entry.quantity - (neededBySurvivors.get(line.itemId) ?? 0),
+    );
+    const quantity = Math.min(surplus, line.quantity);
+
+    if (quantity <= 0) {
+      continue;
+    }
+
+    await recordMovement(ctx, {
+      barbershopId: appointment.barbershopId,
+      itemId: line.itemId,
+      type: "release",
+      quantity,
+      locationId: entry.locationId,
+      relatedAppointmentId: appointment._id,
+      reason: "Liberación por servicio removido de la cita",
+      actorUserId: appointment.userId,
+      clampToAvailable: true,
+    });
+
+    entry.quantity -= quantity;
+  }
+}
+
+/**
+ * Completion: release the holds, then consume every line's CURRENT recipe
+ * (clamped to onHand for strict items, shortfall noted in the reason — the
  * completed-but-stock-changed race never blocks the barber).
  */
 export async function consumeForAppointment(
@@ -1428,33 +1510,35 @@ export async function consumeForAppointment(
     return;
   }
 
-  const recipe = await ctx.db
-    .query("serviceInventoryUsage")
-    .withIndex("by_serviceId", (q) => q.eq("serviceId", appointment.serviceId))
-    .collect();
+  for (const serviceId of appointment.serviceIds) {
+    const recipe = await ctx.db
+      .query("serviceInventoryUsage")
+      .withIndex("by_serviceId", (q) => q.eq("serviceId", serviceId))
+      .collect();
 
-  for (const line of recipe) {
-    const item = await ctx.db.get(line.itemId);
+    for (const line of recipe) {
+      const item = await ctx.db.get(line.itemId);
 
-    if (!item || item.deletedAt !== undefined) {
-      continue;
+      if (!item || item.deletedAt !== undefined) {
+        continue;
+      }
+
+      // Legacy recipe lines may predate the durable guard — never consume assets.
+      if (item.stockBehavior === "durable") {
+        continue;
+      }
+
+      await recordMovement(ctx, {
+        barbershopId: appointment.barbershopId,
+        itemId: line.itemId,
+        type: "consumption",
+        quantity: line.quantity,
+        relatedAppointmentId: appointment._id,
+        reason: "Consumo por servicio",
+        actorUserId: appointment.userId,
+        clampToAvailable: true,
+      });
     }
-
-    // Legacy recipe lines may predate the durable guard — never consume assets.
-    if (item.stockBehavior === "durable") {
-      continue;
-    }
-
-    await recordMovement(ctx, {
-      barbershopId: appointment.barbershopId,
-      itemId: line.itemId,
-      type: "consumption",
-      quantity: line.quantity,
-      relatedAppointmentId: appointment._id,
-      reason: "Consumo por servicio",
-      actorUserId: appointment.userId,
-      clampToAvailable: true,
-    });
   }
 }
 

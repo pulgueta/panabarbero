@@ -3,6 +3,11 @@ import { z } from "zod";
 
 import { zAuthMutation, zInternalMutation, zQuery } from ".";
 import { completedAppointmentsAggregate } from "./aggregates";
+import {
+  getAppointmentItems,
+  itemsLabel,
+  itemsTotal,
+} from "./appointmentItems";
 import { assertCanManageTeam, assertOwner } from "./authz";
 import { errorMessages } from "./errors";
 import { barbershopGeospatial } from "./geospatial";
@@ -141,24 +146,23 @@ export const incrementCompletedAppointments = zInternalMutation({
       throw new ConvexError(errorMessages.notFound("cita"));
     }
 
-    // Snapshot the service price at completion time so the revenue sum is
-    // immune to later price edits. A missing service contributes 0.
-    const service = await ctx.db.get(appointment.serviceId);
-    const price = service?.price ?? 0;
+    // Total = Σ(finalPrice ?? price) over the row's line snapshots (setStatus
+    // patches them, finals included, before invoking this mutation in the same
+    // transaction), so the revenue sum is immune to later service edits. The
+    // legacy mirrors keep the joined label / total for old readers.
+    const items = await getAppointmentItems(ctx, appointment);
+    const total = itemsTotal(items);
 
-    // Mirror the same snapshot onto the row so the 90-day operations breakdown
-    // (which joins per-service, not just the aggregate sum) survives later
-    // service edits/deletion.
     await ctx.db.patch(args.appointmentId, {
-      completedServicePrice: price,
-      completedServiceName: service?.name,
+      completedServicePrice: total,
+      completedServiceName: itemsLabel(items),
     });
 
     await completedAppointmentsAggregate.insert(ctx, {
       namespace: args.barbershopId,
       key: appointment.date,
       id: args.appointmentId,
-      sumValue: price,
+      sumValue: total,
     });
   },
 });

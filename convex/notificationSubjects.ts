@@ -16,6 +16,7 @@ export const subjects = {
   barber_appointment_created: "Nueva cita en tu barbería",
   team_invited: "Invitación a unirte a la barbería",
   past_appointment_reminder: "Recordatorio de cita pasada",
+  service_line_removed: "Tu cita se actualizó",
   review_invite: "Califica tu visita",
   review_needs_attention: "Tu reseña necesita atención",
   low_stock: "Inventario bajo",

@@ -4,9 +4,11 @@ import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zAuthMutation, zInternalMutation, zQuery } from ".";
+import type { QueryCtx } from "./_generated/server";
 import { assertCanManageTeam } from "./authz";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
+import type { Service } from "./schema";
 import { barbershopMembers, barbershops, services } from "./schema";
 
 export const getBarbershopBarbers = zQuery({
@@ -15,7 +17,7 @@ export const getBarbershopBarbers = zQuery({
     const members = await ctx.db
       .query("barbershopMembers")
       .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-      .filter((q) => q.eq(q.field("isActive"), true))
+      .filter((q) => q.neq(q.field("isActive"), false))
       .collect();
 
     const barbers = members.filter((member) => member.roles.includes("barber"));
@@ -62,6 +64,59 @@ export const getServicesForBarber = zQuery({
   },
 });
 
+/** Active barbers explicitly assigned to EVERY service in the set. */
+async function barbersOfferingAllServices(
+  ctx: QueryCtx,
+  serviceIds: Service["_id"][],
+) {
+  if (serviceIds.length === 0) {
+    return [];
+  }
+
+  const assignmentSets = await Promise.all(
+    serviceIds.map(async (serviceId) => {
+      const assignments = await ctx.db
+        .query("barbershopMemberServices")
+        .withIndex("by_serviceId", (q) => q.eq("serviceId", serviceId))
+        .filter((q) => q.neq(q.field("isActive"), false))
+        .collect();
+
+      return new Set(assignments.map((a) => a.barbershopMemberId));
+    }),
+  );
+
+  const [firstSet, ...restSets] = assignmentSets;
+  const memberIds = [...firstSet].filter((memberId) =>
+    restSets.every((set) => set.has(memberId)),
+  );
+
+  if (memberIds.length === 0) {
+    return [];
+  }
+
+  const barbers = await Promise.all(
+    memberIds.map(async (memberId) => {
+      const member = await ctx.db.get(memberId);
+
+      if (!member?.isActive) return null;
+
+      const profile = await ctx.db.get(member.userProfileDataId);
+
+      return {
+        ...member,
+        name: profile?.name ?? "",
+        email: profile?.email ?? "",
+        phoneNumber: profile?.phoneNumber ?? "",
+        avatarUrl: profile?.image ?? "",
+      };
+    }),
+  );
+
+  return barbers.filter(
+    (b): b is NonNullable<typeof b> => !!b && b.roles.includes("barber"),
+  );
+}
+
 /**
  * Get all barbers who offer a specific service.
  * Only returns barbers who are explicitly assigned to this service.
@@ -70,35 +125,17 @@ export const getServicesForBarber = zQuery({
 export const getBarbersForService = zQuery({
   args: services.tools.id,
   handler: async (ctx, args) => {
-    const assignments = await ctx.db
-      .query("barbershopMemberServices")
-      .withIndex("by_serviceId", (q) => q.eq("serviceId", args.id))
-      .filter((q) => q.eq(q.field("isActive"), true))
-      .collect();
+    return await barbersOfferingAllServices(ctx, [args.id]);
+  },
+});
 
-    if (assignments.length === 0) {
-      return [];
-    }
-
-    const barbers = await Promise.all(
-      assignments.map(async (a) => {
-        const member = await ctx.db.get(a.barbershopMemberId);
-
-        if (!member?.isActive) return null;
-
-        const profile = await ctx.db.get(member.userProfileDataId);
-
-        return {
-          ...member,
-          name: profile?.name ?? "",
-          email: profile?.email ?? "",
-          phoneNumber: profile?.phoneNumber ?? "",
-          avatarUrl: profile?.image ?? "",
-        };
-      }),
-    );
-
-    return barbers.filter((b) => b?.roles?.includes("barber"));
+/** Barbers assigned to ALL of the selected services (multi-service booking). */
+export const getBarbersForServices = zQuery({
+  args: z.object({
+    serviceIds: services.tools.id.shape.id.array(),
+  }),
+  handler: async (ctx, args) => {
+    return await barbersOfferingAllServices(ctx, args.serviceIds);
   },
 });
 

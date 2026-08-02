@@ -8,6 +8,7 @@ import { z } from "zod";
 import {
   AppointmentsCalendar,
   CALENDAR_VIEWS,
+  getCalendarDayTimestamp,
   getRangeDayTimestamps,
 } from "@/calendar";
 import { rescheduledAppointmentRequestsTableColumns } from "@/components/appointments/table/columns";
@@ -46,10 +47,13 @@ import {
   barberByUserIdQueryOptions,
   barbershopMembersByBarbershopIdQueryOptions,
   isBarberQueryOptions,
+  isOwnerQueryOptions,
   isStaffQueryOptions,
   servicesForBarberQueryOptions,
+  useBarberByUserId,
   useBarbershopMembersByBarbershopId,
   useIsBarber,
+  useIsOwner,
   useIsStaff,
 } from "@/hooks/use-barbershop-members";
 import {
@@ -64,11 +68,7 @@ const searchSchema = z.object({
     .number()
     .optional()
     .default(() => Date.now())
-    .transform((val) => {
-      const startOfDay = new Date(val);
-      startOfDay.setHours(0, 0, 0, 0);
-      return startOfDay.getTime();
-    }),
+    .transform((value) => getCalendarDayTimestamp(new Date(value))),
   view: z.enum(CALENDAR_VIEWS).optional().default("week"),
 });
 
@@ -107,6 +107,7 @@ export const Route = createFileRoute(
       context.queryClient.ensureQueryData(barberByUserIdQueryOptions(userId)),
       context.queryClient.ensureQueryData(isBarberQueryOptions(userId)),
       context.queryClient.ensureQueryData(isStaffQueryOptions(userId)),
+      context.queryClient.ensureQueryData(isOwnerQueryOptions(userId)),
       context.queryClient.ensureQueryData(
         barbershopAvailabilityQueryOptions(barbershopId),
       ),
@@ -117,7 +118,9 @@ export const Route = createFileRoute(
       context.queryClient.ensureQueryData(
         requestRescheduleQueryOptions(barbershopId),
       ),
-    ]).then(([, , , , , , members, requests]) => [members, requests] as const);
+    ]).then(
+      ([, , , , , , , members, requests]) => [members, requests] as const,
+    );
 
     // Calendar range: one day-windowed query per visible day, matching
     // useCalendarAppointments' fan-out so the grid paints without pop-in.
@@ -165,19 +168,30 @@ function RouteComponent() {
   const { canCreateStaffAppointments } = useBarbershopPlan(barbershop?._id!);
   const { data: isBarber } = useIsBarber(session?.id ?? "");
   const { data: isStaff } = useIsStaff(session?.id ?? "");
+  const { data: isOwner } = useIsOwner(session?.id ?? "");
+  const { data: currentBarberMember } = useBarberByUserId(session?.id ?? "");
 
-  const isOwner = session?.id ? barbershop?.ownerId === session.id : false;
   const canManage = isStaff || isOwner;
-  const canCreate = canCreateStaffAppointments && (isBarber || isStaff);
+  const canCreate =
+    canCreateStaffAppointments && (isBarber || isStaff || isOwner);
+
+  // Barbers without a management role only handle their own appointments, so
+  // they only see their own reschedule requests.
+  const visibleRescheduleRequests =
+    isBarber && !canManage
+      ? rescheduledAppointmentRequests.filter(
+          (request) => request.barbershopMemberId === currentBarberMember?._id,
+        )
+      : rescheduledAppointmentRequests;
 
   const rescheduleTable = useDataTable({
-    data: rescheduledAppointmentRequests,
+    data: visibleRescheduleRequests,
     columns: rescheduledAppointmentRequestsTableColumns,
     pageSize: 10,
   });
 
   return (
-    <DashboardPage>
+    <DashboardPage className="min-w-0 max-w-full">
       <DashboardPageHeader>
         <DashboardPageHeading
           title="Citas"
@@ -197,7 +211,7 @@ function RouteComponent() {
         )}
       </DashboardPageHeader>
 
-      <DashboardPageContent className="space-y-8">
+      <DashboardPageContent className="max-w-full space-y-8">
         <AppointmentsCalendar
           barbershopId={barbershop?._id!}
           services={services}
@@ -222,7 +236,7 @@ function RouteComponent() {
           }
         />
 
-        <section className="space-y-3">
+        <section className="min-w-0 max-w-full space-y-3">
           <header className="space-y-1">
             <h2 className="font-semibold text-lg">
               Solicitudes de reagendamiento
@@ -264,7 +278,7 @@ function AppointmentsPending() {
           </div>
           <Skeleton className="h-8 w-64" />
         </div>
-        <Skeleton className="h-[60vh] w-full rounded-xl" />
+        <Skeleton className="h-[70vh] max-h-[56rem] min-h-[32rem] w-full rounded-xl" />
       </div>
 
       <div className="space-y-3">

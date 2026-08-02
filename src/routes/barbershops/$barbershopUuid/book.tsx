@@ -30,7 +30,7 @@ import {
 } from "@/hooks/use-services";
 import { useSession } from "@/hooks/use-session";
 import { cn } from "@/lib/utils";
-import { resetServiceStore, setServiceStore } from "@/store/services";
+import { resetServiceStore, seedServiceStore } from "@/store/services";
 
 const CustomerBookingForm = lazy(() =>
   import("@/components/appointments/customer-booking-form").then((module) => ({
@@ -113,12 +113,19 @@ function RouteComponent() {
     [barbershopMembers],
   );
 
-  // Initialize the services store from the URL search param
+  // Deep-linked service, resolved during render so SSR and the first hydrated
+  // frame show it selected (the store below only fills in after mount).
+  const initialService = useMemo(
+    () => (serviceId ? services?.find((s) => s._id === serviceId) : undefined),
+    [serviceId, services],
+  );
+
+  // The seed only writes while the selection is empty, so the route's dev
+  // double-mount (whose first cleanup resets the store after the first seed)
+  // and live `services` refetches can re-run it without clobbering anything.
   useEffect(() => {
-    if (!serviceId || !services?.length) return;
-    const match = services.find((s) => s._id === serviceId);
-    if (match) setServiceStore({ service: match });
-  }, [serviceId, services]);
+    if (initialService) seedServiceStore(initialService);
+  }, [initialService]);
 
   // Reset store on unmount to prevent stale state leaking into other contexts
   useEffect(() => {
@@ -171,9 +178,7 @@ function RouteComponent() {
                   barbershop={barbershop}
                   services={services ?? EMPTY_MEMBERS}
                   barbers={barbers}
-                  initialServiceId={
-                    serviceId as (typeof services)[0]["_id"] | undefined
-                  }
+                  initialService={initialService}
                 />
               </Suspense>
             </section>

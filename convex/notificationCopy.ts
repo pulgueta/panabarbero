@@ -102,6 +102,11 @@ export type NotificationInput =
       serviceName: string;
     }
   | {
+      kind: "service_line_removed";
+      barbershopName: string;
+      serviceName: string;
+    }
+  | {
       kind: "review_invite";
       barbershopName: string;
       barbershopUuid: string;
@@ -240,6 +245,14 @@ export function buildNotificationCopy(
         kind: "service_deleted_cancellation",
         title: subjects.appointment_cancelled,
         description: `Tu cita en ${input.barbershopName} ha sido cancelada porque el servicio "${input.serviceName}" ya no está disponible.`,
+        href: deepLinks.customerAppointments(),
+      };
+    }
+    case "service_line_removed": {
+      return {
+        kind: "service_line_removed",
+        title: subjects.service_line_removed,
+        description: `Tu cita en ${input.barbershopName} se actualizó: el servicio "${input.serviceName}" ya no está disponible y se quitó de tu reserva. El resto de tu cita sigue confirmada.`,
         href: deepLinks.customerAppointments(),
       };
     }

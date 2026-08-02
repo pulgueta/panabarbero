@@ -61,7 +61,7 @@ export function useAppointmentsByBarbershop(opts: {
 function availableSlotsQueryOptions(opts: {
   barbershopId: Barbershop["_id"];
   barbershopMemberId: BarbershopMember["_id"];
-  serviceId: Service["_id"];
+  serviceIds: Service["_id"][];
   date: number;
 }) {
   return convexQuery(api.appointments.getAvailableSlots, opts);
@@ -70,7 +70,7 @@ function availableSlotsQueryOptions(opts: {
 export function useAvailableSlots(opts: {
   barbershopId: Barbershop["_id"];
   barbershopMemberId: BarbershopMember["_id"];
-  serviceId: Service["_id"];
+  serviceIds: Service["_id"][];
   date: number;
 }) {
   return useSuspenseQuery(availableSlotsQueryOptions(opts));

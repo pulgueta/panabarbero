@@ -2,6 +2,7 @@ export * from "./appointments/appointment-cancelled";
 export * from "./appointments/appointment-created";
 export * from "./appointments/appointment-reminder";
 export * from "./appointments/appointment-reschedule-request";
+export * from "./appointments/appointment-updated";
 export * from "./appointments/past-appointment-reminder";
 export * from "./appointments/reschedule-request-accept";
 export * from "./appointments/reschedule-request-denied";

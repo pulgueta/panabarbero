@@ -13,6 +13,7 @@ import {
   AppointmentReassignedEmail,
   AppointmentReminderEmail,
   AppointmentRescheduleRequestEmail,
+  AppointmentUpdatedEmail,
   LowStockEmail,
   PastAppointmentReminderEmail,
   RescheduleRequestAcceptEmail,
@@ -89,6 +90,25 @@ export const sendAppointmentCancelled = zInternalAction({
       react: AppointmentCancelledEmail({
         notes: args.notes,
         subject: subjects.appointment_cancelled,
+        body: args.body,
+      }),
+    });
+  },
+});
+
+export const sendAppointmentUpdated = zInternalAction({
+  args: z.object({
+    notes: z.string(),
+    to: z.string(),
+    body: z.string(),
+  }),
+  handler: async (ctx, args) => {
+    await sendEmail(ctx, {
+      to: args.to,
+      subject: subjects.service_line_removed,
+      react: AppointmentUpdatedEmail({
+        notes: args.notes,
+        subject: subjects.service_line_removed,
         body: args.body,
       }),
     });

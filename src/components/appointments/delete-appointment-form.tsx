@@ -90,7 +90,7 @@ export const CancelAppointmentForm: FC<CancelAppointmentFormProps> = ({
 
       <form.AppForm>
         <form.SubmitButton
-          label="Si, cancelar"
+          label="Sí, cancelar"
           variant="destructive"
           className="w-full"
         />
