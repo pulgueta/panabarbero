@@ -15,8 +15,10 @@ import {
 } from "@/components/ui/card";
 import {
   appointmentItemsLabel,
+  appointmentItemsTotal,
   getAppointmentDataByStatus,
 } from "@/lib/appointment-utils";
+import { formatCurrency } from "@/lib/utils";
 
 const CancelAppointmentDialog = lazy(() =>
   import("./cancel-appointment-dialog").then((module) => ({
@@ -78,6 +80,13 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
 
   const { label, variant } = getAppointmentDataByStatus(appointment.status);
 
+  const itemsTotal = appointmentItemsTotal(appointment);
+  const totalLabel = itemsTotal
+    ? itemsTotal.isStarting
+      ? `Desde ${formatCurrency(itemsTotal.total)}`
+      : formatCurrency(itemsTotal.total)
+    : null;
+
   return (
     <Card className="max-h-full">
       <CardHeader>
@@ -94,6 +103,11 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
         <p className="text-pretty text-muted-foreground text-sm">
           Servicio: {appointmentItemsLabel(appointment) ?? service.name}
         </p>
+        {totalLabel && (
+          <p className="text-pretty text-muted-foreground text-sm tabular-nums">
+            Total: {totalLabel}
+          </p>
+        )}
         <p className="text-pretty text-muted-foreground text-sm">
           {appointment.notes || "No hay notas"}
         </p>

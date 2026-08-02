@@ -67,6 +67,29 @@ export function appointmentItemsLabel(appointment: Appointment): string | null {
   return appointment.items.map((item) => item.name).join(" + ");
 }
 
+/**
+ * Σ(finalPrice ?? price) over the snapshot lines — the appointment's effective
+ * total; null for legacy rows. `isStarting` marks a total that still has a
+ * pending "desde" line, so it should read as "Desde $X".
+ */
+export function appointmentItemsTotal(
+  appointment: Appointment,
+): { total: number; isStarting: boolean } | null {
+  if (!appointment.items || appointment.items.length === 0) {
+    return null;
+  }
+
+  return {
+    total: appointment.items.reduce(
+      (total, item) => total + (item.finalPrice ?? item.price),
+      0,
+    ),
+    isStarting: appointment.items.some(
+      (item) => item.priceType === "starting" && item.finalPrice === undefined,
+    ),
+  };
+}
+
 /** Summed snapshot duration in minutes; null for legacy rows. */
 export function appointmentItemsDuration(
   appointment: Appointment,
