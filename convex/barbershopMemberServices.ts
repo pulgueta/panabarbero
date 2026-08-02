@@ -17,7 +17,7 @@ export const getBarbershopBarbers = zQuery({
     const members = await ctx.db
       .query("barbershopMembers")
       .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-      .filter((q) => q.eq(q.field("isActive"), true))
+      .filter((q) => q.neq(q.field("isActive"), false))
       .collect();
 
     const barbers = members.filter((member) => member.roles.includes("barber"));
@@ -78,7 +78,7 @@ async function barbersOfferingAllServices(
       const assignments = await ctx.db
         .query("barbershopMemberServices")
         .withIndex("by_serviceId", (q) => q.eq("serviceId", serviceId))
-        .filter((q) => q.eq(q.field("isActive"), true))
+        .filter((q) => q.neq(q.field("isActive"), false))
         .collect();
 
       return new Set(assignments.map((a) => a.barbershopMemberId));
