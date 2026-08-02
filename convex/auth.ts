@@ -49,19 +49,24 @@ async function findAvailableBarberForSlot(
   const dayIndex = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
   const dayName = DAY_MAP[dayIndex];
   const apptMinutes = minutesOfDay(appointment.date);
+  const lineServiceIds = appointment.items?.length
+    ? appointment.items.map((line) => line.serviceId)
+    : [appointment.serviceId];
 
   for (const candidate of candidates) {
-    const hasService = await ctx.db
+    const assignments = await ctx.db
       .query("barbershopMemberServices")
-      .withIndex("by_barbershopMemberId_and_serviceId", (q) =>
-        q
-          .eq("barbershopMemberId", candidate._id)
-          .eq("serviceId", appointment.serviceId),
+      .withIndex("by_barbershopMemberId", (q) =>
+        q.eq("barbershopMemberId", candidate._id),
       )
       .filter((q) => q.neq(q.field("isActive"), false))
-      .first();
+      .collect();
+    const assignedServiceIds = new Set(
+      assignments.map((assignment) => assignment.serviceId),
+    );
 
-    if (!hasService) continue;
+    if (!lineServiceIds.every((serviceId) => assignedServiceIds.has(serviceId)))
+      continue;
 
     const schedule = candidate.availability ?? barbershop.availability;
     const daySchedule = schedule.find((s) => s.weekDay.day === dayName);
