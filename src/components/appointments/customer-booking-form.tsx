@@ -208,8 +208,11 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
     onSubmit: async ({ value }) => {
       const { date, barbershopMemberId } = value;
 
+      // `selectedSlotTime` gates against a stale time-of-day: slot resets
+      // (barber/service change) clear it while `date` may keep the old hour.
       if (
         date === undefined ||
+        !selectedSlotTime ||
         !barbershopMemberId ||
         selectedServiceIds.length === 0
       ) {
@@ -878,8 +881,14 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
             const selectedBarberName =
               availableBarbers?.find((b) => b?._id === barberId)?.name ?? null;
 
+            // Until an hour is picked the date value is just the selected
+            // midnight, so formatting its time would show "12:00 a. m.".
             const appointmentDateTimeLabel =
-              date !== undefined ? formatLongDateTime(date) : null;
+              date !== undefined
+                ? selectedSlotTime
+                  ? formatLongDateTime(date)
+                  : `${formatLongDate(date)} · hora por definir`
+                : null;
 
             const timeRangeLabel =
               selectedSlotTime && totalDuration > 0
