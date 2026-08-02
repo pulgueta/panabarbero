@@ -2,7 +2,7 @@
 
 import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useMemo, useRef } from "react";
+import { lazy, Suspense, useEffect, useMemo } from "react";
 import { z } from "zod";
 
 import { BorderContainer } from "@/components/layout/border-container";
@@ -30,7 +30,7 @@ import {
 } from "@/hooks/use-services";
 import { useSession } from "@/hooks/use-session";
 import { cn } from "@/lib/utils";
-import { resetServiceStore, setServiceStore } from "@/store/services";
+import { resetServiceStore, seedServiceStore } from "@/store/services";
 
 const CustomerBookingForm = lazy(() =>
   import("@/components/appointments/customer-booking-form").then((module) => ({
@@ -120,14 +120,11 @@ function RouteComponent() {
     [serviceId, services],
   );
 
-  // Seed the store once: `services` is live query data, and re-running this
-  // would wipe a selection the customer made after landing.
-  const hasSeededStore = useRef(false);
-
+  // The seed only writes while the selection is empty, so the route's dev
+  // double-mount (whose first cleanup resets the store after the first seed)
+  // and live `services` refetches can re-run it without clobbering anything.
   useEffect(() => {
-    if (hasSeededStore.current || !initialService) return;
-    hasSeededStore.current = true;
-    setServiceStore({ service: initialService });
+    if (initialService) seedServiceStore(initialService);
   }, [initialService]);
 
   // Reset store on unmount to prevent stale state leaking into other contexts

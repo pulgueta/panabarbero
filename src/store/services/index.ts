@@ -8,9 +8,20 @@ interface ServicesStore {
 
 const servicesStore = new Store<ServicesStore>({ services: [] });
 
-/** Replace the selection with a single service (staff dropdown, URL seed). */
+/** Replace the selection with a single service (staff dropdown). */
 export function setServiceStore({ service }: { service: Service }) {
   servicesStore.setState(() => ({ services: [service] }));
+}
+
+/**
+ * URL seed: fills the selection only while it is still empty, so re-running
+ * (route double-mounts, live `services` refetches) never clobbers what the
+ * customer picked.
+ */
+export function seedServiceStore(service: Service) {
+  servicesStore.setState((state) =>
+    state.services.length > 0 ? state : { services: [service] },
+  );
 }
 
 /** Multi-select toggle: add if absent, remove if present; order kept. */
