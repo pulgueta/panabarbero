@@ -263,6 +263,7 @@ const confirmActionArgs = z.discriminatedUnion("action", [
       barbershopId: z.string(),
       name: z.string(),
       price: z.number(),
+      priceType: z.enum(["fixed", "starting"]).optional(),
       durationMinutes: z.number(),
     }),
   }),
@@ -273,6 +274,7 @@ const confirmActionArgs = z.discriminatedUnion("action", [
       serviceId: z.string(),
       name: z.string().optional(),
       price: z.number().optional(),
+      priceType: z.enum(["fixed", "starting"]).optional(),
       durationMinutes: z.number().optional(),
     }),
   }),
@@ -457,6 +459,7 @@ export const confirmPendingAction = zAction({
         await ctx.runMutation(api.services.create, {
           name: a.name,
           price: a.price,
+          priceType: a.priceType,
           duration: a.durationMinutes,
           barbershopId: a.barbershopId as Barbershop["_id"],
         });
@@ -469,11 +472,13 @@ export const confirmPendingAction = zAction({
         const data: {
           name?: string;
           price?: number;
+          priceType?: "fixed" | "starting";
           duration?: number;
           barbershopId: Barbershop["_id"];
         } = { barbershopId: a.barbershopId as Barbershop["_id"] };
         if (a.name !== undefined) data.name = a.name;
         if (a.price !== undefined) data.price = a.price;
+        if (a.priceType !== undefined) data.priceType = a.priceType;
         if (a.durationMinutes !== undefined) data.duration = a.durationMinutes;
         await ctx.runMutation(api.services.update, {
           id: a.serviceId as Service["_id"],

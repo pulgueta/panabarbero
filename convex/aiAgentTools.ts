@@ -199,6 +199,7 @@ const createServiceProposal = z.object({
     barbershopId: z.string(),
     name: z.string(),
     price: z.number(),
+    priceType: z.enum(["fixed", "starting"]).optional(),
     durationMinutes: z.number(),
   }),
 });
@@ -212,6 +213,7 @@ const updateServiceProposal = z.object({
     serviceId: z.string(),
     name: z.string().optional(),
     price: z.number().optional(),
+    priceType: z.enum(["fixed", "starting"]).optional(),
     durationMinutes: z.number().optional(),
   }),
 });
@@ -892,15 +894,20 @@ const proposeCancellation = createTool({
       ctx.runQuery(internal.aiAgentHelpers.getBarbershop, {
         id: appt.barbershopId,
       }) as Promise<BarbershopDoc | null>,
-      ctx.runQuery(api.services.getById, {
-        id: appt.serviceId,
-      }) as Promise<ServiceDoc | null>,
+      appt.items?.length
+        ? Promise.resolve(null)
+        : (ctx.runQuery(api.services.getById, {
+            id: appt.serviceId,
+          }) as Promise<ServiceDoc | null>),
     ]);
+    const serviceLabel = appt.items?.length
+      ? itemsLabel(appt.items)
+      : (service?.name ?? "servicio");
 
     return {
       kind: proposalKind,
       action: "cancel",
-      summary: `Cancelar tu cita de ${service?.name ?? "servicio"} en ${shop?.name ?? "la barbería"} programada para el ${formatDate(appt.date)}.`,
+      summary: `Cancelar tu cita de ${serviceLabel} en ${shop?.name ?? "la barbería"} programada para el ${formatDate(appt.date)}.`,
       args: {
         appointmentId: appt._id,
         reason: input.reason,
@@ -1256,6 +1263,12 @@ const proposeCreateService = createTool({
       .number()
       .min(1000)
       .describe("Precio en pesos colombianos (COP), p. ej. 25000"),
+    priceType: z
+      .enum(["fixed", "starting"])
+      .optional()
+      .describe(
+        "'starting' si el precio es 'desde' (mínimo); 'fixed' si es exacto",
+      ),
     durationMinutes: z.number().min(5).max(480),
   }),
   execute: async (ctx, input): Promise<Proposal> => {
@@ -1273,11 +1286,12 @@ const proposeCreateService = createTool({
     return {
       kind: proposalKind,
       action: "createService",
-      summary: `Crear el servicio "${input.name}" por ${formatPrice(input.price)} (${input.durationMinutes} min).`,
+      summary: `Crear el servicio "${input.name}" ${input.priceType === "starting" ? "desde" : "por"} ${formatPrice(input.price)} (${input.durationMinutes} min).`,
       args: {
         barbershopId: actor.barbershopId as string,
         name: input.name,
         price: input.price,
+        priceType: input.priceType,
         durationMinutes: input.durationMinutes,
       },
     };
@@ -1286,11 +1300,17 @@ const proposeCreateService = createTool({
 
 const proposeUpdateService = createTool({
   description:
-    "Prepara la edición de un servicio (nombre, precio y/o duración — manda solo lo que cambia). NO lo edita; devuelve una tarjeta de confirmación. Solo dueño o recepcionista. Pásale el serviceId de getMyBarbershop.",
+    "Prepara la edición de un servicio (nombre, precio, tipo de precio y/o duración — manda solo lo que cambia). NO lo edita; devuelve una tarjeta de confirmación. Solo dueño o recepcionista. Pásale el serviceId de getMyBarbershop.",
   inputSchema: z.object({
     serviceId: z.string(),
     name: z.string().min(3).optional(),
     price: z.number().min(1000).optional(),
+    priceType: z
+      .enum(["fixed", "starting"])
+      .optional()
+      .describe(
+        "'starting' si el precio es 'desde' (mínimo); 'fixed' si es exacto",
+      ),
     durationMinutes: z.number().min(5).max(480).optional(),
   }),
   execute: async (ctx, input): Promise<Proposal> => {
@@ -1318,15 +1338,22 @@ const proposeUpdateService = createTool({
     if (
       input.name === undefined &&
       input.price === undefined &&
+      input.priceType === undefined &&
       input.durationMinutes === undefined
     ) {
-      throw new Error("Dime qué quieres cambiar: nombre, precio o duración.");
+      throw new Error(
+        "Dime qué quieres cambiar: nombre, precio, tipo de precio o duración.",
+      );
     }
 
     const parts: string[] = [];
     if (input.name !== undefined) parts.push(`nombre a "${input.name}"`);
     if (input.price !== undefined)
       parts.push(`precio a ${formatPrice(input.price)}`);
+    if (input.priceType !== undefined)
+      parts.push(
+        `tipo de precio a ${input.priceType === "starting" ? '"desde"' : "fijo"}`,
+      );
     if (input.durationMinutes !== undefined)
       parts.push(`duración a ${input.durationMinutes} min`);
 
@@ -1339,6 +1366,7 @@ const proposeUpdateService = createTool({
         serviceId: service._id,
         name: input.name,
         price: input.price,
+        priceType: input.priceType,
         durationMinutes: input.durationMinutes,
       },
     };
