@@ -78,10 +78,13 @@ function DashboardLayout() {
   return (
     <SidebarProvider>
       <DashboardSidebar barbershop={barbershop} role={role} user={user} />
-      <SidebarInset>
+      <SidebarInset className="min-w-0">
         <DashboardTopbar />
         <div
-          className={cn("w-full flex-1 py-6", DASHBOARD_GUTTER_X)}
+          className={cn(
+            "w-full min-w-0 max-w-full flex-1 py-6",
+            DASHBOARD_GUTTER_X,
+          )}
           style={{ viewTransitionName: "dashboard-content" }}
         >
           <Outlet />

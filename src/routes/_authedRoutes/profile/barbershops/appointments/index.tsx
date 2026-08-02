@@ -194,7 +194,7 @@ function RouteComponent() {
   });
 
   return (
-    <DashboardPage>
+    <DashboardPage className="min-w-0 max-w-full">
       <DashboardPageHeader>
         <DashboardPageHeading
           title="Citas"
@@ -214,7 +214,7 @@ function RouteComponent() {
         )}
       </DashboardPageHeader>
 
-      <DashboardPageContent className="space-y-8">
+      <DashboardPageContent className="max-w-full space-y-8">
         <AppointmentsCalendar
           barbershopId={barbershop?._id!}
           services={services}
@@ -239,7 +239,7 @@ function RouteComponent() {
           }
         />
 
-        <section className="space-y-3">
+        <section className="min-w-0 max-w-full space-y-3">
           <header className="space-y-1">
             <h2 className="font-semibold text-lg">
               Solicitudes de reagendamiento
