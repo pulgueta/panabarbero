@@ -31,7 +31,13 @@ import {
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 import { validateAppointmentTime } from "@/lib/schedule-utils";
 import { rescheduleRequestFormSchema } from "@/lib/schemas";
-import { cn, formatLongDate, formatTimeOfDay, toDate } from "@/lib/utils";
+import {
+  cn,
+  formatLongDate,
+  formatTimeOfDay,
+  startOfDay,
+  toDate,
+} from "@/lib/utils";
 
 interface RescheduleRequestFormProps {
   appointment: Appointment;
@@ -170,6 +176,12 @@ export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
               message?: string;
             }>;
             const isInvalid = errors.length > 0;
+            // Stable per selected day; only a day change remounts the time
+            // input below (time edits keep the same key).
+            const timeInputDayKey =
+              field.state.value === undefined
+                ? "no-day"
+                : startOfDay(field.state.value).getTime();
 
             return (
               <>
@@ -234,7 +246,13 @@ export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
                       type="time"
                       id={timeId}
                       suppressHydrationWarning
-                      value={timeInputValue(field.state.value)}
+                      // Uncontrolled on purpose: a controlled value clobbers
+                      // in-progress segment typing whenever a partial edit is
+                      // ignored below. The day key remounts it (with the
+                      // carried time) when a different day is picked.
+                      key={timeInputDayKey}
+                      defaultValue={timeInputValue(field.state.value)}
+                      step={300}
                       disabled={field.state.value === undefined}
                       onChange={(e) => {
                         const time = e.target.value;
