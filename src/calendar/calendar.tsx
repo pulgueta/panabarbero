@@ -209,6 +209,25 @@ function renderAppointmentEvent({
   );
 }
 
+function renderAppointmentAgendaEvent({
+  occurrence,
+}: CalendarRenderEventProps<AppointmentCalendarData>) {
+  const data = occurrence.event.data;
+
+  return (
+    <>
+      <span className="min-w-0 flex-1 truncate font-medium">
+        {occurrence.event.title}
+      </span>
+      {data ? (
+        <span className="min-w-0 truncate text-muted-foreground">
+          {data.serviceName} · {data.barberName}
+        </span>
+      ) : null}
+    </>
+  );
+}
+
 function renderAvailabilityBackground(
   window: DayWindow | undefined,
   boundsStartMin: number,
@@ -310,15 +329,22 @@ export const AppointmentsCalendar: FC<AppointmentsCalendarProps> = ({
     [],
   );
 
-  // The form picks the hour through its own slot picker, so hand it the day
-  // only — a raw click timestamp would ride along invisibly into the booking.
+  // A month cell click navigates into the day; a timed slot click creates an
+  // appointment, passing only the day because the form picks its own hour.
   const handleSlotClick = useCallback(
     (slot: CalendarSlotInfo) => {
+      if (slot.view === "month") {
+        setDetails(null);
+        onDateChange(slot.date);
+        onViewChange("day");
+        return;
+      }
+
       if (!canCreate) return;
       setDetails(null);
       onCreateAppointment(startOfDay(slot.date));
     },
-    [canCreate, onCreateAppointment],
+    [canCreate, onCreateAppointment, onDateChange, onViewChange],
   );
 
   const handleSelectSlot = useCallback(
@@ -370,6 +396,7 @@ export const AppointmentsCalendar: FC<AppointmentsCalendarProps> = ({
           onDateChange(nextDate);
         }}
         renderEvent={renderAppointmentEvent}
+        renderAgendaEvent={renderAppointmentAgendaEvent}
         renderEventTooltip={({ occurrence }) => {
           const data = occurrence.event.data;
           return data ? (
