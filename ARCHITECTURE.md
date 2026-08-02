@@ -149,7 +149,10 @@ const form = useAppForm({
   `appointments.serviceId` is only the
   denormalized primary line (≡ `items[0].serviceId`, kept for `by_serviceId`
   and legacy readers). ALL line math (totals, joined labels, overlap widths)
-  goes through `convex/appointmentItems.ts` — never hand-roll it. Booking
+  goes through `convex/appointmentItems.ts` — never hand-roll it. The client
+  mirror lives in `src/lib/appointment-utils.ts`
+  (`appointmentItemsLabel`/`appointmentItemsDuration`) and must stay
+  semantically aligned. Booking
   entry points (`create`, `agentBook`, the Pana `serviceIds[]` proposals) take
   `serviceIds` arrays; availability/overlap use the summed duration, and
   `conflictDurationMinutes` keeps the legacy `liveService?.duration ?? 0`
