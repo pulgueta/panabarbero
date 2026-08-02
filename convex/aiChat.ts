@@ -247,6 +247,14 @@ const confirmActionArgs = z.discriminatedUnion("action", [
       appointmentId: z.string(),
       status: z.enum(["completed", "no-show", "cancelled"]),
       reason: z.string().optional(),
+      /** Final agreed price per "desde" line, collected on the proposal card. */
+      finalPrices: z
+        .object({
+          serviceId: z.string(),
+          finalPrice: z.number(),
+        })
+        .array()
+        .optional(),
     }),
   }),
   z.object({
@@ -424,9 +432,15 @@ export const confirmPendingAction = zAction({
           });
           summary = "Listo, cancelé la cita y el cliente queda avisado.";
         } else {
+          // `setStatus` re-validates the finals (required per "desde" line,
+          // never below the minimum), so forged card args can't undercut it.
           await ctx.runMutation(api.appointments.setStatus, {
             appointment: { id: a.appointmentId as Appointment["_id"] },
             status: a.status,
+            finalPrices: a.finalPrices?.map((entry) => ({
+              serviceId: entry.serviceId as Service["_id"],
+              finalPrice: entry.finalPrice,
+            })),
           });
           summary =
             a.status === "completed"

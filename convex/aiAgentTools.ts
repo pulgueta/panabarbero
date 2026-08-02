@@ -176,6 +176,18 @@ const manageAppointmentProposal = z.object({
     appointmentId: z.string(),
     status: z.enum(["completed", "no-show", "cancelled"]),
     reason: z.string().optional(),
+    /**
+     * "Desde" lines still missing their agreed final price. The proposal card
+     * renders one input per line and sends the values back as `finalPrices`.
+     */
+    startingLines: z
+      .object({
+        serviceId: z.string(),
+        name: z.string(),
+        minimumPrice: z.number(),
+      })
+      .array()
+      .optional(),
   }),
 });
 
@@ -1167,19 +1179,20 @@ const proposeManageAppointment = createTool({
       throw new Error("Necesito un motivo breve para cancelar la cita.");
     }
 
-    // Completion of "desde"-priced lines needs the agreed final prices, which
-    // the chat card cannot collect — `setStatus` would reject the confirm.
-    if (input.status === "completed") {
-      const missing = startingLinesMissingFinal(appt.items ?? []);
-
-      if (missing.length > 0) {
-        const names = missing.map((line) => line.name).join(", ");
-
-        throw new Error(
-          `La cita incluye servicios con precio "desde" (${names}). Márcala como completada desde el panel de citas, donde se ingresa el precio final acordado.`,
-        );
-      }
-    }
+    // Completing "desde"-priced lines needs the agreed final prices: surface
+    // them on the card, which collects one final price per pending line.
+    const missingFinals =
+      input.status === "completed"
+        ? startingLinesMissingFinal(appt.items ?? [])
+        : [];
+    const startingLines =
+      missingFinals.length > 0
+        ? missingFinals.map((line) => ({
+            serviceId: line.serviceId,
+            name: line.name,
+            minimumPrice: line.price,
+          }))
+        : undefined;
 
     const labels = {
       completed: "completada",
@@ -1187,14 +1200,19 @@ const proposeManageAppointment = createTool({
       cancelled: "cancelada",
     } as const;
 
+    const summary = `Marcar la cita de ${appt.customerName} (${formatDate(appt.date)}) como ${labels[input.status]}.`;
+
     return {
       kind: proposalKind,
       action: "manageAppointment",
-      summary: `Marcar la cita de ${appt.customerName} (${formatDate(appt.date)}) como ${labels[input.status]}.`,
+      summary: startingLines
+        ? `${summary} Ingresa el precio final acordado de cada servicio con precio "desde".`
+        : summary,
       args: {
         appointmentId: appt._id,
         status: input.status,
         reason: input.reason,
+        startingLines,
       },
     };
   },
