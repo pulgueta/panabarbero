@@ -1,7 +1,7 @@
 # ARCHITECTURE.md
 
 Code rules, patterns, and architecture for PanaBarbero — **TanStack Start (SSR) +
-Convex + WorkOS AuthKit + Mercado Pago + Tailwind v4 / Base UI**. This file is the source
+Convex + WorkOS AuthKit + Polar + Tailwind v4 / Base UI**. This file is the source
 of truth for *how the code is written and structured*; `AGENTS.md` covers *how to
 behave*. Read the relevant section before touching the corresponding subsystem.
 
@@ -234,7 +234,7 @@ without an account/membership. Acquisition:
 
 | Role | How acquired | Gating |
 |---|---|---|
-| **owner** | Creating a barbershop (`barbershops.create`) inserts an `["owner", ...]` member. Requires an **active billing entitlement** (`assertIsSubscribed`). Paid Mercado Pago plans grant access during a provider-confirmed free trial or after an approved payment; the free plan is local. | `ownerIsBarber` decides whether `"barber"` is also added, i.e. whether the owner attends clients. |
+| **owner** | Creating a barbershop (`barbershops.create`) inserts an `["owner", ...]` member. Requires an **active Polar subscription** (`assertIsSubscribed` — status `active` or `trialing`, including the free "Independiente" product). Subscriptions and one-time SMS/email credit packs are both Polar products (`convex/polar.ts`; the `order.paid` webhook grants credits via `convex/credits.ts`). | `ownerIsBarber` decides whether `"barber"` is also added, i.e. whether the owner attends clients. |
 | **barber** | Accepting an invitation whose metadata role is `barber`. | — |
 | **staff** (recepcionista) | Accepting an invitation whose role is `staff`. | Inviting staff requires the owner's plan to allow it (`assertStaffInviteAllowed` — pro/premium only; free plan rejects with "límite de personal"). |
 | **customer** | Plain signup. No membership row. | Booking needs name + phone; email optional. |
@@ -293,7 +293,7 @@ Notes that will bite you if ignored:
 - **Pick by flow:** booking → Customer; team/services/settings → Owner;
   barber-side appointment views → Barber; reception/on-behalf booking → Staff.
 - These are **throwaway dev creds with zero production access**; they are
-  intentionally in this committed file. Do **not** add real WorkOS/Mercado Pago/Convex
+  intentionally in this committed file. Do **not** add real WorkOS/Polar/Convex
   secrets here — those live in `.env.local` / `pnpx convex env`.
 - **Reviews flow:** any new Customer persona can exercise reviews — complete an
   appointment for them as Owner/Barber, then leave the review as that Customer via

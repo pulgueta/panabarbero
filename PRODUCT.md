@@ -30,7 +30,7 @@ location, choose a barber + service, and book (no account required); the system
 fires automatic email/SMS notifications across the full appointment lifecycle —
 booked, reminder, cancellation, reschedule request, accept/reject, no-show.
 Owners manage team, services, availability, and appointments, with billing
-through Mercado Pago (free for solo independents, paid tiers for teams). **Pana IA**, a
+through Polar (free for solo independents, paid tiers for teams). **Pana IA**, a
 built-in AI assistant, lets users search shops, check availability, and
 book/cancel in natural language with explicit confirm/reject steps.
 
