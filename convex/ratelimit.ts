@@ -6,7 +6,6 @@ import { errorMessages } from "./errors";
 
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
   authWrite: { kind: "fixed window", rate: 10, period: 60 * MINUTE },
-  billingReconcile: { kind: "fixed window", rate: 6, period: 60 * MINUTE },
   requestReschedule: { kind: "fixed window", rate: 1, period: 30 * MINUTE },
   createAppointment: {
     kind: "token bucket",

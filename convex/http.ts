@@ -7,6 +7,12 @@ import { httpAction } from "./_generated/server";
 import { authkit } from "./auth.config";
 import { errorMessages } from "./errors";
 import { siteUrl } from "./notificationCopy";
+import {
+  CREDIT_KEY_TO_TYPE,
+  CREDIT_PRODUCT_KEYS,
+  CREDITS_PER_PURCHASE,
+} from "./plans";
+import { polar } from "./polar";
 import { r2 } from "./r2";
 import { twilio } from "./twilio";
 import { usesend } from "./usesend";
@@ -100,62 +106,50 @@ twilio.registerRoutes(http);
 authkit.registerRoutes(http);
 usesend.registerRoutes(http);
 
-/**
- * MercadoPago webhook (subscriptions + one-time credit payments). Signature
- * verification + resource fetch happen in a
- * `"use node"` action; this route only forwards the values it needs and maps the
- * returned HTTP status back to MercadoPago.
- */
-http.route({
-  path: "/mercadopago/webhook",
-  method: "POST",
-  handler: httpAction(async (ctx, request) => {
-    const url = new URL(request.url);
-
-    // Signed webhooks carry `data.id` in the query string — that is the value
-    // MercadoPago hashed, so prefer it for signature validation.
-    const queryDataId =
-      url.searchParams.get("data.id") ??
-      url.searchParams.get("id") ??
-      undefined;
-
-    let bodyType: string | undefined;
-    let bodyDataId: string | undefined;
-    let bodyPaymentId: string | undefined;
-    try {
-      const body = (await request.json()) as {
-        type?: string;
-        topic?: string;
-        data?: { id?: string | number; payment_id?: string | number };
-      };
-      bodyType = body.type ?? body.topic;
-      bodyDataId =
-        body.data?.id !== undefined ? String(body.data.id) : undefined;
-      bodyPaymentId =
-        body.data?.payment_id !== undefined
-          ? String(body.data.payment_id)
-          : undefined;
-    } catch {
-      // IPN pings may have no JSON body — fall back to query params.
-    }
-
-    const status = await ctx.runAction(
-      internal.mercadopagoWebhooks.processWebhookEvent,
-      {
-        xSignature: request.headers.get("x-signature") ?? undefined,
-        xRequestId: request.headers.get("x-request-id") ?? undefined,
-        dataId: queryDataId ?? bodyDataId,
-        paymentId: bodyPaymentId,
-        type:
-          bodyType ??
-          url.searchParams.get("type") ??
-          url.searchParams.get("topic") ??
-          undefined,
-      },
-    );
-
-    return new Response(null, { status });
+/** Polar product id → credit product key, for the paid products that grant credits. */
+const CREDIT_PRODUCT_ID_TO_KEY = new Map(
+  CREDIT_PRODUCT_KEYS.flatMap((key) => {
+    const productId = polar.products[key];
+    return productId ? [[productId, key] as const] : [];
   }),
+);
+
+// Polar webhook — keeps the component's synced subscription/product state
+// current and grants one-time credit purchases on paid orders.
+polar.registerRoutes(http, {
+  events: {
+    "order.paid": async (ctx, event) => {
+      const order = event.data;
+
+      if (!order.paid || !order.productId) {
+        return;
+      }
+
+      const creditKey = CREDIT_PRODUCT_ID_TO_KEY.get(order.productId);
+
+      // Subscription-cycle orders fall through here.
+      if (!creditKey) {
+        return;
+      }
+
+      // Set server-side by `generateCheckoutLink` — never client-supplied.
+      const userId = order.metadata?.userId;
+
+      if (typeof userId !== "string") {
+        console.error(
+          `[polar] orden pagada ${order.id} sin userId en metadata — créditos no acreditados`,
+        );
+        return;
+      }
+
+      await ctx.runMutation(internal.credits.addPurchasedCredits, {
+        orderId: order.id,
+        userId,
+        type: CREDIT_KEY_TO_TYPE[creditKey],
+        amount: CREDITS_PER_PURCHASE[creditKey],
+      });
+    },
+  },
 });
 
 export default http;

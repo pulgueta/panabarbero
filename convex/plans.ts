@@ -19,7 +19,7 @@ export const PLAN_PRODUCT_KEYS = [
 export type ProductKey = (typeof PLAN_PRODUCT_KEYS)[number];
 
 /**
- * One-time credit product keys used by the MercadoPago checkout catalog.
+ * One-time credit product keys sold as Polar products.
  */
 export const CREDIT_PRODUCT_KEYS = ["extraSms", "extraEmails"] as const;
 
