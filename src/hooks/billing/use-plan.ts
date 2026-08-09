@@ -5,13 +5,11 @@ import type { Barbershop } from "@convex/schema";
 import { convexQuery } from "@convex-dev/react-query";
 import { useQuery } from "@tanstack/react-query";
 
+import { getSubscriptionQueryOptions } from "@/hooks/billing/use-pricing";
+
 // ---------------------------------------------------------------------------
 // Query options (reusable in route loaders / prefetching)
 // ---------------------------------------------------------------------------
-
-function getPlanQueryOptions() {
-  return convexQuery(api.auth.getUserSubscription, {});
-}
 
 export function getBarbershopPlanQueryOptions(barbershopId: Barbershop["_id"]) {
   return convexQuery(api.auth.getBarbershopOwnerSubscription, {
@@ -57,7 +55,9 @@ export interface UsePlanResult {
  * unauthenticated state without throwing.
  */
 export function usePlan(): UsePlanResult {
-  const { data: subscription, isLoading } = useQuery(getPlanQueryOptions());
+  const { data: subscription, isLoading } = useQuery(
+    getSubscriptionQueryOptions(),
+  );
 
   const planTier: PlanTier = subscription?.planTier ?? "free";
   const planLimits: PlanLimits = subscription?.planLimits ?? PLAN_LIMITS.free;

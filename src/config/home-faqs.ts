@@ -45,7 +45,7 @@ export const HOME_FAQS: HomeFaq[] = [
   {
     question: "¿Cómo pago mi suscripción?",
     answer:
-      "Con Mercado Pago: tarjeta de crédito, débito o PSE. Los precios están en pesos colombianos y puedes cancelar en cualquier momento.",
+      "Con tarjeta de crédito o débito en un pago seguro procesado por Polar. Los precios están en pesos colombianos y puedes cancelar en cualquier momento.",
   },
   {
     question: "¿Los clientes pueden reagendar una cita?",
