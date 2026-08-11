@@ -68,35 +68,30 @@ export const Route = createFileRoute(
 
       const { queryClient } = opts.context;
 
-      // Independent of the barbershop — start before awaiting it.
-      const productsPromise = queryClient.ensureQueryData(
-        getConfiguredProductsQueryOptions(),
-      );
-      const subscriptionPromise = queryClient.ensureQueryData(
-        getSubscriptionQueryOptions(),
-      );
-
-      const barbershop = await queryClient.ensureQueryData(
-        barbershopByOwnerIdQueryOptions(userId),
-      );
-
-      if (barbershop) {
-        // Streamed: the credits section suspends on these behind its own
-        // Suspense boundary.
-        void queryClient.prefetchQuery(getExtraCreditsQueryOptions());
-        void queryClient.prefetchQuery(
-          getBarbershopQuotaUsageQueryOptions(barbershop._id),
-        );
-      }
-
+      // A single Promise.all so every promise has a rejection handler from
+      // creation — no unhandled-rejection window while the barbershop query
+      // is in flight.
       await Promise.all([
-        productsPromise,
-        subscriptionPromise,
-        barbershop
-          ? queryClient.ensureQueryData(
+        queryClient.ensureQueryData(getConfiguredProductsQueryOptions()),
+        queryClient.ensureQueryData(getSubscriptionQueryOptions()),
+        queryClient
+          .ensureQueryData(barbershopByOwnerIdQueryOptions(userId))
+          .then((barbershop) => {
+            if (!barbershop) {
+              return;
+            }
+
+            // Streamed: the credits section suspends on these behind its own
+            // Suspense boundary.
+            void queryClient.prefetchQuery(getExtraCreditsQueryOptions());
+            void queryClient.prefetchQuery(
+              getBarbershopQuotaUsageQueryOptions(barbershop._id),
+            );
+
+            return queryClient.ensureQueryData(
               getBarbershopPlanQueryOptions(barbershop._id),
-            )
-          : Promise.resolve(),
+            );
+          }),
       ]);
     }
   },
