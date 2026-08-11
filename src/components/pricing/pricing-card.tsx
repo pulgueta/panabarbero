@@ -99,21 +99,23 @@ export const PricingCard: FC<PricingCardProps> = ({
           >
             Administrar suscripción
           </CustomerPortalLink>
+        ) : hasActiveSubscription ? (
+          // A real disabled button — a styled CheckoutLink stays reachable by
+          // keyboard and can start a second checkout while subscribed.
+          <Button className="w-full" disabled>
+            Cambia tu plan desde el portal
+          </Button>
         ) : (
           <CheckoutLink
             polarApi={{
               generateCheckoutLink: api.polar.generateCheckoutLink,
             }}
             productIds={checkoutProductIds}
-            className={cn(buttonVariants({ className: "w-full" }), {
-              "pointer-events-none opacity-50": hasActiveSubscription,
-            })}
+            className={cn(buttonVariants({ className: "w-full" }))}
             lazy
             locale="es-CO"
           >
-            {hasActiveSubscription
-              ? "Cambia tu plan desde el portal"
-              : "Adquirir plan"}
+            Adquirir plan
           </CheckoutLink>
         )}
       </CardFooter>
