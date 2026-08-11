@@ -114,6 +114,11 @@ const CREDIT_PRODUCT_ID_TO_KEY = new Map(
   }),
 );
 
+/** Every product id configured in the environment (plans + credits). */
+const CONFIGURED_PRODUCT_IDS = new Set(
+  Object.values(polar.products).filter(Boolean),
+);
+
 // Polar webhook — keeps the component's synced subscription/product state
 // current and grants one-time credit purchases on paid orders.
 polar.registerRoutes(http, {
@@ -127,8 +132,15 @@ polar.registerRoutes(http, {
 
       const creditKey = CREDIT_PRODUCT_ID_TO_KEY.get(order.productId);
 
-      // Subscription-cycle orders fall through here.
+      // Subscription-cycle orders fall through here. A paid order for a
+      // product outside the configured catalog means the credit product env
+      // vars are missing or stale — surface it, the customer paid.
       if (!creditKey) {
+        if (!CONFIGURED_PRODUCT_IDS.has(order.productId)) {
+          console.error(
+            `[polar] orden pagada ${order.id}: producto ${order.productId} no configurado — créditos no acreditados`,
+          );
+        }
         return;
       }
 

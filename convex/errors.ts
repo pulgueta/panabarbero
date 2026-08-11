@@ -34,6 +34,7 @@ export const errorMessages = {
     "Has alcanzado el límite de personal para tu plan actual.",
   smsLimitExceeded: "Has alcanzado el límite de SMS para este mes.",
   emailLimitExceeded: "Has alcanzado el límite de correos para este mes.",
+  invalidCheckoutProduct: "El producto seleccionado no está disponible.",
   invalidPhoneNumber: "El número de teléfono no es válido.",
 
   // Reviews

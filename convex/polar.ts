@@ -43,6 +43,11 @@ export const polar = new Polar(components.polar, {
 
 export const { getConfiguredProducts, generateCustomerPortalUrl } = polar.api();
 
+/** The only product ids a checkout session may contain. */
+const configuredProductIds = new Set(
+  Object.values(polar.products).filter(Boolean),
+);
+
 /**
  * Authenticated replacement for the component's `generateCheckoutLink`. The
  * `order.paid` webhook resolves which barbershop to credit from
@@ -63,6 +68,13 @@ export const generateCheckoutLink = zAuthAction({
     trialIntervalCount: z.number().nullable().optional(),
   }),
   handler: async (ctx, args): Promise<{ url: string }> => {
+    if (
+      args.productIds.length === 0 ||
+      args.productIds.some((id) => !configuredProductIds.has(id))
+    ) {
+      throw new ConvexError(errorMessages.invalidCheckoutProduct);
+    }
+
     const user = (await ctx.runQuery(api.auth.getCurrentUser, {})) as {
       email: string;
     } | null;
