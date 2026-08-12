@@ -1,10 +1,8 @@
 import type { Barbershop } from "@convex/schema";
 import { CheckIcon, CreditCardIcon, XIcon } from "@phosphor-icons/react";
-import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -49,8 +47,8 @@ function FeatureRow({ label, enabled }: { label: string; enabled: boolean }) {
 
 /**
  * Current-plan summary for the Facturación settings page. Reads the owner's
- * plan tier via `useBarbershopPlan` and links to the existing `/pricing`
- * surface (checkout + MercadoPago management) to manage the subscription.
+ * plan tier via `useBarbershopPlan`; plan changes and credit purchases live in
+ * the sections below it on the same page.
  */
 export const BillingPlanCard: FC<BillingPlanCardProps> = ({ barbershopId }) => {
   const { planTier, planLimits, isLoading } = useBarbershopPlan(barbershopId);
@@ -88,15 +86,6 @@ export const BillingPlanCard: FC<BillingPlanCardProps> = ({ barbershopId }) => {
               {PLAN_DESCRIPTIONS[planTier]}
             </p>
           )}
-
-          <Button
-            nativeButton={false}
-            render={<Link to="/pricing" />}
-            variant="outline"
-            className="mt-auto w-full sm:w-auto"
-          >
-            Gestionar plan
-          </Button>
         </CardContent>
       </Card>
 

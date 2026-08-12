@@ -3,6 +3,7 @@ import { z } from "zod";
 import { zQuery } from ".";
 import { internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
+import { getEntitledProductKey } from "./acl";
 import {
   reviewRatingsAggregate,
   reviewStarsAggregate,
@@ -14,7 +15,8 @@ import { assertShopRole, authz, revokeMemberAuthz } from "./authz";
 import { cascadeDeleteBarbershop } from "./barbershopCascade";
 import { getUserId } from "./identity";
 import { releaseForAppointment } from "./inventory";
-import { getEffectiveSubscription } from "./mercadopagoSubscriptions";
+import { getLimitsForProductKey, getTierForProductKey } from "./plans";
+import { polar } from "./polar";
 import type { Appointment, Barbershop, BarbershopMember } from "./schema";
 import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
@@ -361,25 +363,6 @@ export const { authKitEvent } = authkit.events({
   },
   "user.deleted": async (ctx, event) => {
     const userId = event.data.id;
-    const creditCheckouts = await ctx.db
-      .query("mercadopagoCreditCheckouts")
-      .withIndex("by_userId_and_expiresAt", (q) =>
-        q.eq("userId", userId).gt("expiresAt", Date.now()),
-      )
-      .take(100);
-    await ctx.scheduler.runAfter(
-      0,
-      internal.mercadopago.cleanupDeletedUserBilling,
-      {
-        userId,
-        attempt: 0,
-        creditCheckouts: creditCheckouts.map((checkout) => ({
-          checkoutReference: checkout.checkoutReference,
-          preferenceId: checkout.preferenceId,
-          expiresAt: checkout.expiresAt,
-        })),
-      },
-    );
     const profile = await getProfileByUserId(ctx, userId);
 
     if (!profile) {
@@ -534,6 +517,28 @@ export const getCurrentUser = zQuery({
   },
 });
 
+/** Plan flags derived from a Polar subscription; only active/trialing entitles. */
+function shapeSubscription(
+  subscription: Awaited<ReturnType<typeof polar.getCurrentSubscription>>,
+) {
+  const planTier = getTierForProductKey(getEntitledProductKey(subscription));
+  const planLimits = getLimitsForProductKey(
+    getEntitledProductKey(subscription),
+  );
+
+  return {
+    ...subscription,
+    isSubscribed:
+      subscription?.status === "active" || subscription?.status === "trialing",
+    planTier,
+    planLimits,
+    // Backward-compatible boolean helpers
+    isFree: planTier === "free",
+    isPro: planTier === "pro",
+    isPremium: planTier === "premium",
+  };
+}
+
 export const getUserSubscription = zQuery({
   handler: async (ctx) => {
     const userId = await getUserId(ctx);
@@ -542,7 +547,9 @@ export const getUserSubscription = zQuery({
       return null;
     }
 
-    return getEffectiveSubscription(ctx, userId);
+    return shapeSubscription(
+      await polar.getCurrentSubscription(ctx, { userId }),
+    );
   },
 });
 
@@ -568,6 +575,12 @@ export const getBarbershopOwnerSubscription = zQuery({
 
     await assertShopRole(ctx, args.id, userId, ["barber", "owner", "staff"]);
 
-    return getEffectiveSubscription(ctx, barbershop.ownerId);
+    // Staff only need plan-derived flags — never the owner's billing record.
+    const { isSubscribed, planTier, planLimits, isFree, isPro, isPremium } =
+      shapeSubscription(
+        await polar.getCurrentSubscription(ctx, { userId: barbershop.ownerId }),
+      );
+
+    return { isSubscribed, planTier, planLimits, isFree, isPro, isPremium };
   },
 });

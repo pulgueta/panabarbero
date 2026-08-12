@@ -4,7 +4,14 @@ import { lazy, Suspense } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBarbershopByOwnerId } from "@/hooks/barbershop/use-barbershop";
+import { useSubscription } from "@/hooks/billing/use-pricing";
 import { useSession } from "@/hooks/use-session";
+
+const PricingCard = lazy(() =>
+  import("@/components/pricing/pricing-card").then((module) => ({
+    default: module.PricingCard,
+  })),
+);
 
 const PricingCards = lazy(() =>
   import("@/components/pricing/pricing-cards").then((module) => ({
@@ -20,19 +27,35 @@ const ExtraCreditsCards = lazy(() =>
 
 export const PlansTab: FC = () => {
   const { data: session } = useSession();
+  const { data: subscription } = useSubscription();
   const { data: barbershop } = useBarbershopByOwnerId(session?.id ?? "");
 
   return (
     <div className="space-y-8">
-      <PricingCards />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
+        {subscription?.product && (
+          <Suspense
+            fallback={<Skeleton className="h-full w-full rounded-xl" />}
+          >
+            <PricingCard
+              product={subscription.product}
+              userId={session?.id ?? undefined}
+            />
+          </Suspense>
+        )}
+
+        {barbershop && (
+          <Suspense
+            fallback={<Skeleton className="h-full w-full rounded-xl" />}
+          >
+            <ExtraCreditsCards barbershopId={barbershop._id} />
+          </Suspense>
+        )}
+      </div>
 
       <Separator />
 
-      {barbershop && (
-        <Suspense fallback={<Skeleton className="h-115 w-full rounded-xl" />}>
-          <ExtraCreditsCards barbershopId={barbershop._id} />
-        </Suspense>
-      )}
+      <PricingCards />
     </div>
   );
 };

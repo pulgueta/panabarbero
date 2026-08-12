@@ -29,7 +29,7 @@ El proceso de registro, inicio de sesión y gestión de sesiones es gestionado e
 
 ### 2.4 Información de pago
 
-La información necesaria para completar un pago, como los datos de tarjeta o de cuenta bancaria, es recopilada y procesada por [Mercado Pago](https://www.mercadopago.com.co/), nuestro proveedor de pagos. PanaBarbero almacena los datos operativos necesarios para gestionar la facturación, como el correo del pagador, producto, monto, moneda, identificadores del pago o suscripción, estado y reembolsos. PanaBarbero no almacena el número completo de la tarjeta, el código de seguridad ni las credenciales bancarias.
+La información necesaria para completar un pago, como los datos de tarjeta o de cuenta bancaria, es recopilada y procesada por [Polar](https://polar.sh), nuestro proveedor de pagos. PanaBarbero almacena los datos operativos necesarios para gestionar la facturación, como el correo del pagador, producto, monto, moneda, identificadores del pago o suscripción, estado y reembolsos. PanaBarbero no almacena el número completo de la tarjeta, el código de seguridad ni las credenciales bancarias.
 
 ## 3. Uso de la Información
 
@@ -57,7 +57,7 @@ Los datos de identidad (credenciales, sesiones, membresías de organización) se
 
 PanaBarbero no vende, alquila ni comparte su información personal con terceros con fines comerciales. Solo compartimos información en los siguientes casos:
 
-- **Proveedores de servicio:** Compartimos los datos necesarios con nuestros proveedores tecnológicos exclusivamente para prestar el servicio. WorkOS gestiona la identidad y autenticación; Convex almacena los datos de la aplicación; Mercado Pago procesa pagos y suscripciones; PostHog procesa analítica, diagnóstico y observabilidad; Vercel procesa las solicitudes que usan nuestros servicios de inteligencia artificial.
+- **Proveedores de servicio:** Compartimos los datos necesarios con nuestros proveedores tecnológicos exclusivamente para prestar el servicio. WorkOS gestiona la identidad y autenticación; Convex almacena los datos de la aplicación; Polar procesa pagos y suscripciones; PostHog procesa analítica, diagnóstico y observabilidad; Vercel procesa las solicitudes que usan nuestros servicios de inteligencia artificial.
 - **Información de citas:** Cuando agenda una cita, su nombre y datos de contacto se comparten con la barbería correspondiente para la prestación del servicio.
 - **Obligaciones legales:** Podemos divulgar información cuando sea requerido por ley, regulación, proceso legal o solicitud gubernamental aplicable en Colombia.
 
@@ -99,7 +99,7 @@ Conservamos su información personal mientras su cuenta esté activa o mientras 
 **Datos que pueden ser retenidos:**
 
 - Los registros de citas en las que usted participó como cliente en barberías de terceros pueden ser conservados por dichas barberías con fines operativos y de historial. Estos registros contienen únicamente la información de contacto que usted proporcionó al momento de agendar (nombre, teléfono, correo electrónico) y no están vinculados a su cuenta una vez eliminada.
-- Mercado Pago puede conservar los registros de pagos y transacciones conforme a sus obligaciones legales y a su propia política de privacidad.
+- Polar puede conservar los registros de pagos y transacciones conforme a sus obligaciones legales y a su propia política de privacidad.
 
 Lo anterior aplica salvo que la ley colombiana nos obligue a conservar ciertos datos por un período determinado.
 

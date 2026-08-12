@@ -79,7 +79,7 @@ Wire the existing `Collapsible` + `SidebarMenuSub*` primitives. Groups:
   Reseñas · Ajustes *(Perfil · Ubicación · Disponibilidad · Marca · Preferencias
   · Facturación)*
 - **Asistente:** Pana *(Chat · Conocimiento · Memoria)*
-- **Footer:** plan/usage meter (Mercado Pago) + account menu.
+- **Footer:** plan/usage meter (Polar) + account menu.
 
 ### Skeletons
 Per-section skeletons mirror the loaded layout: static elements exact height,

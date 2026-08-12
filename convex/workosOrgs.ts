@@ -145,10 +145,6 @@ export const deleteCurrentUser = zAuthAction({
   args: z.object({}),
   handler: async (ctx) => {
     const { userId } = ctx;
-    const creditCheckouts = await ctx.runQuery(
-      internal.credits.listUnexpiredCheckoutsForUser,
-      { userId, now: Date.now() },
-    );
 
     try {
       await authkit.workos.userManagement.deleteUser(userId);
@@ -159,19 +155,5 @@ export const deleteCurrentUser = zAuthAction({
         );
       }
     }
-
-    await ctx.scheduler.runAfter(
-      0,
-      internal.mercadopago.cleanupDeletedUserBilling,
-      {
-        userId,
-        attempt: 0,
-        creditCheckouts: creditCheckouts.map((checkout) => ({
-          checkoutReference: checkout.checkoutReference,
-          preferenceId: checkout.preferenceId,
-          expiresAt: checkout.expiresAt,
-        })),
-      },
-    );
   },
 });

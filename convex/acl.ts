@@ -10,7 +10,6 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { usageTriggers } from "./aggregates";
 import { getExtraCredits } from "./credits";
 import { errorMessages } from "./errors";
-import { getEffectiveSubscription } from "./mercadopagoSubscriptions";
 import {
   getCurrentYearMonth,
   getLimitsForProductKey,
@@ -18,15 +17,29 @@ import {
   type PlanLimits,
   type PlanTier,
 } from "./plans";
+import { polar } from "./polar";
 import type { Barbershop } from "./schema";
 
 /**
- * Fetch the effective MercadoPago subscription for a given `userId`. The
- * `effectiveProductKey` is payment- and status-gated, so an unpaid, paused, or
- * canceled paid agreement resolves to the local free entitlement when present.
+ * Fetch the active Polar subscription for a given `userId`.
+ * Returns `null` when the user has no active subscription.
  */
 async function getSubscription(ctx: QueryCtx | MutationCtx, userId: string) {
-  return getEffectiveSubscription(ctx, userId);
+  return polar.getCurrentSubscription(ctx, { userId });
+}
+
+/**
+ * Product key that actually confers entitlement: only `active`/`trialing`
+ * subscriptions count, so a delinquent (past-due) subscription resolves to the
+ * free tier — the same statuses `assertIsSubscribed` gates on.
+ */
+export function getEntitledProductKey(
+  subscription: Awaited<ReturnType<typeof getSubscription>>,
+) {
+  return subscription &&
+    (subscription.status === "active" || subscription.status === "trialing")
+    ? subscription.productKey
+    : undefined;
 }
 
 /**
@@ -38,7 +51,7 @@ export async function getUserPlanTier(
   userId: string,
 ): Promise<PlanTier> {
   const sub = await getSubscription(ctx, userId);
-  return getTierForProductKey(sub.effectiveProductKey);
+  return getTierForProductKey(getEntitledProductKey(sub));
 }
 
 /**
@@ -50,7 +63,7 @@ export async function getUserPlanLimits(
   userId: string,
 ): Promise<PlanLimits> {
   const sub = await getSubscription(ctx, userId);
-  return getLimitsForProductKey(sub.effectiveProductKey);
+  return getLimitsForProductKey(getEntitledProductKey(sub));
 }
 
 /**
@@ -63,7 +76,7 @@ export async function assertIsSubscribed(
 ): Promise<void> {
   const sub = await getSubscription(ctx, userId);
 
-  if (!sub.isSubscribed) {
+  if (!sub || (sub.status !== "active" && sub.status !== "trialing")) {
     throw new ConvexError(errorMessages.subscriptionRequired);
   }
 }

@@ -4,7 +4,10 @@ import { lazy, Suspense } from "react";
 import { BorderContainer } from "@/components/layout/border-container";
 import { LoadingComponent } from "@/components/layout/loading-component";
 import { ProfileTabSkeleton } from "@/components/layout/skeleton/profile-tab-skeleton";
-import { getMpSubscriptionQueryOptions } from "@/hooks/billing/use-mercadopago";
+import {
+  getConfiguredProductsQueryOptions,
+  getSubscriptionQueryOptions,
+} from "@/hooks/billing/use-pricing";
 import { getCanonicalUrl, seo } from "@/lib/utils";
 
 const PricingCards = lazy(() =>
@@ -23,7 +26,10 @@ export const Route = createFileRoute("/pricing")({
   pendingComponent: LoadingComponent,
   ssr: "data-only",
   loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(getMpSubscriptionQueryOptions());
+    await Promise.all([
+      context.queryClient.ensureQueryData(getConfiguredProductsQueryOptions()),
+      context.queryClient.ensureQueryData(getSubscriptionQueryOptions()),
+    ]);
   },
   head: () => ({
     meta: seo({

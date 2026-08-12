@@ -6,8 +6,8 @@ persona and `customer-flow.md` for the booking experience an owner manages.
 
 > **Ground truth corrections vs. older drafts:**
 > - Creating a barbershop **requires an active billing entitlement**
->   (`assertIsSubscribed`). The free plan is local; paid access requires a
->   Mercado Pago payment that covers the current period.
+>   (`assertIsSubscribed`). An active or trialing Polar subscription is
+>   required (the free "Independiente" product counts).
 > - `ownerIsBarber` is a **creation-time decision** that sets whether the owner
 >   also attends clients (roles `["owner","barber"]` vs `["owner"]`).
 > - A new barbershop starts **inactive** (`isActive: false`) and activates when
@@ -185,7 +185,7 @@ member must have the `barber` role.
       (`isSmsLimitNotExceeded` / `isEmailLimitNotExceeded`), with purchased
       credits added on top
 - [ ] Upgrading raises the caps in §10; paid products are billed through
-      Mercado Pago
+      Polar
 
 ### 24. Activate / Deactivate Barbershop
 

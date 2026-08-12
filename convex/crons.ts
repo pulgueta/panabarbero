@@ -71,6 +71,12 @@ export const cleanupUseSend = zInternalMutation({
 });
 
 crons.interval(
+  "Sync existing products from Polar",
+  { hours: 24 },
+  internal.polar.syncExistingProducts,
+);
+
+crons.interval(
   "Cleanup soft-deleted appointments",
   { hours: 24 * 7 },
   internal.crons.cleanupAppointments,

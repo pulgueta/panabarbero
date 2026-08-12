@@ -148,7 +148,7 @@ simply users with no membership row.
 ### 10. Pricing & Plan Information
 
 - [ ] Navigate to `/pricing`
-- [ ] View plan tiers (Free / Pro / Premium; paid products use Mercado Pago and
+- [ ] View plan tiers (Free / Pro / Premium; paid products use Polar and
       all limits come from `convex/plans.ts`)
 - [ ] An **active billing entitlement is required to create a barbershop**
       (`assertIsSubscribed`); paid plans require an approved payment

@@ -14,9 +14,7 @@ import { groupIdentifyBarbershop, track } from "./analytics";
 import { authkit } from "./auth.config";
 import { assertOwner } from "./authz";
 import { cascadeDeleteBarbershop } from "./barbershopCascade";
-import { hasUnexpiredCheckout } from "./credits";
 import { errorMessages } from "./errors";
-import { ensureFreeSubscription } from "./mercadopagoSubscriptions";
 import { rateLimitOrThrow } from "./ratelimit";
 import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
@@ -29,11 +27,6 @@ export const create = zAuthMutation({
   }),
   handler: async (ctx, args) => {
     const { userId } = ctx;
-
-    // Every authenticated owner is entitled to at least the free plan; seed the
-    // local free entitlement idempotently so `assertIsSubscribed` resolves when
-    // no paid subscription exists.
-    await ensureFreeSubscription(ctx, userId);
 
     await Promise.all([
       assertIsSubscribed(ctx, userId),
@@ -321,12 +314,6 @@ export const deleteCascade = zAuthMutation({
 
     if (!barbershop || barbershop.ownerId !== userId) {
       throw new ConvexError(errorMessages.unauthorized);
-    }
-
-    if (await hasUnexpiredCheckout(ctx, userId, Date.now())) {
-      throw new ConvexError(
-        "Espera a que venza tu checkout de créditos antes de eliminar la barbería.",
-      );
     }
 
     await cascadeDeleteBarbershop(ctx, barbershop);

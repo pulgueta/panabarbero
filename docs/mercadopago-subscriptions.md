@@ -1,6 +1,11 @@
 # Mercado Pago billing architecture
 
-PanaBarbero uses Mercado Pago for recurring paid plans and one-time SMS or email credit packs. Convex owns checkout identity, authorization, plan limits, and entitlement state; a redirect never grants access by itself.
+> [!IMPORTANT]
+> **Retired (2026-08-09).** All billing moved back to **Polar**
+> (`convex/polar.ts` + `@convex-dev/polar`): subscriptions AND the one-time
+> SMS/email credit packs (`order.paid` webhook → `convex/credits.ts`). Every
+> `convex/mercadopago*` module described below has been deleted. This document
+> is historical reference for the retired Mercado Pago integration.
 
 Market: Colombia (`MCO`). Currency: Colombian pesos (`COP`). User-facing copy: Spanish (`es-CO`).
 

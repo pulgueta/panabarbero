@@ -49,11 +49,6 @@ const cascadeRules = defineCascadeRules({
     { to: "usage", via: "by_barbershop_month", field: "barbershopId" },
     { to: "extraCredits", via: "by_barbershopId", field: "barbershopId" },
     { to: "creditPurchases", via: "by_barbershopId", field: "barbershopId" },
-    {
-      to: "mercadopagoCreditCheckouts",
-      via: "by_barbershopId",
-      field: "barbershopId",
-    },
     { to: "inventoryItems", via: "by_barbershopId", field: "barbershopId" },
     { to: "inventoryLevels", via: "by_barbershopId", field: "barbershopId" },
     { to: "inventoryMovements", via: "by_barbershopId", field: "barbershopId" },

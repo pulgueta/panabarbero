@@ -1,10 +1,9 @@
-import { MP_CREDIT_PACK_LIST } from "@convex/mercadopagoPlans";
-import type { CreditProductKey } from "@convex/plans";
+import { api } from "@convex/_generated/api";
 import type { Barbershop } from "@convex/schema";
-import { type FC, useState } from "react";
-import { toast } from "sonner";
+import { CheckoutLink } from "@convex-dev/polar/react";
+import type { FC } from "react";
 
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -22,39 +21,32 @@ import {
   useBarbershopQuotaUsage,
   useExtraCredits,
 } from "@/hooks/billing/use-credits";
-import { useCreateMpCreditCheckout } from "@/hooks/billing/use-mercadopago";
-import { getConvexErrorMessage } from "@/lib/convex-errors";
-import { formatCurrency } from "@/lib/utils";
+import { useConfiguredProducts } from "@/hooks/billing/use-pricing";
+import { cn, formatCurrency } from "@/lib/utils";
 
 interface CreditCardProps {
-  productKey: CreditProductKey;
+  productId: string;
   name: string;
   description: string;
   priceCop: number;
   currentCredits: number;
   maxCredits: number;
-  barbershopId: string;
   planQuotaUsed: number;
   planQuotaMax: number;
   planQuotaKind: "sms" | "email";
 }
 
 const CreditCard: FC<CreditCardProps> = ({
-  productKey,
+  productId,
   name,
   description,
   priceCop,
   currentCredits,
   maxCredits,
-  barbershopId,
   planQuotaUsed,
   planQuotaMax,
   planQuotaKind,
 }) => {
-  const { mutateAsync: createCheckout, isPending } =
-    useCreateMpCreditCheckout();
-  const [redirecting, setRedirecting] = useState(false);
-
   const hasCredits = currentCredits > 0;
   const percentage = maxCredits > 0 ? (currentCredits / maxCredits) * 100 : 0;
 
@@ -69,20 +61,6 @@ const CreditCard: FC<CreditCardProps> = ({
       ? Math.min(100, (planRemaining / planQuotaMax) * 100)
       : 0;
 
-  async function handleBuy() {
-    setRedirecting(true);
-    try {
-      const result = await createCheckout({ productKey, barbershopId });
-      if (!result.initPoint) {
-        throw new Error("No se recibió la URL de checkout de Mercado Pago.");
-      }
-      window.location.href = result.initPoint;
-    } catch (error) {
-      toast.error(getConvexErrorMessage(error));
-      setRedirecting(false);
-    }
-  }
-
   return (
     <Card className="min-h-115">
       <CardHeader>
@@ -95,7 +73,7 @@ const CreditCard: FC<CreditCardProps> = ({
             {formatCurrency(priceCop)}
           </span>
           <span className="block text-pretty text-muted-foreground text-sm">
-            Estos créditos se consumen después de los que tienes incluídos en tu
+            Estos créditos se consumen después de los que tienes incluidos en tu
             plan.
           </span>
         </div>
@@ -125,17 +103,29 @@ const CreditCard: FC<CreditCardProps> = ({
         </div>
       </CardContent>
       <CardFooter>
-        <Button
-          className="w-full"
-          onClick={handleBuy}
-          disabled={isPending || redirecting}
+        <CheckoutLink
+          polarApi={{
+            generateCheckoutLink: api.polar.generateCheckoutLink,
+          }}
+          productIds={[productId]}
+          className={cn(buttonVariants({ className: "w-full" }))}
+          lazy
+          locale="es-CO"
         >
-          {redirecting ? "Redirigiendo…" : "Comprar créditos"}
-        </Button>
+          Comprar créditos
+        </CheckoutLink>
       </CardFooter>
     </Card>
   );
 };
+
+function getCopPrice(product: {
+  prices: Array<{ priceCurrency?: string; priceAmount?: number }>;
+}) {
+  const copPrice = product.prices.find((p) => p.priceCurrency === "cop");
+
+  return (copPrice?.priceAmount ?? 0) / 100;
+}
 
 interface ExtraCreditsCardsProps {
   barbershopId: Barbershop["_id"];
@@ -144,43 +134,55 @@ interface ExtraCreditsCardsProps {
 export const ExtraCreditsCards: FC<ExtraCreditsCardsProps> = ({
   barbershopId,
 }) => {
+  const { data: products } = useConfiguredProducts();
   const { data: credits } = useExtraCredits();
   const { data: quota } = useBarbershopQuotaUsage(barbershopId);
 
-  if (!quota) {
-    return null;
-  }
+  // Keyed by the stable catalog keys — a product rename in the Polar
+  // dashboard cannot hide the purchase cards.
+  const smsProduct = products.extraSms;
+  const emailProduct = products.extraEmails;
 
-  // The cumulative purchased total is the progress-bar ceiling so the bar
-  // reflects depletion across all purchases (not just the latest pack).
+  // Use the cumulative purchased total as the progress-bar ceiling so the bar
+  // accurately reflects depletion across all purchases (not just one pack).
   const smsMax = credits?.smsPurchasedTotal ?? 0;
   const emailMax = credits?.emailPurchasedTotal ?? 0;
 
+  if (!smsProduct && !emailProduct) {
+    return null;
+  }
+
   return (
     <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
-      {MP_CREDIT_PACK_LIST.map((pack) => {
-        const isSms = pack.type === "sms";
+      {smsProduct && quota && (
+        <CreditCard
+          productId={smsProduct.id}
+          name={smsProduct.name}
+          description={smsProduct.description ?? "Créditos de SMS adicionales"}
+          priceCop={getCopPrice(smsProduct)}
+          currentCredits={credits?.smsCredits ?? 0}
+          maxCredits={smsMax}
+          planQuotaUsed={quota.smsUsed}
+          planQuotaMax={quota.maxSmsPerMonth ?? 0}
+          planQuotaKind="sms"
+        />
+      )}
 
-        return (
-          <CreditCard
-            key={pack.productKey}
-            productKey={pack.productKey}
-            name={pack.title}
-            description={pack.description}
-            priceCop={pack.amountCop}
-            currentCredits={
-              isSms ? (credits?.smsCredits ?? 0) : (credits?.emailCredits ?? 0)
-            }
-            maxCredits={isSms ? smsMax : emailMax}
-            barbershopId={barbershopId}
-            planQuotaUsed={isSms ? quota.smsUsed : quota.emailsUsed}
-            planQuotaMax={
-              (isSms ? quota.maxSmsPerMonth : quota.maxEmailPerMonth) ?? 0
-            }
-            planQuotaKind={pack.type}
-          />
-        );
-      })}
+      {emailProduct && quota && (
+        <CreditCard
+          productId={emailProduct.id}
+          name={emailProduct.name}
+          description={
+            emailProduct.description ?? "Créditos de correo adicionales"
+          }
+          priceCop={getCopPrice(emailProduct)}
+          currentCredits={credits?.emailCredits ?? 0}
+          maxCredits={emailMax}
+          planQuotaUsed={quota.emailsUsed}
+          planQuotaMax={quota.maxEmailPerMonth ?? 0}
+          planQuotaKind="email"
+        />
+      )}
     </div>
   );
 };
