@@ -69,7 +69,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { rel: "preconnect", href: clientEnv.VITE_STORAGE_URL },
       { rel: "dns-prefetch", href: clientEnv.VITE_STORAGE_URL },
       { rel: "stylesheet", href: appCss },
-      { rel: "canonical", href: "https://www.panabarbero.com" },
       { rel: "sitemap", href: "/sitemap.xml" },
     ],
     scripts: [websiteStructuredData()],

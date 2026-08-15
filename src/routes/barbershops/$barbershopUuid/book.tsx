@@ -29,7 +29,7 @@ import {
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
 import { useSession } from "@/hooks/use-session";
-import { cn } from "@/lib/utils";
+import { cn, getCanonicalUrl } from "@/lib/utils";
 import { resetServiceStore, seedServiceStore } from "@/store/services";
 
 const CustomerBookingForm = lazy(() =>
@@ -91,6 +91,14 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/book")({
       );
     }
   },
+  head: ({ params }) => ({
+    links: [
+      {
+        rel: "canonical",
+        href: getCanonicalUrl(`/barbershops/${params.barbershopUuid}/book`),
+      },
+    ],
+  }),
 });
 
 const EMPTY_MEMBERS: never[] = [];
