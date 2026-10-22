@@ -1,4 +1,4 @@
-name: Run Biome for linting and formatting
+name: Run Oxc for linting and formatting
 
 on:
   pull_request:
@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  biome:
+  oxc:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -25,5 +25,8 @@ jobs:
       - name: Setup
         uses: ./.github/setup
 
-      - name: Check
-        run: pnpm exec biome ci .
+      - name: Format check
+        run: pnpm exec oxfmt --check
+
+      - name: Lint
+        run: pnpm exec oxlint
