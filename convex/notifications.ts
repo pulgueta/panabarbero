@@ -552,8 +552,8 @@ export const createAppointmentRescheduleDecision = zInternalMutation({
         receiverName: receiverProfile?.name || "cliente",
         barbershopName: args.barbershopName ?? "la barbería",
         outcome: args.accepted
-          ? "aceptada. La cita quedó reprogramada."
-          : "rechazada. La cita quedó cancelada.",
+          ? "El cambio fue aceptado y la cita quedó reprogramada."
+          : "El cambio fue rechazado y la cita quedó cancelada.",
       }),
       email,
       smsBody,

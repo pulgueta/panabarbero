@@ -14,18 +14,11 @@
  * TTLs noted below are template-level Meta properties: set them in the
  * template submission batch, not at send time. Expiry is silent (no webhook).
  *
- * Templates in WhatsApp Manager (verified 2026-08-12, session 89fa1e75):
- * - `appointment_created_customer` — approved but intentionally UNSENT
- *   (redundant with the on-screen booking confirmation).
- * - `appointment_reminder_customer`, `appointment_reschedule_request_customer`,
- *   `appointment_cancelled`, `inventory_low_stock`, `review_invite_customer_v1`
- *   — wired below.
- *
- * New templates for the pending Meta submission batch (proposed copy in each
- * builder's doc comment): `appointment_created_barber`,
- * `appointment_reschedule_request_barber`, `appointment_reschedule_resolved`,
- * `past_appointment_reminder_barber`, `appointment_service_removed_customer`,
- * `appointment_reassigned_customer`.
+ * Copy lives in WhatsApp Manager (WABA `PanaBarbero`), not here. Updated
+ * 2026-10-22: five approved templates edited in place and six new ones
+ * submitted (see `odd/tasks/whatsapp-launch.md`). `appointment_created_customer`
+ * stays approved but intentionally UNSENT (redundant with the on-screen
+ * booking confirmation).
  */
 
 import {
@@ -63,10 +56,10 @@ function param(text: string): { type: "text"; text: string } {
 
 /**
  * Drop per-send quick-reply components the APPROVED template does not have —
- * e.g. `appointment_reschedule_request_customer` before the pending Meta
- * batch adds its "Rechazar cambio" button. A send whose button components
- * don't match the template fails entirely (132012-family), which would
- * silently kill the WhatsApp path while the upfront gate says eligible.
+ * e.g. while an edited template is still approved in its older shape. A
+ * send whose button components don't match the template fails entirely
+ * (132012-family), which would silently kill the WhatsApp path while the
+ * upfront gate says eligible.
  * Fails open: an unrecognizable synced shape passes components through.
  */
 export function filterButtonsToTemplate(
@@ -161,12 +154,7 @@ export function buildAppointmentReminderCustomer(args: {
  * `appointment_reschedule_request_barber` — body {{1}} name, {{2}} shop,
  * {{3}} old date, {{4}} old time, {{5}} new date, {{6}} new time.
  * Buttons: CTA "Revisar cambio" (0, static) + QR "Aceptar cambio" (1) +
- * QR "Rechazar cambio" (2 — added to the customer template in the pending
- * Meta batch; the barber template ships with both).
- *
- * Proposed copy for `appointment_reschedule_request_barber`:
- * "Hola {{1}}. Un cliente pide cambiar su cita en {{2}} del {{3}} a las
- * {{4}} para el {{5}} a las {{6}}. Revisa y responde."
+ * QR "Rechazar cambio" (2).
  */
 export function buildRescheduleRequest(args: {
   role: "customer" | "barber";
@@ -227,12 +215,9 @@ export function buildAppointmentCancelled(args: {
 }
 
 /**
- * `appointment_created_barber` (new, pending Meta batch) — body {{1}}
+ * `appointment_created_barber` — body {{1}}
  * customer, {{2}} shop, {{3}} date, {{4}} time, {{5}} service. CTA "Ver
  * agenda" (0, static). No quick replies.
- *
- * Proposed copy: "Nueva cita en {{2}}: {{1}} reservó {{5}} para el {{3}} a
- * las {{4}}."
  */
 export function buildAppointmentCreatedBarber(args: {
   customerName: string;
@@ -256,11 +241,8 @@ export function buildAppointmentCreatedBarber(args: {
 }
 
 /**
- * `appointment_reschedule_resolved` (new, pending Meta batch) — body {{1}}
+ * `appointment_reschedule_resolved` — body {{1}}
  * name, {{2}} shop, {{3}} outcome sentence. CTA "Ver mi cita" (0, static).
- *
- * Proposed copy: "Hola {{1}}. Tu solicitud de cambio de cita en {{2}} tiene
- * respuesta: {{3}}"
  */
 export function buildRescheduleResolved(args: {
   receiverName: string;
@@ -274,7 +256,7 @@ export function buildRescheduleResolved(args: {
 }
 
 /**
- * `past_appointment_reminder_barber` (new, pending Meta batch) — body {{1}}
+ * `past_appointment_reminder_barber` — body {{1}}
  * barber, {{2}} customer, {{3}} time, {{4}} service. QR "Completada" (0) +
  * QR "No asistió" (1). Template TTL: 24 h.
  *
@@ -282,9 +264,6 @@ export function buildRescheduleResolved(args: {
  * nothing. Template buttons cannot be hidden per send, so when any line has
  * `priceType: "starting"` (final price required) the handler answers
  * "Completada" by pointing to the app instead of closing the cita.
- *
- * Proposed copy: "Hola {{1}}. La cita de {{2}} de las {{3}} ({{4}}) ya pasó.
- * ¿Cómo terminó?"
  */
 export function buildPastAppointmentReminderBarber(args: {
   barberName: string;
@@ -335,12 +314,8 @@ export function buildReviewInviteCustomer(args: {
 }
 
 /**
- * `appointment_service_removed_customer` (new, pending Meta batch) — body
+ * `appointment_service_removed_customer` — body
  * {{1}} name, {{2}} shop, {{3}} service. CTA "Ver mi cita" (0, static).
- *
- * Proposed copy: "Hola {{1}}. Tu cita en {{2}} se actualizó: el servicio
- * {{3}} ya no está disponible y se quitó de tu reserva. El resto de tu cita
- * sigue confirmada."
  */
 export function buildServiceRemovedCustomer(args: {
   customerName: string;
@@ -356,11 +331,8 @@ export function buildServiceRemovedCustomer(args: {
 }
 
 /**
- * `appointment_reassigned_customer` (new, pending Meta batch) — body {{1}}
+ * `appointment_reassigned_customer` — body {{1}}
  * name, {{2}} shop, {{3}} new barber. CTA "Ver mi cita" (0, static).
- *
- * Proposed copy: "Hola {{1}}. Tu cita en {{2}} sigue en pie, ahora te
- * atiende {{3}}. La fecha y la hora no cambian."
  */
 export function buildAppointmentReassignedCustomer(args: {
   customerName: string;
