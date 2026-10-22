@@ -222,7 +222,7 @@ export async function recordMovement(
       belowReorder: 0 <= item.reorderPoint,
     });
 
-    // biome-ignore lint/style/noNonNullAssertion: row was inserted in this transaction
+    // oxlint-disable-next-line typescript/no-non-null-assertion -- row was inserted in this transaction
     level = (await ctx.db.get(levelId))!;
   }
 

@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: always defined */
+/* oxlint-disable typescript/no-non-null-assertion -- always defined */
 import { Polar } from "@convex-dev/polar";
 import { ConvexError } from "convex/values";
 import { z } from "zod";

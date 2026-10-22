@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: false positive */
+/* oxlint-disable typescript/no-non-null-assertion -- false positive */
 
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";

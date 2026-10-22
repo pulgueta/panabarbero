@@ -15,7 +15,7 @@ import {
 import { tailwindConfig } from "../tailwind-config";
 import { Header } from "./components/header";
 
-// biome-ignore lint/complexity/noBannedTypes: possible to extend in the future
+// oxlint-disable-next-line typescript/ban-types, typescript/no-empty-object-type -- possible to extend in the future
 export type WelcomeEmailProps = {};
 
 export const WelcomeEmail = (_: WelcomeEmailProps) => {

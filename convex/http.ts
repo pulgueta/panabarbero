@@ -1,4 +1,3 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: SITE_URL is set in the environment variables */
 import { httpRouter } from "convex/server";
 import { ConvexError } from "convex/values";
 

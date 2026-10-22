@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: false positive */
+/* oxlint-disable typescript/no-non-null-assertion -- false positive */
 
 import { ConvexError } from "convex/values";
 import { z } from "zod";

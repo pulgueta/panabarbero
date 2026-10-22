@@ -19,7 +19,7 @@ const provider = new BasicTracerProvider({
   spanProcessors: [
     new SimpleSpanProcessor(
       new PostHogTraceExporter({
-        // biome-ignore lint/style/noNonNullAssertion: declared required in convex.config.ts
+        // oxlint-disable-next-line typescript/no-non-null-assertion -- declared required in convex.config.ts
         projectToken: process.env.POSTHOG_PROJECT_TOKEN!,
         host: process.env.POSTHOG_HOST ?? "https://us.i.posthog.com",
       }),

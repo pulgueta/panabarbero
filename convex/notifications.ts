@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: early return */
+/* oxlint-disable typescript/no-non-null-assertion -- early return */
 
 import {
   createFunctionHandle,
