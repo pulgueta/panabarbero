@@ -10,7 +10,6 @@ import { clientEnv } from "@/env/client";
 import { cacheTime } from "./config/cache";
 import type { WorkosAuthState } from "./hooks/use-session";
 import { fetchWorkosAuth, useAuthFromWorkOS } from "./hooks/use-session";
-import reportWebVitals from "./reportWebVitals";
 import { routeTree } from "./routeTree.gen";
 
 // Seeds AuthKitProvider with the auth snapshot resolved in the root beforeLoad
@@ -105,8 +104,3 @@ declare module "@tanstack/react-router" {
     breadcrumb?: string;
   }
 }
-
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
