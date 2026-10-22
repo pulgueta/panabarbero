@@ -1,0 +1,26 @@
+diff --git a/dist/messages.js b/dist/messages.js
+index 9160fe06c271621ca4ad4467a9801276e40f7576..93eac3c22f196cebac74e1eecaa4f56f73cea94c 100644
+--- a/dist/messages.js
++++ b/dist/messages.js
+@@ -20,7 +20,7 @@ var action = actionGeneric;
+ var env = process.env;
+ 
+ // src/component/messages.ts
+-var META_API_VERSION = "v18.0";
++var META_API_VERSION = "v26.0";
+ var textPayload = v.object({
+   body: v.string(),
+   previewUrl: v.optional(v.boolean())
+diff --git a/dist/templates.js b/dist/templates.js
+index 7c4afe61ac41c41478d1aaedd4a03e48428fcfb3..c11e84a45d7dfed3d83a13332f8a9128334ea8dd 100644
+--- a/dist/templates.js
++++ b/dist/templates.js
+@@ -79,7 +79,7 @@ var schema_default = defineSchema({
+ });
+ 
+ // src/component/templates.ts
+-var META_API_VERSION = "v18.0";
++var META_API_VERSION = "v26.0";
+ var VALID_STATUSES = /* @__PURE__ */ new Set([
+   "APPROVED",
+   "PENDING",
