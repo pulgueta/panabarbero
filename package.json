@@ -2,18 +2,17 @@
   "name": "panabarbero",
   "private": true,
   "type": "module",
-  "engines": {
-    "node": ">=24"
-  },
-  "packageManager": "pnpm@11.22.0",
   "scripts": {
     "dev": "convex dev --start 'vite dev --host'",
     "build": "vite build",
     "start": "node .output/server/index.mjs",
     "preview": "vite preview",
-    "lint": "biome lint --write --unsafe .",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
     "test": "vitest run",
-    "format": "biome format --write .",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "check": "ultracite check",
     "doctor:full": "react-doctor . --project panabarbero --verbose --scope full",
     "doctor:diff": "react-doctor . --project panabarbero --verbose --scope changed"
   },
@@ -108,8 +107,8 @@
     "zustand": "5.0.14"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.8",
     "@cloudflare/vite-plugin": "^1.40.0",
+    "@shadcn/lint": "0.2.3",
     "@tailwindcss/postcss": "4.3.3",
     "@tanstack/devtools-event-client": "0.5.0",
     "@tanstack/devtools-vite": "0.8.3",
@@ -118,9 +117,19 @@
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "@vitejs/plugin-react": "6.0.5",
+    "oxfmt": "0.74.0",
+    "oxlint": "1.89.0",
+    "oxlint-plugin-complexity": "4.0.0",
+    "oxlint-plugin-react-doctor": "0.9.18",
+    "oxlint-tsgolint": "7.0.2004",
     "react-doctor": "^0.9.11",
     "typescript": "7.0.2",
+    "ultracite": "8.0.2",
     "vite": "8.2.1",
     "vitest": "^4.1.10"
-  }
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@11.22.0"
 }
