@@ -5,9 +5,9 @@ import {
   Map as MapCanvas,
   MapControls,
   MapMarker,
-  type MapViewport,
   MarkerContent,
 } from "@/components/ui/map";
+import type { MapViewport } from "@/components/ui/map";
 import { useLocation } from "./location-provider";
 
 /** Approximate geographic center of Colombia, used until a pin is set. */

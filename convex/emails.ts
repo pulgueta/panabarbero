@@ -1,9 +1,9 @@
 "use node";
 
-import {
-  type RunMutationCtx,
-  type SendReactEmailOptions,
-  sendReactEmail,
+import { sendReactEmail } from "@pulgueta/usesend-convex/react-email";
+import type {
+  RunMutationCtx,
+  SendReactEmailOptions,
 } from "@pulgueta/usesend-convex/react-email";
 import { z } from "zod";
 import {

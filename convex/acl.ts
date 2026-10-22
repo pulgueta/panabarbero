@@ -14,9 +14,8 @@ import {
   getCurrentYearMonth,
   getLimitsForProductKey,
   getTierForProductKey,
-  type PlanLimits,
-  type PlanTier,
 } from "./plans";
+import type { PlanLimits, PlanTier } from "./plans";
 import { polar } from "./polar";
 import type { Barbershop } from "./schema";
 

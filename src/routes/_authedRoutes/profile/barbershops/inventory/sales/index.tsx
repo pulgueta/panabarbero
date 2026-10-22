@@ -1,7 +1,8 @@
 import type { Barbershop } from "@convex/schema";
 import { PackageIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { type FC, lazy, Suspense } from "react";
+import { lazy, Suspense } from "react";
+import type { FC } from "react";
 
 import {
   DashboardPage,

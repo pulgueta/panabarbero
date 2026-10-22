@@ -28,7 +28,8 @@ import {
   inventoryUnitLabels,
 } from "@/components/inventory/labels";
 import { InventoryMovementList } from "@/components/inventory/movement-history";
-import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
+import type { BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";

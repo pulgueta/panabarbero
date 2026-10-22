@@ -13,7 +13,8 @@ import {
 import { colombia } from "@/config/colombia";
 import type { GeoCoords, GeoStatus } from "@/hooks/use-geolocation";
 import { useGeolocation } from "@/hooks/use-geolocation";
-import { type ReverseGeocodeResult, reverseGeocode } from "@/lib/geocode";
+import { reverseGeocode } from "@/lib/geocode";
+import type { ReverseGeocodeResult } from "@/lib/geocode";
 import { useLocationStore } from "@/store/barbershop-filters";
 
 /** Drawer draft committed by `applyFilters` in a single navigation. */

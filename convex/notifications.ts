@@ -1,10 +1,7 @@
 /* oxlint-disable typescript/no-non-null-assertion -- early return */
 
-import {
-  createFunctionHandle,
-  type FunctionHandle,
-  type FunctionReference,
-} from "convex/server";
+import { createFunctionHandle } from "convex/server";
+import type { FunctionHandle, FunctionReference } from "convex/server";
 import { ConvexError } from "convex/values";
 import { zid } from "convex-helpers/server/zod4";
 import { UnreadTracking } from "convex-unread-tracking";
@@ -22,11 +19,8 @@ import {
 } from "./acl";
 import { getAppointmentItems, itemsLabel } from "./appointmentItems";
 import { errorMessages } from "./errors";
-import {
-  buildNotificationCopy,
-  buildSmsBody,
-  type NotificationCopy,
-} from "./notificationCopy";
+import { buildNotificationCopy, buildSmsBody } from "./notificationCopy";
+import type { NotificationCopy } from "./notificationCopy";
 import { subjects } from "./notificationSubjects";
 import type { Barbershop, InAppNotification, UserProfileData } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
@@ -43,8 +37,8 @@ import {
   buildReviewInviteCustomer,
   buildServiceRemovedCustomer,
   filterButtonsToTemplate,
-  type WhatsAppTemplateSend,
 } from "./whatsappTemplates";
+import type { WhatsAppTemplateSend } from "./whatsappTemplates";
 
 export { subjects };
 

@@ -20,8 +20,8 @@ import {
   FileUploadItemMetadata,
   FileUploadItemPreview,
   FileUploadList,
-  type FileUploadProps,
 } from "@/components/ui/file-upload";
+import type { FileUploadProps } from "@/components/ui/file-upload";
 import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
 import {
   ResponsiveModal,

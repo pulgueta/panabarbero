@@ -5,17 +5,15 @@ import type { FC } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { inventoryMovementTypeData } from "@/components/inventory/labels";
-import {
-  type FilterOption,
-  MovementFilterBar,
-} from "@/components/inventory/movements/movement-filter-bar";
+import { MovementFilterBar } from "@/components/inventory/movements/movement-filter-bar";
+import type { FilterOption } from "@/components/inventory/movements/movement-filter-bar";
 import {
   datePresetToStart,
-  type MovementFilterState,
   movementDateTimeFormatter,
   movementDirection,
   movementToneClass,
 } from "@/components/inventory/movements/movement-filters";
+import type { MovementFilterState } from "@/components/inventory/movements/movement-filters";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,10 +32,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  type InventoryMovementRow,
   inventoryOverviewQueryOptions,
-  type MovementFilters,
   usePaginatedShopMovements,
+} from "@/hooks/use-inventory";
+import type {
+  InventoryMovementRow,
+  MovementFilters,
 } from "@/hooks/use-inventory";
 import { cn, formatCurrency } from "@/lib/utils";
 

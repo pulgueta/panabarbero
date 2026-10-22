@@ -19,11 +19,11 @@ import { Spinner } from "@/components/ui/spinner";
 import { StarRating } from "@/components/ui/star-rating";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  type ReviewableAppointment,
   useMyReviews,
   useReviewActions,
   useReviewableAppointments,
 } from "@/hooks/use-reviews";
+import type { ReviewableAppointment } from "@/hooks/use-reviews";
 import { getLogoUrl } from "@/hooks/use-upload";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 import { formatLongDate } from "@/lib/utils";

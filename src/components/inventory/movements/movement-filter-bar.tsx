@@ -4,9 +4,11 @@ import type { FC } from "react";
 import { inventoryMovementTypeData } from "@/components/inventory/labels";
 import {
   MOVEMENT_DATE_PRESETS,
-  type MovementDatePreset,
-  type MovementFilterState,
   movementTypeOrder,
+} from "@/components/inventory/movements/movement-filters";
+import type {
+  MovementDatePreset,
+  MovementFilterState,
 } from "@/components/inventory/movements/movement-filters";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

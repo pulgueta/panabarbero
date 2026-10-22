@@ -8,7 +8,8 @@ import {
   CaretRightIcon,
 } from "@phosphor-icons/react";
 import { addDays, format } from "date-fns";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
+import type { ReactNode } from "react";
 import {
   useCalendarNavigation,
   useCalendarSettings,

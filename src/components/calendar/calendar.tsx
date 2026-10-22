@@ -3,12 +3,10 @@
 
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
-import { addDays, type Locale } from "date-fns";
+import { addDays } from "date-fns";
+import type { Locale } from "date-fns";
 import {
-  type ComponentType,
   createContext,
-  type ReactNode,
-  type RefObject,
   useCallback,
   useContext,
   useEffect,
@@ -17,15 +15,14 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import {
-  type CalendarI18nConfig,
-  type CalendarI18nOverrides,
-  mergeCalendarI18n,
+import type { ComponentType, ReactNode, RefObject } from "react";
+import { mergeCalendarI18n } from "@/components/calendar/calendar-i18n";
+import type {
+  CalendarI18nConfig,
+  CalendarI18nOverrides,
 } from "@/components/calendar/calendar-i18n";
 import {
   buildCalendarIndex,
-  type CalendarDayBucket,
-  type CalendarIndex,
   defaultOccurrenceOrder,
   eventsOverlap,
   getDayKey,
@@ -33,8 +30,12 @@ import {
   getViewDateRange,
   stepDate,
   toZoned,
-  type WeekStartsOn,
   zonedStartOfDay,
+} from "@/components/calendar/calendar-lib";
+import type {
+  CalendarDayBucket,
+  CalendarIndex,
+  WeekStartsOn,
 } from "@/components/calendar/calendar-lib";
 import type {
   CalendarDateRange,

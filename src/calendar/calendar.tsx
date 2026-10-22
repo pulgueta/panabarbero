@@ -6,18 +6,11 @@ import type {
 } from "@convex/schema";
 import { format, isSameMonth, isSameYear, subMilliseconds } from "date-fns";
 import { es } from "date-fns/locale";
-import {
-  type FC,
-  type MouseEvent as ReactMouseEvent,
-  useCallback,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useMemo, useState } from "react";
+import type { FC, MouseEvent as ReactMouseEvent } from "react";
 
-import {
-  type CalendarRenderEventProps,
-  Calendar as ReuiCalendar,
-} from "@/components/calendar/calendar";
+import { Calendar as ReuiCalendar } from "@/components/calendar/calendar";
+import type { CalendarRenderEventProps } from "@/components/calendar/calendar";
 import { CalendarContent } from "@/components/calendar/calendar-content";
 import type { CalendarI18nOverrides } from "@/components/calendar/calendar-i18n";
 import { toZoned } from "@/components/calendar/calendar-lib";

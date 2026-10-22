@@ -6,11 +6,8 @@ import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Map as MapCanvas,
-  MapControls,
-  type MapViewport,
-} from "@/components/ui/map";
+import { Map as MapCanvas, MapControls } from "@/components/ui/map";
+import type { MapViewport } from "@/components/ui/map";
 import {
   ResponsiveModal,
   ResponsiveModalContent,

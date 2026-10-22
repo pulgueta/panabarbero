@@ -21,13 +21,10 @@
  * id (purged after 30 days).
  */
 
-import {
-  cleanup,
-  defineWorkflow,
-  start,
-  type WorkflowId,
-} from "@convex-dev/workflow";
-import { createFunctionHandle, type FunctionHandle } from "convex/server";
+import { cleanup, defineWorkflow, start } from "@convex-dev/workflow";
+import type { WorkflowId } from "@convex-dev/workflow";
+import { createFunctionHandle } from "convex/server";
+import type { FunctionHandle } from "convex/server";
 import { v } from "convex/values";
 import { zid } from "convex-helpers/server/zod4";
 import { isWhatsAppError, WhatsApp } from "convex-whatsapp";

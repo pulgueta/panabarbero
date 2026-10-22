@@ -34,7 +34,6 @@ import {
   useBarbershopPlan,
 } from "@/hooks/billing/use-plan";
 import {
-  type InventoryOverviewRow,
   inventoryOverviewQueryOptions,
   lowStockQueryOptions,
   monthlyConsumptionQueryOptions,
@@ -43,6 +42,7 @@ import {
   useInventoryOverview,
   valuationQueryOptions,
 } from "@/hooks/use-inventory";
+import type { InventoryOverviewRow } from "@/hooks/use-inventory";
 
 const CategoryBreakdownChart = lazy(() =>
   import("@/components/inventory/category-breakdown-chart").then((module) => ({

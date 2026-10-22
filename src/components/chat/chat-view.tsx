@@ -25,11 +25,11 @@ import { Button } from "@/components/ui/button";
 import { usePanaAccess } from "@/hooks/billing/use-pana-access";
 import { useAnonId } from "@/hooks/use-anon-id";
 import {
-  type ChatRouteScope,
   useChatMessages,
   useProposalActions,
   useSendChatMessage,
 } from "@/hooks/use-chat";
+import type { ChatRouteScope } from "@/hooks/use-chat";
 import { useSession } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 

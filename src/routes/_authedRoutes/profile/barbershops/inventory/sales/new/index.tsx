@@ -6,7 +6,8 @@ import {
   redirect,
   useNavigate,
 } from "@tanstack/react-router";
-import { type FC, Suspense } from "react";
+import { Suspense } from "react";
+import type { FC } from "react";
 
 import {
   DashboardPage,
