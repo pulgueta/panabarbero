@@ -164,6 +164,8 @@ export default defineConfig({
     // `fn(undefined)` and `.eq("field", undefined)` state intent in Convex
     // filters and form resets.
     "unicorn/no-useless-undefined": ["error", { checkArguments: false }],
+    // Type guards are the boundary decoders the rule asks for.
+    "anti-slop/no-runtime-typeof": ["error", { allowInTypeGuards: true }],
     // `void promise` marks an intended fire-and-forget call.
     "eslint/no-void": ["error", { allowAsStatement: true }],
 
