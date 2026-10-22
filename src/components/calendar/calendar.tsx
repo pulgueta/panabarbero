@@ -1791,7 +1791,7 @@ function splitOptions<TData>(props: Record<string, unknown>): {
     } else rest[key] = value;
   }
   return {
-    options: options,
+    options,
     viewConfig: viewConfig as unknown as CalendarViewConfig<TData>,
     rest,
   };

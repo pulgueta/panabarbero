@@ -75,7 +75,7 @@ export function useNavSearch() {
       if (to === "/barbershops") {
         return { city: persistedCity, state: persistedState };
       }
-      return undefined;
+      return;
     },
     [persistedCity, persistedState],
   );

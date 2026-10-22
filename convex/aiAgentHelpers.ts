@@ -119,7 +119,7 @@ export const getNotificationsByUserId = zInternalQuery({
 function toNationalPhoneNumber(stored: string | undefined): string | undefined {
   if (!stored) return undefined;
 
-  const digits = stored.replace(/\D/g, "");
+  const digits = stored.replaceAll(/\D/g, "");
 
   if (digits.startsWith("57") && digits.length === 12) {
     return digits.slice(2);

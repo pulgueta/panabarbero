@@ -10,20 +10,18 @@ export const Route = createFileRoute("/sitemap.xml")({
           const baseUrl = getBaseUrl();
 
           const staticPages = [
-            { loc: "/", changefreq: "daily", priority: 1.0 },
+            { loc: "/", changefreq: "daily", priority: 1 },
             { loc: "/ai", changefreq: "weekly", priority: 0.8 },
             { loc: "/pricing", changefreq: "weekly", priority: 0.8 },
             { loc: "/privacy-policy", changefreq: "monthly", priority: 0.5 },
             { loc: "/tos", changefreq: "monthly", priority: 0.5 },
           ];
 
-          const urls = [
-            ...staticPages.map((page) => ({
-              loc: `${baseUrl}${page.loc}`,
-              changefreq: page.changefreq,
-              priority: page.priority,
-            })),
-          ];
+          const urls = staticPages.map((page) => ({
+            loc: `${baseUrl}${page.loc}`,
+            changefreq: page.changefreq,
+            priority: page.priority,
+          }));
 
           const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -48,7 +46,7 @@ ${urls
           const baseUrl = getBaseUrl();
 
           const staticPages = [
-            { loc: "/", changefreq: "daily", priority: 1.0 },
+            { loc: "/", changefreq: "daily", priority: 1 },
             { loc: "/ai", changefreq: "weekly", priority: 0.8 },
             { loc: "/pricing", changefreq: "weekly", priority: 0.8 },
             { loc: "/privacy-policy", changefreq: "monthly", priority: 0.5 },
@@ -80,7 +78,7 @@ ${staticPages
 });
 
 function escapeXml(str: string): string {
-  return str.replace(/[<>&'"]/g, (char) => {
+  return str.replaceAll(/[<>&'"]/g, (char) => {
     switch (char) {
       case "<":
         return "&lt;";

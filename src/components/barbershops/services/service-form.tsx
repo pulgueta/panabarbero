@@ -51,7 +51,7 @@ export const ServiceForm: FC<ServiceFormProps> = ({
         price: 1000,
         duration: 5,
         priceType: "fixed",
-        barbershopId: barbershopId,
+        barbershopId,
       } satisfies ServiceFormData),
     onSubmit: async ({ value }) => {
       try {
@@ -63,7 +63,7 @@ export const ServiceForm: FC<ServiceFormProps> = ({
               price: Number(value.price),
               duration: Number(value.duration),
               priceType: value.priceType ?? "fixed",
-              barbershopId: barbershopId,
+              barbershopId,
             },
           });
 
@@ -77,7 +77,7 @@ export const ServiceForm: FC<ServiceFormProps> = ({
             price: Number(value.price),
             duration: Number(value.duration),
             priceType: value.priceType ?? "fixed",
-            barbershopId: barbershopId,
+            barbershopId,
           });
 
           haptic.trigger("success");

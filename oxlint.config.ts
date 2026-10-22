@@ -159,6 +159,9 @@ export default defineConfig({
         ],
       },
     ],
+    // `fn(undefined)` and `.eq("field", undefined)` state intent in Convex
+    // filters and form resets.
+    "unicorn/no-useless-undefined": ["error", { checkArguments: false }],
     // `void promise` marks an intended fire-and-forget call.
     "eslint/no-void": ["error", { allowAsStatement: true }],
 

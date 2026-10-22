@@ -646,7 +646,7 @@ async function applyAppointmentCloseout(
     internal.barbershopMetadata.incrementCompletedAppointments,
     {
       barbershopId: appt.barbershopId,
-      appointmentId: appointmentId,
+      appointmentId,
     },
   );
 
@@ -1170,7 +1170,7 @@ export const notifyUpcoming = zInternalMutation({
 
     await ctx.runMutation(internal.notifications.createAppointmentReminder, {
       barbershopName: barbershop.name,
-      barbershopId: barbershopId,
+      barbershopId,
       customerUserId: userProfile?.userId ?? "user_does_not_exist",
       to: appointment.contactEmail,
       receiverPhoneNumber: appointment.contactPhone,

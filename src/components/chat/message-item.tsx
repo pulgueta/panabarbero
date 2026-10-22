@@ -52,30 +52,28 @@ interface MessageItemProps {
   onReject: () => Promise<void>;
 }
 
-const MessageTextPart = memo(function MessageTextPart({
-  text,
-  useSmoothStreaming,
-}: {
-  text: string;
-  useSmoothStreaming: boolean;
-}) {
-  const [visible] = useSmoothText(text, {
-    startStreaming: useSmoothStreaming,
-    charsPerSec: 384,
-  });
+const MessageTextPart = memo(
+  ({
+    text,
+    useSmoothStreaming,
+  }: {
+    text: string;
+    useSmoothStreaming: boolean;
+  }) => {
+    const [visible] = useSmoothText(text, {
+      startStreaming: useSmoothStreaming,
+      charsPerSec: 384,
+    });
 
-  return (
-    <MessageResponse isAnimating={useSmoothStreaming}>
-      {visible}
-    </MessageResponse>
-  );
-});
+    return (
+      <MessageResponse isAnimating={useSmoothStreaming}>
+        {visible}
+      </MessageResponse>
+    );
+  },
+);
 
-const ThinkingShimmer = memo(function ThinkingShimmer({
-  phraseSeed,
-}: {
-  phraseSeed: string;
-}) {
+const ThinkingShimmer = memo(({ phraseSeed }: { phraseSeed: string }) => {
   const phrase = useMemo(() => pickThinkingPhrase(phraseSeed), [phraseSeed]);
 
   return (

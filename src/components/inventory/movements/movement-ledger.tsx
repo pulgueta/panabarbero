@@ -186,7 +186,7 @@ const LedgerBody: FC<LedgerBodyProps> = ({
   const rows = cursors.flatMap(
     (cursor) => pages[cursor ?? "first"]?.page ?? [],
   );
-  const lastCursor = cursors[cursors.length - 1] ?? "first";
+  const lastCursor = cursors.at(-1) ?? "first";
   const lastPage = pages[lastCursor];
   const isPrimed = pages.first !== undefined;
   const canLoadMore = lastPage !== undefined && !lastPage.isDone;

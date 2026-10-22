@@ -18,12 +18,7 @@ import { resolvePanaAccessForUserId } from "./aiAgentHelpers";
 import { track } from "./analytics";
 import { getUserId } from "./identity";
 import { rateLimiter } from "./ratelimit";
-import type {
-  Appointment,
-  Barbershop,
-  BarbershopMember,
-  Service,
-} from "./schema";
+import type { Barbershop, Service } from "./schema";
 
 const ANON_PREFIX = "anon:";
 

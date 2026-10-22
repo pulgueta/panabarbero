@@ -114,7 +114,7 @@ export function useAppointmentFormMetadata(barbershopId: Barbershop["_id"]) {
   };
 
   const scheduleForDate = (timestamp?: number) => {
-    if (!timestamp || !availability) return undefined;
+    if (!timestamp || !availability) return;
 
     const weekday = getDayKeyForDate(timestamp);
 

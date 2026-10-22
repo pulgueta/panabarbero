@@ -70,12 +70,12 @@ export const getProfileByEmail = async (
 };
 
 function getProfilePhotoKey(image: string | undefined) {
-  if (!image) return undefined;
+  if (!image) return;
 
   try {
     return new URL(image).pathname.replace(/^\//, "");
   } catch {
-    return undefined;
+    return;
   }
 }
 

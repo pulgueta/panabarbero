@@ -37,9 +37,8 @@ http.route({
           "Access-Control-Max-Age": "86400",
         }),
       });
-    } else {
-      return new Response();
     }
+    return new Response();
   }),
 });
 http.route({

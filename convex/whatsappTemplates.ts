@@ -51,7 +51,10 @@ export type WhatsAppTemplateSend = {
  * over-long params fail the whole send — cap defensively (body limit ~1024).
  */
 function param(text: string): { type: "text"; text: string } {
-  return { type: "text", text: text.replace(/\s+/g, " ").trim().slice(0, 512) };
+  return {
+    type: "text",
+    text: text.replaceAll(/\s+/g, " ").trim().slice(0, 512),
+  };
 }
 
 /**

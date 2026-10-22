@@ -42,7 +42,7 @@ interface DeleteServiceImpact {
 function parseWillCancelError(
   errorMessage: string,
 ): DeleteServiceImpact | null {
-  const match = errorMessage.match(/WILL_CANCEL:(\d+)(?::WILL_UPDATE:(\d+))?/);
+  const match = /WILL_CANCEL:(\d+)(?::WILL_UPDATE:(\d+))?/.exec(errorMessage);
 
   if (!match) {
     return null;

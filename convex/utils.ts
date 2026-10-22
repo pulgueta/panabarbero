@@ -7,15 +7,15 @@ export function formatPhoneNumber(phone: string): string {
   if (!phone) return "";
 
   const trimmed = phone.trim();
-  const compactNoSpaces = trimmed.replace(/\s/g, "");
+  const compactNoSpaces = trimmed.replaceAll(/\s/g, "");
 
   if (compactNoSpaces.startsWith("+")) {
-    const digits = compactNoSpaces.slice(1).replace(/\D/g, "");
+    const digits = compactNoSpaces.slice(1).replaceAll(/\D/g, "");
 
     return digits ? `+${digits}` : "";
   }
 
-  let digits = trimmed.replace(/\D/g, "");
+  let digits = trimmed.replaceAll(/\D/g, "");
   if (!digits) return "";
 
   while (digits.startsWith("0")) {

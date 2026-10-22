@@ -762,7 +762,7 @@ function CalendarAllDayCell({ day }: { day: Date }) {
           settings.onSlotClick?.({ date: dayStart, allDay: true, view }, e);
         }
       }}
-    ></div>
+    />
   );
 }
 

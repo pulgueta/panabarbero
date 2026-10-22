@@ -10,7 +10,7 @@ export interface ReverseGeocodeResult {
 const normalize = (value: string) =>
   value
     .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
+    .replaceAll(/\p{Diacritic}/gu, "")
     .toLowerCase()
     .trim();
 

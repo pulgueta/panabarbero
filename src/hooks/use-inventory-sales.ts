@@ -132,7 +132,7 @@ export function useInventorySaleActions() {
         await deleteProof({
           barbershop: { id: barbershopId },
           key,
-        }).catch(() => undefined);
+        }).catch(() => {});
         throw error;
       }
       return key;

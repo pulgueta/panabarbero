@@ -376,7 +376,7 @@ export const updateDayAvailability = zAuthMutation({
     };
 
     const newAvailability = shop.availability.slice();
-    if (idx >= 0) {
+    if (idx !== -1) {
       newAvailability[idx] =
         newEntry as unknown as (typeof shop.availability)[number];
     } else {

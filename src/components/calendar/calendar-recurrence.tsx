@@ -130,7 +130,7 @@ function parseRRuleDate(value: string, timeZone?: string): Date {
   const date = z
     ? new Date(`${y}-${m}-${d}T${hh}:${mm}:${ss}Z`)
     : timeZone
-      ? new Date(new TZDate(+y, +m - 1, +d, +hh, +mm, +ss, timeZone).getTime())
+      ? new Date(new TZDate(+y, +m - 1, +d, +hh, +mm, +ss, timeZone))
       : new Date(`${y}-${m}-${d}T${hh}:${mm}:${ss}`);
   if (Number.isNaN(date.getTime())) {
     throw new CalendarRecurrenceError(`UNTIL=${value}`);
@@ -236,10 +236,7 @@ function expandRecurrence<TData>(
     wallDaySpan === null
       ? new Date(start.getTime() + durationMs)
       : new Date(
-          addDays(
-            new TZDate(start.getTime(), ctx.timeZone),
-            wallDaySpan,
-          ).getTime(),
+          addDays(new TZDate(start.getTime(), ctx.timeZone), wallDaySpan),
         );
   // Excluded instants matched exactly; filtering happens at push time so an
   // exception still consumes its COUNT slot (Google-style numbering).
@@ -446,7 +443,7 @@ function expandRecurrence<TData>(
     const month =
       (edge === "first"
         ? yearlyMonths[0]
-        : yearlyMonths[yearlyMonths.length - 1]) - 1;
+        : (yearlyMonths.at(-1) ?? yearlyMonths[0])) - 1;
     return zonedDate(
       year,
       month,
@@ -495,7 +492,7 @@ function expandRecurrence<TData>(
   const pushIfVisible = (rawStart: Date) => {
     // normalize to a plain instant so consumers never receive zone-carrying
     // TZDate instances (mixed-zone formatting bugs)
-    const start = new Date(rawStart.getTime());
+    const start = new Date(rawStart);
     if (exTimes.has(start.getTime())) return;
     const end = endFor(start);
     if (start < range.end && end > range.start) {
@@ -550,7 +547,7 @@ function expandRecurrence<TData>(
   if (rule.rDates?.length) {
     const seen = new Set(occurrences.map((o) => o.start.getTime()));
     for (const rDate of rule.rDates) {
-      const start = new Date(rDate.getTime());
+      const start = new Date(rDate);
       if (seen.has(start.getTime()) || exTimes.has(start.getTime())) continue;
       const end = endFor(start);
       if (start >= range.end || end <= range.start) continue;

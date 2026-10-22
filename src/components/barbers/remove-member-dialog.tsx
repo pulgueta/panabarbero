@@ -18,7 +18,7 @@ import { useBarbershopMemberActions } from "@/hooks/use-barbershop-members";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
 function parseWillCancelError(errorMessage: string): number | null {
-  const match = errorMessage.match(/WILL_CANCEL:(\d+)/);
+  const match = /WILL_CANCEL:(\d+)/.exec(errorMessage);
   return match ? Number.parseInt(match[1], 10) : null;
 }
 

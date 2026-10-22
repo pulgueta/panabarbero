@@ -167,21 +167,19 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
           href: getCanonicalUrl(`/barbershops/${barbershop?.uuid}`),
         },
       ],
-      scripts: [
-        ...(barbershop
-          ? [
-              barbershopStructuredData(barbershop),
-              breadcrumbStructuredData([
-                { name: "Inicio", url: getCanonicalUrl("/") },
-                { name: "Barberías", url: getCanonicalUrl("/barbershops") },
-                {
-                  name: barbershop.name,
-                  url: getCanonicalUrl(`/barbershops/${barbershop.uuid}`),
-                },
-              ]),
-            ]
-          : []),
-      ],
+      scripts: barbershop
+        ? [
+            barbershopStructuredData(barbershop),
+            breadcrumbStructuredData([
+              { name: "Inicio", url: getCanonicalUrl("/") },
+              { name: "Barberías", url: getCanonicalUrl("/barbershops") },
+              {
+                name: barbershop.name,
+                url: getCanonicalUrl(`/barbershops/${barbershop.uuid}`),
+              },
+            ]),
+          ]
+        : [],
     };
   },
 });

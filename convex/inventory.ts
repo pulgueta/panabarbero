@@ -219,7 +219,7 @@ export async function recordMovement(
       onHand: 0,
       reserved: 0,
       unitCost: item.unitCost,
-      belowReorder: 0 <= item.reorderPoint,
+      belowReorder: item.reorderPoint >= 0,
     });
 
     // oxlint-disable-next-line typescript/no-non-null-assertion -- row was inserted in this transaction
@@ -517,7 +517,7 @@ export const createItem = zAuthMutation({
       onHand: 0,
       reserved: 0,
       unitCost: itemArgs.unitCost,
-      belowReorder: 0 <= itemArgs.reorderPoint,
+      belowReorder: itemArgs.reorderPoint >= 0,
     });
 
     if (initialQuantity !== undefined && initialQuantity > 0) {

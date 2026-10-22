@@ -89,7 +89,7 @@ function restoreChipFocus(
       segment.occurrence.eventId === pending.eventId &&
       segment.occurrence.recurrenceIndex === pending.recurrenceIndex,
   );
-  if (index < 0) return;
+  if (index === -1) return;
   const chip = root.querySelectorAll<HTMLElement>("[data-slot=calendar-chip]")[
     index
   ];

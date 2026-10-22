@@ -31,7 +31,7 @@ interface ArchiveItemDialogProps {
  * Returns the impacted reservation/recipe count if matched, otherwise null.
  */
 function parseWillReleaseError(errorMessage: string): number | null {
-  const match = errorMessage.match(/WILL_RELEASE:(\d+)/);
+  const match = /WILL_RELEASE:(\d+)/.exec(errorMessage);
   return match ? Number.parseInt(match[1], 10) : null;
 }
 

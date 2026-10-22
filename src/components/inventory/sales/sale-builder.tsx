@@ -188,7 +188,7 @@ export const SaleBuilder: FC<SaleBuilderProps> = ({
           void deleteProof({
             barbershop: { id: barbershopId },
             key: proofKey,
-          }).catch(() => undefined);
+          }).catch(() => {});
         }
         haptic.trigger("error");
         toast.error(getConvexErrorMessage(error));

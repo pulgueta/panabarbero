@@ -687,12 +687,12 @@ function beginGesture<TData>(config: BeginGestureConfig<TData>) {
   let carryEl: HTMLDivElement | null = null;
   let carryDX = 0;
   let carryDY = 0;
-  const CARRY_CLASS =
-    "bg-background pointer-events-none fixed top-0 left-0 z-100 overflow-hidden rounded-sm opacity-90 shadow-md will-change-transform" +
-    (ui?.dragCarry ? " " + ui.dragCarry : "");
-  const CARRY_INVALID_CLASS =
-    `${CARRY_CLASS} ring-destructive/60 ring-1` +
-    (ui?.dragCarryInvalid ? " " + ui.dragCarryInvalid : "");
+  const CARRY_CLASS = `bg-background pointer-events-none fixed top-0 left-0 z-100 overflow-hidden rounded-sm opacity-90 shadow-md will-change-transform${
+    ui?.dragCarry ? " " + ui.dragCarry : ""
+  }`;
+  const CARRY_INVALID_CLASS = `${CARRY_CLASS} ring-destructive/60 ring-1${
+    ui?.dragCarryInvalid ? " " + ui.dragCarryInvalid : ""
+  }`;
 
   const createCarry = () => {
     if (kind !== "move") return;
@@ -706,7 +706,7 @@ function beginGesture<TData>(config: BeginGestureConfig<TData>) {
     carryDX = startX - rect.left;
     carryDY = startY - rect.top;
     carryEl = document.createElement("div");
-    carryEl.setAttribute("data-slot", "calendar-drag-carry");
+    carryEl.dataset.slot = "calendar-drag-carry";
     carryEl.setAttribute("aria-hidden", "true");
     carryEl.className = CARRY_CLASS;
     carryEl.style.width = `${rect.width}px`;
@@ -715,11 +715,11 @@ function beginGesture<TData>(config: BeginGestureConfig<TData>) {
     carryEl.style.lineHeight = chipFont.lineHeight;
     carryEl.style.transform = `translate3d(${snapToPixel(rect.left)}px, ${snapToPixel(rect.top)}px, 0)`;
     const clone = chip.cloneNode(true) as HTMLElement;
-    clone.removeAttribute("data-dragging");
+    delete clone.dataset.dragging;
     clone.style.width = "100%";
     clone.style.height = "100%";
-    carryEl.appendChild(clone);
-    document.body.appendChild(carryEl);
+    carryEl.append(clone);
+    document.body.append(carryEl);
   };
 
   const positionCarry = (e: PointerEvent) => {
@@ -740,15 +740,15 @@ function beginGesture<TData>(config: BeginGestureConfig<TData>) {
     }
     if (!hintEl) {
       hintEl = document.createElement("div");
-      hintEl.setAttribute("data-slot", "calendar-drop-hint");
+      hintEl.dataset.slot = "calendar-drop-hint";
       // physical left-0 anchor: translate3d positions in physical clientX
       // coordinates, so a logical start-0 anchor would fling it off-screen
       // in RTL documents
-      hintEl.className =
-        "bg-background text-destructive border-destructive/40 pointer-events-none fixed top-0 left-0 z-100 rounded-md border px-2 py-0.5 text-xs font-medium shadow-sm" +
-        (ui?.dropHint ? " " + ui.dropHint : "");
+      hintEl.className = `bg-background text-destructive border-destructive/40 pointer-events-none fixed top-0 left-0 z-100 rounded-md border px-2 py-0.5 text-xs font-medium shadow-sm${
+        ui?.dropHint ? " " + ui.dropHint : ""
+      }`;
       hintEl.textContent = settings.i18n.labels.dropNotAllowed;
-      document.body.appendChild(hintEl);
+      document.body.append(hintEl);
     }
     hintEl.style.transform = `translate3d(${snapToPixel(e.clientX + 12)}px, ${snapToPixel(e.clientY + 16)}px, 0)`;
   };

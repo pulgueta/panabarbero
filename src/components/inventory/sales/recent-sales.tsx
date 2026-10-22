@@ -56,7 +56,7 @@ function saleCustomerDetail(sale: InventorySaleRow) {
   if (sale.customerDocumentType && sale.customerDocumentNumber) {
     return `${saleDocumentTypeShortLabels[sale.customerDocumentType]} ${sale.customerDocumentNumber}`;
   }
-  return undefined;
+  return;
 }
 
 const SalePaymentBadge: FC<{ sale: InventorySaleRow }> = ({ sale }) =>

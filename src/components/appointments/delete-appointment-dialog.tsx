@@ -49,7 +49,7 @@ export const DeleteAppointmentDialog: FC<DeleteAppointmentDialogProps> = ({
       });
       haptic.trigger("success");
       toast.success("Cita eliminada correctamente.");
-    } catch (_error) {
+    } catch {
       haptic.trigger("error");
       toast.error("No se pudo eliminar la cita. Intenta de nuevo.");
     }

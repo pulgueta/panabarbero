@@ -159,7 +159,7 @@ const ServicesDashboard: FC<ServicesDashboardProps> = ({
   };
 
   const supplyCountByServiceId = useMemo(() => {
-    if (!inventoryEnabled) return undefined;
+    if (!inventoryEnabled) return;
 
     return new Map(
       supplyCounts.map((row) => [row.serviceId, row.supplyCount] as const),

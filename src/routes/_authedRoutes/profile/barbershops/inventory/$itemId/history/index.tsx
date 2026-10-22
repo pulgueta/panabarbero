@@ -366,7 +366,7 @@ function parseDiff(diff?: string): AuditChange[] {
       return trimmed ? [trimmed] : [];
     })
     .flatMap((line): AuditChange[] => {
-      const match = line.match(/^([+~-])\s*([^:]+):\s*(.*)$/);
+      const match = /^([+~-])\s*([^:]+):\s*(.*)$/.exec(line);
 
       if (!match) {
         return [];

@@ -23,7 +23,7 @@ function formatTimeLabel(time?: string | null) {
 
 export function useSchedule(availability: Barbershop["availability"] | null) {
   const todaySchedule = (() => {
-    if (!availability?.length) return undefined;
+    if (!availability?.length) return;
 
     const weekday = getDayKeyForDate(new Date());
 
