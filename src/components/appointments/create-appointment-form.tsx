@@ -568,9 +568,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
                 >
                   <TimeSlotPicker
                     barbershopId={barbershopId}
-                    barbershopMemberId={
-                      barbershopMemberId as BarbershopMemberWithName["_id"]
-                    }
+                    barbershopMemberId={barbershopMemberId}
                     serviceIds={effectiveServiceIds}
                     date={normalizedDate}
                     value={selectedSlotTime}

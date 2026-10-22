@@ -169,8 +169,8 @@ export const getMemberForUserId = zInternalQuery({
 
     const barbershop = await ctx.db.get(member.barbershopId);
     return {
-      memberId: member._id as string,
-      barbershopId: member.barbershopId as string,
+      memberId: member._id,
+      barbershopId: member.barbershopId,
       barbershopName: barbershop?.name ?? "",
       roles: member.roles,
     };
@@ -275,7 +275,7 @@ export async function resolvePanaAccessForUserId(
     isOwner: member.roles.includes("owner"),
     panaMemory: limits.panaMemory,
     panaKnowledgeBase: limits.panaKnowledgeBase,
-    barbershopId: member.barbershopId as string,
+    barbershopId: member.barbershopId,
   };
 }
 
@@ -326,8 +326,8 @@ export const getAgentActorContext = zInternalQuery({
 
     return {
       isMember: true as const,
-      memberId: member._id as string,
-      barbershopId: member.barbershopId as string,
+      memberId: member._id,
+      barbershopId: member.barbershopId,
       barbershopName: barbershop?.name ?? "",
       roles: member.roles,
       isOwner: member.roles.includes("owner"),
@@ -379,7 +379,7 @@ export const getMyBarbershopData = zInternalQuery({
         .map(async (m) => {
           const profile = await ctx.db.get(m.userProfileDataId);
           return {
-            barbershopMemberId: m._id as string,
+            barbershopMemberId: m._id,
             name: profile?.name ?? "",
             isOwner: m.roles.includes("owner"),
           };
@@ -388,10 +388,10 @@ export const getMyBarbershopData = zInternalQuery({
 
     return {
       isMember: true as const,
-      barbershopId: barbershop._id as string,
+      barbershopId: barbershop._id,
       name: barbershop.name,
       city: barbershop.city,
-      myMemberId: member._id as string,
+      myMemberId: member._id,
       roles: member.roles,
       canManage: limits.panaManagement,
       staffAppointmentsAllowed: limits.staffCanCreateAppointments,

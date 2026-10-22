@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: dashboard loaders gate and prime this route */
 
-import type { BarbershopMemberWithName, Service } from "@convex/schema";
+import type { BarbershopMemberWithName } from "@convex/schema";
 import {
   CalendarCheckIcon,
   ScissorsIcon,
@@ -135,7 +135,7 @@ function RouteComponent() {
 
   const storeServices = useServicesStore();
   const effectiveServiceIds = storeServices.map(
-    (nextService) => nextService._id as Service["_id"],
+    (nextService) => nextService._id,
   );
   const { data: barbersForServices } =
     useBarbersForServices(effectiveServiceIds);
@@ -193,7 +193,7 @@ function RouteComponent() {
       availableBarbers.length === 1 &&
       (!isCreatingOnBehalf || isStaff || (isOwner && !isBarber))
     ) {
-      setSelectedBarber(availableBarbers[0]!);
+      setSelectedBarber(availableBarbers[0]);
     }
   }, [isCreatingOnBehalf, isStaff, isOwner, isBarber, availableBarbers]);
 

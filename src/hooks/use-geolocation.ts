@@ -43,7 +43,7 @@ export function useGeolocation(): UseGeolocationResult {
 
     let active = true;
     navigator.permissions
-      .query({ name: "geolocation" as PermissionName })
+      .query({ name: "geolocation" })
       .then((result) => {
         if (active && result.state === "denied") setStatus("denied");
       })

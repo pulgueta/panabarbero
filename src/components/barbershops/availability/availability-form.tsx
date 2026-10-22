@@ -97,7 +97,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
   const initialSelectedDays = useMemo(
     () =>
       availability?.flatMap((entry) =>
-        entry.weekDay.isActive ? [entry.weekDay.day as DayKey] : [],
+        entry.weekDay.isActive ? [entry.weekDay.day] : [],
       ) ?? [],
     [availability],
   );
@@ -142,7 +142,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
     setRows(nextRows);
     setSelectedDays(
       nextRows.flatMap((entry) =>
-        entry.weekDay.isActive ? [entry.weekDay.day as DayKey] : [],
+        entry.weekDay.isActive ? [entry.weekDay.day] : [],
       ),
     );
   }, [availability, buildInitialRows]);
@@ -221,7 +221,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
 
     setRows((prev) =>
       prev.map((entry) =>
-        selectedDays.includes(entry.weekDay.day as DayKey)
+        selectedDays.includes(entry.weekDay.day)
           ? {
               ...entry,
               weekDay: { ...entry.weekDay, isActive: true },
@@ -246,7 +246,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
 
     setRows((prev) =>
       prev.map((entry) =>
-        selectedDays.includes(entry.weekDay.day as DayKey)
+        selectedDays.includes(entry.weekDay.day)
           ? {
               ...entry,
               weekDay: { ...entry.weekDay, isActive: false },
@@ -270,26 +270,26 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
     if (entry.weekDay.isActive) {
       if (!entry.openAt || !entry.closeAt) {
         throw new Error(
-          `Define el horario disponible para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+          `Define el horario disponible para ${dayLabelMap[entry.weekDay.day]}`,
         );
       }
 
       if (!isTimeRangeValid(entry.openAt, entry.closeAt)) {
         throw new Error(
-          `La hora de disponibilidad final debe ser mayor a la hora inicial para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+          `La hora de disponibilidad final debe ser mayor a la hora inicial para ${dayLabelMap[entry.weekDay.day]}`,
         );
       }
     }
 
     if ((lunchStart && !lunchEnd) || (!lunchStart && lunchEnd)) {
       throw new Error(
-        `Completa ambas horas para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+        `Completa ambas horas para ${dayLabelMap[entry.weekDay.day]}`,
       );
     }
 
     if (lunchStart && lunchEnd && !isTimeRangeValid(lunchStart, lunchEnd)) {
       throw new Error(
-        `La hora de disponibilidad nuevamente debe ser mayor a la hora de no disponibilidad para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+        `La hora de disponibilidad nuevamente debe ser mayor a la hora de no disponibilidad para ${dayLabelMap[entry.weekDay.day]}`,
       );
     }
 
@@ -500,7 +500,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
 
           <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7">
             {rows.map((entry) => {
-              const day = entry.weekDay.day as DayKey;
+              const day = entry.weekDay.day;
 
               return (
                 <div key={day} className="rounded-md bg-muted/40 p-3 text-sm">

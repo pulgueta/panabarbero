@@ -69,7 +69,7 @@ export const MemberCard: FC<MemberCardProps> = ({
   const isMemberOwner = member.roles.includes("owner");
 
   const { data: barberServices } = useServicesForBarber(
-    isBarber ? member._id : (undefined as unknown as typeof member._id),
+    isBarber ? member._id : undefined,
   );
 
   const canRemove = isOwner && !isMemberOwner;
@@ -146,10 +146,7 @@ export const MemberCard: FC<MemberCardProps> = ({
         )}
 
         {canRemove && (
-          <RemoveMemberDialog
-            member={member}
-            variant={removeVariant as "barber" | "staff"}
-          />
+          <RemoveMemberDialog member={member} variant={removeVariant} />
         )}
       </CardFooter>
     </Card>

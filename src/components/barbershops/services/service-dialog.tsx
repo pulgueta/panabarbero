@@ -41,7 +41,9 @@ export const ServiceDialog: FC<ServiceDialogProps> = ({
   };
 
   const headLabel = `${initialValues ? "Editar" : "Agregar"} servicio`;
-  const description = `${initialValues ? "Actualiza los datos del servicio." : "Define los datos básicos del servicio."}`;
+  const description = initialValues
+    ? "Actualiza los datos del servicio."
+    : "Define los datos básicos del servicio.";
 
   return (
     <ResponsiveModal open={open} onOpenChange={setOpen}>

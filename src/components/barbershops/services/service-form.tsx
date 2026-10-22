@@ -52,7 +52,7 @@ export const ServiceForm: FC<ServiceFormProps> = ({
         duration: 5,
         priceType: "fixed",
         barbershopId: barbershopId,
-      } as ServiceFormData),
+      } satisfies ServiceFormData),
     onSubmit: async ({ value }) => {
       try {
         if (serviceId) {

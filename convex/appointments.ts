@@ -1073,9 +1073,7 @@ export const requestReschedule = zAuthMutation({
       throw new ConvexError(errorMessages.notFound("barbero"));
     }
 
-    const barberProfile = await ctx.db.get(
-      barbershopMember?.userProfileDataId!,
-    );
+    const barberProfile = await ctx.db.get(barbershopMember?.userProfileDataId);
 
     if (!barberProfile) {
       throw new ConvexError(errorMessages.notFound("perfil de barbero"));
@@ -1650,7 +1648,7 @@ export const getAvailableSlots = zQuery({
       const slotEnd = min + serviceDuration;
 
       // Skip if slot overlaps the lunch break
-      if (hasLunch && min < lunchEndMin! && slotEnd > lunchStartMin!) {
+      if (hasLunch && min < lunchEndMin && slotEnd > lunchStartMin) {
         continue;
       }
 

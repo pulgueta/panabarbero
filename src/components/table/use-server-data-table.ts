@@ -11,7 +11,7 @@ import { useState } from "react";
 export interface UseServerDataTableOptions<TData> {
   /** The accumulated `usePaginatedQuery().results`. */
   data: TData[];
-  columns: ColumnDef<TData, unknown>[];
+  columns: ColumnDef<TData>[];
   getRowId?: (row: TData) => string;
   /**
    * Sorting / column-filter / global-filter state is OWNED by the section

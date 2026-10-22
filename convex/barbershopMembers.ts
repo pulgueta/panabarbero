@@ -390,7 +390,7 @@ export const isBarber = zQuery({
       return false;
     }
 
-    const userProfile = await getProfileByUserId(ctx, args.userId!);
+    const userProfile = await getProfileByUserId(ctx, args.userId);
 
     if (!userProfile) {
       return false;
@@ -417,7 +417,7 @@ export const isOwner = zQuery({
       return false;
     }
 
-    const userProfile = await getProfileByUserId(ctx, args.userId!);
+    const userProfile = await getProfileByUserId(ctx, args.userId);
 
     if (!userProfile) {
       return false;
@@ -444,7 +444,7 @@ export const isMember = zQuery({
       return false;
     }
 
-    const userProfile = await getProfileByUserId(ctx, args.userId!);
+    const userProfile = await getProfileByUserId(ctx, args.userId);
 
     if (!userProfile) {
       return false;

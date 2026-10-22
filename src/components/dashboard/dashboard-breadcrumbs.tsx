@@ -17,7 +17,7 @@ export function DashboardBreadcrumbs() {
         if (match.staticData.breadcrumb) {
           acc.push({
             to: match.pathname,
-            label: match.staticData.breadcrumb as string,
+            label: match.staticData.breadcrumb,
           });
         }
         return acc;

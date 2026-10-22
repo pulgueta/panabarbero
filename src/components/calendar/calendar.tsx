@@ -524,13 +524,13 @@ function createCalendarStore<TData>(
       invalidate();
     }
     const callbacks: Record<ControlledKey, ((v: never) => void) | undefined> = {
-      view: settings.onViewChange as never,
-      date: settings.onDateChange as never,
-      dayCount: settings.onDayCountChange as never,
-      events: settings.onEventsChange as never,
-      selection: settings.onSelectionChange as never,
-      interactions: settings.onInteractionsChange as never,
-      viewSettings: settings.onViewSettingsChange as never,
+      view: settings.onViewChange,
+      date: settings.onDateChange,
+      dayCount: settings.onDayCountChange,
+      events: settings.onEventsChange,
+      selection: settings.onSelectionChange,
+      interactions: settings.onInteractionsChange,
+      viewSettings: settings.onViewSettingsChange,
     };
     callbacks[key]?.(value as never);
     if (!controlled) notify();
@@ -1791,7 +1791,7 @@ function splitOptions<TData>(props: Record<string, unknown>): {
     } else rest[key] = value;
   }
   return {
-    options: options as UseCalendarStateOptions<TData>,
+    options: options,
     viewConfig: viewConfig as unknown as CalendarViewConfig<TData>,
     rest,
   };
@@ -1809,9 +1809,7 @@ function Calendar<TData = unknown>({
   children,
   ...props
 }: CalendarProps<TData>) {
-  const { options, viewConfig, rest } = splitOptions<TData>(
-    props as Record<string, unknown>,
-  );
+  const { options, viewConfig, rest } = splitOptions<TData>(props);
 
   if (calendar && Object.keys(options).length > 0) {
     warnOnce(

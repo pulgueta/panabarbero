@@ -87,7 +87,7 @@ export const BarbershopSortSelect: FC<BarbershopSortSelectProps> = ({
 }) => (
   <Select
     items={SORT_SELECT_ITEMS}
-    onValueChange={(next) => next && onValueChange(next as BarbershopSort)}
+    onValueChange={(next) => next && onValueChange(next)}
     value={value}
   >
     <SelectTrigger

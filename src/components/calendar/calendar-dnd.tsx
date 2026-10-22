@@ -668,7 +668,7 @@ function beginGesture<TData>(config: BeginGestureConfig<TData>) {
     lastValid = valid;
     setBodyDragging(true, !valid);
     internals.setDrag({
-      kind: kind === "move" ? "move" : (kind as "resize-start" | "resize-end"),
+      kind: kind === "move" ? "move" : kind,
       occurrence: occurrence!,
       proposedStart: proposal.start,
       proposedEnd: proposal.end,
@@ -906,8 +906,7 @@ function beginGesture<TData>(config: BeginGestureConfig<TData>) {
       end: drag.proposedEnd,
       allDay: drag.proposedAllDay,
       resourceId: drag.proposedResourceId,
-      source:
-        kind === "move" ? "drag" : (kind as "resize-start" | "resize-end"),
+      source: kind === "move" ? "drag" : kind,
     });
     // the polite live region is the only feedback a screen-reader user gets
     // that the drop landed, and on what; a vetoed commit stays silent

@@ -79,24 +79,24 @@ const validateEntry = (
   if (entry.weekDay.isActive) {
     if (!entry.openAt || !entry.closeAt) {
       throw new Error(
-        `Define el horario disponible para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+        `Define el horario disponible para ${dayLabelMap[entry.weekDay.day]}`,
       );
     }
     if (!isTimeRangeValid(entry.openAt, entry.closeAt)) {
       throw new Error(
-        `La hora de disponibilidad final debe ser mayor a la hora inicial para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+        `La hora de disponibilidad final debe ser mayor a la hora inicial para ${dayLabelMap[entry.weekDay.day]}`,
       );
     }
   }
 
   if ((lunchStart && !lunchEnd) || (!lunchStart && lunchEnd)) {
     throw new Error(
-      `Completa ambas horas para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+      `Completa ambas horas para ${dayLabelMap[entry.weekDay.day]}`,
     );
   }
   if (lunchStart && lunchEnd && !isTimeRangeValid(lunchStart, lunchEnd)) {
     throw new Error(
-      `La hora de no disponibilidad final debe ser mayor a la hora inicial para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+      `La hora de no disponibilidad final debe ser mayor a la hora inicial para ${dayLabelMap[entry.weekDay.day]}`,
     );
   }
 
@@ -123,7 +123,7 @@ function ScheduleSummary({ rows }: { rows: Barbershop["availability"] }) {
         <h4 className="mb-3 font-semibold text-sm">Horario personalizado</h4>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {rows.map((entry) => {
-            const day = entry.weekDay.day as DayKey;
+            const day = entry.weekDay.day;
 
             return (
               <div key={day} className="rounded border p-3 text-sm">
@@ -464,7 +464,7 @@ function useBarberScheduleEditor({
 
     setRows((prev) =>
       prev.map((entry) =>
-        selectedDays.includes(entry.weekDay.day as DayKey)
+        selectedDays.includes(entry.weekDay.day)
           ? {
               ...entry,
               weekDay: { ...entry.weekDay, isActive: true },
@@ -486,7 +486,7 @@ function useBarberScheduleEditor({
     }
     setRows((prev) =>
       prev.map((entry) =>
-        selectedDays.includes(entry.weekDay.day as DayKey)
+        selectedDays.includes(entry.weekDay.day)
           ? { ...entry, weekDay: { ...entry.weekDay, isActive: false } }
           : entry,
       ),

@@ -18,7 +18,7 @@ import { useState } from "react";
 
 export interface UseDataTableOptions<TData> {
   data: TData[];
-  columns: ColumnDef<TData, unknown>[];
+  columns: ColumnDef<TData>[];
   /** Stable row identity — defaults to a Convex `_id` when present. */
   getRowId?: (row: TData) => string;
   /** Client-side page size. Ignored when the section drives pagination on the server. */

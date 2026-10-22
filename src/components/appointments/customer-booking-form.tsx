@@ -581,7 +581,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                         className="mt-0.5"
                         checked={useAlternatePhone}
                         onCheckedChange={(checked) => {
-                          const useAlt = checked === true;
+                          const useAlt = checked;
                           setUseAlternatePhone(useAlt);
                           field.handleChange(useAlt ? "" : profilePhone);
                         }}
@@ -631,7 +631,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                         className="mt-0.5"
                         checked={useAlternateEmail}
                         onCheckedChange={(checked) => {
-                          const useAlt = checked === true;
+                          const useAlt = checked;
                           setUseAlternateEmail(useAlt);
                           field.handleChange(
                             useAlt ? undefined : profileEmail || undefined,

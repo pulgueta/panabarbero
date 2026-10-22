@@ -499,7 +499,7 @@ function CalendarResourceColumn({
         const endMin = Math.min(segment.endMin ?? startMin, boundsEndMin);
         return endMin > boundsStartMin && startMin < boundsEndMin;
       })
-      .map((segment) => ({ ...segment }) as CalendarSegment);
+      .map((segment) => ({ ...segment }));
     packTimedSegments(mine);
     return mine;
   }, [segments.timed, resource.id, boundsStartMin, boundsEndMin]);

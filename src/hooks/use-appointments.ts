@@ -82,7 +82,7 @@ export function useAppointmentFormMetadata(barbershopId: Barbershop["_id"]) {
   const activeDays = new Set(
     availability?.flatMap((d) => {
       if (!d.weekDay?.isActive) return [];
-      const key = d.weekDay.day as WeekdayKey;
+      const key = d.weekDay.day;
       const dayIndexes: Record<WeekdayKey, number> = {
         sunday: 0,
         monday: 1,

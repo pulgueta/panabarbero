@@ -49,7 +49,7 @@ const NotificationsAllPageBody: FC<PageBodyProps> = ({
   const { data: lastRead } = useLastRead();
 
   const visible = useMemo<InAppNotification[]>(
-    () => (page && "page" in page ? (page.page as InAppNotification[]) : []),
+    () => (page && "page" in page ? page.page : []),
     [page],
   );
 
@@ -160,7 +160,7 @@ const NotificationsUnreadPageBody: FC<PageBodyProps> = ({
   const { data: lastRead } = useLastRead();
 
   const visible = useMemo<InAppNotification[]>(
-    () => (page && "page" in page ? (page.page as InAppNotification[]) : []),
+    () => (page && "page" in page ? page.page : []),
     [page],
   );
 

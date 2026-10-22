@@ -149,10 +149,7 @@ export function MessageItem({
               <div className="flex flex-col gap-2" key={key}>
                 {isDev ? (
                   <Tool defaultOpen={false}>
-                    <ToolHeader
-                      state={toolPart.state}
-                      type={toolPart.type as `tool-${string}`}
-                    />
+                    <ToolHeader state={toolPart.state} type={toolPart.type} />
                     <ToolContent>
                       <ToolInput input={toolPart.input} />
                       <ToolOutput
@@ -162,10 +159,7 @@ export function MessageItem({
                     </ToolContent>
                   </Tool>
                 ) : (
-                  <ToolHeader
-                    state={toolPart.state}
-                    type={toolPart.type as `tool-${string}`}
-                  />
+                  <ToolHeader state={toolPart.state} type={toolPart.type} />
                 )}
                 {proposal && (
                   <ProposalCard
