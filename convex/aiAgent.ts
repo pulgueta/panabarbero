@@ -36,7 +36,7 @@ function formatRolesEs(roles: ShopRole[]): string {
   if (labels.length === 0) return "miembro del equipo";
   if (labels.length === 1) return labels[0];
 
-  return `${labels.slice(0, -1).join(", ")} y ${labels.at(-1)}`;
+  return `${labels.slice(0, -1).join(", ")} y ${labels[labels.length - 1]}`;
 }
 
 /** Colombia-local `YYYY-MM-DD` (weekday) for `today + days`. */

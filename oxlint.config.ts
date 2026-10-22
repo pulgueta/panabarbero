@@ -57,6 +57,8 @@ export default defineConfig({
             .map((rule) => [rule, "off"]),
         ),
         "unicorn/filename-case": ["error", { case: "camelCase" }],
+        // convex/tsconfig.json keeps the Convex default lib (ES2021): no `.at()`.
+        "unicorn/prefer-at": "off",
       },
     },
     // Per-file React Doctor exceptions mirrored from doctor.config.ts.
