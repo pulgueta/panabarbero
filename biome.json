@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.8/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -48,6 +48,12 @@
             "attributes": ["classList"],
             "functions": ["clsx", "cva", "tw", "tw.*"]
           }
+        },
+        "useReactCompiler": {
+          "level": "warn",
+          "options": {
+            "compilationMode": "all"
+          }
         }
       }
     }
@@ -68,5 +74,17 @@
     "parser": {
       "tailwindDirectives": true
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["convex/**/*"],
+      "linter": {
+        "rules": {
+          "nursery": {
+            "useReactCompiler": "off"
+          }
+        }
+      }
+    }
+  ]
 }
