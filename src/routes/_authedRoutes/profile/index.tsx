@@ -351,9 +351,9 @@ function ProfilePage() {
                   appointments={appointments?.page ?? EMPTY_APPOINTMENTS}
                   hasNextPage={Boolean(
                     appointments &&
-                      !appointments.isDone &&
-                      appointments.continueCursor &&
-                      appointments.page?.length >= 9,
+                    !appointments.isDone &&
+                    appointments.continueCursor &&
+                    appointments.page?.length >= 9,
                   )}
                   onNextPage={onNextPage}
                   onPreviousPage={onPreviousPage}

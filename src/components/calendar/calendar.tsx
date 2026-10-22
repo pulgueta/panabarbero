@@ -145,8 +145,9 @@ interface CalendarCallbacks<TData = unknown> {
   ) => void | false;
 }
 
-interface UseCalendarStateOptions<TData = unknown>
-  extends CalendarCallbacks<TData> {
+interface UseCalendarStateOptions<
+  TData = unknown,
+> extends CalendarCallbacks<TData> {
   events?: CalendarEvent<TData>[];
   defaultEvents?: CalendarEvent<TData>[];
   view?: CalendarView;
@@ -1643,11 +1644,10 @@ const DEFAULT_VIEW_CONFIG: CalendarViewConfig = {
   agendaSummaryMaxDots: 6,
 };
 
-const CalendarViewConfigContext =
-  createContext<
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    CalendarViewConfig<any>
-  >(DEFAULT_VIEW_CONFIG);
+const CalendarViewConfigContext = createContext<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  CalendarViewConfig<any>
+>(DEFAULT_VIEW_CONFIG);
 
 /** Root-level display props + render overrides, for view components. */
 function useCalendarViewConfig<TData = unknown>(): CalendarViewConfig<TData> {
@@ -1711,7 +1711,8 @@ function useCalendarViewContext(): { view: CalendarView } {
 }
 
 interface CalendarProps<TData = unknown>
-  extends UseCalendarStateOptions<TData>,
+  extends
+    UseCalendarStateOptions<TData>,
     Partial<CalendarViewConfig<TData>>,
     Omit<useRender.ComponentProps<"div">, "children" | "defaultValue"> {
   /** Adopt a hoisted useCalendarState instance; option props are then ignored. */

@@ -139,8 +139,7 @@ type MapStyleOption = string | StyleSpecification;
 type MapRef = MapLibreGL;
 
 interface MapProps
-  extends PropsWithChildren,
-    Omit<MapOptions, "container" | "style"> {
+  extends PropsWithChildren, Omit<MapOptions, "container" | "style"> {
   /** Additional CSS classes for the map container */
   className?: string;
   /**
@@ -375,8 +374,7 @@ function useMarkerContext() {
 }
 
 interface MapMarkerProps
-  extends PropsWithChildren,
-    Omit<MarkerOptions, "element"> {
+  extends PropsWithChildren, Omit<MarkerOptions, "element"> {
   /** Longitude coordinate for marker position */
   longitude: number;
   /** Latitude coordinate for marker position */
@@ -554,8 +552,7 @@ function PopupCloseButton({ onClick }: { onClick: () => void }) {
 }
 
 interface MarkerPopupProps
-  extends PropsWithChildren,
-    Omit<PopupOptions, "className" | "closeButton"> {
+  extends PropsWithChildren, Omit<PopupOptions, "className" | "closeButton"> {
   /** Additional CSS classes for the popup container */
   className?: string;
   /** Show a close button in the popup (default: false) */
@@ -628,7 +625,8 @@ function MarkerPopup({
 }
 
 interface MarkerTooltipProps
-  extends PropsWithChildren,
+  extends
+    PropsWithChildren,
     Omit<PopupOptions, "className" | "closeButton" | "closeOnClick"> {
   /** Additional CSS classes for the tooltip container */
   className?: string;
@@ -948,8 +946,7 @@ function CompassButton({ onClick }: { onClick: () => void }) {
 }
 
 interface MapPopupProps
-  extends PropsWithChildren,
-    Omit<PopupOptions, "className" | "closeButton"> {
+  extends PropsWithChildren, Omit<PopupOptions, "className" | "closeButton"> {
   /** Longitude coordinate for popup position */
   longitude: number;
   /** Latitude coordinate for popup position */

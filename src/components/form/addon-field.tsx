@@ -15,8 +15,10 @@ import {
 } from "@/components/ui/input-group";
 import { numberSelectOnFocus, useFieldContext } from "./form-context";
 
-interface AddonFieldProps
-  extends Omit<ComponentProps<typeof InputGroupInput>, "prefix"> {
+interface AddonFieldProps extends Omit<
+  ComponentProps<typeof InputGroupInput>,
+  "prefix"
+> {
   label: string;
   description?: string;
   /** Leading addon — e.g. "COP" on money inputs. */
