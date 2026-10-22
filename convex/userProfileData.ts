@@ -3,12 +3,51 @@ import { z } from "zod";
 
 import { zAuthMutation, zInternalMutation, zQuery } from ".";
 import { internal } from "./_generated/api";
+import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { errorMessages } from "./errors";
 import { getUserId, requireUserId } from "./identity";
 import { rateLimitOrThrow } from "./ratelimit";
+import type { UserProfileData } from "./schema";
 import { userProfileData } from "./schema";
 import { formatPhoneNumber } from "./utils";
+
+/**
+ * WhatsApp is the default channel for new profiles (the profile toggle and
+ * the booking checkbox switch it). Creation sites also stamp
+ * `whatsappOptedInAt` so the consent record matches.
+ */
+export const DEFAULT_NOTIFICATION_PREFERENCES = [
+  { type: "whatsapp", enabled: true },
+] satisfies UserProfileData["notificationsPreferences"];
+
+/**
+ * Upsert the WhatsApp preference. Appends the entry when missing so a
+ * plain `.map()` cannot silently no-op. Enabling stamps `whatsappOptedInAt`
+ * (consent record).
+ */
+export async function upsertNotificationPreference(
+  ctx: MutationCtx,
+  profile: Doc<"userProfileData">,
+  type: UserProfileData["notificationsPreferences"][number]["type"],
+  enabled: boolean,
+): Promise<void> {
+  const hasPreference = profile.notificationsPreferences.some(
+    (p) => p.type === type,
+  );
+  const next = hasPreference
+    ? profile.notificationsPreferences.map((p) =>
+        p.type === type ? { ...p, enabled } : p,
+      )
+    : [...profile.notificationsPreferences, { type, enabled }];
+
+  await ctx.db.patch(profile._id, {
+    notificationsPreferences: next,
+    ...(type === "whatsapp" && enabled
+      ? { whatsappOptedInAt: Date.now() }
+      : {}),
+  });
+}
 
 export const getProfileByUserId = async (
   ctx: QueryCtx | MutationCtx,
@@ -127,7 +166,7 @@ export const updatePhoneNumber = zAuthMutation({
 
 export const updateNotificationPreference = zAuthMutation({
   args: z.object({
-    type: z.enum(["email", "sms"]),
+    type: z.literal("whatsapp"),
     enabled: z.boolean(),
     userId: z.string(),
   }),
@@ -143,11 +182,7 @@ export const updateNotificationPreference = zAuthMutation({
     if (!profile)
       throw new ConvexError(errorMessages.notFound("perfil de usuario"));
 
-    const next = profile.notificationsPreferences.map((p) =>
-      p.type === args.type ? { ...p, enabled: args.enabled } : p,
-    );
-
-    await ctx.db.patch(profile._id, { notificationsPreferences: next });
+    await upsertNotificationPreference(ctx, profile, args.type, args.enabled);
   },
 });
 

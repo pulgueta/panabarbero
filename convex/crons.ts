@@ -100,4 +100,16 @@ crons.interval(
   internal.inventory.rollupOldMovements,
 );
 
+crons.interval(
+  "Sync WhatsApp templates",
+  { hours: 6 },
+  internal.whatsapp.syncTemplates,
+);
+
+crons.interval(
+  "Purge old WhatsApp inbound markers",
+  { hours: 24 },
+  internal.whatsapp.purgeInboundMarkers,
+);
+
 export default crons;

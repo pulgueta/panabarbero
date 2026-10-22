@@ -34,7 +34,7 @@ export const addPurchasedCredits = zInternalMutation({
   args: z.object({
     orderId: z.string(),
     userId: z.string(),
-    type: z.enum(["sms", "email"]),
+    type: z.literal("whatsapp"),
     amount: z.number().min(1),
   }),
   handler: async (ctx, args) => {
@@ -72,24 +72,15 @@ export const addPurchasedCredits = zInternalMutation({
     const row = await getExtraCredits(ctx, barbershopId);
 
     if (row) {
-      if (args.type === "sms") {
-        await ctx.db.patch(row._id, {
-          smsCredits: row.smsCredits + args.amount,
-          smsPurchasedTotal: row.smsPurchasedTotal + args.amount,
-        });
-      } else {
-        await ctx.db.patch(row._id, {
-          emailCredits: row.emailCredits + args.amount,
-          emailPurchasedTotal: row.emailPurchasedTotal + args.amount,
-        });
-      }
+      await ctx.db.patch(row._id, {
+        whatsappCredits: row.whatsappCredits + args.amount,
+        whatsappPurchasedTotal: row.whatsappPurchasedTotal + args.amount,
+      });
     } else {
       await ctx.db.insert("extraCredits", {
         barbershopId,
-        smsCredits: args.type === "sms" ? args.amount : 0,
-        emailCredits: args.type === "email" ? args.amount : 0,
-        smsPurchasedTotal: args.type === "sms" ? args.amount : 0,
-        emailPurchasedTotal: args.type === "email" ? args.amount : 0,
+        whatsappCredits: args.amount,
+        whatsappPurchasedTotal: args.amount,
       });
     }
 
@@ -149,10 +140,8 @@ export const getBarbershopQuotaUsage = zQuery({
 
     return {
       month,
-      smsUsed: row?.smsSent ?? 0,
-      emailsUsed: row?.emailsSent ?? 0,
-      maxSmsPerMonth: limits.maxSmsPerMonth,
-      maxEmailPerMonth: limits.maxEmailPerMonth,
+      whatsappUsed: row?.whatsappMessagesSent ?? 0,
+      maxWhatsAppPerMonth: limits.maxWhatsAppPerMonth,
     };
   },
 });

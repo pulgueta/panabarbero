@@ -323,13 +323,16 @@ export async function recordMovement(
     level.lowStockAlertedAt === undefined &&
     item.deletedAt === undefined;
 
+  const alertedAt = Date.now();
+
   if (crossedDown) {
-    levelPatch.lowStockAlertedAt = Date.now();
+    levelPatch.lowStockAlertedAt = alertedAt;
   } else if (
     onHand > item.reorderPoint &&
     level.lowStockAlertedAt !== undefined
   ) {
     levelPatch.lowStockAlertedAt = undefined;
+    levelPatch.lowStockAckedAt = undefined;
   }
 
   await db.patch(level._id, levelPatch);
@@ -342,6 +345,8 @@ export async function recordMovement(
       remaining: onHand,
       unit: item.unit,
       reorderPoint: item.reorderPoint,
+      levelId: level._id,
+      alertedAt,
     });
   }
 
@@ -628,6 +633,7 @@ export const updateItem = zAuthMutation({
 
           if (!belowReorder && level.lowStockAlertedAt !== undefined) {
             patch.lowStockAlertedAt = undefined;
+            patch.lowStockAckedAt = undefined;
           }
 
           // A raised reorder point can itself cross the threshold.
@@ -651,6 +657,8 @@ export const updateItem = zAuthMutation({
             remaining: level.onHand,
             unit: item.unit,
             reorderPoint: data.reorderPoint,
+            levelId: level._id,
+            alertedAt: patch.lowStockAlertedAt ?? Date.now(),
           });
         }
 

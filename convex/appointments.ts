@@ -40,7 +40,11 @@ import {
   barbershops,
   services,
 } from "./schema";
-import { getProfileByEmail, getProfileByUserId } from "./userProfileData";
+import {
+  getProfileByEmail,
+  getProfileByUserId,
+  upsertNotificationPreference,
+} from "./userProfileData";
 import {
   DAY_MAP,
   formatPhoneNumber,
@@ -99,10 +103,9 @@ async function cancelScheduledNotifications(
 
 export const create = zAuthMutation({
   args: createAppointmentArgs,
+  ratelimit: "createAppointment",
   handler: async (ctx, args) => {
     const { userId } = ctx;
-
-    await rateLimitOrThrow(ctx, "createAppointment", userId);
 
     const { appointment } = args;
     const contactEmail = appointment.contactEmail?.trim() || undefined;
@@ -297,6 +300,16 @@ export const create = zAuthMutation({
       ...withoutIsStaffCreated
     } = appointment;
 
+    // Consent can only come from the customer themself, never from staff
+    // booking on their behalf. Stamps `whatsappOptedInAt` on their profile.
+    if (!isStaffCreatingAppointment) {
+      const ownProfile = await getProfileByUserId(ctx, userId);
+
+      if (ownProfile) {
+        await upsertNotificationPreference(ctx, ownProfile, "whatsapp", true);
+      }
+    }
+
     // Resolve creator member ID for staff-created appointments
     let createdByMemberId: typeof appointment.barbershopMemberId | undefined;
     if (isStaffCreatingAppointment) {
@@ -370,6 +383,8 @@ export const create = zAuthMutation({
           internal.notifications.createPastAppointmentReminder,
           {
             barberUserId: barberProfile.userId,
+            appointmentId,
+            barbershopId: appointment.barbershopId,
           },
         ),
       ]);
@@ -528,6 +543,137 @@ export const setStatusSchema = z.object({
     .optional(),
 });
 
+type CloseoutStatus = "completed" | "no-show";
+
+/** Statuses that can no longer be closed out (already closed or gone). */
+const CLOSED_STATUSES = new Set([
+  "completed",
+  "no-show",
+  "cancelled",
+  "denied",
+]);
+
+/**
+ * Close-out core shared by the authed `setStatus` and the WhatsApp one-tap
+ * `closeoutAppointmentFromWhatsApp`. Callers authorize; this applies the
+ * status, its side effects, and — on completion for a registered customer —
+ * mints the review invite (R6/R7).
+ */
+async function applyAppointmentCloseout(
+  ctx: MutationCtx,
+  args: {
+    appointment: Appointment;
+    status: CloseoutStatus;
+    finalPrices?: Array<{ serviceId: Service["_id"]; finalPrice: number }>;
+    actorUserId: string;
+  },
+) {
+  const { appointment: appt } = args;
+  const appointmentId = appt._id;
+
+  await cancelScheduledNotifications(ctx, appt);
+
+  if (args.status === "no-show") {
+    const updatedAppointment = await ctx.db.patch(appointmentId, {
+      status: "no-show",
+      upcomingNotificationId: undefined,
+      pastReminderNotificationId: undefined,
+    });
+
+    await releaseForAppointment(ctx, appt);
+
+    await track(ctx, {
+      distinctId: args.actorUserId,
+      event: "appointment_no_show",
+      properties: {
+        appointmentId,
+        barbershopId: appt.barbershopId,
+        serviceId: appt.serviceId,
+        barberId: appt.barbershopMemberId,
+      },
+      groups: { barbershop: appt.barbershopId },
+    });
+
+    return updatedAppointment;
+  }
+
+  // Every "starting" line needs its agreed final price (≥ the minimum)
+  // to complete. Finals are snapshotted onto the row in the SAME
+  // transaction as the revenue aggregate write below, so they can never
+  // drift apart.
+  const items = await getAppointmentItems(ctx, appt);
+  const finalByService = new Map(
+    (args.finalPrices ?? []).map((entry) => [
+      entry.serviceId,
+      entry.finalPrice,
+    ]),
+  );
+
+  const itemsWithFinals = items.map((item) => {
+    if (item.priceType !== "starting") {
+      return item;
+    }
+
+    const finalPrice = item.finalPrice ?? finalByService.get(item.serviceId);
+
+    if (finalPrice === undefined) {
+      throw new ConvexError(errorMessages.finalPriceRequired(item.name));
+    }
+
+    if (finalPrice < item.price) {
+      throw new ConvexError(errorMessages.finalPriceBelowMinimum(item.name));
+    }
+
+    return { ...item, finalPrice };
+  });
+
+  const updatedAppointment = await ctx.db.patch(appointmentId, {
+    status: "completed",
+    items: itemsWithFinals,
+    upcomingNotificationId: undefined,
+    pastReminderNotificationId: undefined,
+  });
+
+  // Release the recipe holds and consume the stock the services used.
+  await consumeForAppointment(ctx, {
+    _id: appointmentId,
+    barbershopId: appt.barbershopId,
+    userId: appt.userId,
+    serviceIds: itemsWithFinals.map((item) => item.serviceId),
+  });
+
+  await ctx.runMutation(
+    internal.barbershopMetadata.incrementCompletedAppointments,
+    {
+      barbershopId: appt.barbershopId,
+      appointmentId: appointmentId,
+    },
+  );
+
+  // Only registered customers can review (guests have no session and no
+  // phone-authorizable profile). Runs after commit — a failed send must not
+  // roll back the close-out.
+  if (appt.userId !== "user_does_not_exist") {
+    await ctx.scheduler.runAfter(0, internal.notifications.createReviewInvite, {
+      appointmentId,
+    });
+  }
+
+  await track(ctx, {
+    distinctId: args.actorUserId,
+    event: "appointment_completed",
+    properties: {
+      appointmentId,
+      barbershopId: appt.barbershopId,
+      serviceId: appt.serviceId,
+      barberId: appt.barbershopMemberId,
+    },
+    groups: { barbershop: appt.barbershopId },
+  });
+
+  return updatedAppointment;
+}
+
 export const setStatus = zAuthMutation({
   args: setStatusSchema,
   handler: async (ctx, args) => {
@@ -566,100 +712,13 @@ export const setStatus = zAuthMutation({
     let updatedAppointment = null;
 
     switch (args.status) {
-      case "completed": {
-        await cancelScheduledNotifications(ctx, appt);
-
-        // Every "starting" line needs its agreed final price (≥ the minimum)
-        // to complete. Finals are snapshotted onto the row in the SAME
-        // transaction as the revenue aggregate write below, so they can never
-        // drift apart.
-        const items = await getAppointmentItems(ctx, appt);
-        const finalByService = new Map(
-          (args.finalPrices ?? []).map((entry) => [
-            entry.serviceId,
-            entry.finalPrice,
-          ]),
-        );
-
-        const itemsWithFinals = items.map((item) => {
-          if (item.priceType !== "starting") {
-            return item;
-          }
-
-          const finalPrice =
-            item.finalPrice ?? finalByService.get(item.serviceId);
-
-          if (finalPrice === undefined) {
-            throw new ConvexError(errorMessages.finalPriceRequired(item.name));
-          }
-
-          if (finalPrice < item.price) {
-            throw new ConvexError(
-              errorMessages.finalPriceBelowMinimum(item.name),
-            );
-          }
-
-          return { ...item, finalPrice };
-        });
-
-        updatedAppointment = await ctx.db.patch(appointmentId, {
-          status: "completed",
-          items: itemsWithFinals,
-          upcomingNotificationId: undefined,
-          pastReminderNotificationId: undefined,
-        });
-
-        // Release the recipe holds and consume the stock the services used.
-        await consumeForAppointment(ctx, {
-          _id: appointmentId,
-          barbershopId: appt.barbershopId,
-          userId: appt.userId,
-          serviceIds: itemsWithFinals.map((item) => item.serviceId),
-        });
-
-        await ctx.runMutation(
-          internal.barbershopMetadata.incrementCompletedAppointments,
-          {
-            barbershopId: appt.barbershopId,
-            appointmentId: appointmentId,
-          },
-        );
-
-        await track(ctx, {
-          distinctId: userId,
-          event: "appointment_completed",
-          properties: {
-            appointmentId,
-            barbershopId: appt.barbershopId,
-            serviceId: appt.serviceId,
-            barberId: appt.barbershopMemberId,
-          },
-          groups: { barbershop: appt.barbershopId },
-        });
-
-        break;
-      }
-
+      case "completed":
       case "no-show":
-        await cancelScheduledNotifications(ctx, appt);
-        updatedAppointment = await ctx.db.patch(appointmentId, {
-          status: "no-show",
-          upcomingNotificationId: undefined,
-          pastReminderNotificationId: undefined,
-        });
-
-        await releaseForAppointment(ctx, appt);
-
-        await track(ctx, {
-          distinctId: userId,
-          event: "appointment_no_show",
-          properties: {
-            appointmentId,
-            barbershopId: appt.barbershopId,
-            serviceId: appt.serviceId,
-            barberId: appt.barbershopMemberId,
-          },
-          groups: { barbershop: appt.barbershopId },
+        updatedAppointment = await applyAppointmentCloseout(ctx, {
+          appointment: appt,
+          status: args.status,
+          finalPrices: args.finalPrices,
+          actorUserId: userId,
         });
         break;
 
@@ -689,6 +748,123 @@ export const setStatus = zAuthMutation({
     }
 
     return updatedAppointment;
+  },
+});
+
+/**
+ * WhatsApp "Completada" / "No asistió" one-tap close-out. Sender phone (from
+ * the signed webhook) must match the assigned barber's profile; the payload
+ * binds the appointment date so a tap after a reschedule decides nothing.
+ * Expected refusals come back as results; an unexpected throw is caught by
+ * the inbound handler (`ctx.runMutation` rolls this sub-transaction back).
+ */
+export const closeoutAppointmentFromWhatsApp = zInternalMutation({
+  args: z.object({
+    appointmentId: appointments.tools.id.shape.id,
+    status: z.enum(["completed", "no-show"]),
+    date: z.number(),
+    senderPhone: z.string(),
+  }),
+  handler: async (
+    ctx,
+    args,
+  ): Promise<"applied" | "needs-final-price" | "inactive"> => {
+    const appt = await ctx.db.get(args.appointmentId);
+
+    if (
+      !appt ||
+      appt.deletedAt ||
+      appt.date !== args.date ||
+      CLOSED_STATUSES.has(appt.status)
+    ) {
+      return "inactive";
+    }
+
+    const barberMember = await ctx.db.get(appt.barbershopMemberId);
+    const barberProfile = barberMember
+      ? await ctx.db.get(barberMember.userProfileDataId)
+      : null;
+
+    if (
+      !barberProfile ||
+      !phoneMatches(args.senderPhone, barberProfile.phoneNumber)
+    ) {
+      return "inactive";
+    }
+
+    if (args.status === "completed") {
+      // A final price cannot be typed into a button tap — send them to the app.
+      const items = await getAppointmentItems(ctx, appt);
+
+      if (
+        items.some(
+          (item) =>
+            item.priceType === "starting" && item.finalPrice === undefined,
+        )
+      ) {
+        return "needs-final-price";
+      }
+    }
+
+    await applyAppointmentCloseout(ctx, {
+      appointment: appt,
+      status: args.status,
+      actorUserId: barberProfile.userId,
+    });
+
+    return "applied";
+  },
+});
+
+/**
+ * WhatsApp "Voy en camino" tap on the customer reminder. Phone-authorized
+ * against the customer (booking phone or profile), stamped once
+ * (`customerOnMyWayAt`) so repeat taps never re-notify the barber.
+ */
+export const markOnMyWayFromWhatsApp = zInternalMutation({
+  args: z.object({
+    appointmentId: appointments.tools.id.shape.id,
+    date: z.number(),
+    senderPhone: z.string(),
+  }),
+  handler: async (
+    ctx,
+    args,
+  ): Promise<"notified" | "already-notified" | "inactive"> => {
+    const appt = await ctx.db.get(args.appointmentId);
+
+    if (
+      !appt ||
+      appt.deletedAt ||
+      appt.date !== args.date ||
+      CLOSED_STATUSES.has(appt.status)
+    ) {
+      return "inactive";
+    }
+
+    const customerProfile =
+      appt.userId !== "user_does_not_exist"
+        ? await getProfileByUserId(ctx, appt.userId)
+        : null;
+
+    if (
+      !phoneMatches(args.senderPhone, appt.contactPhone) &&
+      !phoneMatches(args.senderPhone, customerProfile?.phoneNumber)
+    ) {
+      return "inactive";
+    }
+
+    if (appt.customerOnMyWayAt) {
+      return "already-notified";
+    }
+
+    await ctx.db.patch(appt._id, { customerOnMyWayAt: Date.now() });
+
+    await ctx.runMutation(internal.notifications.createCustomerOnMyWay, {
+      appointmentId: appt._id,
+    });
+
+    return "notified";
   },
 });
 
@@ -876,6 +1052,9 @@ export const requestReschedule = zAuthMutation({
       throw new ConvexError(errorMessages.cannotRescheduleCompleted);
     }
 
+    // Only the appointment's customer or an active shop member may move it.
+    await assertCanMutateAppointment(ctx, appt, userId);
+
     await ctx.db.patch(appointmentId, {
       status: "pending",
       proposedDate: args.proposedDate,
@@ -997,9 +1176,209 @@ export const notifyUpcoming = zInternalMutation({
       customerUserId: userProfile?.userId ?? "user_does_not_exist",
       to: appointment.contactEmail,
       receiverPhoneNumber: appointment.contactPhone,
+      appointmentId: appointment._id,
     });
   },
 });
+
+/**
+ * Shared accept/deny core for the authenticated mutation and the WhatsApp
+ * quick-reply path. `requireAuthenticatedActor: false` is reserved for the
+ * WhatsApp path, which authenticates by phone match + proposal binding
+ * before calling in. Returns `false` when the request is gone or stale
+ * (non-throwing so webhook retries stay quiet).
+ */
+async function applyRescheduleDecision(
+  ctx: MutationCtx,
+  args: {
+    appointmentId: Appointment["_id"];
+    accepted: boolean;
+    actorUserId: string;
+    answeredBy: "customer" | "barber";
+    requireAuthenticatedActor: boolean;
+  },
+): Promise<boolean> {
+  const appt = await ctx.db.get(args.appointmentId);
+
+  if (!appt || appt.deletedAt) {
+    return false;
+  }
+
+  // Two-party protocol: the requester cannot answer their own proposal.
+  if (
+    appt.rescheduleRequestedByUserId &&
+    appt.rescheduleRequestedByUserId === args.actorUserId
+  ) {
+    if (args.requireAuthenticatedActor) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    return false;
+  }
+
+  if (args.requireAuthenticatedActor) {
+    // The answering side must match the actor: customers answer their own
+    // citas, shop members answer for the shop.
+    if (args.answeredBy === "customer") {
+      if (appt.userId !== args.actorUserId) {
+        throw new ConvexError(errorMessages.unauthorized);
+      }
+    } else {
+      await assertShopRole(ctx, appt.barbershopId, args.actorUserId, [
+        "owner",
+        "barber",
+        "staff",
+      ]);
+    }
+  }
+
+  if (!appt.proposedDate) {
+    return false;
+  }
+
+  if (args.accepted) {
+    const items = await getAppointmentItems(ctx, appt);
+
+    const overlap = await ctx.runQuery(internal.appointments.overlaps, {
+      appointment: { id: args.appointmentId },
+      date: appt.proposedDate,
+      endAt: appt.proposedDate + itemsTotalDuration(items) * MINUTE_MS,
+    });
+
+    if (overlap) {
+      throw new ConvexError(errorMessages.appointmentOverlaps);
+    }
+  }
+
+  const newStatus = args.accepted ? "rescheduled" : "denied";
+
+  if (args.accepted) {
+    await cancelScheduledNotifications(ctx, appt);
+
+    const thirtyMinBefore = appt.proposedDate - 30 * 60 * 1000;
+    const thirtyMinAfter = appt.proposedDate + 30 * 60 * 1000;
+
+    const upcomingNotificationId = await ctx.scheduler.runAt(
+      thirtyMinBefore,
+      internal.appointments.notifyUpcoming,
+      {
+        appointmentId: { id: args.appointmentId },
+        barbershopId: { id: appt.barbershopId },
+        userId: appt.userId,
+      },
+    );
+
+    const barberMember = await ctx.db.get(appt.barbershopMemberId);
+    const barberProf = barberMember
+      ? await ctx.db.get(barberMember.userProfileDataId)
+      : null;
+
+    let pastReminderNotificationId: typeof appt.pastReminderNotificationId;
+
+    if (barberProf) {
+      pastReminderNotificationId = await ctx.scheduler.runAt(
+        thirtyMinAfter,
+        internal.notifications.createPastAppointmentReminder,
+        {
+          barberUserId: barberProf.userId,
+          appointmentId: args.appointmentId,
+          barbershopId: appt.barbershopId,
+        },
+      );
+    }
+
+    await ctx.db.patch(args.appointmentId, {
+      status: newStatus,
+      date: appt.proposedDate,
+      proposedDate: undefined,
+      rescheduleRequestedByUserId: undefined,
+      upcomingNotificationId,
+      pastReminderNotificationId,
+    });
+  } else {
+    // Denied is terminal: the reminders were armed for the original date —
+    // stop them too, then free the recipe holds.
+    await cancelScheduledNotifications(ctx, appt);
+
+    await ctx.db.patch(args.appointmentId, {
+      status: newStatus,
+      proposedDate: undefined,
+      rescheduleRequestedByUserId: undefined,
+      upcomingNotificationId: undefined,
+      pastReminderNotificationId: undefined,
+    });
+
+    await releaseForAppointment(ctx, appt);
+  }
+
+  const barber = await ctx.db.get(appt.barbershopMemberId);
+
+  if (!barber) {
+    throw new ConvexError(errorMessages.notFound("barbero"));
+  }
+
+  const barberProfile = await ctx.db.get(barber.userProfileDataId);
+
+  if (!barberProfile) {
+    throw new ConvexError(errorMessages.notFound("perfil de barbero"));
+  }
+
+  let customerProfile = null;
+
+  if (appt.userId !== "user_does_not_exist") {
+    customerProfile = await getProfileByUserId(ctx, appt.userId);
+  }
+
+  const barbershop = await ctx.db.get(appt.barbershopId);
+
+  if (!barbershop) {
+    throw new ConvexError(errorMessages.notFound("barbería"));
+  }
+
+  const isCustomerAccepting = args.answeredBy === "customer";
+  const receiverProfile = isCustomerAccepting ? barberProfile : customerProfile;
+  const receiverRole = isCustomerAccepting ? "barber" : "customer";
+  const receiverUserId = receiverProfile?.userId ?? "user_does_not_exist";
+
+  const formattedDate = dateTimeFormatter.format(new Date(appt.proposedDate));
+
+  const body = args.accepted
+    ? `Tu cita ha sido confirmada con la nueva fecha: ${formattedDate}.`
+    : "La solicitud fue rechazada y la cita fue cancelada.";
+
+  const receiverEmail =
+    (receiverRole === "customer" ? appt.contactEmail : undefined) ??
+    receiverProfile?.email ??
+    "";
+
+  await ctx.runMutation(
+    internal.notifications.createAppointmentRescheduleDecision,
+    {
+      receiverUserId,
+      to: receiverEmail,
+      appointmentId: args.appointmentId,
+      accepted: args.accepted,
+      notes: args.accepted ? undefined : body,
+      barbershopName: barbershop.name,
+      role: receiverRole,
+    },
+  );
+
+  await track(ctx, {
+    distinctId: args.actorUserId,
+    event: "appointment_reschedule_decided",
+    properties: {
+      appointmentId: args.appointmentId,
+      barbershopId: appt.barbershopId,
+      accepted: args.accepted,
+      barberId: appt.barbershopMemberId,
+      serviceId: appt.serviceId,
+    },
+    groups: { barbershop: appt.barbershopId },
+  });
+
+  return true;
+}
 
 export const answerRescheduleRequest = zAuthMutation({
   args: z.object({
@@ -1016,156 +1395,97 @@ export const answerRescheduleRequest = zAuthMutation({
       `${userId}-${args.appointment.id}`,
     );
 
-    const appt = await ctx.db.get(args.appointment.id);
+    await applyRescheduleDecision(ctx, {
+      appointmentId: args.appointment.id,
+      accepted: args.accepted,
+      actorUserId: userId,
+      answeredBy: args.answeredBy,
+      requireAuthenticatedActor: true,
+    });
+  },
+});
 
-    if (!appt) {
-      return;
+function phoneMatches(left: string | undefined, right: string | undefined) {
+  if (!left || !right) {
+    return false;
+  }
+
+  const normalizedLeft = formatPhoneNumber(left);
+  const normalizedRight = formatPhoneNumber(right);
+
+  return !!normalizedLeft && normalizedLeft === normalizedRight;
+}
+
+/**
+ * WhatsApp quick-reply path. The sender phone comes from the signed webhook
+ * (trust anchored on WHATSAPP_APP_SECRET); authorization is phone match
+ * against the answering side plus the `proposedAt` binding minted into the
+ * button payload. Expected refusals return `false`; a throw (e.g. the
+ * proposed slot now overlaps another cita) is caught by the inbound handler,
+ * so `ctx.runMutation` rolls this sub-transaction back — no half-applied
+ * reschedule.
+ */
+export const answerRescheduleRequestFromWhatsApp = zInternalMutation({
+  args: z.object({
+    appointmentId: appointments.tools.id.shape.id,
+    accepted: z.boolean(),
+    answeredBy: z.enum(["customer", "barber"]),
+    proposedAt: z.number(),
+    senderPhone: z.string(),
+  }),
+  handler: async (ctx, args) => {
+    const appt = await ctx.db.get(args.appointmentId);
+
+    if (!appt || appt.deletedAt) {
+      return false;
     }
 
-    if (appt.deletedAt) {
-      return;
+    // Stale-button/replay binding: the payload carries the proposal it was
+    // minted for; any newer or resolved proposal invalidates it.
+    if (appt.proposedDate !== args.proposedAt) {
+      return false;
     }
 
-    if (args.accepted) {
-      if (!appt.proposedDate) {
-        return;
+    if (args.answeredBy === "customer") {
+      const customerProfile =
+        appt.userId !== "user_does_not_exist"
+          ? await getProfileByUserId(ctx, appt.userId)
+          : null;
+
+      if (
+        !phoneMatches(args.senderPhone, appt.contactPhone) &&
+        !phoneMatches(args.senderPhone, customerProfile?.phoneNumber)
+      ) {
+        return false;
       }
 
-      const items = await getAppointmentItems(ctx, appt);
-
-      const overlap = await ctx.runQuery(internal.appointments.overlaps, {
-        appointment: args.appointment,
-        date: appt.proposedDate,
-        endAt: appt.proposedDate + itemsTotalDuration(items) * MINUTE_MS,
-      });
-
-      if (overlap) {
-        throw new ConvexError(errorMessages.appointmentOverlaps);
-      }
-    }
-
-    const newStatus = args.accepted ? "rescheduled" : "denied";
-
-    if (args.accepted && appt.proposedDate) {
-      await cancelScheduledNotifications(ctx, appt);
-
-      const thirtyMinBefore = appt.proposedDate - 30 * 60 * 1000;
-      const thirtyMinAfter = appt.proposedDate + 30 * 60 * 1000;
-
-      const upcomingNotificationId = await ctx.scheduler.runAt(
-        thirtyMinBefore,
-        internal.appointments.notifyUpcoming,
-        {
-          appointmentId: { id: args.appointment.id },
-          barbershopId: { id: appt.barbershopId },
-          userId: appt.userId,
-        },
-      );
-
-      const barberMember = await ctx.db.get(appt.barbershopMemberId);
-      const barberProf = barberMember
-        ? await ctx.db.get(barberMember.userProfileDataId)
-        : null;
-
-      let pastReminderNotificationId: typeof appt.pastReminderNotificationId;
-
-      if (barberProf) {
-        pastReminderNotificationId = await ctx.scheduler.runAt(
-          thirtyMinAfter,
-          internal.notifications.createPastAppointmentReminder,
-          { barberUserId: barberProf.userId },
-        );
-      }
-
-      await ctx.db.patch(args.appointment.id, {
-        status: newStatus,
-        date: appt.proposedDate,
-        proposedDate: undefined,
-        rescheduleRequestedByUserId: undefined,
-        upcomingNotificationId,
-        pastReminderNotificationId,
-      });
-    } else {
-      await ctx.db.patch(args.appointment.id, {
-        status: newStatus,
-        proposedDate: undefined,
-        rescheduleRequestedByUserId: undefined,
-      });
-
-      // "denied" is a terminal state — free the recipe holds.
-      if (newStatus === "denied") {
-        await releaseForAppointment(ctx, appt);
-      }
-    }
-
-    const barber = await ctx.db.get(appt.barbershopMemberId);
-
-    if (!barber) {
-      throw new ConvexError(errorMessages.notFound("barbero"));
-    }
-
-    const barberProfile = await ctx.db.get(barber.userProfileDataId);
-
-    if (!barberProfile) {
-      throw new ConvexError(errorMessages.notFound("perfil de barbero"));
-    }
-
-    let customerProfile = null;
-
-    if (appt.userId !== "user_does_not_exist") {
-      customerProfile = await getProfileByUserId(ctx, appt.userId);
-    }
-
-    const barbershop = await ctx.db.get(appt.barbershopId);
-
-    if (!barbershop) {
-      throw new ConvexError(errorMessages.notFound("barbería"));
-    }
-
-    const isCustomerAccepting = args.answeredBy === "customer";
-    const receiverProfile = isCustomerAccepting
-      ? barberProfile
-      : customerProfile;
-    const receiverRole = isCustomerAccepting ? "barber" : "customer";
-    const receiverUserId = receiverProfile?.userId ?? "user_does_not_exist";
-
-    const formattedDate = dateTimeFormatter.format(
-      new Date(appt.proposedDate!),
-    );
-
-    const body = args.accepted
-      ? `Tu cita ha sido confirmada con la nueva fecha: ${formattedDate}.`
-      : "La solicitud fue rechazada y la cita fue cancelada.";
-
-    const receiverEmail =
-      (receiverRole === "customer" ? appt.contactEmail : undefined) ??
-      receiverProfile?.email ??
-      "";
-
-    await ctx.runMutation(
-      internal.notifications.createAppointmentRescheduleDecision,
-      {
-        receiverUserId,
-        to: receiverEmail,
-        appointmentId: args.appointment.id,
+      return await applyRescheduleDecision(ctx, {
+        appointmentId: args.appointmentId,
         accepted: args.accepted,
-        notes: args.accepted ? undefined : body,
-        barbershopName: barbershop.name,
-        role: receiverRole,
-      },
-    );
+        actorUserId: appt.userId,
+        answeredBy: "customer",
+        requireAuthenticatedActor: false,
+      });
+    }
 
-    await track(ctx, {
-      distinctId: userId,
-      event: "appointment_reschedule_decided",
-      properties: {
-        appointmentId: args.appointment.id,
-        barbershopId: appt.barbershopId,
-        accepted: args.accepted,
-        barberId: appt.barbershopMemberId,
-        serviceId: appt.serviceId,
-      },
-      groups: { barbershop: appt.barbershopId },
+    const barberMember = await ctx.db.get(appt.barbershopMemberId);
+    const barberProfile = barberMember
+      ? await ctx.db.get(barberMember.userProfileDataId)
+      : null;
+
+    if (
+      !barberProfile ||
+      !phoneMatches(args.senderPhone, barberProfile.phoneNumber)
+    ) {
+      return false;
+    }
+
+    return await applyRescheduleDecision(ctx, {
+      appointmentId: args.appointmentId,
+      accepted: args.accepted,
+      actorUserId: barberProfile.userId,
+      answeredBy: "barber",
+      requireAuthenticatedActor: false,
     });
   },
 });

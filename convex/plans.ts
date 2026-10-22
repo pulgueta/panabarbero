@@ -19,22 +19,21 @@ export const PLAN_PRODUCT_KEYS = [
 export type ProductKey = (typeof PLAN_PRODUCT_KEYS)[number];
 
 /**
- * One-time credit product keys sold as Polar products.
+ * One-time credit product keys sold as Polar products. WhatsApp is the only
+ * purchasable channel — email/SMS are a fallback, never sold.
  */
-export const CREDIT_PRODUCT_KEYS = ["extraSms", "extraEmails"] as const;
+export const CREDIT_PRODUCT_KEYS = ["extraWhatsApp"] as const;
 
 export type CreditProductKey = (typeof CREDIT_PRODUCT_KEYS)[number];
 
 /** Amount of credits granted per one-time purchase. */
 export const CREDITS_PER_PURCHASE: Record<CreditProductKey, number> = {
-  extraSms: 3000,
-  extraEmails: 1000,
+  extraWhatsApp: 3000,
 };
 
 /** Maps a credit product key to which credit type it affects. */
-export const CREDIT_KEY_TO_TYPE: Record<CreditProductKey, "sms" | "email"> = {
-  extraSms: "sms",
-  extraEmails: "email",
+export const CREDIT_KEY_TO_TYPE: Record<CreditProductKey, "whatsapp"> = {
+  extraWhatsApp: "whatsapp",
 };
 
 export type PlanTier = "free" | "pro" | "premium";
@@ -50,10 +49,15 @@ export const PRODUCT_KEY_TO_TIER: Record<ProductKey, PlanTier> = {
 export interface PlanLimits {
   /** Max invited barbers (excluding owner). `null` means unlimited. */
   maxInvitedBarbers: number | null;
-  /** Max SMS the barbershop can send per calendar month. `null` means unlimited. */
+  /**
+   * Max fallback SMS per calendar month. Internal cost cap for the email/SMS
+   * fallback — not shown, not purchasable. `null` means unlimited.
+   */
   maxSmsPerMonth: number | null;
-  /** Max emails the barbershop can send per calendar month. `null` means unlimited. */
+  /** Max fallback emails per calendar month. Same semantics as `maxSmsPerMonth`. */
   maxEmailPerMonth: number | null;
+  /** Max WhatsApp messages the barbershop can send per calendar month. `null` means unlimited. */
+  maxWhatsAppPerMonth: number | null;
   /** Max invited staff/receptionists. `null` means unlimited. */
   maxStaff: number | null;
   /** Whether staff (owner/barber) can create appointments on behalf of clients. */
@@ -80,6 +84,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxStaff: 0,
     maxSmsPerMonth: 200,
     maxEmailPerMonth: 50,
+    maxWhatsAppPerMonth: 200,
     staffCanCreateAppointments: false,
     panaManagement: false,
     panaMemory: false,
@@ -91,6 +96,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxStaff: 1,
     maxSmsPerMonth: 1000,
     maxEmailPerMonth: 500,
+    maxWhatsAppPerMonth: 2000,
     staffCanCreateAppointments: true,
     panaManagement: true,
     panaMemory: true,
@@ -102,6 +108,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxStaff: 3,
     maxSmsPerMonth: 3000,
     maxEmailPerMonth: 1500,
+    maxWhatsAppPerMonth: 6000,
     staffCanCreateAppointments: true,
     panaManagement: true,
     panaMemory: true,

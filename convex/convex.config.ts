@@ -18,6 +18,7 @@ import { defineApp } from "convex/server";
 import { v } from "convex/values";
 import auditLog from "convex-audit-log/convex.config";
 import unreads from "convex-unread-tracking/convex.config";
+import whatsapp from "convex-whatsapp/convex.config";
 
 const app = defineApp({
   env: {
@@ -27,6 +28,11 @@ const app = defineApp({
     POSTHOG_FLAGS_POLLING_INTERVAL_SECONDS: v.optional(v.string()),
     USESEND_API_KEY: v.string(),
     USESEND_BASE_URL: v.optional(v.string()),
+    WHATSAPP_PHONE_NUMBER_ID: v.string(),
+    WHATSAPP_ACCESS_TOKEN: v.string(),
+    WHATSAPP_WEBHOOK_VERIFY_TOKEN: v.string(),
+    WHATSAPP_APP_SECRET: v.string(),
+    WHATSAPP_WABA_ID: v.optional(v.string()),
   },
 });
 app.use(authkit);
@@ -53,6 +59,16 @@ app.use(usesend, {
   },
 });
 app.use(unreads);
+app.use(whatsapp, {
+  httpPrefix: "/whatsapp",
+  env: {
+    WHATSAPP_PHONE_NUMBER_ID: app.env.WHATSAPP_PHONE_NUMBER_ID,
+    WHATSAPP_ACCESS_TOKEN: app.env.WHATSAPP_ACCESS_TOKEN,
+    WHATSAPP_WEBHOOK_VERIFY_TOKEN: app.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN,
+    WHATSAPP_APP_SECRET: app.env.WHATSAPP_APP_SECRET,
+    WHATSAPP_WABA_ID: app.env.WHATSAPP_WABA_ID,
+  },
+});
 app.use(cascadingDelete);
 app.use(agent);
 app.use(rag);
@@ -64,6 +80,7 @@ app.use(aggregate, { name: "aggregateReviewRatings" });
 app.use(aggregate, { name: "aggregateReviewStars" });
 app.use(aggregate, { name: "aggregateInventoryValue" });
 app.use(aggregate, { name: "aggregateInventoryMovements" });
+app.use(aggregate, { name: "aggregateWhatsAppSent" });
 app.use(workflow);
 app.use(workpool, { name: "reviewModerationWorkpool" });
 export default app;

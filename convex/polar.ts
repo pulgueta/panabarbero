@@ -6,7 +6,7 @@ import { z } from "zod";
 import { zAuthAction, zInternalAction } from ".";
 import { api, components } from "./_generated/api";
 import { errorMessages } from "./errors";
-import { CREDIT_PRODUCT_KEYS, PLAN_PRODUCT_KEYS } from "./plans";
+import type { CreditProductKey, ProductKey } from "./plans";
 
 export const polar = new Polar(components.polar, {
   getUserInfo: async (ctx) => {
@@ -30,15 +30,14 @@ export const polar = new Polar(components.polar, {
   // hard-coded in source. The key names here MUST match the keys defined in
   // `convex/plans.ts` (`PLAN_PRODUCT_KEYS` + `CREDIT_PRODUCT_KEYS`).
   products: {
-    [PLAN_PRODUCT_KEYS[0]]: process.env.POLAR_PRODUCT_FREE!,
-    [PLAN_PRODUCT_KEYS[1]]: process.env.POLAR_PRODUCT_PRO_MONTHLY!,
-    [PLAN_PRODUCT_KEYS[2]]: process.env.POLAR_PRODUCT_PRO_YEARLY!,
-    [PLAN_PRODUCT_KEYS[3]]: process.env.POLAR_PRODUCT_PREMIUM_MONTHLY!,
-    [PLAN_PRODUCT_KEYS[4]]: process.env.POLAR_PRODUCT_PREMIUM_YEARLY!,
-    // One-time credit products
-    [CREDIT_PRODUCT_KEYS[0]]: process.env.POLAR_PRODUCT_EXTRA_SMS!,
-    [CREDIT_PRODUCT_KEYS[1]]: process.env.POLAR_PRODUCT_EXTRA_EMAIL!,
-  },
+    independiente: process.env.POLAR_PRODUCT_FREE!,
+    barberiaMonthly: process.env.POLAR_PRODUCT_PRO_MONTHLY!,
+    barberiaYearly: process.env.POLAR_PRODUCT_PRO_YEARLY!,
+    barberiaProfMonthly: process.env.POLAR_PRODUCT_PREMIUM_MONTHLY!,
+    barberiaProfYearly: process.env.POLAR_PRODUCT_PREMIUM_YEARLY!,
+    // One-time credit product
+    extraWhatsApp: process.env.POLAR_PRODUCT_EXTRA_WHATSAPP!,
+  } satisfies Record<ProductKey | CreditProductKey, string>,
 });
 
 export const { getConfiguredProducts, generateCustomerPortalUrl } = polar.api();
