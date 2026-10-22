@@ -85,9 +85,9 @@ auth architecture rationale.
   - [ ] **Email is not editable in-app** — the field is disabled (changing it
         means signing in with a new email via WorkOS)
   - [ ] Upload profile photo (`ProfilePhotoUploader`)
-  - [ ] Toggle email/SMS notification preferences →
-        `updateNotificationPreference({ type, enabled, userId })` (SMS toggle is
-        disabled when no phone is set)
+  - [ ] Toggle WhatsApp notifications →
+        `updateNotificationPreference({ type: "whatsapp", enabled, userId })`
+        (the toggle is disabled when no phone is set)
 - [ ] **Citas (Appointments) tab** — only for users with no membership; see
       `customer-flow.md` §6.
 - [ ] **Peligro (Danger) tab** — owners only; deletes the owned barbershop via
@@ -95,10 +95,12 @@ auth architecture rationale.
 
 ### 6. Notification Preferences
 
-- [ ] Stored per user in `userProfileData.notificationsPreferences` (array of
-      `{ type: "email" | "sms", enabled }`)
-- [ ] Checked server-side before any email/SMS is sent (`convex/notifications.ts`)
-- [ ] SMS toggle requires a phone number on file
+- [ ] Stored per user in `userProfileData.notificationsPreferences`
+      (`[{ type: "whatsapp", enabled }]`, default ON)
+- [ ] WhatsApp is the only user-facing channel; email + SMS are the silent
+      fallback when WhatsApp cannot deliver (`sendNotification` in
+      `convex/notifications.ts`) — not selectable, not purchasable
+- [ ] The WhatsApp toggle requires a phone number on file
 
 ### 7. Session Management & SSR
 

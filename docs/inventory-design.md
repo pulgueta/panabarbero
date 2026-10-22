@@ -463,9 +463,9 @@ pipeline recon:
    `href` → new `deepLinks.inventory()` → `/profile/barbershops/inventory`.
 4. `notifications.ts`: `createLowStock` zInternalMutation modeled on
    `createPastAppointmentReminder` (`:621`) — resolve recipient via
-   `barbershop.ownerId` → profile → prefs check →
-   `scheduleEmailWithQuota` / `scheduleSmsWithQuota` (Twilio leg rides the
-   existing per-shop monthly quotas) → `recordInApp`. Owner-only in MVP.
+   `barbershop.ownerId` → profile → `sendNotification` (WhatsApp, else the
+   email + SMS fallback under the per-shop monthly caps) → `recordInApp`.
+   Owner-only in MVP.
 5. React Email template + `sendLowStockEmail` zInternalAction in
    `convex/emails.ts` (`"use node"`).
 6. `notification-renderer.tsx` case (tsc's exhaustive `never` checks force 2–6).
