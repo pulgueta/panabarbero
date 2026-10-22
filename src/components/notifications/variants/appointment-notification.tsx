@@ -3,6 +3,8 @@ import {
   CalendarBlankIcon,
   CalendarCheckIcon,
   ClockCountdownIcon,
+  PersonSimpleWalkIcon,
+  UserSwitchIcon,
 } from "@phosphor-icons/react";
 import type { FC } from "react";
 
@@ -46,6 +48,20 @@ const config = {
     actionLabel: "Marcar estado",
     /** Past reminders are only for barbers. */
     getLink: () => getAppointmentHubLink(true),
+  },
+  customer_on_my_way: {
+    tone: "primary" as const,
+    icon: <PersonSimpleWalkIcon weight="duotone" />,
+    actionLabel: "Ver citas",
+    /** Only the assigned barber receives this kind. */
+    getLink: () => getAppointmentHubLink(true),
+  },
+  appointment_reassigned: {
+    tone: "warning" as const,
+    icon: <UserSwitchIcon weight="duotone" />,
+    actionLabel: "Ver mi cita",
+    /** Only customers receive this kind. */
+    getLink: () => getAppointmentHubLink(false),
   },
 };
 

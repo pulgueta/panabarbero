@@ -39,9 +39,9 @@ const PricingCards = lazy(() =>
   })),
 );
 
-const ExtraCreditsCards = lazy(() =>
-  import("@/components/profile/extra-credits-cards").then((module) => ({
-    default: module.ExtraCreditsCards,
+const WhatsAppCreditsCard = lazy(() =>
+  import("@/components/profile/whatsapp-credits-card").then((module) => ({
+    default: module.WhatsAppCreditsCard,
   })),
 );
 
@@ -161,17 +161,16 @@ function BillingSettingsPage() {
         {barbershop && (
           <BillingSection
             title="Créditos extra"
-            description="Compra SMS y correos adicionales cuando agotes los incluidos en tu plan. Los créditos no vencen."
+            description="Compra mensajes de WhatsApp adicionales cuando agotes los incluidos en tu plan. Los créditos no vencen."
           >
             <Suspense
               fallback={
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <Skeleton className="h-115 w-full rounded-xl" />
-                  <Skeleton className="h-115 w-full rounded-xl" />
-                </div>
+                <Skeleton className="h-115 w-full max-w-md rounded-xl" />
               }
             >
-              <ExtraCreditsCards barbershopId={barbershop._id} />
+              <div className="max-w-md">
+                <WhatsAppCreditsCard barbershopId={barbershop._id} />
+              </div>
             </Suspense>
           </BillingSection>
         )}

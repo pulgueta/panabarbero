@@ -260,51 +260,41 @@ export const AccountTab: FC<AccountTabProps> = ({
 
         <Card>
           <CardHeader>
-            <CardTitle>Preferencias de notificación</CardTitle>
+            <CardTitle>Avisos por WhatsApp</CardTitle>
             <CardDescription>
-              Selecciona los canales por los cuales deseas recibir
-              notificaciones.
+              Recibe los avisos de tus citas por WhatsApp. Si WhatsApp falla, te
+              avisamos por correo y SMS.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-2">
+          <CardContent>
             <FieldRoot orientation="horizontal">
-              <FieldLabel>Email</FieldLabel>
+              <FieldLabel>WhatsApp</FieldLabel>
               <FieldContent className="items-end">
                 <Switch
                   checked={
                     profile?.notificationsPreferences.find(
-                      (p) => p.type === "email",
+                      (p) => p.type === "whatsapp",
+                    )?.enabled
+                  }
+                  disabled={
+                    !profile?.phoneNumber &&
+                    !profile?.notificationsPreferences.find(
+                      (p) => p.type === "whatsapp",
                     )?.enabled
                   }
                   onCheckedChange={(val) =>
                     updateNotificationPreference({
-                      type: "email",
+                      type: "whatsapp",
                       enabled: val,
                       userId,
                     })
                   }
                 />
-              </FieldContent>
-            </FieldRoot>
-
-            <FieldRoot orientation="horizontal">
-              <FieldLabel>Mensaje de texto (SMS)</FieldLabel>
-              <FieldContent className="items-end">
-                <Switch
-                  checked={
-                    profile?.notificationsPreferences.find(
-                      (p) => p.type === "sms",
-                    )?.enabled
-                  }
-                  disabled={!profile?.phoneNumber}
-                  onCheckedChange={(val) =>
-                    updateNotificationPreference({
-                      type: "sms",
-                      enabled: val,
-                      userId,
-                    })
-                  }
-                />
+                {!profile?.phoneNumber && (
+                  <p className="text-muted-foreground text-xs">
+                    Agrega un celular para activar avisos por WhatsApp.
+                  </p>
+                )}
               </FieldContent>
             </FieldRoot>
           </CardContent>
