@@ -52,9 +52,9 @@ export default defineConfig({
         ),
         // doctor.config.ts ignores convex/** for React Doctor too.
         ...Object.fromEntries(
-          Object.keys(jsPlugins.rules ?? {})
-            .filter((rule) => rule.startsWith("react-doctor/"))
-            .map((rule) => [rule, "off"]),
+          Object.keys(jsPlugins.rules ?? {}).flatMap((rule) =>
+            rule.startsWith("react-doctor/") ? [[rule, "off"]] : [],
+          ),
         ),
         "unicorn/filename-case": ["error", { case: "camelCase" }],
         // convex/tsconfig.json keeps the Convex default lib (ES2021): no `.at()`.
