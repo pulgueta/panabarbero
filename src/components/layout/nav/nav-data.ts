@@ -72,10 +72,9 @@ export function useNavSearch() {
         // Bogotá day: the calendar route normalizes `date` to that zone.
         return { date: getCalendarDayTimestamp(new Date()) };
       }
-      if (to === "/barbershops") {
-        return { city: persistedCity, state: persistedState };
-      }
-      return undefined;
+      return to === "/barbershops"
+        ? { city: persistedCity, state: persistedState }
+        : undefined;
     },
     [persistedCity, persistedState],
   );

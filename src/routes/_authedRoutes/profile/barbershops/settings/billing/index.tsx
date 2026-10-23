@@ -1,6 +1,7 @@
 import { api } from "@convex/_generated/api";
 import { CustomerPortalLink } from "@convex-dev/polar/react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { noop } from "@tanstack/react-query";
 import type { FC, ReactNode } from "react";
 import { lazy, Suspense } from "react";
 
@@ -39,9 +40,9 @@ const PricingCards = lazy(() =>
   })),
 );
 
-const ExtraCreditsCards = lazy(() =>
-  import("@/components/profile/extra-credits-cards").then((module) => ({
-    default: module.ExtraCreditsCards,
+const WhatsAppCreditsCard = lazy(() =>
+  import("@/components/profile/whatsapp-credits-card").then((module) => ({
+    default: module.WhatsAppCreditsCard,
   })),
 );
 
@@ -72,25 +73,37 @@ export const Route = createFileRoute(
       // creation — no unhandled-rejection window while the barbershop query
       // is in flight.
       await Promise.all([
-        queryClient.ensureQueryData(getConfiguredProductsQueryOptions()),
-        queryClient.ensureQueryData(getSubscriptionQueryOptions()),
+        queryClient.query({
+          ...getConfiguredProductsQueryOptions(),
+          staleTime: "static",
+        }),
+        queryClient.query({
+          ...getSubscriptionQueryOptions(),
+          staleTime: "static",
+        }),
         queryClient
-          .ensureQueryData(barbershopByOwnerIdQueryOptions(userId))
+          .query({
+            ...barbershopByOwnerIdQueryOptions(userId),
+            staleTime: "static",
+          })
           .then((barbershop) => {
             if (!barbershop) {
-              return;
+              return null;
             }
 
             // Streamed: the credits section suspends on these behind its own
             // Suspense boundary.
-            void queryClient.prefetchQuery(getExtraCreditsQueryOptions());
-            void queryClient.prefetchQuery(
-              getBarbershopQuotaUsageQueryOptions(barbershop._id),
-            );
+            // oxlint-disable-next-line promise/no-nesting -- fire-and-forget prefetch; nothing chains on it
+            void queryClient.query(getExtraCreditsQueryOptions()).catch(noop);
+            // oxlint-disable-next-line promise/no-nesting -- fire-and-forget prefetch; nothing chains on it
+            void queryClient
+              .query(getBarbershopQuotaUsageQueryOptions(barbershop._id))
+              .catch(noop);
 
-            return queryClient.ensureQueryData(
-              getBarbershopPlanQueryOptions(barbershop._id),
-            );
+            return queryClient.query({
+              ...getBarbershopPlanQueryOptions(barbershop._id),
+              staleTime: "static",
+            });
           }),
       ]);
     }
@@ -161,17 +174,16 @@ function BillingSettingsPage() {
         {barbershop && (
           <BillingSection
             title="Créditos extra"
-            description="Compra SMS y correos adicionales cuando agotes los incluidos en tu plan. Los créditos no vencen."
+            description="Compra mensajes de WhatsApp adicionales cuando agotes los incluidos en tu plan. Los créditos no vencen."
           >
             <Suspense
               fallback={
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <Skeleton className="h-115 w-full rounded-xl" />
-                  <Skeleton className="h-115 w-full rounded-xl" />
-                </div>
+                <Skeleton className="h-115 w-full max-w-md rounded-xl" />
               }
             >
-              <ExtraCreditsCards barbershopId={barbershop._id} />
+              <div className="max-w-md">
+                <WhatsAppCreditsCard barbershopId={barbershop._id} />
+              </div>
             </Suspense>
           </BillingSection>
         )}

@@ -78,11 +78,12 @@ export const AccountTab: FC<AccountTabProps> = ({
         return true;
       }
 
-      const hideUntilDate = new Date(parseInt(hideUntil, 10));
+      const hideUntilDate = new Date(Number(hideUntil));
       const now = new Date();
       return now >= hideUntilDate;
     };
 
+    // oxlint-disable-next-line react/set-state-in-effect -- localStorage is read after hydration so the server and the first client render match
     setShowBarbershopBanner(checkBannerVisibility());
   }, []);
 
@@ -96,15 +97,25 @@ export const AccountTab: FC<AccountTabProps> = ({
     setShowBarbershopBanner(false);
   };
 
-  useEffect(() => {
-    setName(profile?.name ?? "");
-  }, [profile?.name]);
+  const handleClearPhone = async () => {
+    await updatePhoneNumber({ clearPhoneNumber: true });
+    setPhone("");
+  };
 
-  useEffect(() => {
+  // Re-sync the inputs when the saved profile values change.
+  const [syncedName, setSyncedName] = useState(profile?.name);
+  if (syncedName !== profile?.name) {
+    setSyncedName(profile?.name);
+    setName(profile?.name ?? "");
+  }
+
+  const [syncedPhone, setSyncedPhone] = useState(profile?.phoneNumber);
+  if (syncedPhone !== profile?.phoneNumber) {
+    setSyncedPhone(profile?.phoneNumber);
     setPhone(
       profile?.phoneNumber ? formatPhoneNumber(profile.phoneNumber) : "",
     );
-  }, [profile?.phoneNumber]);
+  }
 
   return (
     <div className="space-y-4">
@@ -172,7 +183,9 @@ export const AccountTab: FC<AccountTabProps> = ({
                     autoComplete="name"
                   />
                   <Button
-                    onClick={() => updateName({ name: name ?? "" })}
+                    onClick={() => {
+                      void updateName({ name: name ?? "" });
+                    }}
                     disabled={isUpdatingName}
                   >
                     Guardar
@@ -226,13 +239,13 @@ export const AccountTab: FC<AccountTabProps> = ({
                   <div className="flex shrink-0 gap-2">
                     <Button
                       type="button"
-                      onClick={() =>
-                        updatePhoneNumber({
+                      onClick={() => {
+                        void updatePhoneNumber({
                           phoneNumber: phone?.trim()
                             ? formatPhoneNumber(phone)
                             : "",
-                        })
-                      }
+                        });
+                      }}
                       disabled={isUpdatingPhoneNumber}
                     >
                       Guardar
@@ -240,9 +253,8 @@ export const AccountTab: FC<AccountTabProps> = ({
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={async () => {
-                        await updatePhoneNumber({ clearPhoneNumber: true });
-                        setPhone("");
+                      onClick={() => {
+                        void handleClearPhone();
                       }}
                       disabled={
                         isUpdatingPhoneNumber ||
@@ -260,51 +272,41 @@ export const AccountTab: FC<AccountTabProps> = ({
 
         <Card>
           <CardHeader>
-            <CardTitle>Preferencias de notificación</CardTitle>
+            <CardTitle>Avisos por WhatsApp</CardTitle>
             <CardDescription>
-              Selecciona los canales por los cuales deseas recibir
-              notificaciones.
+              Recibe los avisos de tus citas por WhatsApp. Si WhatsApp falla, te
+              avisamos por correo y SMS.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-2">
+          <CardContent>
             <FieldRoot orientation="horizontal">
-              <FieldLabel>Email</FieldLabel>
+              <FieldLabel>WhatsApp</FieldLabel>
               <FieldContent className="items-end">
                 <Switch
                   checked={
                     profile?.notificationsPreferences.find(
-                      (p) => p.type === "email",
+                      (p) => p.type === "whatsapp",
                     )?.enabled
                   }
-                  onCheckedChange={(val) =>
-                    updateNotificationPreference({
-                      type: "email",
-                      enabled: val,
-                      userId,
-                    })
-                  }
-                />
-              </FieldContent>
-            </FieldRoot>
-
-            <FieldRoot orientation="horizontal">
-              <FieldLabel>Mensaje de texto (SMS)</FieldLabel>
-              <FieldContent className="items-end">
-                <Switch
-                  checked={
-                    profile?.notificationsPreferences.find(
-                      (p) => p.type === "sms",
+                  disabled={
+                    !profile?.phoneNumber &&
+                    !profile?.notificationsPreferences.find(
+                      (p) => p.type === "whatsapp",
                     )?.enabled
                   }
-                  disabled={!profile?.phoneNumber}
-                  onCheckedChange={(val) =>
-                    updateNotificationPreference({
-                      type: "sms",
+                  onCheckedChange={(val) => {
+                    void updateNotificationPreference({
+                      type: "whatsapp",
                       enabled: val,
                       userId,
-                    })
-                  }
+                    });
+                  }}
                 />
+                {!profile?.phoneNumber && (
+                  <p className="text-muted-foreground text-xs">
+                    Agrega un celular para activar avisos por WhatsApp.
+                  </p>
+                )}
               </FieldContent>
             </FieldRoot>
           </CardContent>

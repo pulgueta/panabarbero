@@ -3,8 +3,7 @@ import type { ComponentProps, FC, PropsWithChildren } from "react";
 import { cn } from "@/lib/utils";
 
 interface BorderContainerProps
-  extends PropsWithChildren,
-    ComponentProps<"section"> {}
+  extends PropsWithChildren, ComponentProps<"section"> {}
 
 export const BorderContainer: FC<BorderContainerProps> = ({
   className,

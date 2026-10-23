@@ -33,6 +33,7 @@ const THINKING_PHRASES = [
 function pickThinkingPhrase(seed: string): string {
   let h = 0;
   for (let i = 0; i < seed.length; i++) {
+    // oxlint-disable-next-line unicorn/prefer-code-point -- UTF-16 code units keep the existing phrase hash stable
     h = Math.imul(31, h) + seed.charCodeAt(i);
   }
   const idx = Math.abs(h) % THINKING_PHRASES.length;
@@ -52,30 +53,29 @@ interface MessageItemProps {
   onReject: () => Promise<void>;
 }
 
-const MessageTextPart = memo(function MessageTextPart({
-  text,
-  useSmoothStreaming,
-}: {
-  text: string;
-  useSmoothStreaming: boolean;
-}) {
-  const [visible] = useSmoothText(text, {
-    startStreaming: useSmoothStreaming,
-    charsPerSec: 384,
-  });
+const MessageTextPart = memo(
+  ({
+    text,
+    useSmoothStreaming,
+  }: {
+    text: string;
+    useSmoothStreaming: boolean;
+  }) => {
+    const [visible] = useSmoothText(text, {
+      startStreaming: useSmoothStreaming,
+      charsPerSec: 384,
+    });
 
-  return (
-    <MessageResponse isAnimating={useSmoothStreaming}>
-      {visible}
-    </MessageResponse>
-  );
-});
+    return (
+      <MessageResponse isAnimating={useSmoothStreaming}>
+        {visible}
+      </MessageResponse>
+    );
+  },
+);
+MessageTextPart.displayName = "MessageTextPart";
 
-const ThinkingShimmer = memo(function ThinkingShimmer({
-  phraseSeed,
-}: {
-  phraseSeed: string;
-}) {
+const ThinkingShimmer = memo(({ phraseSeed }: { phraseSeed: string }) => {
   const phrase = useMemo(() => pickThinkingPhrase(phraseSeed), [phraseSeed]);
 
   return (
@@ -86,6 +86,7 @@ const ThinkingShimmer = memo(function ThinkingShimmer({
     </p>
   );
 });
+ThinkingShimmer.displayName = "ThinkingShimmer";
 
 function extractProposal(part: ToolUIPart): Proposal | null {
   if (part.state !== "output-available") return null;
@@ -93,9 +94,13 @@ function extractProposal(part: ToolUIPart): Proposal | null {
   return parsed.success ? parsed.data : null;
 }
 
+function isString(value: unknown): value is string {
+  return typeof value === "string";
+}
+
 function ToolOutputContent({ part }: { part: ToolUIPart }): ReactNode {
   if (part.state !== "output-available") return null;
-  if (typeof part.output === "string") return part.output;
+  if (isString(part.output)) return part.output;
   return (
     <pre className="overflow-x-auto whitespace-pre-wrap rounded bg-muted p-2 text-xs">
       {JSON.stringify(part.output, null, 2)}
@@ -110,8 +115,7 @@ export function MessageItem({
   onConfirm,
   onReject,
 }: MessageItemProps) {
-  const smoothAssistantText =
-    message.role === "assistant" && Boolean(isStreaming);
+  const smoothAssistantText = message.role === "assistant" && isStreaming;
 
   return (
     <Message from={message.role}>
@@ -124,6 +128,8 @@ export function MessageItem({
               message.role === "assistant" ? `${key}-${message.status}` : key;
             return (
               <MessageTextPart
+                // parts are append-only and carry no id: the index is stable
+                // oxlint-disable-next-line react-doctor/no-array-index-as-key -- message parts never reorder or get removed, so their position is their identity.
                 key={textKey}
                 text={part.text}
                 useSmoothStreaming={smoothAssistantText}
@@ -137,10 +143,10 @@ export function MessageItem({
           }
 
           const isToolPart =
-            part.type === "dynamic-tool" ||
-            (typeof part.type === "string" && part.type.startsWith("tool-"));
+            part.type === "dynamic-tool" || part.type.startsWith("tool-");
 
           if (isToolPart) {
+            // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: a `tool-*` or `dynamic-tool` part; both carry the state/type/input/output/errorText fields this branch reads.
             const toolPart = part as ToolUIPart;
             const proposal = extractProposal(toolPart);
             const isDev = import.meta.env.DEV;
@@ -149,10 +155,7 @@ export function MessageItem({
               <div className="flex flex-col gap-2" key={key}>
                 {isDev ? (
                   <Tool defaultOpen={false}>
-                    <ToolHeader
-                      state={toolPart.state}
-                      type={toolPart.type as `tool-${string}`}
-                    />
+                    <ToolHeader state={toolPart.state} type={toolPart.type} />
                     <ToolContent>
                       <ToolInput input={toolPart.input} />
                       <ToolOutput
@@ -162,10 +165,7 @@ export function MessageItem({
                     </ToolContent>
                   </Tool>
                 ) : (
-                  <ToolHeader
-                    state={toolPart.state}
-                    type={toolPart.type as `tool-${string}`}
-                  />
+                  <ToolHeader state={toolPart.state} type={toolPart.type} />
                 )}
                 {proposal && (
                   <ProposalCard

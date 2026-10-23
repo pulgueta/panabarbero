@@ -6,11 +6,8 @@ import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Map as MapCanvas,
-  MapControls,
-  type MapViewport,
-} from "@/components/ui/map";
+import { Map as MapCanvas, MapControls } from "@/components/ui/map";
+import type { MapViewport } from "@/components/ui/map";
 import {
   ResponsiveModal,
   ResponsiveModalContent,
@@ -91,11 +88,11 @@ export const LocationForm: FC<LocationFormProps> = ({ barbershop }) => {
         longitude: center[0],
         latitude: center[1],
       });
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Ubicación guardada correctamente");
       setIsEditing(false);
     } catch {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error("No se pudo guardar la ubicación. Intenta de nuevo.");
     }
   };
@@ -105,13 +102,13 @@ export const LocationForm: FC<LocationFormProps> = ({ barbershop }) => {
       await removeLocationMutation.mutateAsync({
         barbershopId: barbershop._id,
       });
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Ubicación eliminada");
       setConfirmOpen(false);
       setIsEditing(false);
       setViewport({});
     } catch {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error("No se pudo eliminar la ubicación. Intenta de nuevo.");
     }
   };
@@ -150,7 +147,9 @@ export const LocationForm: FC<LocationFormProps> = ({ barbershop }) => {
             <Button
               className="w-full"
               disabled={setLocationMutation.isPending}
-              onClick={onSave}
+              onClick={() => {
+                void onSave();
+              }}
             >
               {setLocationMutation.isPending ? (
                 <Spinner />
@@ -166,7 +165,9 @@ export const LocationForm: FC<LocationFormProps> = ({ barbershop }) => {
                     variant="outline"
                     className="flex-1"
                     disabled={status === "prompting"}
-                    onClick={onUseMyLocation}
+                    onClick={() => {
+                      void onUseMyLocation();
+                    }}
                   >
                     {status === "prompting" ? (
                       <Spinner />
@@ -223,7 +224,9 @@ export const LocationForm: FC<LocationFormProps> = ({ barbershop }) => {
             <Button
               variant="destructive"
               disabled={removeLocationMutation.isPending}
-              onClick={onRemove}
+              onClick={() => {
+                void onRemove();
+              }}
             >
               {removeLocationMutation.isPending ? <Spinner /> : "Sí, quitar"}
             </Button>

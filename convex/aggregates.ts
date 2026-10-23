@@ -151,10 +151,38 @@ export async function getPublishedRatingDistribution(
     ),
   );
 
-  return Object.fromEntries(
-    STAR_RATINGS.map((star, index) => [star, counts[index]]),
-  ) as Record<StarRating, number>;
+  const distribution: Record<StarRating, number> = {
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
+  };
+
+  for (const [index, star] of STAR_RATINGS.entries()) {
+    distribution[star] = counts[index];
+  }
+
+  return distribution;
 }
+
+/**
+ * Sums whatsappMessagesSent across all `usage` rows per barbershop.
+ *
+ * Namespace: barbershopId
+ * Key:       month string (YYYY-MM) — enables range queries per month
+ * sumValue:  whatsappMessagesSent (`?? 0` — rows predate the field)
+ */
+export const whatsappUsageAggregate = new TableAggregate<{
+  Namespace: Barbershop["_id"];
+  Key: string;
+  DataModel: DataModel;
+  TableName: "usage";
+}>(components.aggregateWhatsAppSent, {
+  namespace: (doc) => doc.barbershopId,
+  sortKey: (doc) => doc.month,
+  sumValue: (doc) => doc.whatsappMessagesSent ?? 0,
+});
 
 /**
  * Triggers that keep `smsUsageAggregate` and `emailUsageAggregate` in sync
@@ -167,6 +195,24 @@ export const usageTriggers = new Triggers<DataModel>();
 
 usageTriggers.register("usage", smsUsageAggregate.trigger());
 usageTriggers.register("usage", emailUsageAggregate.trigger());
+// Hand-written (not `.trigger()`): the aggregate was registered after `usage`
+// already had rows, and the plain trigger's `replace` throws DELETE_MISSING_KEY
+// on the first patch of a row its btree has never seen — which would abort the
+// enclosing mutation (a booking, an alert). The *IfExists/OrInsert variants
+// absorb that; `migrations:backfillWhatsappUsageAggregate` trues up old rows.
+usageTriggers.register("usage", async (ctx, change) => {
+  if (change.operation === "insert") {
+    await whatsappUsageAggregate.insertIfDoesNotExist(ctx, change.newDoc);
+  } else if (change.operation === "update") {
+    await whatsappUsageAggregate.replaceOrInsert(
+      ctx,
+      change.oldDoc,
+      change.newDoc,
+    );
+  } else {
+    await whatsappUsageAggregate.deleteIfExists(ctx, change.oldDoc);
+  }
+});
 
 /**
  * Total inventory valuation per barbershop: Σ (onHand × unitCost) over

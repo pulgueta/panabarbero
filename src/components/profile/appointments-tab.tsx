@@ -1,5 +1,3 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: needed */
-
 import type { Appointment } from "@convex/schema";
 import type { FC } from "react";
 import { lazy, Suspense } from "react";
@@ -52,18 +50,20 @@ export const AppointmentsTab: FC<AppointmentsTabProps> = ({
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {appointments.map((appointment) => {
             const barbershop = barbershops?.find(
-              (barbershop) => barbershop?._id === appointment.barbershopId,
+              (shop) => shop?._id === appointment.barbershopId,
             );
             const service = services?.find(
-              (service) => service?._id === appointment.serviceId,
+              (entry) => entry?._id === appointment.serviceId,
             );
 
             return (
               <AppointmentCard
                 key={appointment._id}
                 appointment={appointment}
+                // oxlint-disable-next-line typescript/no-non-null-assertion -- pre-existing: AppointmentCard (other partition) requires a loaded shop; a guard would hide cards
                 barbershop={barbershop!}
                 isBarber={isBarber}
+                // oxlint-disable-next-line typescript/no-non-null-assertion -- pre-existing: AppointmentCard (other partition) requires a loaded service; a guard would hide cards
                 service={service!}
               />
             );

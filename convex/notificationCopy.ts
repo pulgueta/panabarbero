@@ -13,36 +13,39 @@ export const deepLinks = {
   customerAppointments: () => `${siteUrl()}/profile?tab=appointments`,
   barberAppointments: () => `${siteUrl()}/profile/barbershops/appointments`,
   invitation: (code: string) => `${siteUrl()}/invitations/${code}`,
-  review: (barbershopUuid: string, code: string) =>
-    `${siteUrl()}/barbershops/${barbershopUuid}/review?code=${code}`,
+  /** The review form lives on the barbershop page (appointment-based eligibility). */
+  review: (barbershopUuid: string) =>
+    `${siteUrl()}/barbershops/${barbershopUuid}`,
   customerReviews: () => `${siteUrl()}/profile?tab=reviews`,
   inventory: () => `${siteUrl()}/profile/barbershops/inventory`,
 };
 
 /** Display labels for inventory units in notification copy. */
-export const inventoryUnitLabels: Record<string, string> = {
-  unit: "unidades",
-  ml: "ml",
-  g: "g",
-  box: "cajas",
-  pack: "paquetes",
-};
+export const inventoryUnitLabels = new Map<string, string>([
+  ["unit", "unidades"],
+  ["ml", "ml"],
+  ["g", "g"],
+  ["box", "cajas"],
+  ["pack", "paquetes"],
+]);
 
-const inventoryUnitWords: Record<string, { singular: string; plural: string }> =
-  {
-    unit: { singular: "unidad", plural: "unidades" },
-    ml: { singular: "ml", plural: "ml" },
-    g: { singular: "g", plural: "g" },
-    box: { singular: "caja", plural: "cajas" },
-    pack: { singular: "paquete", plural: "paquetes" },
-  };
+const inventoryUnitWords = new Map<
+  string,
+  { singular: string; plural: string }
+>([
+  ["unit", { singular: "unidad", plural: "unidades" }],
+  ["ml", { singular: "ml", plural: "ml" }],
+  ["g", { singular: "g", plural: "g" }],
+  ["box", { singular: "caja", plural: "cajas" }],
+  ["pack", { singular: "paquete", plural: "paquetes" }],
+]);
 
 /** es-CO phrase for remaining stock ("queda 1 unidad" / "quedan 3 cajas"). */
 export function formatLowStockRemaining(
   remaining: number,
   unit: string,
 ): string {
-  const forms = inventoryUnitWords[unit] ?? {
+  const forms = inventoryUnitWords.get(unit) ?? {
     singular: unit,
     plural: unit,
   };
@@ -87,6 +90,16 @@ export type NotificationInput =
       kind: "past_appointment_reminder";
     }
   | {
+      kind: "customer_on_my_way";
+      customerName: string;
+      time: string;
+    }
+  | {
+      kind: "appointment_reassigned";
+      barbershopName: string;
+      newBarberName: string;
+    }
+  | {
       kind: "team_invited";
       barbershopName: string;
       roleLabel: string;
@@ -110,7 +123,6 @@ export type NotificationInput =
       kind: "review_invite";
       barbershopName: string;
       barbershopUuid: string;
-      reviewCode: string;
       serviceName: string;
     }
   | {
@@ -224,6 +236,22 @@ export function buildNotificationCopy(
         href: deepLinks.barberAppointments(),
       };
     }
+    case "customer_on_my_way": {
+      return {
+        kind: "customer_on_my_way",
+        title: subjects.customer_on_my_way,
+        description: `Cita de las ${input.time}: ${input.customerName} avisó que va en camino.`,
+        href: deepLinks.barberAppointments(),
+      };
+    }
+    case "appointment_reassigned": {
+      return {
+        kind: "appointment_reassigned",
+        title: subjects.appointment_reassigned,
+        description: `Tu cita en ${input.barbershopName} sigue en pie: ahora te atiende ${input.newBarberName}. La fecha y la hora no cambian.`,
+        href: deepLinks.customerAppointments(),
+      };
+    }
     case "team_invited": {
       return {
         kind: "team_invited",
@@ -261,7 +289,7 @@ export function buildNotificationCopy(
         kind: "review_invite",
         title: subjects.review_invite,
         description: `¿Cómo te fue en ${input.barbershopName}? Déjale una reseña sobre tu ${input.serviceName}.`,
-        href: deepLinks.review(input.barbershopUuid, input.reviewCode),
+        href: deepLinks.review(input.barbershopUuid),
       };
     }
     case "review_needs_attention": {

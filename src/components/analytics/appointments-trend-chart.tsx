@@ -5,6 +5,7 @@ import {
   formatMonthLong,
   formatMonthShort,
 } from "@/components/analytics/chart-format";
+import { payloadText } from "@/components/chart-tooltip";
 import {
   Card,
   CardContent,
@@ -64,7 +65,7 @@ export const AppointmentsTrendChart: FC<AppointmentsTrendChartProps> = ({
                   <ChartTooltipContent
                     indicator="dot"
                     labelFormatter={(_, payload) =>
-                      formatMonthLong(String(payload[0]?.payload?.month ?? ""))
+                      formatMonthLong(payloadText(payload[0], "month"))
                     }
                   />
                 }

@@ -107,8 +107,9 @@ against the owner's plan**, even when staff perform the action.
 |---|---|---|---|
 | `maxInvitedBarbers` | 5 | 10 | Ilimitado |
 | `maxStaff` | 0 | 1 | 3 |
-| `maxSmsPerMonth` | 200 | 1,000 | 3,000 |
-| `maxEmailPerMonth` | 50 | 500 | 1,500 |
+| `maxWhatsAppPerMonth` | 200 | 2,000 | 6,000 |
+| `maxSmsPerMonth` (internal fallback cap, not shown) | 200 | 1,000 | 3,000 |
+| `maxEmailPerMonth` (internal fallback cap, not shown) | 50 | 500 | 1,500 |
 | `staffCanCreateAppointments` | ❌ | ✅ | ✅ |
 | `panaManagement` (AI agent) | ❌ | ✅ | ✅ |
 
@@ -181,9 +182,10 @@ member must have the `barber` role.
 ### 22–23. Subscription, Plan & Usage
 
 - [ ] Owners view subscription/plan status in the **Planes** profile tab
-- [ ] SMS/email usage is metered monthly against the plan quota
-      (`isSmsLimitNotExceeded` / `isEmailLimitNotExceeded`), with purchased
-      credits added on top
+- [ ] WhatsApp usage is metered monthly against the plan allowance
+      (`isWhatsappLimitNotExceeded`), with purchased credits added on top;
+      the email/SMS fallback is capped by `maxSmsPerMonth`/`maxEmailPerMonth`
+      (never sold, never shown)
 - [ ] Upgrading raises the caps in §10; paid products are billed through
       Polar
 

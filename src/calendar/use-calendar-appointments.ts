@@ -137,10 +137,12 @@ export function useCalendarAppointments({
         }
       }
 
+      events.sort(
+        (first, second) => first.start.getTime() - second.start.getTime(),
+      );
+
       return {
-        events: events.sort(
-          (first, second) => first.start.getTime() - second.start.getTime(),
-        ),
+        events,
         isLoading: results.some((result) => result.isLoading),
       };
     },

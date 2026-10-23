@@ -10,9 +10,26 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import { useDebouncer } from "@tanstack/react-pacer";
-import type { MarkerOptions, PopupOptions } from "maplibre-gl";
-import { default as MapLibreGL } from "maplibre-gl";
+import type {
+  LineLayerSpecification,
+  MapGeoJSONFeature,
+  MapLayerMouseEvent,
+  MapMouseEvent,
+  MapOptions,
+  MarkerOptions,
+  PopupOptions,
+  ProjectionSpecification,
+  StyleSpecification,
+} from "maplibre-gl";
+import {
+  type GeoJSONSource,
+  Map as MapLibreGL,
+  Marker,
+  Popup,
+  setWorkerUrl,
+} from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import type { PropsWithChildren } from "react";
 import {
   createContext,
@@ -29,6 +46,9 @@ import {
 import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/utils";
+
+// Bundlers must give MapLibre the worker URL (MapLibre v6 install docs, Vite).
+setWorkerUrl(maplibreWorkerUrl);
 
 const defaultStyles = {
   dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
@@ -93,7 +113,7 @@ function useResolvedTheme(themeProp?: "light" | "dark"): Theme {
 }
 
 type MapContextValue = {
-  map: MapLibreGL.Map | null;
+  map: MapLibreGL | null;
   isLoaded: boolean;
 };
 
@@ -119,13 +139,12 @@ type MapViewport = {
   pitch: number;
 };
 
-type MapStyleOption = string | MapLibreGL.StyleSpecification;
+type MapStyleOption = string | StyleSpecification;
 
-type MapRef = MapLibreGL.Map;
+type MapRef = MapLibreGL;
 
 interface MapProps
-  extends PropsWithChildren,
-    Omit<MapLibreGL.MapOptions, "container" | "style"> {
+  extends PropsWithChildren, Omit<MapOptions, "container" | "style"> {
   /** Additional CSS classes for the map container */
   className?: string;
   /**
@@ -139,7 +158,7 @@ interface MapProps
     dark?: MapStyleOption;
   };
   /** Map projection type. Use `{ type: "globe" }` for 3D globe view. */
-  projection?: MapLibreGL.ProjectionSpecification;
+  projection?: ProjectionSpecification;
   /**
    * Controlled viewport. When provided with onViewportChange,
    * the map becomes controlled and viewport is driven by this prop.
@@ -167,7 +186,7 @@ function DefaultLoader() {
   );
 }
 
-function getViewport(map: MapLibreGL.Map): MapViewport {
+function getViewport(map: MapLibreGL): MapViewport {
   const center = map.getCenter();
   return {
     center: [center.lng, center.lat],
@@ -192,7 +211,7 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [mapInstance, setMapInstance] = useState<MapLibreGL.Map | null>(null);
+  const [mapInstance, setMapInstance] = useState<MapLibreGL | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isStyleLoaded, setIsStyleLoaded] = useState(false);
   const currentStyleRef = useRef<MapStyleOption | null>(null);
@@ -213,10 +232,10 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
   );
 
   // Expose the map instance to the parent component
-  useImperativeHandle(ref, () => mapInstance as MapLibreGL.Map, [mapInstance]);
+  useImperativeHandle(ref, () => mapInstance as MapLibreGL, [mapInstance]);
 
   const styleLoadDebouncer = useDebouncer(
-    (map: MapLibreGL.Map) => {
+    (map: MapLibreGL) => {
       setIsStyleLoaded(true);
       if (projection) {
         map.setProjection(projection);
@@ -235,7 +254,7 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
       resolvedTheme === "dark" ? mapStyles.dark : mapStyles.light;
     currentStyleRef.current = initialStyle;
 
-    const map = new MapLibreGL.Map({
+    const map = new MapLibreGL({
       container: containerRef.current,
       style: initialStyle,
       renderWorldCopies: false,
@@ -345,8 +364,8 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
 });
 
 type MarkerContextValue = {
-  marker: MapLibreGL.Marker;
-  map: MapLibreGL.Map | null;
+  marker: Marker;
+  map: MapLibreGL | null;
 };
 
 const MarkerContext = createContext<MarkerContextValue | null>(null);
@@ -360,8 +379,7 @@ function useMarkerContext() {
 }
 
 interface MapMarkerProps
-  extends PropsWithChildren,
-    Omit<MarkerOptions, "element"> {
+  extends PropsWithChildren, Omit<MarkerOptions, "element"> {
   /** Longitude coordinate for marker position */
   longitude: number;
   /** Latitude coordinate for marker position */
@@ -413,7 +431,7 @@ function MapMarker({
   };
 
   const marker = useMemo(() => {
-    const markerInstance = new MapLibreGL.Marker({
+    const markerInstance = new Marker({
       ...markerOptions,
       element: document.createElement("div"),
       draggable,
@@ -539,8 +557,7 @@ function PopupCloseButton({ onClick }: { onClick: () => void }) {
 }
 
 interface MarkerPopupProps
-  extends PropsWithChildren,
-    Omit<PopupOptions, "className" | "closeButton"> {
+  extends PropsWithChildren, Omit<PopupOptions, "className" | "closeButton"> {
   /** Additional CSS classes for the popup container */
   className?: string;
   /** Show a close button in the popup (default: false) */
@@ -558,7 +575,7 @@ function MarkerPopup({
   const prevPopupOptions = useRef(popupOptions);
 
   const popup = useMemo(() => {
-    const popupInstance = new MapLibreGL.Popup({
+    const popupInstance = new Popup({
       offset: 16,
       ...popupOptions,
       closeButton: false,
@@ -613,7 +630,8 @@ function MarkerPopup({
 }
 
 interface MarkerTooltipProps
-  extends PropsWithChildren,
+  extends
+    PropsWithChildren,
     Omit<PopupOptions, "className" | "closeButton" | "closeOnClick"> {
   /** Additional CSS classes for the tooltip container */
   className?: string;
@@ -629,7 +647,7 @@ function MarkerTooltip({
   const prevTooltipOptions = useRef(popupOptions);
 
   const tooltip = useMemo(() => {
-    const tooltipInstance = new MapLibreGL.Popup({
+    const tooltipInstance = new Popup({
       offset: 16,
       ...popupOptions,
       closeOnClick: true,
@@ -933,8 +951,7 @@ function CompassButton({ onClick }: { onClick: () => void }) {
 }
 
 interface MapPopupProps
-  extends PropsWithChildren,
-    Omit<PopupOptions, "className" | "closeButton"> {
+  extends PropsWithChildren, Omit<PopupOptions, "className" | "closeButton"> {
   /** Longitude coordinate for popup position */
   longitude: number;
   /** Latitude coordinate for popup position */
@@ -963,7 +980,7 @@ function MapPopup({
   const container = useMemo(() => document.createElement("div"), []);
 
   const popup = useMemo(() => {
-    const popupInstance = new MapLibreGL.Popup({
+    const popupInstance = new Popup({
       offset: 16,
       ...popupOptions,
       closeButton: false,
@@ -1114,7 +1131,7 @@ function MapRoute({
   useEffect(() => {
     if (!isLoaded || !map || coordinates.length < 2) return;
 
-    const source = map.getSource(sourceId) as MapLibreGL.GeoJSONSource;
+    const source = map.getSource(sourceId) as GeoJSONSource;
     if (source) {
       source.setData({
         type: "Feature",
@@ -1192,13 +1209,11 @@ type MapArcEvent<T extends MapArcDatum = MapArcDatum> = {
   /** Latitude of the cursor at the time of the event. */
   latitude: number;
   /** The underlying MapLibre mouse event for advanced use cases. */
-  originalEvent: MapLibreGL.MapMouseEvent;
+  originalEvent: MapMouseEvent;
 };
 
-type MapArcLinePaint = NonNullable<MapLibreGL.LineLayerSpecification["paint"]>;
-type MapArcLineLayout = NonNullable<
-  MapLibreGL.LineLayerSpecification["layout"]
->;
+type MapArcLinePaint = NonNullable<LineLayerSpecification["paint"]>;
+type MapArcLineLayout = NonNullable<LineLayerSpecification["layout"]>;
 
 type MapArcProps<T extends MapArcDatum = MapArcDatum> = {
   /** Array of arcs to render. Each arc must have a unique `id`. */
@@ -1430,9 +1445,7 @@ function MapArc<T extends MapArcDatum = MapArcDatum>({
   // Sync features when data / curvature / samples change.
   useEffect(() => {
     if (!isLoaded || !map) return;
-    const source = map.getSource(sourceId) as
-      | MapLibreGL.GeoJSONSource
-      | undefined;
+    const source = map.getSource(sourceId) as GeoJSONSource | undefined;
     source?.setData(geoJSON);
   }, [isLoaded, map, geoJSON, sourceId]);
 
@@ -1486,7 +1499,7 @@ function MapArc<T extends MapArcDatum = MapArcDatum>({
             (arc) => String(arc.id) === String(featureId),
           );
 
-    const handleMouseMove = (e: MapLibreGL.MapLayerMouseEvent) => {
+    const handleMouseMove = (e: MapLayerMouseEvent) => {
       const featureId = e.features?.[0]?.id as string | number | undefined;
       if (featureId == null || featureId === hoveredId) return;
 
@@ -1510,7 +1523,7 @@ function MapArc<T extends MapArcDatum = MapArcDatum>({
       latestRef.current.onHover?.(null);
     };
 
-    const handleClick = (e: MapLibreGL.MapLayerMouseEvent) => {
+    const handleClick = (e: MapLayerMouseEvent) => {
       const arc = findArc(e.features?.[0]?.id as string | number | undefined);
       if (!arc) return;
       latestRef.current.onClick?.({
@@ -1683,7 +1696,7 @@ function MapClusterLayer<
   useEffect(() => {
     if (!isLoaded || !map || typeof data === "string") return;
 
-    const source = map.getSource(sourceId) as MapLibreGL.GeoJSONSource;
+    const source = map.getSource(sourceId) as GeoJSONSource;
     if (source) {
       source.setData(data);
     }
@@ -1742,8 +1755,8 @@ function MapClusterLayer<
 
     // Cluster click handler - zoom into cluster
     const handleClusterClick = async (
-      e: MapLibreGL.MapMouseEvent & {
-        features?: MapLibreGL.MapGeoJSONFeature[];
+      e: MapMouseEvent & {
+        features?: MapGeoJSONFeature[];
       },
     ) => {
       const features = map.queryRenderedFeatures(e.point, {
@@ -1763,7 +1776,7 @@ function MapClusterLayer<
         onClusterClick(clusterId, coordinates, pointCount);
       } else {
         // Default behavior: zoom to cluster expansion zoom
-        const source = map.getSource(sourceId) as MapLibreGL.GeoJSONSource;
+        const source = map.getSource(sourceId) as GeoJSONSource;
         const zoom = await source.getClusterExpansionZoom(clusterId);
         map.easeTo({
           center: coordinates,
@@ -1774,8 +1787,8 @@ function MapClusterLayer<
 
     // Unclustered point click handler
     const handlePointClick = (
-      e: MapLibreGL.MapMouseEvent & {
-        features?: MapLibreGL.MapGeoJSONFeature[];
+      e: MapMouseEvent & {
+        features?: MapGeoJSONFeature[];
       },
     ) => {
       if (!onPointClick || !e.features?.length) return;
@@ -1840,7 +1853,6 @@ function MapClusterLayer<
   return null;
 }
 
-export type { MapArcDatum, MapArcEvent, MapRef, MapViewport };
 export {
   Map,
   MapArc,
@@ -1855,3 +1867,4 @@ export {
   MarkerTooltip,
   useMap,
 };
+export type { MapArcDatum, MapArcEvent, MapRef, MapViewport };

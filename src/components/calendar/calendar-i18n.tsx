@@ -1,10 +1,5 @@
-import {
-  format,
-  isSameMonth,
-  isSameYear,
-  type Locale,
-  subMilliseconds,
-} from "date-fns";
+import { format, isSameMonth, isSameYear, subMilliseconds } from "date-fns";
+import type { Locale } from "date-fns";
 import type {
   CalendarDateRange,
   CalendarView,

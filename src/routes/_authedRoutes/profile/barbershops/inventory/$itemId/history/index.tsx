@@ -1,5 +1,3 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: route loader gates and primes the item data */
-
 import type { InventoryItem } from "@convex/schema";
 import {
   ArrowLeftIcon,
@@ -7,7 +5,9 @@ import {
   PackageIcon,
 } from "@phosphor-icons/react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { noop } from "@tanstack/react-query";
 import type { FC } from "react";
+import { z } from "zod";
 
 import {
   DashboardPage,
@@ -28,7 +28,8 @@ import {
   inventoryUnitLabels,
 } from "@/components/inventory/labels";
 import { InventoryMovementList } from "@/components/inventory/movement-history";
-import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
+import type { BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -43,6 +44,7 @@ import {
   useInventoryItemAudit,
 } from "@/hooks/use-inventory";
 import { useSession } from "@/hooks/use-session";
+import { asConvexId } from "@/lib/convex-id";
 import { formatCurrency } from "@/lib/utils";
 
 export const Route = createFileRoute(
@@ -54,38 +56,41 @@ export const Route = createFileRoute(
   staticData: { breadcrumb: "Historial" },
   staleTime: cacheTime.low,
   gcTime: cacheTime.medium,
+  // oxlint-disable-next-line react-doctor/tanstack-start-loader-parallel-fetch -- the plan gate must redirect before the item query runs
   loader: async ({ context, params }) => {
     const barbershop = context.dashboardBarbershop;
     const roles = context.dashboardRoles;
-    const itemId = params.itemId as InventoryItem["_id"];
+    const itemId = asConvexId<"inventoryItems">(params.itemId);
 
     if (!barbershop?._id || (!roles?.isOwner && !roles?.isStaff)) {
       throw redirect({ to: "/profile/barbershops/inventory" });
     }
 
-    const plan = await context.queryClient.ensureQueryData(
-      getBarbershopPlanQueryOptions(barbershop._id),
-    );
+    const plan = await context.queryClient.query({
+      ...getBarbershopPlanQueryOptions(barbershop._id),
+      staleTime: "static",
+    });
 
     if (!plan?.planLimits.inventoryEnabled) {
       throw redirect({ to: "/profile/barbershops/inventory" });
     }
 
-    const itemData = await context.queryClient.ensureQueryData(
-      inventoryItemQueryOptions(itemId),
-    );
+    const itemData = await context.queryClient.query({
+      ...inventoryItemQueryOptions(itemId),
+      staleTime: "static",
+    });
 
     if (itemData.item.barbershopId !== barbershop._id) {
       throw redirect({ to: "/profile/barbershops/inventory" });
     }
 
-    void context.queryClient.prefetchQuery(
-      inventoryItemAuditQueryOptions(itemId, 20),
-    );
+    void context.queryClient
+      .query(inventoryItemAuditQueryOptions(itemId, 20))
+      .catch(noop);
   },
 });
 
-const auditActionLabels: Record<string, string> = {
+const auditActionLabels = {
   "inventory.item.created": "Producto creado",
   "inventory.item.updated": "Producto actualizado",
   "inventory.item.archived": "Producto archivado",
@@ -102,7 +107,7 @@ const auditActionLabels: Record<string, string> = {
   "inventory.movement.transfer_out": "Traslado de salida",
 };
 
-const auditActionDescriptions: Record<string, string> = {
+const auditActionDescriptions = {
   "inventory.item.created": "Se creó la ficha del producto.",
   "inventory.item.updated": "Se modificaron datos de la ficha del producto.",
   "inventory.item.archived": "El producto salió del inventario activo.",
@@ -119,11 +124,11 @@ const auditActionDescriptions: Record<string, string> = {
   "inventory.movement.transfer_out": "Salió stock por traslado.",
 };
 
-const auditResourceLabels: Record<string, string> = {
+const auditResourceLabels = {
   "inventory.item": "Producto de inventario",
 };
 
-const auditFieldLabels: Record<string, string> = {
+const auditFieldLabels = {
   ...inventoryFieldLabels,
   available: "Stock disponible",
   balanceAfter: "Saldo final",
@@ -183,12 +188,38 @@ const severityLabels: Record<InventoryItemAuditEvent["severity"], string> = {
   critical: "Crítico",
 };
 
-const booleanLabels: Record<string, string> = {
-  true: "Sí",
-  false: "No",
-};
-
 const esCoNumberFormatter = new Intl.NumberFormat("es-CO");
+
+/** Read `labels[key]` for a free-form key, like an open `Record` lookup. */
+function readLabel(
+  labels: Readonly<Record<string, string>>,
+  key: string,
+): string | undefined {
+  return key in labels ? labels[key] : undefined;
+}
+
+function hasLabel<Labels extends object>(
+  labels: Labels,
+  key: string,
+): key is Extract<keyof Labels, string> {
+  return key in labels;
+}
+
+function isBoolean<Value>(value: Value): value is Value & boolean {
+  return typeof value === "boolean";
+}
+
+function isNumber<Value>(value: Value): value is Value & number {
+  return typeof value === "number";
+}
+
+function isString<Value>(value: Value): value is Value & string {
+  return typeof value === "string";
+}
+
+function isAuditMarker(value: string): value is AuditChange["marker"] {
+  return auditMarkers.some((marker) => marker === value);
+}
 
 function formatEventDate(timestamp: number) {
   return new Date(timestamp).toLocaleDateString("es-CO", {
@@ -218,23 +249,37 @@ function formatRawDate(timestamp: number) {
   });
 }
 
-function parseAuditValue(raw: string) {
+type AuditValue = boolean | number | string | null;
+
+const auditScalarSchema = z.union([
+  z.boolean(),
+  z.number(),
+  z.string(),
+  z.null(),
+]);
+
+/** Parse a diff value. Objects and arrays stay as their JSON text. */
+function parseAuditValue(raw: string): AuditValue {
+  let parsed: unknown;
+
   try {
-    return JSON.parse(raw);
+    parsed = JSON.parse(raw);
   } catch {
     return raw;
   }
+
+  const scalar = auditScalarSchema.safeParse(parsed);
+  return scalar.success ? scalar.data : JSON.stringify(parsed);
 }
 
-function formatAuditValue(field: string, value: unknown): string {
-  if (value === undefined) return "Sin dato";
+function formatAuditValue(field: string, value: AuditValue): string {
   if (value === null) return "Vacío";
 
-  if (typeof value === "boolean") {
-    return booleanLabels[String(value)];
+  if (isBoolean(value)) {
+    return value ? "Sí" : "No";
   }
 
-  if (typeof value === "number") {
+  if (isNumber(value)) {
     if (
       field === "unitCost" ||
       field === "salePrice" ||
@@ -254,85 +299,53 @@ function formatAuditValue(field: string, value: unknown): string {
     return esCoNumberFormatter.format(value);
   }
 
-  if (typeof value === "string") {
-    if (field === "category" && value in inventoryCategoryLabels) {
-      return inventoryCategoryLabels[
-        value as keyof typeof inventoryCategoryLabels
-      ];
-    }
-
-    if (field === "unit" && value in inventoryUnitLabels) {
-      return inventoryUnitLabels[value as keyof typeof inventoryUnitLabels];
-    }
-
-    if (field === "stockBehavior" && value in inventoryStockBehaviorLabels) {
-      return inventoryStockBehaviorLabels[
-        value as keyof typeof inventoryStockBehaviorLabels
-      ];
-    }
-
-    if (
-      field === "presentationUnit" &&
-      value in inventoryPresentationUnitLabels
-    ) {
-      return inventoryPresentationUnitLabels[
-        value as keyof typeof inventoryPresentationUnitLabels
-      ];
-    }
-
-    if (field === "movementType" && value in inventoryMovementTypeData) {
-      return inventoryMovementTypeData[
-        value as keyof typeof inventoryMovementTypeData
-      ].label;
-    }
-
-    return value;
+  if (field === "category" && hasLabel(inventoryCategoryLabels, value)) {
+    return inventoryCategoryLabels[value];
   }
 
-  return JSON.stringify(value);
-}
+  if (field === "unit" && hasLabel(inventoryUnitLabels, value)) {
+    return inventoryUnitLabels[value];
+  }
 
-function auditRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
+  if (
+    field === "stockBehavior" &&
+    hasLabel(inventoryStockBehaviorLabels, value)
+  ) {
+    return inventoryStockBehaviorLabels[value];
+  }
 
-function readAuditNumber(
-  record: Record<string, unknown>,
-  key: string,
-): number | undefined {
-  const value = record[key];
-  return typeof value === "number" ? value : undefined;
-}
+  if (
+    field === "presentationUnit" &&
+    hasLabel(inventoryPresentationUnitLabels, value)
+  ) {
+    return inventoryPresentationUnitLabels[value];
+  }
 
-function readAuditString(
-  record: Record<string, unknown>,
-  key: string,
-): string | undefined {
-  const value = record[key];
-  return typeof value === "string" ? value : undefined;
+  if (field === "movementType" && hasLabel(inventoryMovementTypeData, value)) {
+    return inventoryMovementTypeData[value].label;
+  }
+
+  return value;
 }
 
 function formatQuantity(value: number | undefined): string | undefined {
-  return typeof value === "number"
-    ? esCoNumberFormatter.format(value)
-    : undefined;
+  return value === undefined ? undefined : esCoNumberFormatter.format(value);
 }
 
 function getAuditSummary(event: InventoryItemAuditEvent): string {
-  const after = auditRecord(event.after);
-  const before = auditRecord(event.before);
+  const { after, before } = event;
 
   if (!event.action.startsWith("inventory.movement.")) {
-    return auditActionDescriptions[event.action] ?? "Evento registrado.";
+    return (
+      readLabel(auditActionDescriptions, event.action) ?? "Evento registrado."
+    );
   }
 
-  const quantity = formatQuantity(readAuditNumber(after, "quantity"));
-  const balance = formatQuantity(readAuditNumber(after, "onHand"));
-  const available = formatQuantity(readAuditNumber(after, "available"));
-  const reason = readAuditString(after, "reason");
-  const previousBalance = formatQuantity(readAuditNumber(before, "onHand"));
+  const quantity = formatQuantity(after.quantity);
+  const balance = formatQuantity(after.onHand);
+  const available = formatQuantity(after.available);
+  const reason = after.reason;
+  const previousBalance = formatQuantity(before.onHand);
   const parts = [
     quantity ? `Cantidad: ${quantity}` : null,
     previousBalance && balance
@@ -344,11 +357,14 @@ function getAuditSummary(event: InventoryItemAuditEvent): string {
 
   return parts.length > 0
     ? parts.join(" · ")
-    : (auditActionDescriptions[event.action] ?? "Movimiento registrado.");
+    : (readLabel(auditActionDescriptions, event.action) ??
+        "Movimiento registrado.");
 }
 
+const auditMarkers = ["+", "-", "~"] as const;
+
 type AuditChange = {
-  marker: "+" | "-" | "~";
+  marker: (typeof auditMarkers)[number];
   field: string;
   label: string;
   before?: string;
@@ -365,20 +381,25 @@ function parseDiff(diff?: string): AuditChange[] {
       return trimmed ? [trimmed] : [];
     })
     .flatMap((line): AuditChange[] => {
-      const match = line.match(/^([+~-])\s*([^:]+):\s*(.*)$/);
+      const match = /^([+~-])\s*([^:]+):\s*(.*)$/.exec(line);
 
       if (!match) {
         return [];
       }
 
       const [, marker, field, payload] = match;
+
+      if (!isAuditMarker(marker)) {
+        return [];
+      }
+
       const [beforeRaw, afterRaw] =
         marker === "~" ? payload.split(" → ") : [undefined, payload];
-      const label = auditFieldLabels[field] ?? field;
+      const label = readLabel(auditFieldLabels, field) ?? field;
 
       return [
         {
-          marker: marker as AuditChange["marker"],
+          marker,
           field,
           label,
           before:
@@ -420,15 +441,17 @@ const AuditTrail: FC<AuditTrailProps> = ({ itemId }) => {
 
   return (
     <div className="divide-y">
-      {events.map((event: InventoryItemAuditEvent) => {
+      {events.map((event) => {
         const changes = parseDiff(event.diff);
         const visibleChanges = changes
           .filter((change) => userVisibleAuditFields.has(change.field))
           .slice(0, 4);
-        const actionLabel = auditActionLabels[event.action] ?? event.action;
+        const actionLabel =
+          readLabel(auditActionLabels, event.action) ?? event.action;
         const auditSummary = getAuditSummary(event);
         const resourceLabel = event.resourceType
-          ? (auditResourceLabels[event.resourceType] ?? event.resourceType)
+          ? (readLabel(auditResourceLabels, event.resourceType) ??
+            event.resourceType)
           : "Recurso";
 
         return (
@@ -546,7 +569,7 @@ const AuditTrail: FC<AuditTrailProps> = ({ itemId }) => {
 
 function RouteComponent() {
   const { itemId } = Route.useParams();
-  const typedItemId = itemId as InventoryItem["_id"];
+  const typedItemId = asConvexId<"inventoryItems">(itemId);
   const { data: user } = useSession();
   const { data: barbershop } = useBarbershopByMemberUserId(user?.id ?? "");
   const { data } = useInventoryItem(typedItemId);
@@ -563,27 +586,25 @@ function RouteComponent() {
   );
   const stockSuffix = formatInventoryStockSuffix(onHand, item.unit);
   const unitCost =
-    "unitCost" in item && typeof item.unitCost === "number" ? item.unitCost : 0;
+    "unitCost" in item && isNumber(item.unitCost) ? item.unitCost : 0;
   const supplier =
-    "supplier" in item && typeof item.supplier === "string"
-      ? item.supplier
-      : undefined;
+    "supplier" in item && isString(item.supplier) ? item.supplier : undefined;
   const model =
-    "model" in item && typeof item.model === "string" ? item.model : undefined;
+    "model" in item && isString(item.model) ? item.model : undefined;
   const serialNumber =
-    "serialNumber" in item && typeof item.serialNumber === "string"
+    "serialNumber" in item && isString(item.serialNumber)
       ? item.serialNumber
       : undefined;
   const purchasedAt =
-    "purchasedAt" in item && typeof item.purchasedAt === "number"
+    "purchasedAt" in item && isNumber(item.purchasedAt)
       ? item.purchasedAt
       : undefined;
   const warrantyUntil =
-    "warrantyUntil" in item && typeof item.warrantyUntil === "number"
+    "warrantyUntil" in item && isNumber(item.warrantyUntil)
       ? item.warrantyUntil
       : undefined;
   const notes =
-    "notes" in item && typeof item.notes === "string" ? item.notes : undefined;
+    "notes" in item && isString(item.notes) ? item.notes : undefined;
   const value = onHand * unitCost;
   const isArchived = item.deletedAt !== undefined;
 

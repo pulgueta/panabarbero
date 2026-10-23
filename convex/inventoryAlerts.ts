@@ -1,34 +1,39 @@
 /**
- * Low-stock alert delivery — durable fan-out to the shop owner and staff
- * (members whose roles are only `barber` are excluded).
+ * Low-stock alert delivery — fan-out to the shop owner and staff (members
+ * whose roles are only `barber` are excluded).
  *
  * `recordMovement`/`updateItem` detect the downward crossing (hysteresis on
- * `inventoryLevels.lowStockAlertedAt`) and only *enqueue* this workflow
- * (`startAsync`), so the inventory mutation carries none of the notification
- * load. The workflow resolves recipients, channel preferences, plan quotas and
- * in-app rows in a single mutation step, then dispatches each email/SMS as its
- * own retriable action step with exponential backoff.
+ * `inventoryLevels.lowStockAlertedAt`) and only *enqueue* `sendLowStockAlert`
+ * (`scheduler.runAfter(0)`), so the inventory mutation carries none of the
+ * notification load. That mutation resolves recipients, writes the in-app
+ * rows and hands each recipient to `sendNotification` (WhatsApp, else the
+ * email + SMS fallback — see `notifications.ts`).
  */
 
-import { defineWorkflow, start } from "@convex-dev/workflow";
-import { ConvexError, v } from "convex/values";
+import { ConvexError } from "convex/values";
 import { zid } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import { zInternalMutation } from ".";
-import { components, internal } from "./_generated/api";
+import { internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
-import {
-  incrementEmailSent,
-  incrementSmsSent,
-  isEmailLimitNotExceeded,
-  isSmsLimitNotExceeded,
-} from "./acl";
+import { inventoryTriggers } from "./aggregates";
 import { errorMessages } from "./errors";
-import { buildNotificationCopy, buildSmsBody } from "./notificationCopy";
-import { isNotificationEnabled, recordInApp } from "./notifications";
-import type { Barbershop, InventoryItem, UserProfileData } from "./schema";
+import {
+  buildNotificationCopy,
+  buildSmsBody,
+  inventoryUnitLabels,
+} from "./notificationCopy";
+import { emailFallback, recordInApp, sendNotification } from "./notifications";
+import type {
+  Barbershop,
+  InventoryItem,
+  InventoryLevel,
+  UserProfileData,
+} from "./schema";
 import { getProfileByUserId } from "./userProfileData";
+import { formatPhoneNumber } from "./utils";
+import { buildInventoryLowStock } from "./whatsappTemplates";
 
 export type LowStockAlertInput = {
   barbershopId: Barbershop["_id"];
@@ -37,29 +42,32 @@ export type LowStockAlertInput = {
   remaining: number;
   unit: string;
   reorderPoint: number;
+  levelId: InventoryLevel["_id"];
+  /** The `lowStockAlertedAt` stamp this alert (and its ack button) is bound to. */
+  alertedAt: number;
 };
 
 /**
- * Enqueue the low-stock alert workflow without running any of it inline —
- * the only piece that executes inside the calling mutation is the insert
- * into the workflow component's queue.
+ * Enqueue the alert without running any of it inline — the calling
+ * inventory mutation only schedules `sendLowStockAlert`.
  */
 export async function startLowStockAlert(
   ctx: MutationCtx,
   input: LowStockAlertInput,
 ): Promise<void> {
-  await start(ctx, internal.inventoryAlerts.lowStockAlert, input, {
-    startAsync: true,
-  });
+  await ctx.scheduler.runAfter(
+    0,
+    internal.inventoryAlerts.sendLowStockAlert,
+    input,
+  );
 }
 
 /**
- * Step 1 (mutation): resolve recipients — the owner plus every active member
- * with the `owner` or `staff` role — apply per-user channel preferences and
- * the barbershop's monthly email/SMS quotas, and persist the in-app rows.
- * Returns the concrete deliveries for the workflow to dispatch as actions.
+ * Resolve recipients — the owner plus every active member with the `owner`
+ * or `staff` role — persist the in-app rows and send one notification per
+ * recipient.
  */
-export const prepareLowStockAlert = zInternalMutation({
+export const sendLowStockAlert = zInternalMutation({
   args: z.object({
     barbershopId: zid("barbershops"),
     itemId: zid("inventoryItems"),
@@ -67,6 +75,8 @@ export const prepareLowStockAlert = zInternalMutation({
     remaining: z.number(),
     unit: z.string(),
     reorderPoint: z.number(),
+    levelId: zid("inventoryLevels"),
+    alertedAt: z.number(),
   }),
   handler: async (ctx, args) => {
     const barbershop = await ctx.db.get(args.barbershopId);
@@ -117,8 +127,16 @@ export const prepareLowStockAlert = zInternalMutation({
       reorderPoint: args.reorderPoint,
       barbershopName: barbershop.name,
     });
-    const emails: string[] = [];
-    const smsTargets: string[] = [];
+    const smsBody = buildSmsBody(copy);
+    const template = buildInventoryLowStock({
+      itemName: args.itemName,
+      barbershopName: barbershop.name,
+      remaining: args.remaining,
+      unitLabel: inventoryUnitLabels.get(args.unit) ?? args.unit,
+      reorderPoint: args.reorderPoint,
+      levelId: args.levelId,
+      alertedAt: args.alertedAt,
+    });
 
     for (const profile of recipients.values()) {
       await recordInApp(ctx, {
@@ -133,78 +151,112 @@ export const prepareLowStockAlert = zInternalMutation({
         },
       });
 
-      if (
-        isNotificationEnabled("email", profile.notificationsPreferences) &&
-        profile.email &&
-        (await isEmailLimitNotExceeded(ctx, barbershop._id))
-      ) {
-        await incrementEmailSent(ctx, barbershop._id);
-        emails.push(profile.email);
-      }
-
-      if (
-        isNotificationEnabled("sms", profile.notificationsPreferences) &&
-        profile.phoneNumber &&
-        (await isSmsLimitNotExceeded(ctx, barbershop._id))
-      ) {
-        await incrementSmsSent(ctx, barbershop._id);
-        smsTargets.push(profile.phoneNumber);
-      }
+      await sendNotification(ctx, {
+        barbershopId: barbershop._id,
+        phone: profile.phoneNumber,
+        receiverProfile: profile,
+        template,
+        email: profile.email
+          ? await emailFallback(internal.emails.sendLowStockEmail, {
+              to: profile.email,
+              itemName: args.itemName,
+              remaining: args.remaining,
+              unit: args.unit,
+              reorderPoint: args.reorderPoint,
+              barbershopName: barbershop.name,
+            })
+          : undefined,
+        smsBody,
+      });
     }
-
-    return {
-      barbershopName: barbershop.name,
-      smsBody: buildSmsBody(copy),
-      emails,
-      smsTargets,
-    };
   },
 });
 
-export const lowStockAlert = defineWorkflow(components.workflow, {
-  args: {
-    barbershopId: v.id("barbershops"),
-    itemId: v.id("inventoryItems"),
-    itemName: v.string(),
-    remaining: v.number(),
-    unit: v.string(),
-    reorderPoint: v.number(),
-  },
-  workpoolOptions: {
-    retryActionsByDefault: true,
-    defaultRetryBehavior: {
-      maxAttempts: 4,
-      initialBackoffMs: 1_000,
-      base: 2,
-    },
-  },
-}).handler(async (step, args) => {
-  const delivery = await step.runMutation(
-    internal.inventoryAlerts.prepareLowStockAlert,
-    args,
-  );
+/**
+ * "Ya hice el pedido" quick reply. Phone-authed: the sender must be the shop
+ * owner or an active owner/staff member. The payload binds to the exact
+ * `lowStockAlertedAt` stamp, so a tap on an old alert (already recovered or
+ * re-crossed) is rejected. Never throws — the caller words a reply off the
+ * boolean.
+ */
+export const ackLowStockFromWhatsApp = zInternalMutation({
+  args: z.object({
+    levelId: zid("inventoryLevels"),
+    alertedAt: z.number(),
+    senderPhone: z.string(),
+  }),
+  handler: async (ctx, args) => {
+    const level = await ctx.db.get(args.levelId);
 
-  await Promise.all([
-    ...delivery.emails.map((to) =>
-      step.runAction(
-        internal.emails.sendLowStockEmail,
-        {
-          to,
-          itemName: args.itemName,
-          remaining: args.remaining,
-          unit: args.unit,
-          reorderPoint: args.reorderPoint,
-          barbershopName: delivery.barbershopName,
-        },
-        { name: `email:${to}` },
-      ),
-    ),
-    ...delivery.smsTargets.map((to) =>
-      step.runAction(
-        internal.twilio.sendSms,
-        { to, body: delivery.smsBody },
-        { name: `sms:${to}` },
-      ),
-    ),
-  ]);
+    if (!level || level.lowStockAlertedAt !== args.alertedAt) {
+      return false;
+    }
+
+    const barbershop = await ctx.db.get(level.barbershopId);
+
+    if (!barbershop) {
+      return false;
+    }
+
+    const sender = formatPhoneNumber(args.senderPhone);
+
+    if (!sender) {
+      return false;
+    }
+
+    let authorized = false;
+    const ownerProfile = await getProfileByUserId(ctx, barbershop.ownerId);
+
+    if (
+      ownerProfile?.phoneNumber &&
+      formatPhoneNumber(ownerProfile.phoneNumber) === sender
+    ) {
+      authorized = true;
+    }
+
+    if (!authorized) {
+      const members = await ctx.db
+        .query("barbershopMembers")
+        .withIndex("by_barbershopId", (q) =>
+          q.eq("barbershopId", level.barbershopId),
+        )
+        .collect();
+
+      for (const member of members) {
+        const isStaff =
+          member.isActive &&
+          member.roles.some((role) => role === "owner" || role === "staff");
+
+        if (!isStaff) {
+          continue;
+        }
+
+        const profile = await ctx.db.get(member.userProfileDataId);
+
+        if (
+          profile?.phoneNumber &&
+          formatPhoneNumber(profile.phoneNumber) === sender
+        ) {
+          authorized = true;
+          break;
+        }
+      }
+    }
+
+    if (!authorized) {
+      return false;
+    }
+
+    if (level.lowStockAckedAt !== undefined) {
+      return true; // Already acked — idempotent for webhook retries
+    }
+
+    // Every `inventoryLevels` write goes through the wrapped db (aggregate
+    // mandate) even though this field doesn't affect any sumValue.
+    await inventoryTriggers
+      .wrapDB(ctx)
+      .db.patch(level._id, { lowStockAckedAt: Date.now() });
+
+    return true;
+  },
 });

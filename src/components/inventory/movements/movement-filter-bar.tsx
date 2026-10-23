@@ -1,12 +1,15 @@
+import type { InventoryItem } from "@convex/schema";
 import { FunnelXIcon } from "@phosphor-icons/react";
 import type { FC } from "react";
 
 import { inventoryMovementTypeData } from "@/components/inventory/labels";
 import {
   MOVEMENT_DATE_PRESETS,
-  type MovementDatePreset,
-  type MovementFilterState,
   movementTypeOrder,
+} from "@/components/inventory/movements/movement-filters";
+import type {
+  MovementDatePreset,
+  MovementFilterState,
 } from "@/components/inventory/movements/movement-filters";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,18 +22,51 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-export type FilterOption = { id: string; name: string };
+export type FilterOption<Id extends string = string> = { id: Id; name: string };
 
 interface MovementFilterBarProps {
   filters: MovementFilterState;
   onChange: (patch: Partial<MovementFilterState>) => void;
   onReset: () => void;
-  products: FilterOption[];
+  products: FilterOption<InventoryItem["_id"]>[];
   actors: FilterOption[];
   hasActiveFilters: boolean;
 }
 
 const ALL = "all";
+
+interface TypeChipProps {
+  label: string;
+  active: boolean;
+  activeVariant: React.ComponentProps<typeof Badge>["variant"];
+  onClick: () => void;
+}
+
+const TypeChip: FC<TypeChipProps> = ({
+  label,
+  active,
+  activeVariant,
+  onClick,
+}) => (
+  <button
+    type="button"
+    aria-pressed={active}
+    onClick={onClick}
+    className="rounded-full outline-none transition-transform focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
+  >
+    <Badge
+      variant={active ? activeVariant : "outline"}
+      className={cn(
+        "cursor-pointer border px-2.5 py-0.5",
+        active
+          ? "border-transparent"
+          : "border-border/70 text-muted-foreground hover:bg-muted hover:text-foreground",
+      )}
+    >
+      {label}
+    </Badge>
+  </button>
+);
 
 export const MovementFilterBar: FC<MovementFilterBarProps> = ({
   filters,
@@ -79,7 +115,9 @@ export const MovementFilterBar: FC<MovementFilterBarProps> = ({
         <Select
           value={filters.itemId ?? ALL}
           onValueChange={(value: string | null) =>
-            onChange({ itemId: !value || value === ALL ? undefined : value })
+            onChange({
+              itemId: products.find((product) => product.id === value)?.id,
+            })
           }
         >
           <SelectTrigger
@@ -163,36 +201,3 @@ export const MovementFilterBar: FC<MovementFilterBarProps> = ({
     </div>
   );
 };
-
-interface TypeChipProps {
-  label: string;
-  active: boolean;
-  activeVariant: React.ComponentProps<typeof Badge>["variant"];
-  onClick: () => void;
-}
-
-const TypeChip: FC<TypeChipProps> = ({
-  label,
-  active,
-  activeVariant,
-  onClick,
-}) => (
-  <button
-    type="button"
-    aria-pressed={active}
-    onClick={onClick}
-    className="rounded-full outline-none transition-transform focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
-  >
-    <Badge
-      variant={active ? activeVariant : "outline"}
-      className={cn(
-        "cursor-pointer border px-2.5 py-0.5",
-        active
-          ? "border-transparent"
-          : "border-border/70 text-muted-foreground hover:bg-muted hover:text-foreground",
-      )}
-    >
-      {label}
-    </Badge>
-  </button>
-);

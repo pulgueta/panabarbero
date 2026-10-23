@@ -26,8 +26,10 @@ const DEFAULT_VIEW_COMPONENTS: Record<CalendarView, ComponentType> = {
   resource: CalendarResourceView,
 };
 
-interface CalendarContentProps
-  extends Omit<useRender.ComponentProps<"div">, "children"> {
+interface CalendarContentProps extends Omit<
+  useRender.ComponentProps<"div">,
+  "children"
+> {
   /** Swap individual view implementations. */
   components?: Partial<Record<CalendarView, ComponentType>>;
   /** Replaces the switchboard entirely; read useCalendarView() inside. */

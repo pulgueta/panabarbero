@@ -27,8 +27,14 @@ export const Route = createFileRoute("/pricing")({
   ssr: "data-only",
   loader: async ({ context }) => {
     await Promise.all([
-      context.queryClient.ensureQueryData(getConfiguredProductsQueryOptions()),
-      context.queryClient.ensureQueryData(getSubscriptionQueryOptions()),
+      context.queryClient.query({
+        ...getConfiguredProductsQueryOptions(),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...getSubscriptionQueryOptions(),
+        staleTime: "static",
+      }),
     ]);
   },
   head: () => ({

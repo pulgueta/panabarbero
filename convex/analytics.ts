@@ -4,6 +4,12 @@ import { posthog } from "./posthog";
 /** Contexts that can schedule — PostHog capture is fire-and-forget via the scheduler. */
 type AnalyticsCtx = MutationCtx | ActionCtx;
 
+// Payload types come from the PostHog component client: it owns the contract.
+type CaptureArgs = Parameters<typeof posthog.capture>[1];
+type IdentifyArgs = Parameters<typeof posthog.identify>[1];
+type GroupIdentifyArgs = Parameters<typeof posthog.groupIdentify>[1];
+type CaptureExceptionArgs = Parameters<typeof posthog.captureException>[1];
+
 export type AppEventName =
   | "user_signed_up"
   | "appointment_created"
@@ -38,7 +44,7 @@ export async function track(
   args: {
     distinctId: string | null | undefined;
     event: AppEventName;
-    properties?: Record<string, unknown>;
+    properties?: CaptureArgs["properties"];
     groups?: Record<string, string | number>;
   },
 ): Promise<void> {
@@ -57,7 +63,7 @@ export async function track(
 export async function identifyUser(
   ctx: AnalyticsCtx,
   distinctId: string,
-  properties?: Record<string, unknown>,
+  properties?: IdentifyArgs["properties"],
 ): Promise<void> {
   await posthog.identify(ctx, { distinctId, properties });
 }
@@ -66,7 +72,7 @@ export async function identifyUser(
 export async function groupIdentifyBarbershop(
   ctx: AnalyticsCtx,
   barbershopId: string,
-  properties: Record<string, unknown>,
+  properties: GroupIdentifyArgs["properties"],
 ): Promise<void> {
   await posthog.groupIdentify(ctx, {
     groupType: "barbershop",
@@ -77,9 +83,9 @@ export async function groupIdentifyBarbershop(
 
 export async function trackException(
   ctx: AnalyticsCtx,
-  error: unknown,
+  error: CaptureExceptionArgs["error"],
   distinctId?: string,
-  additionalProperties?: Record<string, unknown>,
+  additionalProperties?: CaptureExceptionArgs["additionalProperties"],
 ): Promise<void> {
   await posthog.captureException(ctx, {
     error,

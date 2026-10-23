@@ -6,18 +6,11 @@ import type {
 } from "@convex/schema";
 import { format, isSameMonth, isSameYear, subMilliseconds } from "date-fns";
 import { es } from "date-fns/locale";
-import {
-  type FC,
-  type MouseEvent as ReactMouseEvent,
-  useCallback,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useMemo, useState } from "react";
+import type { FC, MouseEvent as ReactMouseEvent } from "react";
 
-import {
-  type CalendarRenderEventProps,
-  Calendar as ReuiCalendar,
-} from "@/components/calendar/calendar";
+import { Calendar as ReuiCalendar } from "@/components/calendar/calendar";
+import type { CalendarRenderEventProps } from "@/components/calendar/calendar";
 import { CalendarContent } from "@/components/calendar/calendar-content";
 import type { CalendarI18nOverrides } from "@/components/calendar/calendar-i18n";
 import { toZoned } from "@/components/calendar/calendar-lib";
@@ -182,7 +175,7 @@ function formatCalendarRange(start: Date, exclusiveEnd: Date): string {
 function isAppointmentCalendarView(
   view: ReuiCalendarView,
 ): view is CalendarView {
-  return CALENDAR_VIEWS.includes(view as CalendarView);
+  return CALENDAR_VIEWS.some((calendarView) => calendarView === view);
 }
 
 function renderAppointmentEvent({
@@ -287,7 +280,8 @@ export const AppointmentsCalendar: FC<AppointmentsCalendarProps> = ({
   const [barberFilter, setBarberFilter] = useState<BarberFilter>("all");
   const [details, setDetails] = useState<{
     eventId: string;
-    anchor: HTMLElement;
+    anchor: Element;
+    openedAt: number;
   } | null>(null);
 
   const dayWindows = useMemo(
@@ -323,7 +317,8 @@ export const AppointmentsCalendar: FC<AppointmentsCalendarProps> = ({
       if (!occurrence.event.data) return;
       setDetails({
         eventId: occurrence.event.id,
-        anchor: event.currentTarget as HTMLElement,
+        anchor: event.currentTarget,
+        openedAt: Date.now(),
       });
     },
     [],
@@ -415,7 +410,7 @@ export const AppointmentsCalendar: FC<AppointmentsCalendarProps> = ({
           totalMinutes,
         }) =>
           renderAvailabilityBackground(
-            dayWindows[day.getDay()],
+            dayWindows.get(day.getDay()),
             boundsStartMin,
             boundsEndMin,
             totalMinutes,
@@ -459,6 +454,7 @@ export const AppointmentsCalendar: FC<AppointmentsCalendarProps> = ({
           isBarber={isBarber}
           open
           anchor={details.anchor}
+          openedAt={details.openedAt}
           onOpenChange={(open) => {
             if (!open) setDetails(null);
           }}

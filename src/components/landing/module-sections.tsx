@@ -77,7 +77,7 @@ const AgendaDemoCard: FC = () => {
       >
         {sim.reminder.text}
       </div>
-      <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
         <ChatCircleTextIcon className="size-3.5" />
         Recordatorio automático por SMS y correo
       </span>

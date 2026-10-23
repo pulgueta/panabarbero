@@ -29,7 +29,7 @@ function buildModerationPrompt(comment: string) {
   // bounded section early and have its trailing text read as instructions. The
   // model is also told below to ignore in-band orders; this guarantees the
   // delimiter itself can't be spoofed regardless of casing.
-  const safeComment = comment.replace(
+  const safeComment = comment.replaceAll(
     /<\s*\/?\s*comentario\s*>/gi,
     (tag) => `[${tag.includes("/") ? "/" : ""}comentario]`,
   );
@@ -84,6 +84,7 @@ export const moderateReview = zInternalAction({
     }
 
     try {
+      // oxlint-disable-next-line typescript/no-deprecated -- moving to generateText + Output.object changes the AI call path and its telemetry spans; follow-up
       const { object } = await generateObject({
         model: gateway(PANA_MODEL_ID),
         schema: moderationSchema,
@@ -101,10 +102,10 @@ export const moderateReview = zInternalAction({
         reason:
           object.verdict === "flagged" ? object.reason || undefined : undefined,
       });
-    } catch (e) {
-      trackException(ctx, e, `review-moderation:${reviewId}`);
+    } catch (error) {
+      void trackException(ctx, error, `review-moderation:${reviewId}`);
       // Re-throw so the Workpool retries with exponential backoff.
-      throw e;
+      throw error;
     }
   },
 });

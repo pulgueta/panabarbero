@@ -3,12 +3,10 @@
 
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
-import { addDays, type Locale } from "date-fns";
+import { addDays } from "date-fns";
+import type { Locale } from "date-fns";
 import {
-  type ComponentType,
   createContext,
-  type ReactNode,
-  type RefObject,
   useCallback,
   useContext,
   useEffect,
@@ -17,15 +15,14 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import {
-  type CalendarI18nConfig,
-  type CalendarI18nOverrides,
-  mergeCalendarI18n,
+import type { ComponentType, ReactNode, RefObject } from "react";
+import { mergeCalendarI18n } from "@/components/calendar/calendar-i18n";
+import type {
+  CalendarI18nConfig,
+  CalendarI18nOverrides,
 } from "@/components/calendar/calendar-i18n";
 import {
   buildCalendarIndex,
-  type CalendarDayBucket,
-  type CalendarIndex,
   defaultOccurrenceOrder,
   eventsOverlap,
   getDayKey,
@@ -33,8 +30,12 @@ import {
   getViewDateRange,
   stepDate,
   toZoned,
-  type WeekStartsOn,
   zonedStartOfDay,
+} from "@/components/calendar/calendar-lib";
+import type {
+  CalendarDayBucket,
+  CalendarIndex,
+  WeekStartsOn,
 } from "@/components/calendar/calendar-lib";
 import type {
   CalendarDateRange,
@@ -145,8 +146,9 @@ interface CalendarCallbacks<TData = unknown> {
   ) => void | false;
 }
 
-interface UseCalendarStateOptions<TData = unknown>
-  extends CalendarCallbacks<TData> {
+interface UseCalendarStateOptions<
+  TData = unknown,
+> extends CalendarCallbacks<TData> {
   events?: CalendarEvent<TData>[];
   defaultEvents?: CalendarEvent<TData>[];
   view?: CalendarView;
@@ -522,13 +524,13 @@ function createCalendarStore<TData>(
       invalidate();
     }
     const callbacks: Record<ControlledKey, ((v: never) => void) | undefined> = {
-      view: settings.onViewChange as never,
-      date: settings.onDateChange as never,
-      dayCount: settings.onDayCountChange as never,
-      events: settings.onEventsChange as never,
-      selection: settings.onSelectionChange as never,
-      interactions: settings.onInteractionsChange as never,
-      viewSettings: settings.onViewSettingsChange as never,
+      view: settings.onViewChange,
+      date: settings.onDateChange,
+      dayCount: settings.onDayCountChange,
+      events: settings.onEventsChange,
+      selection: settings.onSelectionChange,
+      interactions: settings.onInteractionsChange,
+      viewSettings: settings.onViewSettingsChange,
     };
     callbacks[key]?.(value as never);
     if (!controlled) notify();
@@ -1643,11 +1645,10 @@ const DEFAULT_VIEW_CONFIG: CalendarViewConfig = {
   agendaSummaryMaxDots: 6,
 };
 
-const CalendarViewConfigContext =
-  createContext<
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    CalendarViewConfig<any>
-  >(DEFAULT_VIEW_CONFIG);
+const CalendarViewConfigContext = createContext<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  CalendarViewConfig<any>
+>(DEFAULT_VIEW_CONFIG);
 
 /** Root-level display props + render overrides, for view components. */
 function useCalendarViewConfig<TData = unknown>(): CalendarViewConfig<TData> {
@@ -1711,7 +1712,8 @@ function useCalendarViewContext(): { view: CalendarView } {
 }
 
 interface CalendarProps<TData = unknown>
-  extends UseCalendarStateOptions<TData>,
+  extends
+    UseCalendarStateOptions<TData>,
     Partial<CalendarViewConfig<TData>>,
     Omit<useRender.ComponentProps<"div">, "children" | "defaultValue"> {
   /** Adopt a hoisted useCalendarState instance; option props are then ignored. */
@@ -1789,7 +1791,7 @@ function splitOptions<TData>(props: Record<string, unknown>): {
     } else rest[key] = value;
   }
   return {
-    options: options as UseCalendarStateOptions<TData>,
+    options,
     viewConfig: viewConfig as unknown as CalendarViewConfig<TData>,
     rest,
   };
@@ -1807,9 +1809,7 @@ function Calendar<TData = unknown>({
   children,
   ...props
 }: CalendarProps<TData>) {
-  const { options, viewConfig, rest } = splitOptions<TData>(
-    props as Record<string, unknown>,
-  );
+  const { options, viewConfig, rest } = splitOptions<TData>(props);
 
   if (calendar && Object.keys(options).length > 0) {
     warnOnce(

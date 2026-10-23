@@ -1,6 +1,6 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: route loader gates and primes the member data */
+/* oxlint-disable typescript/no-non-null-assertion -- route loader gates and primes the member data */
 
-import type { BarbershopMember, Service } from "@convex/schema";
+import type { Service } from "@convex/schema";
 import { ScissorsIcon, UserIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 
@@ -34,6 +34,7 @@ import {
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
 import { useSession } from "@/hooks/use-session";
+import { asConvexId } from "@/lib/convex-id";
 
 function isService(service: Service | null): service is Service {
   return service !== null;
@@ -51,22 +52,25 @@ export const Route = createFileRoute(
   loader: async (opts) => {
     const barbershop = opts.context.dashboardBarbershop;
     const roles = opts.context.dashboardRoles;
-    const memberId = opts.params.memberId as BarbershopMember["_id"];
+    const memberId = asConvexId<"barbershopMembers">(opts.params.memberId);
 
     if (!barbershop?._id || (!roles?.isOwner && !roles?.isStaff)) {
       throw redirect({ to: "/profile/barbershops/team/barbers" });
     }
 
     const [members] = await Promise.all([
-      opts.context.queryClient.ensureQueryData(
-        barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
-      ),
-      opts.context.queryClient.ensureQueryData(
-        servicesQueryOptions(barbershop._id),
-      ),
-      opts.context.queryClient.ensureQueryData(
-        servicesForBarberQueryOptions(memberId),
-      ),
+      opts.context.queryClient.query({
+        ...barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+        staleTime: "static",
+      }),
+      opts.context.queryClient.query({
+        ...servicesQueryOptions(barbershop._id),
+        staleTime: "static",
+      }),
+      opts.context.queryClient.query({
+        ...servicesForBarberQueryOptions(memberId),
+        staleTime: "static",
+      }),
     ]);
 
     const member = members.find((row) => row._id === memberId);
@@ -80,7 +84,7 @@ export const Route = createFileRoute(
 function RouteComponent() {
   const navigate = Route.useNavigate();
   const { memberId } = Route.useParams();
-  const typedMemberId = memberId as BarbershopMember["_id"];
+  const typedMemberId = asConvexId<"barbershopMembers">(memberId);
   const { data: user } = useSession();
   const { data: barbershop } = useBarbershopByMemberUserId(user?.id!);
   const { data: members } = useBarbershopMembersByBarbershopId(
@@ -120,12 +124,12 @@ function RouteComponent() {
               barbershopMember={member}
               services={services}
               currentServices={activeServices}
-              onCancel={() =>
-                void navigate({ to: "/profile/barbershops/team/barbers" })
-              }
-              onSuccess={() =>
-                void navigate({ to: "/profile/barbershops/team/barbers" })
-              }
+              onCancel={() => {
+                void navigate({ to: "/profile/barbershops/team/barbers" });
+              }}
+              onSuccess={() => {
+                void navigate({ to: "/profile/barbershops/team/barbers" });
+              }}
             />
           </FormPageFields>
 

@@ -1,21 +1,27 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: always defined */
+/* oxlint-disable typescript/no-non-null-assertion -- always defined */
 import { Polar } from "@convex-dev/polar";
 import { ConvexError } from "convex/values";
 import { z } from "zod";
 
 import { zAuthAction, zInternalAction } from ".";
 import { api, components } from "./_generated/api";
+import type { ActionCtx } from "./_generated/server";
 import { errorMessages } from "./errors";
-import { CREDIT_PRODUCT_KEYS, PLAN_PRODUCT_KEYS } from "./plans";
+import type { CreditProductKey, ProductKey } from "./plans";
+
+/**
+ * The explicit return type breaks the polar → api.auth → acl → polar type
+ * cycle; `| null` keeps the unauthenticated case honest.
+ */
+async function getCurrentUser(
+  ctx: Pick<ActionCtx, "runQuery">,
+): Promise<{ id: string; email: string } | null> {
+  return await ctx.runQuery(api.auth.getCurrentUser, {});
+}
 
 export const polar = new Polar(components.polar, {
   getUserInfo: async (ctx) => {
-    // The cast breaks the polar → api.auth → acl → polar type cycle; `| null`
-    // keeps the unauthenticated case honest.
-    const user = (await ctx.runQuery(api.auth.getCurrentUser, {})) as {
-      id: string;
-      email: string;
-    } | null;
+    const user = await getCurrentUser(ctx);
 
     if (!user?.email) {
       throw new ConvexError(errorMessages.unauthorized);
@@ -30,15 +36,14 @@ export const polar = new Polar(components.polar, {
   // hard-coded in source. The key names here MUST match the keys defined in
   // `convex/plans.ts` (`PLAN_PRODUCT_KEYS` + `CREDIT_PRODUCT_KEYS`).
   products: {
-    [PLAN_PRODUCT_KEYS[0]]: process.env.POLAR_PRODUCT_FREE!,
-    [PLAN_PRODUCT_KEYS[1]]: process.env.POLAR_PRODUCT_PRO_MONTHLY!,
-    [PLAN_PRODUCT_KEYS[2]]: process.env.POLAR_PRODUCT_PRO_YEARLY!,
-    [PLAN_PRODUCT_KEYS[3]]: process.env.POLAR_PRODUCT_PREMIUM_MONTHLY!,
-    [PLAN_PRODUCT_KEYS[4]]: process.env.POLAR_PRODUCT_PREMIUM_YEARLY!,
-    // One-time credit products
-    [CREDIT_PRODUCT_KEYS[0]]: process.env.POLAR_PRODUCT_EXTRA_SMS!,
-    [CREDIT_PRODUCT_KEYS[1]]: process.env.POLAR_PRODUCT_EXTRA_EMAIL!,
-  },
+    independiente: process.env.POLAR_PRODUCT_FREE!,
+    barberiaMonthly: process.env.POLAR_PRODUCT_PRO_MONTHLY!,
+    barberiaYearly: process.env.POLAR_PRODUCT_PRO_YEARLY!,
+    barberiaProfMonthly: process.env.POLAR_PRODUCT_PREMIUM_MONTHLY!,
+    barberiaProfYearly: process.env.POLAR_PRODUCT_PREMIUM_YEARLY!,
+    // One-time credit product
+    extraWhatsApp: process.env.POLAR_PRODUCT_EXTRA_WHATSAPP!,
+  } satisfies Record<ProductKey | CreditProductKey, string>,
 });
 
 export const { getConfiguredProducts, generateCustomerPortalUrl } = polar.api();
@@ -75,9 +80,7 @@ export const generateCheckoutLink = zAuthAction({
       throw new ConvexError(errorMessages.invalidCheckoutProduct);
     }
 
-    const user = (await ctx.runQuery(api.auth.getCurrentUser, {})) as {
-      email: string;
-    } | null;
+    const user = await getCurrentUser(ctx);
 
     if (!user?.email) {
       throw new ConvexError(errorMessages.unauthorized);

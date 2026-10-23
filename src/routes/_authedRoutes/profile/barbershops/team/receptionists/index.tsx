@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: barbershop is primed by the loader and gated to owners/staff */
+/* oxlint-disable typescript/no-non-null-assertion -- barbershop is primed by the loader and gated to owners/staff */
 
 import { WarningIcon } from "@phosphor-icons/react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
@@ -68,12 +68,14 @@ export const Route = createFileRoute(
 
     if (barbershop?._id) {
       await Promise.all([
-        opts.context.queryClient.ensureQueryData(
-          staffByBarbershopIdQueryOptions(barbershop._id),
-        ),
-        opts.context.queryClient.ensureQueryData(
-          getBarbershopPlanQueryOptions(barbershop._id),
-        ),
+        opts.context.queryClient.query({
+          ...staffByBarbershopIdQueryOptions(barbershop._id),
+          staleTime: "static",
+        }),
+        opts.context.queryClient.query({
+          ...getBarbershopPlanQueryOptions(barbershop._id),
+          staleTime: "static",
+        }),
       ]);
     }
   },

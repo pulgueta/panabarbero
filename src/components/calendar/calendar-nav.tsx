@@ -8,7 +8,8 @@ import {
   CaretRightIcon,
 } from "@phosphor-icons/react";
 import { addDays, format } from "date-fns";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
+import type { ReactNode } from "react";
 import {
   useCalendarNavigation,
   useCalendarSettings,
@@ -244,8 +245,10 @@ function CalendarTitle({
   });
 }
 
-interface CalendarViewSwitcherProps
-  extends Omit<useRender.ComponentProps<"button">, "children"> {
+interface CalendarViewSwitcherProps extends Omit<
+  useRender.ComponentProps<"button">,
+  "children"
+> {
   children?: ReactNode;
   /** Hover/focus-visible hint; defaults to the "Select view" label. Pass
    *  null to disable (overlay-opener policy). */
@@ -401,8 +404,10 @@ function CalendarViewShortcut({ children }: { children: ReactNode }) {
   );
 }
 
-interface CalendarDatePickerProps
-  extends Omit<useRender.ComponentProps<"button">, "children"> {
+interface CalendarDatePickerProps extends Omit<
+  useRender.ComponentProps<"button">,
+  "children"
+> {
   children?: ReactNode;
   /** "auto" (default) resolves per view: range for week/N-days/agenda. */
   mode?: "auto" | "single" | "range";

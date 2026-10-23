@@ -42,15 +42,15 @@ interface DeleteServiceImpact {
 function parseWillCancelError(
   errorMessage: string,
 ): DeleteServiceImpact | null {
-  const match = errorMessage.match(/WILL_CANCEL:(\d+)(?::WILL_UPDATE:(\d+))?/);
+  const match = /WILL_CANCEL:(\d+)(?::WILL_UPDATE:(\d+))?/.exec(errorMessage);
 
   if (!match) {
     return null;
   }
 
   return {
-    cancelCount: Number.parseInt(match[1], 10),
-    updateCount: match[2] ? Number.parseInt(match[2], 10) : 0,
+    cancelCount: Number(match[1]),
+    updateCount: match[2] ? Number(match[2]) : 0,
   };
 }
 
@@ -99,7 +99,7 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
         force,
       });
 
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Servicio eliminado exitosamente");
       handleOpenChange(false);
     } catch (error) {
@@ -110,7 +110,7 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
         setImpact(parsedImpact);
         setConfirmationStep("confirm_cancellation");
       } else {
-        haptic.trigger("error");
+        void haptic.trigger("error");
         toast.error(errorMessage);
       }
     }
@@ -168,7 +168,9 @@ export const DeleteServiceDialog: FC<DeleteServiceDialogProps> = ({
           )}
           <Button
             variant="destructive"
-            onClick={() => onDelete(!isInitialStep)}
+            onClick={() => {
+              void onDelete(!isInitialStep);
+            }}
             disabled={isDeleting}
           >
             {isDeleting && <Spinner />}

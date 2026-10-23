@@ -10,7 +10,6 @@ import { clientEnv } from "@/env/client";
 import { cacheTime } from "./config/cache";
 import type { WorkosAuthState } from "./hooks/use-session";
 import { fetchWorkosAuth, useAuthFromWorkOS } from "./hooks/use-session";
-import reportWebVitals from "./reportWebVitals";
 import { routeTree } from "./routeTree.gen";
 
 // Seeds AuthKitProvider with the auth snapshot resolved in the root beforeLoad
@@ -19,6 +18,7 @@ import { routeTree } from "./routeTree.gen";
 const SeededAuthKitProvider = ({ children }: { children: React.ReactNode }) => {
   const initialAuth = useRouterState({
     select: (state) =>
+      // SAFETY: the root route's beforeLoad returns `authState`; the root match context is typed loosely here.
       (state.matches[0]?.context as { authState?: WorkosAuthState } | undefined)
         ?.authState,
   });
@@ -46,7 +46,10 @@ export function getRouter() {
     // socket until the token resolves; anonymous visitors resolve null and
     // resume unauthenticated. ConvexProviderWithAuth replaces this fetcher
     // after mount for authenticated sessions.
-    convex.setAuth(async () => (await fetchWorkosAuth()).token);
+    convex.setAuth(async () => {
+      const auth = await fetchWorkosAuth();
+      return auth.token;
+    });
   }
 
   const convexQueryClient = new ConvexQueryClient(convex);
@@ -105,8 +108,3 @@ declare module "@tanstack/react-router" {
     breadcrumb?: string;
   }
 }
-
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();

@@ -17,11 +17,10 @@ import {
 import { cn } from "@/lib/utils";
 import { useTheme } from "./theme-provider";
 
-interface ThemeTogglerProps
-  extends Omit<
-    ComponentProps<typeof DropdownMenuTrigger>,
-    "render" | "children"
-  > {
+interface ThemeTogglerProps extends Omit<
+  ComponentProps<typeof DropdownMenuTrigger>,
+  "render" | "children"
+> {
   size?: ButtonProps["size"];
   variant?: ButtonProps["variant"];
 }

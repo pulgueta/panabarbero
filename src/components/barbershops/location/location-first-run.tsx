@@ -38,12 +38,12 @@ export function LocationFirstRun() {
   };
 
   const handleUseLocation = () => {
-    trigger();
+    void trigger();
     actions.requestGeolocation();
   };
 
   const handleConfirm = () => {
-    trigger();
+    void trigger();
     actions.confirmPin();
   };
 

@@ -1,13 +1,13 @@
 import { MapPinIcon } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import {
   Map as MapCanvas,
   MapControls,
   MapMarker,
-  type MapViewport,
   MarkerContent,
 } from "@/components/ui/map";
+import type { MapViewport } from "@/components/ui/map";
 import { useLocation } from "./location-provider";
 
 /** Approximate geographic center of Colombia, used until a pin is set. */
@@ -24,15 +24,18 @@ export function LocationMap() {
   }));
 
   // Recenter when the pin moves via geolocation or the locate control.
-  useEffect(() => {
+  const [syncedCoords, setSyncedCoords] = useState(state.coords);
+  if (syncedCoords !== state.coords) {
+    setSyncedCoords(state.coords);
     const coords = state.coords;
-    if (!coords) return;
-    setViewport((prev) => ({
-      ...prev,
-      center: [coords.lng, coords.lat],
-      zoom: Math.max(prev.zoom ?? 0, 13),
-    }));
-  }, [state.coords]);
+    if (coords) {
+      setViewport((prev) => ({
+        ...prev,
+        center: [coords.lng, coords.lat],
+        zoom: Math.max(prev.zoom ?? 0, 13),
+      }));
+    }
+  }
 
   return (
     <div className="h-60 w-full overflow-hidden rounded-xl border">

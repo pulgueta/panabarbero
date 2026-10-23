@@ -17,9 +17,17 @@ import { getUserId } from "./identity";
 import { releaseForAppointment } from "./inventory";
 import { getLimitsForProductKey, getTierForProductKey } from "./plans";
 import { polar } from "./polar";
-import type { Appointment, Barbershop, BarbershopMember } from "./schema";
+import type {
+  Appointment,
+  Barbershop,
+  BarbershopMember,
+  UserProfileData,
+} from "./schema";
 import { barbershops } from "./schema";
-import { getProfileByUserId } from "./userProfileData";
+import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  getProfileByUserId,
+} from "./userProfileData";
 import {
   DAY_MAP,
   minutesOfDay,
@@ -198,28 +206,14 @@ async function handleBarberDeparture(
       ),
   );
 
-  // Email customers whose appointments were reassigned
-  const reassignedEmailNotifs = upcomingAppointments
-    .filter((a) => reassignedItems.some((r) => r.appointmentId === a._id))
-    .flatMap((appt) => {
-      if (!appt.contactEmail) return [];
-      const item = reassignedItems.find((r) => r.appointmentId === appt._id);
-      if (!item) return [];
-      return [
-        {
-          to: appt.contactEmail,
-          barbershopName: barbershop.name,
-          newBarberName: item.newBarberName,
-        },
-      ];
+  // Notify customers whose appointments were reassigned (WhatsApp-primary,
+  // email/SMS fallback, in-app row)
+  for (const item of reassignedItems) {
+    await ctx.runMutation(internal.notifications.createAppointmentReassigned, {
+      appointmentId: item.appointmentId,
+      newBarberName: item.newBarberName,
+      barbershopName: barbershop.name,
     });
-
-  if (reassignedEmailNotifs.length > 0) {
-    await ctx.scheduler.runAfter(
-      0,
-      internal.emails.sendAppointmentReassignedEmails,
-      { notifications: reassignedEmailNotifs },
-    );
   }
 
   // Notify shop owner with a summary
@@ -323,10 +317,8 @@ export const { authKitEvent } = authkit.events({
         userId,
         email,
         name: fullName(firstName, lastName),
-        notificationsPreferences: [
-          { type: "email", enabled: true },
-          { type: "sms", enabled: false },
-        ],
+        notificationsPreferences: DEFAULT_NOTIFICATION_PREFERENCES,
+        whatsappOptedInAt: Date.now(),
       });
 
       await ctx.scheduler.runAfter(0, internal.emails.sendWelcomeEmail, {
@@ -356,10 +348,15 @@ export const { authKitEvent } = authkit.events({
 
     const name = fullName(firstName, lastName);
 
-    await ctx.db.patch(profile._id, {
+    const update: Partial<Pick<UserProfileData, "email" | "name">> = {
       email,
-      ...(name ? { name } : {}),
-    });
+    };
+
+    if (name) {
+      update.name = name;
+    }
+
+    await ctx.db.patch(profile._id, update);
   },
   "user.deleted": async (ctx, event) => {
     const userId = event.data.id;
@@ -518,7 +515,7 @@ export const getCurrentUser = zQuery({
 });
 
 /** Plan flags derived from a Polar subscription; only active/trialing entitles. */
-function shapeSubscription(
+function withPlanFlags(
   subscription: Awaited<ReturnType<typeof polar.getCurrentSubscription>>,
 ) {
   const planTier = getTierForProductKey(getEntitledProductKey(subscription));
@@ -547,9 +544,7 @@ export const getUserSubscription = zQuery({
       return null;
     }
 
-    return shapeSubscription(
-      await polar.getCurrentSubscription(ctx, { userId }),
-    );
+    return withPlanFlags(await polar.getCurrentSubscription(ctx, { userId }));
   },
 });
 
@@ -577,7 +572,7 @@ export const getBarbershopOwnerSubscription = zQuery({
 
     // Staff only need plan-derived flags — never the owner's billing record.
     const { isSubscribed, planTier, planLimits, isFree, isPro, isPremium } =
-      shapeSubscription(
+      withPlanFlags(
         await polar.getCurrentSubscription(ctx, { userId: barbershop.ownerId }),
       );
 

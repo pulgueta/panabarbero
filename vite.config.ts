@@ -23,6 +23,9 @@ const config = defineConfig({
   server: {
     allowedHosts: ["localhost.panabarbero.com"],
   },
+  ssr: {
+    noExternal: ["maplibre-gl"],
+  },
 });
 
 export default config;

@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/map";
 import { useBarbershopMetadata } from "@/hooks/barbershop/use-barbershop-metadata";
 
-const DAY_NAMES: Record<string, string> = {
+const DAY_NAMES = {
   monday: "Lunes",
   tuesday: "Martes",
   wednesday: "Miércoles",
@@ -42,7 +42,7 @@ const DAY_NAMES: Record<string, string> = {
   friday: "Viernes",
   saturday: "Sábado",
   sunday: "Domingo",
-};
+} satisfies Record<string, string>;
 
 type SocialPlatform = NonNullable<
   BarbershopMetadata["socialMedia"]

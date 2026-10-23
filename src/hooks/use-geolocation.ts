@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 
 export type GeoStatus =
   | "idle"
@@ -23,31 +23,63 @@ export interface UseGeolocationResult {
   request: () => Promise<GeoCoords | null>;
 }
 
+function subscribeToNothing() {
+  return () => {
+    // Geolocation support never changes, so there is nothing to unsubscribe.
+  };
+}
+
+function getIsGeolocationSupported() {
+  return "geolocation" in navigator;
+}
+
+/** The server cannot know; assume support so hydration matches the "idle" SSR render. */
+function getServerIsGeolocationSupported() {
+  return true;
+}
+
+/** Best-effort: report an already-denied permission without prompting. */
+async function reflectDeniedPermission(
+  isActive: () => boolean,
+  onDenied: () => void,
+) {
+  try {
+    const result = await navigator.permissions.query({ name: "geolocation" });
+
+    if (isActive() && result.state === "denied") onDenied();
+  } catch {
+    // The Permissions API is optional; keep the current status.
+  }
+}
+
 /**
  * Thin wrapper over the browser Geolocation API. Surfaces a coarse status so
  * the UI can branch (prompt, granted, denied, unsupported). Never auto-prompts:
  * `request()` must be invoked from a user gesture.
  */
 export function useGeolocation(): UseGeolocationResult {
-  const [status, setStatus] = useState<GeoStatus>("idle");
+  const [requestStatus, setRequestStatus] = useState<GeoStatus>("idle");
   const [coords, setCoords] = useState<GeoCoords | null>(null);
+  const isSupported = useSyncExternalStore(
+    subscribeToNothing,
+    getIsGeolocationSupported,
+    getServerIsGeolocationSupported,
+  );
+  const status = isSupported ? requestStatus : "unsupported";
 
   // Best-effort: reflect an already-denied permission without prompting.
   useEffect(() => {
-    if (typeof navigator === "undefined") return;
-    if (!("geolocation" in navigator)) {
-      setStatus("unsupported");
-      return;
-    }
-    if (!navigator.permissions?.query) return;
-
     let active = true;
-    navigator.permissions
-      .query({ name: "geolocation" as PermissionName })
-      .then((result) => {
-        if (active && result.state === "denied") setStatus("denied");
-      })
-      .catch(() => {});
+
+    if (
+      "geolocation" in navigator &&
+      navigator.permissions?.query !== undefined
+    ) {
+      void reflectDeniedPermission(
+        () => active,
+        () => setRequestStatus("denied"),
+      );
+    }
 
     return () => {
       active = false;
@@ -56,11 +88,12 @@ export function useGeolocation(): UseGeolocationResult {
 
   const request = useCallback((): Promise<GeoCoords | null> => {
     if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
-      setStatus("unsupported");
+      setRequestStatus("unsupported");
       return Promise.resolve(null);
     }
 
-    setStatus("prompting");
+    setRequestStatus("prompting");
+    // oxlint-disable-next-line promise/avoid-new -- wraps the callback-based Geolocation API
     return new Promise((resolve) => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -69,11 +102,11 @@ export function useGeolocation(): UseGeolocationResult {
             lng: position.coords.longitude,
           };
           setCoords(next);
-          setStatus("granted");
+          setRequestStatus("granted");
           resolve(next);
         },
         (error) => {
-          setStatus(
+          setRequestStatus(
             error.code === error.PERMISSION_DENIED ? "denied" : "error",
           );
           resolve(null);

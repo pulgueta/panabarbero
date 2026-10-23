@@ -1,13 +1,6 @@
 import type { Barbershop, BarbershopMemberWithName } from "@convex/schema";
 import type { Dispatch, FC, SetStateAction } from "react";
-import {
-  Activity,
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useState,
-} from "react";
+import { Activity, useId, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
@@ -60,43 +53,58 @@ const days: Array<{ key: DayKey; label: string }> = [
   { key: "sunday", label: "Domingo" },
 ];
 
-const dayLabelMap = days.reduce<Record<DayKey, string>>(
-  (acc, entry) => {
-    acc[entry.key] = entry.label;
-    return acc;
-  },
-  {} as Record<DayKey, string>,
-);
+function isDayKey(value: string): value is DayKey {
+  return days.some((entry) => entry.key === value);
+}
+
+function dayLabel(day: DayKey): string {
+  return days.find((entry) => entry.key === day)?.label ?? day;
+}
+
+function formatTime(value?: string) {
+  return value && value.trim().length > 0 ? value : undefined;
+}
+
+function buildRows(avail?: Barbershop["availability"]) {
+  return days.map((d) => {
+    const found = avail?.find((r) => r.weekDay.day === d.key);
+    return (
+      found ?? {
+        weekDay: { day: d.key, isActive: false },
+        openAt: "",
+        closeAt: "",
+        lunchStart: undefined,
+        lunchEnd: undefined,
+      }
+    );
+  });
+}
 
 const validateEntry = (
   entry: Barbershop["availability"][number],
 ): Barbershop["availability"][number] => {
-  const formatTime = (value?: string) =>
-    value && value.trim().length > 0 ? value : undefined;
   const lunchStart = formatTime(entry.lunchStart);
   const lunchEnd = formatTime(entry.lunchEnd);
 
   if (entry.weekDay.isActive) {
     if (!entry.openAt || !entry.closeAt) {
       throw new Error(
-        `Define el horario disponible para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+        `Define el horario disponible para ${dayLabel(entry.weekDay.day)}`,
       );
     }
     if (!isTimeRangeValid(entry.openAt, entry.closeAt)) {
       throw new Error(
-        `La hora de disponibilidad final debe ser mayor a la hora inicial para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+        `La hora de disponibilidad final debe ser mayor a la hora inicial para ${dayLabel(entry.weekDay.day)}`,
       );
     }
   }
 
   if ((lunchStart && !lunchEnd) || (!lunchStart && lunchEnd)) {
-    throw new Error(
-      `Completa ambas horas para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
-    );
+    throw new Error(`Completa ambas horas para ${dayLabel(entry.weekDay.day)}`);
   }
   if (lunchStart && lunchEnd && !isTimeRangeValid(lunchStart, lunchEnd)) {
     throw new Error(
-      `La hora de no disponibilidad final debe ser mayor a la hora inicial para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
+      `La hora de no disponibilidad final debe ser mayor a la hora inicial para ${dayLabel(entry.weekDay.day)}`,
     );
   }
 
@@ -123,11 +131,11 @@ function ScheduleSummary({ rows }: { rows: Barbershop["availability"] }) {
         <h4 className="mb-3 font-semibold text-sm">Horario personalizado</h4>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {rows.map((entry) => {
-            const day = entry.weekDay.day as DayKey;
+            const day = entry.weekDay.day;
 
             return (
               <div key={day} className="rounded border p-3 text-sm">
-                <p className="font-semibold">{dayLabelMap[day]}</p>
+                <p className="font-semibold">{dayLabel(day)}</p>
                 {entry.weekDay.isActive ? (
                   <div className="text-muted-foreground">
                     <p>
@@ -265,7 +273,7 @@ function LunchBreakFields({
         <Field orientation="horizontal">
           <Checkbox
             checked={hasLunch}
-            onCheckedChange={(checked) => setHasLunch(Boolean(checked))}
+            onCheckedChange={(checked) => setHasLunch(checked)}
             id={formIds.disableHours}
           />
           <FieldContent>
@@ -355,22 +363,6 @@ function useBarberScheduleEditor({
     },
   } = useBarbershopMemberActions();
   const [isCustom, setIsCustom] = useState(false);
-  const buildRows = useCallback(
-    (avail?: Barbershop["availability"]) =>
-      days.map((d) => {
-        const found = avail?.find((r) => r.weekDay.day === d.key);
-        return (
-          found ?? {
-            weekDay: { day: d.key, isActive: false },
-            openAt: "",
-            closeAt: "",
-            lunchStart: undefined,
-            lunchEnd: undefined,
-          }
-        );
-      }),
-    [],
-  );
   const [rows, setRows] = useState<Barbershop["availability"]>(() =>
     buildRows(scheduleData?.schedule),
   );
@@ -384,29 +376,38 @@ function useBarberScheduleEditor({
   const [hasLunch, setHasLunch] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!scheduleData) return;
+  // Reset the editor from the loaded schedule whenever the query data changes.
+  const [syncedData, setSyncedData] = useState<typeof scheduleData>(undefined);
+  if (scheduleData && syncedData !== scheduleData) {
+    setSyncedData(scheduleData);
     setIsCustom(scheduleData.isCustom);
     setRows(buildRows(scheduleData.schedule));
     setSelectedDays([]);
     setFormError(null);
-  }, [scheduleData, buildRows]);
+  }
 
-  useEffect(() => {
+  // Load the first selected day's hours whenever the rows or the selection change.
+  const [scheduleSource, setScheduleSource] = useState({ rows, selectedDays });
+  if (
+    scheduleSource.rows !== rows ||
+    scheduleSource.selectedDays !== selectedDays
+  ) {
+    setScheduleSource({ rows, selectedDays });
     const base = rows.find((entry) => entry.weekDay.day === selectedDays[0]);
-    if (!base) return;
-    setSchedule({
-      openAt: base.openAt ?? "",
-      closeAt: base.closeAt ?? "",
-      lunchStart: base.lunchStart ?? "",
-      lunchEnd: base.lunchEnd ?? "",
-    });
-    setHasLunch(Boolean(base.lunchStart && base.lunchEnd));
-  }, [rows, selectedDays]);
+    if (base) {
+      setSchedule({
+        openAt: base.openAt ?? "",
+        closeAt: base.closeAt ?? "",
+        lunchStart: base.lunchStart ?? "",
+        lunchEnd: base.lunchEnd ?? "",
+      });
+      setHasLunch(Boolean(base.lunchStart && base.lunchEnd));
+    }
+  }
 
   const initialRows = useMemo(
     () => buildRows(scheduleData?.schedule),
-    [scheduleData, buildRows],
+    [scheduleData],
   );
   const hasChanges = useMemo(() => {
     if (!isCustom && scheduleData?.isCustom) return true;
@@ -427,9 +428,7 @@ function useBarberScheduleEditor({
   }, [rows, initialRows, isCustom, scheduleData?.isCustom]);
 
   const handleSelectedDaysChange = (values: string[]) => {
-    const typed = values.filter(
-      (value): value is DayKey => !!dayLabelMap[value as DayKey],
-    );
+    const typed = values.filter(isDayKey);
     setSelectedDays(typed);
     setFormError(null);
   };
@@ -462,9 +461,10 @@ function useBarberScheduleEditor({
       }
     }
 
+    const selected = new Set(selectedDays);
     setRows((prev) =>
       prev.map((entry) =>
-        selectedDays.includes(entry.weekDay.day as DayKey)
+        selected.has(entry.weekDay.day)
           ? {
               ...entry,
               weekDay: { ...entry.weekDay, isActive: true },
@@ -484,9 +484,10 @@ function useBarberScheduleEditor({
       setFormError("Selecciona al menos un día");
       return;
     }
+    const selected = new Set(selectedDays);
     setRows((prev) =>
       prev.map((entry) =>
-        selectedDays.includes(entry.weekDay.day as DayKey)
+        selected.has(entry.weekDay.day)
           ? { ...entry, weekDay: { ...entry.weekDay, isActive: false } }
           : entry,
       ),
@@ -498,11 +499,11 @@ function useBarberScheduleEditor({
     if (!isCustom) {
       try {
         await resetSchedule({ barbershopMemberId: member._id });
-        haptic.trigger("success");
+        void haptic.trigger("success");
         toast.success("Horario restablecido al de la barbería");
         onSuccess?.();
       } catch (error) {
-        haptic.trigger("error");
+        void haptic.trigger("error");
         toast.error(getConvexErrorMessage(error));
       }
       return;
@@ -514,11 +515,11 @@ function useBarberScheduleEditor({
         barbershopMemberId: member._id,
         availability: validatedRows,
       });
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Horario del barbero actualizado");
       onSuccess?.();
     } catch (error) {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error(
         error instanceof Error ? error.message : getConvexErrorMessage(error),
       );
@@ -528,10 +529,10 @@ function useBarberScheduleEditor({
   const handleReset = async () => {
     try {
       await resetSchedule({ barbershopMemberId: member._id });
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Horario restablecido al de la barbería");
     } catch (error) {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
     }
   };
@@ -600,7 +601,7 @@ export const BarberScheduleEditor: FC<BarberScheduleEditorProps> = ({
             <Switch
               id={formIds.customToggle}
               checked={isCustom}
-              onCheckedChange={(checked) => setIsCustom(Boolean(checked))}
+              onCheckedChange={(checked) => setIsCustom(checked)}
               disabled={isPending}
             />
             <FieldContent>
@@ -662,7 +663,9 @@ export const BarberScheduleEditor: FC<BarberScheduleEditorProps> = ({
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={handleReset}
+                    onClick={() => {
+                      void handleReset();
+                    }}
                     disabled={isPending}
                   >
                     {isResetting && <Spinner />}
@@ -681,7 +684,9 @@ export const BarberScheduleEditor: FC<BarberScheduleEditorProps> = ({
             ) : null}
             <Button
               type="button"
-              onClick={handleSave}
+              onClick={() => {
+                void handleSave();
+              }}
               disabled={isPending || !hasChanges}
             >
               {isPending && <Spinner />}

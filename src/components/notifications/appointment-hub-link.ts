@@ -11,10 +11,14 @@ export type BarberCalendarSearch = { date: number };
  * - customers → profile Citas tab
  * - barbers (and staff/owners) → barbershop calendar for today
  */
-export function getAppointmentHubLink(usesBarberCalendar: boolean): {
+export interface AppointmentHubLink {
   to: "/profile" | "/profile/barbershops/appointments";
   search: CustomerAppointmentsSearch | BarberCalendarSearch;
-} {
+}
+
+export function getAppointmentHubLink(
+  usesBarberCalendar: boolean,
+): AppointmentHubLink {
   if (usesBarberCalendar) {
     // The calendar route reads `date` as a Bogotá day; a local midnight from
     // another zone would land on the wrong day.

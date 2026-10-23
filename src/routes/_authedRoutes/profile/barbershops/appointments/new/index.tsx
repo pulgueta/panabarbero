@@ -1,12 +1,13 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: dashboard loaders gate and prime this route */
+/* oxlint-disable typescript/no-non-null-assertion -- dashboard loaders gate and prime this route */
 
-import type { BarbershopMemberWithName, Service } from "@convex/schema";
+import type { BarbershopMemberWithName } from "@convex/schema";
 import {
   CalendarCheckIcon,
   ScissorsIcon,
   UsersIcon,
 } from "@phosphor-icons/react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { noop } from "@tanstack/react-query";
 import { useEffect, useId, useState } from "react";
 import { z } from "zod";
 
@@ -71,6 +72,7 @@ export const Route = createFileRoute(
   staticData: { breadcrumb: "Nueva cita" },
   staleTime: cacheTime.low,
   gcTime: cacheTime.medium,
+  // oxlint-disable-next-line react-doctor/tanstack-start-loader-parallel-fetch -- the plan gate must redirect before the member queries run
   loader: async ({ context }) => {
     const userId = context.userId;
     const barbershop = context.dashboardBarbershop;
@@ -84,9 +86,10 @@ export const Route = createFileRoute(
     const isStaff = roles?.isStaff ?? false;
     const isOwner = roles?.isOwner ?? false;
 
-    const plan = await context.queryClient.ensureQueryData(
-      getBarbershopPlanQueryOptions(barbershop._id),
-    );
+    const plan = await context.queryClient.query({
+      ...getBarbershopPlanQueryOptions(barbershop._id),
+      staleTime: "static",
+    });
 
     if (
       !plan?.planLimits.staffCanCreateAppointments ||
@@ -96,23 +99,40 @@ export const Route = createFileRoute(
     }
 
     const [members] = await Promise.all([
-      context.queryClient.ensureQueryData(
-        barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
-      ),
-      context.queryClient.ensureQueryData(barberByUserIdQueryOptions(userId)),
-      context.queryClient.ensureQueryData(isBarberQueryOptions(userId)),
-      context.queryClient.ensureQueryData(isStaffQueryOptions(userId)),
-      context.queryClient.ensureQueryData(isOwnerQueryOptions(userId)),
-      context.queryClient.ensureQueryData(
-        barbershopAvailabilityQueryOptions(barbershop._id),
-      ),
-      context.queryClient.ensureQueryData(servicesQueryOptions(barbershop._id)),
+      context.queryClient.query({
+        ...barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...barberByUserIdQueryOptions(userId),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...isBarberQueryOptions(userId),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...isStaffQueryOptions(userId),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...isOwnerQueryOptions(userId),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...barbershopAvailabilityQueryOptions(barbershop._id),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...servicesQueryOptions(barbershop._id),
+        staleTime: "static",
+      }),
     ]);
 
     for (const member of members) {
-      void context.queryClient.prefetchQuery(
-        servicesForBarberQueryOptions(member._id),
-      );
+      void context.queryClient
+        .query(servicesForBarberQueryOptions(member._id))
+        .catch(noop);
     }
   },
 });
@@ -135,14 +155,13 @@ function RouteComponent() {
 
   const storeServices = useServicesStore();
   const effectiveServiceIds = storeServices.map(
-    (nextService) => nextService._id as Service["_id"],
+    (nextService) => nextService._id,
   );
   const { data: barbersForServices } =
     useBarbersForServices(effectiveServiceIds);
   const [selectedBarber, setSelectedBarber] = useState<
     BarbershopMemberWithName | undefined
   >(undefined);
-  const { data: barberServices } = useServicesForBarber(selectedBarber?._id);
 
   // The selection store is shared with the public booking flow; reset it on
   // unmount so a staff selection never leaks into the next flow (or vice
@@ -179,23 +198,30 @@ function RouteComponent() {
         ? availableBarbers[0]?._id
         : undefined;
 
-  useEffect(() => {
-    if (isBarber && !isStaff && currentBarberMember) {
-      const self = barbershopMembers.find(
-        (member) => member._id === currentBarberMember._id,
-      );
-      if (self) setSelectedBarber(self);
-    }
-  }, [isBarber, isStaff, currentBarberMember, barbershopMembers]);
+  // A barber without a management role books for themself, and a single
+  // available barber is selected automatically.
+  const selfBarber =
+    isBarber && !isStaff && currentBarberMember
+      ? barbershopMembers.find(
+          (member) => member._id === currentBarberMember._id,
+        )
+      : undefined;
+  const onlyBarber =
+    availableBarbers.length === 1 &&
+    (!isCreatingOnBehalf || isStaff || (isOwner && !isBarber))
+      ? availableBarbers[0]
+      : undefined;
+  const autoBarber = onlyBarber ?? selfBarber;
 
-  useEffect(() => {
-    if (
-      availableBarbers.length === 1 &&
-      (!isCreatingOnBehalf || isStaff || (isOwner && !isBarber))
-    ) {
-      setSelectedBarber(availableBarbers[0]!);
-    }
-  }, [isCreatingOnBehalf, isStaff, isOwner, isBarber, availableBarbers]);
+  // Select the auto barber whenever it changes; the user can still pick another one.
+  const [syncedAutoBarber, setSyncedAutoBarber] = useState<
+    BarbershopMemberWithName | undefined
+  >(undefined);
+  if (syncedAutoBarber !== autoBarber) {
+    setSyncedAutoBarber(autoBarber);
+    if (autoBarber) setSelectedBarber(autoBarber);
+  }
+  const { data: barberServices } = useServicesForBarber(selectedBarber?._id);
 
   const formIds = {
     customerName: useId(),

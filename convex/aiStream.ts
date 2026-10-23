@@ -48,12 +48,12 @@ Título:`,
 
       const cleaned = text
         .trim()
-        .replace(/^["'«»\s]+|["'«».\s]+$/g, "")
+        .replaceAll(/^["'«»\s]+|["'«».\s]+$/g, "")
         .trim();
 
       if (cleaned) title = cleaned.slice(0, 60);
-    } catch (e) {
-      trackException(ctx, e, `${threadId}:${callerId}`);
+    } catch (error) {
+      void trackException(ctx, error, `${threadId}:${callerId}`);
     }
 
     await ctx.runMutation(components.agent.threads.updateThread, {
@@ -193,8 +193,8 @@ Hechos:`,
           text: fact,
         });
       }
-    } catch (e) {
-      trackException(ctx, e, `distill:${userId}`);
+    } catch (error) {
+      void trackException(ctx, error, `distill:${userId}`);
     }
   },
 });

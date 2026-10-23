@@ -42,6 +42,8 @@ export const NotificationRenderer: FC<NotificationRendererProps> = ({
     case "barber_appointment_created":
     case "appointment_reminder":
     case "past_appointment_reminder":
+    case "customer_on_my_way":
+    case "appointment_reassigned":
       return <AppointmentNotification {...shared} kind={notification.kind} />;
 
     case "appointment_cancelled":
@@ -66,8 +68,8 @@ export const NotificationRenderer: FC<NotificationRendererProps> = ({
       return <InventoryNotification {...shared} />;
 
     default: {
-      const _exhaustive: never = notification.kind;
-      return null as never | typeof _exhaustive;
+      notification.kind satisfies never;
+      return null;
     }
   }
 };

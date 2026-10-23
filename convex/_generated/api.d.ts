@@ -61,6 +61,9 @@ import type * as twilio from "../twilio.js";
 import type * as userProfileData from "../userProfileData.js";
 import type * as usesend from "../usesend.js";
 import type * as utils from "../utils.js";
+import type * as whatsapp from "../whatsapp.js";
+import type * as whatsappCore from "../whatsappCore.js";
+import type * as whatsappTemplates from "../whatsappTemplates.js";
 import type * as workosOrgs from "../workosOrgs.js";
 
 import type {
@@ -123,6 +126,9 @@ declare const fullApi: ApiFromModules<{
   userProfileData: typeof userProfileData;
   usesend: typeof usesend;
   utils: typeof utils;
+  whatsapp: typeof whatsapp;
+  whatsappCore: typeof whatsappCore;
+  whatsappTemplates: typeof whatsappTemplates;
   workosOrgs: typeof workosOrgs;
 }>;
 
@@ -164,6 +170,7 @@ export declare const components: {
   posthog: import("@posthog/convex/_generated/component.js").ComponentApi<"posthog">;
   usesend: import("@pulgueta/usesend-convex/_generated/component.js").ComponentApi<"usesend">;
   unreadTracking: import("convex-unread-tracking/_generated/component.js").ComponentApi<"unreadTracking">;
+  whatsapp: import("convex-whatsapp/_generated/component.js").ComponentApi<"whatsapp">;
   convexCascadingDelete: import("@00akshatsinha00/convex-cascading-delete/_generated/component.js").ComponentApi<"convexCascadingDelete">;
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
   rag: import("@convex-dev/rag/_generated/component.js").ComponentApi<"rag">;
@@ -175,6 +182,7 @@ export declare const components: {
   aggregateReviewStars: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateReviewStars">;
   aggregateInventoryValue: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateInventoryValue">;
   aggregateInventoryMovements: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateInventoryMovements">;
+  aggregateWhatsAppSent: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateWhatsAppSent">;
   workflow: import("@convex-dev/workflow/_generated/component.js").ComponentApi<"workflow">;
   reviewModerationWorkpool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"reviewModerationWorkpool">;
 };

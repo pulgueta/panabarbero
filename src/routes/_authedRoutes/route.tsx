@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authedRoutes")({
     // snapshot) skip it entirely, so the no-RPC-per-navigation guarantee holds.
     if (!userId) {
       try {
-        const fresh = await context.queryClient.fetchQuery({
+        const fresh = await context.queryClient.query({
           ...getWorkosAuthQueryOptions(),
           staleTime: 0,
         });

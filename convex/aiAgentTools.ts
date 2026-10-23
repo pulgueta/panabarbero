@@ -2,6 +2,7 @@ import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 
 import { api, internal } from "./_generated/api";
+import type { ActionCtx } from "./_generated/server";
 import { formatServicePriceLabel } from "./aiAgentHelpers";
 import { itemsLabel, startingLinesMissingFinal } from "./appointmentItems";
 import { errorMessages } from "./errors";
@@ -98,6 +99,54 @@ type BarberScheduleData =
       isCustom: boolean;
       schedule: BarbershopDoc["availability"];
     };
+
+// Named readers with explicit return types. A `T | null` or destructured
+// binding of a `ctx.runQuery` result makes TS infer that result while it is
+// still inferring `tools` (via the generated api), which is a type cycle
+// (TS7022). An explicit function return type breaks the cycle.
+type RunQueryCtx = Pick<ActionCtx, "runQuery">;
+
+async function getShopByUuid(
+  ctx: RunQueryCtx,
+  uuid: string,
+): Promise<BarbershopDoc | null> {
+  return await ctx.runQuery(api.barbershops.getByUuid, { uuid });
+}
+
+async function getMemberForUser(
+  ctx: RunQueryCtx,
+  userId: string,
+): Promise<{
+  memberId: string;
+  barbershopId: string;
+  barbershopName: string;
+  roles: Array<"owner" | "barber" | "staff">;
+} | null> {
+  return await ctx.runQuery(internal.aiAgentHelpers.getMemberForUserId, {
+    userId,
+  });
+}
+
+async function getProfileForUser(
+  ctx: RunQueryCtx,
+  userId: string,
+): Promise<{ name?: string; email: string; phoneNumber?: string } | null> {
+  return await ctx.runQuery(internal.aiAgentHelpers.getProfileForUserId, {
+    userId,
+  });
+}
+
+async function getNotificationsForUser(
+  ctx: RunQueryCtx,
+  userId: string,
+  onlyUnread: boolean,
+): Promise<{ notifications: InAppNotification[]; lastRead: number | null }> {
+  return await ctx.runQuery(internal.aiAgentHelpers.getNotificationsByUserId, {
+    userId,
+    numItems: 10,
+    onlyUnread,
+  });
+}
 
 const ANON_PREFIX = "anon:";
 
@@ -358,11 +407,14 @@ const searchBarbershops = createTool({
     state: z.string().optional().describe("Departamento (opcional)"),
   }),
   execute: async (ctx, input) => {
-    const results = (await ctx.runQuery(api.barbershops.getByName, {
-      name: input.name,
-      city: input.city,
-      state: input.state,
-    })) as BarbershopDoc[];
+    const results: BarbershopDoc[] = await ctx.runQuery(
+      api.barbershops.getByName,
+      {
+        name: input.name,
+        city: input.city,
+        state: input.state,
+      },
+    );
 
     return results.slice(0, 10).map((shop: BarbershopDoc) => ({
       uuid: shop.uuid,
@@ -382,17 +434,18 @@ const getBarbershopDetails = createTool({
     barbershopUuid: z.uuidv4().describe("UUID público de la barbería"),
   }),
   execute: async (ctx, input) => {
-    const shop = (await ctx.runQuery(api.barbershops.getByUuid, {
-      uuid: input.barbershopUuid,
-    })) as BarbershopDoc | null;
+    const shop = await getShopByUuid(ctx, input.barbershopUuid);
 
     if (!shop) {
       return { found: false as const };
     }
 
-    const services = (await ctx.runQuery(api.barbershops.getServices, {
-      id: shop._id,
-    })) as ServiceDoc[];
+    const services: ServiceDoc[] = await ctx.runQuery(
+      api.barbershops.getServices,
+      {
+        id: shop._id,
+      },
+    );
 
     return {
       found: true as const,
@@ -434,10 +487,10 @@ const listBarbersForService = createTool({
       .describe("Ids de los servicios (de `getBarbershopDetails`)"),
   }),
   execute: async (ctx, input) => {
-    const barbers = (await ctx.runQuery(
+    const barbers: (BarberWithName | null)[] = await ctx.runQuery(
       api.barbershopMemberServices.getBarbersForServices,
-      { serviceIds: input.serviceIds as Service["_id"][] },
-    )) as (BarberWithName | null)[];
+      { serviceIds: input.serviceIds },
+    );
 
     return barbers.flatMap((b) =>
       b ? [{ barbershopMemberId: b._id, name: b.name }] : [],
@@ -461,12 +514,15 @@ const getAvailability = createTool({
   execute: async (ctx, input) => {
     const dateMs = colombiaDateKeyToMs(input.date);
 
-    const slots = (await ctx.runQuery(api.appointments.getAvailableSlots, {
-      barbershopId: input.barbershopId as Barbershop["_id"],
-      barbershopMemberId: input.barbershopMemberId as BarbershopMember["_id"],
-      serviceIds: input.serviceIds as Service["_id"][],
-      date: dateMs,
-    })) as Slot[];
+    const slots: Slot[] = await ctx.runQuery(
+      api.appointments.getAvailableSlots,
+      {
+        barbershopId: input.barbershopId,
+        barbershopMemberId: input.barbershopMemberId,
+        serviceIds: input.serviceIds,
+        date: dateMs,
+      },
+    );
 
     return {
       date: formatDateOnly(dateMs),
@@ -487,10 +543,10 @@ const getMyAppointments = createTool({
   execute: async (ctx, input) => {
     const userId = requireAuthUserId(ctx.userId);
 
-    const appointments = (await ctx.runQuery(
+    const appointments: AppointmentDoc[] = await ctx.runQuery(
       internal.aiAgentHelpers.getAppointmentsByUserId,
       { userId, numItems: 25 },
-    )) as AppointmentDoc[];
+    );
 
     const now = Date.now();
     const filtered: AppointmentDoc[] = input.onlyUpcoming
@@ -518,18 +574,22 @@ const getMyAppointments = createTool({
       sliced.map(async (appt) => {
         // Snapshot lines are canonical; the live service only labels legacy
         // rows (a renamed/deleted service must not rewrite past bookings).
-        const [shop, legacyService, members] = await Promise.all([
+        const [shop, legacyService, members]: [
+          BarbershopDoc | null,
+          ServiceDoc | null,
+          BarberWithName[],
+        ] = await Promise.all([
           ctx.runQuery(internal.aiAgentHelpers.getBarbershop, {
             id: appt.barbershopId,
-          }) as Promise<BarbershopDoc | null>,
+          }),
           appt.items?.length
             ? Promise.resolve(null)
-            : (ctx.runQuery(api.services.getById, {
+            : ctx.runQuery(api.services.getById, {
                 id: appt.serviceId,
-              }) as Promise<ServiceDoc | null>),
+              }),
           ctx.runQuery(internal.aiAgentHelpers.getMembersByBarbershopId, {
             id: appt.barbershopId,
-          }) as Promise<BarberWithName[]>,
+          }),
         ]);
 
         const barber = members.find(
@@ -571,24 +631,16 @@ const getMyAgenda = createTool({
   execute: async (ctx, input) => {
     const userId = requireAuthUserId(ctx.userId);
 
-    const member = (await ctx.runQuery(
-      internal.aiAgentHelpers.getMemberForUserId,
-      { userId },
-    )) as {
-      memberId: string;
-      barbershopId: string;
-      barbershopName: string;
-      roles: Array<"owner" | "barber" | "staff">;
-    } | null;
+    const member = await getMemberForUser(ctx, userId);
 
     if (!member) {
       return { isTeamMember: false as const };
     }
 
-    const { canManage } = (await ctx.runQuery(
-      internal.aiAgentHelpers.getPanaEntitlement,
-      { userId },
-    )) as { isShopMember: boolean; canManage: boolean };
+    const { canManage }: { isShopMember: boolean; canManage: boolean } =
+      await ctx.runQuery(internal.aiAgentHelpers.getPanaEntitlement, {
+        userId,
+      });
 
     if (!canManage) {
       return {
@@ -598,31 +650,26 @@ const getMyAgenda = createTool({
       };
     }
 
-    const appointments = (await ctx.runQuery(
+    const appointments: AppointmentDoc[] = await ctx.runQuery(
       internal.aiAgentHelpers.getAppointmentsByMemberId,
       { barbershopMemberId: member.memberId, numItems: 25 },
-    )) as AppointmentDoc[];
+    );
 
     const now = Date.now();
-    const activeStatuses: AppointmentDoc["status"][] = [
+    const activeStatuses = new Set<AppointmentDoc["status"]>([
       "pending",
       "confirmed",
       "rescheduled",
-    ];
+    ]);
 
     const onlyUpcoming = input.onlyUpcoming ?? true;
     const relevant = onlyUpcoming
-      ? appointments
-          .filter(
-            (a) =>
-              !a.deletedAt &&
-              a.date >= now &&
-              activeStatuses.includes(a.status),
-          )
-          .sort((a, b) => a.date - b.date)
-      : appointments
-          .filter((a) => !a.deletedAt)
-          .sort((a, b) => b.date - a.date);
+      ? appointments.filter(
+          (a) => !a.deletedAt && a.date >= now && activeStatuses.has(a.status),
+        )
+      : appointments.filter((a) => !a.deletedAt);
+    // `filter` returned a fresh array, so sorting it in place is safe.
+    relevant.sort((a, b) => (onlyUpcoming ? a.date - b.date : b.date - a.date));
 
     const sliced = relevant.slice(0, 10);
 
@@ -630,9 +677,9 @@ const getMyAgenda = createTool({
     const serviceIds = [
       ...new Set(sliced.flatMap((a) => (a.items?.length ? [] : [a.serviceId]))),
     ];
-    const serviceDocs = (await Promise.all(
+    const serviceDocs: (ServiceDoc | null)[] = await Promise.all(
       serviceIds.map((id) => ctx.runQuery(api.services.getById, { id })),
-    )) as (ServiceDoc | null)[];
+    );
     const serviceNames = new Map(
       serviceDocs.flatMap((s) => (s ? [[s._id, s.name] as const] : [])),
     );
@@ -664,10 +711,7 @@ const getMyProfile = createTool({
   inputSchema: z.object({}),
   execute: async (ctx) => {
     const userId = requireAuthUserId(ctx.userId);
-    const profile = (await ctx.runQuery(
-      internal.aiAgentHelpers.getProfileForUserId,
-      { userId },
-    )) as { name?: string; email: string; phoneNumber?: string } | null;
+    const profile = await getProfileForUser(ctx, userId);
 
     if (!profile) {
       return { found: false as const };
@@ -690,18 +734,16 @@ const getBarbershopReviews = createTool({
     limit: z.number().int().min(1).max(20).optional(),
   }),
   execute: async (ctx, input) => {
-    const shop = (await ctx.runQuery(api.barbershops.getByUuid, {
-      uuid: input.barbershopUuid,
-    })) as BarbershopDoc | null;
+    const shop = await getShopByUuid(ctx, input.barbershopUuid);
 
     if (!shop) {
       return { found: false as const, reviews: [] };
     }
 
-    const reviews = (await ctx.runQuery(
+    const reviews: ReviewDoc[] = await ctx.runQuery(
       internal.aiAgentHelpers.getReviewsForBarbershop,
       { barbershopId: shop._id, limit: input.limit ?? 5 },
-    )) as ReviewDoc[];
+    );
 
     return {
       found: true as const,
@@ -725,13 +767,11 @@ const getMyNotifications = createTool({
   execute: async (ctx, input) => {
     const userId = requireAuthUserId(ctx.userId);
 
-    const { notifications, lastRead } = (await ctx.runQuery(
-      internal.aiAgentHelpers.getNotificationsByUserId,
-      { userId, numItems: 10, onlyUnread: input.onlyUnread ?? false },
-    )) as {
-      notifications: InAppNotification[];
-      lastRead: number | null;
-    };
+    const { notifications, lastRead } = await getNotificationsForUser(
+      ctx,
+      userId,
+      input.onlyUnread ?? false,
+    );
 
     return {
       count: notifications.length,
@@ -752,18 +792,16 @@ const getBarbershopTeam = createTool({
     barbershopUuid: z.uuidv4().describe("UUID público de la barbería"),
   }),
   execute: async (ctx, input) => {
-    const shop = (await ctx.runQuery(api.barbershops.getByUuid, {
-      uuid: input.barbershopUuid,
-    })) as BarbershopDoc | null;
+    const shop = await getShopByUuid(ctx, input.barbershopUuid);
 
     if (!shop) {
       return { found: false as const, barbers: [] };
     }
 
-    const barbers = (await ctx.runQuery(
+    const barbers: Array<{ name: string }> = await ctx.runQuery(
       api.barbershopMemberServices.getBarbershopBarbers,
       { id: shop._id },
-    )) as Array<{ name: string }>;
+    );
 
     return {
       found: true as const,
@@ -801,7 +839,7 @@ const proposeBooking = createTool({
       .min(10)
       .max(10)
       .describe("Número de celular de 10 dígitos sin código de país"),
-    contactEmail: z.string().email().optional(),
+    contactEmail: z.email().optional(),
     notes: z.string().optional(),
   }),
   execute: async (ctx, input): Promise<Proposal> => {
@@ -811,18 +849,22 @@ const proposeBooking = createTool({
 
     const dateMs = colombiaDateTimeToMs(input.date, input.time);
 
-    const [shop, loadedServices, members] = await Promise.all([
+    const [shop, loadedServices, members]: [
+      BarbershopDoc | null,
+      (ServiceDoc | null)[],
+      BarberWithName[],
+    ] = await Promise.all([
       ctx.runQuery(internal.aiAgentHelpers.getBarbershop, {
         id: input.barbershopId,
-      }) as Promise<BarbershopDoc | null>,
+      }),
       ctx.runQuery(api.services.getByIds, {
         serviceIds: input.serviceIds.map((serviceId) => ({
-          id: serviceId as Service["_id"],
+          id: serviceId,
         })),
-      }) as Promise<(ServiceDoc | null)[]>,
+      }),
       ctx.runQuery(internal.aiAgentHelpers.getMembersByBarbershopId, {
-        id: input.barbershopId as Barbershop["_id"],
-      }) as Promise<BarberWithName[]>,
+        id: input.barbershopId,
+      }),
     ]);
 
     if (!shop) throw new Error("Esa barbería no existe.");
@@ -836,18 +878,20 @@ const proposeBooking = createTool({
     }
 
     const barber = members.find(
-      (m: BarberWithName) =>
-        m._id === (input.barbershopMemberId as BarbershopMember["_id"]),
+      (m: BarberWithName) => m._id === input.barbershopMemberId,
     );
 
     if (!barber) throw new Error("Ese barbero no trabaja en esta barbería.");
 
-    const slots = (await ctx.runQuery(api.appointments.getAvailableSlots, {
-      barbershopId: shop._id,
-      barbershopMemberId: barber._id,
-      serviceIds: selectedServices.map((service) => service._id),
-      date: dateMs,
-    })) as Slot[];
+    const slots: Slot[] = await ctx.runQuery(
+      api.appointments.getAvailableSlots,
+      {
+        barbershopId: shop._id,
+        barbershopMemberId: barber._id,
+        serviceIds: selectedServices.map((service) => service._id),
+        date: dateMs,
+      },
+    );
 
     if (!slots.some((s: Slot) => s.time === input.time)) {
       throw new Error(
@@ -890,9 +934,12 @@ const proposeCancellation = createTool({
   execute: async (ctx, input): Promise<Proposal> => {
     const userId = requireAuthUserId(ctx.userId);
 
-    const appt = (await ctx.runQuery(api.appointments.getById, {
-      id: input.appointmentId as Appointment["_id"],
-    })) as AppointmentDoc | null;
+    const appt: AppointmentDoc | null = await ctx.runQuery(
+      api.appointments.getById,
+      {
+        id: input.appointmentId,
+      },
+    );
 
     if (!appt || appt.deletedAt) {
       throw new Error("Esa cita no existe o ya fue eliminada.");
@@ -902,16 +949,17 @@ const proposeCancellation = createTool({
       throw new Error("Solo puedes cancelar tus propias citas.");
     }
 
-    const [shop, service] = await Promise.all([
-      ctx.runQuery(internal.aiAgentHelpers.getBarbershop, {
-        id: appt.barbershopId,
-      }) as Promise<BarbershopDoc | null>,
-      appt.items?.length
-        ? Promise.resolve(null)
-        : (ctx.runQuery(api.services.getById, {
-            id: appt.serviceId,
-          }) as Promise<ServiceDoc | null>),
-    ]);
+    const [shop, service]: [BarbershopDoc | null, ServiceDoc | null] =
+      await Promise.all([
+        ctx.runQuery(internal.aiAgentHelpers.getBarbershop, {
+          id: appt.barbershopId,
+        }),
+        appt.items?.length
+          ? Promise.resolve(null)
+          : ctx.runQuery(api.services.getById, {
+              id: appt.serviceId,
+            }),
+      ]);
     const serviceLabel = appt.items?.length
       ? itemsLabel(appt.items)
       : (service?.name ?? "servicio");
@@ -941,9 +989,12 @@ const proposeReschedule = createTool({
 
     const newDateMs = colombiaDateTimeToMs(input.date, input.time);
 
-    const appt = (await ctx.runQuery(api.appointments.getById, {
-      id: input.appointmentId as Appointment["_id"],
-    })) as AppointmentDoc | null;
+    const appt: AppointmentDoc | null = await ctx.runQuery(
+      api.appointments.getById,
+      {
+        id: input.appointmentId,
+      },
+    );
 
     if (!appt || appt.deletedAt) {
       throw new Error("Esa cita no existe o ya fue eliminada.");
@@ -959,16 +1010,21 @@ const proposeReschedule = createTool({
 
     // Snapshot lines drive the width (durationMinutes) so the re-check works
     // even if a line's service was edited or deleted after booking.
-    const slots = (await ctx.runQuery(api.appointments.getAvailableSlots, {
-      barbershopId: appt.barbershopId,
-      barbershopMemberId: appt.barbershopMemberId,
-      serviceIds: appt.items?.map((line) => line.serviceId) ?? [appt.serviceId],
-      durationMinutes: appt.items?.reduce(
-        (total, line) => total + line.duration,
-        0,
-      ),
-      date: newDateMs,
-    })) as Slot[];
+    const slots: Slot[] = await ctx.runQuery(
+      api.appointments.getAvailableSlots,
+      {
+        barbershopId: appt.barbershopId,
+        barbershopMemberId: appt.barbershopMemberId,
+        serviceIds: appt.items?.map((line) => line.serviceId) ?? [
+          appt.serviceId,
+        ],
+        durationMinutes: appt.items?.reduce(
+          (total, line) => total + line.duration,
+          0,
+        ),
+        date: newDateMs,
+      },
+    );
 
     if (!slots.some((s: Slot) => s.time === input.time)) {
       throw new Error(
@@ -1000,9 +1056,9 @@ const getMyBarbershop = createTool({
   inputSchema: z.object({}),
   execute: async (ctx): Promise<MyBarbershopData> => {
     const userId = requireAuthUserId(ctx.userId);
-    return (await ctx.runQuery(internal.aiAgentHelpers.getMyBarbershopData, {
+    return await ctx.runQuery(internal.aiAgentHelpers.getMyBarbershopData, {
       userId,
-    })) as MyBarbershopData;
+    });
   },
 });
 
@@ -1015,9 +1071,9 @@ const getBarberSchedule = createTool({
       .describe("Id del barbero (de getMyBarbershop)"),
   }),
   execute: async (ctx, input): Promise<BarberScheduleData> => {
-    return (await ctx.runQuery(internal.aiAgentHelpers.getBarberScheduleData, {
+    return await ctx.runQuery(internal.aiAgentHelpers.getBarberScheduleData, {
       barbershopMemberId: input.barbershopMemberId,
-    })) as BarberScheduleData;
+    });
   },
 });
 
@@ -1045,7 +1101,7 @@ const proposeStaffBooking = createTool({
       .min(10)
       .max(10)
       .describe("Celular del cliente, 10 dígitos"),
-    contactEmail: z.string().email().optional(),
+    contactEmail: z.email().optional(),
     notes: z.string().optional(),
   }),
   execute: async (ctx, input): Promise<Proposal> => {
@@ -1079,18 +1135,19 @@ const proposeStaffBooking = createTool({
     }
 
     const dateMs = colombiaDateTimeToMs(input.date, input.time);
-    const barbershopId = actor.barbershopId as Barbershop["_id"];
+    const barbershopId = actor.barbershopId;
 
-    const [loadedServices, members] = await Promise.all([
-      ctx.runQuery(api.services.getByIds, {
-        serviceIds: input.serviceIds.map((serviceId) => ({
-          id: serviceId as Service["_id"],
-        })),
-      }) as Promise<(ServiceDoc | null)[]>,
-      ctx.runQuery(internal.aiAgentHelpers.getMembersByBarbershopId, {
-        id: barbershopId,
-      }) as Promise<BarberWithName[]>,
-    ]);
+    const [loadedServices, members]: [(ServiceDoc | null)[], BarberWithName[]] =
+      await Promise.all([
+        ctx.runQuery(api.services.getByIds, {
+          serviceIds: input.serviceIds.map((serviceId) => ({
+            id: serviceId,
+          })),
+        }),
+        ctx.runQuery(internal.aiAgentHelpers.getMembersByBarbershopId, {
+          id: barbershopId,
+        }),
+      ]);
 
     const selectedServices = loadedServices.filter(
       (service): service is ServiceDoc => !!service,
@@ -1100,18 +1157,19 @@ const proposeStaffBooking = createTool({
       throw new Error("Alguno de esos servicios no existe.");
     }
 
-    const barber = members.find(
-      (m) => m._id === (input.barbershopMemberId as BarbershopMember["_id"]),
-    );
+    const barber = members.find((m) => m._id === input.barbershopMemberId);
 
     if (!barber) throw new Error("Ese barbero no trabaja en esta barbería.");
 
-    const slots = (await ctx.runQuery(api.appointments.getAvailableSlots, {
-      barbershopId,
-      barbershopMemberId: barber._id,
-      serviceIds: selectedServices.map((service) => service._id),
-      date: dateMs,
-    })) as Slot[];
+    const slots: Slot[] = await ctx.runQuery(
+      api.appointments.getAvailableSlots,
+      {
+        barbershopId,
+        barbershopMemberId: barber._id,
+        serviceIds: selectedServices.map((service) => service._id),
+        date: dateMs,
+      },
+    );
 
     if (!slots.some((s: Slot) => s.time === input.time)) {
       throw new Error(
@@ -1128,7 +1186,7 @@ const proposeStaffBooking = createTool({
       action: "staffBook",
       summary: `Agendar ${summary.label} para ${input.customerName} con ${barber.name} el ${formatDate(dateMs)} (${summary.totalLabel}${summary.detail}).`,
       args: {
-        barbershopId: barbershopId as string,
+        barbershopId,
         serviceIds: selectedServices.map((service) => service._id),
         barbershopMemberId: barber._id,
         date: dateMs,
@@ -1155,9 +1213,12 @@ const proposeManageAppointment = createTool({
   execute: async (ctx, input): Promise<Proposal> => {
     const userId = requireAuthUserId(ctx.userId);
 
-    const appt = (await ctx.runQuery(api.appointments.getById, {
-      id: input.appointmentId as Appointment["_id"],
-    })) as AppointmentDoc | null;
+    const appt: AppointmentDoc | null = await ctx.runQuery(
+      api.appointments.getById,
+      {
+        id: input.appointmentId,
+      },
+    );
 
     if (!appt || appt.deletedAt) {
       throw new Error("Esa cita no existe o ya fue eliminada.");
@@ -1168,10 +1229,7 @@ const proposeManageAppointment = createTool({
       { userId },
     );
 
-    if (
-      !actor.isMember ||
-      actor.barbershopId !== (appt.barbershopId as string)
-    ) {
+    if (!actor.isMember || actor.barbershopId !== appt.barbershopId) {
       throw new Error("Solo puedes gestionar citas de tu propia barbería.");
     }
 
@@ -1230,9 +1288,12 @@ const proposeAnswerReschedule = createTool({
   execute: async (ctx, input): Promise<Proposal> => {
     const userId = requireAuthUserId(ctx.userId);
 
-    const appt = (await ctx.runQuery(api.appointments.getById, {
-      id: input.appointmentId as Appointment["_id"],
-    })) as AppointmentDoc | null;
+    const appt: AppointmentDoc | null = await ctx.runQuery(
+      api.appointments.getById,
+      {
+        id: input.appointmentId,
+      },
+    );
 
     if (!appt || appt.deletedAt) {
       throw new Error("Esa cita no existe o ya fue eliminada.");
@@ -1252,8 +1313,7 @@ const proposeAnswerReschedule = createTool({
         internal.aiAgentHelpers.getAgentActorContext,
         { userId },
       );
-      isShop =
-        actor.isMember && actor.barbershopId === (appt.barbershopId as string);
+      isShop = actor.isMember && actor.barbershopId === appt.barbershopId;
     }
 
     if (!isCustomer && !isShop) {
@@ -1306,7 +1366,7 @@ const proposeCreateService = createTool({
       action: "createService",
       summary: `Crear el servicio "${input.name}" ${input.priceType === "starting" ? "desde" : "por"} ${formatPrice(input.price)} (${input.durationMinutes} min).`,
       args: {
-        barbershopId: actor.barbershopId as string,
+        barbershopId: actor.barbershopId,
         name: input.name,
         price: input.price,
         priceType: input.priceType,
@@ -1345,11 +1405,14 @@ const proposeUpdateService = createTool({
       );
     }
 
-    const service = (await ctx.runQuery(api.services.getById, {
-      id: input.serviceId as Service["_id"],
-    })) as ServiceDoc | null;
+    const service: ServiceDoc | null = await ctx.runQuery(
+      api.services.getById,
+      {
+        id: input.serviceId,
+      },
+    );
 
-    if (!service || (service.barbershopId as string) !== actor.barbershopId) {
+    if (!service || service.barbershopId !== actor.barbershopId) {
       throw new Error("Ese servicio no es de tu barbería.");
     }
 
@@ -1380,7 +1443,7 @@ const proposeUpdateService = createTool({
       action: "updateService",
       summary: `Actualizar "${service.name}": ${parts.join(", ")}.`,
       args: {
-        barbershopId: actor.barbershopId as string,
+        barbershopId: actor.barbershopId,
         serviceId: service._id,
         name: input.name,
         price: input.price,
@@ -1409,18 +1472,21 @@ const proposeDeleteService = createTool({
       );
     }
 
-    const service = (await ctx.runQuery(api.services.getById, {
-      id: input.serviceId as Service["_id"],
-    })) as ServiceDoc | null;
+    const service: ServiceDoc | null = await ctx.runQuery(
+      api.services.getById,
+      {
+        id: input.serviceId,
+      },
+    );
 
-    if (!service || (service.barbershopId as string) !== actor.barbershopId) {
+    if (!service || service.barbershopId !== actor.barbershopId) {
       throw new Error("Ese servicio no es de tu barbería.");
     }
 
-    const impacted = (await ctx.runQuery(
-      internal.aiAgentHelpers.countImpactedByService,
-      { serviceId: service._id },
-    )) as { willCancel: number; willUpdate: number };
+    const impacted: { willCancel: number; willUpdate: number } =
+      await ctx.runQuery(internal.aiAgentHelpers.countImpactedByService, {
+        serviceId: service._id,
+      });
 
     const effects: string[] = [];
 
@@ -1444,7 +1510,7 @@ const proposeDeleteService = createTool({
       action: "deleteService",
       summary: `Eliminar el servicio "${service.name}".${warn}`,
       args: {
-        barbershopId: actor.barbershopId as string,
+        barbershopId: actor.barbershopId,
         serviceId: service._id,
       },
     };
@@ -1527,7 +1593,7 @@ const proposeInviteMember = createTool({
   description:
     "Prepara una invitación por correo para sumar un barbero o una recepcionista al equipo (la persona recibe un correo para aceptar). NO la envía; devuelve una tarjeta de confirmación. Invitar barberos: dueño o recepcionista. Invitar recepcionistas: solo el dueño. Sujeto a los límites del plan.",
   inputSchema: z.object({
-    email: z.string().email(),
+    email: z.email(),
     role: z
       .enum(["barber", "staff"])
       .describe("barber = barbero, staff = recepcionista"),
@@ -1586,10 +1652,10 @@ const proposeRemoveMember = createTool({
 
     let warn = "";
     if (input.kind === "barber") {
-      const impacted = (await ctx.runQuery(
+      const impacted: number = await ctx.runQuery(
         internal.aiAgentHelpers.countImpactedByMember,
         { barbershopMemberId: input.barbershopMemberId },
-      )) as number;
+      );
 
       if (impacted > 0) {
         warn = ` Esto cancelará ${impacted} cita(s) futura(s) y se avisará a esos clientes.`;

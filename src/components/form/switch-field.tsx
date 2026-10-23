@@ -1,10 +1,9 @@
-import { useStore } from "@tanstack/react-form";
 import type { ComponentProps, FC } from "react";
 import { useWebHaptics } from "web-haptics/react";
 
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
-import { useFieldContext } from "./form-context";
+import { useFieldContext, useFieldErrors } from "./form-context";
 
 interface SwitchFieldProps extends ComponentProps<typeof Switch> {
   label: string;
@@ -13,7 +12,7 @@ interface SwitchFieldProps extends ComponentProps<typeof Switch> {
 export const SwitchField: FC<SwitchFieldProps> = ({ label, ...props }) => {
   const field = useFieldContext<boolean>();
 
-  const errors = useStore(field.store, (state) => state.meta.errors);
+  const errors = useFieldErrors();
 
   const haptic = useWebHaptics();
 
@@ -27,7 +26,7 @@ export const SwitchField: FC<SwitchFieldProps> = ({ label, ...props }) => {
           name={field.name}
           checked={field.state.value}
           onCheckedChange={(checked) => {
-            haptic.trigger("selection");
+            void haptic.trigger("selection");
             field.handleChange(checked);
           }}
           aria-invalid={isInvalid}

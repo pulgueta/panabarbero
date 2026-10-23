@@ -26,10 +26,10 @@ export const SettingsPageSkeleton: FC<SettingsPageSkeletonProps> = ({
     </div>
     <div className={cn("space-y-4", className)}>
       {blocks.map((height, index) => (
-        <Skeleton
-          key={`${height}-${index}`}
-          className={cn("w-full rounded-xl", height)}
-        />
+        // oxlint-disable-next-line react-doctor/no-array-index-as-key -- static placeholder list from route props; it never reorders and heights can repeat
+        <div key={`${height}-${index}`} className={height}>
+          <Skeleton className="h-full w-full rounded-xl" />
+        </div>
       ))}
     </div>
   </div>

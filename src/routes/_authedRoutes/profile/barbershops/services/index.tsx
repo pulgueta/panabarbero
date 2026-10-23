@@ -98,18 +98,21 @@ export const Route = createFileRoute(
 
     if (barbershop?._id) {
       const [, plan] = await Promise.all([
-        opts.context.queryClient.ensureQueryData(
-          servicesQueryOptions(barbershop._id),
-        ),
-        opts.context.queryClient.ensureQueryData(
-          getBarbershopPlanQueryOptions(barbershop._id),
-        ),
+        opts.context.queryClient.query({
+          ...servicesQueryOptions(barbershop._id),
+          staleTime: "static",
+        }),
+        opts.context.queryClient.query({
+          ...getBarbershopPlanQueryOptions(barbershop._id),
+          staleTime: "static",
+        }),
       ]);
 
       if (plan?.planLimits.inventoryEnabled) {
-        await opts.context.queryClient.ensureQueryData(
-          serviceSupplyCountsQueryOptions(barbershop._id),
-        );
+        await opts.context.queryClient.query({
+          ...serviceSupplyCountsQueryOptions(barbershop._id),
+          staleTime: "static",
+        });
       }
     }
   },
@@ -158,23 +161,28 @@ const ServicesDashboard: FC<ServicesDashboardProps> = ({
     if (!open) setDialog(null);
   };
 
-  const supplyCountByServiceId = useMemo(() => {
-    if (!inventoryEnabled) return undefined;
-
-    return new Map(
-      supplyCounts.map((row) => [row.serviceId, row.supplyCount] as const),
-    );
-  }, [inventoryEnabled, supplyCounts]);
+  const supplyCountByServiceId = useMemo(
+    () =>
+      inventoryEnabled
+        ? new Map(
+            supplyCounts.map(
+              (row) => [row.serviceId, row.supplyCount] as const,
+            ),
+          )
+        : undefined,
+    [inventoryEnabled, supplyCounts],
+  );
 
   const columns = getServicesTableColumns({
     canManage,
     supplyCountByServiceId,
     onEdit: (row) => setDialog({ type: "edit", row }),
-    onRecipe: (row) =>
+    onRecipe: (row) => {
       void navigate({
         to: "/profile/barbershops/services/$serviceId/recipe",
         params: { serviceId: row._id },
-      }),
+      });
+    },
     onDelete: (row) => setDialog({ type: "delete", row }),
   });
 
@@ -265,7 +273,7 @@ function RouteComponent() {
   const { data: barbershop, isLoading: isLoadingBarbershop } =
     useBarbershopByMemberUserId(userId);
 
-  const canManage = Boolean(rolesData?.isOwner || rolesData?.isStaff);
+  const canManage = rolesData?.isOwner === true || rolesData?.isStaff === true;
 
   return (
     <DashboardPage>

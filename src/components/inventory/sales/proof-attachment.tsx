@@ -52,14 +52,15 @@ export const ProofAttachment: FC<ProofAttachmentProps> = ({
   const [previewUrl, setPreviewUrl] = useState<string>();
 
   useEffect(() => {
-    if (!file || file.type === "application/pdf") {
-      setPreviewUrl(undefined);
-      return;
-    }
-
-    const objectUrl = URL.createObjectURL(file);
+    const objectUrl =
+      file && file.type !== "application/pdf"
+        ? URL.createObjectURL(file)
+        : undefined;
+    // oxlint-disable-next-line react/set-state-in-effect -- the object URL is a browser resource this effect creates and revokes
     setPreviewUrl(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
   }, [file]);
 
   const imagePreviewUrl =
@@ -127,7 +128,7 @@ export const ProofAttachment: FC<ProofAttachmentProps> = ({
           <AttachmentActions>
             <AttachmentAction
               aria-label="Quitar comprobante"
-              disabled={disabled || isUploading}
+              disabled={disabled === true || isUploading}
               onClick={() => {
                 onFileChange(undefined);
                 // The remove button unmounts with the card — hand focus to
@@ -140,7 +141,7 @@ export const ProofAttachment: FC<ProofAttachmentProps> = ({
           </AttachmentActions>
           <AttachmentTrigger
             aria-label="Cambiar comprobante"
-            disabled={disabled || isUploading}
+            disabled={disabled === true || isUploading}
             onClick={() => inputRef.current?.click()}
           />
         </Attachment>

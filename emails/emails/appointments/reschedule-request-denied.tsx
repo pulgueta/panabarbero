@@ -19,8 +19,8 @@ export interface RescheduleRequestDeniedEmailProps {
 }
 
 export const RescheduleRequestDeniedEmail = ({
-  subject = "Reagendamiento rechazado",
-  body = "Tu solicitud de reagendamiento ha sido rechazada",
+  subject,
+  body,
 }: RescheduleRequestDeniedEmailProps) => {
   return (
     <Html lang="es" dir="ltr">
@@ -47,5 +47,10 @@ export const RescheduleRequestDeniedEmail = ({
     </Html>
   );
 };
+
+RescheduleRequestDeniedEmail.PreviewProps = {
+  subject: "Reagendamiento rechazado",
+  body: "Tu solicitud de reagendamiento ha sido rechazada",
+} satisfies Partial<RescheduleRequestDeniedEmailProps>;
 
 export default RescheduleRequestDeniedEmail;

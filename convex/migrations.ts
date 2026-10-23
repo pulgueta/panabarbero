@@ -1,13 +1,15 @@
 import { Migrations } from "@convex-dev/migrations";
-import { components } from "./_generated/api.js";
+import { components, internal } from "./_generated/api.js";
 import type { DataModel } from "./_generated/dataModel.js";
 import {
   completedAppointmentsAggregate,
   reviewStarsAggregate,
   reviewStarsNamespace,
+  whatsappUsageAggregate,
 } from "./aggregates";
 import { normalizeItems } from "./appointmentItems";
 import { authz, barbershopScope } from "./authz";
+import type { UserProfileData } from "./schema";
 
 export const migrations = new Migrations<DataModel>(components.migrations);
 export const run = migrations.runner();
@@ -160,3 +162,80 @@ export const backfillReviewStars = migrations.define({
     });
   },
 });
+
+/**
+ * Seed the WhatsApp usage aggregate with pre-existing `usage` rows. The
+ * runtime trigger uses `insertIfDoesNotExist`/`replaceOrInsert`, so nothing
+ * throws before this runs — but per-shop sums over historical months read low
+ * until it does. Idempotent via `insertIfDoesNotExist`. Run once per
+ * deployment with
+ * `npx convex run migrations:run '{fn: "migrations:backfillWhatsappUsageAggregate"}'`.
+ */
+export const backfillWhatsappUsageAggregate = migrations.define({
+  table: "usage",
+  migrateOne: async (ctx, doc) => {
+    await whatsappUsageAggregate.insertIfDoesNotExist(ctx, doc);
+  },
+});
+
+/**
+ * WhatsApp-only channel cutover (plan `.plans/whatsapp-only-channel.md`, D7):
+ * drop the retired email/SMS credit fields, delete non-WhatsApp purchase rows
+ * and keep only the `whatsapp` preference (default ON, consent stamped when
+ * missing). Typed against the tight schema, so run it BEFORE that schema is
+ * validated: push once with `schemaValidation: false`, run
+ * `npx convex run migrations:stripLegacyChannelData`,
+ * then push with validation on. Idempotent.
+ */
+export const stripLegacyExtraCredits = migrations.define({
+  table: "extraCredits",
+  migrateOne: async (ctx, row) => {
+    await ctx.db.replace(row._id, {
+      barbershopId: row.barbershopId,
+      whatsappCredits: row.whatsappCredits ?? 0,
+      whatsappPurchasedTotal: row.whatsappPurchasedTotal ?? 0,
+    });
+  },
+});
+
+export const stripLegacyCreditPurchases = migrations.define({
+  table: "creditPurchases",
+  migrateOne: async (ctx, row) => {
+    const type: string = row.type;
+
+    if (type !== "whatsapp") {
+      await ctx.db.delete(row._id);
+    }
+  },
+});
+
+export const stripLegacyNotificationPreferences = migrations.define({
+  table: "userProfileData",
+  migrateOne: async (ctx, profile) => {
+    const whatsapp = profile.notificationsPreferences.find((p) => {
+      const type: string = p.type;
+
+      return type === "whatsapp";
+    });
+
+    const update: Partial<
+      Pick<UserProfileData, "notificationsPreferences" | "whatsappOptedInAt">
+    > = {
+      notificationsPreferences: [
+        whatsapp ?? { type: "whatsapp", enabled: true },
+      ],
+    };
+
+    if (!whatsapp && !profile.whatsappOptedInAt) {
+      update.whatsappOptedInAt = Date.now();
+    }
+
+    await ctx.db.patch(profile._id, update);
+  },
+});
+
+export const stripLegacyChannelData = migrations.runner([
+  internal.migrations.stripLegacyExtraCredits,
+  internal.migrations.stripLegacyCreditPurchases,
+  internal.migrations.stripLegacyNotificationPreferences,
+]);

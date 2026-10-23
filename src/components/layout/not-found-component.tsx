@@ -30,11 +30,11 @@ export const NotFoundComponent = () => {
       <EmptyContent>
         <Button
           variant="outline"
-          onClick={() =>
-            router.navigate({
+          onClick={() => {
+            void router.navigate({
               to: "/",
-            })
-          }
+            });
+          }}
         >
           Ir a la página de inicio
         </Button>

@@ -80,12 +80,22 @@ function combineDayAndCurrentTimeMs(
   return combined.getTime();
 }
 
+interface RescheduleRequestFormValues {
+  date: number | undefined;
+}
+
+const RESCHEDULE_DEFAULT_VALUES: RescheduleRequestFormValues = {
+  date: undefined,
+};
+
 export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
   appointment,
   to,
   onSuccess,
 }) => {
   const timeId = useId();
+  const originalDayId = useId();
+  const originalTimeId = useId();
 
   const haptic = useWebHaptics();
 
@@ -99,7 +109,7 @@ export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
 
   const form = useAppForm({
     onSubmitInvalid: () => {
-      haptic.trigger("error");
+      void haptic.trigger("error");
     },
     validationLogic: revalidateLogic({
       mode: "submit",
@@ -109,9 +119,7 @@ export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
       // @ts-expect-error - zod's coerce method returns an unknown input type
       onSubmit: rescheduleRequestFormSchema,
     },
-    defaultValues: {
-      date: undefined as number | undefined,
-    },
+    defaultValues: RESCHEDULE_DEFAULT_VALUES,
     onSubmit: async ({ value }) => {
       const timestamp = Number(value.date);
 
@@ -129,16 +137,15 @@ export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
           proposedDate: timestamp,
         });
 
-        haptic.trigger("success");
+        void haptic.trigger("success");
         toast.success(
           `Solicitud enviada al ${to === "barber" ? "barbero" : "cliente"}.`,
         );
         form.reset();
         onSuccess?.();
       } catch (error) {
-        haptic.trigger("error");
+        void haptic.trigger("error");
         toast.error(getConvexErrorMessage(error));
-        return;
       }
     },
   });
@@ -151,30 +158,33 @@ export const RescheduleRequestForm: FC<RescheduleRequestFormProps> = ({
       onSubmit={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        form.handleSubmit();
+        void form.handleSubmit();
       }}
       className="space-y-4"
       suppressHydrationWarning
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label>Fecha original</Label>
+          <Label htmlFor={originalDayId}>Fecha original</Label>
 
-          <Input type="text" value={originalDay} disabled />
+          <Input id={originalDayId} type="text" value={originalDay} disabled />
         </div>
 
         <div className="space-y-2">
-          <Label>Hora original</Label>
+          <Label htmlFor={originalTimeId}>Hora original</Label>
 
-          <Input type="text" value={originalTime} disabled />
+          <Input
+            id={originalTimeId}
+            type="text"
+            value={originalTime}
+            disabled
+          />
         </div>
       </div>
       <FieldGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <form.AppField name="date">
           {(field) => {
-            const errors = field.state.meta.errors as unknown as Array<{
-              message?: string;
-            }>;
+            const errors = field.state.meta.errors;
             const isInvalid = errors.length > 0;
             // Stable per selected day; only a day change remounts the time
             // input below (time edits keep the same key).

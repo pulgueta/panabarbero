@@ -19,8 +19,8 @@ import {
   FileUploadItemMetadata,
   FileUploadItemPreview,
   FileUploadList,
-  type FileUploadProps,
 } from "@/components/ui/file-upload";
+import type { FileUploadProps } from "@/components/ui/file-upload";
 import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
 import {
   ResponsiveModal,
@@ -44,6 +44,7 @@ type BarbershopLogoUploaderProps = {
   logoKey?: string | null;
 };
 
+// oxlint-disable-next-line react-doctor/no-giant-component -- pre-existing large component; split tracked as a follow-up in odd/tasks/oxc-migration.md
 export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
   barbershopId,
   logoKey,
@@ -74,7 +75,7 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
   >(
     (_file, message) => {
       toast.error(message);
-      trigger("warning");
+      void trigger("warning");
     },
     [trigger],
   );
@@ -123,13 +124,12 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
       });
 
       toast.success("Logo actualizado correctamente");
-      trigger("success");
+      void trigger("success");
       setQueuedFiles([]);
     } catch (error) {
       console.log(error);
       toast.error(getConvexErrorMessage(error));
-      trigger("error");
-      return;
+      void trigger("error");
     }
   };
 
@@ -149,10 +149,10 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
       await removeLogoKey({ barbershopId });
 
       toast.success("Logo eliminado");
-      trigger("success");
+      void trigger("success");
     } catch (error) {
       toast.error(getConvexErrorMessage(error));
-      trigger("error");
+      void trigger("error");
     }
   };
 
@@ -163,6 +163,7 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
         onConfirm={handleCropConfirm}
         onCancel={handleCropCancel}
         aspectRatio={1}
+        // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- `shape` is the ImageCropDialog prop name (src/components/ui), not ours to rename
         shape="rectangle"
       />
 
@@ -211,7 +212,9 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
               Cancelar
             </Button>
             <Button
-              onClick={onRemoveLogo}
+              onClick={() => {
+                void onRemoveLogo();
+              }}
               variant="destructive"
               disabled={isRemoving}
             >
@@ -305,12 +308,12 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
             {queuedFiles.map((file) => (
               <FileUploadItem key={file.name + file.size} value={file}>
                 <FileUploadItemPreview
-                  render={(file) => {
-                    const url = URL.createObjectURL(file);
+                  render={(previewFile) => {
+                    const url = URL.createObjectURL(previewFile);
                     return (
                       <img
                         src={url}
-                        alt={file.name}
+                        alt={previewFile.name}
                         className="size-full rounded-lg object-cover"
                         height={32}
                         width={32}
@@ -345,7 +348,9 @@ export const BarbershopLogoUploader: FC<BarbershopLogoUploaderProps> = ({
         >
           {hasQueuedFiles && (
             <Button
-              onClick={handleUpload}
+              onClick={() => {
+                void handleUpload();
+              }}
               disabled={isUploading}
               className="w-full"
             >

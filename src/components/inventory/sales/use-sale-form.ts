@@ -93,7 +93,7 @@ export function useSaleForm(onValidSubmit: () => void) {
 
   const form = useAppForm({
     onSubmitInvalid: () => {
-      haptic.trigger("error");
+      void haptic.trigger("error");
     },
     validationLogic: revalidateLogic({
       mode: "submit",

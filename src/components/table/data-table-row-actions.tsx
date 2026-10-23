@@ -1,5 +1,6 @@
 import { DotsThreeVerticalIcon } from "@phosphor-icons/react";
-import { Fragment, type ReactNode } from "react";
+import { Fragment } from "react";
+import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -53,7 +54,9 @@ export function DataTableRowActions({
             <DropdownMenuItem
               variant={action.variant}
               disabled={action.disabled}
-              onClick={action.onSelect}
+              onClick={() => {
+                action.onSelect();
+              }}
             >
               {action.icon}
               {action.label}

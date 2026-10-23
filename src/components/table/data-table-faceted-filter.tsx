@@ -1,4 +1,5 @@
 import { CheckIcon } from "@phosphor-icons/react";
+import type { Row } from "@tanstack/react-table";
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,15 @@ export interface FacetedFilterOption {
   icon?: ReactNode;
 }
 
+function isString(value: unknown): value is string {
+  return typeof value === "string";
+}
+
+/** The faceted filter value: the selected facet values (set by toggle below). */
+function isStringList(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(isString);
+}
+
 /**
  * Multi-select facet chip. Options come from the caller (a Convex query or a
  * fixed enum) — not TanStack faceting, which in server mode only sees the
@@ -32,12 +42,12 @@ interface DataTableFacetedFilterProps {
   options: FacetedFilterOption[];
 }
 
-export function DataTableFacetedFilter<TData = unknown>({
+export function DataTableFacetedFilter({
   columnId,
   title,
   options,
 }: DataTableFacetedFilterProps) {
-  const { table } = useDataTableContext<TData>();
+  const { table } = useDataTableContext();
   const column = table.getColumn(columnId);
 
   if (!column) {
@@ -45,7 +55,8 @@ export function DataTableFacetedFilter<TData = unknown>({
   }
 
   const facets = column.getFacetedUniqueValues();
-  const selected = new Set((column.getFilterValue() as string[]) ?? []);
+  const filterValue = column.getFilterValue();
+  const selected = new Set(isStringList(filterValue) ? filterValue : undefined);
 
   const toggle = (value: string) => {
     const next = new Set(selected);
@@ -54,7 +65,7 @@ export function DataTableFacetedFilter<TData = unknown>({
     } else {
       next.add(value);
     }
-    const arr = Array.from(next);
+    const arr = [...next];
     column.setFilterValue(arr.length ? arr : undefined);
   };
 
@@ -134,12 +145,12 @@ export function DataTableFacetedFilter<TData = unknown>({
  * `DataTableFacetedFilter` targets.
  */
 export function facetedFilterFn(
-  row: { getValue: (id: string) => unknown },
+  row: Pick<Row<unknown>, "getValue">,
   columnId: string,
-  filterValue: unknown,
+  filterValue: string[] | undefined,
 ): boolean {
   if (!Array.isArray(filterValue) || filterValue.length === 0) {
     return true;
   }
-  return (filterValue as string[]).includes(String(row.getValue(columnId)));
+  return filterValue.includes(String(row.getValue(columnId)));
 }

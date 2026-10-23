@@ -1,5 +1,4 @@
 import { EyeIcon, EyeSlashIcon } from "@phosphor-icons/react";
-import { useStore } from "@tanstack/react-form";
 import type { ComponentProps, FC, ReactNode } from "react";
 import { useState } from "react";
 
@@ -12,7 +11,11 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { numberSelectOnFocus, useFieldContext } from "./form-context";
+import {
+  numberSelectOnFocus,
+  useFieldContext,
+  useFieldErrors,
+} from "./form-context";
 
 interface TextFieldProps extends ComponentProps<typeof Input> {
   label: string;
@@ -28,7 +31,7 @@ export const TextField: FC<TextFieldProps> = ({
 }) => {
   const field = useFieldContext<string>();
 
-  const errors = useStore(field.store, (state) => state.meta.errors);
+  const errors = useFieldErrors();
 
   const isInvalid = field.state.meta.isTouched && errors.length > 0;
 
@@ -68,7 +71,7 @@ export const PasswordField: FC<PasswordFieldProps> = ({
   const [showPassword, setShowPassword] = useState(false);
 
   const field = useFieldContext<string>();
-  const errors = useStore(field.store, (state) => state.meta.errors);
+  const errors = useFieldErrors();
 
   const isInvalid = field.state.meta.isTouched && errors.length > 0;
 
@@ -127,7 +130,7 @@ export const TextAreaField: FC<TextAreaFieldProps> = ({
 }) => {
   const field = useFieldContext<string>();
 
-  const errors = useStore(field.store, (state) => state.meta.errors);
+  const errors = useFieldErrors();
 
   const isInvalid = field.state.meta.isTouched && errors.length > 0;
 

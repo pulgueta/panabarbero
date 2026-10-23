@@ -1,7 +1,7 @@
 import { vOnCompleteArgs, Workpool } from "@convex-dev/workpool";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { convexToZod } from "convex-helpers/server/zod4";
+import { convexToZod, convexToZodFields } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import {
@@ -34,7 +34,11 @@ import type {
 } from "./schema";
 import { appointments, barbershops, reviews } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
-import { colombiaDateKeyToMs, toColombiaDateKey } from "./utils";
+import {
+  colombiaDateKeyToMs,
+  formatPhoneNumber,
+  toColombiaDateKey,
+} from "./utils";
 
 /**
  * Async review-comment moderation runs through a Workpool: bounded concurrency
@@ -116,6 +120,82 @@ async function settleReview(
 }
 
 /**
+ * Eligibility shared by the authed and WhatsApp paths: completed visit, one
+ * review per visit (durable stamps + live row). Throws the same errors the
+ * form surfaces; the WhatsApp caller maps them to a reply.
+ */
+async function assertReviewable(ctx: QueryCtx, appointment: Appointment) {
+  if (appointment.status !== "completed") {
+    throw new ConvexError(errorMessages.reviewNotCompleted);
+  }
+
+  // One review per completed appointment. The durable stamps (`reviewedAt`,
+  // or the legacy review-code redemption) hold even after the review row is
+  // deleted; the live-row check covers reviews that predate the stamp.
+  if (appointment.reviewedAt || appointment.reviewCodeRedeemedAt) {
+    throw new ConvexError(errorMessages.reviewAlreadyExists);
+  }
+
+  const existing = await ctx.db
+    .query("reviews")
+    .withIndex("by_appointmentId", (q) =>
+      q.eq("appointmentId", appointment._id),
+    )
+    .unique();
+
+  if (existing) {
+    throw new ConvexError(errorMessages.reviewAlreadyExists);
+  }
+}
+
+/** Insert + stamp + track + settle. Callers authorize and rate-limit. */
+async function createReviewForAppointment(
+  ctx: MutationCtx,
+  args: {
+    appointment: Appointment;
+    userId: string;
+    rating: number;
+    comment: string | undefined;
+  },
+) {
+  const { appointment, userId } = args;
+
+  await assertReviewable(ctx, appointment);
+
+  const [items, profile] = await Promise.all([
+    getAppointmentItems(ctx, appointment),
+    getProfileByUserId(ctx, userId),
+  ]);
+
+  const reviewId = await ctx.db.insert("reviews", {
+    rating: args.rating,
+    comment: args.comment,
+    userId,
+    barbershopId: appointment.barbershopId,
+    appointmentId: appointment._id,
+    serviceId: appointment.serviceId,
+    serviceName: itemsLabel(items),
+    authorName: profile?.name ?? appointment.customerName,
+  });
+
+  await ctx.db.patch(appointment._id, { reviewedAt: Date.now() });
+
+  await track(ctx, {
+    distinctId: userId,
+    event: "review_created",
+    properties: {
+      reviewId,
+      barbershopId: appointment.barbershopId,
+      rating: args.rating,
+      hasComment: !!args.comment,
+    },
+    groups: { barbershop: appointment.barbershopId },
+  });
+
+  return await settleReview(ctx, reviewId, args.comment);
+}
+
+/**
  * Create a review. Eligibility is derived server-side: the caller must own a
  * completed appointment that has no review yet — one review per completed
  * visit is the invariant, enforced through the `by_appointmentId` index. A
@@ -144,61 +224,111 @@ export const create = zAuthMutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    if (appointment.status !== "completed") {
-      throw new ConvexError(errorMessages.reviewNotCompleted);
-    }
-
-    // One review per completed appointment. The durable stamps (`reviewedAt`,
-    // or the legacy review-code redemption) hold even after the review row is
-    // deleted; the live-row check covers reviews that predate the stamp.
-    if (appointment.reviewedAt || appointment.reviewCodeRedeemedAt) {
-      throw new ConvexError(errorMessages.reviewAlreadyExists);
-    }
-
-    const existing = await ctx.db
-      .query("reviews")
-      .withIndex("by_appointmentId", (q) =>
-        q.eq("appointmentId", appointment._id),
-      )
-      .unique();
-
-    if (existing) {
-      throw new ConvexError(errorMessages.reviewAlreadyExists);
-    }
-
-    const [items, profile] = await Promise.all([
-      getAppointmentItems(ctx, appointment),
-      getProfileByUserId(ctx, userId),
-    ]);
-
-    const comment = args.comment?.trim() || undefined;
-
-    const reviewId = await ctx.db.insert("reviews", {
-      rating: args.rating,
-      comment,
+    return await createReviewForAppointment(ctx, {
+      appointment,
       userId,
-      barbershopId: appointment.barbershopId,
-      appointmentId: appointment._id,
-      serviceId: appointment.serviceId,
-      serviceName: itemsLabel(items),
-      authorName: profile?.name ?? appointment.customerName,
+      rating: args.rating,
+      comment: args.comment?.trim() || undefined,
     });
+  },
+});
 
-    await ctx.db.patch(appointment._id, { reviewedAt: Date.now() });
+/**
+ * WhatsApp rating path — the sender phone (signed webhook) must match the
+ * customer of record (booking phone or profile). Guests cannot review: a
+ * review row needs a real `userId`.
+ */
+async function resolveWhatsAppReviewer(
+  ctx: QueryCtx,
+  appointmentId: Appointment["_id"],
+  senderPhone: string,
+): Promise<{ appointment: Appointment; userId: string } | null> {
+  const appointment = await ctx.db.get(appointmentId);
 
-    await track(ctx, {
-      distinctId: userId,
-      event: "review_created",
-      properties: {
-        reviewId,
-        barbershopId: appointment.barbershopId,
+  if (
+    !appointment ||
+    appointment.deletedAt ||
+    appointment.userId === "user_does_not_exist"
+  ) {
+    return null;
+  }
+
+  const profile = await getProfileByUserId(ctx, appointment.userId);
+  const sender = formatPhoneNumber(senderPhone);
+
+  const matches = (phone: string | undefined) =>
+    !!phone && !!sender && formatPhoneNumber(phone) === sender;
+
+  if (!matches(appointment.contactPhone) && !matches(profile?.phoneNumber)) {
+    return null;
+  }
+
+  return { appointment, userId: appointment.userId };
+}
+
+/**
+ * "Calificar visita" tap: is this visit still reviewable by this phone?
+ * Decides whether the inbound handler sends the 1–5 list. Never throws.
+ */
+export const canReviewFromWhatsApp = zInternalQuery({
+  args: z.object({
+    appointmentId: appointments.tools.id.shape.id,
+    senderPhone: z.string(),
+  }),
+  handler: async (ctx, args): Promise<boolean> => {
+    const target = await resolveWhatsAppReviewer(
+      ctx,
+      args.appointmentId,
+      args.senderPhone,
+    );
+
+    if (!target) {
+      return false;
+    }
+
+    try {
+      await assertReviewable(ctx, target.appointment);
+
+      return true;
+    } catch {
+      return false;
+    }
+  },
+});
+
+/**
+ * List-row tap with the rating (1–5, validated by the codec). Rating-only
+ * reviews publish immediately (no comment → no moderation). Never throws.
+ */
+export const createFromWhatsApp = zInternalMutation({
+  args: z.object({
+    appointmentId: appointments.tools.id.shape.id,
+    rating: z.number().int().min(1).max(5),
+    senderPhone: z.string(),
+  }),
+  handler: async (ctx, args): Promise<boolean> => {
+    const target = await resolveWhatsAppReviewer(
+      ctx,
+      args.appointmentId,
+      args.senderPhone,
+    );
+
+    if (!target) {
+      return false;
+    }
+
+    try {
+      await createReviewForAppointment(ctx, {
+        appointment: target.appointment,
+        userId: target.userId,
         rating: args.rating,
-        hasComment: !!comment,
-      },
-      groups: { barbershop: appointment.barbershopId },
-    });
+        comment: undefined,
+      });
 
-    return settleReview(ctx, reviewId, comment);
+      return true;
+    } catch {
+      return false; // already reviewed / not completed
+    }
   },
 });
 
@@ -252,7 +382,7 @@ export const update = zAuthMutation({
       groups: { barbershop: review.barbershopId },
     });
 
-    return settleReview(ctx, args.reviewId, comment);
+    return await settleReview(ctx, args.reviewId, comment);
   },
 });
 
@@ -685,11 +815,13 @@ export const applyModeration = zInternalMutation({
  * (the action already resolved the review on success).
  *
  * The Workpool dictates the argument validator through `vOnCompleteArgs` (a
- * Convex validator); `convexToZod` bridges it into the zod wrapper so this stays
+ * Convex validator); `convexToZodFields` bridges it into the zod wrapper so this stays
  * consistent with every other function in the file.
  */
 export const onModerationComplete = zInternalMutation({
-  args: convexToZod(vOnCompleteArgs(v.object({ reviewId: v.id("reviews") }))),
+  args: convexToZodFields(
+    vOnCompleteArgs(v.object({ reviewId: v.id("reviews") })).fields,
+  ),
   handler: async (ctx, { context, result }) => {
     if (result.kind !== "failed") {
       return;
@@ -956,17 +1088,18 @@ export const getShopReviewBreakdown = zAuthQuery({
 
     await assertCanViewReviewAnalytics(ctx, barbershopId, userId);
 
-    const published = (
-      await ctx.db
-        .query("reviews")
-        .withIndex("by_barbershopId_and_publishedAt", (q) =>
-          q.eq("barbershopId", barbershopId).gt("publishedAt", 0),
-        )
-        .collect()
-    ).filter((review) => review.flaggedAt === undefined);
+    const publishedRows = await ctx.db
+      .query("reviews")
+      .withIndex("by_barbershopId_and_publishedAt", (q) =>
+        q.eq("barbershopId", barbershopId).gt("publishedAt", 0),
+      )
+      .collect();
+    const published = publishedRows.filter(
+      (review) => review.flaggedAt === undefined,
+    );
 
     // Resolve every appointment up front instead of one round trip per review.
-    const appointments = await Promise.all(
+    const reviewAppointments = await Promise.all(
       published.map((review) => ctx.db.get(review.appointmentId)),
     );
 
@@ -986,7 +1119,7 @@ export const getShopReviewBreakdown = zAuthQuery({
       service.count += 1;
       serviceStats.set(review.serviceName, service);
 
-      const appointment = appointments[index];
+      const appointment = reviewAppointments[index];
 
       if (!appointment) {
         continue;
@@ -1010,22 +1143,25 @@ export const getShopReviewBreakdown = zAuthQuery({
       barberStats.set(memberId, barber);
     }
 
-    const byService = Array.from(serviceStats.entries())
-      .map(([serviceName, stats]) => ({
+    // Both arrays are fresh, so sorting them in place is safe.
+    const byService = [...serviceStats.entries()].map(
+      ([serviceName, stats]) => ({
         serviceName,
         average: stats.count > 0 ? stats.sum / stats.count : 0,
         count: stats.count,
-      }))
-      .sort((a, b) => b.count - a.count);
+      }),
+    );
+    byService.sort((a, b) => b.count - a.count);
 
-    const byBarber = Array.from(barberStats.entries())
-      .map(([barbershopMemberId, stats]) => ({
+    const byBarber = [...barberStats.entries()].map(
+      ([barbershopMemberId, stats]) => ({
         barbershopMemberId,
         name: stats.name,
         average: stats.count > 0 ? stats.sum / stats.count : 0,
         count: stats.count,
-      }))
-      .sort((a, b) => b.count - a.count);
+      }),
+    );
+    byBarber.sort((a, b) => b.count - a.count);
 
     return { byService, byBarber };
   },

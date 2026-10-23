@@ -69,7 +69,7 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
         answeredBy: viewer,
       });
 
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success(
         accepted
           ? "Solicitud de reagendamiento aceptada."
@@ -77,10 +77,8 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
       );
       setIsOpen(false);
     } catch (error) {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
-
-      return;
     }
   };
 
@@ -118,7 +116,9 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
               type="button"
               variant="destructive"
               disabled={isAnswering}
-              onClick={() => handleAnswer(false)}
+              onClick={() => {
+                void handleAnswer(false);
+              }}
             >
               Rechazar
             </Button>
@@ -126,7 +126,9 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
               type="button"
               variant="secondary"
               disabled={isAnswering}
-              onClick={() => handleAnswer(true)}
+              onClick={() => {
+                void handleAnswer(true);
+              }}
             >
               {isAnswering && <Spinner />}
               Aceptar

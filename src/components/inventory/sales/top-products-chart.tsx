@@ -3,6 +3,8 @@ import type { FC } from "react";
 import { Bar, BarChart, XAxis, YAxis } from "recharts";
 
 import { truncateLabel } from "@/components/analytics/chart-format";
+import type { ChartTooltipFormatter } from "@/components/chart-tooltip";
+import { payloadNumber, payloadText } from "@/components/chart-tooltip";
 import {
   Card,
   CardContent,
@@ -33,6 +35,23 @@ interface TopProductsChartProps {
 }
 
 /** Best sellers by revenue over the last 30 days. */
+const renderTooltipValue: ChartTooltipFormatter = (value, _name, item) => (
+  <div className="flex w-full flex-col gap-1 leading-none">
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-muted-foreground">Ingresos</span>
+      <span className="font-medium font-mono text-foreground tabular-nums">
+        {formatCurrency(Number(value))}
+      </span>
+    </div>
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-muted-foreground">Unidades</span>
+      <span className="font-medium font-mono text-foreground tabular-nums">
+        {payloadNumber(item, "units")}
+      </span>
+    </div>
+  </div>
+);
+
 export const TopProductsChart: FC<TopProductsChartProps> = ({
   barbershopId,
 }) => {
@@ -72,28 +91,9 @@ export const TopProductsChart: FC<TopProductsChartProps> = ({
                   <ChartTooltipContent
                     hideIndicator
                     labelFormatter={(_, payload) =>
-                      String(payload[0]?.payload?.itemName ?? "")
+                      payloadText(payload[0], "itemName")
                     }
-                    formatter={(value, _name, item) => (
-                      <div className="flex w-full flex-col gap-1 leading-none">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-muted-foreground">
-                            Ingresos
-                          </span>
-                          <span className="font-medium font-mono text-foreground tabular-nums">
-                            {formatCurrency(Number(value))}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-muted-foreground">
-                            Unidades
-                          </span>
-                          <span className="font-medium font-mono text-foreground tabular-nums">
-                            {Number(item.payload?.units ?? 0)}
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                    formatter={renderTooltipValue}
                   />
                 }
               />

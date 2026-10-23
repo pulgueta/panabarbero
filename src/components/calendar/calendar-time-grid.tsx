@@ -762,7 +762,7 @@ function CalendarAllDayCell({ day }: { day: Date }) {
           settings.onSlotClick?.({ date: dayStart, allDay: true, view }, e);
         }
       }}
-    ></div>
+    />
   );
 }
 
@@ -964,9 +964,7 @@ function CalendarDayColumn({
       return endMin > boundsStartMin && startMin < boundsEndMin;
     });
     if (visible.length === segments.timed.length) return segments.timed;
-    const clones = visible.map(
-      (segment) => ({ ...segment }) as CalendarSegment,
-    );
+    const clones = visible.map((segment) => ({ ...segment }));
     packTimedSegments(clones);
     return clones;
   }, [segments.timed, boundsStartMin, boundsEndMin]);

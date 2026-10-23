@@ -74,6 +74,12 @@ function fromDateInputValue(value?: string): number | undefined {
   return Number.isNaN(timestamp) ? undefined : timestamp;
 }
 
+/** Trims text; a blank value becomes `undefined`. */
+function trimToUndefined(value?: string): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed === "" ? undefined : trimmed;
+}
+
 /**
  * Wizard steps: each is a slice of the table schema. Create validates the
  * slice against `insertSchema` (required fields stay required per step);
@@ -196,7 +202,7 @@ export function useItemForm({
 
   const form = useAppForm({
     onSubmitInvalid: () => {
-      haptic.trigger("error");
+      void haptic.trigger("error");
     },
     validationLogic: revalidateLogic({
       mode: "submit",
@@ -233,13 +239,13 @@ export function useItemForm({
         const data = {
           barbershopId,
           name: value.name,
-          sku: value.sku || undefined,
+          sku: value.sku === "" ? undefined : value.sku,
           category: value.category,
           unit: value.unit,
           stockBehavior,
-          brand: value.brand?.trim() || undefined,
-          supplier: value.supplier?.trim() || undefined,
-          customLabel: value.customLabel?.trim() || undefined,
+          brand: trimToUndefined(value.brand),
+          supplier: trimToUndefined(value.supplier),
+          customLabel: trimToUndefined(value.customLabel),
           presentationValue,
           presentationUnit:
             presentationValue !== undefined
@@ -247,11 +253,11 @@ export function useItemForm({
               : undefined,
           model:
             stockBehavior === "durable"
-              ? value.model?.trim() || undefined
+              ? trimToUndefined(value.model)
               : undefined,
           serialNumber:
             stockBehavior === "durable"
-              ? value.serialNumber?.trim() || undefined
+              ? trimToUndefined(value.serialNumber)
               : undefined,
           purchasedAt:
             stockBehavior === "durable"
@@ -261,7 +267,7 @@ export function useItemForm({
             stockBehavior === "durable"
               ? fromDateInputValue(value.warrantyUntilDate)
               : undefined,
-          notes: value.notes?.trim() || undefined,
+          notes: trimToUndefined(value.notes),
           isSellable: stockBehavior === "durable" ? false : value.isSellable,
           unitCost:
             parseMoneyAmount(value.unitCost ?? "") ??
@@ -286,10 +292,8 @@ export function useItemForm({
         if (itemId) {
           await updateItem({ id: itemId, data });
 
-          haptic.trigger("success");
+          void haptic.trigger("success");
           toast.success("Producto actualizado exitosamente");
-
-          onSuccess?.();
         } else {
           await createItem({
             ...data,
@@ -300,15 +304,14 @@ export function useItemForm({
                 : undefined,
           });
 
-          haptic.trigger("success");
+          void haptic.trigger("success");
           toast.success("Producto creado exitosamente");
-
-          onSuccess?.();
         }
+
+        onSuccess?.();
       } catch (error) {
-        haptic.trigger("error");
+        void haptic.trigger("error");
         toast.error(getConvexErrorMessage(error));
-        return;
       }
     },
   });

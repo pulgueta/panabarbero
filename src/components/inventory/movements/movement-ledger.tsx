@@ -5,17 +5,15 @@ import type { FC } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { inventoryMovementTypeData } from "@/components/inventory/labels";
-import {
-  type FilterOption,
-  MovementFilterBar,
-} from "@/components/inventory/movements/movement-filter-bar";
+import { MovementFilterBar } from "@/components/inventory/movements/movement-filter-bar";
+import type { FilterOption } from "@/components/inventory/movements/movement-filter-bar";
 import {
   datePresetToStart,
-  type MovementFilterState,
   movementDateTimeFormatter,
   movementDirection,
   movementToneClass,
 } from "@/components/inventory/movements/movement-filters";
+import type { MovementFilterState } from "@/components/inventory/movements/movement-filters";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,129 +32,211 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  type InventoryMovementRow,
   inventoryOverviewQueryOptions,
-  type MovementFilters,
   usePaginatedShopMovements,
+} from "@/hooks/use-inventory";
+import type {
+  InventoryMovementRow,
+  MovementFilters,
 } from "@/hooks/use-inventory";
 import { cn, formatCurrency } from "@/lib/utils";
 
 const RETENTION_NOTE = "El historial se conserva durante 12 meses.";
 
-interface MovementLedgerProps {
-  barbershopId: Barbershop["_id"];
-  pageSize?: number;
-}
-
-/**
- * Filterable, server-paginated audit log for a shop's stock movements. Filters
- * are pushed into `listShopMovements` (index-backed) rather than trimmed on the
- * client; changing them resets pagination by remounting `LedgerBody` via key.
- */
-export const MovementLedger: FC<MovementLedgerProps> = ({
-  barbershopId,
-  pageSize = 20,
-}) => {
-  const [filterState, setFilterState] = useState<MovementFilterState>({
-    datePreset: "all",
-  });
-  const [actors, setActors] = useState<Map<string, string>>(new Map());
-
-  const { data: overview } = useQuery(
-    inventoryOverviewQueryOptions(barbershopId),
-  );
-
-  const products = useMemo<FilterOption[]>(
-    () =>
-      (overview?.rows ?? [])
-        .map((row) => ({ id: row._id as string, name: row.name }))
-        .sort((a, b) => a.name.localeCompare(b.name, "es")),
-    [overview],
-  );
-
-  const actorOptions = useMemo<FilterOption[]>(
-    () =>
-      Array.from(actors, ([id, name]) => ({ id, name })).sort((a, b) =>
-        a.name.localeCompare(b.name, "es"),
-      ),
-    [actors],
-  );
-
-  const serverFilters = useMemo<MovementFilters>(
-    () => ({
-      type: filterState.type,
-      itemId: filterState.itemId as InventoryItem["_id"] | undefined,
-      actorUserId: filterState.actorUserId,
-      startTime: datePresetToStart(filterState.datePreset, Date.now()),
-    }),
-    [filterState],
-  );
-
-  const hasActiveFilters =
-    filterState.type !== undefined ||
-    filterState.itemId !== undefined ||
-    filterState.actorUserId !== undefined ||
-    filterState.datePreset !== "all";
-
-  const handleChange = useCallback((patch: Partial<MovementFilterState>) => {
-    setFilterState((prev) => ({ ...prev, ...patch }));
-  }, []);
-
-  const handleReset = useCallback(() => {
-    setFilterState({ datePreset: "all" });
-  }, []);
-
-  // Actor options accumulate across every page/filter and never reset, so the
-  // dropdown stays populated as the operator narrows the ledger.
-  const handleActorsSeen = useCallback((rows: InventoryMovementRow[]) => {
-    setActors((prev) => {
-      let next: Map<string, string> | null = null;
-
-      for (const row of rows) {
-        if (row.actorName && !prev.has(row.actorUserId)) {
-          next ??= new Map(prev);
-          next.set(row.actorUserId, row.actorName);
-        }
-      }
-
-      return next ?? prev;
-    });
-  }, []);
-
-  const sig = `${barbershopId}|${serverFilters.type ?? ""}|${
-    serverFilters.itemId ?? ""
-  }|${serverFilters.actorUserId ?? ""}|${serverFilters.startTime ?? ""}`;
-
-  return (
-    <div className="overflow-hidden rounded-xl border bg-card">
-      <div className="border-b p-4">
-        <MovementFilterBar
-          filters={filterState}
-          onChange={handleChange}
-          onReset={handleReset}
-          products={products}
-          actors={actorOptions}
-          hasActiveFilters={hasActiveFilters}
-        />
-      </div>
-
-      <LedgerBody
-        key={sig}
-        barbershopId={barbershopId}
-        pageSize={pageSize}
-        filters={serverFilters}
-        hasActiveFilters={hasActiveFilters}
-        onResetFilters={handleReset}
-        onActorsSeen={handleActorsSeen}
-      />
-    </div>
-  );
-};
-
 type PageState = {
   page: InventoryMovementRow[];
   isDone: boolean;
   continueCursor: string;
+};
+
+const LedgerSkeleton: FC = () => (
+  <div className="divide-y">
+    {Array.from({ length: 6 }, (_, index) => (
+      <div
+        key={`ledger-skeleton-${index}`}
+        className="flex items-center justify-between gap-4 p-4"
+      >
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="h-5 w-16 animate-pulse rounded-full bg-muted" />
+          <div className="h-4 w-40 animate-pulse rounded bg-muted" />
+        </div>
+        <div className="h-4 w-10 animate-pulse rounded bg-muted" />
+      </div>
+    ))}
+  </div>
+);
+
+interface LedgerEmptyProps {
+  hasActiveFilters: boolean;
+  onResetFilters: () => void;
+}
+
+const LedgerEmpty: FC<LedgerEmptyProps> = ({
+  hasActiveFilters,
+  onResetFilters,
+}) => (
+  <Empty className="py-12">
+    <EmptyHeader>
+      <EmptyMedia variant="icon">
+        <StackIcon />
+      </EmptyMedia>
+      <EmptyTitle>
+        {hasActiveFilters
+          ? "Ningún movimiento coincide con los filtros."
+          : "Aún no hay movimientos registrados."}
+      </EmptyTitle>
+      <EmptyDescription>
+        {hasActiveFilters
+          ? "Ajusta o limpia los filtros para ver más resultados."
+          : "Cada entrada, venta, consumo o ajuste de stock quedará registrado aquí."}
+      </EmptyDescription>
+    </EmptyHeader>
+    {hasActiveFilters && (
+      <Button variant="outline" size="sm" onClick={onResetFilters}>
+        Limpiar filtros
+      </Button>
+    )}
+  </Empty>
+);
+
+interface LedgerFetcherProps {
+  barbershopId: Barbershop["_id"];
+  cursor: string | null;
+  pageSize: number;
+  filters: MovementFilters;
+  onLoaded: (cursorKey: string, state: PageState) => void;
+  onActorsSeen: (rows: InventoryMovementRow[]) => void;
+}
+
+/** Invisible per-cursor fetcher; reports its page up so one table renders all. */
+const LedgerFetcher: FC<LedgerFetcherProps> = ({
+  barbershopId,
+  cursor,
+  pageSize,
+  filters,
+  onLoaded,
+  onActorsSeen,
+}) => {
+  const { data } = usePaginatedShopMovements(
+    barbershopId,
+    cursor,
+    pageSize,
+    filters,
+  );
+
+  const cursorKey = cursor ?? "first";
+
+  useEffect(() => {
+    if (!data) {
+      return;
+    }
+
+    // oxlint-disable-next-line react-doctor/no-pass-live-state-to-parent, react-doctor/no-prop-callback-in-effect -- invisible per-cursor fetcher by design: each page reports up so one table renders all pages; lifting to useQueries is a follow-up
+    onLoaded(cursorKey, {
+      page: data.page,
+      isDone: data.isDone,
+      continueCursor: data.continueCursor,
+    });
+    // oxlint-disable-next-line react-doctor/no-pass-live-state-to-parent, react-doctor/no-prop-callback-in-effect -- same fetcher: feeds the actor filter options kept by the parent
+    onActorsSeen(data.page);
+  }, [data, cursorKey, onLoaded, onActorsSeen]);
+
+  return null;
+};
+
+interface MovementRowProps {
+  movement: InventoryMovementRow;
+}
+
+const MovementDetail: FC<MovementRowProps> = ({ movement }) => {
+  const salePrice =
+    movement.type === "sale" ? movement.salePriceAtTime : undefined;
+  const hasSalePrice = salePrice !== undefined;
+
+  if (!movement.reason && !hasSalePrice) {
+    return null;
+  }
+
+  return (
+    <p className="text-muted-foreground text-xs">
+      {movement.reason}
+      {movement.reason && hasSalePrice ? " · " : null}
+      {hasSalePrice ? `${formatCurrency(salePrice)} c/u` : null}
+    </p>
+  );
+};
+
+const LedgerRow: FC<MovementRowProps> = ({ movement }) => {
+  const { label, variant } = inventoryMovementTypeData[movement.type];
+  const { sign, tone } = movementDirection(movement.type, movement.quantity);
+  const magnitude = Math.abs(movement.quantity);
+
+  return (
+    <TableRow>
+      <TableCell>
+        <Badge variant={variant}>{label}</Badge>
+      </TableCell>
+      <TableCell>
+        <p className="font-medium">{movement.itemName}</p>
+        <MovementDetail movement={movement} />
+      </TableCell>
+      <TableCell className="text-right font-mono font-semibold text-sm tabular-nums">
+        <span className={movementToneClass[tone]}>
+          {sign}
+          {magnitude}
+        </span>
+      </TableCell>
+      <TableCell className="text-right font-mono font-semibold text-muted-foreground text-sm tabular-nums">
+        {movement.balanceAfter}
+      </TableCell>
+      <TableCell className="text-muted-foreground text-sm">
+        {movement.actorName ?? "Automático"}
+      </TableCell>
+      <TableCell className="text-right font-mono text-muted-foreground text-xs tabular-nums">
+        {movementDateTimeFormatter.format(movement._creationTime)}
+      </TableCell>
+    </TableRow>
+  );
+};
+
+const LedgerCard: FC<MovementRowProps> = ({ movement }) => {
+  const { label, variant } = inventoryMovementTypeData[movement.type];
+  const { sign, tone } = movementDirection(movement.type, movement.quantity);
+  const magnitude = Math.abs(movement.quantity);
+
+  return (
+    <div className="space-y-1.5 p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <Badge variant={variant}>{label}</Badge>
+          <span className="truncate font-medium text-sm">
+            {movement.itemName}
+          </span>
+        </div>
+        <span
+          className={cn(
+            "shrink-0 font-mono text-sm tabular-nums",
+            movementToneClass[tone],
+          )}
+        >
+          {sign}
+          {magnitude}
+        </span>
+      </div>
+
+      <MovementDetail movement={movement} />
+
+      <p className="text-muted-foreground text-xs">
+        <span className="font-mono tabular-nums">
+          {movementDateTimeFormatter.format(movement._creationTime)}
+        </span>
+        {" · "}
+        {movement.actorName ?? "Automático"}
+        {" · Saldo "}
+        <span className="font-mono tabular-nums">{movement.balanceAfter}</span>
+      </p>
+    </div>
+  );
 };
 
 interface LedgerBodyProps {
@@ -186,7 +266,7 @@ const LedgerBody: FC<LedgerBodyProps> = ({
   const rows = cursors.flatMap(
     (cursor) => pages[cursor ?? "first"]?.page ?? [],
   );
-  const lastCursor = cursors[cursors.length - 1] ?? "first";
+  const lastCursor = cursors.at(-1) ?? "first";
   const lastPage = pages[lastCursor];
   const isPrimed = pages.first !== undefined;
   const canLoadMore = lastPage !== undefined && !lastPage.isDone;
@@ -266,194 +346,114 @@ const LedgerBody: FC<LedgerBodyProps> = ({
   );
 };
 
-interface LedgerFetcherProps {
+interface MovementLedgerProps {
   barbershopId: Barbershop["_id"];
-  cursor: string | null;
-  pageSize: number;
-  filters: MovementFilters;
-  onLoaded: (cursorKey: string, state: PageState) => void;
-  onActorsSeen: (rows: InventoryMovementRow[]) => void;
+  pageSize?: number;
 }
 
-/** Invisible per-cursor fetcher; reports its page up so one table renders all. */
-const LedgerFetcher: FC<LedgerFetcherProps> = ({
+/**
+ * Filterable, server-paginated audit log for a shop's stock movements. Filters
+ * are pushed into `listShopMovements` (index-backed) rather than trimmed on the
+ * client; changing them resets pagination by remounting `LedgerBody` via key.
+ */
+export const MovementLedger: FC<MovementLedgerProps> = ({
   barbershopId,
-  cursor,
-  pageSize,
-  filters,
-  onLoaded,
-  onActorsSeen,
+  pageSize = 20,
 }) => {
-  const { data } = usePaginatedShopMovements(
-    barbershopId,
-    cursor,
-    pageSize,
-    filters,
+  const [filterState, setFilterState] = useState<MovementFilterState>({
+    datePreset: "all",
+  });
+  const [actors, setActors] = useState<Map<string, string>>(new Map());
+  // Date presets anchor to the moment the filters last changed.
+  const [filtersChangedAt, setFiltersChangedAt] = useState(() => Date.now());
+
+  const { data: overview } = useQuery(
+    inventoryOverviewQueryOptions(barbershopId),
   );
 
-  const cursorKey = cursor ?? "first";
+  const products = useMemo<FilterOption<InventoryItem["_id"]>[]>(() => {
+    const options = (overview?.rows ?? []).map((row) => ({
+      id: row._id,
+      name: row.name,
+    }));
+    options.sort((a, b) => a.name.localeCompare(b.name, "es"));
+    return options;
+  }, [overview]);
 
-  useEffect(() => {
-    if (!data) {
-      return;
-    }
+  const actorOptions = useMemo<FilterOption[]>(() => {
+    const options = Array.from(actors, ([id, name]) => ({ id, name }));
+    options.sort((a, b) => a.name.localeCompare(b.name, "es"));
+    return options;
+  }, [actors]);
 
-    onLoaded(cursorKey, {
-      page: data.page,
-      isDone: data.isDone,
-      continueCursor: data.continueCursor,
+  const serverFilters = useMemo<MovementFilters>(
+    () => ({
+      type: filterState.type,
+      itemId: filterState.itemId,
+      actorUserId: filterState.actorUserId,
+      startTime: datePresetToStart(filterState.datePreset, filtersChangedAt),
+    }),
+    [filterState, filtersChangedAt],
+  );
+
+  const hasActiveFilters =
+    filterState.type !== undefined ||
+    filterState.itemId !== undefined ||
+    filterState.actorUserId !== undefined ||
+    filterState.datePreset !== "all";
+
+  const handleChange = useCallback((patch: Partial<MovementFilterState>) => {
+    setFilterState((prev) => ({ ...prev, ...patch }));
+    setFiltersChangedAt(Date.now());
+  }, []);
+
+  const handleReset = useCallback(() => {
+    setFilterState({ datePreset: "all" });
+    setFiltersChangedAt(Date.now());
+  }, []);
+
+  // Actor options accumulate across every page/filter and never reset, so the
+  // dropdown stays populated as the operator narrows the ledger.
+  const handleActorsSeen = useCallback((rows: InventoryMovementRow[]) => {
+    setActors((prev) => {
+      const unseen: Array<[string, string]> = [];
+
+      for (const row of rows) {
+        if (row.actorName && !prev.has(row.actorUserId)) {
+          unseen.push([row.actorUserId, row.actorName]);
+        }
+      }
+
+      return unseen.length === 0 ? prev : new Map([...prev, ...unseen]);
     });
-    onActorsSeen(data.page);
-  }, [data, cursorKey, onLoaded, onActorsSeen]);
+  }, []);
 
-  return null;
-};
-
-interface MovementRowProps {
-  movement: InventoryMovementRow;
-}
-
-const LedgerRow: FC<MovementRowProps> = ({ movement }) => {
-  const { label, variant } = inventoryMovementTypeData[movement.type];
-  const { sign, tone } = movementDirection(movement.type, movement.quantity);
-  const magnitude = Math.abs(movement.quantity);
+  const sig = `${barbershopId}|${serverFilters.type ?? ""}|${
+    serverFilters.itemId ?? ""
+  }|${serverFilters.actorUserId ?? ""}|${serverFilters.startTime ?? ""}`;
 
   return (
-    <TableRow>
-      <TableCell>
-        <Badge variant={variant}>{label}</Badge>
-      </TableCell>
-      <TableCell>
-        <p className="font-medium">{movement.itemName}</p>
-        <MovementDetail movement={movement} />
-      </TableCell>
-      <TableCell
-        className={cn(
-          "text-right font-mono font-semibold text-sm tabular-nums",
-          movementToneClass[tone],
-        )}
-      >
-        {sign}
-        {magnitude}
-      </TableCell>
-      <TableCell className="text-right font-mono font-semibold text-muted-foreground text-sm tabular-nums">
-        {movement.balanceAfter}
-      </TableCell>
-      <TableCell className="text-muted-foreground text-sm">
-        {movement.actorName ?? "Automático"}
-      </TableCell>
-      <TableCell className="text-right font-mono text-muted-foreground text-xs tabular-nums">
-        {movementDateTimeFormatter.format(movement._creationTime)}
-      </TableCell>
-    </TableRow>
-  );
-};
-
-const LedgerCard: FC<MovementRowProps> = ({ movement }) => {
-  const { label, variant } = inventoryMovementTypeData[movement.type];
-  const { sign, tone } = movementDirection(movement.type, movement.quantity);
-  const magnitude = Math.abs(movement.quantity);
-
-  return (
-    <div className="space-y-1.5 p-4">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <Badge variant={variant}>{label}</Badge>
-          <span className="truncate font-medium text-sm">
-            {movement.itemName}
-          </span>
-        </div>
-        <span
-          className={cn(
-            "shrink-0 font-mono text-sm tabular-nums",
-            movementToneClass[tone],
-          )}
-        >
-          {sign}
-          {magnitude}
-        </span>
+    <div className="overflow-hidden rounded-xl border bg-card">
+      <div className="border-b p-4">
+        <MovementFilterBar
+          filters={filterState}
+          onChange={handleChange}
+          onReset={handleReset}
+          products={products}
+          actors={actorOptions}
+          hasActiveFilters={hasActiveFilters}
+        />
       </div>
 
-      <MovementDetail movement={movement} />
-
-      <p className="text-muted-foreground text-xs">
-        <span className="font-mono tabular-nums">
-          {movementDateTimeFormatter.format(movement._creationTime)}
-        </span>
-        {" · "}
-        {movement.actorName ?? "Automático"}
-        {" · Saldo "}
-        <span className="font-mono tabular-nums">{movement.balanceAfter}</span>
-      </p>
+      <LedgerBody
+        key={sig}
+        barbershopId={barbershopId}
+        pageSize={pageSize}
+        filters={serverFilters}
+        hasActiveFilters={hasActiveFilters}
+        onResetFilters={handleReset}
+        onActorsSeen={handleActorsSeen}
+      />
     </div>
   );
 };
-
-const MovementDetail: FC<MovementRowProps> = ({ movement }) => {
-  const hasSalePrice =
-    movement.type === "sale" && typeof movement.salePriceAtTime === "number";
-
-  if (!movement.reason && !hasSalePrice) {
-    return null;
-  }
-
-  return (
-    <p className="text-muted-foreground text-xs">
-      {movement.reason}
-      {movement.reason && hasSalePrice ? " · " : null}
-      {hasSalePrice
-        ? `${formatCurrency(movement.salePriceAtTime as number)} c/u`
-        : null}
-    </p>
-  );
-};
-
-const LedgerSkeleton: FC = () => (
-  <div className="divide-y">
-    {Array.from({ length: 6 }, (_, index) => (
-      <div
-        key={`ledger-skeleton-${index}`}
-        className="flex items-center justify-between gap-4 p-4"
-      >
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <div className="h-5 w-16 animate-pulse rounded-full bg-muted" />
-          <div className="h-4 w-40 animate-pulse rounded bg-muted" />
-        </div>
-        <div className="h-4 w-10 animate-pulse rounded bg-muted" />
-      </div>
-    ))}
-  </div>
-);
-
-interface LedgerEmptyProps {
-  hasActiveFilters: boolean;
-  onResetFilters: () => void;
-}
-
-const LedgerEmpty: FC<LedgerEmptyProps> = ({
-  hasActiveFilters,
-  onResetFilters,
-}) => (
-  <Empty className="py-12">
-    <EmptyHeader>
-      <EmptyMedia variant="icon">
-        <StackIcon />
-      </EmptyMedia>
-      <EmptyTitle>
-        {hasActiveFilters
-          ? "Ningún movimiento coincide con los filtros."
-          : "Aún no hay movimientos registrados."}
-      </EmptyTitle>
-      <EmptyDescription>
-        {hasActiveFilters
-          ? "Ajusta o limpia los filtros para ver más resultados."
-          : "Cada entrada, venta, consumo o ajuste de stock quedará registrado aquí."}
-      </EmptyDescription>
-    </EmptyHeader>
-    {hasActiveFilters && (
-      <Button variant="outline" size="sm" onClick={onResetFilters}>
-        Limpiar filtros
-      </Button>
-    )}
-  </Empty>
-);

@@ -64,6 +64,7 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
     minute: "2-digit",
   });
 
+  // oxlint-disable-next-line react/purity -- a render-time snapshot is enough here: it only gates the reschedule button, and the card re-renders on every data change.
   const isPastDate = Date.now() > appointment.date;
 
   const disableReschedule =
@@ -109,7 +110,9 @@ export const AppointmentCard: FC<AppointmentCardProps> = ({
           </p>
         )}
         <p className="text-pretty text-muted-foreground text-sm">
-          {appointment.notes || "No hay notas"}
+          {appointment.notes === undefined || appointment.notes === ""
+            ? "No hay notas"
+            : appointment.notes}
         </p>
       </CardContent>
       <CardFooter className="flex w-full items-center justify-end gap-2">

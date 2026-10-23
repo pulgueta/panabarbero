@@ -35,9 +35,10 @@ export const Route = createFileRoute(
         throw redirect({ to: "/profile/barbershops/appointments" });
       }
 
-      await opts.context.queryClient.ensureQueryData(
-        barbershopByOwnerIdQueryOptions(userId),
-      );
+      await opts.context.queryClient.query({
+        ...barbershopByOwnerIdQueryOptions(userId),
+        staleTime: "static",
+      });
     }
   },
 });

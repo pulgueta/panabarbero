@@ -6,7 +6,7 @@ import { z } from "zod";
 import { zodTable } from ".";
 import { inventorySalePaymentMethods } from "./inventorySalesShared";
 
-export { inventorySalePaymentMethods };
+export { inventorySalePaymentMethods } from "./inventorySalesShared";
 
 export const userProfileData = zodTable("userProfileData", () => ({
   userId: z.string(),
@@ -15,12 +15,15 @@ export const userProfileData = zodTable("userProfileData", () => ({
   /** R2 profile photo URL. App-level only — WorkOS users can't store pictures via API. */
   image: z.string().optional(),
   phoneNumber: z.string().optional(),
+  /** WhatsApp is the only user-facing channel (email/SMS = silent fallback). */
   notificationsPreferences: z.array(
     z.object({
-      type: z.enum(["email", "sms"]),
+      type: z.literal("whatsapp"),
       enabled: z.boolean(),
     }),
   ),
+  /** When the user opted in to WhatsApp notices. Absent = never opted in. */
+  whatsappOptedInAt: z.number().optional(),
 }));
 
 export const barbershops = zodTable("barbershops", (id) => ({
@@ -250,6 +253,8 @@ export const appointments = zodTable("appointments", (id) => ({
    * after the author deletes theirs.
    */
   reviewedAt: z.number().optional(),
+  /** Stamped once when the customer taps "Voy en camino" on the WhatsApp reminder. */
+  customerOnMyWayAt: z.number().optional(),
   /**
    * Service price + name snapshotted when this appointment is marked completed,
    * so the analytics breakdown survives later service edits/deletion (services
@@ -280,51 +285,51 @@ export const barbershopMemberServices = zodTable(
   }),
 );
 
+/**
+ * Processed-marker for inbound WhatsApp messages. The component inserts a new
+ * `messages` row per webhook delivery, so retries are deduped on Meta's
+ * message id — the first insert wins and later invocations return early
+ * (idempotency). Purged after 30 days (`whatsapp.purgeInboundMarkers`).
+ */
+export const whatsappInboundMessages = zodTable(
+  "whatsappInboundMessages",
+  () => ({
+    /**
+     * Meta message id (`waMessageId`); the component `messages` doc id only
+     * when Meta's id is missing. Rows before this change hold the doc id.
+     */
+    messageId: z.string(),
+  }),
+);
+
 export const usage = zodTable("usage", (id) => ({
   barbershopId: id("barbershops"),
   month: z.string(),
   smsSent: z.number(),
   emailsSent: z.number(),
+  /** Optional: rows created before the WhatsApp channel lack the key. */
+  whatsappMessagesSent: z.number().optional(),
 }));
 
 /**
- * Remaining purchased credits per barbershop.
- * One row per barbershop — upserted when credits are purchased,
- * decremented when plan quota is exceeded and extra credits are consumed.
+ * Remaining purchased WhatsApp credits per barbershop (the only credit sold).
+ * One row per barbershop — upserted when credits are purchased, decremented
+ * when the plan allowance is exceeded and extra credits are consumed.
  */
 export const extraCredits = zodTable("extraCredits", (id) => ({
   barbershopId: id("barbershops"),
-  smsCredits: z.number(),
-  emailCredits: z.number(),
-  /** Purchased SMS credits still backed by non-refunded payments. */
-  smsPurchasedTotal: z.number(),
-  /** Purchased email credits still backed by non-refunded payments. */
-  emailPurchasedTotal: z.number(),
+  whatsappCredits: z.number(),
+  /** Purchased WhatsApp credits still backed by non-refunded payments. */
+  whatsappPurchasedTotal: z.number(),
 }));
 
-/**
- * One row per paid Polar credit order (dedupe key: `orderId`). Rows from the
- * retired MercadoPago flow keep their original fields; drop the legacy
- * optionals after clearing those rows.
- */
+/** One row per paid Polar credit order (dedupe key: `orderId`). */
 export const creditPurchases = zodTable("creditPurchases", (id) => ({
-  /** Polar order id. Absent only on legacy MercadoPago rows. */
-  orderId: z.string().optional(),
+  orderId: z.string(),
   barbershopId: id("barbershops"),
-  type: z.enum(["sms", "email"]),
+  type: z.literal("whatsapp"),
   amount: z.number(),
-  purchasedAt: z.number().optional(),
-  // Legacy MercadoPago-era fields (historical rows only).
-  paymentId: z.string().optional(),
-  checkoutReference: z.string().optional(),
-  status: z.string().optional(),
-  statusDetail: z.string().optional(),
-  refundedAmount: z.number().optional(),
-  granted: z.boolean().optional(),
-  reversedCredits: z.number().optional(),
-  refundedCredits: z.number().optional(),
-  remoteUpdatedAt: z.number().optional(),
-  updatedAt: z.number().optional(),
+  purchasedAt: z.number(),
 }));
 
 export const notificationKinds = [
@@ -336,6 +341,8 @@ export const notificationKinds = [
   "appointment_reschedule_denied",
   "appointment_reminder",
   "past_appointment_reminder",
+  "customer_on_my_way",
+  "appointment_reassigned",
   "team_invited",
   "barber_removed_cancellation",
   "service_deleted_cancellation",
@@ -401,7 +408,9 @@ export const inventoryEquipmentCategories = ["machine", "tool"] as const;
 export function isEquipmentCategory(
   category: (typeof inventoryCategories)[number],
 ): boolean {
-  return (inventoryEquipmentCategories as readonly string[]).includes(category);
+  return inventoryEquipmentCategories.some(
+    (equipmentCategory) => equipmentCategory === category,
+  );
 }
 
 export const inventoryStockBehaviors = ["consumable", "durable"] as const;
@@ -504,6 +513,11 @@ export const inventoryLevels = zodTable("inventoryLevels", (id) => ({
   belowReorder: z.boolean(),
   /** Alert hysteresis: stamped on the downward crossing, cleared on recovery. */
   lowStockAlertedAt: z.number().optional(),
+  /**
+   * "Ya hice el pedido" WhatsApp ack — set only while `lowStockAlertedAt`
+   * matches the acked alert; cleared with it on recovery.
+   */
+  lowStockAckedAt: z.number().optional(),
 }));
 
 /**
@@ -733,6 +747,10 @@ export default defineSchema({
     .index("by_serviceId", ["serviceId"]),
 
   usage: usage.table().index("by_barbershop_month", ["barbershopId", "month"]),
+
+  whatsappInboundMessages: whatsappInboundMessages
+    .table()
+    .index("by_messageId", ["messageId"]),
 
   extraCredits: extraCredits.table().index("by_barbershopId", ["barbershopId"]),
 

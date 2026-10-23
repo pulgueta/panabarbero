@@ -115,8 +115,8 @@ export const Route = createFileRoute("/barbershops/")({
     // Primary content: the grid blocks on the barbershop list. Every filter is
     // part of the query args, so each combination gets its own Convex cache
     // entry and toggling filters back resolves from cache with no delay.
-    await opts.context.queryClient.ensureQueryData(
-      activeBarbershopsQueryOptions({
+    await opts.context.queryClient.query({
+      ...activeBarbershopsQueryOptions({
         city: opts.deps.city,
         state: opts.deps.state,
         userId: opts.context.userId ?? undefined,
@@ -124,7 +124,8 @@ export const Route = createFileRoute("/barbershops/")({
         minReviews: opts.deps.reviews,
         sortBy: opts.deps.sort,
       }),
-    );
+      staleTime: "static",
+    });
   },
   head: () => {
     const persisted = useLocationStore.getState();
@@ -261,8 +262,8 @@ function BarbershopsPage() {
     minReviews: search.reviews ?? 0,
   };
 
-  const setFilters = (next: BarbershopRatingFilters) =>
-    navigate({
+  const setFilters = (next: BarbershopRatingFilters) => {
+    void navigate({
       search: (prev) => ({
         ...prev,
         rating: next.minRating > 0 ? next.minRating : undefined,
@@ -271,9 +272,10 @@ function BarbershopsPage() {
       replace: true,
       resetScroll: false,
     });
+  };
 
-  const setSort = (next: BarbershopSort) =>
-    navigate({
+  const setSort = (next: BarbershopSort) => {
+    void navigate({
       search: (prev) => ({
         ...prev,
         sort: next === DEFAULT_BARBERSHOP_SORT ? undefined : next,
@@ -281,6 +283,7 @@ function BarbershopsPage() {
       replace: true,
       resetScroll: false,
     });
+  };
 
   return (
     <BorderContainer>

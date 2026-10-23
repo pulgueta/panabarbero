@@ -19,9 +19,9 @@ const PricingCards = lazy(() =>
   })),
 );
 
-const ExtraCreditsCards = lazy(() =>
-  import("@/components/profile/extra-credits-cards").then((module) => ({
-    default: module.ExtraCreditsCards,
+const WhatsAppCreditsCard = lazy(() =>
+  import("@/components/profile/whatsapp-credits-card").then((module) => ({
+    default: module.WhatsAppCreditsCard,
   })),
 );
 
@@ -48,7 +48,7 @@ export const PlansTab: FC = () => {
           <Suspense
             fallback={<Skeleton className="h-full w-full rounded-xl" />}
           >
-            <ExtraCreditsCards barbershopId={barbershop._id} />
+            <WhatsAppCreditsCard barbershopId={barbershop._id} />
           </Suspense>
         )}
       </div>

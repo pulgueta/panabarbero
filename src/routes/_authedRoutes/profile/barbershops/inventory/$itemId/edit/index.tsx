@@ -1,6 +1,5 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: route loader gates and primes the item data */
+/* oxlint-disable typescript/no-non-null-assertion -- route loader gates and primes the item data */
 
-import type { InventoryItem } from "@convex/schema";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import type { FC } from "react";
 
@@ -45,10 +44,10 @@ export const Route = createFileRoute(
   staticData: { breadcrumb: "Editar producto" },
   staleTime: cacheTime.low,
   gcTime: cacheTime.medium,
+  // oxlint-disable-next-line react-doctor/tanstack-start-loader-parallel-fetch -- the plan gate must redirect before getInventoryOverview runs
   loader: async ({ context, params }) => {
     const barbershop = context.dashboardBarbershop;
     const roles = context.dashboardRoles;
-    const itemId = params.itemId as InventoryItem["_id"];
 
     if (!barbershop?._id || (!roles?.isOwner && !roles?.isStaff)) {
       throw redirect({ to: "/profile/barbershops/inventory" });
@@ -56,19 +55,21 @@ export const Route = createFileRoute(
 
     // Plan gate first: getInventoryOverview throws for inventory-disabled
     // plans, so it must not be fetched before the redirect check.
-    const plan = await context.queryClient.ensureQueryData(
-      getBarbershopPlanQueryOptions(barbershop._id),
-    );
+    const plan = await context.queryClient.query({
+      ...getBarbershopPlanQueryOptions(barbershop._id),
+      staleTime: "static",
+    });
 
     if (!plan?.planLimits.inventoryEnabled) {
       throw redirect({ to: "/profile/barbershops/inventory" });
     }
 
-    const overview = await context.queryClient.ensureQueryData(
-      inventoryOverviewQueryOptions(barbershop._id),
-    );
+    const overview = await context.queryClient.query({
+      ...inventoryOverviewQueryOptions(barbershop._id),
+      staleTime: "static",
+    });
 
-    const item = overview.rows.find((row) => row._id === itemId);
+    const item = overview.rows.find((row) => row._id === params.itemId);
 
     if (!item) {
       throw redirect({ to: "/profile/barbershops/inventory" });
@@ -78,12 +79,11 @@ export const Route = createFileRoute(
 
 function RouteComponent() {
   const { itemId } = Route.useParams();
-  const typedItemId = itemId as InventoryItem["_id"];
   const { data: user } = useSession();
   const userId = user?.id ?? "";
   const { data: barbershop } = useBarbershopByMemberUserId(userId);
   const { data: overview } = useInventoryOverview(barbershop?._id!);
-  const item = overview.rows.find((row) => row._id === typedItemId);
+  const item = overview.rows.find((row) => row._id === itemId);
 
   if (!barbershop?._id || !item) {
     return null;

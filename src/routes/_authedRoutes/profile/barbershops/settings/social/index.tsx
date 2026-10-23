@@ -43,9 +43,10 @@ export const Route = createFileRoute(
     }
 
     if (barbershop?._id) {
-      await opts.context.queryClient.ensureQueryData(
-        barbershopMetadataQueryOptions(barbershop._id),
-      );
+      await opts.context.queryClient.query({
+        ...barbershopMetadataQueryOptions(barbershop._id),
+        staleTime: "static",
+      });
     }
   },
 });

@@ -9,16 +9,19 @@ import {
 import { DataTableColumnHeader } from "@/components/table/data-table-column-header";
 import { facetedFilterFn } from "@/components/table/data-table-faceted-filter";
 import { DataTableRowActions } from "@/components/table/data-table-row-actions";
-import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
+import type { BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { InventoryOverviewRow } from "@/hooks/use-inventory";
 import { getLogoUrl } from "@/hooks/use-upload";
 import { formatCurrency } from "@/lib/utils";
 
-function getStockStatus(row: InventoryOverviewRow): {
+interface StockStatus {
   label: string;
   variant: BadgeProps["variant"];
-} {
+}
+
+function getStockStatus(row: InventoryOverviewRow): StockStatus {
   if (row.onHand <= 0) {
     return { label: "Agotado", variant: "destructive" };
   }
@@ -40,14 +43,14 @@ export const inventoryCategoryOptions = Object.entries(
 ).map(([value, label]) => ({ value, label }));
 
 /** Human labels for the column-visibility menu. */
-export const inventoryColumnLabels: Record<string, string> = {
+export const inventoryColumnLabels = {
   name: "Nombre",
   category: "Categoría",
   status: "Estado",
   onHand: "Stock",
   unitCost: "Costo",
   value: "Valor",
-};
+} satisfies Record<string, string>;
 
 interface InventoryTableColumnsOpts {
   canManage: boolean;

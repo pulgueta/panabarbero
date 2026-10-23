@@ -12,15 +12,16 @@ export type UserTheme = "light" | "dark" | "system";
 export type AppTheme = "light" | "dark";
 
 const themeStorageKey = "ui-theme";
-const themes: UserTheme[] = ["light", "dark", "system"];
+
+function isUserTheme(value: string): value is UserTheme {
+  return value === "light" || value === "dark" || value === "system";
+}
 
 function getStoredUserTheme(): UserTheme {
   if (typeof window === "undefined") return "system";
   try {
     const stored = localStorage.getItem(themeStorageKey);
-    return stored && themes.includes(stored as UserTheme)
-      ? (stored as UserTheme)
-      : "system";
+    return stored !== null && isUserTheme(stored) ? stored : "system";
   } catch {
     return "system";
   }
@@ -30,7 +31,9 @@ function setStoredTheme(theme: UserTheme): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(themeStorageKey, theme);
-  } catch {}
+  } catch {
+    // Storage can be blocked (private mode); the theme still applies now.
+  }
 }
 
 function getSystemTheme(): AppTheme {
@@ -99,11 +102,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [userTheme]);
 
   useEffect(() => {
-    if (userTheme !== "system") return;
-
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = () => handleThemeChange("system");
-    mediaQuery.addEventListener("change", handler);
+    if (userTheme === "system") {
+      mediaQuery.addEventListener("change", handler);
+    }
     return () => mediaQuery.removeEventListener("change", handler);
   }, [userTheme]);
 

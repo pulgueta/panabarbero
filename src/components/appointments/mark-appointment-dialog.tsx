@@ -22,6 +22,12 @@ import { useAppointmentActions } from "@/hooks/use-appointments";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 import { cn, formatCurrency } from "@/lib/utils";
 
+type MarkStatus = "completed" | "no-show";
+
+function isMarkStatus(value: unknown): value is MarkStatus {
+  return value === "completed" || value === "no-show";
+}
+
 interface MarkAppointmentDialogProps {
   trigger: ReactElement;
   appointment: Appointment;
@@ -32,7 +38,7 @@ export const MarkAppointmentDialog: FC<MarkAppointmentDialogProps> = ({
   appointment,
 }) => {
   const [open, setOpen] = useState<boolean>(false);
-  const [status, setStatus] = useState<"completed" | "no-show">("completed");
+  const [status, setStatus] = useState<MarkStatus>("completed");
   const [finalPrices, setFinalPrices] = useState<Record<string, string>>({});
   const formId = useId();
   const formIds = {
@@ -93,10 +99,10 @@ export const MarkAppointmentDialog: FC<MarkAppointmentDialogProps> = ({
           : undefined,
       });
 
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Cita marcada correctamente.");
     } catch (error) {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
     }
   };
@@ -112,12 +118,18 @@ export const MarkAppointmentDialog: FC<MarkAppointmentDialogProps> = ({
           </ResponsiveModalDescription>
         </ResponsiveModalHeader>
 
-        <form id={formId} className="flex flex-col gap-4" onSubmit={onSubmit}>
+        <form
+          id={formId}
+          className="flex flex-col gap-4"
+          onSubmit={(e) => {
+            void onSubmit(e);
+          }}
+        >
           <RadioGroup
             value={status}
-            onValueChange={(value) =>
-              setStatus(value as "completed" | "no-show")
-            }
+            onValueChange={(value) => {
+              if (isMarkStatus(value)) setStatus(value);
+            }}
             name="status"
           >
             <div className="flex items-center gap-3">
@@ -134,7 +146,7 @@ export const MarkAppointmentDialog: FC<MarkAppointmentDialogProps> = ({
             <div className="flex flex-col gap-3">
               <p className="text-muted-foreground text-sm">
                 Registra el precio final acordado para los servicios con precio
-                "desde".
+                &quot;desde&quot;.
               </p>
               {startingLines.map((line) => {
                 const invalid = !isLineValid(line);

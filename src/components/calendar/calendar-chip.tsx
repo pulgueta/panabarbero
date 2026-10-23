@@ -107,8 +107,10 @@ function useCalendarChip<TData = unknown>(): CalendarChipContextValue<TData> {
   return ctx as CalendarChipContextValue<TData>;
 }
 
-interface CalendarChipProps<TData = unknown>
-  extends Omit<useRender.ComponentProps<"button">, "children"> {
+interface CalendarChipProps<TData = unknown> extends Omit<
+  useRender.ComponentProps<"button">,
+  "children"
+> {
   segment: CalendarSegment<TData>;
   /** Replaces the default chip CONTENT; the wrapper stays calendar-owned. */
   children?: ReactNode;

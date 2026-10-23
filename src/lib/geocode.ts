@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import { colombia } from "@/config/colombia";
 import type { GeoCoords } from "@/hooks/use-geolocation";
 
@@ -10,7 +12,7 @@ export interface ReverseGeocodeResult {
 const normalize = (value: string) =>
   value
     .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
+    .replaceAll(/\p{Diacritic}/gu, "")
     .toLowerCase()
     .trim();
 
@@ -73,6 +75,13 @@ export function matchColombia(
   return findCityAcrossDepartments(normalizedCity);
 }
 
+const reverseGeocodeResponseSchema = z.object({
+  countryCode: z.string().nullish(),
+  principalSubdivision: z.string().nullish(),
+  city: z.string().nullish(),
+  locality: z.string().nullish(),
+});
+
 /**
  * Keyless client-side reverse geocode (BigDataCloud) normalized against the
  * canonical Colombia dataset. Returns `null` outside Colombia or on failure;
@@ -88,12 +97,7 @@ export async function reverseGeocode(
     );
     if (!response.ok) return null;
 
-    const data = (await response.json()) as {
-      countryCode?: string;
-      principalSubdivision?: string;
-      city?: string;
-      locality?: string;
-    };
+    const data = reverseGeocodeResponseSchema.parse(await response.json());
 
     if (data.countryCode && data.countryCode !== "CO") return null;
 

@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: false positive */
+/* oxlint-disable typescript/no-non-null-assertion -- false positive */
 
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
@@ -17,7 +17,10 @@ import { cascadeDeleteBarbershop } from "./barbershopCascade";
 import { errorMessages } from "./errors";
 import { rateLimitOrThrow } from "./ratelimit";
 import { barbershops } from "./schema";
-import { getProfileByUserId } from "./userProfileData";
+import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  getProfileByUserId,
+} from "./userProfileData";
 import { formatPhoneNumber } from "./utils";
 
 export const create = zAuthMutation({
@@ -84,10 +87,8 @@ export const create = zAuthMutation({
         name:
           [authUser.firstName, authUser.lastName].filter(Boolean).join(" ") ||
           undefined,
-        notificationsPreferences: [
-          { type: "email", enabled: true },
-          { type: "sms", enabled: false },
-        ],
+        notificationsPreferences: DEFAULT_NOTIFICATION_PREFERENCES,
+        whatsappOptedInAt: Date.now(),
       });
 
       userProfile = await ctx.db.get(profileId);
@@ -157,19 +158,19 @@ export const setWorkosOrganizationId = zInternalMutation({
 
 export const get = zQuery({
   handler: async (ctx) => {
-    const barbershops = await ctx.db.query("barbershops").collect();
+    const allShops = await ctx.db.query("barbershops").collect();
 
     const allServices = await Promise.all(
-      barbershops.map((barbershop) =>
+      allShops.map((barbershop) =>
         ctx.runQuery(api.barbershops.getServices, { id: barbershop._id }),
       ),
     );
 
-    for (let i = 0; i < barbershops.length; i++) {
-      barbershops[i].services = allServices[i].map((service) => service._id);
+    for (let i = 0; i < allShops.length; i++) {
+      allShops[i].services = allServices[i].map((service) => service._id);
     }
 
-    return barbershops;
+    return allShops;
   },
 });
 
@@ -198,12 +199,12 @@ export const getActive = zQuery({
       .order("asc")
       .collect();
 
-    const barbershops = args.userId
+    const visibleShops = args.userId
       ? rows.filter((barbershop) => barbershop.ownerId !== args.userId)
       : rows;
 
     const withRatings = await Promise.all(
-      barbershops.map(async (barbershop) => {
+      visibleShops.map(async (barbershop) => {
         // Read services directly off the index rather than `ctx.runQuery` — a
         // cross-function call spins a fresh sub-transaction per row, which is the
         // real fan-out cost here. Ratings stay on the aggregate
@@ -243,7 +244,10 @@ export const getActive = zQuery({
       name: (a, b) => a.name.localeCompare(b.name, "es"),
     };
 
-    return filtered.sort(sorters[args.sortBy ?? "rating"]);
+    // `filter` returned a fresh array, so sorting it in place is safe.
+    filtered.sort(sorters[args.sortBy ?? "rating"]);
+
+    return filtered;
   },
 });
 
@@ -366,22 +370,20 @@ export const updateDayAvailability = zAuthMutation({
 
     const idx = shop.availability.findIndex((a) => a.weekDay.day === args.day);
 
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: `openAt`/`closeAt` are optional in the args only; a missing one fails the table's schema validation on the patch below.
     const newEntry = {
       weekDay: { day: args.day, isActive: args.isActive },
       openAt: args.openAt,
       closeAt: args.closeAt,
       lunchStart: args.lunchStart,
       lunchEnd: args.lunchEnd,
-    };
+    } as (typeof shop.availability)[number];
 
-    const newAvailability = shop.availability.slice();
-    if (idx >= 0) {
-      newAvailability[idx] =
-        newEntry as unknown as (typeof shop.availability)[number];
+    const newAvailability = [...shop.availability];
+    if (idx !== -1) {
+      newAvailability[idx] = newEntry;
     } else {
-      newAvailability.push(
-        newEntry as unknown as (typeof shop.availability)[number],
-      );
+      newAvailability.push(newEntry);
     }
 
     const updated = await ctx.db.patch(args.barbershop.id, {
@@ -548,13 +550,13 @@ export const getByIds = zQuery({
     barbershopIds: barbershops.tools.id.array(),
   }),
   handler: async (ctx, args) => {
-    const barbershops = await Promise.all(
+    const shops = await Promise.all(
       args.barbershopIds.map(
         async (barbershopId) => await ctx.db.get(barbershopId.id),
       ),
     );
 
-    return barbershops;
+    return shops;
   },
 });
 
@@ -565,7 +567,7 @@ export const getByName = zQuery({
     city: z.string().optional(),
   }),
   handler: async (ctx, args) => {
-    const barbershops = await ctx.db
+    const matches = await ctx.db
       .query("barbershops")
       .withSearchIndex("by_name_search", (q) =>
         args.state && args.city
@@ -579,7 +581,7 @@ export const getByName = zQuery({
       .take(50);
 
     await Promise.all(
-      barbershops.map(async (barbershop) => {
+      matches.map(async (barbershop) => {
         const services = await ctx.runQuery(api.barbershops.getServices, {
           id: barbershop._id,
         });
@@ -588,7 +590,7 @@ export const getByName = zQuery({
       }),
     );
 
-    return barbershops;
+    return matches;
   },
 });
 
