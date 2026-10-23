@@ -29,7 +29,7 @@ describe("WhatsApp action-id codec", () => {
     expect(id).toBe(
       "appointment-reschedule:customer:accept:appt_123:1783717200000",
     );
-    expect(parseWhatsAppActionId(id)).toEqual({
+    expect(parseWhatsAppActionId(id)).toStrictEqual({
       type: "appointment-reschedule",
       role: "customer",
       action: "accept",
@@ -45,7 +45,7 @@ describe("WhatsApp action-id codec", () => {
     });
 
     expect(id).toBe("inventory-ack:level_9:1783717200000");
-    expect(parseWhatsAppActionId(id)).toEqual({
+    expect(parseWhatsAppActionId(id)).toStrictEqual({
       type: "inventory-ack",
       levelId: "level_9",
       alertedAt: 1783717200000,
@@ -57,7 +57,7 @@ describe("WhatsApp action-id codec", () => {
       parseWhatsAppActionId(
         buildOnMyWayActionId({ appointmentId: "a1", date: 7 }),
       ),
-    ).toEqual({ type: "appointment-omw", appointmentId: "a1", date: 7 });
+    ).toStrictEqual({ type: "appointment-omw", appointmentId: "a1", date: 7 });
 
     expect(
       parseWhatsAppActionId(
@@ -67,7 +67,7 @@ describe("WhatsApp action-id codec", () => {
           date: 5,
         }),
       ),
-    ).toEqual({
+    ).toStrictEqual({
       type: "appointment-closeout",
       action: "no-show",
       appointmentId: "a1",
@@ -78,13 +78,13 @@ describe("WhatsApp action-id codec", () => {
   it("round-trips review invite and rating ids", () => {
     expect(
       parseWhatsAppActionId(buildReviewInviteActionId({ appointmentId: "a1" })),
-    ).toEqual({ type: "review-invite", appointmentId: "a1" });
+    ).toStrictEqual({ type: "review-invite", appointmentId: "a1" });
 
     expect(
       parseWhatsAppActionId(
         buildReviewRateActionId({ appointmentId: "a1", rating: 5 }),
       ),
-    ).toEqual({ type: "review-rate", appointmentId: "a1", rating: 5 });
+    ).toStrictEqual({ type: "review-rate", appointmentId: "a1", rating: 5 });
   });
 
   it("rejects malformed or unsupported action ids", () => {
@@ -202,7 +202,7 @@ describe("template builders", () => {
     });
 
     expect(send.name).toBe("appointment_reschedule_request_barber");
-    expect(send.components[0]).toEqual({
+    expect(send.components[0]).toStrictEqual({
       type: "body",
       parameters: [
         { type: "text", text: "Nico" },
@@ -213,7 +213,7 @@ describe("template builders", () => {
         { type: "text", text: "4:00 p. m." },
       ],
     });
-    expect(send.components[1]).toEqual({
+    expect(send.components[1]).toStrictEqual({
       type: "button",
       sub_type: "quick_reply",
       index: "1",
@@ -224,7 +224,7 @@ describe("template builders", () => {
         },
       ],
     });
-    expect(send.components[2]).toEqual({
+    expect(send.components[2]).toStrictEqual({
       type: "button",
       sub_type: "quick_reply",
       index: "2",
@@ -244,7 +244,7 @@ describe("template builders", () => {
       reason: "Sin motivo.",
     });
 
-    expect(send.components[0]).toEqual({
+    expect(send.components[0]).toStrictEqual({
       type: "header",
       parameters: [{ type: "text", text: "El Pana" }],
     });
@@ -261,7 +261,7 @@ describe("template builders", () => {
       alertedAt: 77,
     });
 
-    expect(send.components[1]).toEqual({
+    expect(send.components[1]).toStrictEqual({
       type: "button",
       sub_type: "quick_reply",
       index: "1",
@@ -327,7 +327,7 @@ describe("template builders", () => {
       reason: " motivo\tlargo ",
     });
 
-    expect(send.components[1]).toEqual({
+    expect(send.components[1]).toStrictEqual({
       type: "body",
       parameters: [
         { type: "text", text: "Ana María" },
