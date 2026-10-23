@@ -31,6 +31,7 @@ Biome 2.5.8 does the formatting and linting. The other projects of the owner (`v
 - [x] T4 Decide lint finding policy with owner, then apply. Route: delegated writer (2+ non-trivial files); the writer split the fixes into four parallel partition writers on disjoint paths (convex/tests/emails, calendar group, other components, src outside components).
 - [x] T6 Fix review + smoke regressions. Route: delegated writer (2+ non-trivial files; review and browser smoke findings).
 - [x] T5 Open PR against `feat/whatsapp-component`. Evidence: #104 (base `feat/whatsapp-component`); WhatsApp commits pushed to #103 first.
+- [x] T7 CI: `oxc.yaml` used `branches: ["*"]`, which does not match base branches with `/`, so the job never ran on #104. Changed to `"**"`, added `--format github`, pinned every action to its latest release hash (checkout v7.0.1, pnpm/action-setup v6.1.0, setup-node v7.1.0, pullfrog v0.1.101, react-doctor v2.4.0). Route: inline. Evidence: run 39908012096 `oxc` success. Commits: 65f1c406, bb636325. Vercel preview fails on #103 commits too (e096eb36), not from this branch.
 
 ## Progress
 
