@@ -35,24 +35,33 @@ const auditSnapshotSchema = z
   .catch({});
 
 /** `AuditLog.queryByResource` returns `any`, so parse the rows here. */
-const inventoryItemAuditEventsSchema = z.array(
-  z.object({
-    _id: z.string(),
-    action: z.string(),
-    actorId: z.string().optional(),
-    timestamp: z.number(),
-    resourceType: z.string().optional(),
-    resourceId: z.string().optional(),
-    severity: z.enum(["info", "warning", "error", "critical"]),
-    before: auditSnapshotSchema,
-    after: auditSnapshotSchema,
-    diff: z.string().optional(),
-  }),
-);
+const inventoryItemAuditEventSchema = z.object({
+  _id: z.string(),
+  action: z.string(),
+  actorId: z.string().optional(),
+  timestamp: z.number(),
+  resourceType: z.string().optional(),
+  resourceId: z.string().optional(),
+  severity: z.enum(["info", "warning", "error", "critical"]),
+  before: auditSnapshotSchema,
+  after: auditSnapshotSchema,
+  diff: z.string().optional(),
+});
 
 export type InventoryItemAuditEvent = z.infer<
-  typeof inventoryItemAuditEventsSchema
->[number];
+  typeof inventoryItemAuditEventSchema
+>;
+
+/** Skips rows that do not match, so a component schema change cannot blank the history. */
+const inventoryItemAuditEventsSchema = z
+  .array(z.unknown())
+  .catch([])
+  .transform((rows) =>
+    rows.flatMap((row) => {
+      const result = inventoryItemAuditEventSchema.safeParse(row);
+      return result.success ? [result.data] : [];
+    }),
+  );
 
 export function inventoryOverviewQueryOptions(barbershopId: Barbershop["_id"]) {
   return convexQuery(api.inventory.getInventoryOverview, {
