@@ -32,6 +32,7 @@ Biome 2.5.8 does the formatting and linting. The other projects of the owner (`v
 - [x] T6 Fix review + smoke regressions. Route: delegated writer (2+ non-trivial files; review and browser smoke findings).
 - [x] T5 Open PR against `feat/whatsapp-component`. Evidence: #104 (base `feat/whatsapp-component`); WhatsApp commits pushed to #103 first.
 - [x] T7 CI: `oxc.yaml` used `branches: ["*"]`, which does not match base branches with `/`, so the job never ran on #104. Changed to `"**"`, added `--format github`, pinned every action to its latest release hash (checkout v7.0.1, pnpm/action-setup v6.1.0, setup-node v7.1.0, pullfrog v0.1.101, react-doctor v2.4.0). Route: inline. Evidence: run 39908012096 `oxc` success. Commits: 65f1c406, bb636325. Vercel preview fails on #103 commits too (e096eb36), not from this branch.
+- [x] T8 Update dependencies and pnpm. Route: delegated writer (root `package.json`, lockfile, and the call sites that the new versions break). Evidence: see "T8 Dependency update".
 
 ## Progress
 
@@ -173,6 +174,45 @@ Owner policy: turn off style rules that fight the house style, keep correctness,
 - `tsc --noEmit` for `.`, `convex`, `emails`: 0 errors each.
 - `pnpm test`: 19 passed. `pnpm build`: exit 0.
 - Not done: browser re-check of the fixed flows.
+
+## T8 Dependency update
+
+- pnpm 11.22.0 -> 12.15.0 (`packageManager`). The lockfile now has the pnpm 12 `packageManagerDependencies` document. `pnpm/action-setup` v6.1.0 supports pnpm 12 and reads `packageManager`; CI needs no change.
+- `pnpm update --latest` (root only), with the `minimumReleaseAge` gate (1 day). No new `minimumReleaseAgeExclude` entries.
+- Major bumps taken: `@convex-dev/aggregate` 0.2 -> 0.3, `@shadcn/helpers` 0.2 -> 0.3, `@tanstack/react-hotkeys` 0.10 -> 0.16, `@tanstack/react-pacer` 0.23 -> 0.24, `@tanstack/react-pacer-devtools` 0.8 -> 0.9, `motion` 13 -> 14, `vitest` 4 -> 5, `@workos/authkit-tanstack-react-start` 0.11 -> 0.12. No call-site change was necessary for them.
+- Code changes for the new versions:
+  - `@tanstack/react-query` 5.104 deprecates `ensureQueryData`, `prefetchQuery`, `fetchQuery` (`typescript/no-deprecated`, 134 sites). Replaced with `query({ ...opts, staleTime: "static" })`, `query(opts).catch(noop)`, and `query(opts)`; equal behaviour in query-core 5.104.5 (no call site uses `select`). The billing loader uses `Promise.allSettled` for its two streamed queries (`promise/no-nesting`). `ARCHITECTURE.md` lines 50-51 and 213 and `docs/inventory-design.md` still name the old methods (outside this task's edit surface).
+  - `maplibre-gl` 6.15 no longer references the global `GeoJSON` types: added `@types/geojson` and `"geojson"` to `tsconfig.json` `types`.
+  - TanStack Router types `ErrorComponentProps.error` as `unknown`: the catch boundary reads `message` only from an `Error`.
+  - `zod` 4.6 makes `convexToZod(vOnCompleteArgs(...))` hit TS2589: `onModerationComplete` uses `convexToZodFields(...fields)`.
+  - `@polar-sh/sdk` (auto-installed peer of `@convex-dev/polar`) resolved to 1.0.2 and broke the Polar types: `overrides` pins it to 0.49.0 (the previous version).
+- Held back:
+  - `@tanstack/react-table` 8.21.3 (latest 9.3.1): v9 is a full API and reactivity rewrite (11 files, about 110 type errors, React Compiler subscription changes); needs its own task with a browser check.
+  - `ai` 6.x (latest 7.0.x) and `@convex-dev/agent` 0.6.4 (0.7 needs ai 7): ai 7 moves OpenTelemetry to `@ai-sdk/otel` (PostHog AI traces stop without it), makes telemetry opt-out, and changes multi-step result and usage semantics; agent 0.7.8 also fails TS2590 on `new Agent` (fixed upstream in get-convex/agent#414, not released).
+  - `@convex-dev/rate-limiter` 0.3.2 (latest 0.4.2): 0.4 requires `ctx.meta`, which the agent `usageHandler` ctx type does not have; 0.4 only adds the async mode we do not use.
+  - `@convex-dev/workos-authkit` 0.2.8 (latest 0.2.10): 0.2.9 stops reading the WorkOS Events API, so `organization_membership.*` and `user.*` events arrive only if the WorkOS webhook selects them. Check the WorkOS dashboard first, then update and remove `additionalEventTypes`.
+  - `@workos-inc/node` 10.14.0 (latest 11.0.0): authkit packages accept only `^10`.
+  - OpenTelemetry 2.x line: `@opentelemetry/api` ~1.9.1, `resources` 2.12.0, `sdk-trace-base` 2.12.0, `exporter-trace-otlp-http` 0.223.0 (latest 1.10.0 / 3.0.0 / 0.300.0): v3 replaces `sdk-trace-base` with `sdk-trace`, and `@posthog/ai` peers `sdk-trace-base ^2`.
+  - `@types/node` 24.19.2 (latest 26.6.5): runtime is Node 24 (`engines`, CI).
+  - Age gate (newest allowed taken): `@ai-sdk/react` 4.0.154, `@posthog/ai` 8.16.1, `@tanstack/react-router` 1.170.46, `@tanstack/react-start` 1.169.4, `@tanstack/router-plugin` 1.168.48, `convex` 1.48.0, `motion` 14.6.0, `oxlint-tsgolint` 7.0.2005, `ai` 6.0.314.
+- `convex-whatsapp` stays 1.1.5 (latest); patch unchanged. `convex-helpers` resolves to 0.1.129 (0.1.128 transitively); no 0.1.119.
+- Peer warnings left: `@opentelemetry/api` 1.10.0 enters through `@opentelemetry/api-logs` (dependency, not peer) in the exporter and `react-doctor` trees; `ai` 6 vs `@shadcn/helpers` 0.3 and `@convex-dev/rag` (both peer `ai ^7`, same as before).
+
+### T8 verification
+
+- `oxlint`: 0 findings. `oxfmt --check`: exit 0.
+- `tsc --noEmit` for `.`, `convex`, `emails`: 0 errors each.
+- `pnpm test`: 19 passed. `pnpm build`: exit 0. `pnpm install --frozen-lockfile`: pass.
+- Not done: browser check of loaders (query migration), error boundary, map, and Convex deploy of the updated components (`aggregate` 0.3, `workpool`, `workflow`).
+
+### T8 commits
+
+- `39db598c` chore(pnpm): update to 12.15.0
+- `8257a0a7` chore(deps): update dependencies to latest
+- `11c9628e` fix(types): load geojson types for maplibre 6.15
+- `4e7bdee0` fix(router): narrow unknown route errors
+- `a6f29a38` fix(reviews): convert workpool callback fields for zod 4.6
+- `684d7e8b` refactor(query): replace deprecated query client methods
 
 ## Next step
 
