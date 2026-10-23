@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: dashboard loaders gate and prime this route */
+/* oxlint-disable typescript/no-non-null-assertion -- dashboard loaders gate and prime this route */
 
 import type { BarbershopMemberWithName } from "@convex/schema";
 import {
@@ -71,6 +71,7 @@ export const Route = createFileRoute(
   staticData: { breadcrumb: "Nueva cita" },
   staleTime: cacheTime.low,
   gcTime: cacheTime.medium,
+  // oxlint-disable-next-line react-doctor/tanstack-start-loader-parallel-fetch -- the plan gate must redirect before the member queries run
   loader: async ({ context }) => {
     const userId = context.userId;
     const barbershop = context.dashboardBarbershop;
@@ -139,10 +140,9 @@ function RouteComponent() {
   );
   const { data: barbersForServices } =
     useBarbersForServices(effectiveServiceIds);
-  const [selectedBarber, setSelectedBarber] = useState<
+  const [chosenBarber, setChosenBarber] = useState<
     BarbershopMemberWithName | undefined
   >(undefined);
-  const { data: barberServices } = useServicesForBarber(selectedBarber?._id);
 
   // The selection store is shared with the public booking flow; reset it on
   // unmount so a staff selection never leaks into the next flow (or vice
@@ -179,23 +179,21 @@ function RouteComponent() {
         ? availableBarbers[0]?._id
         : undefined;
 
-  useEffect(() => {
-    if (isBarber && !isStaff && currentBarberMember) {
-      const self = barbershopMembers.find(
-        (member) => member._id === currentBarberMember._id,
-      );
-      if (self) setSelectedBarber(self);
-    }
-  }, [isBarber, isStaff, currentBarberMember, barbershopMembers]);
-
-  useEffect(() => {
-    if (
-      availableBarbers.length === 1 &&
-      (!isCreatingOnBehalf || isStaff || (isOwner && !isBarber))
-    ) {
-      setSelectedBarber(availableBarbers[0]);
-    }
-  }, [isCreatingOnBehalf, isStaff, isOwner, isBarber, availableBarbers]);
+  // A barber without a management role always books for themself, and a
+  // single available barber is always the selected one.
+  const selfBarber =
+    isBarber && !isStaff && currentBarberMember
+      ? barbershopMembers.find(
+          (member) => member._id === currentBarberMember._id,
+        )
+      : undefined;
+  const onlyBarber =
+    availableBarbers.length === 1 &&
+    (!isCreatingOnBehalf || isStaff || (isOwner && !isBarber))
+      ? availableBarbers[0]
+      : undefined;
+  const selectedBarber = onlyBarber ?? selfBarber ?? chosenBarber;
+  const { data: barberServices } = useServicesForBarber(selectedBarber?._id);
 
   const formIds = {
     customerName: useId(),
@@ -243,7 +241,7 @@ function RouteComponent() {
               barberServices={barberServices?.filter(
                 (nextService) => nextService !== null,
               )}
-              onBarberChange={setSelectedBarber}
+              onBarberChange={setChosenBarber}
               effectiveServiceIds={effectiveServiceIds}
               showPhoneField={showPhoneField}
               disabledFields={

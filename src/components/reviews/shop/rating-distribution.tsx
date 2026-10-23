@@ -32,6 +32,7 @@ export const RatingDistribution: FC<RatingDistributionProps> = ({
           return (
             <div
               key={star}
+              // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- the row is a drawn bar, not an image file; role="img" gives it one text alternative
               role="img"
               aria-label={`${star} ${star === 1 ? "estrella" : "estrellas"}: ${count} ${count === 1 ? "reseña" : "reseñas"}`}
               className="flex items-center gap-3"

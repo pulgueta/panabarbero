@@ -3,18 +3,32 @@ import { useCallback } from "react";
 
 type PossibleRef<T> = Ref<T> | undefined;
 
+type RefCleanup = ReturnType<RefCallback<unknown>>;
+
+function isRefCallback<T>(ref: PossibleRef<T>): ref is RefCallback<T> {
+  return typeof ref === "function";
+}
+
+function isCleanupFunction(
+  cleanup: RefCleanup,
+): cleanup is Extract<RefCleanup, () => void> {
+  return typeof cleanup === "function";
+}
+
 /**
  * Set a given ref to a given value
  * This utility takes care of different types of refs: callback refs and RefObject(s)
  */
-function setRef<T>(ref: PossibleRef<T>, value: T) {
-  if (typeof ref === "function") {
+function setRef<T>(ref: PossibleRef<T>, value: T): RefCleanup {
+  if (isRefCallback(ref)) {
     return ref(value);
   }
 
   if (ref !== null && ref !== undefined) {
     ref.current = value;
   }
+
+  return undefined;
 }
 
 /**
@@ -28,7 +42,7 @@ function composeRefs<T>(...refs: PossibleRef<T>[]): RefCallback<T> {
     const cleanups = refs.map((ref) => {
       const cleanup = setRef(ref, node);
 
-      if (!hasCleanup && typeof cleanup === "function") {
+      if (!hasCleanup && isCleanupFunction(cleanup)) {
         hasCleanup = true;
       }
 
@@ -39,19 +53,19 @@ function composeRefs<T>(...refs: PossibleRef<T>[]): RefCallback<T> {
     // value. We don't use ref cleanups internally so this will only happen if a
     // user's ref callback returns a value, which we only expect if they are
     // using the cleanup functionality added in React 19.
-    if (hasCleanup) {
-      return () => {
-        for (let i = 0; i < cleanups.length; i++) {
-          const cleanup = cleanups[i];
+    return hasCleanup
+      ? () => {
+          for (let i = 0; i < cleanups.length; i++) {
+            const cleanup = cleanups[i];
 
-          if (typeof cleanup === "function") {
-            cleanup();
-          } else {
-            setRef(refs[i], null);
+            if (isCleanupFunction(cleanup)) {
+              cleanup();
+            } else {
+              setRef(refs[i], null);
+            }
           }
         }
-      };
-    }
+      : undefined;
   };
 }
 
@@ -60,7 +74,7 @@ function composeRefs<T>(...refs: PossibleRef<T>[]): RefCallback<T> {
  * Accepts callback refs and RefObject(s)
  */
 function useComposedRefs<T>(...refs: PossibleRef<T>[]): RefCallback<T> {
-  // biome-ignore lint/correctness/useExhaustiveDependencies: we want to memoize by all values
+  // oxlint-disable-next-line react/use-memo, react-hooks/exhaustive-deps -- the variadic refs are the dependency list; memoize by all of them
   return useCallback(composeRefs(...refs), refs);
 }
 

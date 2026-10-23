@@ -29,8 +29,15 @@ export function reviewFilterToArgs(key: ReviewFilterKey): ShopReviewsFilters {
     case "flagged":
     case "pending":
       return { status: key satisfies ShopReviewStatus };
-    default:
+    case "1":
+    case "2":
+    case "3":
+    case "4":
+    case "5":
       return { rating: Number(key) };
+    default:
+      key satisfies never;
+      return {};
   }
 }
 
@@ -70,10 +77,10 @@ export const ReviewsFilter: FC<ReviewsFilterProps> = ({ value, onChange }) => (
       const selected = option.key === value;
 
       return (
-        // biome-ignore lint/a11y/useSemanticElements: pill group implements the ARIA radio pattern for a single-select filter
         <button
           key={option.key}
           type="button"
+          // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- the pill group implements the ARIA radio pattern for a single-select filter
           role="radio"
           aria-checked={selected}
           aria-label={option.label}

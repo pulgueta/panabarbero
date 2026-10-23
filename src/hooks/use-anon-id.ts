@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 const STORAGE_KEY = "pana-anon-id";
 
@@ -22,6 +22,16 @@ function readOrCreateAnonId(): string | undefined {
   }
 }
 
+function subscribeToNothing() {
+  return () => {
+    // The id never changes once created, so there is nothing to unsubscribe.
+  };
+}
+
+function getServerAnonId(): string | undefined {
+  return undefined;
+}
+
 /**
  * Stable per-browser anonymous session id, persisted in `localStorage`.
  *
@@ -31,11 +41,9 @@ function readOrCreateAnonId(): string | undefined {
  * client render (before mount) to avoid hydration mismatches.
  */
 export function useAnonId(): string | undefined {
-  const [anonId, setAnonId] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    setAnonId(readOrCreateAnonId());
-  }, []);
-
-  return anonId;
+  return useSyncExternalStore(
+    subscribeToNothing,
+    readOrCreateAnonId,
+    getServerAnonId,
+  );
 }

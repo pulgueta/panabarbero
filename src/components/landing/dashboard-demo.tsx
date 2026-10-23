@@ -1,3 +1,4 @@
+/* oxlint-disable react-doctor/no-tiny-text -- the demo is a scaled-down, decorative copy of the dashboard (one role="img" with a text alternative); its small type is part of the miniature */
 import type { Icon } from "@phosphor-icons/react";
 import {
   BellIcon,
@@ -438,16 +439,15 @@ export const DashboardDemo: FC = () => {
   const dashRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!dashRef.current) {
-      return;
-    }
-    return registerLandingSimDashboard(dashRef.current);
+    const node = dashRef.current;
+    return node ? registerLandingSimDashboard(node) : undefined;
   }, []);
 
   return (
     <section className="scroll-mt-24 space-y-3" id="demo">
       <div
         ref={dashRef}
+        // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- the live demo is decorative markup; role="img" gives it one text alternative
         role="img"
         aria-label="Demostración del panel de PanaBarbero: la agenda del día, la caja, el inventario y el equipo de Barbería El Pana actualizándose en vivo"
         className="pointer-events-none relative flex h-[600px] select-none overflow-hidden rounded-2xl border bg-sidebar text-sidebar-foreground md:h-[520px]"

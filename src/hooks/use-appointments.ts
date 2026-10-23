@@ -2,7 +2,6 @@ import { api } from "@convex/_generated/api";
 import type { Barbershop, BarbershopMember, Service } from "@convex/schema";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
 
 import type { WeekdayKey } from "@/lib/schedule-utils";
 import {
@@ -93,18 +92,15 @@ export function useAppointmentFormMetadata(barbershopId: Barbershop["_id"]) {
         saturday: 6,
       };
       return [dayIndexes[key]];
-    }) ?? [],
+    }),
   );
-
-  const today = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }, []);
 
   const disableDay = (day: Date): boolean => {
     const currentDay = new Date(day);
     currentDay.setHours(0, 0, 0, 0);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     if (currentDay < today) return true;
 
@@ -114,11 +110,11 @@ export function useAppointmentFormMetadata(barbershopId: Barbershop["_id"]) {
   };
 
   const scheduleForDate = (timestamp?: number) => {
-    if (!timestamp || !availability) return;
+    const weekday = timestamp ? getDayKeyForDate(timestamp) : undefined;
 
-    const weekday = getDayKeyForDate(timestamp);
-
-    return availability.find((entry) => entry.weekDay.day === weekday);
+    return weekday
+      ? availability?.find((entry) => entry.weekDay.day === weekday)
+      : undefined;
   };
 
   return {

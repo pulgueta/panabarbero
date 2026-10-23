@@ -56,6 +56,7 @@ interface ProfilePhotoUploaderProps {
   userName?: string | null;
 }
 
+// oxlint-disable-next-line react-doctor/no-giant-component -- pre-existing large component; split tracked as a follow-up in odd/tasks/oxc-migration.md
 export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
   userName,
 }) => {
@@ -93,7 +94,7 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
   >(
     (_file, message) => {
       toast.error(message);
-      trigger("warning");
+      void trigger("warning");
     },
     [trigger],
   );
@@ -140,13 +141,12 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
       });
 
       toast.success("Foto de perfil actualizada");
-      trigger("success");
+      void trigger("success");
       setQueuedFiles([]);
     } catch (error) {
       console.log(error);
       toast.error(getConvexErrorMessage(error));
-      trigger("error");
-      return;
+      void trigger("error");
     }
   };
 
@@ -168,11 +168,11 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
       await removeProfilePhoto({ previousKey });
 
       toast.success("Foto de perfil eliminada");
-      trigger("success");
+      void trigger("success");
     } catch (error) {
       console.log(error);
       toast.error(getConvexErrorMessage(error));
-      trigger("error");
+      void trigger("error");
     }
   };
 
@@ -183,6 +183,7 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
         onConfirm={handleCropConfirm}
         onCancel={handleCropCancel}
         aspectRatio={1}
+        // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- `shape` is the ImageCropDialog prop name (src/components/ui), not ours to rename
         shape="rectangle"
       />
 
@@ -231,7 +232,9 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
               Cancelar
             </Button>
             <Button
-              onClick={handleRemove}
+              onClick={() => {
+                void handleRemove();
+              }}
               variant="destructive"
               disabled={isRemoving}
             >
@@ -350,7 +353,9 @@ export const ProfilePhotoUploader: FC<ProfilePhotoUploaderProps> = ({
           >
             {hasQueuedFiles && (
               <Button
-                onClick={handleUpload}
+                onClick={() => {
+                  void handleUpload();
+                }}
                 disabled={isBusy}
                 className="w-full"
               >

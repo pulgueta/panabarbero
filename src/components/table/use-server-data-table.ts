@@ -8,6 +8,8 @@ import type {
 import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { useState } from "react";
 
+import { hasStringId } from "./use-data-table";
+
 export interface UseServerDataTableOptions<TData> {
   /** The accumulated `usePaginatedQuery().results`. */
   data: TData[];
@@ -26,9 +28,6 @@ export interface UseServerDataTableOptions<TData> {
   onGlobalFilterChange: OnChangeFn<string>;
   initialColumnVisibility?: VisibilityState;
 }
-
-const defaultGetRowId = <TData>(row: TData, index: number): string =>
-  (row as { _id?: string })._id ?? String(index);
 
 /**
  * Table engine for **server-driven** sections that page through Convex with
@@ -71,6 +70,7 @@ export function useServerDataTable<TData>({
     initialColumnVisibility,
   );
 
+  // oxlint-disable-next-line react/incompatible-library -- TanStack Table v8 returns a mutable instance by design; the React Compiler just skips memoizing this hook.
   return useReactTable({
     data,
     columns,
@@ -87,6 +87,6 @@ export function useServerDataTable<TData>({
     onColumnVisibilityChange: setColumnVisibility,
     getRowId: getRowId
       ? (row) => getRowId(row)
-      : (defaultGetRowId as (row: TData, index: number) => string),
+      : (row, index) => (hasStringId(row) ? row._id : String(index)),
   });
 }

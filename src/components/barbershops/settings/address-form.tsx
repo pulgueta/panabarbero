@@ -1,6 +1,6 @@
 import type { Barbershop } from "@convex/schema";
 import type { FC } from "react";
-import { useEffect, useId, useMemo, useRef } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
@@ -42,9 +42,12 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
   const setLocationState = useLocationStore((s) => s.setState);
   const setLocationCity = useLocationStore((s) => s.setCity);
 
-  const fullAddressRef = useRef(barbershop.address.fullAddress);
-  const detailsRef = useRef(barbershop.address.details ?? "");
-  const zipRef = useRef(barbershop.zipCode ?? "");
+  // oxlint-disable-next-line react-doctor/no-derived-useState -- the inputs are uncontrolled: the form snapshots the saved values once, as the previous refs did
+  const [fullAddress, setFullAddress] = useState(
+    barbershop.address.fullAddress,
+  );
+  const [details, setDetails] = useState(barbershop.address.details ?? "");
+  const [zip, setZip] = useState(barbershop.zipCode ?? "");
 
   const availableCities = useMemo(
     () => (state ? citiesFromState(state) : []),
@@ -83,46 +86,50 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
         data: {
           uuid: barbershop.uuid,
           name: barbershop.name,
-          description: barbershop.description || undefined,
+          description:
+            barbershop.description === "" ? undefined : barbershop.description,
           address: {
-            fullAddress: fullAddressRef.current,
-            details: detailsRef.current || undefined,
+            fullAddress,
+            details: details || undefined,
           },
           services: barbershop.services ?? [],
-          contactPhone: barbershop.contactPhone || undefined,
+          contactPhone:
+            barbershop.contactPhone === ""
+              ? undefined
+              : barbershop.contactPhone,
           isActive: barbershop.isActive,
           gracePeriodMinutes: barbershop.gracePeriodMinutes ?? 5,
           ownerId: barbershop.ownerId,
           availability: barbershop.availability ?? [],
           city: city ?? "",
           state: state ?? "",
-          zipCode: zipRef.current || undefined,
+          zipCode: zip || undefined,
         },
       });
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Dirección actualizada correctamente");
     } catch {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error("No se pudo actualizar la dirección. Intenta de nuevo.");
     }
   };
 
-  const invalid = !fullAddressRef.current || !state || !city;
+  const invalid = !fullAddress || !state || !city;
 
   return (
     <div className="flex h-full flex-1 flex-col justify-between gap-4">
       <FieldGroup className="gap-4">
         <div className="grid grid-cols-2 gap-4">
-          <Field data-invalid={!fullAddressRef.current}>
+          <Field data-invalid={!fullAddress}>
             <FieldLabel htmlFor={ids.address}>Dirección</FieldLabel>
             <Input
               id={ids.address}
-              defaultValue={fullAddressRef.current}
+              defaultValue={fullAddress}
               onChange={(e) => {
-                fullAddressRef.current = e.target.value;
+                setFullAddress(e.target.value);
               }}
             />
-            {!fullAddressRef.current && (
+            {!fullAddress && (
               <FieldError errors={[{ message: "Dirección requerida" }]} />
             )}
           </Field>
@@ -131,9 +138,9 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
             <FieldLabel htmlFor={ids.details}>Detalles</FieldLabel>
             <Input
               id={ids.details}
-              defaultValue={detailsRef.current}
+              defaultValue={details}
               onChange={(e) => {
-                detailsRef.current = e.target.value;
+                setDetails(e.target.value);
               }}
             />
           </Field>
@@ -195,16 +202,21 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
             <FieldLabel htmlFor={ids.zip}>Código postal</FieldLabel>
             <Input
               id={ids.zip}
-              defaultValue={zipRef.current}
+              defaultValue={zip}
               onChange={(e) => {
-                zipRef.current = e.target.value;
+                setZip(e.target.value);
               }}
             />
           </Field>
         </div>
       </FieldGroup>
 
-      <Button onClick={onSubmit} disabled={isUpdatingBarbershop || invalid}>
+      <Button
+        onClick={() => {
+          void onSubmit();
+        }}
+        disabled={isUpdatingBarbershop || invalid}
+      >
         {isUpdatingBarbershop ? <Spinner /> : "Guardar"}
       </Button>
     </div>

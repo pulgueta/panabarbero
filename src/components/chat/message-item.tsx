@@ -33,7 +33,7 @@ const THINKING_PHRASES = [
 function pickThinkingPhrase(seed: string): string {
   let h = 0;
   for (let i = 0; i < seed.length; i++) {
-    h = Math.imul(31, h) + seed.charCodeAt(i);
+    h = Math.imul(31, h) + (seed.codePointAt(i) ?? 0);
   }
   const idx = Math.abs(h) % THINKING_PHRASES.length;
   return THINKING_PHRASES[idx] ?? THINKING_PHRASES[0];
@@ -72,6 +72,7 @@ const MessageTextPart = memo(
     );
   },
 );
+MessageTextPart.displayName = "MessageTextPart";
 
 const ThinkingShimmer = memo(({ phraseSeed }: { phraseSeed: string }) => {
   const phrase = useMemo(() => pickThinkingPhrase(phraseSeed), [phraseSeed]);
@@ -84,6 +85,7 @@ const ThinkingShimmer = memo(({ phraseSeed }: { phraseSeed: string }) => {
     </p>
   );
 });
+ThinkingShimmer.displayName = "ThinkingShimmer";
 
 function extractProposal(part: ToolUIPart): Proposal | null {
   if (part.state !== "output-available") return null;
@@ -91,9 +93,13 @@ function extractProposal(part: ToolUIPart): Proposal | null {
   return parsed.success ? parsed.data : null;
 }
 
+function isString(value: unknown): value is string {
+  return typeof value === "string";
+}
+
 function ToolOutputContent({ part }: { part: ToolUIPart }): ReactNode {
   if (part.state !== "output-available") return null;
-  if (typeof part.output === "string") return part.output;
+  if (isString(part.output)) return part.output;
   return (
     <pre className="overflow-x-auto whitespace-pre-wrap rounded bg-muted p-2 text-xs">
       {JSON.stringify(part.output, null, 2)}
@@ -108,8 +114,7 @@ export function MessageItem({
   onConfirm,
   onReject,
 }: MessageItemProps) {
-  const smoothAssistantText =
-    message.role === "assistant" && Boolean(isStreaming);
+  const smoothAssistantText = message.role === "assistant" && isStreaming;
 
   return (
     <Message from={message.role}>
@@ -122,6 +127,8 @@ export function MessageItem({
               message.role === "assistant" ? `${key}-${message.status}` : key;
             return (
               <MessageTextPart
+                // parts are append-only and carry no id: the index is stable
+                // oxlint-disable-next-line react-doctor/no-array-index-as-key -- message parts never reorder or get removed, so their position is their identity.
                 key={textKey}
                 text={part.text}
                 useSmoothStreaming={smoothAssistantText}
@@ -135,10 +142,10 @@ export function MessageItem({
           }
 
           const isToolPart =
-            part.type === "dynamic-tool" ||
-            (typeof part.type === "string" && part.type.startsWith("tool-"));
+            part.type === "dynamic-tool" || part.type.startsWith("tool-");
 
           if (isToolPart) {
+            // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: a `tool-*` or `dynamic-tool` part; both carry the state/type/input/output/errorText fields this branch reads.
             const toolPart = part as ToolUIPart;
             const proposal = extractProposal(toolPart);
             const isDev = import.meta.env.DEV;

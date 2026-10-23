@@ -95,6 +95,7 @@ interface CreateAppointmentFormProps {
   };
 }
 
+// oxlint-disable-next-line react-doctor/no-giant-component -- pre-existing large component; split tracked as a follow-up in odd/tasks/oxc-migration.md
 export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
   barbershopId,
   barbers,
@@ -134,7 +135,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
 
   const form = useAppForm({
     onSubmitInvalid: () => {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error("Revisa los datos del formulario e inténtalo de nuevo.");
     },
     validationLogic: revalidateLogic({
@@ -158,7 +159,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
         effectiveServiceIds.length === 0 ||
         !contactPhone
       ) {
-        haptic.trigger("error");
+        void haptic.trigger("error");
         toast.error("Selecciona al menos un servicio, barbero, fecha y hora.");
         return;
       }
@@ -188,11 +189,11 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
 
         form.reset();
         setSelectedSlotTime(undefined);
-        haptic.trigger("success");
+        void haptic.trigger("success");
         toast.success("Cita reservada exitosamente");
         onSuccess();
       } catch (error) {
-        haptic.trigger("error");
+        void haptic.trigger("error");
         toast.error(getConvexErrorMessage(error));
       }
     },
@@ -215,6 +216,7 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
     form.setFieldValue("barbershopMemberId", onlyBarber._id, {
       dontUpdateMeta: true,
     });
+    // oxlint-disable-next-line react/set-state-in-effect -- pairs with the form-store write above; the form store is not React state, so this cannot be derived during render.
     setSelectedSlotTime(undefined);
   }, [barbers, hideBarberSelector, form]);
 
@@ -237,19 +239,21 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
       onSubmit={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        form.handleSubmit();
+        void form.handleSubmit();
       }}
       suppressHydrationWarning
     >
       <div className="space-y-4">
         <div className="grid grid-cols-1 gap-4">
-          {(disabledFields?.includes("serviceId") || isBarber) && (
+          {((disabledFields?.includes("serviceId") ?? false) || isBarber) && (
             <Field>
               <FieldLabel
                 htmlFor={formIds.serviceId}
                 aria-required
                 className={cn({
-                  hidden: disabledFields?.includes("serviceId") || !isBarber,
+                  hidden:
+                    (disabledFields?.includes("serviceId") ?? false) ||
+                    !isBarber,
                 })}
               >
                 Servicio
@@ -346,7 +350,9 @@ export const CreateAppointmentForm: FC<CreateAppointmentFormProps> = ({
               <Field
                 data-invalid={field.state.meta.errors.length > 0}
                 className={cn({
-                  hidden: disabledFields?.includes("contactEmail") || !isBarber,
+                  hidden:
+                    (disabledFields?.includes("contactEmail") ?? false) ||
+                    !isBarber,
                   "col-span-2": hideBarberSelector,
                 })}
               >

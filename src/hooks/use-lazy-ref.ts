@@ -1,14 +1,11 @@
 import type { RefObject } from "react";
-import { useRef } from "react";
+import { useState } from "react";
 
-function useLazyRef<T>(fn: () => T) {
-  const ref = useRef<T | null>(null);
+function useLazyRef<T>(fn: () => T): RefObject<T> {
+  // oxlint-disable-next-line react/hook-use-state -- the ref object is created once and never replaced, so it needs no setter
+  const [ref] = useState<RefObject<T>>(() => ({ current: fn() }));
 
-  if (ref.current === null) {
-    ref.current = fn();
-  }
-
-  return ref as RefObject<T>;
+  return ref;
 }
 
 export { useLazyRef };

@@ -29,10 +29,15 @@ export interface UseDataTableOptions<TData> {
   tableOptions?: Partial<TableOptions<TData>>;
 }
 
-const defaultGetRowId = <TData>(row: TData, index: number): string => {
-  const id = (row as { _id?: string })._id;
-  return id ?? String(index);
-};
+/** Convex rows carry a string `_id`, the default stable row identity. */
+export function hasStringId(row: unknown): row is { _id: string } {
+  return (
+    typeof row === "object" &&
+    row !== null &&
+    "_id" in row &&
+    typeof row._id === "string"
+  );
+}
 
 /**
  * Client-side table engine: the section holds the full dataset in memory and
@@ -57,6 +62,7 @@ export function useDataTable<TData>({
     initialColumnVisibility,
   );
 
+  // oxlint-disable-next-line react/incompatible-library -- TanStack Table v8 returns a mutable instance by design; the React Compiler just skips memoizing this hook.
   return useReactTable({
     data,
     columns,
@@ -74,7 +80,7 @@ export function useDataTable<TData>({
     globalFilterFn: "includesString",
     getRowId: getRowId
       ? (row) => getRowId(row)
-      : (defaultGetRowId as (row: TData, index: number) => string),
+      : (row, index) => (hasStringId(row) ? row._id : String(index)),
     initialState: { pagination: { pageSize } },
     ...tableOptions,
   });

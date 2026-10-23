@@ -158,23 +158,28 @@ const ServicesDashboard: FC<ServicesDashboardProps> = ({
     if (!open) setDialog(null);
   };
 
-  const supplyCountByServiceId = useMemo(() => {
-    if (!inventoryEnabled) return;
-
-    return new Map(
-      supplyCounts.map((row) => [row.serviceId, row.supplyCount] as const),
-    );
-  }, [inventoryEnabled, supplyCounts]);
+  const supplyCountByServiceId = useMemo(
+    () =>
+      inventoryEnabled
+        ? new Map(
+            supplyCounts.map(
+              (row) => [row.serviceId, row.supplyCount] as const,
+            ),
+          )
+        : undefined,
+    [inventoryEnabled, supplyCounts],
+  );
 
   const columns = getServicesTableColumns({
     canManage,
     supplyCountByServiceId,
     onEdit: (row) => setDialog({ type: "edit", row }),
-    onRecipe: (row) =>
+    onRecipe: (row) => {
       void navigate({
         to: "/profile/barbershops/services/$serviceId/recipe",
         params: { serviceId: row._id },
-      }),
+      });
+    },
     onDelete: (row) => setDialog({ type: "delete", row }),
   });
 
@@ -265,7 +270,7 @@ function RouteComponent() {
   const { data: barbershop, isLoading: isLoadingBarbershop } =
     useBarbershopByMemberUserId(userId);
 
-  const canManage = Boolean(rolesData?.isOwner || rolesData?.isStaff);
+  const canManage = rolesData?.isOwner === true || rolesData?.isStaff === true;
 
   return (
     <DashboardPage>

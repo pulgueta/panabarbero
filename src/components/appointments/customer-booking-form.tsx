@@ -72,6 +72,11 @@ import {
 import { toggleService, useServicesStore } from "@/store/services";
 import { TimeSlotPicker } from "./time-slot-picker";
 
+/** A blank (trimmed) input means "not provided". */
+function emptyToUndefined(value: string | undefined): string | undefined {
+  return value === "" ? undefined : value;
+}
+
 interface CustomerBookingFormProps {
   barbershop: Barbershop;
   services: Service[];
@@ -89,6 +94,7 @@ interface BookingFormValues {
   barbershopMemberId: BarbershopMemberWithName["_id"] | undefined;
 }
 
+// oxlint-disable-next-line react-doctor/no-giant-component -- pre-existing large component; split tracked as a follow-up in odd/tasks/oxc-migration.md
 export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
   barbershop,
   services,
@@ -121,6 +127,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
   // sides, and the fallback retires once the seed lands.
   const [isStoreSeeded, setIsStoreSeeded] = useState(false);
 
+  // oxlint-disable-next-line react/set-state-in-effect -- flips after mount on purpose so SSR and the first hydrated frame render the same fallback.
   useEffect(() => setIsStoreSeeded(true), []);
 
   const selectedServices =
@@ -193,7 +200,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
 
   const form = useAppForm({
     onSubmitInvalid: () => {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error("Revisa los datos del formulario e inténtalo de nuevo.");
     },
     validationLogic: revalidateLogic({
@@ -216,7 +223,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
         !barbershopMemberId ||
         selectedServiceIds.length === 0
       ) {
-        haptic.trigger("error");
+        void haptic.trigger("error");
         toast.error("Selecciona al menos un servicio, barbero, fecha y hora.");
         return;
       }
@@ -235,7 +242,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
             customerName: value.customerName,
             date,
             contactPhone: value.contactPhone,
-            contactEmail: value.contactEmail?.trim() || undefined,
+            contactEmail: emptyToUndefined(value.contactEmail?.trim()),
             notes: value.notes,
             barbershopId: barbershop._id,
             barbershopMemberId,
@@ -245,7 +252,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
         });
 
         resetBookingForm();
-        haptic.trigger("success");
+        void haptic.trigger("success");
 
         toast.custom(
           (toastId) => (
@@ -257,7 +264,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                   variant="outline"
                   onClick={() => {
                     toast.dismiss(toastId);
-                    navigate({
+                    void navigate({
                       to: "/barbershops/$barbershopUuid",
                       params: { barbershopUuid },
                     });
@@ -269,7 +276,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                   size="sm"
                   onClick={() => {
                     toast.dismiss(toastId);
-                    navigate({
+                    void navigate({
                       to: "/profile",
                       search: (prev) => ({ ...prev, tab: "appointments" }),
                     });
@@ -283,18 +290,18 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
           { duration: Number.POSITIVE_INFINITY },
         );
       } catch (error) {
-        haptic.trigger("error");
+        void haptic.trigger("error");
         toast.error(getConvexErrorMessage(error));
       }
     },
   });
 
-  const resetBookingForm = () => {
+  function resetBookingForm() {
     setUseAlternatePhone(false);
     setUseAlternateEmail(false);
     setSelectedSlotTime(undefined);
     form.reset(defaultValues);
-  };
+  }
 
   useEffect(() => {
     if (!profilePhone || useAlternatePhone) {
@@ -324,6 +331,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
         form.setFieldValue("barbershopMemberId", onlyBarberId, {
           dontUpdateMeta: true,
         });
+        // oxlint-disable-next-line react/set-state-in-effect -- pairs with the form-store write above; the form store is not React state, so this cannot be derived during render.
         setSelectedSlotTime(undefined);
       }
       return;
@@ -363,7 +371,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
       onSubmit={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        form.handleSubmit();
+        void form.handleSubmit();
       }}
       className="space-y-6"
       suppressHydrationWarning
@@ -477,9 +485,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                       value={field.state.value}
                       onValueChange={(value) => {
                         startTransition(() => {
-                          field.handleChange(
-                            value as BarbershopMemberWithName["_id"],
-                          );
+                          if (value !== null) field.handleChange(value);
                           setSelectedSlotTime(undefined);
                         });
                       }}
@@ -1048,7 +1054,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
           className="sm:min-w-36"
           onClick={() => {
             resetBookingForm();
-            navigate({
+            void navigate({
               to: "/barbershops/$barbershopUuid",
               params: { barbershopUuid },
             });
