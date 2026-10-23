@@ -56,7 +56,7 @@ function handleThemeChange(userTheme: UserTheme) {
 const themeScript: string = (() => {
   function themeFn() {
     try {
-      const stored = localStorage.getItem("ui-theme") ?? "system";
+      const stored = localStorage.getItem("ui-theme") || "system";
       const valid = ["light", "dark", "system"].includes(stored)
         ? stored
         : "system";
