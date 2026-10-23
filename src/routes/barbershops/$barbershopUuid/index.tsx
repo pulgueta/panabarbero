@@ -103,7 +103,10 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
     }
 
     // Primary content (services list + the barbers it lets you pick) — block
-    // the initial render on these.
+    // the initial render on these. The info card's metadata (map) is SSR-ed
+    // too, so block on it as well: if it streams in, the server renders the
+    // card without the map and the client hydrates it with the map (hydration
+    // mismatch). A metadata error must not fail the page, so `.catch(noop)`.
     const [, barbershopMembers] = await Promise.all([
       context.queryClient.query({
         ...servicesQueryOptions(barbershop._id),
@@ -113,18 +116,20 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
         ...barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
         staleTime: "static",
       }),
+      context.queryClient
+        .query({
+          ...barbershopMetadataQueryOptions(barbershop._id),
+          staleTime: "static",
+        })
+        .catch(noop),
     ]);
 
     // Secondary / below-the-fold / interaction-only data — prime the cache
     // without blocking. `.catch(noop)` keeps these from throwing, and the streaming SSR
     // integration hands these to the components' <Suspense>/<Hydrate>
-    // boundaries (availability + per-barber services are for the booking flow,
-    // metadata feeds the lazily-hydrated info card).
+    // boundaries (availability + per-barber services are for the booking flow).
     void context.queryClient
       .query(barbershopAvailabilityQueryOptions(barbershop._id))
-      .catch(noop);
-    void context.queryClient
-      .query(barbershopMetadataQueryOptions(barbershop._id))
       .catch(noop);
     void context.queryClient
       .query(reviewsByBarbershopQueryOptions(barbershop._id, 6))
