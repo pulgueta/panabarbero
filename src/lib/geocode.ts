@@ -76,10 +76,10 @@ export function matchColombia(
 }
 
 const reverseGeocodeResponseSchema = z.object({
-  countryCode: z.string().optional(),
-  principalSubdivision: z.string().optional(),
-  city: z.string().optional(),
-  locality: z.string().optional(),
+  countryCode: z.string().nullish(),
+  principalSubdivision: z.string().nullish(),
+  city: z.string().nullish(),
+  locality: z.string().nullish(),
 });
 
 /**
@@ -103,9 +103,7 @@ export async function reverseGeocode(
 
     return matchColombia(
       data.principalSubdivision ?? "",
-      data.city === undefined || data.city === ""
-        ? (data.locality ?? "")
-        : data.city,
+      data.city || data.locality || "",
     );
   } catch {
     return null;
