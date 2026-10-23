@@ -28,12 +28,14 @@ The dependencies were behind. TanStack Query 5.104 deprecates `ensureQueryData`,
 - [x] D1 Update pnpm and dependencies, fix the call sites that the new versions break. Route: delegated writer (root `package.json`, lockfile, and the broken call sites). Evidence: see "D1 Dependency update".
 - [x] D2 Prove that every migrated query call equals the original method; fix each site that differs. Route: delegated writer (route loaders + new test file). Evidence: see "D2 Query method equivalence".
 - [x] D3 Fix the two problems that the browser smoke test found: the blank map (MapLibre worker) and the React `use()` error on the barbershop detail page. Route: delegated writer (`src/components/ui/map.tsx`, `package.json`, lockfile). Evidence: see "D3 Map worker and React use() error".
+- [x] D4 Fix the hydration mismatch of `BarbershopInfoCard` on the barbershop detail page. Route: delegated writer (`src/routes/barbershops/$barbershopUuid/index.tsx`); bisect by package in a temporary base worktree. Evidence: see "D4 Detail page hydration mismatch".
 
 ## Progress
 
 - D1 done (former T8 of `odd/tasks/oxc-migration.md`).
 - D2 done: 134 call sites audited, 1 site restored, 64 equivalence tests added.
 - D3 done: map worker loads in dev and in the production build; React held at 19.2.9. A hydration mismatch on the detail page stays open (see D3).
+- D4 done: the loader blocks on the info card metadata; no "Hydration failed" and no React #418 in dev and in the production build. The intermittent React #467 from TanStack `HydrationBoundary` stays open (upstream TanStack/router#8652).
 
 ## Evidence
 
@@ -124,10 +126,10 @@ Per-site audit of `684d7e8b` (no other commit after `4747066a` touches these cal
 - No upstream fix: `react-start-client` 1.168.44 and `react-router` 1.170.46 (newest, published 2026-10-22, still inside the 1-day age gate) have the same code. TanStack/router#8487 (`Lazy`) is open; there is no issue for `HydrationBoundary`.
 - Fix: hold `react`/`react-dom` at 19.2.9 (newest 19.2.x patch; base had 19.2.8), `@types/react` 19.2.18, `@types/react-dom` 19.2.7. No dependency needs React 19.3. The `<Hydrate>` blocks stay. Update React to 19.3 again when TanStack calls `use()` on each render after it suspends.
 
-### Open: hydration mismatch on the detail page (not fixed)
+### Hydration mismatch on the detail page (fixed in D4)
 
 - Every full load of `/barbershops/<uuid>` logs "Hydration failed" for `BarbershopInfoCard` inside `<Hydrate when={visible()}>`: the server HTML has no map block (metadata not loaded at SSR time), but the client has the metadata when it hydrates. React recovers by client rendering that boundary. The production build logs React error #418.
-- It is a regression of this branch: the base commit `4747066a` shows no hydration error. It also occurs with React 19.3.1 and with React 19.2.9, and it does not come from the D1 query migration (with `prefetchQuery` restored for the metadata call, the mismatch stays). The probable cause is the TanStack Start / Router / router-ssr-query update (streamed query data reaches the client before the boundary hydrates). Needs its own task.
+- It is a regression of this branch: the base commit `4747066a` shows no hydration error. It also occurs with React 19.3.1 and with React 19.2.9, and it does not come from the D1 query migration (with `prefetchQuery` restored for the metadata call, the mismatch stays). The TanStack update is not the cause; see D4 for the cause and the fix.
 
 ### D3 verification
 
@@ -141,7 +143,55 @@ Per-site audit of `684d7e8b` (no other commit after `4747066a` touches these cal
 - `d8de717a` fix(map): load the maplibre worker through vite
 - `03d78b7f` fix(deps): hold react at 19.2.9 for tanstack conditional use()
 
+## D4 Detail page hydration mismatch
+
+### Cause
+
+- The mismatch is in the app code, and it was always there. The loader streamed `barbershopMetadataQueryOptions` (not awaited). The server rendered `BarbershopInfoCard` (`useQuery`) while that query was pending, so the server HTML had no map block. On the client the streamed data was in the cache when the `<Hydrate when={visible()}>` boundary hydrated, so the client rendered the map block.
+- `convex` 1.43.0 hid it. Its changelog for 1.44.0: "Fixed a bug where the context value provided by `ConvexProviderWithAuth` was not referentially stable." With 1.43, the new context value reached the dehydrated boundary before it hydrated, and React discarded the server HTML and client rendered the boundary without an error. From 1.44, React hydrates the boundary and finds the mismatch.
+- Evidence: the SSR payload is the same in base and on this branch (metadata is dehydrated as `pending` with a streamed promise; neither server HTML has the map block). A temporary log in the card showed `hasData: true` at the first client render in base too, but base reported no error.
+
+### Bisect (dev, logged out, Barbería El Pana, 3 fresh loads each)
+
+| Code | Dependencies | Mismatch |
+| --- | --- | --- |
+| this branch | this branch | yes |
+| this branch | TanStack router/start set at base, react-query 5.104.5 | yes |
+| base `4747066a` | base | no |
+| base | base + react-query 5.102.0 | no |
+| base | base + react 19.2.9 | no |
+| base | base + all new TanStack packages | no |
+| base | all new dependencies | yes |
+| base | all new, vite/plugin-react/cloudflare plugin/nitro at base | yes |
+| base | all new, Convex + WorkOS packages at base | no |
+| base | all new, only `convex` at 1.43.0 | no |
+| base | all new, `convex` 1.44.0 / 1.45.0 | yes |
+
+- react-query 5.101.4 cannot be tested on this branch: the loaders use `queryClient.query()` (5.102+), and `router-ssr-query` 1.167.3 needs query-core >=5.102 (a second query-core copy makes the page hang on "Cargando…").
+
+### Fix
+
+- `src/routes/barbershops/$barbershopUuid/index.tsx`: the loader awaits the metadata query (`staleTime: "static"`, same as the other blocking calls) in the same `Promise.all` as services and members, with `.catch(noop)` so a metadata error does not fail the page. The server HTML now has the map block (`MapCanvas` renders only its container and loader until the map exists on the client, so server and client agree).
+- Not chosen: hold `convex` at 1.43.0. It only hides the mismatch again (it depends on the old context bug) and drops the 1.44-1.47 fixes.
+- Cost: dev TTFB 0.675 s before, 0.678 s after (6-run average). The metadata read runs in parallel with the two queries that the loader already awaited.
+
+### Still open: React #467 in TanStack `HydrationBoundary`
+
+- Some loads log "Update hook called on initial render" (React #467, then #422 in production) from `HydrationBoundary` in `@tanstack/react-start-client` `hydration/visible.js`. It calls `use(gate)` only while the gate is pending; when the gate resolves during a replayed mount, React throws #467 and client renders that boundary. Same conditional `use()` cause as in D3.
+- It is independent of D4: it also occurs without the D4 change (4 of 10 loads). `convex` 1.43 hid it too. Rate with D4: dev warm cache 0 of 20, dev cold cache 5 of 10, production 1 of 12.
+- Upstream: TanStack/router#8652 (open, fix branch, not released). `react-start-client` 1.168.44 (newest) has the same code. Fix options: wait for the release, or a pnpm patch that applies the upstream change.
+
+### D4 verification
+
+- Dev (Vite only), logged out: Playwright with `reportError` capture, 20 warm loads + 10 cold-cache loads: 0 "Hydration failed"; map shows on each load. agent-browser: 3 fresh loads, 0 "Hydration failed" (1 load with #467). `/`, `/barbershops`, `/pricing`: no hydration errors.
+- Production (`pnpm build`, `node --env-file=.env.local .output/server/index.mjs`, port 3000): 12 detail loads (4 with cache off): 0 × #418, 1 × #422 caused by #467; map shows. agent-browser: 3 loads, 0 errors. `/`, `/barbershops`, `/pricing`: no errors.
+- `oxlint`: exit 0. `oxfmt --check`: exit 0 (466 files). `tsc --noEmit` for `.`, `convex`, `emails`: 0 errors each. `pnpm test`: 2 files, 83 passed. `pnpm build`: exit 0. `package.json` and lockfile unchanged. `pnpm doctor:diff`: not set up on this branch (prints an install prompt).
+
+### D4 commits
+
+- `ffd432d7` fix(barbershops): block on info card metadata for ssr hydration
+
 ## Next step
 
-- Find and fix the hydration mismatch of `BarbershopInfoCard` (see D3), as a new task.
+- Fix or wait for upstream TanStack/router#8652 (React #467 in `<Hydrate when={visible()}>`); a pnpm patch needs a decision.
 - Browser check of the other migrated loaders (billing, profile) and the error boundary.
