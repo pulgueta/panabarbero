@@ -32,7 +32,9 @@ export const DefaultCatchBoundary: FC<ErrorComponentProps> = ({ error }) => {
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
-          <p className="text-pretty italic">{error.message}</p>
+          <p className="text-pretty italic">
+            {error instanceof Error ? error.message : null}
+          </p>
           <Button
             variant="outline"
             onClick={() => {
