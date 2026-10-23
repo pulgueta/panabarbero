@@ -29,6 +29,7 @@ Biome 2.5.8 does the formatting and linting. The other projects of the owner (`v
 - [x] T2 Write `oxlint.config.ts` with the Ultracite presets and plugins; report findings per rule. Route: same writer.
 - [x] T3 Replace Biome in scripts, CI (`biome.yaml`, `release.yml`, `RELEASES.md`), `.vscode/settings.json`, `biome-ignore` comments, `AGENTS.md`/`ARCHITECTURE.md`. Route: same writer.
 - [x] T4 Decide lint finding policy with owner, then apply. Route: delegated writer (2+ non-trivial files); the writer split the fixes into four parallel partition writers on disjoint paths (convex/tests/emails, calendar group, other components, src outside components).
+- [x] T6 Fix review + smoke regressions. Route: delegated writer (2+ non-trivial files; review and browser smoke findings).
 - [ ] T5 Open PR against `feat/whatsapp-component`.
 
 ## Progress
@@ -141,6 +142,36 @@ Owner policy: turn off style rules that fight the house style, keep correctness,
 - `pnpm test`: 1 file, 19 tests passed (baseline same).
 - `pnpm build`: exit 0.
 - Not done: real-app check with agent-browser for the React refactors and hydration-sensitive files.
+
+## T6 Review and smoke fixes
+
+- Numeric inputs: the service price/duration and grace-period inputs store the raw input string once edited, so the T4 removal of `Number(...)` sent strings to Convex (ArgumentValidationError). The form value types now say `number | string` and the submit converts with `Number(...)` again; empty-input validation stays as before (`z.coerce`).
+- New appointment: the auto-selected barber (only barber, or the barber themself) is sticky again: one state, set during render when the auto value changes; the user can pick another barber.
+- Settings general info and address: inputs are controlled (`value`), so Base UI no longer logs the uncontrolled default-value change on each keystroke.
+- Reverse geocode: the response schema accepts `null` fields (`.nullish()`), as the old falsy fallthrough did.
+- Customer booking: a cleared barber select writes `undefined` through instead of being ignored.
+- Chat thinking phrase: `charCodeAt` restored (scoped disable) so the phrase hash stays the same.
+- `SAFETY:` notes merged into the `oxlint-disable-next-line` reasons (11 sites); the anti-slop rule accepts them.
+- Inventory history: audit rows are parsed one by one with `safeParse`; a row that does not match is skipped, the page does not go blank.
+- Conversion audit (`git diff 5a0babf7..HEAD`, removed `Number(`/`String(`/`Boolean(`/`parseInt(`/`!!`): only the service and grace-period sites were wrong; the other sites already had the converted type at runtime (regex digit groups, chart tooltip helpers, Base UI boolean callbacks, boolean role flags, number fields with numeric `onChange`, submit-time `parse*` helpers in the stock dialog).
+
+### T6 commits
+
+- `ccc8b5fa` fix(forms): keep numeric fields numeric
+- `56130ade` fix(appointments): keep auto-selected barber sticky
+- `247d76cb` fix(settings): keep name and address inputs stable
+- `9c52df81` fix(geocode): accept null place fields
+- `1c63cd84` fix(booking): write a cleared barber select through
+- `205e95bf` fix(chat): keep the thinking phrase hash stable
+- `ae892ddd` refactor(lint): merge safety notes into disable reasons
+- `60287190` fix(inventory): skip malformed audit rows
+
+### T6 verification
+
+- `oxlint`: exit 0, no output. `oxfmt --check`: exit 0.
+- `tsc --noEmit` for `.`, `convex`, `emails`: 0 errors each.
+- `pnpm test`: 19 passed. `pnpm build`: exit 0.
+- Not done: browser re-check of the fixed flows.
 
 ## Next step
 
