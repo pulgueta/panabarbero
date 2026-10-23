@@ -66,7 +66,8 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
       zipCode: "",
       contactPhone: "",
       isActive: false,
-      gracePeriodMinutes: 5,
+      // SAFETY: widening only; the number input stores the raw string once edited.
+      gracePeriodMinutes: 5 as number | string,
       availability: [
         {
           weekDay: {
@@ -88,7 +89,7 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
         const barbershopId = await createBarbershop({
           barbershop: {
             ...barbershopData,
-            gracePeriodMinutes: value.gracePeriodMinutes,
+            gracePeriodMinutes: Number(value.gracePeriodMinutes),
             ownerId: userId,
             services: [],
           },

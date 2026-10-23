@@ -12,6 +12,12 @@ import { useServiceActions } from "@/hooks/use-services";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 import type { ServiceFormData } from "@/lib/schemas";
 
+/** The number inputs store the raw input string once the user edits them. */
+type ServiceFormValues = Omit<ServiceFormData, "price" | "duration"> & {
+  price: number | string;
+  duration: number | string;
+};
+
 interface ServiceFormProps {
   initialValues?: ServiceFormData;
   barbershopId: Barbershop["_id"];
@@ -32,6 +38,14 @@ export const ServiceForm: FC<ServiceFormProps> = ({
     updateServiceMutation: { mutateAsync: updateService },
   } = useServiceActions();
 
+  const defaultValues: ServiceFormValues = initialValues ?? {
+    name: "",
+    price: 1000,
+    duration: 5,
+    priceType: "fixed",
+    barbershopId,
+  };
+
   const form = useAppForm({
     onSubmitInvalid: () => {
       void haptic.trigger("error");
@@ -44,15 +58,7 @@ export const ServiceForm: FC<ServiceFormProps> = ({
       // @ts-expect-error - convex id schema is not supported by tanstack form
       onSubmit: initialValues ? services.updateSchema : services.insertSchema,
     },
-    defaultValues:
-      initialValues ??
-      ({
-        name: "",
-        price: 1000,
-        duration: 5,
-        priceType: "fixed",
-        barbershopId,
-      } satisfies ServiceFormData),
+    defaultValues,
     onSubmit: async ({ value }) => {
       try {
         if (serviceId) {
@@ -60,8 +66,8 @@ export const ServiceForm: FC<ServiceFormProps> = ({
             id: serviceId,
             data: {
               name: value.name,
-              price: value.price,
-              duration: value.duration,
+              price: Number(value.price),
+              duration: Number(value.duration),
               priceType: value.priceType ?? "fixed",
               barbershopId,
             },
@@ -72,8 +78,8 @@ export const ServiceForm: FC<ServiceFormProps> = ({
         } else {
           await createService({
             name: value.name,
-            price: value.price,
-            duration: value.duration,
+            price: Number(value.price),
+            duration: Number(value.duration),
             priceType: value.priceType ?? "fixed",
             barbershopId,
           });
