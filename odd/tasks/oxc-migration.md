@@ -30,7 +30,7 @@ Biome 2.5.8 does the formatting and linting. The other projects of the owner (`v
 - [x] T3 Replace Biome in scripts, CI (`biome.yaml`, `release.yml`, `RELEASES.md`), `.vscode/settings.json`, `biome-ignore` comments, `AGENTS.md`/`ARCHITECTURE.md`. Route: same writer.
 - [x] T4 Decide lint finding policy with owner, then apply. Route: delegated writer (2+ non-trivial files); the writer split the fixes into four parallel partition writers on disjoint paths (convex/tests/emails, calendar group, other components, src outside components).
 - [x] T6 Fix review + smoke regressions. Route: delegated writer (2+ non-trivial files; review and browser smoke findings).
-- [ ] T5 Open PR against `feat/whatsapp-component`.
+- [x] T5 Open PR against `feat/whatsapp-component`. Evidence: #104 (base `feat/whatsapp-component`); WhatsApp commits pushed to #103 first.
 
 ## Progress
 
