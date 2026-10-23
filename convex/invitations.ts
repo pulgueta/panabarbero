@@ -59,9 +59,7 @@ async function resolveInviteLocale(email: string): Promise<Locale> {
     const locale = data[0]?.locale;
 
     if (locale) {
-      // SAFETY: WorkOS stores `User.locale` from its own locale list, so the
-      // value is a `Locale` even though the SDK types it as `string`.
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the SDK types the field wider than its contract
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: WorkOS stores `User.locale` from its own locale list, so the value is a `Locale` even though the SDK types it as `string`.
       return locale as Locale;
     }
   } catch {

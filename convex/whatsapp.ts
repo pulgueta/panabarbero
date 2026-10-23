@@ -145,8 +145,7 @@ export const cleanupSendWorkflow = zInternalMutation({
       return;
     }
 
-    // SAFETY: the workflow component passes its own id to `onComplete`.
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the id arrives as a plain string arg
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: the workflow component passes its own id to `onComplete` as a plain string arg.
     await cleanup(ctx, components.workflow, args.workflowId as WorkflowId);
   },
 });

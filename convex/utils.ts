@@ -65,8 +65,7 @@ export const DAY_MAP: readonly WeekdayKey[] = [
  * malformed id fails `db.get`, an unknown one matches no row).
  */
 export function asId<TableName extends TableNames>(id: string): Id<TableName> {
-  // SAFETY: a Convex id is a string at runtime; the doc comment says where it is checked.
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the brand cannot be proven from a string
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: a Convex id is a string at runtime; the doc comment says where it is checked.
   return id as Id<TableName>;
 }
 

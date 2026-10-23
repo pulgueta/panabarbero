@@ -143,9 +143,7 @@ async function sendFallback(ctx: MutationCtx, fallback: Fallback) {
     await sendEmail(ctx, fallback.barbershopId, () =>
       ctx.scheduler.runAfter(
         0,
-        // SAFETY: `email.handle` is a `createFunctionHandle` result for an
-        // internal action (see `emailFallback`), serialized as a string.
-        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the handle crossed a workflow arg boundary as a plain string
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: `email.handle` is a `createFunctionHandle` result for an internal action (see `emailFallback`), serialized as a string.
         email.handle as FunctionHandle<"action">,
         email.args,
       ),

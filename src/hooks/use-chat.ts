@@ -105,8 +105,7 @@ export function useProposalActions(
         await confirm({
           threadId,
           userId,
-          // SAFETY: the client proposal schema is loose on purpose; confirmPendingAction re-validates `pending` with its discriminated union.
-          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the server is the validation boundary for proposal args
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: the client proposal schema is loose on purpose; confirmPendingAction re-validates `pending` with its discriminated union.
           pending: {
             action: proposal.action,
             args: proposal.args,

@@ -370,9 +370,7 @@ export const updateDayAvailability = zAuthMutation({
 
     const idx = shop.availability.findIndex((a) => a.weekDay.day === args.day);
 
-    // SAFETY: `openAt`/`closeAt` are optional in the args only; a missing one
-    // fails the table's schema validation on the patch below.
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the args schema is looser than the table schema
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: `openAt`/`closeAt` are optional in the args only; a missing one fails the table's schema validation on the patch below.
     const newEntry = {
       weekDay: { day: args.day, isActive: args.isActive },
       openAt: args.openAt,

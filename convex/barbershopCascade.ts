@@ -261,10 +261,7 @@ async function startBatchedTeardown(
     "barbershops",
     barbershopId,
     {
-      // SAFETY: the component types the ref as public, but
-      // createFunctionHandle accepts internal refs — and the worker must not
-      // be public.
-      // oxlint-disable-next-line anti-slop/no-chained-type-assertions, typescript/no-unsafe-type-assertion -- internal and public refs share no visibility literal, so the cast needs `unknown`
+      // oxlint-disable-next-line anti-slop/no-chained-type-assertions, typescript/no-unsafe-type-assertion -- SAFETY: the component types the ref as public, but createFunctionHandle accepts internal refs and the worker must not be public; the two refs share no visibility literal, so the cast needs `unknown`.
       batchHandlerRef: internal.cascade
         .batchDeleteHandler as unknown as FunctionReference<"mutation">,
       batchSize: CASCADE_BATCH_SIZE,

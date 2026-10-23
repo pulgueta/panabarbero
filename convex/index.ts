@@ -58,10 +58,7 @@ export const zAuthAction = zCustomAction(
 function jsonSafeZid<TableName extends string>(
   tableName: TableName,
 ): z.ZodType<GenericId<TableName>> {
-  // SAFETY: a Convex id is a string at runtime. Tool schemas must convert to
-  // JSON Schema, which `zid` cannot; the real id check runs in the function
-  // args validator.
-  // oxlint-disable-next-line anti-slop/no-chained-type-assertions, typescript/no-unsafe-type-assertion -- ZodString and ZodType<GenericId> do not overlap
+  // oxlint-disable-next-line anti-slop/no-chained-type-assertions, typescript/no-unsafe-type-assertion -- SAFETY: a Convex id is a string at runtime. Tool schemas must convert to JSON Schema, which `zid` cannot; the real id check runs in the function args validator.
   return z.string().describe(`Convex Id<${tableName}>`) as unknown as z.ZodType<
     GenericId<TableName>
   >;
@@ -79,9 +76,7 @@ export function zodTable<
   });
 
   const toolSafeFullSchema = z.object({
-    // SAFETY: `schema` only calls its `id` arg with a table name, which
-    // `jsonSafeZid` accepts.
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- `zid` has a wider signature than `jsonSafeZid`
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: `schema` only calls its `id` arg with a table name, which `jsonSafeZid` accepts.
     ...schema(jsonSafeZid as typeof zid),
     _id: jsonSafeZid(tableName),
     _creationTime: z.number(),

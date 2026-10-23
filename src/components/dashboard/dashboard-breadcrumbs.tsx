@@ -44,8 +44,7 @@ export function DashboardBreadcrumbs() {
                   <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
                 ) : (
                   <BreadcrumbLink
-                    // SAFETY: `to` is the pathname of a resolved route match, so it is always a registered path.
-                    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the router types `to` as a literal union; a resolved pathname string cannot be proven to be in it
+                    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: `to` is the pathname of a resolved route match, so it is always a registered path.
                     to={crumb.to as CrumbTo}
                   >
                     {crumb.label}
