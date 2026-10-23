@@ -29,20 +29,28 @@ const provider = new BasicTracerProvider({
 
 trace.setGlobalTracerProvider(provider);
 
+type AiTelemetryMetadata = Record<string, string | number | boolean>;
+
 /** Builds the `experimental_telemetry` settings for an AI SDK call. */
 export function aiTelemetry(opts: {
   spanName: string;
   distinctId?: string;
   traceId?: string;
-  metadata?: Record<string, string | number | boolean>;
+  metadata?: AiTelemetryMetadata;
 }) {
+  const metadata: AiTelemetryMetadata = {};
+
+  if (opts.distinctId) {
+    metadata.posthog_distinct_id = opts.distinctId;
+  }
+
+  if (opts.traceId) {
+    metadata.posthog_trace_id = opts.traceId;
+  }
+
   return {
     isEnabled: true,
     functionId: opts.spanName,
-    metadata: {
-      ...(opts.distinctId ? { posthog_distinct_id: opts.distinctId } : {}),
-      ...(opts.traceId ? { posthog_trace_id: opts.traceId } : {}),
-      ...opts.metadata,
-    },
+    metadata: { ...metadata, ...opts.metadata },
   };
 }

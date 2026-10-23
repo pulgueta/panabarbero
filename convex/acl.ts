@@ -8,7 +8,6 @@
 import { ConvexError } from "convex/values";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { usageTriggers } from "./aggregates";
-import { getExtraCredits } from "./credits";
 import { errorMessages } from "./errors";
 import {
   getCurrentYearMonth,
@@ -24,7 +23,7 @@ import type { Barbershop } from "./schema";
  * Returns `null` when the user has no active subscription.
  */
 async function getSubscription(ctx: QueryCtx | MutationCtx, userId: string) {
-  return polar.getCurrentSubscription(ctx, { userId });
+  return await polar.getCurrentSubscription(ctx, { userId });
 }
 
 /**
@@ -223,12 +222,22 @@ export async function assertStaffInviteAllowed(
   }
 }
 
+export async function getExtraCredits(
+  ctx: QueryCtx | MutationCtx,
+  barbershopId: Barbershop["_id"],
+) {
+  return await ctx.db
+    .query("extraCredits")
+    .withIndex("by_barbershopId", (q) => q.eq("barbershopId", barbershopId))
+    .unique();
+}
+
 export async function getUsageRow(
   ctx: QueryCtx | MutationCtx,
   barbershopId: Barbershop["_id"],
   month: string,
 ) {
-  return ctx.db
+  return await ctx.db
     .query("usage")
     .withIndex("by_barbershop_month", (q) =>
       q.eq("barbershopId", barbershopId).eq("month", month),

@@ -151,9 +151,19 @@ export async function getPublishedRatingDistribution(
     ),
   );
 
-  return Object.fromEntries(
-    STAR_RATINGS.map((star, index) => [star, counts[index]]),
-  ) as Record<StarRating, number>;
+  const distribution: Record<StarRating, number> = {
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
+  };
+
+  for (const [index, star] of STAR_RATINGS.entries()) {
+    distribution[star] = counts[index];
+  }
+
+  return distribution;
 }
 
 /**

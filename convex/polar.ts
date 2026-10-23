@@ -5,17 +5,23 @@ import { z } from "zod";
 
 import { zAuthAction, zInternalAction } from ".";
 import { api, components } from "./_generated/api";
+import type { ActionCtx } from "./_generated/server";
 import { errorMessages } from "./errors";
 import type { CreditProductKey, ProductKey } from "./plans";
 
+/**
+ * The explicit return type breaks the polar → api.auth → acl → polar type
+ * cycle; `| null` keeps the unauthenticated case honest.
+ */
+async function getCurrentUser(
+  ctx: Pick<ActionCtx, "runQuery">,
+): Promise<{ id: string; email: string } | null> {
+  return await ctx.runQuery(api.auth.getCurrentUser, {});
+}
+
 export const polar = new Polar(components.polar, {
   getUserInfo: async (ctx) => {
-    // The cast breaks the polar → api.auth → acl → polar type cycle; `| null`
-    // keeps the unauthenticated case honest.
-    const user = (await ctx.runQuery(api.auth.getCurrentUser, {})) as {
-      id: string;
-      email: string;
-    } | null;
+    const user = await getCurrentUser(ctx);
 
     if (!user?.email) {
       throw new ConvexError(errorMessages.unauthorized);
@@ -74,9 +80,7 @@ export const generateCheckoutLink = zAuthAction({
       throw new ConvexError(errorMessages.invalidCheckoutProduct);
     }
 
-    const user = (await ctx.runQuery(api.auth.getCurrentUser, {})) as {
-      email: string;
-    } | null;
+    const user = await getCurrentUser(ctx);
 
     if (!user?.email) {
       throw new ConvexError(errorMessages.unauthorized);

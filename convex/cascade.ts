@@ -136,6 +136,7 @@ const triggeredInternalMutation = customMutation(
  * usage/inventory aggregates in sync. The factory returns `any`, which codegen
  * drops from the api types — the annotation restores the function reference.
  */
+// oxlint-disable-next-line typescript/no-unsafe-assignment -- the factory returns `any`; the annotation restores the reference type
 export const batchDeleteHandler: RegisteredMutation<
   "internal",
   { targets: { table: string; id: string }[]; jobId: string },

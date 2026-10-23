@@ -24,7 +24,7 @@
 import { cleanup, defineWorkflow, start } from "@convex-dev/workflow";
 import type { WorkflowId } from "@convex-dev/workflow";
 import { createFunctionHandle } from "convex/server";
-import type { FunctionHandle } from "convex/server";
+import type { DefaultFunctionArgs } from "convex/server";
 import { v } from "convex/values";
 import { zid } from "convex-helpers/server/zod4";
 import { isWhatsAppError, WhatsApp } from "convex-whatsapp";
@@ -42,6 +42,7 @@ import {
 } from "./whatsappCore";
 import { WHATSAPP_TEMPLATE_LANGUAGE } from "./whatsappTemplates";
 
+// oxlint-disable-next-line typescript/no-unsafe-argument -- convex-whatsapp exports `./_generated/component` without the `.js` path the generated api imports, so `components.whatsapp` resolves to an error type
 export const whatsapp = new WhatsApp(components.whatsapp);
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -66,7 +67,7 @@ export type Fallback = {
   phone?: string;
   smsBody?: string;
   /** `createFunctionHandle` of an internal email action + its args. */
-  email?: { handle: string; args: Record<string, unknown> };
+  email?: { handle: string; args: DefaultFunctionArgs };
 };
 
 const fallbackValidator = v.object({
@@ -131,6 +132,8 @@ export async function sendWhatsApp(
  * Delete a finished send workflow's journal (one per notification). Failed or
  * canceled runs are kept for inspection.
  */
+const workflowSucceeded = z.object({ kind: z.literal("success") });
+
 export const cleanupSendWorkflow = zInternalMutation({
   args: z.object({
     workflowId: z.string(),
@@ -138,10 +141,12 @@ export const cleanupSendWorkflow = zInternalMutation({
     context: z.null(),
   }),
   handler: async (ctx, args) => {
-    if (args.result?.kind !== "success") {
+    if (!workflowSucceeded.safeParse(args.result).success) {
       return;
     }
 
+    // SAFETY: the workflow component passes its own id to `onComplete`.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the id arrives as a plain string arg
     await cleanup(ctx, components.workflow, args.workflowId as WorkflowId);
   },
 });
@@ -380,16 +385,20 @@ export const registerInboundHandler = zInternalMutation({
       internal.whatsapp.onInboundMessage,
     );
 
-    await whatsapp.registerInboundHandler(
-      ctx,
-      handle as FunctionHandle<"mutation">,
-    );
+    await whatsapp.registerInboundHandler(ctx, handle);
   },
 });
 
 async function scheduleReply(ctx: MutationCtx, to: string, body: string) {
   await ctx.scheduler.runAfter(0, internal.whatsapp.sendText, { to, body });
 }
+
+/** Conversation metadata; keeps unknown keys, a non-object reads as `{}`. */
+const conversationMetadata = z
+  .looseObject({
+    lastAutoReplyAt: z.number().optional().catch(undefined),
+  })
+  .catch({});
 
 /** One canned reply per 24 h per conversation, tracked in its metadata. */
 async function maybeSendCannedReply(ctx: MutationCtx, from: string) {
@@ -399,12 +408,8 @@ async function maybeSendCannedReply(ctx: MutationCtx, from: string) {
     return;
   }
 
-  const metadata =
-    conversation.metadata && typeof conversation.metadata === "object"
-      ? (conversation.metadata as Record<string, unknown>)
-      : {};
-  const lastAutoReplyAt =
-    typeof metadata.lastAutoReplyAt === "number" ? metadata.lastAutoReplyAt : 0;
+  const metadata = conversationMetadata.parse(conversation.metadata);
+  const lastAutoReplyAt = metadata.lastAutoReplyAt ?? 0;
 
   if (Date.now() - lastAutoReplyAt < DAY_MS) {
     return;
@@ -457,6 +462,7 @@ export const onInboundMessage = zInternalMutation({
 
     await ctx.db.insert("whatsappInboundMessages", { messageId: dedupKey });
 
+    // oxlint-disable-next-line typescript/no-unsafe-argument -- the component stores `payload` as `v.any()`; getWhatsAppReplyId parses it with zod
     const replyId = getWhatsAppReplyId(message.payload);
     const action = replyId ? parseWhatsAppActionId(replyId) : null;
 
@@ -702,6 +708,6 @@ export const syncTemplates = zInternalAction({
 export const listApprovedTemplates = zInternalQuery({
   args: {},
   handler: async (ctx) => {
-    return whatsapp.getTemplates(ctx, "APPROVED");
+    return await whatsapp.getTemplates(ctx, "APPROVED");
   },
 });

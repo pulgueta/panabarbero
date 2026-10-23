@@ -196,7 +196,7 @@ export const getOperationsBreakdown = zAuthQuery({
 
     // Resolve barber display names once per member.
     const barbers = await Promise.all(
-      Array.from(perBarber.entries()).map(async ([memberId, stats]) => {
+      [...perBarber.entries()].map(async ([memberId, stats]) => {
         const member = await ctx.db.get(memberId);
         const profile = member
           ? await ctx.db.get(member.userProfileDataId)
@@ -210,16 +210,21 @@ export const getOperationsBreakdown = zAuthQuery({
       }),
     );
 
+    // Both arrays are fresh, so sorting them in place is safe.
+    barbers.sort((a, b) => b.completed - a.completed);
+    const serviceBreakdown = [...perService.entries()].map(
+      ([serviceId, stats]) => ({
+        serviceId,
+        ...stats,
+      }),
+    );
+    serviceBreakdown.sort((a, b) => b.completed - a.completed);
+
     return {
       days: BREAKDOWN_DAYS,
       totals,
-      perBarber: barbers.sort((a, b) => b.completed - a.completed),
-      perService: Array.from(perService.entries())
-        .map(([serviceId, stats]) => ({
-          serviceId,
-          ...stats,
-        }))
-        .sort((a, b) => b.completed - a.completed),
+      perBarber: barbers,
+      perService: serviceBreakdown,
       byWeekday,
     };
   },

@@ -53,7 +53,7 @@ Título:`,
 
       if (cleaned) title = cleaned.slice(0, 60);
     } catch (error) {
-      trackException(ctx, error, `${threadId}:${callerId}`);
+      void trackException(ctx, error, `${threadId}:${callerId}`);
     }
 
     await ctx.runMutation(components.agent.threads.updateThread, {
@@ -194,7 +194,7 @@ Hechos:`,
         });
       }
     } catch (error) {
-      trackException(ctx, error, `distill:${userId}`);
+      void trackException(ctx, error, `distill:${userId}`);
     }
   },
 });

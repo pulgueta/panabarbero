@@ -1,5 +1,3 @@
-/* oxlint-disable typescript/no-non-null-assertion -- false positive */
-
 import { ConvexError } from "convex/values";
 import { z } from "zod";
 
@@ -23,7 +21,7 @@ import { rateLimitOrThrow } from "./ratelimit";
 import type { Barbershop, BarbershopMember } from "./schema";
 import { barbershopMembers, barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
-import { parseTimeToMinutes } from "./utils";
+import { asId, parseTimeToMinutes } from "./utils";
 
 export const create = zInternalMutation({
   args: barbershopMembers.tools.insert,
@@ -565,8 +563,9 @@ export const toggleBarberRole = zAuthMutation({
     if (args.reassignments && args.reassignments.length > 0) {
       const targetMembers = await Promise.all(
         args.reassignments.map((reassignment) => {
-          const targetMemberId =
-            reassignment.targetBarbershopMemberId as BarbershopMember["_id"];
+          const targetMemberId = asId<"barbershopMembers">(
+            reassignment.targetBarbershopMemberId,
+          );
           return ctx.db.get(targetMemberId);
         }),
       );
@@ -597,7 +596,7 @@ export const toggleBarberRole = zAuthMutation({
 
     // Cancel any future appointments that weren't reassigned
     const reassignmentIds = new Set(
-      args.reassignments?.map((r) => r.appointmentId) ?? [],
+      args.reassignments?.map((r) => r.appointmentId),
     );
     const unreassignedAppointments = futureAppointments.filter(
       (a) => !reassignmentIds.has(String(a._id)),
@@ -688,10 +687,10 @@ export const getRolesByUserId = zQuery({
   },
 });
 
-export const getByUserIdFn = async (
+export async function getByUserIdFn(
   ctx: QueryCtx | MutationCtx,
   args: { userId: string },
-) => {
+) {
   const profile = await getProfileByUserId(ctx, args.userId);
 
   if (!profile?._id) {
@@ -704,7 +703,7 @@ export const getByUserIdFn = async (
       q.eq("userProfileDataId", profile._id),
     )
     .first();
-};
+}
 
 // ---------------------------------------------------------------------------
 // Barber schedule helpers
@@ -780,8 +779,8 @@ export const updateBarberSchedule = zAuthMutation({
     await rateLimitOrThrow(ctx, "updateBarberSchedule", userId);
 
     // Staff may only edit their own schedule; owners can edit any barber's schedule
-    const isOwner = callerMember.roles.includes("owner");
-    if (!isOwner && callerMember._id !== args.barbershopMemberId) {
+    const callerIsOwner = callerMember.roles.includes("owner");
+    if (!callerIsOwner && callerMember._id !== args.barbershopMemberId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 
@@ -864,8 +863,8 @@ export const resetBarberSchedule = zAuthMutation({
     await rateLimitOrThrow(ctx, "updateBarberSchedule", userId);
 
     // Staff may only reset their own schedule; owners can reset any barber's schedule
-    const isOwner = callerMember.roles.includes("owner");
-    if (!isOwner && callerMember._id !== args.barbershopMemberId) {
+    const callerIsOwner = callerMember.roles.includes("owner");
+    if (!callerIsOwner && callerMember._id !== args.barbershopMemberId) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 

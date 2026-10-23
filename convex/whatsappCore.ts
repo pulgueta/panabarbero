@@ -10,6 +10,9 @@
  * when the embedded timestamp no longer matches the row.
  */
 
+import type { Value } from "convex/values";
+import { z } from "zod";
+
 type RescheduleDecision = "accept" | "reject";
 type RescheduleRole = "barber" | "customer";
 type CloseoutDecision = "completed" | "no-show";
@@ -192,26 +195,31 @@ export function parseWhatsAppActionId(id: string): WhatsAppActionId | null {
   return null;
 }
 
-function readReplyId(
-  source: unknown,
-  keys: readonly ["id"] | readonly ["payload", "text"],
-): string | null {
-  if (!source || typeof source !== "object") {
-    return null;
-  }
+/** A non-empty string; any other value reads as absent. */
+const replyText = z.string().min(1).optional().catch(undefined);
 
-  const data = source as Record<string, unknown>;
+/** An object carrying the reply id; any other value reads as absent. */
+const replySource = z
+  .object({ id: replyText, payload: replyText, text: replyText })
+  .optional()
+  .catch(undefined);
 
-  for (const key of keys) {
-    const value = data[key];
-
-    if (typeof value === "string" && value) {
-      return value;
-    }
-  }
-
-  return null;
-}
+const inboundReply = z.object({
+  type: z.string().optional().catch(undefined),
+  interactive: z
+    .object({
+      type: z.string().optional().catch(undefined),
+      button_reply: replySource,
+      list_reply: replySource,
+    })
+    .optional()
+    .catch(undefined),
+  button: replySource,
+  button_reply: replySource,
+  list_reply: replySource,
+  payload: z.string().optional().catch(undefined),
+  text: replyText,
+});
 
 /**
  * Extract the tapped button/list id from an inbound webhook message payload.
@@ -224,48 +232,48 @@ function readReplyId(
  * arrives as `{ payload, text }` (no `type` key, row type `"text"`) and an
  * interactive reply as `{ type: "list_reply" | "button_reply", ... }`.
  */
-export function getWhatsAppReplyId(payload: unknown): string | null {
-  if (!payload || typeof payload !== "object") {
+export function getWhatsAppReplyId(payload: Value): string | null {
+  const parsed = inboundReply.safeParse(payload);
+
+  if (!parsed.success) {
     return null;
   }
 
-  const data = payload as Record<string, unknown>;
+  const data = parsed.data;
 
   if (data.type === "interactive") {
     const interactive = data.interactive;
 
-    if (!interactive || typeof interactive !== "object") {
+    if (!interactive) {
       return null;
     }
 
-    const interactiveData = interactive as Record<string, unknown>;
-
-    if (interactiveData.type === "button_reply") {
-      return readReplyId(interactiveData.button_reply, ["id"]);
+    if (interactive.type === "button_reply") {
+      return interactive.button_reply?.id ?? null;
     }
 
-    if (interactiveData.type === "list_reply") {
-      return readReplyId(interactiveData.list_reply, ["id"]);
+    if (interactive.type === "list_reply") {
+      return interactive.list_reply?.id ?? null;
     }
 
     return null;
   }
 
   if (data.type === "button") {
-    return readReplyId(data.button, ["payload", "text"]);
+    return data.button?.payload ?? data.button?.text ?? null;
   }
 
   if (data.type === "button_reply") {
-    return readReplyId(data.button_reply, ["id"]);
+    return data.button_reply?.id ?? null;
   }
 
   if (data.type === "list_reply") {
-    return readReplyId(data.list_reply, ["id"]);
+    return data.list_reply?.id ?? null;
   }
 
   // Stored template quick reply: the inner `button` object itself.
-  if (typeof data.payload === "string") {
-    return readReplyId(data, ["payload", "text"]);
+  if (data.payload !== undefined) {
+    return data.payload === "" ? (data.text ?? null) : data.payload;
   }
 
   return null;

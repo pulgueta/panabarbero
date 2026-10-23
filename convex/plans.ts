@@ -117,10 +117,14 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
   },
 };
 
+function isProductKey(key: string): key is ProductKey {
+  return key in PRODUCT_KEY_TO_TIER;
+}
+
 /** Derive the plan tier from a product key string. Falls back to `"free"`. */
 export function getTierForProductKey(key: string | undefined | null): PlanTier {
-  if (key && key in PRODUCT_KEY_TO_TIER) {
-    return PRODUCT_KEY_TO_TIER[key as ProductKey];
+  if (key && isProductKey(key)) {
+    return PRODUCT_KEY_TO_TIER[key];
   }
   return "free";
 }

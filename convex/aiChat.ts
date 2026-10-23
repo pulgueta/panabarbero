@@ -6,6 +6,7 @@ import {
   vStreamArgs,
 } from "@convex-dev/agent";
 import { paginationOptsValidator } from "convex/server";
+import type { FunctionArgs } from "convex/server";
 import { ConvexError } from "convex/values";
 import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
@@ -18,7 +19,8 @@ import { resolvePanaAccessForUserId } from "./aiAgentHelpers";
 import { track } from "./analytics";
 import { getUserId } from "./identity";
 import { rateLimiter } from "./ratelimit";
-import type { Barbershop, Service } from "./schema";
+import type { Service } from "./schema";
+import { asId } from "./utils";
 
 const ANON_PREFIX = "anon:";
 
@@ -315,7 +317,7 @@ const bookServiceIds = (args: {
 }): Service["_id"][] => {
   const ids = args.serviceIds ?? (args.serviceId ? [args.serviceId] : []);
 
-  return ids as Service["_id"][];
+  return ids.map((id) => asId<"services">(id));
 };
 
 const requireAuthed = (isAnon: boolean) => {
@@ -433,7 +435,7 @@ export const confirmPendingAction = zAction({
             appointment: { id: a.appointmentId },
             status: a.status,
             finalPrices: a.finalPrices?.map((entry) => ({
-              serviceId: entry.serviceId as Service["_id"],
+              serviceId: asId<"services">(entry.serviceId),
               finalPrice: entry.finalPrice,
             })),
           });
@@ -478,13 +480,9 @@ export const confirmPendingAction = zAction({
       case "updateService": {
         requireAuthed(isAnon);
         const a = pending.args;
-        const data: {
-          name?: string;
-          price?: number;
-          priceType?: "fixed" | "starting";
-          duration?: number;
-          barbershopId: Barbershop["_id"];
-        } = { barbershopId: a.barbershopId as Barbershop["_id"] };
+        const data: FunctionArgs<typeof api.services.update>["data"] = {
+          barbershopId: asId<"barbershops">(a.barbershopId),
+        };
         if (a.name !== undefined) data.name = a.name;
         if (a.price !== undefined) data.price = a.price;
         if (a.priceType !== undefined) data.priceType = a.priceType;

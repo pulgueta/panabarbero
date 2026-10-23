@@ -192,7 +192,7 @@ async function createReviewForAppointment(
     groups: { barbershop: appointment.barbershopId },
   });
 
-  return settleReview(ctx, reviewId, args.comment);
+  return await settleReview(ctx, reviewId, args.comment);
 }
 
 /**
@@ -224,7 +224,7 @@ export const create = zAuthMutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    return createReviewForAppointment(ctx, {
+    return await createReviewForAppointment(ctx, {
       appointment,
       userId,
       rating: args.rating,
@@ -382,7 +382,7 @@ export const update = zAuthMutation({
       groups: { barbershop: review.barbershopId },
     });
 
-    return settleReview(ctx, args.reviewId, comment);
+    return await settleReview(ctx, args.reviewId, comment);
   },
 });
 
@@ -1086,17 +1086,18 @@ export const getShopReviewBreakdown = zAuthQuery({
 
     await assertCanViewReviewAnalytics(ctx, barbershopId, userId);
 
-    const published = (
-      await ctx.db
-        .query("reviews")
-        .withIndex("by_barbershopId_and_publishedAt", (q) =>
-          q.eq("barbershopId", barbershopId).gt("publishedAt", 0),
-        )
-        .collect()
-    ).filter((review) => review.flaggedAt === undefined);
+    const publishedRows = await ctx.db
+      .query("reviews")
+      .withIndex("by_barbershopId_and_publishedAt", (q) =>
+        q.eq("barbershopId", barbershopId).gt("publishedAt", 0),
+      )
+      .collect();
+    const published = publishedRows.filter(
+      (review) => review.flaggedAt === undefined,
+    );
 
     // Resolve every appointment up front instead of one round trip per review.
-    const appointments = await Promise.all(
+    const reviewAppointments = await Promise.all(
       published.map((review) => ctx.db.get(review.appointmentId)),
     );
 
@@ -1116,7 +1117,7 @@ export const getShopReviewBreakdown = zAuthQuery({
       service.count += 1;
       serviceStats.set(review.serviceName, service);
 
-      const appointment = appointments[index];
+      const appointment = reviewAppointments[index];
 
       if (!appointment) {
         continue;
@@ -1140,22 +1141,25 @@ export const getShopReviewBreakdown = zAuthQuery({
       barberStats.set(memberId, barber);
     }
 
-    const byService = Array.from(serviceStats.entries())
-      .map(([serviceName, stats]) => ({
+    // Both arrays are fresh, so sorting them in place is safe.
+    const byService = [...serviceStats.entries()].map(
+      ([serviceName, stats]) => ({
         serviceName,
         average: stats.count > 0 ? stats.sum / stats.count : 0,
         count: stats.count,
-      }))
-      .sort((a, b) => b.count - a.count);
+      }),
+    );
+    byService.sort((a, b) => b.count - a.count);
 
-    const byBarber = Array.from(barberStats.entries())
-      .map(([barbershopMemberId, stats]) => ({
+    const byBarber = [...barberStats.entries()].map(
+      ([barbershopMemberId, stats]) => ({
         barbershopMemberId,
         name: stats.name,
         average: stats.count > 0 ? stats.sum / stats.count : 0,
         count: stats.count,
-      }))
-      .sort((a, b) => b.count - a.count);
+      }),
+    );
+    byBarber.sort((a, b) => b.count - a.count);
 
     return { byService, byBarber };
   },

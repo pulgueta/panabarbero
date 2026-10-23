@@ -1,5 +1,6 @@
 import { httpRouter } from "convex/server";
 import { ConvexError } from "convex/values";
+import { z } from "zod";
 
 import { internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
@@ -18,28 +19,32 @@ import { usesend } from "./usesend";
 
 const http = httpRouter();
 
+function uploadPreflightResponse(request: Request): Response {
+  const headers = request.headers;
+
+  if (
+    headers.get("Origin") !== null &&
+    headers.get("Access-Control-Request-Method") !== null &&
+    headers.get("Access-Control-Request-Headers") !== null
+  ) {
+    return new Response(null, {
+      headers: new Headers({
+        "Access-Control-Allow-Origin": siteUrl(),
+        "Access-Control-Allow-Methods": "POST",
+        "Access-Control-Allow-Headers": "Content-Type, Digest",
+        "Access-Control-Max-Age": "86400",
+      }),
+    });
+  }
+  return new Response();
+}
+
 http.route({
   path: "/upload",
   method: "OPTIONS",
-  handler: httpAction(async (_, request) => {
-    const headers = request.headers;
-
-    if (
-      headers.get("Origin") !== null &&
-      headers.get("Access-Control-Request-Method") !== null &&
-      headers.get("Access-Control-Request-Headers") !== null
-    ) {
-      return new Response(null, {
-        headers: new Headers({
-          "Access-Control-Allow-Origin": siteUrl(),
-          "Access-Control-Allow-Methods": "POST",
-          "Access-Control-Allow-Headers": "Content-Type, Digest",
-          "Access-Control-Max-Age": "86400",
-        }),
-      });
-    }
-    return new Response();
-  }),
+  handler: httpAction((_, request) =>
+    Promise.resolve(uploadPreflightResponse(request)),
+  ),
 });
 http.route({
   path: "/upload",
@@ -66,7 +71,7 @@ http.route({
           key: `assets/logos/${crypto.randomUUID()}`,
         });
 
-        return new Response(JSON.stringify(key), {
+        return Response.json(key, {
           status: 200,
           headers,
         });
@@ -77,7 +82,7 @@ http.route({
           key: `assets/profile-photos/${crypto.randomUUID()}`,
         });
 
-        return new Response(JSON.stringify(key), {
+        return Response.json(key, {
           status: 200,
           headers,
         });
@@ -88,7 +93,7 @@ http.route({
           key: `assets/inventory/${crypto.randomUUID()}`,
         });
 
-        return new Response(JSON.stringify(key), {
+        return Response.json(key, {
           status: 200,
           headers,
         });
@@ -143,9 +148,9 @@ polar.registerRoutes(http, {
       }
 
       // Set server-side by `generateCheckoutLink` — never client-supplied.
-      const userId = order.metadata?.userId;
+      const userId = z.string().safeParse(order.metadata?.userId).data;
 
-      if (typeof userId !== "string") {
+      if (userId === undefined) {
         console.error(
           `[polar] orden pagada ${order.id} sin userId en metadata — créditos no acreditados`,
         );

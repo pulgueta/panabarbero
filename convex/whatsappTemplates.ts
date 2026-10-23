@@ -21,6 +21,9 @@
  * booking confirmation).
  */
 
+import type { Value } from "convex/values";
+import { z } from "zod";
+
 import {
   buildCloseoutActionId,
   buildInventoryAckActionId,
@@ -31,9 +34,11 @@ import {
 
 export const WHATSAPP_TEMPLATE_LANGUAGE = "es_CO";
 
+type WhatsAppTextParameter = { type: "text"; text: string };
+
 export type WhatsAppTemplateComponent =
-  | { type: "header"; parameters: Array<{ type: "text"; text: string }> }
-  | { type: "body"; parameters: Array<{ type: "text"; text: string }> }
+  | { type: "header"; parameters: Array<WhatsAppTextParameter> }
+  | { type: "body"; parameters: Array<WhatsAppTextParameter> }
   | {
       type: "button";
       sub_type: "quick_reply";
@@ -50,12 +55,18 @@ export type WhatsAppTemplateSend = {
  * Meta rejects params with newlines, tabs, or 4+ consecutive spaces, and
  * over-long params fail the whole send — cap defensively (body limit ~1024).
  */
-function param(text: string): { type: "text"; text: string } {
+function param(text: string): WhatsAppTextParameter {
   return {
     type: "text",
     text: text.replaceAll(/\s+/g, " ").trim().slice(0, 512),
   };
 }
+
+/** A synced template component or button; `type` is lowercased. */
+const syncedEntry = z.object({
+  type: z.string().transform((type) => type.toLowerCase()),
+  buttons: z.array(z.unknown()).optional().catch(undefined),
+});
 
 /**
  * Drop per-send quick-reply components the APPROVED template does not have —
@@ -67,39 +78,31 @@ function param(text: string): { type: "text"; text: string } {
  */
 export function filterButtonsToTemplate(
   sendComponents: WhatsAppTemplateComponent[],
-  syncedComponents: unknown,
+  syncedComponents: Value | undefined,
 ): WhatsAppTemplateComponent[] {
-  if (!Array.isArray(syncedComponents)) {
+  const synced = z.array(z.unknown()).safeParse(syncedComponents);
+
+  if (!synced.success) {
     return sendComponents;
   }
 
-  const buttonsComponent = syncedComponents.find(
-    (component) =>
-      !!component &&
-      typeof component === "object" &&
-      String((component as Record<string, unknown>).type).toLowerCase() ===
-        "buttons",
-  ) as Record<string, unknown> | undefined;
+  const buttonsComponent = synced.data
+    .map((component) => syncedEntry.safeParse(component).data)
+    .find((component) => component?.type === "buttons");
+  const buttons = buttonsComponent?.buttons;
 
-  if (!buttonsComponent || !Array.isArray(buttonsComponent.buttons)) {
+  if (!buttons) {
     return sendComponents;
   }
-
-  const buttons = buttonsComponent.buttons as unknown[];
 
   return sendComponents.filter((component) => {
     if (component.type !== "button") {
       return true;
     }
 
-    const button = buttons[Number(component.index)];
+    const button = syncedEntry.safeParse(buttons[Number(component.index)]);
 
-    return (
-      !!button &&
-      typeof button === "object" &&
-      String((button as Record<string, unknown>).type).toLowerCase() ===
-        "quick_reply"
-    );
+    return button.data?.type === "quick_reply";
   });
 }
 

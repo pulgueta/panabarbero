@@ -84,6 +84,7 @@ export const moderateReview = zInternalAction({
     }
 
     try {
+      // oxlint-disable-next-line typescript/no-deprecated -- moving to generateText + Output.object changes the AI call path and its telemetry spans; follow-up
       const { object } = await generateObject({
         model: gateway(PANA_MODEL_ID),
         schema: moderationSchema,
@@ -102,7 +103,7 @@ export const moderateReview = zInternalAction({
           object.verdict === "flagged" ? object.reason || undefined : undefined,
       });
     } catch (error) {
-      trackException(ctx, error, `review-moderation:${reviewId}`);
+      void trackException(ctx, error, `review-moderation:${reviewId}`);
       // Re-throw so the Workpool retries with exponential backoff.
       throw error;
     }

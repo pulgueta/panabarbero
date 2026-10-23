@@ -7,6 +7,7 @@ import { components, internal } from "./_generated/api";
 import type { ActionCtx } from "./_generated/server";
 import { getUserPlanLimits } from "./acl";
 import type { Barbershop } from "./schema";
+import { asId } from "./utils";
 
 /**
  * Pana's retrieval-augmented memory (paid plans only). Two kinds of knowledge,
@@ -116,7 +117,7 @@ ${sections.join("\n\n")}`;
 export const getShopKnowledgeData = zInternalQuery({
   args: z.object({ barbershopId: z.string() }),
   handler: async (ctx, args) => {
-    const barbershopId = args.barbershopId as Barbershop["_id"];
+    const barbershopId = asId<"barbershops">(args.barbershopId);
     const shop = await ctx.db.get(barbershopId);
     if (!shop) return null;
 
@@ -150,7 +151,7 @@ export const getShopKnowledgeData = zInternalQuery({
   },
 });
 
-const DAY_ES: Record<string, string> = {
+const DAY_ES = {
   monday: "lunes",
   tuesday: "martes",
   wednesday: "miércoles",
@@ -158,7 +159,10 @@ const DAY_ES: Record<string, string> = {
   friday: "viernes",
   saturday: "sábado",
   sunday: "domingo",
-};
+} satisfies Record<
+  Barbershop["availability"][number]["weekDay"]["day"],
+  string
+>;
 
 /**
  * (Re)builds the knowledge-base entry for one barbershop. Idempotent: keyed by
@@ -242,7 +246,7 @@ export const listActiveBarbershopIds = zInternalQuery({
       .query("barbershops")
       .withIndex("by_isActive", (q) => q.eq("isActive", true))
       .collect();
-    return shops.map((s) => s._id as string);
+    return shops.map((s) => s._id);
   },
 });
 

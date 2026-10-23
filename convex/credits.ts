@@ -5,23 +5,11 @@
 
 import { z } from "zod";
 import { zInternalMutation, zQuery } from ".";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { getUsageRow, getUserPlanLimits } from "./acl";
+import { getExtraCredits, getUsageRow, getUserPlanLimits } from "./acl";
 import { assertShopRole } from "./authz";
 import { getUserId } from "./identity";
 import { getCurrentYearMonth } from "./plans";
-import type { Barbershop } from "./schema";
 import { barbershops } from "./schema";
-
-export async function getExtraCredits(
-  ctx: QueryCtx | MutationCtx,
-  barbershopId: Barbershop["_id"],
-) {
-  return ctx.db
-    .query("extraCredits")
-    .withIndex("by_barbershopId", (q) => q.eq("barbershopId", barbershopId))
-    .unique();
-}
 
 /**
  * Idempotently adds purchased credits to the payer's barbershop. The payer is
@@ -109,7 +97,7 @@ export const getMyExtraCredits = zQuery({
       return null;
     }
 
-    return getExtraCredits(ctx, barbershop._id);
+    return await getExtraCredits(ctx, barbershop._id);
   },
 });
 

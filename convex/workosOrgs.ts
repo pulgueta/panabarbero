@@ -13,6 +13,9 @@ import { authkit } from "./auth.config";
  * never breaks a user-facing flow.
  */
 
+/** A WorkOS API error; only its HTTP status is read. */
+const workosHttpError = z.object({ status: z.number() });
+
 export const createOrganizationForBarbershop = zInternalAction({
   args: z.object({
     barbershopId: zid("barbershops"),
@@ -84,7 +87,7 @@ export const deleteOrganization = zInternalAction({
       );
     } catch (error) {
       // Already gone in WorkOS — nothing to report.
-      if ((error as { status?: number }).status === 404) {
+      if (workosHttpError.safeParse(error).data?.status === 404) {
         return;
       }
 
@@ -124,7 +127,7 @@ export const removeOrganizationMembership = zInternalAction({
         ),
       );
     } catch (error) {
-      if ((error as { status?: number }).status === 404) {
+      if (workosHttpError.safeParse(error).data?.status === 404) {
         return;
       }
 
@@ -149,7 +152,7 @@ export const deleteCurrentUser = zAuthAction({
     try {
       await authkit.workos.userManagement.deleteUser(userId);
     } catch (error) {
-      if ((error as { status?: number }).status !== 404) {
+      if (workosHttpError.safeParse(error).data?.status !== 404) {
         throw new ConvexError(
           "No se pudo eliminar la cuenta. Inténtalo de nuevo.",
         );

@@ -84,7 +84,9 @@ export function movementEffects(
       return { onHandDelta: 0, reservedDelta: -quantity };
     default:
       throw new ConvexError(
-        errorMessages.notFound(`tipo de movimiento ${type satisfies never}`),
+        errorMessages.notFound(
+          `tipo de movimiento ${String(type satisfies never)}`,
+        ),
       );
   }
 }
@@ -256,10 +258,12 @@ export async function recordMovement(
   } else if (args.type === "release") {
     // Releases never throw and never over-release (ledger-derived caps).
     quantity = Math.min(quantity, level.reserved);
-  } else if (args.type === "adjustment") {
-    if (!item.allowNegativeStock && level.onHand + quantity < level.reserved) {
-      throw new ConvexError(errorMessages.insufficientStock);
-    }
+  } else if (
+    args.type === "adjustment" &&
+    !item.allowNegativeStock &&
+    level.onHand + quantity < level.reserved
+  ) {
+    throw new ConvexError(errorMessages.insufficientStock);
   }
 
   // No-op after clamping (or a zero adjustment): write nothing.
@@ -1578,6 +1582,21 @@ async function assertCanViewInventory(
   return { canManage };
 }
 
+/** Cost and valuation fields of an overview row; managers only. */
+type InventoryManagerFields = Partial<
+  Pick<
+    InventoryItem,
+    | "unitCost"
+    | "allowNegativeStock"
+    | "supplier"
+    | "model"
+    | "serialNumber"
+    | "purchasedAt"
+    | "warrantyUntil"
+    | "notes"
+  > & { value: number }
+>;
+
 /**
  * The dashboard spine: active items joined with their summed balances in one
  * live subscription. Costs and valuation are included only for managers —
@@ -1621,6 +1640,19 @@ export const getInventoryOverview = zAuthQuery({
       .filter((item) => item.deletedAt === undefined)
       .map((item) => {
         const balance = balances.get(item._id) ?? { onHand: 0, reserved: 0 };
+        const managerFields: InventoryManagerFields = canManage
+          ? {
+              unitCost: item.unitCost,
+              allowNegativeStock: item.allowNegativeStock,
+              value: balance.onHand * item.unitCost,
+              supplier: item.supplier,
+              model: item.model,
+              serialNumber: item.serialNumber,
+              purchasedAt: item.purchasedAt,
+              warrantyUntil: item.warrantyUntil,
+              notes: item.notes,
+            }
+          : {};
 
         return {
           _id: item._id,
@@ -1644,19 +1676,7 @@ export const getInventoryOverview = zAuthQuery({
           reserved: balance.reserved,
           available: balance.onHand - balance.reserved,
           belowReorder: balance.onHand <= item.reorderPoint,
-          ...(canManage
-            ? {
-                unitCost: item.unitCost,
-                allowNegativeStock: item.allowNegativeStock,
-                value: balance.onHand * item.unitCost,
-                supplier: item.supplier,
-                model: item.model,
-                serialNumber: item.serialNumber,
-                purchasedAt: item.purchasedAt,
-                warrantyUntil: item.warrantyUntil,
-                notes: item.notes,
-              }
-            : {}),
+          ...managerFields,
         };
       });
 
@@ -2037,8 +2057,14 @@ export const getMonthlyConsumption = zAuthQuery({
     const endMs = colombiaDateKeyToMs(`${nextMonth}-01`);
 
     const boundsFor = (type: InventoryMovementType) => ({
-      lower: { key: [type, startMs] as [string, number], inclusive: true },
-      upper: { key: [type, endMs] as [string, number], inclusive: false },
+      lower: {
+        key: [type, startMs] satisfies [string, number],
+        inclusive: true,
+      },
+      upper: {
+        key: [type, endMs] satisfies [string, number],
+        inclusive: false,
+      },
     });
 
     const [consumed, sold, received, wasted, consumedCount, soldCount] =

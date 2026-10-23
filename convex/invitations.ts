@@ -43,11 +43,11 @@ const APP_ROLE_TO_SLUG = {
   owner: "admin",
 } as const;
 
-const SLUG_TO_APP_ROLE: Record<string, "barber" | "staff" | "owner"> = {
-  member: "barber",
-  staff: "staff",
-  admin: "owner",
-};
+const SLUG_TO_APP_ROLE = new Map<string, keyof typeof APP_ROLE_TO_SLUG>([
+  ["member", "barber"],
+  ["staff", "staff"],
+  ["admin", "owner"],
+]);
 
 /**
  * Resolve the invitee's preferred locale for the WorkOS-hosted email, falling
@@ -59,6 +59,9 @@ async function resolveInviteLocale(email: string): Promise<Locale> {
     const locale = data[0]?.locale;
 
     if (locale) {
+      // SAFETY: WorkOS stores `User.locale` from its own locale list, so the
+      // value is a `Locale` even though the SDK types it as `string`.
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the SDK types the field wider than its contract
       return locale as Locale;
     }
   } catch {
@@ -278,7 +281,7 @@ export const listInvitations = zAuthAction({
       id: inv.id,
       email: inv.email,
       role: inv.roleSlug
-        ? (SLUG_TO_APP_ROLE[inv.roleSlug] ?? "barber")
+        ? (SLUG_TO_APP_ROLE.get(inv.roleSlug) ?? "barber")
         : "barber",
       state: inv.state,
       expiresAt: inv.expiresAt,
@@ -378,7 +381,7 @@ export const syncWorkosMembership = zInternalMutation({
       return;
     }
 
-    const appRole = SLUG_TO_APP_ROLE[args.roleSlug];
+    const appRole = SLUG_TO_APP_ROLE.get(args.roleSlug);
 
     // Only barber/staff are provisioned through invitations.
     if (appRole !== "barber" && appRole !== "staff") {

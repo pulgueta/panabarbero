@@ -21,29 +21,31 @@ export const deepLinks = {
 };
 
 /** Display labels for inventory units in notification copy. */
-export const inventoryUnitLabels: Record<string, string> = {
-  unit: "unidades",
-  ml: "ml",
-  g: "g",
-  box: "cajas",
-  pack: "paquetes",
-};
+export const inventoryUnitLabels = new Map<string, string>([
+  ["unit", "unidades"],
+  ["ml", "ml"],
+  ["g", "g"],
+  ["box", "cajas"],
+  ["pack", "paquetes"],
+]);
 
-const inventoryUnitWords: Record<string, { singular: string; plural: string }> =
-  {
-    unit: { singular: "unidad", plural: "unidades" },
-    ml: { singular: "ml", plural: "ml" },
-    g: { singular: "g", plural: "g" },
-    box: { singular: "caja", plural: "cajas" },
-    pack: { singular: "paquete", plural: "paquetes" },
-  };
+const inventoryUnitWords = new Map<
+  string,
+  { singular: string; plural: string }
+>([
+  ["unit", { singular: "unidad", plural: "unidades" }],
+  ["ml", { singular: "ml", plural: "ml" }],
+  ["g", { singular: "g", plural: "g" }],
+  ["box", { singular: "caja", plural: "cajas" }],
+  ["pack", { singular: "paquete", plural: "paquetes" }],
+]);
 
 /** es-CO phrase for remaining stock ("queda 1 unidad" / "quedan 3 cajas"). */
 export function formatLowStockRemaining(
   remaining: number,
   unit: string,
 ): string {
-  const forms = inventoryUnitWords[unit] ?? {
+  const forms = inventoryUnitWords.get(unit) ?? {
     singular: unit,
     plural: unit,
   };

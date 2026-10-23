@@ -9,14 +9,10 @@ import { getByUserIdFn, getEffectiveSchedule } from "./barbershopMembers";
 import { errorMessages } from "./errors";
 import { unreads } from "./notifications";
 import { getLimitsForProductKey } from "./plans";
-import type {
-  Appointment,
-  Barbershop,
-  BarbershopMember,
-  Service,
-} from "./schema";
+import type { Appointment, Service } from "./schema";
 import { barbershops } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
+import { asId } from "./utils";
 
 const helperPriceFormatter = new Intl.NumberFormat("es-CO", {
   style: "currency",
@@ -31,11 +27,11 @@ export function formatServicePriceLabel(service: Service): string {
     : helperPriceFormatter.format(service.price);
 }
 
-const ACTIVE_APPOINTMENT_STATUSES: Appointment["status"][] = [
+const ACTIVE_APPOINTMENT_STATUSES = new Set<Appointment["status"]>([
   "pending",
   "confirmed",
   "rescheduled",
-];
+]);
 
 export const getAppointmentsByUserId = zInternalQuery({
   args: z.object({
@@ -67,7 +63,7 @@ export const getReviewsForBarbershop = zInternalQuery({
     return await ctx.db
       .query("reviews")
       .withIndex("by_barbershopId", (q) =>
-        q.eq("barbershopId", args.barbershopId as Barbershop["_id"]),
+        q.eq("barbershopId", asId<"barbershops">(args.barbershopId)),
       )
       .order("desc")
       .take(args.limit);
@@ -193,7 +189,7 @@ export const getAppointmentsByMemberId = zInternalQuery({
       .withIndex("by_barbershopMemberId", (q) =>
         q.eq(
           "barbershopMemberId",
-          args.barbershopMemberId as BarbershopMember["_id"],
+          asId<"barbershopMembers">(args.barbershopMemberId),
         ),
       )
       .order("desc")
@@ -402,7 +398,7 @@ export const getMyBarbershopData = zInternalQuery({
         closeAt: a.closeAt,
       })),
       services: services.map((s) => ({
-        serviceId: s._id as string,
+        serviceId: s._id,
         name: s.name,
         price: s.price,
         priceType: s.priceType ?? "fixed",
@@ -422,7 +418,7 @@ export const getMyBarbershopData = zInternalQuery({
 export const getBarberScheduleData = zInternalQuery({
   args: z.object({ barbershopMemberId: z.string() }),
   handler: async (ctx, args) => {
-    const memberId = args.barbershopMemberId as BarbershopMember["_id"];
+    const memberId = asId<"barbershopMembers">(args.barbershopMemberId);
     const member = await ctx.db.get(memberId);
 
     if (!member) return { found: false as const };
@@ -453,7 +449,7 @@ export const assertAppointmentActor = zInternalQuery({
     requiredActor: z.enum(["customer", "shop", "any"]),
   }),
   handler: async (ctx, args) => {
-    const appt = await ctx.db.get(args.appointmentId as Appointment["_id"]);
+    const appt = await ctx.db.get(asId<"appointments">(args.appointmentId));
 
     if (!appt || appt.deletedAt) {
       throw new ConvexError(errorMessages.notFound("cita"));
@@ -497,7 +493,7 @@ export const assertAppointmentActor = zInternalQuery({
 export const countImpactedByService = zInternalQuery({
   args: z.object({ serviceId: z.string() }),
   handler: async (ctx, args) => {
-    const serviceId = args.serviceId as Service["_id"];
+    const serviceId = asId<"services">(args.serviceId);
     const service = await ctx.db.get(serviceId);
 
     if (!service) {
@@ -517,7 +513,7 @@ export const countImpactedByService = zInternalQuery({
     let willUpdate = 0;
 
     for (const appt of future) {
-      if (!ACTIVE_APPOINTMENT_STATUSES.includes(appt.status)) {
+      if (!ACTIVE_APPOINTMENT_STATUSES.has(appt.status)) {
         continue;
       }
 
@@ -549,7 +545,7 @@ export const countImpactedByMember = zInternalQuery({
       .withIndex("by_barbershopMemberId", (q) =>
         q.eq(
           "barbershopMemberId",
-          args.barbershopMemberId as BarbershopMember["_id"],
+          asId<"barbershopMembers">(args.barbershopMemberId),
         ),
       )
       .filter((q) =>
@@ -560,8 +556,7 @@ export const countImpactedByMember = zInternalQuery({
       )
       .collect();
 
-    return impacted.filter((a) =>
-      ACTIVE_APPOINTMENT_STATUSES.includes(a.status),
-    ).length;
+    return impacted.filter((a) => ACTIVE_APPOINTMENT_STATUSES.has(a.status))
+      .length;
   },
 });

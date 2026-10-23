@@ -316,7 +316,7 @@ export const sendWelcomeEmail = zInternalAction({
     await sendEmail(ctx, {
       to: args.to,
       subject: "¡Bienvenido a PanaBarbero!",
-      react: WelcomeEmail({}),
+      react: WelcomeEmail(),
     });
   },
 });

@@ -41,12 +41,15 @@ export async function upsertNotificationPreference(
       )
     : [...profile.notificationsPreferences, { type, enabled }];
 
-  await ctx.db.patch(profile._id, {
-    notificationsPreferences: next,
-    ...(type === "whatsapp" && enabled
-      ? { whatsappOptedInAt: Date.now() }
-      : {}),
-  });
+  const update: Partial<
+    Pick<UserProfileData, "notificationsPreferences" | "whatsappOptedInAt">
+  > = { notificationsPreferences: next };
+
+  if (type === "whatsapp" && enabled) {
+    update.whatsappOptedInAt = Date.now();
+  }
+
+  await ctx.db.patch(profile._id, update);
 }
 
 export const getProfileByUserId = async (
@@ -70,13 +73,17 @@ export const getProfileByEmail = async (
 };
 
 function getProfilePhotoKey(image: string | undefined) {
-  if (!image) return;
+  let key: string | undefined;
 
-  try {
-    return new URL(image).pathname.replace(/^\//, "");
-  } catch {
-    return;
+  if (image) {
+    try {
+      key = new URL(image).pathname.replace(/^\//, "");
+    } catch {
+      // Not a URL: there is no key.
+    }
   }
+
+  return key;
 }
 
 export const getMyProfile = zQuery({
@@ -119,7 +126,7 @@ export const updateName = zAuthMutation({
     const profile = await getProfileByUserId(ctx, userId);
 
     if (!profile) {
-      return null;
+      return;
     }
 
     const name = args.name?.trim();
@@ -135,10 +142,9 @@ export const updatePhoneNumber = zAuthMutation({
       /** When true, drops the phone number from the profile. */
       clearPhoneNumber: z.boolean().optional(),
     })
-    .refine(
-      (a) => a.clearPhoneNumber === true || typeof a.phoneNumber === "string",
-      { message: "Indica un número de teléfono o elige quitar." },
-    ),
+    .refine((a) => a.clearPhoneNumber === true || a.phoneNumber !== undefined, {
+      message: "Indica un número de teléfono o elige quitar.",
+    }),
   handler: async (ctx, args) => {
     const { userId } = ctx;
 
@@ -204,13 +210,12 @@ export const setProfilePhotoKey = zAuthMutation({
 
     const previousKey = args.previousKey;
 
-    if (previousKey) {
-      if (
-        !previousKey.startsWith("assets/profile-photos/") ||
-        getProfilePhotoKey(profile.image) !== previousKey
-      ) {
-        throw new ConvexError(errorMessages.unauthorized);
-      }
+    if (
+      previousKey &&
+      (!previousKey.startsWith("assets/profile-photos/") ||
+        getProfilePhotoKey(profile.image) !== previousKey)
+    ) {
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     await ctx.db.patch(profile._id, { image: args.imageUrl });
@@ -244,13 +249,12 @@ export const removeProfilePhoto = zAuthMutation({
 
     const previousKey = args.previousKey;
 
-    if (previousKey) {
-      if (
-        !previousKey.startsWith("assets/profile-photos/") ||
-        getProfilePhotoKey(profile.image) !== previousKey
-      ) {
-        throw new ConvexError(errorMessages.unauthorized);
-      }
+    if (
+      previousKey &&
+      (!previousKey.startsWith("assets/profile-photos/") ||
+        getProfilePhotoKey(profile.image) !== previousKey)
+    ) {
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     await ctx.db.patch(profile._id, { image: undefined });

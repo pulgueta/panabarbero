@@ -1,7 +1,11 @@
 /* oxlint-disable typescript/no-non-null-assertion -- early return */
 
 import { createFunctionHandle } from "convex/server";
-import type { FunctionHandle, FunctionReference } from "convex/server";
+import type {
+  FunctionArgs,
+  FunctionHandle,
+  FunctionReference,
+} from "convex/server";
 import { ConvexError } from "convex/values";
 import { zid } from "convex-helpers/server/zod4";
 import { UnreadTracking } from "convex-unread-tracking";
@@ -9,6 +13,7 @@ import { z } from "zod";
 
 import { zInternalMutation } from ".";
 import { components, internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import {
   incrementEmailSent,
@@ -21,7 +26,6 @@ import { getAppointmentItems, itemsLabel } from "./appointmentItems";
 import { errorMessages } from "./errors";
 import { buildNotificationCopy, buildSmsBody } from "./notificationCopy";
 import type { NotificationCopy } from "./notificationCopy";
-import { subjects } from "./notificationSubjects";
 import type { Barbershop, InAppNotification, UserProfileData } from "./schema";
 import { getProfileByUserId } from "./userProfileData";
 import type { Fallback } from "./whatsapp";
@@ -40,8 +44,9 @@ import {
 } from "./whatsappTemplates";
 import type { WhatsAppTemplateSend } from "./whatsappTemplates";
 
-export { subjects };
+export { subjects } from "./notificationSubjects";
 
+// oxlint-disable-next-line typescript/no-unsafe-argument -- convex-unread-tracking ships no `_generated/component.d.ts`, so `components.unreadTracking` resolves to an error type
 export const unreads = new UnreadTracking(components.unreadTracking);
 
 function resolveCustomerEmail(
@@ -90,7 +95,7 @@ async function sendSms(
 async function sendEmail(
   ctx: MutationCtx,
   barbershopId: Barbershop["_id"] | undefined,
-  send: () => Promise<unknown>,
+  send: () => Promise<Id<"_scheduled_functions">>,
 ): Promise<void> {
   if (barbershopId) {
     const canSend = await isEmailLimitNotExceeded(ctx, barbershopId);
@@ -138,7 +143,10 @@ async function sendFallback(ctx: MutationCtx, fallback: Fallback) {
     await sendEmail(ctx, fallback.barbershopId, () =>
       ctx.scheduler.runAfter(
         0,
-        email.handle as unknown as FunctionHandle<"action">,
+        // SAFETY: `email.handle` is a `createFunctionHandle` result for an
+        // internal action (see `emailFallback`), serialized as a string.
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the handle crossed a workflow arg boundary as a plain string
+        email.handle as FunctionHandle<"action">,
         email.args,
       ),
     );
@@ -171,10 +179,9 @@ export const runFallback = zInternalMutation({
 });
 
 /** Serialize an email send so the workflow can run it after a failed send. */
-export async function emailFallback(
-  ref: FunctionReference<"action", "internal">,
-  args: Record<string, unknown>,
-): Promise<NonNullable<Fallback["email"]>> {
+export async function emailFallback<
+  Ref extends FunctionReference<"action", "internal">,
+>(ref: Ref, args: FunctionArgs<Ref>): Promise<NonNullable<Fallback["email"]>> {
   return { handle: await createFunctionHandle(ref), args };
 }
 
@@ -230,6 +237,7 @@ export async function sendNotification(
       templateName: template.name,
       components: filterButtonsToTemplate(
         template.components,
+        // oxlint-disable-next-line typescript/no-unsafe-argument -- the component stores synced `components` as `v.any()`; filterButtonsToTemplate parses it with zod
         approved.components,
       ),
       barbershopId: opts.barbershopId,
