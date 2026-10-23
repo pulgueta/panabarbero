@@ -140,7 +140,7 @@ function RouteComponent() {
   );
   const { data: barbersForServices } =
     useBarbersForServices(effectiveServiceIds);
-  const [chosenBarber, setChosenBarber] = useState<
+  const [selectedBarber, setSelectedBarber] = useState<
     BarbershopMemberWithName | undefined
   >(undefined);
 
@@ -179,8 +179,8 @@ function RouteComponent() {
         ? availableBarbers[0]?._id
         : undefined;
 
-  // A barber without a management role always books for themself, and a
-  // single available barber is always the selected one.
+  // A barber without a management role books for themself, and a single
+  // available barber is selected automatically.
   const selfBarber =
     isBarber && !isStaff && currentBarberMember
       ? barbershopMembers.find(
@@ -192,7 +192,16 @@ function RouteComponent() {
     (!isCreatingOnBehalf || isStaff || (isOwner && !isBarber))
       ? availableBarbers[0]
       : undefined;
-  const selectedBarber = onlyBarber ?? selfBarber ?? chosenBarber;
+  const autoBarber = onlyBarber ?? selfBarber;
+
+  // Select the auto barber whenever it changes; the user can still pick another one.
+  const [syncedAutoBarber, setSyncedAutoBarber] = useState<
+    BarbershopMemberWithName | undefined
+  >(undefined);
+  if (syncedAutoBarber !== autoBarber) {
+    setSyncedAutoBarber(autoBarber);
+    if (autoBarber) setSelectedBarber(autoBarber);
+  }
   const { data: barberServices } = useServicesForBarber(selectedBarber?._id);
 
   const formIds = {
@@ -241,7 +250,7 @@ function RouteComponent() {
               barberServices={barberServices?.filter(
                 (nextService) => nextService !== null,
               )}
-              onBarberChange={setChosenBarber}
+              onBarberChange={setSelectedBarber}
               effectiveServiceIds={effectiveServiceIds}
               showPhoneField={showPhoneField}
               disabledFields={
