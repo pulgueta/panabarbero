@@ -25,6 +25,10 @@ import { useSession } from "@/hooks/use-session";
 
 type NotificationsFilter = "all" | "unread";
 
+function isNotificationsFilter(value: unknown): value is NotificationsFilter {
+  return value === "all" || value === "unread";
+}
+
 const PAGE_SIZE = 20;
 
 type PageBodyProps = {
@@ -67,7 +71,7 @@ const NotificationsAllPageBody: FC<PageBodyProps> = ({
       }
     }
 
-    return Array.from(buckets.entries());
+    return [...buckets.entries()];
   }, [visible]);
 
   const hasNextPage = Boolean(
@@ -178,7 +182,7 @@ const NotificationsUnreadPageBody: FC<PageBodyProps> = ({
       }
     }
 
-    return Array.from(buckets.entries());
+    return [...buckets.entries()];
   }, [visible]);
 
   const hasNextPage = Boolean(
@@ -266,7 +270,7 @@ export const NotificationsTab = () => {
   const { data: isBarber } = useIsBarber(user?.id ?? "");
   const { data: isStaff } = useIsStaff(user?.id ?? "");
   const { data: isOwner } = useIsOwner(user?.id ?? "");
-  const usesBarberCalendar = Boolean(isBarber || isStaff || isOwner);
+  const usesBarberCalendar = isBarber || isStaff || isOwner;
 
   const { data: unread } = useUnreadNotificationsCount();
   const { markAllReadMutation } = useNotificationActions();
@@ -297,7 +301,8 @@ export const NotificationsTab = () => {
           <Tabs
             value={filter}
             onValueChange={(v) => {
-              setFilter(v as NotificationsFilter);
+              if (!isNotificationsFilter(v)) return;
+              setFilter(v);
               setCursor(null);
               setCursorStack([]);
             }}
@@ -308,7 +313,7 @@ export const NotificationsTab = () => {
               <TabsTrigger value="unread" className="gap-1.5">
                 Sin leer
                 {unread ? (
-                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 font-medium text-[11px] text-primary-foreground tabular-nums">
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 font-medium text-xs text-primary-foreground tabular-nums">
                     {unread > 99 ? "99+" : unread}
                   </span>
                 ) : null}

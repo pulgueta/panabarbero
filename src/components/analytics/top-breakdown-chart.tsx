@@ -3,6 +3,8 @@ import { Bar, BarChart, LabelList, XAxis, YAxis } from "recharts";
 
 import { truncateLabel } from "@/components/analytics/chart-format";
 
+import type { ChartTooltipFormatter } from "@/components/chart-tooltip";
+import { payloadNumber, payloadText } from "@/components/chart-tooltip";
 import {
   Card,
   CardContent,
@@ -40,6 +42,23 @@ interface TopBreakdownChartProps {
   rows: BreakdownRow[];
   emptyMessage: string;
 }
+
+const renderTooltipValue: ChartTooltipFormatter = (value, _name, item) => (
+  <div className="flex w-full flex-col gap-1 leading-none">
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-muted-foreground">Citas</span>
+      <span className="font-medium font-mono text-foreground tabular-nums">
+        {Number(value).toLocaleString("es-CO")}
+      </span>
+    </div>
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-muted-foreground">Ingresos</span>
+      <span className="font-medium font-mono text-foreground tabular-nums">
+        {formatCurrency(payloadNumber(item, "revenue"))}
+      </span>
+    </div>
+  </div>
+);
 
 /**
  * Top-5 horizontal comparison (barberos / servicios). Nominal categories wear
@@ -89,26 +108,9 @@ export const TopBreakdownChart: FC<TopBreakdownChartProps> = ({
                   <ChartTooltipContent
                     hideIndicator
                     labelFormatter={(_, payload) =>
-                      String(payload[0]?.payload?.name ?? "")
+                      payloadText(payload[0], "name")
                     }
-                    formatter={(value, _name, item) => (
-                      <div className="flex w-full flex-col gap-1 leading-none">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-muted-foreground">Citas</span>
-                          <span className="font-medium font-mono text-foreground tabular-nums">
-                            {Number(value).toLocaleString("es-CO")}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-muted-foreground">
-                            Ingresos
-                          </span>
-                          <span className="font-medium font-mono text-foreground tabular-nums">
-                            {formatCurrency(Number(item.payload?.revenue ?? 0))}
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                    formatter={renderTooltipValue}
                   />
                 }
               />

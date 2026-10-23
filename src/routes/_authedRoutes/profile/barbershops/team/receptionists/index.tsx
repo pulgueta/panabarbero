@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: barbershop is primed by the loader and gated to owners/staff */
+/* oxlint-disable typescript/no-non-null-assertion -- barbershop is primed by the loader and gated to owners/staff */
 
 import { WarningIcon } from "@phosphor-icons/react";
 import { createFileRoute, redirect } from "@tanstack/react-router";

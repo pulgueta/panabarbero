@@ -31,6 +31,10 @@ export function DataTableToolbar({
   );
 }
 
+function isString(value: unknown): value is string {
+  return typeof value === "string";
+}
+
 /** Global free-text search. Instant for client tables; server tables debounce the value before querying. */
 export function DataTableSearch({
   placeholder = "Buscar…",
@@ -40,7 +44,8 @@ export function DataTableSearch({
   className?: string;
 }) {
   const { table } = useDataTableContext();
-  const value = (table.getState().globalFilter as string | undefined) ?? "";
+  const globalFilter: unknown = table.getState().globalFilter;
+  const value = isString(globalFilter) ? globalFilter : "";
 
   return (
     <InputGroup className={cn("h-8 w-full sm:max-w-64", className)}>

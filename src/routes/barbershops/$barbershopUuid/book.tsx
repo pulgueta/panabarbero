@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: objects are guaranteed to be not null */
+/* oxlint-disable typescript/no-non-null-assertion -- objects are guaranteed to be not null */
 
 import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
@@ -158,7 +158,7 @@ function RouteComponent() {
         {barbershop ? (
           <section>
             <header className="">
-              <h3 className="mb-4 text-balance font-semibold text-3xl tracking-tightest">
+              <h3 className="mb-4 text-balance font-semibold text-3xl">
                 {barbershop.name}
               </h3>
               <p className="text-xl">Reservar cita</p>

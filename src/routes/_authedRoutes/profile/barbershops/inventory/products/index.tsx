@@ -151,16 +151,18 @@ const ProductsTable: FC<ProductsTableProps> = ({ barbershopId }) => {
   const columns = getInventoryTableColumns({
     canManage: overview.canManage,
     onAdjust: (row) => setDialog({ type: "adjust", row }),
-    onHistory: (row) =>
+    onHistory: (row) => {
       void navigate({
         to: "/profile/barbershops/inventory/$itemId/history",
         params: { itemId: row._id },
-      }),
-    onEdit: (row) =>
+      });
+    },
+    onEdit: (row) => {
       void navigate({
         to: "/profile/barbershops/inventory/$itemId/edit",
         params: { itemId: row._id },
-      }),
+      });
+    },
     onArchive: (row) => setDialog({ type: "archive", row }),
     onRecord: (row) => setDialog({ type: "record", row }),
   });
@@ -263,7 +265,7 @@ function RouteComponent() {
     select: (context) => context.dashboardRoles,
   });
 
-  const canManageRoles = Boolean(roles?.isOwner || roles?.isStaff);
+  const canManageRoles = roles?.isOwner === true || roles?.isStaff === true;
 
   if (!barbershop?._id) {
     return (

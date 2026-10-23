@@ -54,7 +54,9 @@ export function DataTableRowActions({
             <DropdownMenuItem
               variant={action.variant}
               disabled={action.disabled}
-              onClick={action.onSelect}
+              onClick={() => {
+                action.onSelect();
+              }}
             >
               {action.icon}
               {action.label}

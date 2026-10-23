@@ -1,5 +1,4 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: objects are guaranteed to be not null */
-/** biome-ignore-all lint/suspicious/noNonNullAssertedOptionalChain: objects are guaranteed to be not null */
+/* oxlint-disable typescript/no-non-null-assertion -- objects are guaranteed to be not null */
 
 import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
@@ -160,7 +159,7 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
     const barbershop = loaderData?.seoBarbershop;
 
     return {
-      meta: barbershopSeo(barbershop!),
+      meta: barbershopSeo(barbershop ?? null),
       links: [
         {
           rel: "canonical",

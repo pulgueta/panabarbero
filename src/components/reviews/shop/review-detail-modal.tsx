@@ -69,10 +69,10 @@ export const ReviewDetailModal: FC<ReviewDetailModalProps> = ({
             </div>
 
             <p className="text-pretty text-sm">
-              {review.comment ? (
-                review.comment
-              ) : (
+              {review.comment === undefined || review.comment === "" ? (
                 <span className="text-muted-foreground">Sin comentario.</span>
+              ) : (
+                review.comment
               )}
             </p>
 

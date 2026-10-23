@@ -87,7 +87,7 @@ export const Route = createFileRoute(
   loader: async (opts) => {
     const barbershop = opts.context.dashboardBarbershop;
     const roles = opts.context.dashboardRoles;
-    const canManage = Boolean(roles?.isOwner || roles?.isStaff);
+    const canManage = roles?.isOwner === true || roles?.isStaff === true;
     const canView = canManage || Boolean(roles?.roles?.includes("barber"));
 
     if (!canView) {

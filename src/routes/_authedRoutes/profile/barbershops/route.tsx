@@ -53,7 +53,7 @@ export const Route = createFileRoute("/_authedRoutes/profile/barbershops")({
       dashboardRoles: roles,
     };
   },
-  loader: async ({ context }) => {
+  loader: ({ context }) => {
     if (context.dashboardBarbershop?._id) {
       void context.queryClient.prefetchQuery(
         getBarbershopPlanQueryOptions(context.dashboardBarbershop._id),

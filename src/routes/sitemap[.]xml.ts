@@ -5,7 +5,7 @@ import { getBaseUrl } from "@/lib/utils";
 export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
-      GET: async () => {
+      GET: () => {
         try {
           const baseUrl = getBaseUrl();
 

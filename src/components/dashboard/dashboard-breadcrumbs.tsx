@@ -1,5 +1,6 @@
 import { useMatches } from "@tanstack/react-router";
 import { Fragment } from "react";
+import type { ComponentProps } from "react";
 
 import {
   Breadcrumb,
@@ -9,6 +10,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+
+type CrumbTo = ComponentProps<typeof BreadcrumbLink>["to"];
 
 export function DashboardBreadcrumbs() {
   const crumbs = useMatches({
@@ -40,8 +43,11 @@ export function DashboardBreadcrumbs() {
                 {isLast ? (
                   <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
                 ) : (
-                  // biome-ignore lint/suspicious/noExplicitAny: pathname comes from a resolved route match, always a valid registered path — router's literal-union typing can't express that dynamically
-                  <BreadcrumbLink to={crumb.to as any}>
+                  <BreadcrumbLink
+                    // SAFETY: `to` is the pathname of a resolved route match, so it is always a registered path.
+                    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the router types `to` as a literal union; a resolved pathname string cannot be proven to be in it
+                    to={crumb.to as CrumbTo}
+                  >
                     {crumb.label}
                   </BreadcrumbLink>
                 )}

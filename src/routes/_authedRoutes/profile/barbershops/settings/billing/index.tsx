@@ -78,7 +78,7 @@ export const Route = createFileRoute(
           .ensureQueryData(barbershopByOwnerIdQueryOptions(userId))
           .then((barbershop) => {
             if (!barbershop) {
-              return;
+              return null;
             }
 
             // Streamed: the credits section suspends on these behind its own

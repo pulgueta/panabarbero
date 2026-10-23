@@ -394,12 +394,10 @@ html:active-view-transition-type(slide-right) {
 
 /* Warp/Rotate Transition */
 html:active-view-transition-type(warp) {
-  /* biome-ignore lint/correctness/noUnknownTypeSelector: View transitions */
   &::view-transition-old(post) {
     animation: 400ms ease-out both warp-out;
   }
 
-  /* biome-ignore lint/correctness/noUnknownTypeSelector: View transitions */
   &::view-transition-new(post) {
     animation: 400ms ease-out both warp-in;
   }

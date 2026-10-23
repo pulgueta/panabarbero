@@ -21,6 +21,7 @@ export function useActiveRoute(routes: NavRouteLike[]): string | undefined {
 
   return useMemo(() => {
     const active = routes.filter((route) => isActivePath(pathname, route.to));
-    return active.sort((a, b) => b.to.length - a.to.length)[0]?.to;
+    active.sort((a, b) => b.to.length - a.to.length);
+    return active[0]?.to;
   }, [routes, pathname]);
 }

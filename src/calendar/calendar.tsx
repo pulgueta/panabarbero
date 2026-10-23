@@ -175,7 +175,7 @@ function formatCalendarRange(start: Date, exclusiveEnd: Date): string {
 function isAppointmentCalendarView(
   view: ReuiCalendarView,
 ): view is CalendarView {
-  return CALENDAR_VIEWS.includes(view as CalendarView);
+  return CALENDAR_VIEWS.some((calendarView) => calendarView === view);
 }
 
 function renderAppointmentEvent({
@@ -280,7 +280,8 @@ export const AppointmentsCalendar: FC<AppointmentsCalendarProps> = ({
   const [barberFilter, setBarberFilter] = useState<BarberFilter>("all");
   const [details, setDetails] = useState<{
     eventId: string;
-    anchor: HTMLElement;
+    anchor: Element;
+    openedAt: number;
   } | null>(null);
 
   const dayWindows = useMemo(
@@ -316,7 +317,8 @@ export const AppointmentsCalendar: FC<AppointmentsCalendarProps> = ({
       if (!occurrence.event.data) return;
       setDetails({
         eventId: occurrence.event.id,
-        anchor: event.currentTarget as HTMLElement,
+        anchor: event.currentTarget,
+        openedAt: Date.now(),
       });
     },
     [],
@@ -408,7 +410,7 @@ export const AppointmentsCalendar: FC<AppointmentsCalendarProps> = ({
           totalMinutes,
         }) =>
           renderAvailabilityBackground(
-            dayWindows[day.getDay()],
+            dayWindows.get(day.getDay()),
             boundsStartMin,
             boundsEndMin,
             totalMinutes,
@@ -452,6 +454,7 @@ export const AppointmentsCalendar: FC<AppointmentsCalendarProps> = ({
           isBarber={isBarber}
           open
           anchor={details.anchor}
+          openedAt={details.openedAt}
           onOpenChange={(open) => {
             if (!open) setDetails(null);
           }}

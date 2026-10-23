@@ -31,7 +31,7 @@ export const PlanComparison: FC = () => {
     products.independiente,
     products.barberiaMonthly,
     products.barberiaProfMonthly,
-  ].filter((product) => product != null);
+  ].filter((product) => product !== null && product !== undefined);
 
   // Ordered by first appearance from the free tier upward.
   const benefitRows = new Map<string, string>();

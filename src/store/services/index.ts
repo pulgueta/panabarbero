@@ -1,5 +1,5 @@
 import type { Service } from "@convex/schema";
-import { Store, useStore } from "@tanstack/react-store";
+import { Store, useSelector } from "@tanstack/react-store";
 
 interface ServicesStore {
   /** Selected services, in selection order (no duplicates). */
@@ -42,7 +42,7 @@ export function resetServiceStore() {
 }
 
 export function useServicesStore() {
-  return useStore(servicesStore, (state) => state.services);
+  return useSelector(servicesStore, (state) => state.services);
 }
 
 export function useServicesStoreActions() {

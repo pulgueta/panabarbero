@@ -25,10 +25,9 @@ interface LowStockCardProps {
 export const LowStockCard: FC<LowStockCardProps> = ({ barbershopId }) => {
   const { data: lowStock, isPending } = useLowStock(barbershopId);
 
-  const rows = (lowStock ?? [])
-    .slice()
-    .sort((a, b) => a.onHand - b.onHand)
-    .slice(0, LOW_STOCK_LIMIT);
+  const sorted = [...(lowStock ?? [])];
+  sorted.sort((a, b) => a.onHand - b.onHand);
+  const rows = sorted.slice(0, LOW_STOCK_LIMIT);
 
   return (
     <Card>

@@ -68,8 +68,8 @@ export const NotificationRenderer: FC<NotificationRendererProps> = ({
       return <InventoryNotification {...shared} />;
 
     default: {
-      const _exhaustive: never = notification.kind;
-      return null as never | typeof _exhaustive;
+      notification.kind satisfies never;
+      return null;
     }
   }
 };

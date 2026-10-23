@@ -31,7 +31,7 @@ export const NotificationsBell = () => {
   const { data: isBarber } = useIsBarber(user?.id ?? "");
   const { data: isStaff } = useIsStaff(user?.id ?? "");
   const { data: isOwner } = useIsOwner(user?.id ?? "");
-  const usesBarberCalendar = Boolean(isBarber || isStaff || isOwner);
+  const usesBarberCalendar = isBarber || isStaff || isOwner;
 
   const { data: recent } = useRecentNotifications();
   const { data: unread } = useUnreadNotificationsCount();
@@ -80,7 +80,7 @@ export const NotificationsBell = () => {
               Notificaciones
             </span>
             {hasUnread ? (
-              <Badge variant="secondary" className="h-5 px-1.5 text-[11px]">
+              <Badge variant="secondary" className="h-5 px-1.5 text-xs">
                 {unread} sin leer
               </Badge>
             ) : null}

@@ -38,6 +38,7 @@ export function useDataTableContext<TData = unknown>() {
   if (!ctx) {
     throw new Error("DataTable.* components must be used within <DataTable>");
   }
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: <DataTable> provides the table it received for its own TData, and slots under it name that same TData.
   return ctx as DataTableContextValue<TData>;
 }
 
@@ -71,7 +72,11 @@ export function DataTable<TData>({
   children,
 }: DataTableProps<TData>) {
   const value = useMemo(
-    () => ({ table: table as TanstackTable<unknown>, server }),
+    () => ({
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: the context erases TData; useDataTableContext<TData> restores it for slots under this provider.
+      table: table as TanstackTable<unknown>,
+      server,
+    }),
     [table, server],
   );
 
@@ -84,7 +89,7 @@ export function DataTable<TData>({
   );
 }
 
-export function DataTableContent<TData = unknown>({
+export function DataTableContent({
   className,
   empty,
 }: {
@@ -92,7 +97,7 @@ export function DataTableContent<TData = unknown>({
   /** Shown when there are no rows. Falls back to a filter-aware default. */
   empty?: ReactNode;
 }) {
-  const { table } = useDataTableContext<TData>();
+  const { table } = useDataTableContext();
   const rows = table.getRowModel().rows;
   const colCount = table.getVisibleLeafColumns().length;
   const isFiltered =
@@ -179,12 +184,12 @@ export function DataTableSkeleton({
           <Skeleton key={`h-${i}`} className="h-3.5 w-20" />
         ))}
       </div>
-      {Array.from({ length: rows }).map((_, r) => (
+      {Array.from({ length: rows }).map((_row, r) => (
         <div
           key={`r-${r}`}
           className="flex h-13 items-center gap-4 border-b px-3 last:border-0"
         >
-          {Array.from({ length: columns }).map((_, c) => (
+          {Array.from({ length: columns }).map((_cell, c) => (
             <Skeleton key={`c-${c}`} className="h-4 w-24" />
           ))}
         </div>
