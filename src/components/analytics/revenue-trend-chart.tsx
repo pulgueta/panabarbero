@@ -5,6 +5,8 @@ import {
   formatMonthLong,
   formatMonthShort,
 } from "@/components/analytics/chart-format";
+import type { ChartTooltipFormatter } from "@/components/chart-tooltip";
+import { payloadText } from "@/components/chart-tooltip";
 import {
   Card,
   CardContent,
@@ -28,9 +30,24 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
+function isChartKey(name: unknown): name is keyof typeof chartConfig {
+  return typeof name === "string" && Object.hasOwn(chartConfig, name);
+}
+
 interface RevenueTrendChartProps {
   data: AppointmentsTrendPoint[];
 }
+
+const renderTooltipValue: ChartTooltipFormatter = (value, name) => (
+  <div className="flex w-full items-center justify-between gap-2 leading-none">
+    <span className="text-muted-foreground">
+      {isChartKey(name) ? chartConfig[name].label : name}
+    </span>
+    <span className="font-medium font-mono text-foreground tabular-nums">
+      {formatCurrency(Number(value))}
+    </span>
+  </div>
+);
 
 /**
  * Estimated revenue (service price snapshotted at completion) per Bogotá
@@ -68,19 +85,9 @@ export const RevenueTrendChart: FC<RevenueTrendChartProps> = ({ data }) => {
                   <ChartTooltipContent
                     hideIndicator
                     labelFormatter={(_, payload) =>
-                      formatMonthLong(String(payload[0]?.payload?.month ?? ""))
+                      formatMonthLong(payloadText(payload[0], "month"))
                     }
-                    formatter={(value, name) => (
-                      <div className="flex w-full items-center justify-between gap-2 leading-none">
-                        <span className="text-muted-foreground">
-                          {chartConfig[name as keyof typeof chartConfig]
-                            ?.label ?? name}
-                        </span>
-                        <span className="font-medium font-mono text-foreground tabular-nums">
-                          {formatCurrency(Number(value))}
-                        </span>
-                      </div>
-                    )}
+                    formatter={renderTooltipValue}
                   />
                 }
               />

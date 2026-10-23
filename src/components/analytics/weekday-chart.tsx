@@ -1,6 +1,7 @@
 import type { FC } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 
+import { payloadText } from "@/components/chart-tooltip";
 import {
   Card,
   CardContent,
@@ -74,7 +75,7 @@ export const WeekdayChart: FC<WeekdayChartProps> = ({ byWeekday, days }) => {
                   <ChartTooltipContent
                     indicator="dot"
                     labelFormatter={(_, payload) =>
-                      String(payload[0]?.payload?.name ?? "")
+                      payloadText(payload[0], "name")
                     }
                   />
                 }

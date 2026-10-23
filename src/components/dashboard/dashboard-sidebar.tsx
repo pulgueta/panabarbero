@@ -66,97 +66,6 @@ interface DashboardUser {
   image?: string | null;
 }
 
-interface DashboardSidebarProps {
-  role: DashboardRole;
-  barbershop: Barbershop | null | undefined;
-  user: DashboardUser | null | undefined;
-}
-
-export const DashboardSidebar: FC<DashboardSidebarProps> = ({
-  role,
-  barbershop,
-  user,
-}) => {
-  const { isMobile } = useSidebar();
-
-  const groups = getDashboardNavGroups(role);
-  // Longest-prefix-wins across items AND their children, so a sub-route lights
-  // up its own entry (not just the parent).
-  const activeTo = useActiveRoute(
-    groups.flatMap((group) =>
-      group.items.flatMap((item) => [
-        { to: item.to },
-        ...(item.children ?? []).map((child) => ({ to: child.to })),
-      ]),
-    ),
-  );
-
-  return (
-    <Sidebar collapsible="icon" variant="inset">
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            {barbershop ? (
-              <SidebarMenuButton
-                render={closeOnMobile(
-                  isMobile,
-                  <Link
-                    params={{ barbershopUuid: barbershop.uuid }}
-                    to="/barbershops/$barbershopUuid"
-                  />,
-                )}
-                size="lg"
-                tooltip={barbershop.name}
-              >
-                <ShopTile logoKey={barbershop.logoKey} name={barbershop.name} />
-                <span className="grid flex-1 leading-tight">
-                  <span className="truncate font-semibold text-sm">
-                    {barbershop.name}
-                  </span>
-                  <ShopPlanLabel barbershopId={barbershop._id} />
-                </span>
-              </SidebarMenuButton>
-            ) : (
-              <SidebarMenuButton disabled size="lg" tooltip="Mi barbería">
-                <ShopTile logoKey={null} name={null} />
-                <span className="truncate font-semibold text-sm">
-                  Mi barbería
-                </span>
-              </SidebarMenuButton>
-            )}
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-
-      <SidebarContent>
-        {groups.map((group) => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {group.items.map((item) => (
-                  <DashboardNavEntry
-                    key={item.to}
-                    activeTo={activeTo}
-                    isMobile={isMobile}
-                    item={item}
-                  />
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
-      </SidebarContent>
-
-      {user && (
-        <SidebarFooter>
-          <DashboardUserMenu user={user} />
-        </SidebarFooter>
-      )}
-    </Sidebar>
-  );
-};
-
 interface DashboardNavEntryProps {
   item: DashboardNavItem;
   activeTo: string | undefined;
@@ -340,7 +249,9 @@ const DashboardUserMenu: FC<{ user: DashboardUser }> = ({ user }) => {
             <DropdownMenuSeparator />
 
             <DropdownMenuItem
-              onClick={() => void signOut()}
+              onClick={() => {
+                void signOut();
+              }}
               variant="destructive"
             >
               <SignOutIcon />
@@ -350,5 +261,96 @@ const DashboardUserMenu: FC<{ user: DashboardUser }> = ({ user }) => {
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
+  );
+};
+
+interface DashboardSidebarProps {
+  role: DashboardRole;
+  barbershop: Barbershop | null | undefined;
+  user: DashboardUser | null | undefined;
+}
+
+export const DashboardSidebar: FC<DashboardSidebarProps> = ({
+  role,
+  barbershop,
+  user,
+}) => {
+  const { isMobile } = useSidebar();
+
+  const groups = getDashboardNavGroups(role);
+  // Longest-prefix-wins across items AND their children, so a sub-route lights
+  // up its own entry (not just the parent).
+  const activeTo = useActiveRoute(
+    groups.flatMap((group) =>
+      group.items.flatMap((item) => [
+        { to: item.to },
+        ...(item.children ?? []).map((child) => ({ to: child.to })),
+      ]),
+    ),
+  );
+
+  return (
+    <Sidebar collapsible="icon" variant="inset">
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            {barbershop ? (
+              <SidebarMenuButton
+                render={closeOnMobile(
+                  isMobile,
+                  <Link
+                    params={{ barbershopUuid: barbershop.uuid }}
+                    to="/barbershops/$barbershopUuid"
+                  />,
+                )}
+                size="lg"
+                tooltip={barbershop.name}
+              >
+                <ShopTile logoKey={barbershop.logoKey} name={barbershop.name} />
+                <span className="grid flex-1 leading-tight">
+                  <span className="truncate font-semibold text-sm">
+                    {barbershop.name}
+                  </span>
+                  <ShopPlanLabel barbershopId={barbershop._id} />
+                </span>
+              </SidebarMenuButton>
+            ) : (
+              <SidebarMenuButton disabled size="lg" tooltip="Mi barbería">
+                <ShopTile logoKey={null} name={null} />
+                <span className="truncate font-semibold text-sm">
+                  Mi barbería
+                </span>
+              </SidebarMenuButton>
+            )}
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+
+      <SidebarContent>
+        {groups.map((group) => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <DashboardNavEntry
+                    key={item.to}
+                    activeTo={activeTo}
+                    isMobile={isMobile}
+                    item={item}
+                  />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
+      </SidebarContent>
+
+      {user && (
+        <SidebarFooter>
+          <DashboardUserMenu user={user} />
+        </SidebarFooter>
+      )}
+    </Sidebar>
   );
 };

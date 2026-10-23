@@ -105,7 +105,9 @@ export async function cascadeDeleteBarbershop(
     [
       appointment.upcomingNotificationId,
       appointment.pastReminderNotificationId,
-    ].filter((id): id is NonNullable<typeof id> => id != null),
+    ].filter(
+      (id): id is NonNullable<typeof id> => id !== null && id !== undefined,
+    ),
   );
 
   await Promise.all(
@@ -259,8 +261,7 @@ async function startBatchedTeardown(
     "barbershops",
     barbershopId,
     {
-      // The component types the ref as public, but createFunctionHandle
-      // accepts internal refs — and the worker must not be public.
+      // oxlint-disable-next-line anti-slop/no-chained-type-assertions, typescript/no-unsafe-type-assertion -- SAFETY: the component types the ref as public, but createFunctionHandle accepts internal refs and the worker must not be public; the two refs share no visibility literal, so the cast needs `unknown`.
       batchHandlerRef: internal.cascade
         .batchDeleteHandler as unknown as FunctionReference<"mutation">,
       batchSize: CASCADE_BATCH_SIZE,

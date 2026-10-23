@@ -200,3 +200,5 @@ export const MobileTopBar = memo(() => {
     </>
   );
 });
+
+MobileTopBar.displayName = "MobileTopBar";

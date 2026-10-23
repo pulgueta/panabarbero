@@ -57,7 +57,7 @@ export function seo({
   canonical?: string;
   ogType?: string;
 }) {
-  const url = canonical || baseUrl;
+  const url = canonical ?? baseUrl;
   const image = getOgImageUrl(ogImage);
 
   return [
@@ -92,8 +92,9 @@ export function barbershopSeo(
 
   const canonical = getCanonicalUrl(`/barbershops/${barbershop.uuid}`);
   const description =
-    barbershop.description ||
-    `Visita ${barbershop.name} en PanaBarbero y reserva tu cita ahora.`;
+    barbershop.description === undefined || barbershop.description === ""
+      ? `Visita ${barbershop.name} en PanaBarbero y reserva tu cita ahora.`
+      : barbershop.description;
   // const rating = metadata?.rating ? `${metadata.rating.toFixed(1)}⭐` : "";
   // const ratingText = rating
   //   ? ` - ${rating} (${metadata?.reviews} reseñas)`
@@ -104,7 +105,7 @@ export function barbershopSeo(
     { title },
     {
       name: "description",
-      content: `${description} ${barbershop.contactPhone || ""}`.trim(),
+      content: `${description} ${barbershop.contactPhone ?? ""}`.trim(),
     },
     // Open Graph
     { property: "og:type", content: "business.business" },
@@ -168,7 +169,7 @@ export function barbershopStructuredData(
   //   : null;
 
   // Reviews array (limit to 10)
-  const reviewsArray = (reviews || []).slice(0, 10).map((review) => ({
+  const reviewsArray = (reviews ?? []).slice(0, 10).map((review) => ({
     "@type": "Review",
     author: {
       "@type": "Person",
@@ -180,16 +181,16 @@ export function barbershopStructuredData(
       bestRating: "5",
       worstRating: "1",
     },
-    reviewBody: review.comment || "",
+    reviewBody: review.comment ?? "",
   }));
 
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "BarberShop",
     name: barbershop.name,
-    description: barbershop.description || "",
+    description: barbershop.description ?? "",
     url: getCanonicalUrl(`/barbershops/${barbershop.uuid}`),
-    telephone: barbershop.contactPhone || "",
+    telephone: barbershop.contactPhone ?? "",
     address,
     openingHoursSpecification,
     // ...(aggregateRating && { aggregateRating }),
@@ -384,45 +385,35 @@ const weekdayFormatter = new Intl.DateTimeFormat("es-CO", {
 
 /** Format a timestamp (or Date) as `02 de enero de 2024`. */
 export function formatLongDate(value: number | Date): string {
-  return longDateFormatter.format(
-    typeof value === "number" ? new Date(value) : value,
-  );
+  return longDateFormatter.format(value);
 }
 
 /** Format a timestamp (or Date) including time. */
 export function formatLongDateTime(value: number | Date): string {
-  return dateTimeFormatter.format(
-    typeof value === "number" ? new Date(value) : value,
-  );
+  return dateTimeFormatter.format(value);
 }
 
 /** Format a timestamp as `enero 2`. */
 export function formatShortMonthDay(value: number | Date): string {
-  return shortMonthDayFormatter.format(
-    typeof value === "number" ? new Date(value) : value,
-  );
+  return shortMonthDayFormatter.format(value);
 }
 
 /** Format a timestamp as `9:30 a. m.`. */
 export function formatTimeOfDay(value: number | Date): string {
-  return timeFormatter.format(
-    typeof value === "number" ? new Date(value) : value,
-  );
+  return timeFormatter.format(value);
 }
 
 /** Format a timestamp as `lunes, 2 de enero`. */
 export function formatWeekdayDate(value: number | Date): string {
-  return weekdayFormatter.format(
-    typeof value === "number" ? new Date(value) : value,
-  );
+  return weekdayFormatter.format(value);
 }
 
 /** Convert a timestamp to a Date with the same value. */
 export function toDate(
   value: number | Date | undefined | null,
 ): Date | undefined {
-  if (value == null) return undefined;
-  return typeof value === "number" ? new Date(value) : value;
+  if (value === undefined || value === null) return undefined;
+  return value instanceof Date ? value : new Date(value);
 }
 
 /** Combine a date with a time-of-day in minutes. */
@@ -430,7 +421,7 @@ export function dateWithTimeOfDay(
   date: number | Date,
   minutesOfDay: number,
 ): Date {
-  const d = typeof date === "number" ? new Date(date) : new Date(date);
+  const d = new Date(date);
   const hours = Math.floor(minutesOfDay / 60);
   const minutes = minutesOfDay % 60;
   d.setHours(hours, minutes, 0, 0);
@@ -439,14 +430,14 @@ export function dateWithTimeOfDay(
 
 /** Set the time of a date to midnight (start of day). */
 export function startOfDay(date: number | Date): Date {
-  const d = typeof date === "number" ? new Date(date) : new Date(date);
+  const d = new Date(date);
   d.setHours(0, 0, 0, 0);
   return d;
 }
 
 /** Set the time of a date to end of day. */
 export function endOfDay(date: number | Date): Date {
-  const d = typeof date === "number" ? new Date(date) : new Date(date);
+  const d = new Date(date);
   d.setHours(23, 59, 59, 999);
   return d;
 }

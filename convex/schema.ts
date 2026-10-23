@@ -6,7 +6,7 @@ import { z } from "zod";
 import { zodTable } from ".";
 import { inventorySalePaymentMethods } from "./inventorySalesShared";
 
-export { inventorySalePaymentMethods };
+export { inventorySalePaymentMethods } from "./inventorySalesShared";
 
 export const userProfileData = zodTable("userProfileData", () => ({
   userId: z.string(),
@@ -408,7 +408,9 @@ export const inventoryEquipmentCategories = ["machine", "tool"] as const;
 export function isEquipmentCategory(
   category: (typeof inventoryCategories)[number],
 ): boolean {
-  return (inventoryEquipmentCategories as readonly string[]).includes(category);
+  return inventoryEquipmentCategories.some(
+    (equipmentCategory) => equipmentCategory === category,
+  );
 }
 
 export const inventoryStockBehaviors = ["consumable", "durable"] as const;

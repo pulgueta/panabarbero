@@ -40,10 +40,7 @@ function formatRolesEs(roles: ShopRole[]): string {
 }
 
 /** Colombia-local `YYYY-MM-DD` (weekday) for `today + days`. */
-function colombiaDayOffset(
-  nowMs: number,
-  days: number,
-): { key: string; weekday: string } {
+function colombiaDayOffset(nowMs: number, days: number) {
   const shifted = new Date(nowMs + COLOMBIA_OFFSET_MS);
   shifted.setUTCDate(shifted.getUTCDate() + days);
   const y = shifted.getUTCFullYear();

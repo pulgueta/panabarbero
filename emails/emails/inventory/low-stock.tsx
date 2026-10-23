@@ -25,7 +25,7 @@ export interface LowStockEmailProps {
 }
 
 export const LowStockEmail = ({
-  subject = "Inventario bajo",
+  subject,
   itemName,
   remainingPhrase,
   reorderPoint,
@@ -68,5 +68,9 @@ export const LowStockEmail = ({
     </Html>
   );
 };
+
+LowStockEmail.PreviewProps = {
+  subject: "Inventario bajo",
+} satisfies Partial<LowStockEmailProps>;
 
 export default LowStockEmail;

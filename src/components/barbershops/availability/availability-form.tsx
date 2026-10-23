@@ -1,13 +1,6 @@
 import type { Barbershop } from "@convex/schema";
 import type { FC } from "react";
-import {
-  Activity,
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useState,
-} from "react";
+import { Activity, useId, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 import { Button } from "@/components/ui/button";
@@ -46,11 +39,116 @@ const days: Array<{ key: DayKey; label: string; short: string }> = [
   { key: "sunday", label: "Domingo", short: "Dom" },
 ];
 
+function isDayKey(value: string): value is DayKey {
+  return days.some((entry) => entry.key === value);
+}
+
+function dayLabel(day: DayKey): string {
+  return days.find((entry) => entry.key === day)?.label ?? day;
+}
+
+type AvailabilityRow = Barbershop["availability"][number];
+
+interface ScheduleDraft {
+  openAt: string;
+  closeAt: string;
+  lunchStart: string;
+  lunchEnd: string;
+}
+
+const emptySchedule: ScheduleDraft = {
+  openAt: "",
+  closeAt: "",
+  lunchStart: "",
+  lunchEnd: "",
+};
+
+function buildInitialRows(avail?: Barbershop["availability"]) {
+  return days.map((d) => {
+    const found = avail?.find((r) => r.weekDay.day === d.key);
+
+    return (
+      found ?? {
+        weekDay: { day: d.key, isActive: false },
+        openAt: "",
+        closeAt: "",
+        lunchStart: undefined,
+        lunchEnd: undefined,
+      }
+    );
+  });
+}
+
+function activeDayKeys(rows: Barbershop["availability"]): DayKey[] {
+  return rows.flatMap((entry) =>
+    entry.weekDay.isActive ? [entry.weekDay.day] : [],
+  );
+}
+
+/** The editor loads the hours of the first selected day. */
+function findScheduleBase(
+  rows: Barbershop["availability"],
+  selectedDays: DayKey[],
+): AvailabilityRow | undefined {
+  return rows.find((entry) => entry.weekDay.day === selectedDays[0]);
+}
+
+function scheduleFromRow(base: AvailabilityRow): ScheduleDraft {
+  return {
+    openAt: base.openAt ?? "",
+    closeAt: base.closeAt ?? "",
+    lunchStart: base.lunchStart ?? "",
+    lunchEnd: base.lunchEnd ?? "",
+  };
+}
+
+function formatTime(value?: string) {
+  return value && value.trim().length > 0 ? value : undefined;
+}
+
+function validateEntry(entry: AvailabilityRow): AvailabilityRow {
+  const lunchStart = formatTime(entry.lunchStart);
+  const lunchEnd = formatTime(entry.lunchEnd);
+
+  if (entry.weekDay.isActive) {
+    if (!entry.openAt || !entry.closeAt) {
+      throw new Error(
+        `Define el horario disponible para ${dayLabel(entry.weekDay.day)}`,
+      );
+    }
+
+    if (!isTimeRangeValid(entry.openAt, entry.closeAt)) {
+      throw new Error(
+        `La hora de disponibilidad final debe ser mayor a la hora inicial para ${dayLabel(entry.weekDay.day)}`,
+      );
+    }
+  }
+
+  if ((lunchStart && !lunchEnd) || (!lunchStart && lunchEnd)) {
+    throw new Error(`Completa ambas horas para ${dayLabel(entry.weekDay.day)}`);
+  }
+
+  if (lunchStart && lunchEnd && !isTimeRangeValid(lunchStart, lunchEnd)) {
+    throw new Error(
+      `La hora de disponibilidad nuevamente debe ser mayor a la hora de no disponibilidad para ${dayLabel(entry.weekDay.day)}`,
+    );
+  }
+
+  return {
+    weekDay: entry.weekDay,
+    openAt: entry.openAt ?? "",
+    closeAt: entry.closeAt ?? "",
+    lunchStart,
+    lunchEnd,
+  };
+}
+
 interface AvailabilityFormProps {
   barbershopId: Barbershop["_id"];
   availability: Barbershop["availability"];
 }
 
+// oxlint-disable-next-line react-doctor/no-giant-component -- pre-existing large component; split tracked as a follow-up in odd/tasks/oxc-migration.md
 export const AvailabilityForm: FC<AvailabilityFormProps> = ({
   barbershopId,
   availability,
@@ -72,51 +170,29 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
     },
   } = useBarbershopActions();
 
-  const buildInitialRows = useCallback(
-    (avail?: Barbershop["availability"]) =>
-      days.map((d) => {
-        const found = avail?.find((r) => r.weekDay.day === d.key);
-
-        return (
-          found ?? {
-            weekDay: { day: d.key, isActive: false },
-            openAt: "",
-            closeAt: "",
-            lunchStart: undefined,
-            lunchEnd: undefined,
-          }
-        );
-      }),
-    [],
-  );
-
   const [rows, setRows] = useState<Barbershop["availability"]>(() =>
     buildInitialRows(availability),
   );
 
-  const initialSelectedDays = useMemo(
-    () =>
-      availability?.flatMap((entry) =>
-        entry.weekDay.isActive ? [entry.weekDay.day as DayKey] : [],
-      ) ?? [],
-    [availability],
+  const [selectedDays, setSelectedDays] = useState<DayKey[]>(() =>
+    activeDayKeys(buildInitialRows(availability)),
   );
-
-  const [selectedDays, setSelectedDays] =
-    useState<DayKey[]>(initialSelectedDays);
-  const [schedule, setSchedule] = useState({
-    openAt: "",
-    closeAt: "",
-    lunchStart: "",
-    lunchEnd: "",
+  const [schedule, setSchedule] = useState<ScheduleDraft>(() => {
+    const initialRows = buildInitialRows(availability);
+    const base = findScheduleBase(initialRows, activeDayKeys(initialRows));
+    return base ? scheduleFromRow(base) : emptySchedule;
   });
-  const [hasLunch, setHasLunch] = useState(false);
+  const [hasLunch, setHasLunch] = useState(() => {
+    const initialRows = buildInitialRows(availability);
+    const base = findScheduleBase(initialRows, activeDayKeys(initialRows));
+    return Boolean(base?.lunchStart && base.lunchEnd);
+  });
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const initialRows = useMemo(
     () => buildInitialRows(availability),
-    [availability, buildInitialRows],
+    [availability],
   );
 
   const hasChanges = useMemo(() => {
@@ -136,47 +212,31 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
     });
   }, [rows, initialRows]);
 
-  useEffect(() => {
+  // Re-sync the local rows when the saved availability changes.
+  const [syncedAvailability, setSyncedAvailability] = useState(availability);
+  if (syncedAvailability !== availability) {
+    setSyncedAvailability(availability);
     const nextRows = buildInitialRows(availability);
-
     setRows(nextRows);
-    setSelectedDays(
-      nextRows.flatMap((entry) =>
-        entry.weekDay.isActive ? [entry.weekDay.day as DayKey] : [],
-      ),
-    );
-  }, [availability, buildInitialRows]);
+    setSelectedDays(activeDayKeys(nextRows));
+  }
 
-  useEffect(() => {
-    const base = rows.find((entry) => entry.weekDay.day === selectedDays[0]);
-
-    if (!base) return;
-
-    setSchedule({
-      openAt: base.openAt ?? "",
-      closeAt: base.closeAt ?? "",
-      lunchStart: base.lunchStart ?? "",
-      lunchEnd: base.lunchEnd ?? "",
-    });
-    setHasLunch(Boolean(base.lunchStart && base.lunchEnd));
-  }, [rows, selectedDays]);
-
-  const dayLabelMap = useMemo(
-    () =>
-      days.reduce<Record<DayKey, string>>(
-        (acc, entry) => {
-          acc[entry.key] = entry.label;
-          return acc;
-        },
-        {} as Record<DayKey, string>,
-      ),
-    [],
-  );
+  // Load the first selected day's hours whenever the rows or the selection change.
+  const [scheduleSource, setScheduleSource] = useState({ rows, selectedDays });
+  if (
+    scheduleSource.rows !== rows ||
+    scheduleSource.selectedDays !== selectedDays
+  ) {
+    setScheduleSource({ rows, selectedDays });
+    const base = findScheduleBase(rows, selectedDays);
+    if (base) {
+      setSchedule(scheduleFromRow(base));
+      setHasLunch(Boolean(base.lunchStart && base.lunchEnd));
+    }
+  }
 
   const handleSelectedDaysChange = (values: string[]) => {
-    const typed = values.filter(
-      (value): value is DayKey => !!dayLabelMap[value as DayKey],
-    );
+    const typed = values.filter(isDayKey);
 
     setSelectedDays(typed);
     setFormError(null);
@@ -219,9 +279,10 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
       }
     }
 
+    const selected = new Set(selectedDays);
     setRows((prev) =>
       prev.map((entry) =>
-        selectedDays.includes(entry.weekDay.day as DayKey)
+        selected.has(entry.weekDay.day)
           ? {
               ...entry,
               weekDay: { ...entry.weekDay, isActive: true },
@@ -244,9 +305,10 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
       return;
     }
 
+    const selected = new Set(selectedDays);
     setRows((prev) =>
       prev.map((entry) =>
-        selectedDays.includes(entry.weekDay.day as DayKey)
+        selected.has(entry.weekDay.day)
           ? {
               ...entry,
               weekDay: { ...entry.weekDay, isActive: false },
@@ -256,50 +318,6 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
     );
 
     toast.info("Los días seleccionados ahora están inactivos");
-  };
-
-  const validateEntry = (
-    entry: Barbershop["availability"][number],
-  ): Barbershop["availability"][number] => {
-    const formatTime = (value?: string) =>
-      value && value.trim().length > 0 ? value : undefined;
-
-    const lunchStart = formatTime(entry.lunchStart);
-    const lunchEnd = formatTime(entry.lunchEnd);
-
-    if (entry.weekDay.isActive) {
-      if (!entry.openAt || !entry.closeAt) {
-        throw new Error(
-          `Define el horario disponible para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
-        );
-      }
-
-      if (!isTimeRangeValid(entry.openAt, entry.closeAt)) {
-        throw new Error(
-          `La hora de disponibilidad final debe ser mayor a la hora inicial para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
-        );
-      }
-    }
-
-    if ((lunchStart && !lunchEnd) || (!lunchStart && lunchEnd)) {
-      throw new Error(
-        `Completa ambas horas para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
-      );
-    }
-
-    if (lunchStart && lunchEnd && !isTimeRangeValid(lunchStart, lunchEnd)) {
-      throw new Error(
-        `La hora de disponibilidad nuevamente debe ser mayor a la hora de no disponibilidad para ${dayLabelMap[entry.weekDay.day as DayKey]}`,
-      );
-    }
-
-    return {
-      weekDay: entry.weekDay,
-      openAt: entry.openAt ?? "",
-      closeAt: entry.closeAt ?? "",
-      lunchStart,
-      lunchEnd,
-    };
   };
 
   const handleSave = async () => {
@@ -313,18 +331,18 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
         data: { availability: validatedRows },
       });
 
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Disponibilidad actualizada correctamente");
     } catch (error) {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error(
         error instanceof Error
           ? error.message
           : "No pudimos guardar la disponibilidad",
       );
-    } finally {
-      setIsSaving(false);
     }
+
+    setIsSaving(false);
   };
 
   return (
@@ -409,7 +427,7 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
           <Field orientation="horizontal">
             <Checkbox
               checked={hasLunch}
-              onCheckedChange={(checked) => setHasLunch(Boolean(checked))}
+              onCheckedChange={(checked) => setHasLunch(checked)}
               id={formIds.disableHours}
             />
             <FieldContent>
@@ -479,7 +497,9 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
           </Button>
           <Button
             type="button"
-            onClick={handleSave}
+            onClick={() => {
+              void handleSave();
+            }}
             disabled={isSaving || isUpdatingAvailability || !hasChanges}
           >
             {(isSaving || isUpdatingAvailability) && <Spinner />} Guardar
@@ -500,11 +520,11 @@ export const AvailabilityForm: FC<AvailabilityFormProps> = ({
 
           <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7">
             {rows.map((entry) => {
-              const day = entry.weekDay.day as DayKey;
+              const day = entry.weekDay.day;
 
               return (
                 <div key={day} className="rounded-md bg-muted/40 p-3 text-sm">
-                  <p className="font-semibold">{dayLabelMap[day]}</p>
+                  <p className="font-semibold">{dayLabel(day)}</p>
 
                   {entry.weekDay.isActive ? (
                     <div className="text-muted-foreground">

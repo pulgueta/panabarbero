@@ -39,14 +39,16 @@ export const Route = createFileRoute(
         throw redirect({ to: "/profile/barbershops/appointments" });
       }
 
-      const barbershop = await opts.context.queryClient.ensureQueryData(
-        barbershopByOwnerIdQueryOptions(userId),
-      );
+      const barbershop = await opts.context.queryClient.query({
+        ...barbershopByOwnerIdQueryOptions(userId),
+        staleTime: "static",
+      });
 
       if (barbershop) {
-        await opts.context.queryClient.ensureQueryData(
-          barbershopLocationQueryOptions(barbershop._id),
-        );
+        await opts.context.queryClient.query({
+          ...barbershopLocationQueryOptions(barbershop._id),
+          staleTime: "static",
+        });
       }
     }
   },

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   buildCloseoutActionId,
@@ -18,7 +18,7 @@ import {
 } from "../convex/whatsappTemplates";
 
 describe("WhatsApp action-id codec", () => {
-  test("round-trips reschedule decision ids", () => {
+  it("round-trips reschedule decision ids", () => {
     const id = buildRescheduleActionId({
       action: "accept",
       appointmentId: "appt_123",
@@ -29,7 +29,7 @@ describe("WhatsApp action-id codec", () => {
     expect(id).toBe(
       "appointment-reschedule:customer:accept:appt_123:1783717200000",
     );
-    expect(parseWhatsAppActionId(id)).toEqual({
+    expect(parseWhatsAppActionId(id)).toStrictEqual({
       type: "appointment-reschedule",
       role: "customer",
       action: "accept",
@@ -38,26 +38,26 @@ describe("WhatsApp action-id codec", () => {
     });
   });
 
-  test("round-trips inventory ack ids", () => {
+  it("round-trips inventory ack ids", () => {
     const id = buildInventoryAckActionId({
       levelId: "level_9",
       alertedAt: 1783717200000,
     });
 
     expect(id).toBe("inventory-ack:level_9:1783717200000");
-    expect(parseWhatsAppActionId(id)).toEqual({
+    expect(parseWhatsAppActionId(id)).toStrictEqual({
       type: "inventory-ack",
       levelId: "level_9",
       alertedAt: 1783717200000,
     });
   });
 
-  test("round-trips on-my-way and closeout ids", () => {
+  it("round-trips on-my-way and closeout ids", () => {
     expect(
       parseWhatsAppActionId(
         buildOnMyWayActionId({ appointmentId: "a1", date: 7 }),
       ),
-    ).toEqual({ type: "appointment-omw", appointmentId: "a1", date: 7 });
+    ).toStrictEqual({ type: "appointment-omw", appointmentId: "a1", date: 7 });
 
     expect(
       parseWhatsAppActionId(
@@ -67,7 +67,7 @@ describe("WhatsApp action-id codec", () => {
           date: 5,
         }),
       ),
-    ).toEqual({
+    ).toStrictEqual({
       type: "appointment-closeout",
       action: "no-show",
       appointmentId: "a1",
@@ -75,19 +75,19 @@ describe("WhatsApp action-id codec", () => {
     });
   });
 
-  test("round-trips review invite and rating ids", () => {
+  it("round-trips review invite and rating ids", () => {
     expect(
       parseWhatsAppActionId(buildReviewInviteActionId({ appointmentId: "a1" })),
-    ).toEqual({ type: "review-invite", appointmentId: "a1" });
+    ).toStrictEqual({ type: "review-invite", appointmentId: "a1" });
 
     expect(
       parseWhatsAppActionId(
         buildReviewRateActionId({ appointmentId: "a1", rating: 5 }),
       ),
-    ).toEqual({ type: "review-rate", appointmentId: "a1", rating: 5 });
+    ).toStrictEqual({ type: "review-rate", appointmentId: "a1", rating: 5 });
   });
 
-  test("rejects malformed or unsupported action ids", () => {
+  it("rejects malformed or unsupported action ids", () => {
     const cases = [
       "appointment-reschedule:owner:accept:appt:1", // bad role
       "appointment-reschedule:customer:maybe:appt:1", // bad action
@@ -116,7 +116,7 @@ describe("WhatsApp action-id codec", () => {
 describe("inbound reply-id extraction", () => {
   const id = "appointment-reschedule:customer:accept:appt_123:1783717200000";
 
-  test("nested interactive button_reply", () => {
+  it("nested interactive button_reply", () => {
     expect(
       getWhatsAppReplyId({
         type: "interactive",
@@ -125,7 +125,7 @@ describe("inbound reply-id extraction", () => {
     ).toBe(id);
   });
 
-  test("nested interactive list_reply", () => {
+  it("nested interactive list_reply", () => {
     expect(
       getWhatsAppReplyId({
         type: "interactive",
@@ -134,7 +134,7 @@ describe("inbound reply-id extraction", () => {
     ).toBe(id);
   });
 
-  test("flat button payload (template quick reply)", () => {
+  it("flat button payload (template quick reply)", () => {
     expect(
       getWhatsAppReplyId({
         type: "button",
@@ -143,7 +143,7 @@ describe("inbound reply-id extraction", () => {
     ).toBe(id);
   });
 
-  test("flat button_reply / list_reply", () => {
+  it("flat button_reply / list_reply", () => {
     expect(getWhatsAppReplyId({ type: "button_reply", button_reply: { id } })).toBe(
       id,
     );
@@ -152,7 +152,7 @@ describe("inbound reply-id extraction", () => {
     );
   });
 
-  test("free text yields null", () => {
+  it("free text yields null", () => {
     expect(getWhatsAppReplyId({ type: "text", body: "hola" })).toBeNull();
     expect(getWhatsAppReplyId(null)).toBeNull();
     expect(getWhatsAppReplyId("x")).toBeNull();
@@ -164,31 +164,31 @@ describe("inbound reply-id extraction", () => {
 describe("stored component payloads", () => {
   const id = "appointment-reschedule:customer:accept:appt_123:1783717200000";
 
-  test("template quick reply (stored as type text, payload = msg.button)", () => {
+  it("template quick reply (stored as type text, payload = msg.button)", () => {
     expect(getWhatsAppReplyId({ payload: id, text: "Aceptar cambio" })).toBe(
       id,
     );
   });
 
-  test("interactive list reply (payload = msg.interactive)", () => {
+  it("interactive list reply (payload = msg.interactive)", () => {
     expect(
       getWhatsAppReplyId({ type: "list_reply", list_reply: { id } }),
     ).toBe(id);
   });
 
-  test("interactive button reply (payload = msg.interactive)", () => {
+  it("interactive button reply (payload = msg.interactive)", () => {
     expect(
       getWhatsAppReplyId({ type: "button_reply", button_reply: { id } }),
     ).toBe(id);
   });
 
-  test("free text (payload = msg.text) yields null", () => {
+  it("free text (payload = msg.text) yields null", () => {
     expect(getWhatsAppReplyId({ body: "hola" })).toBeNull();
   });
 });
 
 describe("template builders", () => {
-  test("reschedule request emits body + accept/reject quick replies at 1/2", () => {
+  it("reschedule request emits body + accept/reject quick replies at 1/2", () => {
     const send = buildRescheduleRequest({
       role: "barber",
       receiverName: "Nico",
@@ -202,7 +202,7 @@ describe("template builders", () => {
     });
 
     expect(send.name).toBe("appointment_reschedule_request_barber");
-    expect(send.components[0]).toEqual({
+    expect(send.components[0]).toStrictEqual({
       type: "body",
       parameters: [
         { type: "text", text: "Nico" },
@@ -213,7 +213,7 @@ describe("template builders", () => {
         { type: "text", text: "4:00 p. m." },
       ],
     });
-    expect(send.components[1]).toEqual({
+    expect(send.components[1]).toStrictEqual({
       type: "button",
       sub_type: "quick_reply",
       index: "1",
@@ -224,7 +224,7 @@ describe("template builders", () => {
         },
       ],
     });
-    expect(send.components[2]).toEqual({
+    expect(send.components[2]).toStrictEqual({
       type: "button",
       sub_type: "quick_reply",
       index: "2",
@@ -237,20 +237,20 @@ describe("template builders", () => {
     });
   });
 
-  test("cancelled template carries the header shop param", () => {
+  it("cancelled template carries the header shop param", () => {
     const send = buildAppointmentCancelled({
       receiverName: "Ana",
       barbershopName: "El Pana",
       reason: "Sin motivo.",
     });
 
-    expect(send.components[0]).toEqual({
+    expect(send.components[0]).toStrictEqual({
       type: "header",
       parameters: [{ type: "text", text: "El Pana" }],
     });
   });
 
-  test("low-stock template binds the ack payload to the alert stamp", () => {
+  it("low-stock template binds the ack payload to the alert stamp", () => {
     const send = buildInventoryLowStock({
       itemName: "Cera",
       barbershopName: "El Pana",
@@ -261,7 +261,7 @@ describe("template builders", () => {
       alertedAt: 77,
     });
 
-    expect(send.components[1]).toEqual({
+    expect(send.components[1]).toStrictEqual({
       type: "button",
       sub_type: "quick_reply",
       index: "1",
@@ -269,7 +269,7 @@ describe("template builders", () => {
     });
   });
 
-  test("filterButtonsToTemplate drops quick replies the template lacks", () => {
+  it("filterButtonsToTemplate drops quick replies the template lacks", () => {
     const send = buildRescheduleRequest({
       role: "customer",
       receiverName: "Ana",
@@ -320,14 +320,14 @@ describe("template builders", () => {
     expect(filterButtonsToTemplate(send.components, undefined)).toHaveLength(3);
   });
 
-  test("params are sanitized (no newlines or repeated spaces)", () => {
+  it("params are sanitized (no newlines or repeated spaces)", () => {
     const send = buildAppointmentCancelled({
       receiverName: "Ana\nMaría",
       barbershopName: "El  Pana",
       reason: " motivo\tlargo ",
     });
 
-    expect(send.components[1]).toEqual({
+    expect(send.components[1]).toStrictEqual({
       type: "body",
       parameters: [
         { type: "text", text: "Ana María" },

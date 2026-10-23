@@ -6,6 +6,8 @@ import {
   formatDayLong,
   formatDayShort,
 } from "@/components/analytics/chart-format";
+import type { ChartTooltipFormatter } from "@/components/chart-tooltip";
+import { payloadText } from "@/components/chart-tooltip";
 import {
   Card,
   CardContent,
@@ -29,11 +31,26 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
+function isChartKey(name: unknown): name is keyof typeof chartConfig {
+  return typeof name === "string" && Object.hasOwn(chartConfig, name);
+}
+
 interface SalesRevenueChartProps {
   barbershopId: Barbershop["_id"];
 }
 
 /** Retail revenue per Bogotá day over the last 30 days. */
+const renderTooltipValue: ChartTooltipFormatter = (value, name) => (
+  <div className="flex w-full items-center justify-between gap-2 leading-none">
+    <span className="text-muted-foreground">
+      {isChartKey(name) ? chartConfig[name].label : name}
+    </span>
+    <span className="font-medium font-mono text-foreground tabular-nums">
+      {formatCurrency(Number(value))}
+    </span>
+  </div>
+);
+
 export const SalesRevenueChart: FC<SalesRevenueChartProps> = ({
   barbershopId,
 }) => {
@@ -70,19 +87,9 @@ export const SalesRevenueChart: FC<SalesRevenueChartProps> = ({
                   <ChartTooltipContent
                     hideIndicator
                     labelFormatter={(_, payload) =>
-                      formatDayLong(String(payload[0]?.payload?.date ?? ""))
+                      formatDayLong(payloadText(payload[0], "date"))
                     }
-                    formatter={(value, name) => (
-                      <div className="flex w-full items-center justify-between gap-2 leading-none">
-                        <span className="text-muted-foreground">
-                          {chartConfig[name as keyof typeof chartConfig]
-                            ?.label ?? name}
-                        </span>
-                        <span className="font-medium font-mono text-foreground tabular-nums">
-                          {formatCurrency(Number(value))}
-                        </span>
-                      </div>
-                    )}
+                    formatter={renderTooltipValue}
                   />
                 }
               />

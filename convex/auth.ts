@@ -17,7 +17,12 @@ import { getUserId } from "./identity";
 import { releaseForAppointment } from "./inventory";
 import { getLimitsForProductKey, getTierForProductKey } from "./plans";
 import { polar } from "./polar";
-import type { Appointment, Barbershop, BarbershopMember } from "./schema";
+import type {
+  Appointment,
+  Barbershop,
+  BarbershopMember,
+  UserProfileData,
+} from "./schema";
 import { barbershops } from "./schema";
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
@@ -343,10 +348,15 @@ export const { authKitEvent } = authkit.events({
 
     const name = fullName(firstName, lastName);
 
-    await ctx.db.patch(profile._id, {
+    const update: Partial<Pick<UserProfileData, "email" | "name">> = {
       email,
-      ...(name ? { name } : {}),
-    });
+    };
+
+    if (name) {
+      update.name = name;
+    }
+
+    await ctx.db.patch(profile._id, update);
   },
   "user.deleted": async (ctx, event) => {
     const userId = event.data.id;
@@ -505,7 +515,7 @@ export const getCurrentUser = zQuery({
 });
 
 /** Plan flags derived from a Polar subscription; only active/trialing entitles. */
-function shapeSubscription(
+function withPlanFlags(
   subscription: Awaited<ReturnType<typeof polar.getCurrentSubscription>>,
 ) {
   const planTier = getTierForProductKey(getEntitledProductKey(subscription));
@@ -534,9 +544,7 @@ export const getUserSubscription = zQuery({
       return null;
     }
 
-    return shapeSubscription(
-      await polar.getCurrentSubscription(ctx, { userId }),
-    );
+    return withPlanFlags(await polar.getCurrentSubscription(ctx, { userId }));
   },
 });
 
@@ -564,7 +572,7 @@ export const getBarbershopOwnerSubscription = zQuery({
 
     // Staff only need plan-derived flags — never the owner's billing record.
     const { isSubscribed, planTier, planLimits, isFree, isPro, isPremium } =
-      shapeSubscription(
+      withPlanFlags(
         await polar.getCurrentSubscription(ctx, { userId: barbershop.ownerId }),
       );
 

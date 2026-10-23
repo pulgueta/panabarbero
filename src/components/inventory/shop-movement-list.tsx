@@ -67,7 +67,7 @@ const ShopMovementsPage: FC<ShopMovementsPageProps> = ({
               )}
 
               {movement.type === "sale" &&
-              typeof movement.salePriceAtTime === "number" ? (
+              movement.salePriceAtTime !== undefined ? (
                 <p className="text-muted-foreground text-xs tabular-nums">
                   Precio de venta: {formatCurrency(movement.salePriceAtTime)}{" "}
                   c/u

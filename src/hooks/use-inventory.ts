@@ -7,7 +7,8 @@ import type {
 } from "@convex/schema";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import type { FunctionReturnType } from "convex/server";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
+import { z } from "zod";
 
 export type InventoryOverviewRow = FunctionReturnType<
   typeof api.inventory.getInventoryOverview
@@ -21,9 +22,46 @@ export type ArchivedInventoryRow = FunctionReturnType<
   typeof api.inventory.listArchivedItems
 >[number];
 
-export type InventoryItemAuditEvent = FunctionReturnType<
-  typeof api.log.getInventoryItemHistory
->[number];
+const auditNumberSchema = z.number().optional().catch(undefined);
+
+/** Movement fields that audit snapshots (`before` / `after`) can carry. */
+const auditSnapshotSchema = z
+  .object({
+    quantity: auditNumberSchema,
+    onHand: auditNumberSchema,
+    available: auditNumberSchema,
+    reason: z.string().optional().catch(undefined),
+  })
+  .catch({});
+
+/** `AuditLog.queryByResource` returns `any`, so parse the rows here. */
+const inventoryItemAuditEventSchema = z.object({
+  _id: z.string(),
+  action: z.string(),
+  actorId: z.string().optional(),
+  timestamp: z.number(),
+  resourceType: z.string().optional(),
+  resourceId: z.string().optional(),
+  severity: z.enum(["info", "warning", "error", "critical"]),
+  before: auditSnapshotSchema,
+  after: auditSnapshotSchema,
+  diff: z.string().optional(),
+});
+
+export type InventoryItemAuditEvent = z.infer<
+  typeof inventoryItemAuditEventSchema
+>;
+
+/** Skips rows that do not match, so a component schema change cannot blank the history. */
+const inventoryItemAuditEventsSchema = z
+  .array(z.unknown())
+  .catch([])
+  .transform((rows) =>
+    rows.flatMap((row) => {
+      const result = inventoryItemAuditEventSchema.safeParse(row);
+      return result.success ? [result.data] : [];
+    }),
+  );
 
 export function inventoryOverviewQueryOptions(barbershopId: Barbershop["_id"]) {
   return convexQuery(api.inventory.getInventoryOverview, {
@@ -135,14 +173,19 @@ export function shopMovementsPaginatedQueryOptions(
 ) {
   const active = filters ? pruneFilters(filters) : {};
 
-  return convexQuery(api.inventory.listShopMovements, {
+  const args: FunctionArgs<typeof api.inventory.listShopMovements> = {
     barbershop: { id: barbershopId },
     paginationOpts: {
       cursor,
       numItems,
     },
-    ...(Object.keys(active).length > 0 ? { filters: active } : {}),
-  });
+  };
+
+  if (Object.keys(active).length > 0) {
+    args.filters = active;
+  }
+
+  return convexQuery(api.inventory.listShopMovements, args);
 }
 
 export function useInventoryOverview(barbershopId: Barbershop["_id"]) {
@@ -161,7 +204,10 @@ export function useInventoryItemAudit(
   itemId: InventoryItem["_id"],
   limit = 20,
 ) {
-  return useQuery(inventoryItemAuditQueryOptions(itemId, limit));
+  return useQuery({
+    ...inventoryItemAuditQueryOptions(itemId, limit),
+    select: (rows) => inventoryItemAuditEventsSchema.parse(rows),
+  });
 }
 
 export function useLowStock(barbershopId: Barbershop["_id"]) {

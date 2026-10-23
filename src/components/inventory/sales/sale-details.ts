@@ -1,5 +1,3 @@
-import type { InventorySaleDocumentType } from "@convex/schema";
-
 import type { SaleFormValues } from "./types";
 
 /**
@@ -7,6 +5,12 @@ import type { SaleFormValues } from "./types";
  * Validation already ran through the step schemas by the time this is called.
  */
 export function buildSaleDetailsPayload(values: SaleFormValues) {
+  const documentType = values.customerDocumentType;
+  // The step schema rejects an empty selection before submit.
+  if (documentType === "") {
+    throw new Error("Selecciona el tipo de documento");
+  }
+
   return {
     paymentMethod: values.paymentMethod,
     paymentReference:
@@ -15,8 +19,7 @@ export function buildSaleDetailsPayload(values: SaleFormValues) {
         : values.paymentReference.trim() || undefined,
     customer: {
       name: values.customerName.trim(),
-      // The step schema rejects an empty selection before submit.
-      documentType: values.customerDocumentType as InventorySaleDocumentType,
+      documentType,
       documentNumber: values.customerDocumentNumber.trim(),
       phone: values.customerPhone,
       email: values.customerEmail.trim().toLowerCase() || undefined,

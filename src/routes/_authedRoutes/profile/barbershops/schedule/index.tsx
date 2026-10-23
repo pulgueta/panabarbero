@@ -41,14 +41,16 @@ export const Route = createFileRoute(
     return { userId };
   },
   loader: async ({ context }) => {
-    const member = await context.queryClient.ensureQueryData(
-      barberByUserIdQueryOptions(context.userId),
-    );
+    const member = await context.queryClient.query({
+      ...barberByUserIdQueryOptions(context.userId),
+      staleTime: "static",
+    });
 
     if (member?._id) {
-      await context.queryClient.ensureQueryData(
-        barberScheduleQueryOptions(member._id),
-      );
+      await context.queryClient.query({
+        ...barberScheduleQueryOptions(member._id),
+        staleTime: "static",
+      });
     }
   },
 });

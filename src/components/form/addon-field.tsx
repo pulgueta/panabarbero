@@ -1,4 +1,3 @@
-import { useStore } from "@tanstack/react-form";
 import type { ComponentProps, FC, ReactNode } from "react";
 
 import {
@@ -13,10 +12,16 @@ import {
   InputGroupInput,
   InputGroupText,
 } from "@/components/ui/input-group";
-import { numberSelectOnFocus, useFieldContext } from "./form-context";
+import {
+  numberSelectOnFocus,
+  useFieldContext,
+  useFieldErrors,
+} from "./form-context";
 
-interface AddonFieldProps
-  extends Omit<ComponentProps<typeof InputGroupInput>, "prefix"> {
+interface AddonFieldProps extends Omit<
+  ComponentProps<typeof InputGroupInput>,
+  "prefix"
+> {
   label: string;
   description?: string;
   /** Leading addon — e.g. "COP" on money inputs. */
@@ -41,7 +46,7 @@ export const AddonField: FC<AddonFieldProps> = ({
 }) => {
   const field = useFieldContext<string | number | undefined>();
 
-  const errors = useStore(field.store, (state) => state.meta.errors);
+  const errors = useFieldErrors();
 
   const isInvalid = field.state.meta.isTouched && errors.length > 0;
 

@@ -53,10 +53,9 @@ function saleProducts(sale: InventorySaleRow) {
 /** Phone first (follow-up), then document (invoicing) as secondary detail. */
 function saleCustomerDetail(sale: InventorySaleRow) {
   if (sale.customerPhone) return sale.customerPhone;
-  if (sale.customerDocumentType && sale.customerDocumentNumber) {
-    return `${saleDocumentTypeShortLabels[sale.customerDocumentType]} ${sale.customerDocumentNumber}`;
-  }
-  return undefined;
+  return sale.customerDocumentType && sale.customerDocumentNumber
+    ? `${saleDocumentTypeShortLabels[sale.customerDocumentType]} ${sale.customerDocumentNumber}`
+    : undefined;
 }
 
 const SalePaymentBadge: FC<{ sale: InventorySaleRow }> = ({ sale }) =>
@@ -109,7 +108,9 @@ const ProofLink: FC<{
       variant="link"
       size="sm"
       className="h-auto p-0"
-      onClick={openProof}
+      onClick={() => {
+        void openProof();
+      }}
     >
       Ver comprobante
       <ArrowSquareOutIcon />

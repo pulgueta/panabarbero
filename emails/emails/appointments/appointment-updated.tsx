@@ -19,8 +19,8 @@ export interface AppointmentUpdatedEmailProps {
 }
 
 export const AppointmentUpdatedEmail = ({
-  notes = "Se actualizaron los servicios de tu cita.",
-  subject = "Cita actualizada",
+  notes,
+  subject,
   body,
 }: AppointmentUpdatedEmailProps) => {
   return (
@@ -50,5 +50,10 @@ export const AppointmentUpdatedEmail = ({
     </Html>
   );
 };
+
+AppointmentUpdatedEmail.PreviewProps = {
+  notes: "Se actualizaron los servicios de tu cita.",
+  subject: "Cita actualizada",
+} satisfies Partial<AppointmentUpdatedEmailProps>;
 
 export default AppointmentUpdatedEmail;

@@ -1,5 +1,6 @@
 import type { Barbershop } from "@convex/schema";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { noop } from "@tanstack/react-query";
 import type { FC } from "react";
 import { lazy, Suspense } from "react";
 
@@ -79,14 +80,15 @@ export const Route = createFileRoute(
 
     if (barbershop?._id) {
       // Spine: the breakdown powers the KPI strip + comparison charts.
-      await opts.context.queryClient.ensureQueryData(
-        operationsBreakdownQueryOptions(barbershop._id),
-      );
+      await opts.context.queryClient.query({
+        ...operationsBreakdownQueryOptions(barbershop._id),
+        staleTime: "static",
+      });
 
       // Leaf: the monthly trend charts prime without blocking.
-      void opts.context.queryClient.prefetchQuery(
-        appointmentsTrendQueryOptions(barbershop._id),
-      );
+      void opts.context.queryClient
+        .query(appointmentsTrendQueryOptions(barbershop._id))
+        .catch(noop);
     }
   },
 });

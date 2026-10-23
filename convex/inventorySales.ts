@@ -98,6 +98,9 @@ function proofExtension(contentType: (typeof SALE_PROOF_TYPES)[number]) {
       return "avif";
     case "application/pdf":
       return "pdf";
+    default:
+      contentType satisfies never;
+      throw new ConvexError(errorMessages.invalidSaleProof);
   }
 }
 
@@ -203,43 +206,44 @@ export const listSellableItems = zAuthQuery({
         .map((level) => [level.itemId, level]),
     );
 
-    return items
-      .flatMap((item) => {
-        if (
-          !item.isSellable ||
-          item.stockBehavior !== "consumable" ||
-          item.salePrice === undefined
-        ) {
-          return [];
-        }
+    const sellable = items.flatMap((item) => {
+      if (
+        !item.isSellable ||
+        item.stockBehavior !== "consumable" ||
+        item.salePrice === undefined
+      ) {
+        return [];
+      }
 
-        const level = levelByItem.get(item._id);
-        const onHand = level?.onHand ?? 0;
-        const reserved = level?.reserved ?? 0;
+      const level = levelByItem.get(item._id);
+      const onHand = level?.onHand ?? 0;
+      const reserved = level?.reserved ?? 0;
 
-        return [
-          {
-            _id: item._id,
-            name: item.name,
-            sku: item.sku,
-            category: item.category,
-            unit: item.unit,
-            brand: item.brand,
-            model: item.model,
-            customLabel: item.customLabel,
-            presentationValue: item.presentationValue,
-            presentationUnit: item.presentationUnit,
-            imageKey: item.imageKey,
-            salePrice: item.salePrice,
-            allowNegativeStock: item.allowNegativeStock,
-            onHand,
-            reserved,
-            available: onHand - reserved,
-            belowReorder: onHand <= item.reorderPoint,
-          },
-        ];
-      })
-      .sort((a, b) => a.name.localeCompare(b.name, "es"));
+      return [
+        {
+          _id: item._id,
+          name: item.name,
+          sku: item.sku,
+          category: item.category,
+          unit: item.unit,
+          brand: item.brand,
+          model: item.model,
+          customLabel: item.customLabel,
+          presentationValue: item.presentationValue,
+          presentationUnit: item.presentationUnit,
+          imageKey: item.imageKey,
+          salePrice: item.salePrice,
+          allowNegativeStock: item.allowNegativeStock,
+          onHand,
+          reserved,
+          available: onHand - reserved,
+          belowReorder: onHand <= item.reorderPoint,
+        },
+      ];
+    });
+    sellable.sort((a, b) => a.name.localeCompare(b.name, "es"));
+
+    return sellable;
   },
 });
 
@@ -745,6 +749,9 @@ export const getSalesMetrics = zAuthQuery({
       byItem.set(row.itemId, entry);
     }
 
+    const topProducts = [...byItem.values()];
+    topProducts.sort((a, b) => b.revenue - a.revenue);
+
     return {
       month: {
         month: currentMonth,
@@ -763,9 +770,7 @@ export const getSalesMetrics = zAuthQuery({
         date,
         ...point,
       })),
-      topProducts: [...byItem.values()]
-        .sort((a, b) => b.revenue - a.revenue)
-        .slice(0, TOP_PRODUCTS_LIMIT),
+      topProducts: topProducts.slice(0, TOP_PRODUCTS_LIMIT),
     };
   },
 });

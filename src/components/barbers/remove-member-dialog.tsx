@@ -18,8 +18,8 @@ import { useBarbershopMemberActions } from "@/hooks/use-barbershop-members";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
 function parseWillCancelError(errorMessage: string): number | null {
-  const match = errorMessage.match(/WILL_CANCEL:(\d+)/);
-  return match ? Number.parseInt(match[1], 10) : null;
+  const match = /WILL_CANCEL:(\d+)/.exec(errorMessage);
+  return match ? Number(match[1]) : null;
 }
 
 interface RemoveMemberDialogProps {
@@ -71,7 +71,7 @@ export const RemoveMemberDialog: FC<RemoveMemberDialogProps> = ({
       } else {
         await removeStaff({ id: member._id });
       }
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success(`${member.name} fue eliminado del equipo`);
       handleOpenChange(false);
     } catch (error) {
@@ -82,7 +82,7 @@ export const RemoveMemberDialog: FC<RemoveMemberDialogProps> = ({
         setImpactedCount(willCancelCount);
         setConfirmationStep("confirm_cancellation");
       } else {
-        haptic.trigger("error");
+        void haptic.trigger("error");
         toast.error(errorMessage);
       }
     }
@@ -126,9 +126,9 @@ export const RemoveMemberDialog: FC<RemoveMemberDialogProps> = ({
             </Button>
             <Button
               variant="destructive"
-              onClick={() =>
-                handleRemove(confirmationStep === "confirm_cancellation")
-              }
+              onClick={() => {
+                void handleRemove(confirmationStep === "confirm_cancellation");
+              }}
               disabled={isPending}
             >
               {isPending && <Spinner />}

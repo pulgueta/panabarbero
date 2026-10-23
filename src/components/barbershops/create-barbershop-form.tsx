@@ -1,3 +1,4 @@
+import type { Barbershop } from "@convex/schema";
 import { revalidateLogic } from "@tanstack/react-form";
 import type { FC } from "react";
 import { toast } from "sonner";
@@ -40,9 +41,14 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
     createBarbershopMutation: { mutateAsync: createBarbershop },
   } = useBarbershopActions();
 
+  const defaultAddress: Barbershop["address"] = {
+    fullAddress: "",
+    details: undefined,
+  };
+
   const form = useAppForm({
     onSubmitInvalid: () => {
-      haptic.trigger("error");
+      void haptic.trigger("error");
     },
     validationLogic: revalidateLogic({
       mode: "submit",
@@ -54,16 +60,14 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
     },
     defaultValues: {
       name: "",
-      address: {
-        fullAddress: "",
-        details: undefined as string | undefined,
-      },
+      address: defaultAddress,
       city: city ?? "",
       state: state ?? "",
       zipCode: "",
       contactPhone: "",
       isActive: false,
-      gracePeriodMinutes: 5,
+      // SAFETY: widening only; the number input stores the raw string once edited.
+      gracePeriodMinutes: 5 as number | string,
       availability: [
         {
           weekDay: {
@@ -93,14 +97,13 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
         });
 
         if (barbershopId) {
-          haptic.trigger("success");
+          void haptic.trigger("success");
           toast.success("Barbería creada exitosamente");
           onSuccess();
         }
       } catch (error) {
-        haptic.trigger("error");
+        void haptic.trigger("error");
         toast.error(getConvexErrorMessage(error));
-        return;
       }
     },
   });
@@ -110,7 +113,7 @@ export const CreateBarbershopForm: FC<CreateBarbershopFormProps> = ({
       onSubmit={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        form.handleSubmit();
+        void form.handleSubmit();
       }}
       className="w-full space-y-4"
     >

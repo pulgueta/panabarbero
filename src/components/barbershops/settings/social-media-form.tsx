@@ -78,12 +78,15 @@ export const SocialMediaForm: FC<SocialMediaFormProps> = ({
   socialMedia,
   canDelete,
 }) => {
-  const initial = Object.fromEntries(
-    PLATFORMS.map(({ platform }) => [
-      platform,
-      socialMedia.find((l) => l.platform === platform)?.url ?? "",
-    ]),
-  ) as Record<Platform, string>;
+  const urlFor = (platform: Platform) =>
+    socialMedia.find((l) => l.platform === platform)?.url ?? "";
+  const initial: Record<Platform, string> = {
+    facebook: urlFor("facebook"),
+    instagram: urlFor("instagram"),
+    tiktok: urlFor("tiktok"),
+    twitter: urlFor("twitter"),
+    youtube: urlFor("youtube"),
+  };
 
   const [urls, setUrls] = useState<Record<Platform, string>>(initial);
   const [pending, setPending] = useState<Platform | null>(null);
@@ -109,14 +112,14 @@ export const SocialMediaForm: FC<SocialMediaFormProps> = ({
 
     try {
       await upsertSocialLink({ barbershopId, platform, url });
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Red social actualizada correctamente");
     } catch {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error("No se pudo guardar el enlace. Intenta de nuevo.");
-    } finally {
-      setPending(null);
     }
+
+    setPending(null);
   };
 
   const onRemove = async (platform: Platform) => {
@@ -125,14 +128,14 @@ export const SocialMediaForm: FC<SocialMediaFormProps> = ({
     try {
       await removeSocialLink({ barbershopId, platform });
       setUrls((prev) => ({ ...prev, [platform]: "" }));
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Red social eliminada correctamente");
     } catch {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error("No se pudo eliminar el enlace. Intenta de nuevo.");
-    } finally {
-      setRemoving(null);
     }
+
+    setRemoving(null);
   };
 
   return (
@@ -166,7 +169,9 @@ export const SocialMediaForm: FC<SocialMediaFormProps> = ({
 
               <Button
                 variant="outline"
-                onClick={() => onSave(platform)}
+                onClick={() => {
+                  void onSave(platform);
+                }}
                 disabled={!isDirty || !current || pending === platform}
               >
                 {pending === platform ? <Spinner /> : "Guardar"}
@@ -175,7 +180,9 @@ export const SocialMediaForm: FC<SocialMediaFormProps> = ({
               {canDelete && saved && (
                 <Button
                   variant="ghost"
-                  onClick={() => onRemove(platform)}
+                  onClick={() => {
+                    void onRemove(platform);
+                  }}
                   disabled={removing === platform}
                 >
                   {removing === platform ? <Spinner /> : "Eliminar"}

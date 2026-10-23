@@ -1,3 +1,5 @@
+import type { Id, TableNames } from "./_generated/dataModel";
+
 /**
  * Normalizes a phone value to E.164 (`+<country><national>`) for Twilio/SMS.
  * Colombian national numbers (10 digits, no country code) get `+57`.
@@ -7,15 +9,15 @@ export function formatPhoneNumber(phone: string): string {
   if (!phone) return "";
 
   const trimmed = phone.trim();
-  const compactNoSpaces = trimmed.replace(/\s/g, "");
+  const compactNoSpaces = trimmed.replaceAll(/\s/g, "");
 
   if (compactNoSpaces.startsWith("+")) {
-    const digits = compactNoSpaces.slice(1).replace(/\D/g, "");
+    const digits = compactNoSpaces.slice(1).replaceAll(/\D/g, "");
 
     return digits ? `+${digits}` : "";
   }
 
-  let digits = trimmed.replace(/\D/g, "");
+  let digits = trimmed.replaceAll(/\D/g, "");
   if (!digits) return "";
 
   while (digits.startsWith("0")) {
@@ -57,11 +59,21 @@ export const DAY_MAP: readonly WeekdayKey[] = [
   "saturday",
 ] as const;
 
+/**
+ * Names a plain-string Convex id (an agent tool arg, a free-form arg) as an id
+ * of `TableName`. It does not validate the id: Convex does where it is used (a
+ * malformed id fails `db.get`, an unknown one matches no row).
+ */
+export function asId<TableName extends TableNames>(id: string): Id<TableName> {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: a Convex id is a string at runtime; the doc comment says where it is checked.
+  return id as Id<TableName>;
+}
+
 /** Parses an "HH:mm" string into total minutes since midnight. */
 export function parseTimeToMinutes(time: string): number {
-  const [hh, mm] = time.split(":").map((n) => Number(n));
+  const [hh, mm] = time.split(":").map(Number);
 
-  if (Number.isNaN(hh) || Number.isNaN(mm)) return NaN;
+  if (Number.isNaN(hh) || Number.isNaN(mm)) return Number.NaN;
 
   return hh * 60 + mm;
 }

@@ -89,9 +89,10 @@ export const Route = createFileRoute(
     }
 
     if (barbershop?._id) {
-      const plan = await opts.context.queryClient.ensureQueryData(
-        getBarbershopPlanQueryOptions(barbershop._id),
-      );
+      const plan = await opts.context.queryClient.query({
+        ...getBarbershopPlanQueryOptions(barbershop._id),
+        staleTime: "static",
+      });
 
       // Inventory queries throw for plans without the feature — the page
       // renders the upsell instead, so skip priming them entirely.
@@ -100,9 +101,10 @@ export const Route = createFileRoute(
       }
 
       // Spine: the overview feeds the table via useSuspenseQuery.
-      await opts.context.queryClient.ensureQueryData(
-        inventoryOverviewQueryOptions(barbershop._id),
-      );
+      await opts.context.queryClient.query({
+        ...inventoryOverviewQueryOptions(barbershop._id),
+        staleTime: "static",
+      });
     }
   },
 });
@@ -151,16 +153,18 @@ const ProductsTable: FC<ProductsTableProps> = ({ barbershopId }) => {
   const columns = getInventoryTableColumns({
     canManage: overview.canManage,
     onAdjust: (row) => setDialog({ type: "adjust", row }),
-    onHistory: (row) =>
+    onHistory: (row) => {
       void navigate({
         to: "/profile/barbershops/inventory/$itemId/history",
         params: { itemId: row._id },
-      }),
-    onEdit: (row) =>
+      });
+    },
+    onEdit: (row) => {
       void navigate({
         to: "/profile/barbershops/inventory/$itemId/edit",
         params: { itemId: row._id },
-      }),
+      });
+    },
     onArchive: (row) => setDialog({ type: "archive", row }),
     onRecord: (row) => setDialog({ type: "record", row }),
   });
@@ -263,7 +267,7 @@ function RouteComponent() {
     select: (context) => context.dashboardRoles,
   });
 
-  const canManageRoles = Boolean(roles?.isOwner || roles?.isStaff);
+  const canManageRoles = roles?.isOwner === true || roles?.isStaff === true;
 
   if (!barbershop?._id) {
     return (

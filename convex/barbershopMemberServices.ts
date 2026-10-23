@@ -52,7 +52,7 @@ export const getServicesForBarber = zQuery({
       .filter((q) => q.neq(q.field("isActive"), false))
       .collect();
 
-    const services = await Promise.all(
+    const assignedServices = await Promise.all(
       memberServices.map(async (ms) => {
         const service = await ctx.db.get(ms.serviceId);
 
@@ -60,7 +60,7 @@ export const getServicesForBarber = zQuery({
       }),
     );
 
-    return services;
+    return assignedServices;
   },
 });
 
@@ -186,10 +186,12 @@ export const setBarberServices = zAuthMutation({
       )
       .collect();
 
-    const existingServiceIds = existingAssignments.map((a) => a.serviceId);
+    const existingServiceIds = new Set(
+      existingAssignments.map((a) => a.serviceId),
+    );
 
     const servicesToAdd = args.services.filter(
-      (service) => !existingServiceIds.includes(service.id),
+      (service) => !existingServiceIds.has(service.id),
     );
 
     const servicesToRemove = existingAssignments.filter(
@@ -228,7 +230,7 @@ export const assignAllServicesToBarber = zInternalMutation({
       throw new ConvexError(errorMessages.notFound("miembro de barbería"));
     }
 
-    const [services, existingAssignments] = await Promise.all([
+    const [shopServices, existingAssignments] = await Promise.all([
       ctx.db
         .query("services")
         .withIndex("by_barbershopId", (q) =>
@@ -248,7 +250,7 @@ export const assignAllServicesToBarber = zInternalMutation({
     );
 
     await Promise.all([
-      ...services.flatMap((service) =>
+      ...shopServices.flatMap((service) =>
         existingServiceIds.has(service._id)
           ? []
           : [

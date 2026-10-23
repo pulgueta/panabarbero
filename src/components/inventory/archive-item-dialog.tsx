@@ -31,8 +31,8 @@ interface ArchiveItemDialogProps {
  * Returns the impacted reservation/recipe count if matched, otherwise null.
  */
 function parseWillReleaseError(errorMessage: string): number | null {
-  const match = errorMessage.match(/WILL_RELEASE:(\d+)/);
-  return match ? Number.parseInt(match[1], 10) : null;
+  const match = /WILL_RELEASE:(\d+)/.exec(errorMessage);
+  return match ? Number(match[1]) : null;
 }
 
 export const ArchiveItemDialog: FC<ArchiveItemDialogProps> = ({
@@ -72,7 +72,7 @@ export const ArchiveItemDialog: FC<ArchiveItemDialogProps> = ({
         force,
       });
 
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Producto archivado exitosamente");
       handleOpenChange(false);
     } catch (error) {
@@ -83,7 +83,7 @@ export const ArchiveItemDialog: FC<ArchiveItemDialogProps> = ({
         setImpactedCount(willReleaseCount);
         setConfirmationStep("confirm_release");
       } else {
-        haptic.trigger("error");
+        void haptic.trigger("error");
         toast.error(errorMessage);
       }
     }
@@ -129,7 +129,9 @@ export const ArchiveItemDialog: FC<ArchiveItemDialogProps> = ({
           )}
           <Button
             variant="destructive"
-            onClick={() => onArchive(!isInitialStep)}
+            onClick={() => {
+              void onArchive(!isInitialStep);
+            }}
             disabled={isArchiving}
           >
             {isArchiving && <Spinner />}

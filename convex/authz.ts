@@ -9,9 +9,9 @@ import type {
   UserProfileData,
 } from "./schema";
 
-export type Role = "owner" | "barber" | "staff";
-
 import { Authz, definePermissions, defineRoles } from "@djpanda/convex-authz";
+
+export type Role = "owner" | "barber" | "staff";
 
 const permissions = definePermissions({
   inventory: {
@@ -143,9 +143,9 @@ export function memberHasRole(member: BarbershopMember, role: Role): boolean {
  */
 export function memberHasAnyRole(
   member: BarbershopMember,
-  roles: Role[],
+  requiredRoles: Role[],
 ): boolean {
-  return roles.some((role) => member.roles.includes(role));
+  return requiredRoles.some((role) => member.roles.includes(role));
 }
 
 /**
@@ -153,9 +153,9 @@ export function memberHasAnyRole(
  */
 export function memberHasAllRoles(
   member: BarbershopMember,
-  roles: Role[],
+  requiredRoles: Role[],
 ): boolean {
-  return roles.every((role) => member.roles.includes(role));
+  return requiredRoles.every((role) => member.roles.includes(role));
 }
 
 /**
@@ -221,7 +221,7 @@ export async function assertOwner(
   barbershopId: Barbershop["_id"],
   userId: string,
 ) {
-  return assertShopRole(ctx, barbershopId, userId, "owner");
+  return await assertShopRole(ctx, barbershopId, userId, "owner");
 }
 
 /**
@@ -232,7 +232,7 @@ export async function assertBarber(
   barbershopId: Barbershop["_id"],
   userId: string,
 ) {
-  return assertShopRole(ctx, barbershopId, userId, "barber");
+  return await assertShopRole(ctx, barbershopId, userId, "barber");
 }
 
 /**
@@ -243,7 +243,7 @@ export async function assertStaff(
   barbershopId: Barbershop["_id"],
   userId: string,
 ) {
-  return assertShopRole(ctx, barbershopId, userId, "staff");
+  return await assertShopRole(ctx, barbershopId, userId, "staff");
 }
 
 /**
@@ -254,7 +254,7 @@ export async function isStaffInShop(
   barbershopId: Barbershop["_id"],
   userId: string,
 ): Promise<boolean> {
-  return hasShopRole(ctx, barbershopId, userId, "staff");
+  return await hasShopRole(ctx, barbershopId, userId, "staff");
 }
 
 /**
@@ -266,7 +266,7 @@ export async function assertCanManageTeam(
   barbershopId: Barbershop["_id"],
   userId: string,
 ) {
-  return assertShopRole(ctx, barbershopId, userId, ["owner", "staff"]);
+  return await assertShopRole(ctx, barbershopId, userId, ["owner", "staff"]);
 }
 
 /**
@@ -277,7 +277,7 @@ export async function assertCanManageShop(
   barbershopId: Barbershop["_id"],
   userId: string,
 ) {
-  return assertShopRole(ctx, barbershopId, userId, "owner");
+  return await assertShopRole(ctx, barbershopId, userId, "owner");
 }
 
 /**
@@ -289,7 +289,7 @@ export async function assertCanManageServices(
   barbershopId: Barbershop["_id"],
   userId: string,
 ) {
-  return assertShopRole(ctx, barbershopId, userId, [
+  return await assertShopRole(ctx, barbershopId, userId, [
     "owner",
     "barber",
     "staff",
@@ -304,7 +304,7 @@ export async function assertCanManageAppointments(
   barbershopId: Barbershop["_id"],
   userId: string,
 ) {
-  return assertShopRole(ctx, barbershopId, userId, "barber");
+  return await assertShopRole(ctx, barbershopId, userId, "barber");
 }
 
 /**
@@ -338,7 +338,7 @@ export async function assertCanViewAppointments(
   barbershopId: Barbershop["_id"],
   userId: string,
 ) {
-  return assertShopRole(ctx, barbershopId, userId, [
+  return await assertShopRole(ctx, barbershopId, userId, [
     "owner",
     "barber",
     "staff",
@@ -412,7 +412,7 @@ export async function isBarberInShop(
   barbershopId: Barbershop["_id"],
   userId: string,
 ): Promise<boolean> {
-  return hasShopRole(ctx, barbershopId, userId, "barber");
+  return await hasShopRole(ctx, barbershopId, userId, "barber");
 }
 
 /**
@@ -424,5 +424,5 @@ export async function isOwnerOfShop(
   barbershopId: Barbershop["_id"],
   userId: string,
 ): Promise<boolean> {
-  return hasShopRole(ctx, barbershopId, userId, "owner");
+  return await hasShopRole(ctx, barbershopId, userId, "owner");
 }

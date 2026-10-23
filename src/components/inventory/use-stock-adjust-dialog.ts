@@ -83,6 +83,17 @@ export function useStockAdjustDialog({
       ? []
       : [{ value: "consume", label: "Consumir" }];
 
+  const canReceiveByPackage =
+    operation === "receive" &&
+    item.presentationValue !== undefined &&
+    item.presentationValue > 0 &&
+    item.presentationUnit !== undefined &&
+    ((item.unit === "ml" && item.presentationUnit === "ml") ||
+      (item.unit === "g" && item.presentationUnit === "g") ||
+      (item.unit === "unit" && item.presentationUnit === "und"));
+  const [receivePackageMode, setReceivePackageMode] =
+    useState<boolean>(canReceiveByPackage);
+
   const defaultValues: StockAdjustFormValues = {
     quantity: 1,
     packageCount: 1,
@@ -101,7 +112,7 @@ export function useStockAdjustDialog({
         (operation === "adjust" || operation === "waste") &&
         reason.length < 3
       ) {
-        haptic.trigger("error");
+        void haptic.trigger("error");
         toast.error("El motivo debe tener al menos 3 caracteres");
         return;
       }
@@ -114,7 +125,7 @@ export function useStockAdjustDialog({
               : parsePositiveIntegerQuantity(value.quantity);
 
             if (!quantity) {
-              haptic.trigger("error");
+              void haptic.trigger("error");
               toast.error(invalidQuantityMessage);
               return;
             }
@@ -124,10 +135,7 @@ export function useStockAdjustDialog({
               quantity: receivePackageMode
                 ? quantity * (item.presentationValue ?? 1)
                 : quantity,
-              unitCost:
-                value.unitCost !== undefined
-                  ? Number(value.unitCost)
-                  : undefined,
+              unitCost: value.unitCost,
               reason: reason || undefined,
             });
             break;
@@ -136,7 +144,7 @@ export function useStockAdjustDialog({
             const quantity = parsePositiveIntegerQuantity(value.quantity);
 
             if (!quantity) {
-              haptic.trigger("error");
+              void haptic.trigger("error");
               toast.error(invalidQuantityMessage);
               return;
             }
@@ -153,7 +161,7 @@ export function useStockAdjustDialog({
               const counted = parseNonNegativeInteger(value.counted);
 
               if (counted === null) {
-                haptic.trigger("error");
+                void haptic.trigger("error");
                 toast.error(
                   "Ingresa un conteo físico válido (número entero mayor o igual a 0).",
                 );
@@ -169,7 +177,7 @@ export function useStockAdjustDialog({
               const delta = parseSignedInteger(value.delta);
 
               if (delta === null) {
-                haptic.trigger("error");
+                void haptic.trigger("error");
                 toast.error(
                   "El ajuste debe ser un número entero distinto de cero.",
                 );
@@ -177,7 +185,7 @@ export function useStockAdjustDialog({
               }
 
               if (delta === 0) {
-                haptic.trigger("error");
+                void haptic.trigger("error");
                 toast.error("El ajuste debe ser distinto de cero.");
                 return;
               }
@@ -193,7 +201,7 @@ export function useStockAdjustDialog({
             const quantity = parsePositiveIntegerQuantity(value.quantity);
 
             if (!quantity) {
-              haptic.trigger("error");
+              void haptic.trigger("error");
               toast.error(invalidQuantityMessage);
               return;
             }
@@ -205,15 +213,16 @@ export function useStockAdjustDialog({
             });
             break;
           }
+          default:
+            operation satisfies never;
         }
 
-        haptic.trigger("success");
+        void haptic.trigger("success");
         toast.success(successMessages[operation]);
         handleOpenChange(false);
       } catch (error) {
-        haptic.trigger("error");
+        void haptic.trigger("error");
         toast.error(getConvexErrorMessage(error));
-        return;
       }
     },
   });
@@ -225,7 +234,7 @@ export function useStockAdjustDialog({
         return;
       }
 
-      form.handleSubmit();
+      void form.handleSubmit();
     },
     {
       preventDefault: true,
@@ -236,16 +245,6 @@ export function useStockAdjustDialog({
   const unitSuffix = formatInventoryStockSuffix(item.onHand, item.unit);
   const presentationSuffix =
     item.presentationUnit === "und" ? "und" : item.presentationUnit;
-  const canReceiveByPackage =
-    operation === "receive" &&
-    typeof item.presentationValue === "number" &&
-    item.presentationValue > 0 &&
-    item.presentationUnit !== undefined &&
-    ((item.unit === "ml" && item.presentationUnit === "ml") ||
-      (item.unit === "g" && item.presentationUnit === "g") ||
-      (item.unit === "unit" && item.presentationUnit === "und"));
-  const [receivePackageMode, setReceivePackageMode] =
-    useState<boolean>(canReceiveByPackage);
 
   return {
     form,

@@ -29,15 +29,15 @@ import {
   FileUploadItemMetadata,
   FileUploadItemPreview,
   FileUploadList,
-  type FileUploadProps,
 } from "@/components/ui/file-upload";
+import type { FileUploadProps } from "@/components/ui/file-upload";
 import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
 import { cn } from "@/lib/utils";
 
 import type { ItemFormData, ItemFormProps } from "./use-item-form";
 import { itemFormSteps, useItemForm } from "./use-item-form";
 
-export type { ItemFormData };
+export type { ItemFormData } from "./use-item-form";
 
 const ACCEPTED_TYPES = "image/png,image/jpeg,image/webp,image/avif";
 const MAX_ITEM_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -63,185 +63,6 @@ const categoryOptions = inventoryCategoryGroups.flatMap((group) =>
     label: inventoryCategoryLabels[category],
   })),
 );
-
-export const ItemForm: FC<ItemFormProps> = (props) => {
-  const { itemId } = props;
-  const engine = useItemForm(props);
-  const { handlePrimaryAction } = engine;
-
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        handlePrimaryAction();
-      }}
-      className="w-full space-y-4"
-    >
-      <ItemFormFields engine={engine} itemId={itemId} />
-
-      <div className="flex items-center justify-end gap-3">
-        <ItemFormStepActions
-          engine={engine}
-          itemId={itemId}
-          submitLabel="Guardar"
-        />
-      </div>
-    </form>
-  );
-};
-
-interface ItemFormFieldsProps {
-  engine: ItemFormEngine;
-  itemId?: ItemFormProps["itemId"];
-}
-
-export const ItemFormFields: FC<ItemFormFieldsProps> = ({ engine, itemId }) => {
-  const { form, stepper, initialUnit, currentOnHand } = engine;
-
-  return (
-    <FieldGroup>
-      <FormStepper
-        steps={itemFormSteps}
-        currentStep={stepper.currentStep}
-        onSelectStep={stepper.goToStep}
-        canSelectStep={stepper.canGoToStep}
-      />
-
-      {stepper.currentStep === 1 && (
-        <>
-          <form.AppField name="name">
-            {(field) => (
-              <field.TextField
-                label="Nombre del producto"
-                placeholder="Cuchillas dobles"
-              />
-            )}
-          </form.AppField>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <form.AppField name="category">
-              {(field) => (
-                <field.SelectField
-                  label="Categoría"
-                  className="w-full"
-                  options={categoryOptions}
-                />
-              )}
-            </form.AppField>
-
-            <form.AppField name="unit">
-              {(field) => (
-                <field.SelectField
-                  label="¿Cómo cuentas el stock?"
-                  className="w-full"
-                  options={inventoryUnits.map((unit) => ({
-                    value: unit,
-                    label: inventoryUnitLabels[unit],
-                  }))}
-                />
-              )}
-            </form.AppField>
-          </div>
-
-          <form.Subscribe selector={(state) => state.values.category}>
-            {(category) => (
-              <ItemUnitFields
-                form={form}
-                itemId={itemId}
-                categoryDefaultsToDurable={isEquipmentCategory(category)}
-                initialUnit={initialUnit}
-                currentOnHand={currentOnHand}
-              />
-            )}
-          </form.Subscribe>
-        </>
-      )}
-
-      {stepper.currentStep === 2 && (
-        <form.Subscribe selector={(state) => state.values.category}>
-          {(category) => (
-            <ItemDetailsFields
-              form={form}
-              categoryDefaultsToDurable={isEquipmentCategory(category)}
-            />
-          )}
-        </form.Subscribe>
-      )}
-
-      {stepper.currentStep === 3 && (
-        <form.Subscribe selector={(state) => state.values.category}>
-          {(category) => {
-            const categoryDefaultsToDurable = isEquipmentCategory(category);
-
-            return (
-              <form.Subscribe selector={(state) => state.values.stockBehavior}>
-                {(stockBehavior) => {
-                  const isDurable =
-                    stockBehavior === "durable" || categoryDefaultsToDurable;
-
-                  return isDurable ? (
-                    <ItemDurableFields form={form} />
-                  ) : (
-                    <ItemStockPolicyFields form={form} />
-                  );
-                }}
-              </form.Subscribe>
-            );
-          }}
-        </form.Subscribe>
-      )}
-
-      {stepper.currentStep === 4 && <InventoryImageField engine={engine} />}
-    </FieldGroup>
-  );
-};
-
-/**
- * Wizard footer: Anterior/Siguiente to browse steps; the submit button shows
- * on every step when editing (any step can be saved directly) and only on the
- * last step when creating.
- */
-export const ItemFormStepActions: FC<{
-  engine: ItemFormEngine;
-  itemId?: ItemFormProps["itemId"];
-  submitLabel: string;
-}> = ({ engine, itemId, submitLabel }) => {
-  const { form, stepper, photoFile } = engine;
-  const isEdit = itemId !== undefined;
-
-  return (
-    <>
-      <Button
-        type="button"
-        variant="outline"
-        disabled={stepper.isFirstStep}
-        onClick={stepper.goToPrevStep}
-      >
-        Anterior
-      </Button>
-
-      {!stepper.isLastStep && (
-        <Button
-          type="button"
-          variant={isEdit ? "outline" : "default"}
-          onClick={() => void stepper.handleNextStepOrSubmit(form)}
-        >
-          Siguiente
-        </Button>
-      )}
-
-      {(isEdit || stepper.isLastStep) && (
-        <form.AppForm>
-          <form.SubmitButton
-            label={submitLabel}
-            forceEnabled={photoFile !== null}
-          />
-        </form.AppForm>
-      )}
-    </>
-  );
-};
 
 interface ItemSectionFieldsProps {
   form: ItemFormEngine["form"];
@@ -617,7 +438,7 @@ const InventoryImageField: FC<{ engine: ItemFormEngine }> = ({ engine }) => {
   >(
     (_file, message) => {
       toast.error(message);
-      trigger("warning");
+      void trigger("warning");
     },
     [trigger],
   );
@@ -742,5 +563,186 @@ const InventoryImageField: FC<{ engine: ItemFormEngine }> = ({ engine }) => {
         </p>
       )}
     </div>
+  );
+};
+
+interface ItemFormFieldsProps {
+  engine: ItemFormEngine;
+  itemId?: ItemFormProps["itemId"];
+}
+
+export const ItemFormFields: FC<ItemFormFieldsProps> = ({ engine, itemId }) => {
+  const { form, stepper, initialUnit, currentOnHand } = engine;
+
+  return (
+    <FieldGroup>
+      <FormStepper
+        steps={itemFormSteps}
+        currentStep={stepper.currentStep}
+        onSelectStep={(step) => stepper.goToStep(step)}
+        canSelectStep={stepper.canGoToStep}
+      />
+
+      {stepper.currentStep === 1 && (
+        <>
+          <form.AppField name="name">
+            {(field) => (
+              <field.TextField
+                label="Nombre del producto"
+                placeholder="Cuchillas dobles"
+              />
+            )}
+          </form.AppField>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <form.AppField name="category">
+              {(field) => (
+                <field.SelectField
+                  label="Categoría"
+                  className="w-full"
+                  options={categoryOptions}
+                />
+              )}
+            </form.AppField>
+
+            <form.AppField name="unit">
+              {(field) => (
+                <field.SelectField
+                  label="¿Cómo cuentas el stock?"
+                  className="w-full"
+                  options={inventoryUnits.map((unit) => ({
+                    value: unit,
+                    label: inventoryUnitLabels[unit],
+                  }))}
+                />
+              )}
+            </form.AppField>
+          </div>
+
+          <form.Subscribe selector={(state) => state.values.category}>
+            {(category) => (
+              <ItemUnitFields
+                form={form}
+                itemId={itemId}
+                categoryDefaultsToDurable={isEquipmentCategory(category)}
+                initialUnit={initialUnit}
+                currentOnHand={currentOnHand}
+              />
+            )}
+          </form.Subscribe>
+        </>
+      )}
+
+      {stepper.currentStep === 2 && (
+        <form.Subscribe selector={(state) => state.values.category}>
+          {(category) => (
+            <ItemDetailsFields
+              form={form}
+              categoryDefaultsToDurable={isEquipmentCategory(category)}
+            />
+          )}
+        </form.Subscribe>
+      )}
+
+      {stepper.currentStep === 3 && (
+        <form.Subscribe selector={(state) => state.values.category}>
+          {(category) => {
+            const categoryDefaultsToDurable = isEquipmentCategory(category);
+
+            return (
+              <form.Subscribe selector={(state) => state.values.stockBehavior}>
+                {(stockBehavior) => {
+                  const isDurable =
+                    stockBehavior === "durable" || categoryDefaultsToDurable;
+
+                  return isDurable ? (
+                    <ItemDurableFields form={form} />
+                  ) : (
+                    <ItemStockPolicyFields form={form} />
+                  );
+                }}
+              </form.Subscribe>
+            );
+          }}
+        </form.Subscribe>
+      )}
+
+      {stepper.currentStep === 4 && <InventoryImageField engine={engine} />}
+    </FieldGroup>
+  );
+};
+
+/**
+ * Wizard footer: Anterior/Siguiente to browse steps; the submit button shows
+ * on every step when editing (any step can be saved directly) and only on the
+ * last step when creating.
+ */
+export const ItemFormStepActions: FC<{
+  engine: ItemFormEngine;
+  itemId?: ItemFormProps["itemId"];
+  submitLabel: string;
+}> = ({ engine, itemId, submitLabel }) => {
+  const { form, stepper, photoFile } = engine;
+  const isEdit = itemId !== undefined;
+
+  return (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        disabled={stepper.isFirstStep}
+        onClick={() => stepper.goToPrevStep()}
+      >
+        Anterior
+      </Button>
+
+      {!stepper.isLastStep && (
+        <Button
+          type="button"
+          variant={isEdit ? "outline" : "default"}
+          onClick={() => {
+            void stepper.handleNextStepOrSubmit(form);
+          }}
+        >
+          Siguiente
+        </Button>
+      )}
+
+      {(isEdit || stepper.isLastStep) && (
+        <form.AppForm>
+          <form.SubmitButton
+            label={submitLabel}
+            forceEnabled={photoFile !== null}
+          />
+        </form.AppForm>
+      )}
+    </>
+  );
+};
+
+export const ItemForm: FC<ItemFormProps> = (props) => {
+  const { itemId } = props;
+  const engine = useItemForm(props);
+  const { handlePrimaryAction } = engine;
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handlePrimaryAction();
+      }}
+      className="w-full space-y-4"
+    >
+      <ItemFormFields engine={engine} itemId={itemId} />
+
+      <div className="flex items-center justify-end gap-3">
+        <ItemFormStepActions
+          engine={engine}
+          itemId={itemId}
+          submitLabel="Guardar"
+        />
+      </div>
+    </form>
   );
 };

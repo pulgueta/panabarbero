@@ -1,5 +1,6 @@
 import type { FC } from "react";
-import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
+import type { BadgeProps } from "@/components/ui/badge";
 import {
   ResponsiveModal,
   ResponsiveModalContent,
@@ -68,10 +69,10 @@ export const ReviewDetailModal: FC<ReviewDetailModalProps> = ({
             </div>
 
             <p className="text-pretty text-sm">
-              {review.comment ? (
-                review.comment
-              ) : (
+              {review.comment === undefined || review.comment === "" ? (
                 <span className="text-muted-foreground">Sin comentario.</span>
+              ) : (
+                review.comment
               )}
             </p>
 

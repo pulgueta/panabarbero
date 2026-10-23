@@ -1,6 +1,5 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: dashboard loaders gate and prime this route */
+/* oxlint-disable typescript/no-non-null-assertion -- dashboard loaders gate and prime this route */
 
-import type { Service } from "@convex/schema";
 import { PackageIcon, ScissorsIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 
@@ -33,6 +32,7 @@ import {
   servicesQueryOptions,
   useServicesFromBarbershop,
 } from "@/hooks/use-services";
+import { asConvexId } from "@/lib/convex-id";
 
 export const Route = createFileRoute(
   "/_authedRoutes/profile/barbershops/services/$serviceId/recipe/",
@@ -43,6 +43,7 @@ export const Route = createFileRoute(
   staticData: { breadcrumb: "Insumos" },
   staleTime: cacheTime.low,
   gcTime: cacheTime.medium,
+  // oxlint-disable-next-line react-doctor/tanstack-start-loader-parallel-fetch -- the plan gate must redirect before the inventory queries run
   loader: async ({ context, params }) => {
     const barbershop = context.dashboardBarbershop;
     const roles = context.dashboardRoles;
@@ -55,22 +56,28 @@ export const Route = createFileRoute(
       throw redirect({ to: "/profile/barbershops/services" });
     }
 
-    const plan = await context.queryClient.ensureQueryData(
-      getBarbershopPlanQueryOptions(barbershop._id),
-    );
+    const plan = await context.queryClient.query({
+      ...getBarbershopPlanQueryOptions(barbershop._id),
+      staleTime: "static",
+    });
 
     if (!plan?.planLimits.inventoryEnabled) {
       throw redirect({ to: "/profile/barbershops/services" });
     }
 
     await Promise.all([
-      context.queryClient.ensureQueryData(servicesQueryOptions(barbershop._id)),
-      context.queryClient.ensureQueryData(
-        inventoryOverviewQueryOptions(barbershop._id),
-      ),
-      context.queryClient.ensureQueryData(
-        serviceRecipeQueryOptions(params.serviceId as Service["_id"]),
-      ),
+      context.queryClient.query({
+        ...servicesQueryOptions(barbershop._id),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...inventoryOverviewQueryOptions(barbershop._id),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...serviceRecipeQueryOptions(asConvexId<"services">(params.serviceId)),
+        staleTime: "static",
+      }),
     ]);
   },
 });
@@ -78,13 +85,14 @@ export const Route = createFileRoute(
 function RouteComponent() {
   const navigate = Route.useNavigate();
   const { serviceId } = Route.useParams();
+  const typedServiceId = asConvexId<"services">(serviceId);
   const barbershop = Route.useRouteContext({
     select: (context) => context.dashboardBarbershop,
   });
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
   const service = services.find((nextService) => nextService._id === serviceId);
   const { data: overview } = useInventoryOverview(barbershop?._id!);
-  const { data: recipe } = useServiceRecipe(serviceId as Service["_id"]);
+  const { data: recipe } = useServiceRecipe(typedServiceId);
 
   if (!barbershop?._id) {
     return null;
@@ -116,7 +124,7 @@ function RouteComponent() {
         <FormPageBody className="lg:grid-cols-[minmax(0,42rem)_22rem] xl:grid-cols-[minmax(0,42rem)_24rem]">
           <FormPageFields>
             <ServiceRecipeEditor
-              serviceId={serviceId as Service["_id"]}
+              serviceId={typedServiceId}
               barbershopId={barbershop._id}
               onSuccess={() => {
                 void navigate({ to: "/profile/barbershops/services" });

@@ -45,6 +45,7 @@ export const ServicesDropdown: FC<ServicesDropdownProps> = ({ services }) => {
         render={
           <Button
             variant="outline"
+            // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- the trigger opens a listbox popover (combobox pattern); a native select cannot host it
             role="combobox"
             size="default"
             aria-expanded={open}

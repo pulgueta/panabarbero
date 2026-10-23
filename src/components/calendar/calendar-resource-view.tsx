@@ -4,7 +4,8 @@
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { addDays, addMinutes } from "date-fns";
-import { type CSSProperties, useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import type { CSSProperties } from "react";
 import {
   CalendarViewContext,
   useCalendar,
@@ -498,7 +499,7 @@ function CalendarResourceColumn({
         const endMin = Math.min(segment.endMin ?? startMin, boundsEndMin);
         return endMin > boundsStartMin && startMin < boundsEndMin;
       })
-      .map((segment) => ({ ...segment }) as CalendarSegment);
+      .map((segment) => ({ ...segment }));
     packTimedSegments(mine);
     return mine;
   }, [segments.timed, resource.id, boundsStartMin, boundsEndMin]);

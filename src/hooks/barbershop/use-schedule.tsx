@@ -23,11 +23,9 @@ function formatTimeLabel(time?: string | null) {
 
 export function useSchedule(availability: Barbershop["availability"] | null) {
   const todaySchedule = (() => {
-    if (!availability?.length) return undefined;
-
     const weekday = getDayKeyForDate(new Date());
 
-    return availability.find((entry) => entry.weekDay.day === weekday);
+    return availability?.find((entry) => entry.weekDay.day === weekday);
   })();
 
   const AvailabilityLabel = () => {

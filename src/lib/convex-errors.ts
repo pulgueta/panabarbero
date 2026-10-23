@@ -1,27 +1,33 @@
 import { ConvexError } from "convex/values";
+import { z } from "zod";
 
 import { errorMessages } from "../../convex/errors";
 
-function messageFromConvexData(data: unknown): string {
-  if (typeof data === "string") {
-    return data;
-  }
+const genericErrorMessage = "Ha ocurrido un error al procesar la solicitud.";
 
-  if (typeof data === "object" && data !== null && "ZodError" in data) {
-    const issues = (data as { ZodError?: { message?: string }[] }).ZodError;
+const zodErrorDataSchema = z.object({
+  ZodError: z.array(
+    z.object({ message: z.string().optional().catch(undefined) }).catch({}),
+  ),
+});
 
-    if (Array.isArray(issues) && issues.length > 0) {
-      return issues[0]?.message ?? errorMessages.invalidQuantity;
-    }
-  }
-
-  return "Ha ocurrido un error al procesar la solicitud.";
-}
-
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- receives catch-clause values, which are `unknown` by definition
 export function getConvexErrorMessage(error: unknown): string {
-  if (error instanceof ConvexError) {
-    return messageFromConvexData(error.data);
+  if (!(error instanceof ConvexError)) {
+    return genericErrorMessage;
   }
 
-  return "Ha ocurrido un error al procesar la solicitud.";
+  const text = z.string().safeParse(error.data);
+
+  if (text.success) {
+    return text.data;
+  }
+
+  const zodError = zodErrorDataSchema.safeParse(error.data);
+
+  if (zodError.success && zodError.data.ZodError.length > 0) {
+    return zodError.data.ZodError[0]?.message ?? errorMessages.invalidQuantity;
+  }
+
+  return genericErrorMessage;
 }

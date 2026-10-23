@@ -9,6 +9,7 @@ import {
 } from "./aggregates";
 import { normalizeItems } from "./appointmentItems";
 import { authz, barbershopScope } from "./authz";
+import type { UserProfileData } from "./schema";
 
 export const migrations = new Migrations<DataModel>(components.migrations);
 export const run = migrations.runner();
@@ -200,7 +201,9 @@ export const stripLegacyExtraCredits = migrations.define({
 export const stripLegacyCreditPurchases = migrations.define({
   table: "creditPurchases",
   migrateOne: async (ctx, row) => {
-    if ((row.type as string) !== "whatsapp") {
+    const type: string = row.type;
+
+    if (type !== "whatsapp") {
       await ctx.db.delete(row._id);
     }
   },
@@ -209,18 +212,25 @@ export const stripLegacyCreditPurchases = migrations.define({
 export const stripLegacyNotificationPreferences = migrations.define({
   table: "userProfileData",
   migrateOne: async (ctx, profile) => {
-    const whatsapp = profile.notificationsPreferences.find(
-      (p) => (p.type as string) === "whatsapp",
-    );
+    const whatsapp = profile.notificationsPreferences.find((p) => {
+      const type: string = p.type;
 
-    await ctx.db.patch(profile._id, {
+      return type === "whatsapp";
+    });
+
+    const update: Partial<
+      Pick<UserProfileData, "notificationsPreferences" | "whatsappOptedInAt">
+    > = {
       notificationsPreferences: [
         whatsapp ?? { type: "whatsapp", enabled: true },
       ],
-      ...(whatsapp || profile.whatsappOptedInAt
-        ? {}
-        : { whatsappOptedInAt: Date.now() }),
-    });
+    };
+
+    if (!whatsapp && !profile.whatsappOptedInAt) {
+      update.whatsappOptedInAt = Date.now();
+    }
+
+    await ctx.db.patch(profile._id, update);
   },
 });
 

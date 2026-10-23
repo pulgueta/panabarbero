@@ -5,15 +5,15 @@ import {
 } from "./constants";
 import type { AppointmentCalendarEvent, DayWindow } from "./types";
 
-const DAY_NAME_TO_INDEX: Record<string, number> = {
-  sunday: 0,
-  monday: 1,
-  tuesday: 2,
-  wednesday: 3,
-  thursday: 4,
-  friday: 5,
-  saturday: 6,
-};
+const DAY_NAME_TO_INDEX = new Map([
+  ["sunday", 0],
+  ["monday", 1],
+  ["tuesday", 2],
+  ["wednesday", 3],
+  ["thursday", 4],
+  ["friday", 5],
+  ["saturday", 6],
+]);
 
 export function eventEnd(
   start: number,
@@ -43,30 +43,30 @@ export function buildDayWindows(
         lunchEnd?: string;
       }>
     | undefined,
-): Record<number, DayWindow> {
-  const windows: Record<number, DayWindow> = {};
+): Map<number, DayWindow> {
+  const windows = new Map<number, DayWindow>();
   for (const entry of availability ?? []) {
-    const index = DAY_NAME_TO_INDEX[entry.weekDay.day];
+    const index = DAY_NAME_TO_INDEX.get(entry.weekDay.day);
     if (index === undefined) continue;
-    windows[index] = {
+    windows.set(index, {
       isActive: entry.weekDay.isActive,
       openMinutes: parseTime(entry.openAt),
       closeMinutes: parseTime(entry.closeAt),
       lunchStartMinutes: parseTime(entry.lunchStart),
       lunchEndMinutes: parseTime(entry.lunchEnd),
-    };
+    });
   }
   return windows;
 }
 
 export function getVisibleHours(
-  windows: Record<number, DayWindow>,
+  windows: Map<number, DayWindow>,
   events: AppointmentCalendarEvent[],
-): { startHour: number; endHour: number } {
+) {
   let startHour = DEFAULT_START_HOUR;
   let endHour = DEFAULT_END_HOUR;
 
-  for (const window of Object.values(windows)) {
+  for (const window of windows.values()) {
     if (!window.isActive) continue;
     if (window.openMinutes !== null) {
       startHour = Math.min(startHour, Math.floor(window.openMinutes / 60));

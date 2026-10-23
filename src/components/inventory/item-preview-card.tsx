@@ -9,14 +9,20 @@ import {
   inventoryUnitSuffixes,
   isEquipmentCategory,
 } from "@/components/inventory/labels";
-import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
+import type { BadgeProps } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
 import type { ItemFormEngine } from "./item-form";
+
+interface StockStatus {
+  label: string;
+  variant: BadgeProps["variant"];
+}
 
 function previewStatus(
   initialQuantity: number | undefined,
   reorderPoint: number,
-): { label: string; variant: BadgeProps["variant"] } {
+): StockStatus {
   const onHand = initialQuantity ?? 0;
 
   if (onHand <= 0) {
@@ -148,7 +154,7 @@ export const ItemPreviewCard: FC<ItemPreviewCardProps> = ({
                   <dt className="text-muted-foreground">Precio de venta</dt>
                   <dd className="tabular-nums">
                     {values.salePrice !== undefined
-                      ? formatCurrency(Number(values.salePrice) || 0)
+                      ? formatCurrency(values.salePrice || 0)
                       : "—"}
                   </dd>
                 </div>

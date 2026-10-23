@@ -114,7 +114,7 @@ export const ServiceRecipeEditor: FC<ServiceRecipeEditorProps> = ({
       const quantity = parsePositiveIntegerQuantity(line.quantity);
 
       if (!quantity) {
-        haptic.trigger("error");
+        void haptic.trigger("error");
         toast.error(invalidQuantityMessage);
         return;
       }
@@ -131,11 +131,11 @@ export const ServiceRecipeEditor: FC<ServiceRecipeEditorProps> = ({
         })),
       });
 
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Insumos actualizados exitosamente");
       onSuccess();
     } catch (error) {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
     }
   };
@@ -163,11 +163,10 @@ export const ServiceRecipeEditor: FC<ServiceRecipeEditorProps> = ({
               <div key={line.itemId} className="flex items-center gap-2">
                 <Select
                   value={line.itemId}
-                  onValueChange={(value) =>
-                    updateLine(index, {
-                      itemId: value as InventoryItem["_id"],
-                    })
-                  }
+                  onValueChange={(value) => {
+                    const row = overview.rows.find((r) => r._id === value);
+                    if (row) updateLine(index, { itemId: row._id });
+                  }}
                 >
                   <SelectTrigger className="flex-1" aria-label="Producto">
                     <SelectValue placeholder="Selecciona un producto">
@@ -235,7 +234,13 @@ export const ServiceRecipeEditor: FC<ServiceRecipeEditorProps> = ({
         </div>
       )}
 
-      <Button className="w-full" onClick={onSave} disabled={isPending}>
+      <Button
+        className="w-full"
+        onClick={() => {
+          void onSave();
+        }}
+        disabled={isPending}
+      >
         {isPending && <Spinner />}
         Guardar
       </Button>

@@ -132,7 +132,7 @@ export const sendLowStockAlert = zInternalMutation({
       itemName: args.itemName,
       barbershopName: barbershop.name,
       remaining: args.remaining,
-      unitLabel: inventoryUnitLabels[args.unit] ?? args.unit,
+      unitLabel: inventoryUnitLabels.get(args.unit) ?? args.unit,
       reorderPoint: args.reorderPoint,
       levelId: args.levelId,
       alertedAt: args.alertedAt,

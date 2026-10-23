@@ -19,8 +19,8 @@ export interface RescheduleRequestAcceptEmailProps {
 }
 
 export const RescheduleRequestAcceptEmail = ({
-  subject = "Reagendamiento aceptado",
-  body = "Tu solicitud de reagendamiento ha sido aceptada",
+  subject,
+  body,
 }: RescheduleRequestAcceptEmailProps) => {
   return (
     <Html lang="es" dir="ltr">
@@ -47,5 +47,10 @@ export const RescheduleRequestAcceptEmail = ({
     </Html>
   );
 };
+
+RescheduleRequestAcceptEmail.PreviewProps = {
+  subject: "Reagendamiento aceptado",
+  body: "Tu solicitud de reagendamiento ha sido aceptada",
+} satisfies Partial<RescheduleRequestAcceptEmailProps>;
 
 export default RescheduleRequestAcceptEmail;

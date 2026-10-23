@@ -13,7 +13,8 @@ import {
 import { colombia } from "@/config/colombia";
 import type { GeoCoords, GeoStatus } from "@/hooks/use-geolocation";
 import { useGeolocation } from "@/hooks/use-geolocation";
-import { type ReverseGeocodeResult, reverseGeocode } from "@/lib/geocode";
+import { reverseGeocode } from "@/lib/geocode";
+import type { ReverseGeocodeResult } from "@/lib/geocode";
 import { useLocationStore } from "@/store/barbershop-filters";
 
 /** Drawer draft committed by `applyFilters` in a single navigation. */
@@ -118,7 +119,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   // store → URL: backfill the URL when persistence already knows the location.
   useEffect(() => {
     if ((!search.state || !search.city) && departamento && ciudad) {
-      navigate({
+      void navigate({
         to: ".",
         search: (prev) => ({ ...prev, state: departamento, city: ciudad }),
         replace: true,
@@ -132,18 +133,19 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     if (match) setPendingMatch(match);
   }, []);
 
+  const { request: requestPosition } = geo;
+
   // Reverse-geocode whenever the browser grants a fresh position.
-  useEffect(() => {
-    if (geo.status === "granted" && geo.coords) {
-      void resolvePin(geo.coords);
-    }
-  }, [geo.status, geo.coords, resolvePin]);
+  const requestGeolocation = useCallback(async () => {
+    const next = await requestPosition();
+    if (next) await resolvePin(next);
+  }, [requestPosition, resolvePin]);
 
   const setDepartamento = useCallback(
     (next: string) => {
       setPendingMatch(null);
       setStoreState(next);
-      navigate({
+      void navigate({
         to: ".",
         search: (prev) => ({ ...prev, state: next, city: undefined }),
         replace: false,
@@ -156,7 +158,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     (next: string) => {
       setPendingMatch(null);
       setStoreCity(next);
-      navigate({
+      void navigate({
         to: ".",
         search: (prev) => ({ ...prev, state: departamento, city: next }),
         replace: false,
@@ -170,7 +172,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       setPendingMatch(null);
       setStoreState(nextDepartamento);
       setStoreCity(nextCiudad);
-      navigate({
+      void navigate({
         to: ".",
         search: (prev) => ({
           ...prev,
@@ -200,7 +202,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         setCoords(null);
       }
 
-      navigate({
+      void navigate({
         to: ".",
         search: (prev) => ({
           ...prev,
@@ -219,7 +221,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     if (!pendingMatch?.ciudad) return;
     setStoreState(pendingMatch.departamento);
     setStoreCity(pendingMatch.ciudad);
-    navigate({
+    void navigate({
       to: ".",
       search: (prev) => ({
         ...prev,
@@ -235,7 +237,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     resetStore();
     setCoords(null);
     setPendingMatch(null);
-    navigate({
+    void navigate({
       to: ".",
       search: (prev) => ({ ...prev, state: undefined, city: undefined }),
       replace: false,
@@ -252,12 +254,16 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         pendingMatch,
       },
       actions: {
-        requestGeolocation: geo.request,
+        requestGeolocation: () => {
+          void requestGeolocation();
+        },
         setDepartamento,
         setCiudad,
         setLocation,
         applyFilters,
-        setPin: (next) => void resolvePin(next),
+        setPin: (next) => {
+          void resolvePin(next);
+        },
         confirmPin,
         reset,
       },
@@ -273,7 +279,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       ciudad,
       coords,
       geo.status,
-      geo.request,
+      requestGeolocation,
       pendingMatch,
       setDepartamento,
       setCiudad,

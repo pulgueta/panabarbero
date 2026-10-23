@@ -1,7 +1,8 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: objects are guaranteed to be not null */
+/* oxlint-disable typescript/no-non-null-assertion -- objects are guaranteed to be not null */
 
 import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { noop } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, useMemo } from "react";
 import { z } from "zod";
 
@@ -54,9 +55,10 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/book")({
       throw notFound();
     }
 
-    const barbershop = await context.queryClient.ensureQueryData(
-      barbershopByUuidQueryOptions(params.barbershopUuid),
-    );
+    const barbershop = await context.queryClient.query({
+      ...barbershopByUuidQueryOptions(params.barbershopUuid),
+      staleTime: "static",
+    });
 
     if (!barbershop?._id) {
       throw notFound();
@@ -64,31 +66,36 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/book")({
 
     // Core booking-form inputs (services, barbers, schedule) — block.
     const [, barbershopMembers] = await Promise.all([
-      context.queryClient.ensureQueryData(servicesQueryOptions(barbershop._id)),
-      context.queryClient.ensureQueryData(
-        barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
-      ),
-      context.queryClient.ensureQueryData(
-        barbershopAvailabilityQueryOptions(barbershop._id),
-      ),
+      context.queryClient.query({
+        ...servicesQueryOptions(barbershop._id),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...barbershopAvailabilityQueryOptions(barbershop._id),
+        staleTime: "static",
+      }),
     ]);
 
     // Per-barber service filtering happens on selection — prime without
     // blocking the form.
     for (const member of barbershopMembers) {
-      void context.queryClient.prefetchQuery(
-        servicesForBarberQueryOptions(member._id),
-      );
+      void context.queryClient
+        .query(servicesForBarberQueryOptions(member._id))
+        .catch(noop);
     }
 
     // Viewer checks (not needed for first paint) — fire-and-forget.
     if (context.userId) {
-      void context.queryClient.prefetchQuery(
-        profileQueryOptions(context.userId),
-      );
-      void context.queryClient.prefetchQuery(
-        barberByUserIdQueryOptions(context.userId),
-      );
+      void context.queryClient
+        .query(profileQueryOptions(context.userId))
+        .catch(noop);
+      void context.queryClient
+        .query(barberByUserIdQueryOptions(context.userId))
+        .catch(noop);
     }
   },
   head: ({ params }) => ({
@@ -158,7 +165,7 @@ function RouteComponent() {
         {barbershop ? (
           <section>
             <header className="">
-              <h3 className="mb-4 text-balance font-semibold text-3xl tracking-tightest">
+              <h3 className="mb-4 text-balance font-semibold text-3xl">
                 {barbershop.name}
               </h3>
               <p className="text-xl">Reservar cita</p>

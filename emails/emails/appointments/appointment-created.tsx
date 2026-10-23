@@ -31,7 +31,7 @@ export type AppointmentCreatedEmailProps = {
 export const AppointmentCreatedEmail = (
   props: AppointmentCreatedEmailProps,
 ) => {
-  const { sendTo, subject, body = "Cita creada correctamente" } = props;
+  const { sendTo, subject, body } = props;
 
   return (
     <Html lang="es" dir="ltr">
@@ -69,5 +69,9 @@ export const AppointmentCreatedEmail = (
     </Html>
   );
 };
+
+AppointmentCreatedEmail.PreviewProps = {
+  body: "Cita creada correctamente",
+} satisfies Partial<AppointmentCreatedEmailProps>;
 
 export default AppointmentCreatedEmail;

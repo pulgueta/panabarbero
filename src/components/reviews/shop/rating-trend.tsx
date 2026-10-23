@@ -5,6 +5,7 @@ import {
   formatMonthLong,
   formatMonthShort,
 } from "@/components/analytics/chart-format";
+import type { ChartTooltipFormatter } from "@/components/chart-tooltip";
 import {
   Card,
   CardContent,
@@ -31,6 +32,24 @@ interface RatingTrendProps {
   points: ShopRatingTrendPoint[];
 }
 
+function isTrendPoint(value: unknown): value is ShopRatingTrendPoint {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "month" in value &&
+    "count" in value
+  );
+}
+
+const renderTooltipValue: ChartTooltipFormatter = (value) => (
+  <div className="flex w-full items-center justify-between gap-2 leading-none">
+    <span className="text-muted-foreground">Promedio</span>
+    <span className="font-medium font-mono text-foreground tabular-nums">
+      {Number(value).toFixed(1)}
+    </span>
+  </div>
+);
+
 /**
  * Compact 6-month average-rating trend on a fixed 0–5 scale. Animations stay
  * off so the chart is reduced-motion safe by construction; a single text
@@ -52,6 +71,7 @@ export const RatingTrend: FC<RatingTrendProps> = ({ points }) => {
       </CardHeader>
       <CardContent>
         <div
+          // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- the chart is drawn by Recharts; role="img" gives the whole chart one text alternative
           role="img"
           aria-label={`Promedio de calificación por mes. ${summary}`}
         >
@@ -75,22 +95,14 @@ export const RatingTrend: FC<RatingTrendProps> = ({ points }) => {
                   <ChartTooltipContent
                     indicator="dot"
                     labelFormatter={(_, payload) => {
-                      const point = payload[0]?.payload as
-                        | ShopRatingTrendPoint
-                        | undefined;
+                      const row: unknown = payload[0]?.payload;
+                      const point = isTrendPoint(row) ? row : undefined;
 
                       return point
                         ? `${formatMonthLong(point.month)} · ${point.count} ${point.count === 1 ? "reseña" : "reseñas"}`
                         : "";
                     }}
-                    formatter={(value) => (
-                      <div className="flex w-full items-center justify-between gap-2 leading-none">
-                        <span className="text-muted-foreground">Promedio</span>
-                        <span className="font-medium font-mono text-foreground tabular-nums">
-                          {Number(value).toFixed(1)}
-                        </span>
-                      </div>
-                    )}
+                    formatter={renderTooltipValue}
                   />
                 }
               />

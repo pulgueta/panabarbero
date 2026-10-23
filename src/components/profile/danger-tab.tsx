@@ -87,14 +87,14 @@ export const DangerTab: FC<DangerTabProps> = ({
 
     try {
       await deleteBarbershop({ id: barbershopId });
-      haptic.trigger("success");
-      navigate({
+      void haptic.trigger("success");
+      void navigate({
         to: "/barbershops",
         search: { city: undefined, state: undefined },
         replace: true,
       });
     } catch (error) {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
     }
   };
@@ -102,10 +102,10 @@ export const DangerTab: FC<DangerTabProps> = ({
   const handleDeleteAccount = async () => {
     try {
       await deleteAccount({});
-      haptic.trigger("success");
+      void haptic.trigger("success");
       window.location.href = "/";
     } catch (error) {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
       setIsDeleteAccountOpen(false);
     }
@@ -156,7 +156,9 @@ export const DangerTab: FC<DangerTabProps> = ({
                     variant="destructive"
                     className="w-full"
                     disabled={!barbershopId || isDeletingBarbershop}
-                    onClick={handleDeleteBarbershop}
+                    onClick={() => {
+                      void handleDeleteBarbershop();
+                    }}
                   >
                     {isDeletingBarbershop && <Spinner />} Sí, eliminar
                   </Button>
@@ -216,7 +218,9 @@ export const DangerTab: FC<DangerTabProps> = ({
               variant="destructive"
               className="w-full"
               disabled={isDeletingAccount}
-              onClick={handleDeleteAccount}
+              onClick={() => {
+                void handleDeleteAccount();
+              }}
             >
               {isDeletingAccount && <Spinner />}
               Sí, eliminar mi cuenta

@@ -37,7 +37,9 @@ export const getInventoryItemHistory = zAuthQuery({
       ),
     ]);
 
-    return await auditLog.queryByResource(ctx, {
+    // `auditLog.queryByResource` runs this same component query but types its
+    // result as `any`; calling the component directly keeps the row types.
+    return await ctx.runQuery(components.auditLog.lib.queryByResource, {
       resourceType: "inventory.item",
       resourceId: item._id,
       limit: args.limit ?? 50,

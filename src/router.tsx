@@ -18,6 +18,7 @@ import { routeTree } from "./routeTree.gen";
 const SeededAuthKitProvider = ({ children }: { children: React.ReactNode }) => {
   const initialAuth = useRouterState({
     select: (state) =>
+      // SAFETY: the root route's beforeLoad returns `authState`; the root match context is typed loosely here.
       (state.matches[0]?.context as { authState?: WorkosAuthState } | undefined)
         ?.authState,
   });
@@ -45,7 +46,10 @@ export function getRouter() {
     // socket until the token resolves; anonymous visitors resolve null and
     // resume unauthenticated. ConvexProviderWithAuth replaces this fetcher
     // after mount for authenticated sessions.
-    convex.setAuth(async () => (await fetchWorkosAuth()).token);
+    convex.setAuth(async () => {
+      const auth = await fetchWorkosAuth();
+      return auth.token;
+    });
   }
 
   const convexQueryClient = new ConvexQueryClient(convex);

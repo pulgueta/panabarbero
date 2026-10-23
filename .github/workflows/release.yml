@@ -42,7 +42,7 @@ jobs:
 
       - name: Checkout
         if: steps.tag.outputs.is_prerelease == 'false'
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -56,11 +56,11 @@ jobs:
             exit 1
           fi
 
-  biome:
-    name: Biome
+  oxc:
+    name: Oxc
     needs: validate-tag
     if: ${{ needs.validate-tag.outputs.is_prerelease == 'false' }}
-    uses: ./.github/workflows/biome.yaml
+    uses: ./.github/workflows/oxc.yaml
 
   react-doctor:
     name: React Doctor
@@ -82,7 +82,7 @@ jobs:
       url: ${{ steps.deploy.outputs.url }}
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -120,7 +120,7 @@ jobs:
 
   production:
     name: Deploy production
-    needs: [validate-tag, biome, react-doctor]
+    needs: [validate-tag, oxc, react-doctor]
     if: ${{ needs.validate-tag.outputs.is_prerelease == 'false' }}
     runs-on: ubuntu-latest
     concurrency:
@@ -131,7 +131,7 @@ jobs:
       url: ${{ steps.deploy.outputs.url }}
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false

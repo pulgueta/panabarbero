@@ -1,5 +1,3 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: is always provided */
-
 import { ConvexError } from "convex/values";
 import { z } from "zod";
 

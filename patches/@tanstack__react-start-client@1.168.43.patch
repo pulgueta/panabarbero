@@ -1,0 +1,51 @@
+diff --git a/dist/esm/hydration/visible.js b/dist/esm/hydration/visible.js
+index c37247e9ca52af024f41694edc4f6f6313a29a93..f9a3cf5cc1932605ac421ddcb8cad86d1604b499 100644
+--- a/dist/esm/hydration/visible.js
++++ b/dist/esm/hydration/visible.js
+@@ -7,13 +7,13 @@ import { isServer } from "@tanstack/router-core/isServer";
+ /* @__NO_SIDE_EFFECTS__ */
+ function HydrationBoundary(props) {
+ 	const { g, o } = props;
++	React.useEffect(() => {
++		o?.();
++	}, [o]);
+ 	if (!g.r) {
+ 		if (!reactUse) throw g.p;
+ 		reactUse(g.p);
+ 	}
+-	React.useEffect(() => {
+-		o?.();
+-	}, [o]);
+ 	return props.children;
+ }
+ /* @__NO_SIDE_EFFECTS__ */
+diff --git a/src/hydration/visible.tsx b/src/hydration/visible.tsx
+index e274285cb8acf1276a3ed8eb161f17d4941094da..bb159dcccabd25d3bae645c856713ac6054a0ff8 100644
+--- a/src/hydration/visible.tsx
++++ b/src/hydration/visible.tsx
+@@ -28,6 +28,14 @@ function HydrationBoundary(props: {
+ }) {
+   const { g, o } = props
+ 
++  // Hooks must run before the gate: if the gate resolves while React replays
++  // a mount that suspended on it, the replay has to call the same hooks as
++  // the attempt that suspended, or React throws "Update hook called on
++  // initial render".
++  React.useEffect(() => {
++    o?.()
++  }, [o])
++
+   if (!g.r) {
+     if (!reactUse) {
+       throw g.p
+@@ -36,10 +44,6 @@ function HydrationBoundary(props: {
+     reactUse(g.p)
+   }
+ 
+-  React.useEffect(() => {
+-    o?.()
+-  }, [o])
+-
+   return props.children as React.JSX.Element
+ }
+ 

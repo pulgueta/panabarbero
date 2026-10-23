@@ -1,4 +1,3 @@
-import { useStore } from "@tanstack/react-form";
 import type { ComponentProps, FC } from "react";
 
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
@@ -10,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { useFieldContext } from "./form-context";
+import { useFieldContext, useFieldErrors } from "./form-context";
 
 interface SelectFieldProps extends ComponentProps<typeof Select> {
   label: string;
@@ -28,7 +27,7 @@ export const SelectField: FC<SelectFieldProps> = ({
 }) => {
   const field = useFieldContext<string>();
 
-  const errors = useStore(field.store, (state) => state.meta.errors);
+  const errors = useFieldErrors();
 
   const isInvalid = field.state.meta.isTouched && errors.length > 0;
 
@@ -43,7 +42,11 @@ export const SelectField: FC<SelectFieldProps> = ({
       <Select
         name={field.name}
         value={field.state.value}
-        onValueChange={(value) => field.handleChange(value as string)}
+        onValueChange={(value) => {
+          // values only come from `options`; resolve back to its typed string
+          const option = options.find((item) => item.value === value);
+          if (option) field.handleChange(option.value);
+        }}
         {...props}
       >
         <SelectTrigger

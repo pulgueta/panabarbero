@@ -6,8 +6,6 @@ import { useRender } from "@base-ui/react/use-render";
 import { PlusIcon } from "@phosphor-icons/react";
 import { addDays, format, getWeek } from "date-fns";
 import {
-  type CSSProperties,
-  type Ref,
   useCallback,
   useEffect,
   useId,
@@ -16,6 +14,7 @@ import {
   useRef,
   useState,
 } from "react";
+import type { CSSProperties, Ref } from "react";
 import {
   CalendarViewContext,
   useCalendar,
@@ -90,7 +89,7 @@ function restoreChipFocus(
       segment.occurrence.eventId === pending.eventId &&
       segment.occurrence.recurrenceIndex === pending.recurrenceIndex,
   );
-  if (index < 0) return;
+  if (index === -1) return;
   const chip = root.querySelectorAll<HTMLElement>("[data-slot=calendar-chip]")[
     index
   ];

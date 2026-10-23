@@ -44,23 +44,27 @@ export const PreferencesForm: FC<PreferencesFormProps> = ({ barbershop }) => {
         data: {
           uuid: barbershop.uuid,
           name: barbershop.name,
-          description: barbershop.description || undefined,
+          description:
+            barbershop.description === "" ? undefined : barbershop.description,
           address: barbershop.address,
           services: barbershop.services ?? [],
-          contactPhone: barbershop.contactPhone || undefined,
+          contactPhone:
+            barbershop.contactPhone === ""
+              ? undefined
+              : barbershop.contactPhone,
           isActive: barbershop.isActive,
           gracePeriodMinutes,
           ownerId: barbershop.ownerId,
           availability: barbershop.availability ?? [],
           city: barbershop.city,
           state: barbershop.state,
-          zipCode: barbershop.zipCode || undefined,
+          zipCode: barbershop.zipCode === "" ? undefined : barbershop.zipCode,
         },
       });
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Preferencias actualizadas correctamente");
     } catch {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error("No se pudo actualizar las preferencias. Intenta de nuevo.");
     }
   };
@@ -91,7 +95,9 @@ export const PreferencesForm: FC<PreferencesFormProps> = ({ barbershop }) => {
         </Field>
       </FieldGroup>
       <Button
-        onClick={onSubmit}
+        onClick={() => {
+          void onSubmit();
+        }}
         disabled={isUpdatingBarbershop || invalidGrace}
       >
         {isUpdatingBarbershop ? <Spinner /> : "Guardar"}

@@ -1,4 +1,3 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: for now */
 import type { BarbershopMemberWithName, Service } from "@convex/schema";
 import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
@@ -17,11 +16,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useServicesForBarber } from "@/hooks/use-barbershop-members";
 import { RemoveMemberDialog } from "./remove-member-dialog";
 
-const ROLE_LABELS: Record<string, string> = {
-  owner: "Dueño",
-  barber: "Barbero",
-  staff: "Recepcionista",
-};
+const ROLE_LABELS = new Map([
+  ["owner", "Dueño"],
+  ["barber", "Barbero"],
+  ["staff", "Recepcionista"],
+]);
 
 /** Renders the assigned-services list for a barber member. */
 const BarberServices: FC<{ memberId: BarbershopMemberWithName["_id"] }> = ({
@@ -69,7 +68,7 @@ export const MemberCard: FC<MemberCardProps> = ({
   const isMemberOwner = member.roles.includes("owner");
 
   const { data: barberServices } = useServicesForBarber(
-    isBarber ? member._id : (undefined as unknown as typeof member._id),
+    isBarber ? member._id : undefined,
   );
 
   const canRemove = isOwner && !isMemberOwner;
@@ -93,7 +92,7 @@ export const MemberCard: FC<MemberCardProps> = ({
               key={role}
               variant={role === "owner" ? "default" : "secondary"}
             >
-              {ROLE_LABELS[role] ?? role}
+              {ROLE_LABELS.get(role) ?? role}
             </Badge>
           ))}
         </div>
@@ -146,10 +145,7 @@ export const MemberCard: FC<MemberCardProps> = ({
         )}
 
         {canRemove && (
-          <RemoveMemberDialog
-            member={member}
-            variant={removeVariant as "barber" | "staff"}
-          />
+          <RemoveMemberDialog member={member} variant={removeVariant} />
         )}
       </CardFooter>
     </Card>

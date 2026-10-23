@@ -1,7 +1,21 @@
 import type { Barbershop } from "@convex/schema";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 import { isCurrentlyOpen } from "@/lib/schedule-utils";
+
+/**
+ * Recompute periodically so the badge crosses open/close/lunch boundaries
+ * while the page stays open.
+ */
+function subscribeToMinuteTicks(onTick: () => void) {
+  const id = setInterval(onTick, 60_000);
+
+  return () => clearInterval(id);
+}
+
+function getServerIsOpen() {
+  return null;
+}
 
 /**
  * Open/closed status computed **after mount only**.
@@ -15,22 +29,9 @@ import { isCurrentlyOpen } from "@/lib/schedule-utils";
 export function useIsCurrentlyOpen(
   availability: Barbershop["availability"] | undefined,
 ): boolean | null {
-  const [isOpen, setIsOpen] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if (!availability) {
-      setIsOpen(null);
-      return;
-    }
-
-    const update = () => setIsOpen(isCurrentlyOpen(availability));
-
-    // Recompute periodically so the badge crosses open/close/lunch
-    // boundaries while the page stays open.
-    update();
-    const id = setInterval(update, 60_000);
-    return () => clearInterval(id);
-  }, [availability]);
-
-  return isOpen;
+  return useSyncExternalStore(
+    subscribeToMinuteTicks,
+    () => (availability ? isCurrentlyOpen(availability) : null),
+    getServerIsOpen,
+  );
 }

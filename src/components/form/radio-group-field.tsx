@@ -1,4 +1,3 @@
-import { useStore } from "@tanstack/react-form";
 import type { FC } from "react";
 
 import {
@@ -10,7 +9,7 @@ import {
   FieldTitle,
 } from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useFieldContext } from "./form-context";
+import { useFieldContext, useFieldErrors } from "./form-context";
 
 interface RadioGroupFieldProps {
   label: string;
@@ -23,7 +22,7 @@ export const RadioGroupField: FC<RadioGroupFieldProps> = ({
 }) => {
   const field = useFieldContext<string>();
 
-  const errors = useStore(field.store, (state) => state.meta.errors);
+  const errors = useFieldErrors();
 
   const isInvalid = field.state.meta.isTouched && errors.length > 0;
 

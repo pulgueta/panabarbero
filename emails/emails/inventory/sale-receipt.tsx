@@ -1,4 +1,3 @@
-import type { FC } from "react";
 import {
   Body,
   Column,
@@ -39,8 +38,8 @@ export interface SaleReceiptEmailProps {
   paymentReference?: string;
 }
 
-export const SaleReceiptEmail: FC<SaleReceiptEmailProps> = ({
-  subject = "Recibo de tu compra",
+export const SaleReceiptEmail = ({
+  subject,
   barbershopName,
   receiptNumber,
   soldAtLabel,
@@ -50,7 +49,7 @@ export const SaleReceiptEmail: FC<SaleReceiptEmailProps> = ({
   total,
   paymentMethodLabel,
   paymentReference,
-}) => {
+}: SaleReceiptEmailProps) => {
   return (
     <Html lang="es" dir="ltr">
       <Head />
@@ -138,5 +137,9 @@ export const SaleReceiptEmail: FC<SaleReceiptEmailProps> = ({
     </Html>
   );
 };
+
+SaleReceiptEmail.PreviewProps = {
+  subject: "Recibo de tu compra",
+} satisfies Partial<SaleReceiptEmailProps>;
 
 export default SaleReceiptEmail;

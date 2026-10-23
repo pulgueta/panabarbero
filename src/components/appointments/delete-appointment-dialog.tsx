@@ -47,10 +47,10 @@ export const DeleteAppointmentDialog: FC<DeleteAppointmentDialogProps> = ({
       await deleteAppointment({
         appointmentId: { id: appointment._id },
       });
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Cita eliminada correctamente.");
-    } catch (_error) {
-      haptic.trigger("error");
+    } catch {
+      void haptic.trigger("error");
       toast.error("No se pudo eliminar la cita. Intenta de nuevo.");
     }
   };
@@ -70,7 +70,9 @@ export const DeleteAppointmentDialog: FC<DeleteAppointmentDialogProps> = ({
           <Button
             variant="destructive"
             disabled={isDeletingAppointment}
-            onClick={onDelete}
+            onClick={() => {
+              void onDelete();
+            }}
           >
             {isDeletingAppointment && <Spinner />}
             {deleteButtonLabel}

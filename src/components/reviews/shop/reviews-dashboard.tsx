@@ -21,11 +21,8 @@ import {
 } from "@/hooks/use-reviews";
 import { getShopReviewColumns } from "./columns";
 import { ReviewsEmpty } from "./reviews-empty";
-import {
-  type ReviewFilterKey,
-  ReviewsFilter,
-  reviewFilterToArgs,
-} from "./reviews-filter";
+import { ReviewsFilter, reviewFilterToArgs } from "./reviews-filter";
+import type { ReviewFilterKey } from "./reviews-filter";
 
 const RatingTrend = lazy(() =>
   import("./rating-trend").then((module) => ({

@@ -40,8 +40,10 @@ type RouterContext = {
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   beforeLoad: async ({ context }) => {
-    const { token, userId, authState } =
-      await context.queryClient.ensureQueryData(getWorkosAuthQueryOptions());
+    const { token, userId, authState } = await context.queryClient.query({
+      ...getWorkosAuthQueryOptions(),
+      staleTime: "static",
+    });
 
     if (token) {
       context.convexQueryClient.serverHttpClient?.setAuth(token);

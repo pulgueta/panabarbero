@@ -69,7 +69,7 @@ import { formatCurrency } from "@/lib/utils";
 const ARCHIVED_DESCRIPTION =
   "Consulta productos fuera del inventario activo, revisa su historial y restaura los que vuelvan a usarse.";
 
-const archivedColumnLabels: Record<string, string> = {
+const archivedColumnLabels = {
   name: "Producto",
   category: "Categoría",
   deletedAt: "Archivado",
@@ -86,6 +86,7 @@ export const Route = createFileRoute(
   staticData: { breadcrumb: "Archivados" },
   staleTime: cacheTime.low,
   gcTime: cacheTime.medium,
+  // oxlint-disable-next-line react-doctor/tanstack-start-loader-parallel-fetch -- the plan gate must redirect before the archived query runs
   loader: async ({ context }) => {
     const barbershop = context.dashboardBarbershop;
     const roles = context.dashboardRoles;
@@ -94,17 +95,19 @@ export const Route = createFileRoute(
       throw redirect({ to: "/profile/barbershops/inventory" });
     }
 
-    const plan = await context.queryClient.ensureQueryData(
-      getBarbershopPlanQueryOptions(barbershop._id),
-    );
+    const plan = await context.queryClient.query({
+      ...getBarbershopPlanQueryOptions(barbershop._id),
+      staleTime: "static",
+    });
 
     if (!plan?.planLimits.inventoryEnabled) {
       throw redirect({ to: "/profile/barbershops/inventory" });
     }
 
-    await context.queryClient.ensureQueryData(
-      archivedInventoryQueryOptions(barbershop._id),
-    );
+    await context.queryClient.query({
+      ...archivedInventoryQueryOptions(barbershop._id),
+      staleTime: "static",
+    });
   },
 });
 
@@ -272,25 +275,32 @@ const ArchivedInventoryBody: FC<ArchivedInventoryBodyProps> = ({
     ArchivedInventoryRow["_id"] | null
   >(null);
 
+  const restoreItem = async (row: ArchivedInventoryRow) => {
+    setRestoringItemId(row._id);
+
+    try {
+      await restoreItemMutation.mutateAsync({
+        item: { id: row._id },
+        barbershop: { id: barbershopId },
+      });
+      toast.success("Producto restaurado");
+    } catch (error) {
+      toast.error(getConvexErrorMessage(error));
+    }
+
+    setRestoringItemId(null);
+  };
+
   const columns = getArchivedColumns({
     restoringItemId,
-    onHistory: (row) =>
+    onHistory: (row) => {
       void navigate({
         to: "/profile/barbershops/inventory/$itemId/history",
         params: { itemId: row._id },
-      }),
+      });
+    },
     onRestore: (row) => {
-      setRestoringItemId(row._id);
-      void restoreItemMutation
-        .mutateAsync({
-          item: { id: row._id },
-          barbershop: { id: barbershopId },
-        })
-        .then(
-          () => toast.success("Producto restaurado"),
-          (error) => toast.error(getConvexErrorMessage(error)),
-        )
-        .finally(() => setRestoringItemId(null));
+      void restoreItem(row);
     },
   });
 

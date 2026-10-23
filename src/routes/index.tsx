@@ -70,7 +70,7 @@ export const Route = createFileRoute("/")({
   ssr: true,
   staleTime: cacheTime.extreme,
   gcTime: cacheTime.extreme,
-  loader: async ({ context }) => {
+  loader: ({ context }) => {
     if (context.userId) {
       throw redirect({
         to: "/profile",

@@ -1,7 +1,6 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: barbershop is primed by the loader and gated to owners */
-
 import { ShareNetworkIcon } from "@phosphor-icons/react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { noop } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
@@ -56,20 +55,23 @@ export const Route = createFileRoute(
         throw redirect({ to: "/profile/barbershops/appointments" });
       }
 
-      await opts.context.queryClient
-        .ensureQueryData(barbershopByOwnerIdQueryOptions(userId))
-        .then((barbershop) => {
-          if (!barbershop?._id) return;
+      const barbershop = await opts.context.queryClient.query({
+        ...barbershopByOwnerIdQueryOptions(userId),
+        staleTime: "static",
+      });
 
-          void opts.context.queryClient.prefetchQuery(
-            barbershopLocationQueryOptions(barbershop._id),
-          );
-          void opts.context.queryClient.prefetchQuery(
-            barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
-          );
-        });
+      if (barbershop?._id) {
+        void opts.context.queryClient
+          .query(barbershopLocationQueryOptions(barbershop._id))
+          .catch(noop);
+        void opts.context.queryClient
+          .query(barbershopMembersByBarbershopIdQueryOptions(barbershop._id))
+          .catch(noop);
+      }
 
-      void opts.context.queryClient.prefetchQuery(isBarberQueryOptions(userId));
+      void opts.context.queryClient
+        .query(isBarberQueryOptions(userId))
+        .catch(noop);
     }
   },
 });
@@ -81,20 +83,19 @@ function ProfileSettingsPage() {
   const [copy] = useClipboard();
   const { trigger } = useWebHaptics();
 
-  const onCopyLink = () => {
+  const onCopyLink = async () => {
     if (!barbershop) return;
 
     const url = `${window.location.origin}/barbershops/${barbershop.uuid}`;
 
-    copy(url)
-      .then(() => {
-        toast.success("Link copiado al portapapeles");
-        trigger("success");
-      })
-      .catch(() => {
-        toast.error("Error al copiar el link");
-        trigger("error");
-      });
+    try {
+      await copy(url);
+      toast.success("Link copiado al portapapeles");
+      void trigger("success");
+    } catch {
+      toast.error("Error al copiar el link");
+      void trigger("error");
+    }
   };
 
   return (
@@ -107,7 +108,12 @@ function ProfileSettingsPage() {
 
         {barbershop && (
           <DashboardPageActions>
-            <Button variant="outline" onClick={onCopyLink}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                void onCopyLink();
+              }}
+            >
               <ShareNetworkIcon weight="bold" />
               Copiar link
             </Button>

@@ -1,5 +1,6 @@
 import { CheckIcon, SpinnerIcon, XIcon } from "@phosphor-icons/react";
 import { useCallback, useId, useState } from "react";
+import { z } from "zod";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -9,8 +10,6 @@ import { Label } from "@/components/ui/label";
 import { cn, formatCurrency } from "@/lib/utils";
 
 const PROPOSAL_KIND = "needs-confirmation" as const;
-
-import { z } from "zod";
 
 /**
  * A tool output that asks the user to confirm an action. The card only needs
@@ -46,6 +45,9 @@ const completionFinalsSchema = z.object({
     .array()
     .min(1),
 });
+
+/** Loose object view of `args`, to append `finalPrices` without dropping keys. */
+const proposalArgsSchema = z.record(z.string(), z.unknown());
 
 interface ProposalCardProps {
   proposal: Proposal;
@@ -108,7 +110,7 @@ export function ProposalCard({
           ? {
               ...proposal,
               args: {
-                ...(proposal.args as Record<string, unknown>),
+                ...proposalArgsSchema.parse(proposal.args),
                 finalPrices: startingLines.map((line) => ({
                   serviceId: line.serviceId,
                   finalPrice: Number(finalPrices[line.serviceId]),
@@ -179,7 +181,9 @@ export function ProposalCard({
           <Button
             className="h-8"
             disabled={submitting}
-            onClick={handleReject}
+            onClick={() => {
+              void handleReject();
+            }}
             size="sm"
             variant="outline"
           >
@@ -189,7 +193,9 @@ export function ProposalCard({
           <Button
             className="h-8"
             disabled={submitting || finalsInvalid}
-            onClick={handleConfirm}
+            onClick={() => {
+              void handleConfirm();
+            }}
             size="sm"
           >
             {submitting ? (

@@ -3,6 +3,8 @@ import { Bar, BarChart, XAxis, YAxis } from "recharts";
 
 import { truncateLabel } from "@/components/analytics/chart-format";
 import { inventoryCategoryLabels } from "@/components/inventory/labels";
+import type { ChartTooltipFormatter } from "@/components/chart-tooltip";
+import { payloadNumber, payloadText } from "@/components/chart-tooltip";
 import {
   Card,
   CardContent,
@@ -34,6 +36,23 @@ interface CategoryBreakdownChartProps {
   canManage: boolean;
 }
 
+const renderTooltipValue: ChartTooltipFormatter = (value, _name, item) => (
+  <div className="flex w-full flex-col gap-1 leading-none">
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-muted-foreground">Valor</span>
+      <span className="font-medium font-mono text-foreground tabular-nums">
+        {formatCurrency(Number(value))}
+      </span>
+    </div>
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-muted-foreground">Productos</span>
+      <span className="font-medium font-mono text-foreground tabular-nums">
+        {payloadNumber(item, "items")}
+      </span>
+    </div>
+  </div>
+);
+
 /**
  * Stock value concentrated by category (top 6, managers). Nominal categories
  * wear a single hue — the bar length already encodes the value.
@@ -60,7 +79,8 @@ export const CategoryBreakdownChart: FC<CategoryBreakdownChartProps> = ({
     }
   }
 
-  const data = entries.sort((a, b) => b.value - a.value).slice(0, TOP_LIMIT);
+  entries.sort((a, b) => b.value - a.value);
+  const data = entries.slice(0, TOP_LIMIT);
 
   const hasValue = canManage && data.length > 0;
 
@@ -101,26 +121,9 @@ export const CategoryBreakdownChart: FC<CategoryBreakdownChartProps> = ({
                   <ChartTooltipContent
                     hideIndicator
                     labelFormatter={(_, payload) =>
-                      String(payload[0]?.payload?.name ?? "")
+                      payloadText(payload[0], "name")
                     }
-                    formatter={(value, _name, item) => (
-                      <div className="flex w-full flex-col gap-1 leading-none">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-muted-foreground">Valor</span>
-                          <span className="font-medium font-mono text-foreground tabular-nums">
-                            {formatCurrency(Number(value))}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-muted-foreground">
-                            Productos
-                          </span>
-                          <span className="font-medium font-mono text-foreground tabular-nums">
-                            {Number(item.payload?.items ?? 0)}
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                    formatter={renderTooltipValue}
                   />
                 }
               />

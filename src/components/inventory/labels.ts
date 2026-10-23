@@ -5,7 +5,6 @@ import type {
   InventoryStockBehavior,
   InventoryUnit,
 } from "@convex/schema";
-import { isEquipmentCategory } from "@convex/schema";
 
 import type { BadgeProps } from "@/components/ui/badge";
 
@@ -41,7 +40,7 @@ export const inventoryCategoryGroups: {
   { label: "Otro", categories: ["other"] },
 ];
 
-export { isEquipmentCategory };
+export { isEquipmentCategory } from "@convex/schema";
 
 export const inventoryStockBehaviorLabels: Record<
   InventoryStockBehavior,
@@ -120,7 +119,7 @@ export function formatRemainingBalanceLabel(balanceAfter: number): string {
 }
 
 /** Spanish names for raw item fields leaking into audit diffs ("~ unitCost: …"). */
-export const inventoryFieldLabels: Record<string, string> = {
+export const inventoryFieldLabels = {
   name: "Nombre",
   sku: "SKU",
   category: "Categoría",
@@ -144,7 +143,7 @@ export const inventoryFieldLabels: Record<string, string> = {
   allowNegativeStock: "Permitir stock negativo",
   imageKey: "Foto",
   deletedAt: "Archivado",
-};
+} satisfies Record<string, string>;
 
 export const inventoryMovementTypeData: Record<
   InventoryMovementType,

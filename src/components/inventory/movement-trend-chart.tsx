@@ -6,6 +6,7 @@ import {
   formatMonthLong,
   formatMonthShort,
 } from "@/components/analytics/chart-format";
+import { payloadText } from "@/components/chart-tooltip";
 import {
   Card,
   CardContent,
@@ -43,7 +44,12 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-const SERIES = Object.keys(chartConfig) as (keyof typeof chartConfig)[];
+const SERIES = [
+  "consumption",
+  "sale",
+  "receipt",
+  "waste",
+] as const satisfies readonly (keyof typeof chartConfig)[];
 
 interface MovementTrendChartProps {
   barbershopId: Barbershop["_id"];
@@ -92,7 +98,7 @@ export const MovementTrendChart: FC<MovementTrendChartProps> = ({
                   <ChartTooltipContent
                     indicator="line"
                     labelFormatter={(_, payload) =>
-                      formatMonthLong(String(payload[0]?.payload?.month ?? ""))
+                      formatMonthLong(payloadText(payload[0], "month"))
                     }
                   />
                 }

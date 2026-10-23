@@ -59,9 +59,9 @@ const NotificationItemRoot: FC<NotificationItemRootProps> = ({
 
   return (
     <NotificationItemContext.Provider value={value}>
-      {/* biome-ignore lint/a11y/useSemanticElements: clickable row wraps a nested interactive Action (a Link/anchor) which a native <button> cannot legally contain, so role+tabIndex on a div is the correct ARIA "clickable card" pattern */}
       <div
         data-slot="notification-item"
+        // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- the row wraps a nested Link, which a native <button> cannot contain
         role="button"
         tabIndex={0}
         data-unread={isUnread || undefined}
@@ -198,7 +198,7 @@ interface NotificationItemActionProps {
   children: ReactNode;
   to: string;
   /** TanStack Router search params for in-app routes (e.g. `tab` or `date`). */
-  search?: Record<string, unknown>;
+  search?: Record<string, string | number>;
   external?: boolean;
   onClick?: (event: React.MouseEvent) => void;
 }
@@ -215,7 +215,7 @@ const NotificationItemAction: FC<NotificationItemActionProps> = ({
   onClick,
 }) => {
   const { density } = useNotificationItem();
-  const isExternal = external || /^https?:\/\//.test(to);
+  const isExternal = external === true || /^https?:\/\//.test(to);
 
   return (
     <Button

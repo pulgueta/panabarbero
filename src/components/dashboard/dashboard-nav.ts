@@ -185,17 +185,20 @@ const groups: DashboardNavGroup[] = [
 ];
 
 export function getDashboardNavGroups(role: DashboardRole) {
-  return groups
-    .map((group) => ({
-      ...group,
-      items: group.items
-        .filter((item) => item.roles.includes(role))
-        .map((item) => ({
-          ...item,
-          children: item.children?.filter((child) =>
-            (child.roles ?? item.roles).includes(role),
-          ),
-        })),
-    }))
-    .filter((group) => group.items.length > 0);
+  return groups.flatMap((group) => {
+    const items = group.items.flatMap((item) =>
+      item.roles.includes(role)
+        ? [
+            {
+              ...item,
+              children: item.children?.filter((child) =>
+                // oxlint-disable-next-line react-doctor/js-set-map-lookups -- a role list holds at most three roles; a Set per child costs more than the scan
+                (child.roles ?? item.roles).includes(role),
+              ),
+            },
+          ]
+        : [],
+    );
+    return items.length > 0 ? [{ ...group, items }] : [];
+  });
 }

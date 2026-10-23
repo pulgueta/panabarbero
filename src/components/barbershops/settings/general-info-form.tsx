@@ -1,6 +1,6 @@
 import type { Barbershop } from "@convex/schema";
 import type { FC } from "react";
-import { useId, useRef } from "react";
+import { useId, useState } from "react";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
@@ -24,8 +24,9 @@ export const GeneralInfoForm: FC<GeneralInfoFormProps> = ({ barbershop }) => {
     name: useId(),
     description: useId(),
   };
-  const nameRef = useRef(barbershop.name);
-  const descriptionRef = useRef(barbershop.description ?? "");
+  // oxlint-disable-next-line react-doctor/no-derived-useState -- the controlled inputs edit a draft that starts from the saved values once
+  const [name, setName] = useState(barbershop.name);
+  const [description, setDescription] = useState(barbershop.description ?? "");
 
   const {
     updateBarbershopMutation: {
@@ -42,29 +43,32 @@ export const GeneralInfoForm: FC<GeneralInfoFormProps> = ({ barbershop }) => {
         id: barbershop._id,
         data: {
           uuid: barbershop.uuid,
-          name: nameRef.current,
-          description: descriptionRef.current || undefined,
+          name,
+          description: description || undefined,
           address: barbershop.address,
           services: barbershop.services ?? [],
-          contactPhone: barbershop.contactPhone || undefined,
+          contactPhone:
+            barbershop.contactPhone === ""
+              ? undefined
+              : barbershop.contactPhone,
           isActive: barbershop.isActive,
           gracePeriodMinutes: barbershop.gracePeriodMinutes ?? 5,
           ownerId: barbershop.ownerId,
           availability: barbershop.availability ?? [],
           city: barbershop.city,
           state: barbershop.state,
-          zipCode: barbershop.zipCode || undefined,
+          zipCode: barbershop.zipCode === "" ? undefined : barbershop.zipCode,
         },
       });
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Información actualizada correctamente");
     } catch {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error("No se pudo actualizar la información. Intenta de nuevo.");
     }
   };
 
-  const nameInvalid = !nameRef.current || nameRef.current.length < 3;
+  const nameInvalid = !name || name.length < 3;
 
   return (
     <div className="flex h-full w-full flex-1 flex-col justify-between gap-4">
@@ -73,9 +77,9 @@ export const GeneralInfoForm: FC<GeneralInfoFormProps> = ({ barbershop }) => {
           <FieldLabel htmlFor={ids.name}>Nombre</FieldLabel>
           <Input
             id={ids.name}
-            defaultValue={nameRef.current}
+            value={name}
             onChange={(e) => {
-              nameRef.current = e.target.value;
+              setName(e.target.value);
             }}
           />
           {nameInvalid && (
@@ -87,15 +91,20 @@ export const GeneralInfoForm: FC<GeneralInfoFormProps> = ({ barbershop }) => {
           <FieldLabel htmlFor={ids.description}>Descripción</FieldLabel>
           <Input
             id={ids.description}
-            defaultValue={descriptionRef.current}
+            value={description}
             onChange={(e) => {
-              descriptionRef.current = e.target.value;
+              setDescription(e.target.value);
             }}
           />
         </Field>
       </FieldGroup>
 
-      <Button onClick={onSubmit} disabled={isUpdatingBarbershop || nameInvalid}>
+      <Button
+        onClick={() => {
+          void onSubmit();
+        }}
+        disabled={isUpdatingBarbershop || nameInvalid}
+      >
         {isUpdatingBarbershop ? <Spinner /> : "Guardar"}
       </Button>
     </div>

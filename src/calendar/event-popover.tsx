@@ -22,6 +22,8 @@ interface EventPopoverProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   anchor: Element;
+  /** When the popover opened; decides whether the appointment is past. */
+  openedAt: number;
 }
 
 // The grid places events in Bogotá; format in the same zone so a viewer
@@ -38,12 +40,13 @@ export const EventPopover: FC<EventPopoverProps> = ({
   open,
   onOpenChange,
   anchor,
+  openedAt,
 }) => {
   const { appointment, barberName, serviceName } = event.data;
   const status = appointment.status;
   const { label, variant } = getAppointmentDataByStatus(status);
 
-  const isPastDate = Date.now() > appointment.date;
+  const isPastDate = openedAt > appointment.date;
   const isCancelledOrDenied = status === "cancelled" || status === "denied";
   const hasSetStatus = status === "completed" || status === "no-show";
   const canRequestReschedule =

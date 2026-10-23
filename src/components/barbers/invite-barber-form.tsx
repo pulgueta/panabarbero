@@ -12,6 +12,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useInvitationActions } from "@/hooks/use-invitations";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
+type InviteRole = "barber" | "staff";
+
+function isInviteRole(value: unknown): value is InviteRole {
+  return value === "barber" || value === "staff";
+}
+
 interface InviteBarberFormProps {
   barbershopId: Barbershop["_id"];
   canInviteStaff?: boolean;
@@ -27,9 +33,11 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
     inviteMutation: { mutateAsync: inviteBarber },
   } = useInvitationActions(barbershopId);
 
+  const defaultRoles: InviteRole[] = ["barber"];
+
   const form = useAppForm({
     onSubmitInvalid: () => {
-      haptic.trigger("error");
+      void haptic.trigger("error");
     },
     validationLogic: revalidateLogic({
       mode: "submit",
@@ -40,7 +48,7 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
     },
     defaultValues: {
       email: "",
-      roles: ["barber"] as ("barber" | "staff")[],
+      roles: defaultRoles,
     },
     onSubmit: async ({ value }) => {
       try {
@@ -49,13 +57,12 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
           email: value.email.trim().toLowerCase(),
         });
 
-        haptic.trigger("success");
+        void haptic.trigger("success");
         toast.success("Invitación enviada correctamente");
         form.reset();
       } catch (error) {
-        haptic.trigger("error");
+        void haptic.trigger("error");
         toast.error(getConvexErrorMessage(error));
-        return;
       }
     },
   });
@@ -65,7 +72,7 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
       onSubmit={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        form.handleSubmit();
+        void form.handleSubmit();
       }}
       className="w-full space-y-4"
     >
@@ -85,12 +92,18 @@ export const InviteBarberForm: FC<InviteBarberFormProps> = ({
           <form.AppField name="roles">
             {(field) => (
               <div className="space-y-2">
-                <Label>Rol</Label>
+                <p
+                  id="invite-role-label"
+                  className="select-none font-medium text-sm leading-none"
+                >
+                  Rol
+                </p>
                 <RadioGroup
+                  aria-labelledby="invite-role-label"
                   value={field.state.value[0]}
-                  onValueChange={(value) =>
-                    field.handleChange([value as "barber" | "staff"])
-                  }
+                  onValueChange={(value) => {
+                    if (isInviteRole(value)) field.handleChange([value]);
+                  }}
                 >
                   <div className="flex items-center gap-2">
                     <RadioGroupItem value="barber" id="role-barber" />

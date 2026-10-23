@@ -6,7 +6,8 @@ import {
   redirect,
   useNavigate,
 } from "@tanstack/react-router";
-import { type FC, Suspense } from "react";
+import { Suspense } from "react";
+import type { FC } from "react";
 
 import {
   DashboardPage,
@@ -61,14 +62,16 @@ export const Route = createFileRoute(
 
     if (!barbershop?._id) return;
 
-    const plan = await context.queryClient.ensureQueryData(
-      getBarbershopPlanQueryOptions(barbershop._id),
-    );
+    const plan = await context.queryClient.query({
+      ...getBarbershopPlanQueryOptions(barbershop._id),
+      staleTime: "static",
+    });
 
     if (plan?.planLimits.inventoryEnabled) {
-      await context.queryClient.ensureQueryData(
-        sellableItemsQueryOptions(barbershop._id),
-      );
+      await context.queryClient.query({
+        ...sellableItemsQueryOptions(barbershop._id),
+        staleTime: "static",
+      });
     }
   },
 });
@@ -120,9 +123,9 @@ const NewSaleBody: FC<NewSaleBodyProps> = ({ barbershop }) => {
     <Suspense fallback={<Skeleton className="h-96 w-full" />}>
       <SaleBuilder
         barbershopId={barbershop._id}
-        onRegistered={() =>
-          void navigate({ to: "/profile/barbershops/inventory/sales" })
-        }
+        onRegistered={() => {
+          void navigate({ to: "/profile/barbershops/inventory/sales" });
+        }}
       />
     </Suspense>
   );

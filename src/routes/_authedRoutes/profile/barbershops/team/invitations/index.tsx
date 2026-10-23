@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: barbershop is primed by the loader and gated to owners/staff */
+/* oxlint-disable typescript/no-non-null-assertion -- barbershop is primed by the loader and gated to owners/staff */
 
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
@@ -55,9 +55,10 @@ export const Route = createFileRoute(
     }
 
     if (barbershop?._id) {
-      await opts.context.queryClient.ensureQueryData(
-        invitationsListQueryOptions(barbershop._id),
-      );
+      await opts.context.queryClient.query({
+        ...invitationsListQueryOptions(barbershop._id),
+        staleTime: "static",
+      });
     }
   },
 });

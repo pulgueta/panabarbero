@@ -6,9 +6,10 @@ import {
   WrenchIcon,
 } from "@phosphor-icons/react";
 import { createChat } from "@shadcn/helpers/ai-sdk";
+import { isStaticToolUIPart } from "ai";
 import type { ToolUIPart, UIMessage } from "ai";
 import { useInView } from "motion/react";
-import type { FormEvent } from "react";
+import type { ComponentProps } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
@@ -71,7 +72,8 @@ const chat = createChat();
 const transport = chat.transport({
   delayMs: 28,
   fallback: ({ writer, messages }) => {
-    const question = messageText(messages.at(-1) as UIMessage).toLowerCase();
+    const last = messages.at(-1);
+    const question = (last ? messageText(last) : "").toLowerCase();
 
     if (question.includes("día") || question.includes("dia")) {
       writer
@@ -187,9 +189,9 @@ export function PanaLiveChat() {
     }
   }, [isInView, ask]);
 
-  const handleSubmit = (
-    message: { text: string },
-    event: FormEvent<HTMLFormElement>,
+  const handleSubmit: ComponentProps<typeof PromptInput>["onSubmit"] = (
+    message,
+    event,
   ) => {
     event.preventDefault?.();
     const value = message.text.trim();
@@ -251,10 +253,8 @@ export function PanaLiveChat() {
                             </MessageResponse>
                           );
                         }
-                        if (part.type.startsWith("tool-")) {
-                          return (
-                            <ToolChip key={key} part={part as ToolUIPart} />
-                          );
+                        if (isStaticToolUIPart(part)) {
+                          return <ToolChip key={key} part={part} />;
                         }
                         return null;
                       })}

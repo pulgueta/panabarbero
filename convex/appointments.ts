@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: false positive */
+/* oxlint-disable typescript/no-non-null-assertion -- false positive */
 
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError } from "convex/values";
@@ -228,8 +228,10 @@ export const create = zAuthMutation({
 
     // Legacy rows (no items) still size their width off the live service.
     const apptServices = await Promise.all(
-      candidates.map((appt) =>
-        appt.items && appt.items.length > 0 ? null : ctx.db.get(appt.serviceId),
+      candidates.map(async (appt) =>
+        appt.items && appt.items.length > 0
+          ? null
+          : await ctx.db.get(appt.serviceId),
       ),
     );
 
@@ -425,7 +427,7 @@ export const getRescheduledRequests = zQuery({
       return [];
     }
 
-    const appointments = await ctx.db
+    const pendingRequests = await ctx.db
       .query("appointments")
       .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
       .filter((q) =>
@@ -441,7 +443,7 @@ export const getRescheduledRequests = zQuery({
       )
       .collect();
 
-    return appointments;
+    return pendingRequests;
   },
 });
 
@@ -487,7 +489,7 @@ export const getByBarbershopId = zQuery({
     const startOfDay = args.date ?? Date.now();
     const endOfDay = startOfDay + 24 * 60 * 60 * 1000 - 1;
 
-    const appointments = await ctx.db
+    const dayAppointments = await ctx.db
       .query("appointments")
       .withIndex("by_barbershopId_and_date", (q) =>
         q
@@ -513,13 +515,13 @@ export const getByBarbershopId = zQuery({
         !barbershopMember.roles.includes("owner") &&
         !barbershopMember.roles.includes("staff")
       ) {
-        return appointments.filter(
+        return dayAppointments.filter(
           (appt) => appt.barbershopMemberId === barbershopMember._id,
         );
       }
     }
 
-    return appointments;
+    return dayAppointments;
   },
 });
 
@@ -646,7 +648,7 @@ async function applyAppointmentCloseout(
     internal.barbershopMetadata.incrementCompletedAppointments,
     {
       barbershopId: appt.barbershopId,
-      appointmentId: appointmentId,
+      appointmentId,
     },
   );
 
@@ -1073,9 +1075,7 @@ export const requestReschedule = zAuthMutation({
       throw new ConvexError(errorMessages.notFound("barbero"));
     }
 
-    const barberProfile = await ctx.db.get(
-      barbershopMember?.userProfileDataId!,
-    );
+    const barberProfile = await ctx.db.get(barbershopMember?.userProfileDataId);
 
     if (!barberProfile) {
       throw new ConvexError(errorMessages.notFound("perfil de barbero"));
@@ -1172,7 +1172,7 @@ export const notifyUpcoming = zInternalMutation({
 
     await ctx.runMutation(internal.notifications.createAppointmentReminder, {
       barbershopName: barbershop.name,
-      barbershopId: barbershopId,
+      barbershopId,
       customerUserId: userProfile?.userId ?? "user_does_not_exist",
       to: appointment.contactEmail,
       receiverPhoneNumber: appointment.contactPhone,
@@ -1252,9 +1252,10 @@ async function applyRescheduleDecision(
 
   const newStatus = args.accepted ? "rescheduled" : "denied";
 
-  if (args.accepted) {
-    await cancelScheduledNotifications(ctx, appt);
+  // Accepted or denied, the reminders armed for the original date stop.
+  await cancelScheduledNotifications(ctx, appt);
 
+  if (args.accepted) {
     const thirtyMinBefore = appt.proposedDate - 30 * 60 * 1000;
     const thirtyMinAfter = appt.proposedDate + 30 * 60 * 1000;
 
@@ -1296,10 +1297,7 @@ async function applyRescheduleDecision(
       pastReminderNotificationId,
     });
   } else {
-    // Denied is terminal: the reminders were armed for the original date —
-    // stop them too, then free the recipe holds.
-    await cancelScheduledNotifications(ctx, appt);
-
+    // Denied is terminal: free the recipe holds too.
     await ctx.db.patch(args.appointmentId, {
       status: newStatus,
       proposedDate: undefined,
@@ -1500,7 +1498,7 @@ export const overlaps = zInternalQuery({
     const appointment = await ctx.db.get(args.appointment.id);
 
     if (!appointment) {
-      return;
+      return null;
     }
 
     const startOfDay = new Date(args.date);
@@ -1532,18 +1530,20 @@ export const overlaps = zInternalQuery({
 
     const activeCandidates = candidates.filter((appt) => !appt.deletedAt);
 
-    const services = await Promise.all(
-      activeCandidates.map((appt) =>
-        appt.items && appt.items.length > 0 ? null : ctx.db.get(appt.serviceId),
+    const candidateServices = await Promise.all(
+      activeCandidates.map(async (appt) =>
+        appt.items && appt.items.length > 0
+          ? null
+          : await ctx.db.get(appt.serviceId),
       ),
     );
 
     for (let i = 0; i < activeCandidates.length; i++) {
       const appt = activeCandidates[i];
-      const width = conflictDurationMinutes(appt, () => services[i]);
+      const width = conflictDurationMinutes(appt, () => candidateServices[i]);
       const apptEnd = appt.date + width * MINUTE_MS;
-      const overlaps = appt.date < args.endAt && apptEnd > args.date;
-      if (overlaps) return appt;
+      const isOverlapping = appt.date < args.endAt && apptEnd > args.date;
+      if (isOverlapping) return appt;
     }
 
     return null;
@@ -1650,7 +1650,7 @@ export const getAvailableSlots = zQuery({
       const slotEnd = min + serviceDuration;
 
       // Skip if slot overlaps the lunch break
-      if (hasLunch && min < lunchEndMin! && slotEnd > lunchStartMin!) {
+      if (hasLunch && min < lunchEndMin && slotEnd > lunchStartMin) {
         continue;
       }
 
@@ -1836,8 +1836,10 @@ export const agentBook = zInternalMutation({
       .collect();
 
     const candidateServices = await Promise.all(
-      candidates.map((appt) =>
-        appt.items && appt.items.length > 0 ? null : ctx.db.get(appt.serviceId),
+      candidates.map(async (appt) =>
+        appt.items && appt.items.length > 0
+          ? null
+          : await ctx.db.get(appt.serviceId),
       ),
     );
 

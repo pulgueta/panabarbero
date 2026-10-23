@@ -1,5 +1,5 @@
 import { errorMessages } from "@convex/errors";
-import type { InventoryMovementType } from "@convex/schema";
+import type { InventoryItem, InventoryMovementType } from "@convex/schema";
 import { inventoryMovementTypes } from "@convex/schema";
 import { ConvexError } from "convex/values";
 
@@ -14,7 +14,7 @@ import { inventoryMovementTypeData } from "@/components/inventory/labels";
 /** UI filter state. `datePreset` collapses to `startTime` for the server. */
 export type MovementFilterState = {
   type?: InventoryMovementType;
-  itemId?: string;
+  itemId?: InventoryItem["_id"];
   actorUserId?: string;
   datePreset: MovementDatePreset;
 };
@@ -52,8 +52,10 @@ export function datePresetToStart(
       return nowMs - 7 * DAY_MS;
     case "30d":
       return nowMs - 30 * DAY_MS;
-    default:
+    case "all":
       return undefined;
+    default:
+      return preset satisfies never;
   }
 }
 
@@ -63,6 +65,11 @@ export const movementTypeOrder: readonly InventoryMovementType[] =
 
 export type MovementTone = "in" | "out" | "reserved";
 
+export interface MovementDirection {
+  sign: "+" | "-" | "";
+  tone: MovementTone;
+}
+
 /**
  * The sign and tone a movement applies to on-hand stock — a faithful read of
  * `movementEffects`: receipts add, sales/consumption/waste subtract,
@@ -71,7 +78,7 @@ export type MovementTone = "in" | "out" | "reserved";
 export function movementDirection(
   type: InventoryMovementType,
   quantity: number,
-): { sign: "+" | "-" | ""; tone: MovementTone } {
+): MovementDirection {
   switch (type) {
     case "receipt":
     case "return":
@@ -89,10 +96,12 @@ export function movementDirection(
     case "reservation":
     case "release":
       return { sign: "", tone: "reserved" };
-    default:
+    default: {
+      const unhandled: never = type;
       throw new ConvexError(
-        errorMessages.notFound(`tipo de movimiento ${type satisfies never}`),
+        errorMessages.notFound(`tipo de movimiento ${String(unhandled)}`),
       );
+    }
   }
 }
 

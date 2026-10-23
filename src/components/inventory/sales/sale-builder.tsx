@@ -37,6 +37,7 @@ interface SaleBuilderProps {
   onRegistered?: () => void;
 }
 
+// oxlint-disable-next-line react-doctor/no-giant-component -- pre-existing large component; split tracked as a follow-up in odd/tasks/oxc-migration.md
 export const SaleBuilder: FC<SaleBuilderProps> = ({
   barbershopId,
   onRegistered,
@@ -63,7 +64,7 @@ export const SaleBuilder: FC<SaleBuilderProps> = ({
   // opens the confirmation dialog — the mutation runs on explicit confirm.
   const { form, stepper } = useSaleForm(() => {
     setConfirmStep(true);
-    haptic.trigger("selection");
+    void haptic.trigger("selection");
   });
 
   const paymentMethod = useSelector(
@@ -115,7 +116,7 @@ export const SaleBuilder: FC<SaleBuilderProps> = ({
 
     form.setFieldValue("lines", [...lines, { itemId: item._id, quantity: 1 }]);
     setSearch("");
-    haptic.trigger("selection");
+    void haptic.trigger("selection");
   };
 
   const updateQuantity = (
@@ -141,70 +142,74 @@ export const SaleBuilder: FC<SaleBuilderProps> = ({
       "lines",
       lines.filter((line) => line.itemId !== itemId),
     );
-    haptic.trigger("selection");
+    void haptic.trigger("selection");
+  };
+
+  const submitSale = async (lines: ResolvedSaleLine[]) => {
+    let proofKey: string | undefined;
+
+    const proof = proofFile;
+    const contentType =
+      proof && isSaleProofContentType(proof.type) ? proof.type : undefined;
+
+    if (proof && !contentType) {
+      void haptic.trigger("error");
+      toast.error("Solo se permiten imágenes o archivos PDF");
+      return;
+    }
+
+    try {
+      if (proof) {
+        proofKey = await uploadProof({ barbershopId, file: proof });
+      }
+
+      await registerSale({
+        barbershop: { id: barbershopId },
+        lines: lines.map((line) => ({
+          item: { id: line.itemId },
+          quantity: line.quantity,
+        })),
+        ...buildSaleDetailsPayload(form.state.values),
+        proof:
+          proof && proofKey && contentType
+            ? {
+                key: proofKey,
+                fileName: proof.name,
+                contentType,
+                size: proof.size,
+              }
+            : undefined,
+      });
+    } catch (error) {
+      if (proofKey) {
+        void deleteProof({
+          barbershop: { id: barbershopId },
+          key: proofKey,
+        }).catch(() => {
+          // Best-effort cleanup: the error toast below is what the user sees.
+        });
+      }
+      void haptic.trigger("error");
+      toast.error(getConvexErrorMessage(error));
+      return;
+    }
+
+    form.reset();
+    setProofFile(undefined);
+    setConfirmStep(false);
+    stepper.goToStep(1);
+    void haptic.trigger("success");
+    toast.success("Venta registrada exitosamente");
+    onRegistered?.();
   };
 
   const confirmSale = async (lines: ResolvedSaleLine[]) => {
     if (confirmSaleInFlightRef.current) return;
     confirmSaleInFlightRef.current = true;
 
-    let proofKey: string | undefined;
-
-    try {
-      const proof = proofFile;
-      const contentType =
-        proof && isSaleProofContentType(proof.type) ? proof.type : undefined;
-
-      if (proof && !contentType) {
-        haptic.trigger("error");
-        toast.error("Solo se permiten imágenes o archivos PDF");
-        return;
-      }
-
-      try {
-        if (proof) {
-          proofKey = await uploadProof({ barbershopId, file: proof });
-        }
-
-        await registerSale({
-          barbershop: { id: barbershopId },
-          lines: lines.map((line) => ({
-            item: { id: line.itemId },
-            quantity: line.quantity,
-          })),
-          ...buildSaleDetailsPayload(form.state.values),
-          proof:
-            proof && proofKey && contentType
-              ? {
-                  key: proofKey,
-                  fileName: proof.name,
-                  contentType,
-                  size: proof.size,
-                }
-              : undefined,
-        });
-      } catch (error) {
-        if (proofKey) {
-          void deleteProof({
-            barbershop: { id: barbershopId },
-            key: proofKey,
-          }).catch(() => undefined);
-        }
-        haptic.trigger("error");
-        toast.error(getConvexErrorMessage(error));
-        return;
-      }
-
-      form.reset();
-      setProofFile(undefined);
-      setConfirmStep(false);
-      stepper.goToStep(1);
-      haptic.trigger("success");
-      toast.success("Venta registrada exitosamente");
-      onRegistered?.();
-    } finally {
+    await submitSale(lines).finally(() => {
       confirmSaleInFlightRef.current = false;
-    }
+    });
   };
 
   const isConfirming = isUploading || isRegistering;
@@ -213,7 +218,7 @@ export const SaleBuilder: FC<SaleBuilderProps> = ({
     // The step schema also enforces this; the toast gives visible feedback
     // because the lines list has no field-level error slot.
     if (stepper.currentStep === 1 && draftLines.length === 0) {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error("Agrega al menos un producto");
       return;
     }
@@ -256,7 +261,7 @@ export const SaleBuilder: FC<SaleBuilderProps> = ({
                 <FormStepper
                   steps={saleFormSteps}
                   currentStep={stepper.currentStep}
-                  onSelectStep={stepper.goToStep}
+                  onSelectStep={(step) => stepper.goToStep(step)}
                   canSelectStep={stepper.canGoToStep}
                 />
 
@@ -297,7 +302,7 @@ export const SaleBuilder: FC<SaleBuilderProps> = ({
                     type="button"
                     variant="outline"
                     disabled={stepper.isFirstStep || isConfirming}
-                    onClick={stepper.goToPrevStep}
+                    onClick={() => stepper.goToPrevStep()}
                   >
                     Anterior
                   </Button>
@@ -330,7 +335,7 @@ export const SaleBuilder: FC<SaleBuilderProps> = ({
                       draftLines.filter((line) => itemById.has(line.itemId)),
                     );
                     setConfirmStep(false);
-                    haptic.trigger("error");
+                    void haptic.trigger("error");
                     toast.error(
                       "Uno de los productos ya no está disponible. Revisa la venta.",
                     );
