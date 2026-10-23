@@ -17,23 +17,25 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useInvitationActions, useInvitations } from "@/hooks/use-invitations";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
-const STATE_META: Record<
-  string,
-  { label: string; variant: BadgeProps["variant"] }
-> = {
-  pending: { label: "Pendiente", variant: "warning" },
-  accepted: { label: "Aceptada", variant: "success" },
-  successful: { label: "Aceptada", variant: "success" },
-  declined: { label: "Rechazada", variant: "destructive" },
-  expired: { label: "Expirada", variant: "destructive" },
-  revoked: { label: "Revocada", variant: "destructive" },
-};
+interface StateMeta {
+  label: string;
+  variant: BadgeProps["variant"];
+}
 
-const ROLE_LABELS: Record<string, string> = {
-  barber: "Barbero",
-  staff: "Recepcionista",
-  owner: "Dueño",
-};
+const STATE_META = new Map<string, StateMeta>([
+  ["pending", { label: "Pendiente", variant: "warning" }],
+  ["accepted", { label: "Aceptada", variant: "success" }],
+  ["successful", { label: "Aceptada", variant: "success" }],
+  ["declined", { label: "Rechazada", variant: "destructive" }],
+  ["expired", { label: "Expirada", variant: "destructive" }],
+  ["revoked", { label: "Revocada", variant: "destructive" }],
+]);
+
+const ROLE_LABELS = new Map([
+  ["barber", "Barbero"],
+  ["staff", "Recepcionista"],
+  ["owner", "Dueño"],
+]);
 
 interface InvitationsListProps {
   barbershopId: Barbershop["_id"];
@@ -51,10 +53,10 @@ export const InvitationsList: FC<InvitationsListProps> = ({ barbershopId }) => {
   const handleRevoke = async (invitationId: string) => {
     try {
       await revoke({ barbershopId, invitationId });
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Invitación revocada");
     } catch (error) {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
     }
   };
@@ -62,10 +64,10 @@ export const InvitationsList: FC<InvitationsListProps> = ({ barbershopId }) => {
   const handleResend = async (invitationId: string) => {
     try {
       await resend({ barbershopId, invitationId });
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Invitación reenviada");
     } catch (error) {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
     }
   };
@@ -99,7 +101,7 @@ export const InvitationsList: FC<InvitationsListProps> = ({ barbershopId }) => {
     <ul className="space-y-2">
       {invitations.map((invitation) => {
         const isPendingInvite = invitation.state === "pending";
-        const stateMeta = STATE_META[invitation.state] ?? {
+        const stateMeta = STATE_META.get(invitation.state) ?? {
           label: invitation.state,
           variant: "secondary" as const,
         };
@@ -112,7 +114,7 @@ export const InvitationsList: FC<InvitationsListProps> = ({ barbershopId }) => {
             <div className="min-w-0">
               <p className="truncate font-medium text-sm">{invitation.email}</p>
               <p className="text-muted-foreground text-xs">
-                {ROLE_LABELS[invitation.role] ?? invitation.role}
+                {ROLE_LABELS.get(invitation.role) ?? invitation.role}
               </p>
             </div>
 
@@ -126,7 +128,9 @@ export const InvitationsList: FC<InvitationsListProps> = ({ barbershopId }) => {
                     variant="ghost"
                     aria-label="Reenviar invitación"
                     disabled={isBusy}
-                    onClick={() => handleResend(invitation.id)}
+                    onClick={() => {
+                      void handleResend(invitation.id);
+                    }}
                   >
                     <EnvelopeSimpleIcon />
                   </Button>
@@ -135,7 +139,9 @@ export const InvitationsList: FC<InvitationsListProps> = ({ barbershopId }) => {
                     variant="ghost"
                     aria-label="Revocar invitación"
                     disabled={isBusy}
-                    onClick={() => handleRevoke(invitation.id)}
+                    onClick={() => {
+                      void handleRevoke(invitation.id);
+                    }}
                   >
                     <TrashIcon />
                   </Button>

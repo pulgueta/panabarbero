@@ -31,7 +31,7 @@ export const CancelAppointmentForm: FC<CancelAppointmentFormProps> = ({
 
   const form = useAppForm({
     onSubmitInvalid: () => {
-      haptic.trigger("error");
+      void haptic.trigger("error");
     },
     validationLogic: revalidateLogic({
       mode: "submit",
@@ -52,15 +52,14 @@ export const CancelAppointmentForm: FC<CancelAppointmentFormProps> = ({
           cancelledBy: isBarber ? "barber" : "customer",
         });
 
-        haptic.trigger("success");
+        void haptic.trigger("success");
         toast.success("Cita cancelada correctamente.");
         form.reset();
 
         onSuccess?.();
       } catch (error) {
-        haptic.trigger("error");
+        void haptic.trigger("error");
         toast.error(getConvexErrorMessage(error));
-        return;
       }
     },
   });
@@ -70,7 +69,7 @@ export const CancelAppointmentForm: FC<CancelAppointmentFormProps> = ({
       onSubmit={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        form.handleSubmit();
+        void form.handleSubmit();
       }}
       className="w-full space-y-4"
     >

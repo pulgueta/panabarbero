@@ -74,10 +74,10 @@ export const OwnerRoleToggle: FC<OwnerRoleToggleProps> = ({
         barbershopId,
         addBarberRole: true,
       });
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Ahora también eres barbero en tu barbería");
     } catch (error) {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
     }
     setConfirmOpen(false);
@@ -90,28 +90,19 @@ export const OwnerRoleToggle: FC<OwnerRoleToggleProps> = ({
         addBarberRole: false,
       });
 
-      if (
-        result &&
-        typeof result === "object" &&
-        "status" in result &&
-        result.status === "needs-reassignment"
-      ) {
+      if (result.status === "needs-reassignment") {
         // There are future appointments that need reassignment
-        const appointments =
-          "appointments" in result
-            ? (result.appointments as PendingAppointment[])
-            : [];
-        setPendingAppointments(appointments);
+        setPendingAppointments(result.appointments);
         setReassignments({});
         setConfirmOpen(false);
         setReassignOpen(true);
         return;
       }
 
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Ya no atiendes como barbero en tu barbería");
     } catch (error) {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
     }
     setConfirmOpen(false);
@@ -140,13 +131,13 @@ export const OwnerRoleToggle: FC<OwnerRoleToggleProps> = ({
         ),
       });
 
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Citas reasignadas. Ya no atiendes como barbero.");
       setReassignOpen(false);
       setPendingAppointments([]);
       setReassignments({});
     } catch (error) {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
     }
   };
@@ -201,9 +192,11 @@ export const OwnerRoleToggle: FC<OwnerRoleToggleProps> = ({
             </Button>
             <Button
               variant={isCurrentlyBarber ? "destructive" : "default"}
-              onClick={
-                isCurrentlyBarber ? handleRemoveBarberRole : handleAddBarberRole
-              }
+              onClick={() => {
+                void (isCurrentlyBarber
+                  ? handleRemoveBarberRole()
+                  : handleAddBarberRole());
+              }}
               disabled={isToggling}
             >
               {isToggling && <Spinner />}
@@ -299,7 +292,9 @@ export const OwnerRoleToggle: FC<OwnerRoleToggleProps> = ({
               Cancelar
             </Button>
             <Button
-              onClick={handleReassignAndRemove}
+              onClick={() => {
+                void handleReassignAndRemove();
+              }}
               disabled={
                 isToggling ||
                 (otherBarbers.length > 0 &&

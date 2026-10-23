@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: We need to assert non-null values because the hooks return undefined if the data is not loaded */
+/* oxlint-disable typescript/no-non-null-assertion -- the authed layout guarantees a session; the hooks return undefined until the data loads */
 
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -83,14 +83,6 @@ const ReviewsTab = lazy(() =>
     default: mod.ReviewsTab,
   })),
 );
-
-type ProfileTabValue =
-  | "notifications"
-  | "account"
-  | "appointments"
-  | "reviews"
-  | "danger"
-  | "plans";
 
 const tabs = {
   notifications: {
@@ -227,10 +219,17 @@ function ProfilePage() {
   );
 
   const onTabChange = (value: string) => {
-    haptics.trigger("light");
-    navigate({
+    void haptics.trigger("light");
+
+    const nextTab = searchSchema.shape.tab.safeParse(value);
+
+    if (!nextTab.success) {
+      return;
+    }
+
+    void navigate({
       to: "/profile",
-      search: { tab: value as ProfileTabValue },
+      search: { tab: nextTab.data },
     });
   };
 
@@ -299,7 +298,7 @@ function ProfilePage() {
                 {tabOption.label}
                 {tabOption.value === tabs.reviews.value &&
                 reviewsNeedingAttention ? (
-                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 font-medium text-[11px] text-primary-foreground tabular-nums">
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 font-medium text-xs text-primary-foreground tabular-nums">
                     {reviewsNeedingAttention > 99
                       ? "99+"
                       : reviewsNeedingAttention}
@@ -330,8 +329,8 @@ function ProfilePage() {
               <DangerTab
                 barbershopId={barbershop?._id}
                 isOwner={!!rolesData?.isOwner}
-                isBarber={!!isBarber}
-                isStaff={!!isStaff}
+                isBarber={isBarber}
+                isStaff={isStaff}
               />
             </TabsContent>
           </Suspense>

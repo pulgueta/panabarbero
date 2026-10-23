@@ -20,10 +20,17 @@ interface UserAvatarProps {
   };
 }
 
+/** A blank or missing value becomes `undefined`. */
+function nonEmpty(value?: string | null): string | undefined {
+  return value === null || value === "" ? undefined : value;
+}
+
 export function UserAvatar({ user }: UserAvatarProps) {
   const { signOut } = useAuth();
 
   const initials = getInitials(user.name, user.email);
+  const imageSrc = nonEmpty(user.image);
+  const imageAlt = nonEmpty(user.name) ?? user.email;
 
   return (
     <Popover>
@@ -35,10 +42,7 @@ export function UserAvatar({ user }: UserAvatarProps) {
             className="relative size-8 rounded-full md:mt-1.5"
           >
             <Avatar className="size-8">
-              <AvatarImage
-                src={user.image || undefined}
-                alt={user.name || user.email}
-              />
+              <AvatarImage src={imageSrc} alt={imageAlt} />
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
           </Button>
@@ -48,10 +52,7 @@ export function UserAvatar({ user }: UserAvatarProps) {
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
             <Avatar className="size-10">
-              <AvatarImage
-                src={user.image || undefined}
-                alt={user.name || user.email}
-              />
+              <AvatarImage src={imageSrc} alt={imageAlt} />
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col gap-0.5 overflow-hidden">
@@ -67,7 +68,12 @@ export function UserAvatar({ user }: UserAvatarProps) {
 
           <Separator />
 
-          <Button variant="destructive" onClick={() => void signOut()}>
+          <Button
+            variant="destructive"
+            onClick={() => {
+              void signOut();
+            }}
+          >
             <SignOutIcon className="size-4" />
             Cerrar sesión
           </Button>

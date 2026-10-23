@@ -34,7 +34,7 @@ export const ServiceForm: FC<ServiceFormProps> = ({
 
   const form = useAppForm({
     onSubmitInvalid: () => {
-      haptic.trigger("error");
+      void haptic.trigger("error");
     },
     validationLogic: revalidateLogic({
       mode: "submit",
@@ -60,50 +60,53 @@ export const ServiceForm: FC<ServiceFormProps> = ({
             id: serviceId,
             data: {
               name: value.name,
-              price: Number(value.price),
-              duration: Number(value.duration),
+              price: value.price,
+              duration: value.duration,
               priceType: value.priceType ?? "fixed",
               barbershopId,
             },
           });
 
-          haptic.trigger("success");
+          void haptic.trigger("success");
           toast.success("Servicio actualizado exitosamente");
-
-          onSuccess?.();
         } else {
           await createService({
             name: value.name,
-            price: Number(value.price),
-            duration: Number(value.duration),
+            price: value.price,
+            duration: value.duration,
             priceType: value.priceType ?? "fixed",
             barbershopId,
           });
 
-          haptic.trigger("success");
+          void haptic.trigger("success");
           toast.success("Servicio creado exitosamente");
-
-          onSuccess?.();
         }
+
+        onSuccess?.();
       } catch (error) {
-        haptic.trigger("error");
+        void haptic.trigger("error");
         toast.error(getConvexErrorMessage(error));
-        return;
       }
     },
   });
 
-  useHotkey("Control+Enter", () => form.handleSubmit(), {
-    preventDefault: true,
-    stopPropagation: true,
-  });
+  useHotkey(
+    "Control+Enter",
+    () => {
+      void form.handleSubmit();
+    },
+    {
+      preventDefault: true,
+      stopPropagation: true,
+    },
+  );
 
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        form.handleSubmit();
+        void form.handleSubmit();
       }}
       className="w-full space-y-4"
     >

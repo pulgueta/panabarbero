@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: barbershop is primed by the loader */
+/* oxlint-disable typescript/no-non-null-assertion -- barbershop is primed by the loader */
 
 import { PlusIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -118,9 +118,7 @@ export const Route = createFileRoute(
       context.queryClient.ensureQueryData(
         requestRescheduleQueryOptions(barbershopId),
       ),
-    ]).then(
-      ([, , , , , , , members, requests]) => [members, requests] as const,
-    );
+    ]).then((results) => [results[7], results[8]] as const);
 
     // Calendar range: one day-windowed query per visible day, matching
     // useCalendarAppointments' fan-out so the grid paints without pop-in.
@@ -222,18 +220,20 @@ function RouteComponent() {
           isBarber={isBarber ?? false}
           canManage={canManage}
           canCreate={canCreate}
-          onCreateAppointment={(nextDate) =>
-            navigate({
+          onCreateAppointment={(nextDate) => {
+            void navigate({
               to: "/profile/barbershops/appointments/new",
               search: { date: nextDate.getTime() },
-            })
-          }
-          onViewChange={(next) =>
-            navigate({ search: (prev) => ({ ...prev, view: next }) })
-          }
-          onDateChange={(next) =>
-            navigate({ search: (prev) => ({ ...prev, date: next.getTime() }) })
-          }
+            });
+          }}
+          onViewChange={(next) => {
+            void navigate({ search: (prev) => ({ ...prev, view: next }) });
+          }}
+          onDateChange={(next) => {
+            void navigate({
+              search: (prev) => ({ ...prev, date: next.getTime() }),
+            });
+          }}
         />
 
         <section className="min-w-0 max-w-full space-y-3">

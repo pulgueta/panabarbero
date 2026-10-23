@@ -218,7 +218,7 @@ export const BarbershopFiltersDrawer: FC<
     (!draft.departamento && !draft.ciudad);
 
   const openDrawer = () => {
-    trigger();
+    void trigger();
     setDraft({
       minRating: filters.minRating,
       minReviews: filters.minReviews,
@@ -230,13 +230,13 @@ export const BarbershopFiltersDrawer: FC<
 
   const apply = () => {
     if (!canApply) return;
-    trigger();
+    void trigger();
     actions.applyFilters(draft);
     setOpen(false);
   };
 
   const clear = () => {
-    trigger();
+    void trigger();
     setDraft({
       ...EMPTY_RATING_FILTERS,
       departamento: undefined,
@@ -245,13 +245,13 @@ export const BarbershopFiltersDrawer: FC<
   };
 
   const handleLocate = () => {
-    trigger();
+    void trigger();
     actions.requestGeolocation();
   };
 
   const handleConfirmPin = () => {
     if (!state.pendingMatch?.ciudad) return;
-    trigger();
+    void trigger();
     actions.applyFilters({
       departamento: state.pendingMatch.departamento,
       ciudad: state.pendingMatch.ciudad,

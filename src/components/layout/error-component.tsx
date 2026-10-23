@@ -36,7 +36,7 @@ export const DefaultCatchBoundary: FC<ErrorComponentProps> = ({ error }) => {
           <Button
             variant="outline"
             onClick={() => {
-              router.invalidate();
+              void router.invalidate();
             }}
           >
             <ArrowCounterClockwiseIcon />

@@ -1,10 +1,9 @@
-import { useStore } from "@tanstack/react-form";
 import type { FC } from "react";
 import { useWebHaptics } from "web-haptics/react";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { useFieldContext } from "./form-context";
+import { useFieldContext, useFieldErrors } from "./form-context";
 
 interface CheckboxFieldProps {
   label: string;
@@ -13,7 +12,7 @@ interface CheckboxFieldProps {
 export const CheckboxField: FC<CheckboxFieldProps> = ({ label }) => {
   const field = useFieldContext<boolean>();
 
-  const errors = useStore(field.store, (state) => state.meta.errors);
+  const errors = useFieldErrors();
 
   const haptic = useWebHaptics();
 
@@ -28,7 +27,7 @@ export const CheckboxField: FC<CheckboxFieldProps> = ({ label }) => {
           aria-invalid={isInvalid}
           checked={field.state.value}
           onCheckedChange={(checked) => {
-            haptic.trigger("selection");
+            void haptic.trigger("selection");
             field.handleChange(checked);
           }}
         />

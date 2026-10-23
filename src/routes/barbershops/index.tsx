@@ -261,8 +261,8 @@ function BarbershopsPage() {
     minReviews: search.reviews ?? 0,
   };
 
-  const setFilters = (next: BarbershopRatingFilters) =>
-    navigate({
+  const setFilters = (next: BarbershopRatingFilters) => {
+    void navigate({
       search: (prev) => ({
         ...prev,
         rating: next.minRating > 0 ? next.minRating : undefined,
@@ -271,9 +271,10 @@ function BarbershopsPage() {
       replace: true,
       resetScroll: false,
     });
+  };
 
-  const setSort = (next: BarbershopSort) =>
-    navigate({
+  const setSort = (next: BarbershopSort) => {
+    void navigate({
       search: (prev) => ({
         ...prev,
         sort: next === DEFAULT_BARBERSHOP_SORT ? undefined : next,
@@ -281,6 +282,7 @@ function BarbershopsPage() {
       replace: true,
       resetScroll: false,
     });
+  };
 
   return (
     <BorderContainer>

@@ -82,6 +82,61 @@ export function useSalesMetrics(barbershopId: Barbershop["_id"]) {
   return useSuspenseQuery(salesMetricsQueryOptions(barbershopId));
 }
 
+interface SaleProofClients {
+  createProofUpload: ReturnType<
+    typeof useConvexMutation<typeof api.inventorySales.createProofUpload>
+  >;
+  finalizeProofUpload: ReturnType<
+    typeof useConvexAction<typeof api.inventorySales.finalizeProofUpload>
+  >;
+  deleteProof: ReturnType<
+    typeof useConvexMutation<typeof api.inventorySales.deleteOrphanProof>
+  >;
+}
+
+async function uploadSaleProof(
+  { createProofUpload, finalizeProofUpload, deleteProof }: SaleProofClients,
+  { barbershopId, file }: { barbershopId: Barbershop["_id"]; file: File },
+): Promise<string> {
+  if (!isSaleProofContentType(file.type)) {
+    throw new Error("Solo se permiten imágenes o archivos PDF");
+  }
+
+  const { key, url } = await createProofUpload({
+    barbershop: { id: barbershopId },
+    fileName: file.name,
+    contentType: file.type,
+    size: file.size,
+  });
+
+  try {
+    const response = await fetch(url, {
+      method: "PUT",
+      headers: { "Content-Type": file.type },
+      body: file,
+    });
+
+    if (!response.ok) {
+      throw new Error("No se pudo subir el comprobante");
+    }
+
+    // Awaited on purpose: registerSale cross-checks the synced metadata,
+    // and the plain r2 syncMetadata mutation only schedules the sync.
+    await finalizeProofUpload({ barbershop: { id: barbershopId }, key });
+  } catch (error) {
+    try {
+      await deleteProof({
+        barbershop: { id: barbershopId },
+        key,
+      });
+    } catch {
+      // Best-effort cleanup: surface the upload error, not this one.
+    }
+    throw error;
+  }
+  return key;
+}
+
 export function useInventorySaleActions() {
   const createProofUpload = useConvexMutation(
     api.inventorySales.createProofUpload,
@@ -96,47 +151,11 @@ export function useInventorySaleActions() {
   });
 
   const uploadProofMutation = useMutation({
-    mutationFn: async ({
-      barbershopId,
-      file,
-    }: {
-      barbershopId: Barbershop["_id"];
-      file: File;
-    }) => {
-      if (!isSaleProofContentType(file.type)) {
-        throw new Error("Solo se permiten imágenes o archivos PDF");
-      }
-
-      const { key, url } = await createProofUpload({
-        barbershop: { id: barbershopId },
-        fileName: file.name,
-        contentType: file.type,
-        size: file.size,
-      });
-
-      try {
-        const response = await fetch(url, {
-          method: "PUT",
-          headers: { "Content-Type": file.type },
-          body: file,
-        });
-
-        if (!response.ok) {
-          throw new Error("No se pudo subir el comprobante");
-        }
-
-        // Awaited on purpose: registerSale cross-checks the synced metadata,
-        // and the plain r2 syncMetadata mutation only schedules the sync.
-        await finalizeProofUpload({ barbershop: { id: barbershopId }, key });
-      } catch (error) {
-        await deleteProof({
-          barbershop: { id: barbershopId },
-          key,
-        }).catch(() => {});
-        throw error;
-      }
-      return key;
-    },
+    mutationFn: (variables: { barbershopId: Barbershop["_id"]; file: File }) =>
+      uploadSaleProof(
+        { createProofUpload, finalizeProofUpload, deleteProof },
+        variables,
+      ),
   });
 
   return {

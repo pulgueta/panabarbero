@@ -57,7 +57,7 @@ export const StockAdjustDialog: FC<StockAdjustDialogProps> = ({
             onSubmit={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              form.handleSubmit();
+              void form.handleSubmit();
             }}
             className="w-full space-y-4"
           >

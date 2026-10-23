@@ -1,7 +1,7 @@
 import { ChatCircleIcon, CrownIcon } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { ConvexError } from "convex/values";
-import type { ChangeEvent, FormEvent } from "react";
+import type { ChangeEvent, SyntheticEvent } from "react";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -34,6 +34,7 @@ import { useSession } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
 /** ConvexError → its `data` copy; other Errors → their message as-is. */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- receives catch-clause values, which are `unknown` by definition
 function chatErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof ConvexError) {
     return getConvexErrorMessage(error);
@@ -108,15 +109,17 @@ export function ChatView({ threadId, routeScope = "public" }: ChatViewProps) {
         await send(threadId, trimmed);
       } catch (error) {
         toast.error(chatErrorMessage(error, "No se pudo enviar el mensaje."));
-      } finally {
-        setIsSending(false);
       }
+      setIsSending(false);
     },
     [userId, inputBusy, send, threadId, blocked],
   );
 
   const handleFormSubmit = useCallback(
-    (message: { text: string }, event: FormEvent<HTMLFormElement>): void => {
+    (
+      message: { text: string },
+      event: SyntheticEvent<HTMLFormElement>,
+    ): void => {
       event.preventDefault?.();
       const value = message.text;
       setText("");
@@ -126,7 +129,9 @@ export function ChatView({ threadId, routeScope = "public" }: ChatViewProps) {
   );
 
   const handleSuggestionClick = useCallback(
-    (suggestion: string) => void handleSendPrompt(suggestion),
+    (suggestion: string) => {
+      void handleSendPrompt(suggestion);
+    },
     [handleSendPrompt],
   );
 

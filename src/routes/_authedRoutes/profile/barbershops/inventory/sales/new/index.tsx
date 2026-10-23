@@ -121,9 +121,9 @@ const NewSaleBody: FC<NewSaleBodyProps> = ({ barbershop }) => {
     <Suspense fallback={<Skeleton className="h-96 w-full" />}>
       <SaleBuilder
         barbershopId={barbershop._id}
-        onRegistered={() =>
-          void navigate({ to: "/profile/barbershops/inventory/sales" })
-        }
+        onRegistered={() => {
+          void navigate({ to: "/profile/barbershops/inventory/sales" });
+        }}
       />
     </Suspense>
   );

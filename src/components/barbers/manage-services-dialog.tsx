@@ -50,13 +50,12 @@ export const ManageServicesEditor: FC<ManageServicesEditorProps> = ({
   } = useBarbershopMemberActions();
 
   const handleToggleService = (serviceId: Service["_id"]) => {
+    void haptic.trigger("selection");
     setSelectedServices((prev) => {
       const next = new Set(prev);
       if (next.has(serviceId)) {
-        haptic.trigger("selection");
         next.delete(serviceId);
       } else {
-        haptic.trigger("selection");
         next.add(serviceId);
       }
       return next;
@@ -64,12 +63,12 @@ export const ManageServicesEditor: FC<ManageServicesEditorProps> = ({
   };
 
   const handleSelectAll = () => {
-    haptic.trigger("selection");
+    void haptic.trigger("selection");
     setSelectedServices(new Set(services.map((s) => s._id)));
   };
 
   const handleClearAll = () => {
-    haptic.trigger("selection");
+    void haptic.trigger("selection");
     setSelectedServices(new Set());
   };
 
@@ -77,13 +76,13 @@ export const ManageServicesEditor: FC<ManageServicesEditorProps> = ({
     try {
       await setBarberServices({
         barbershopMember: { id: barbershopMember._id },
-        services: Array.from(selectedServices).map((id) => ({ id })),
+        services: [...selectedServices].map((id) => ({ id })),
       });
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Servicios actualizados correctamente");
       onSuccess?.();
     } catch (error) {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
     }
   };
@@ -118,7 +117,7 @@ export const ManageServicesEditor: FC<ManageServicesEditorProps> = ({
                 id={checkboxId}
                 checked={selectedServices.has(service._id)}
                 onCheckedChange={() => {
-                  haptic.trigger("light");
+                  void haptic.trigger("light");
                   handleToggleService(service._id);
                 }}
               />
@@ -149,7 +148,9 @@ export const ManageServicesEditor: FC<ManageServicesEditorProps> = ({
           Cancelar
         </Button>
         <Button
-          onClick={handleSave}
+          onClick={() => {
+            void handleSave();
+          }}
           disabled={isSettingBarberServices || isSameServices}
         >
           Guardar cambios

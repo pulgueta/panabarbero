@@ -35,7 +35,7 @@ export const ReviewForm: FC<ReviewFormProps> = ({
 
   const form = useAppForm({
     onSubmitInvalid: () => {
-      haptic.trigger("error");
+      void haptic.trigger("error");
     },
     validationLogic: revalidateLogic({
       mode: "submit",
@@ -57,7 +57,7 @@ export const ReviewForm: FC<ReviewFormProps> = ({
           comment: value.comment?.trim() || undefined,
         });
 
-        haptic.trigger("success");
+        void haptic.trigger("success");
         toast.success(
           result.status === "published"
             ? "¡Gracias! Tu reseña ya está publicada."
@@ -66,7 +66,7 @@ export const ReviewForm: FC<ReviewFormProps> = ({
         form.reset();
         onSuccess?.();
       } catch (error) {
-        haptic.trigger("error");
+        void haptic.trigger("error");
         toast.error(getConvexErrorMessage(error));
       }
     },
@@ -77,7 +77,7 @@ export const ReviewForm: FC<ReviewFormProps> = ({
       onSubmit={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        form.handleSubmit();
+        void form.handleSubmit();
       }}
       className="grid w-full grid-cols-1 gap-4"
     >
@@ -91,7 +91,7 @@ export const ReviewForm: FC<ReviewFormProps> = ({
             <StarRating
               value={field.state.value}
               onChange={(rating) => {
-                haptic.trigger("light");
+                void haptic.trigger("light");
                 field.handleChange(rating);
               }}
               starClassName="size-8"

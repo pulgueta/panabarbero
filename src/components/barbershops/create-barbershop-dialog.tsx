@@ -41,7 +41,7 @@ export const CreateBarbershopDialog: FC<CreateBarbershopDialogProps> = ({
           userId={userId}
           onSuccess={() => {
             setOpen(false);
-            navigate({
+            void navigate({
               to: "/profile/barbershops/settings",
             });
           }}

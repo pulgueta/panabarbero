@@ -1,6 +1,5 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: route loader gates and primes the member data */
+/* oxlint-disable typescript/no-non-null-assertion -- route loader gates and primes the member data */
 
-import type { BarbershopMember } from "@convex/schema";
 import { ClockIcon, UserIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { BarberScheduleEditor } from "@/components/barbershops/availability/barber-schedule-dialog";
@@ -28,6 +27,7 @@ import {
   useBarbershopMembersByBarbershopId,
 } from "@/hooks/use-barbershop-members";
 import { useSession } from "@/hooks/use-session";
+import { asConvexId } from "@/lib/convex-id";
 
 export const Route = createFileRoute(
   "/_authedRoutes/profile/barbershops/team/barbers/$memberId/schedule/",
@@ -41,7 +41,7 @@ export const Route = createFileRoute(
   loader: async (opts) => {
     const barbershop = opts.context.dashboardBarbershop;
     const roles = opts.context.dashboardRoles;
-    const memberId = opts.params.memberId as BarbershopMember["_id"];
+    const memberId = asConvexId<"barbershopMembers">(opts.params.memberId);
 
     if (!barbershop?._id || (!roles?.isOwner && !roles?.isStaff)) {
       throw redirect({ to: "/profile/barbershops/team/barbers" });
@@ -67,7 +67,7 @@ export const Route = createFileRoute(
 function RouteComponent() {
   const navigate = Route.useNavigate();
   const { memberId } = Route.useParams();
-  const typedMemberId = memberId as BarbershopMember["_id"];
+  const typedMemberId = asConvexId<"barbershopMembers">(memberId);
   const { data: user } = useSession();
   const { data: barbershop } = useBarbershopByMemberUserId(user?.id!);
   const { data: members } = useBarbershopMembersByBarbershopId(
@@ -102,12 +102,12 @@ function RouteComponent() {
           <FormPageFields className="max-w-4xl">
             <BarberScheduleEditor
               member={member}
-              onCancel={() =>
-                void navigate({ to: "/profile/barbershops/team/barbers" })
-              }
-              onSuccess={() =>
-                void navigate({ to: "/profile/barbershops/team/barbers" })
-              }
+              onCancel={() => {
+                void navigate({ to: "/profile/barbershops/team/barbers" });
+              }}
+              onSuccess={() => {
+                void navigate({ to: "/profile/barbershops/team/barbers" });
+              }}
             />
           </FormPageFields>
 

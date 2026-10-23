@@ -51,10 +51,10 @@ const DeleteReviewButton: FC<DeleteReviewButtonProps> = ({ reviewId }) => {
   const handleDelete = async () => {
     try {
       await deleteReview({ reviewId });
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success("Tu reseña fue eliminada.");
     } catch (error) {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
     }
   };
@@ -80,7 +80,9 @@ const DeleteReviewButton: FC<DeleteReviewButtonProps> = ({ reviewId }) => {
             variant="destructive"
             className="w-full"
             disabled={isPending}
-            onClick={handleDelete}
+            onClick={() => {
+              void handleDelete();
+            }}
           >
             {isPending && <Spinner />} Sí, eliminar
           </Button>
@@ -117,16 +119,16 @@ const FlaggedReviewCard: FC<ReviewMetaProps> = ({ review }) => {
     try {
       const result = await updateReview({
         reviewId: review._id,
-        comment: comment.trim() ? comment.trim() : undefined,
+        comment: comment.trim() || undefined,
       });
-      haptic.trigger("success");
+      void haptic.trigger("success");
       toast.success(
         result.status === "published"
           ? "Tu reseña ya está publicada."
           : "Tu reseña fue actualizada y será revisada de nuevo.",
       );
     } catch (error) {
-      haptic.trigger("error");
+      void haptic.trigger("error");
       toast.error(getConvexErrorMessage(error));
     }
   };
@@ -175,7 +177,13 @@ const FlaggedReviewCard: FC<ReviewMetaProps> = ({ review }) => {
 
         <div className="flex flex-wrap items-center justify-end gap-2">
           <DeleteReviewButton reviewId={review._id} />
-          <Button size="sm" disabled={isPending} onClick={handleSave}>
+          <Button
+            size="sm"
+            disabled={isPending}
+            onClick={() => {
+              void handleSave();
+            }}
+          >
             {isPending && <Spinner />} Guardar cambios
           </Button>
         </div>

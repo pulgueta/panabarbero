@@ -14,6 +14,17 @@ import type { InventoryOverviewRow } from "@/hooks/use-inventory";
 
 import type { StockAdjustDialogState } from "./use-stock-adjust-dialog";
 
+type StockOperation = StockAdjustDialogState["operation"];
+
+function isStockOperation(value: unknown): value is StockOperation {
+  return (
+    value === "receive" ||
+    value === "consume" ||
+    value === "adjust" ||
+    value === "waste"
+  );
+}
+
 interface StockAdjustFormFieldsProps {
   item: InventoryOverviewRow;
   form: StockAdjustDialogState["form"];
@@ -37,9 +48,9 @@ export const StockAdjustFormFields: FC<StockAdjustFormFieldsProps> = ({
         <Label htmlFor="stock-operation">Operación</Label>
         <Select
           value={state.operation}
-          onValueChange={(value) =>
-            state.setOperation(value as StockAdjustDialogState["operation"])
-          }
+          onValueChange={(value) => {
+            if (isStockOperation(value)) state.setOperation(value);
+          }}
         >
           <SelectTrigger id="stock-operation" className="w-full">
             <SelectValue>
@@ -64,7 +75,7 @@ export const StockAdjustFormFields: FC<StockAdjustFormFieldsProps> = ({
             id="receive-package-mode"
             checked={state.receivePackageMode}
             onCheckedChange={(checked) => {
-              state.haptic.trigger("selection");
+              void state.haptic.trigger("selection");
               state.setReceivePackageMode(checked);
             }}
           />
@@ -89,10 +100,11 @@ export const StockAdjustFormFields: FC<StockAdjustFormFieldsProps> = ({
             )}
           </form.AppField>
 
-          <form.Subscribe selector={(state) => state.values.packageCount}>
+          <form.Subscribe
+            selector={(formState) => formState.values.packageCount}
+          >
             {(packageCount) => {
-              const packages =
-                Number(packageCount) > 0 ? Number(packageCount) : 0;
+              const packages = Math.max(packageCount || 0, 0);
               const total = packages * (item.presentationValue ?? 0);
 
               return (
@@ -150,7 +162,7 @@ export const StockAdjustFormFields: FC<StockAdjustFormFieldsProps> = ({
             id="stock-count-mode"
             checked={state.countMode}
             onCheckedChange={(checked) => {
-              state.haptic.trigger("selection");
+              void state.haptic.trigger("selection");
               state.setCountMode(checked);
             }}
           />
@@ -185,9 +197,9 @@ export const StockAdjustFormFields: FC<StockAdjustFormFieldsProps> = ({
             )}
           </form.AppField>
 
-          <form.Subscribe selector={(state) => state.values.counted}>
+          <form.Subscribe selector={(formState) => formState.values.counted}>
             {(counted) => {
-              const difference = Number(counted) - item.onHand;
+              const difference = counted - item.onHand;
 
               return (
                 <p className="text-muted-foreground text-sm tabular-nums">
