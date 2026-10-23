@@ -27,11 +27,13 @@ The dependencies were behind. TanStack Query 5.104 deprecates `ensureQueryData`,
 
 - [x] D1 Update pnpm and dependencies, fix the call sites that the new versions break. Route: delegated writer (root `package.json`, lockfile, and the broken call sites). Evidence: see "D1 Dependency update".
 - [x] D2 Prove that every migrated query call equals the original method; fix each site that differs. Route: delegated writer (route loaders + new test file). Evidence: see "D2 Query method equivalence".
+- [x] D3 Fix the two problems that the browser smoke test found: the blank map (MapLibre worker) and the React `use()` error on the barbershop detail page. Route: delegated writer (`src/components/ui/map.tsx`, `package.json`, lockfile). Evidence: see "D3 Map worker and React use() error".
 
 ## Progress
 
 - D1 done (former T8 of `odd/tasks/oxc-migration.md`).
 - D2 done: 134 call sites audited, 1 site restored, 64 equivalence tests added.
+- D3 done: map worker loads in dev and in the production build; React held at 19.2.9. A hydration mismatch on the detail page stays open (see D3).
 
 ## Evidence
 
@@ -106,6 +108,40 @@ Per-site audit of `684d7e8b` (no other commit after `4747066a` touches these cal
 - `30aa9a76` fix(billing): keep per-query catch for streamed credit prefetches
 - `7d8f9a6f` test(query): prove queryClient.query matches deprecated methods
 
+## D3 Map worker and React use() error
+
+### Map does not render
+
+- Cause: MapLibre v6 finds its worker with `new URL("./maplibre-gl-worker.mjs", import.meta.url)`. Vite pre-bundles `maplibre-gl` into `node_modules/.vite/deps/`, but it does not copy the separate worker file there, so the worker request fails.
+- Not a regression of 6.15: 6.4.0 (`npm pack`, read only) has the same lookup. In 6.4 the request (no `?v=`) gets 404 (Vite "file does not exist ... in the optimize deps directory"); 6.15 adds `?v=<version>`, which Vite treats as an outdated optimized dep, so it gets 504. The base commit `4747066a` (6.4.0) also shows a blank map in dev.
+- Fix (`src/components/ui/map.tsx`): the documented Vite setup from the MapLibre install guide, `import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url"` and `setWorkerUrl(workerUrl)` at module level. The MapLibre v5-to-v6 guide says that bundlers must call `setWorkerUrl()`. `?worker&url` makes a self-contained worker (plain `?url` would leave out the shared chunk in a build). `optimizeDeps.exclude` was not used: it fixes dev only and is not the documented setup. `setWorkerUrl` only sets a config value, so SSR is not changed (`ssr.noExternal` stays).
+- Result: dev loads `maplibre-gl-worker.mjs?worker_file&type=module`; the build emits `.output/public/assets/maplibre-gl-worker-<hash>.js` (self-contained IIFE), and the client map chunk references it. Map tiles and marker show in dev and in the production server.
+
+### React use() error
+
+- Cause: React 19.3 adds a development-only check that logs "This library called use() to suspend in a previous render but did not call use() when it finished" (it is not in `react-dom` 19.2.x). TanStack calls `use()` only while a promise is pending: `HydrationBoundary` in `@tanstack/react-start-client` (`hydration/visible.js`) and `Lazy` in `@tanstack/react-router` (`lazyRouteComponent.js`). React logs the first one only, so the stack shows either of them.
+- No version mismatch: the lockfile has one `@tanstack/react-start-client` (1.168.43), which is the dependency of `@tanstack/react-start` 1.169.3.
+- No upstream fix: `react-start-client` 1.168.44 and `react-router` 1.170.46 (newest, published 2026-10-22, still inside the 1-day age gate) have the same code. TanStack/router#8487 (`Lazy`) is open; there is no issue for `HydrationBoundary`.
+- Fix: hold `react`/`react-dom` at 19.2.9 (newest 19.2.x patch; base had 19.2.8), `@types/react` 19.2.18, `@types/react-dom` 19.2.7. No dependency needs React 19.3. The `<Hydrate>` blocks stay. Update React to 19.3 again when TanStack calls `use()` on each render after it suspends.
+
+### Open: hydration mismatch on the detail page (not fixed)
+
+- Every full load of `/barbershops/<uuid>` logs "Hydration failed" for `BarbershopInfoCard` inside `<Hydrate when={visible()}>`: the server HTML has no map block (metadata not loaded at SSR time), but the client has the metadata when it hydrates. React recovers by client rendering that boundary. The production build logs React error #418.
+- It is a regression of this branch: the base commit `4747066a` shows no hydration error. It also occurs with React 19.3.1 and with React 19.2.9, and it does not come from the D1 query migration (with `prefetchQuery` restored for the metadata call, the mismatch stays). The probable cause is the TanStack Start / Router / router-ssr-query update (streamed query data reaches the client before the boundary hydrates). Needs its own task.
+
+### D3 verification
+
+- Browser (agent-browser, logged out, Barbería El Pana): dev with React 19.3.1 showed the `use()` error; dev with 19.2.9 shows no `use()` error and no worker error; map tiles and marker show. Production server (`node .output/server/index.mjs`): worker asset loads, map shows. Screenshots: `/tmp/deps-fix/`.
+- `oxlint`: exit 0. `oxfmt --check`: exit 0 (466 files).
+- `tsc --noEmit` for `.`, `convex`, `emails`: 0 errors each.
+- `pnpm test`: 2 files, 83 passed. `pnpm build`: exit 0. `pnpm install --frozen-lockfile`: pass.
+
+### D3 commits
+
+- `d8de717a` fix(map): load the maplibre worker through vite
+- `03d78b7f` fix(deps): hold react at 19.2.9 for tanstack conditional use()
+
 ## Next step
 
-- Browser check of the migrated loaders (billing, profile, barbershop detail), the error boundary, and the map; then open the PR against `chore/oxc-migration`.
+- Find and fix the hydration mismatch of `BarbershopInfoCard` (see D3), as a new task.
+- Browser check of the other migrated loaders (billing, profile) and the error boundary.
