@@ -29,6 +29,7 @@ The dependencies were behind. TanStack Query 5.104 deprecates `ensureQueryData`,
 - [x] D2 Prove that every migrated query call equals the original method; fix each site that differs. Route: delegated writer (route loaders + new test file). Evidence: see "D2 Query method equivalence".
 - [x] D3 Fix the two problems that the browser smoke test found: the blank map (MapLibre worker) and the React `use()` error on the barbershop detail page. Route: delegated writer (`src/components/ui/map.tsx`, `package.json`, lockfile). Evidence: see "D3 Map worker and React use() error".
 - [x] D4 Fix the hydration mismatch of `BarbershopInfoCard` on the barbershop detail page. Route: delegated writer (`src/routes/barbershops/$barbershopUuid/index.tsx`); bisect by package in a temporary base worktree. Evidence: see "D4 Detail page hydration mismatch".
+- [x] D5 Stop React #467 from TanStack `HydrationBoundary` with a pnpm patch that ports the upstream fix (owner approved). Route: delegated writer (`patches/`, `pnpm-workspace.yaml`, lockfile). Evidence: see "D5 react-start-client patch".
 
 ## Progress
 
@@ -36,6 +37,7 @@ The dependencies were behind. TanStack Query 5.104 deprecates `ensureQueryData`,
 - D2 done: 134 call sites audited, 1 site restored, 64 equivalence tests added.
 - D3 done: map worker loads in dev and in the production build; React held at 19.2.9. A hydration mismatch on the detail page stays open (see D3).
 - D4 done: the loader blocks on the info card metadata; no "Hydration failed" and no React #418 in dev and in the production build. The intermittent React #467 from TanStack `HydrationBoundary` stays open (upstream TanStack/router#8652).
+- D5 done: pnpm patch for `@tanstack/react-start-client` 1.168.43 ports TanStack/router#8653; 0 × #467 in dev and 0 × #422 in production.
 
 ## Evidence
 
@@ -191,7 +193,40 @@ Per-site audit of `684d7e8b` (no other commit after `4747066a` touches these cal
 
 - `ffd432d7` fix(barbershops): block on info card metadata for ssr hydration
 
+## D5 react-start-client patch
+
+### Upstream
+
+- Issue: https://github.com/TanStack/router/issues/8652 (open).
+- Fix: https://github.com/TanStack/router/pull/8653 (open, not merged), branch `fix/visible-hydration-hook-order`, head commit `e2cacccb19ad05ec7344667603cb4a5c8f03e3d2`. Ported file: `packages/react-start-client/src/hydration/visible.tsx`.
+
+### Patch
+
+- File: `patches/@tanstack__react-start-client@1.168.43.patch` (`patchedDependencies` in `pnpm-workspace.yaml`, made with `pnpm patch` / `pnpm patch-commit`).
+- Change: `HydrationBoundary` calls `React.useEffect(() => o?.(), [o])` before the gate (`if (!g.r) reactUse(g.p)`), not after it. When the gate resolves while React replays the suspended mount, the replay now calls the same hooks as the attempt that suspended, so React does not throw #467. `use()` stays conditional, same as upstream; the gate semantics do not change.
+- Patched files: `dist/esm/hydration/visible.js` (the only build; the package exports ESM only, and Vite dev, SSR and the client build load it) and `src/hydration/visible.tsx` (same text as the upstream PR; the patched blob is `bb159dcc`, the same as the upstream head).
+- Remove the patch (and its `patchedDependencies` entry) when the next `@tanstack/react-start-client` release contains the fix.
+
+### Verification
+
+- Browser: playwright-core with system Chrome, logged out, `/barbershops/d4611621-...` (Barbería El Pana), errors read from `window.reportError`, `console.error`, `console.warn` and `pageerror`; cold loads use CDP `Network.setCacheDisabled`.
+
+| Build | Patch | Loads | #467 / #422 | Hydration / #418 | `use()` warning | Map shows |
+| --- | --- | --- | --- | --- | --- | --- |
+| dev | no (installed file reverted for the baseline only) | 20 cold | 5 | 5 (same loads, #467 cause) | 0 | 20 |
+| dev | yes | 40 cold + 10 warm | 0 | 0 | 0 | 50 |
+| production | no (D4 numbers) | 12 | 1 | 0 × #418 | 0 | 12 |
+| production | yes | 20 cold + 5 warm | 0 | 0 | 0 | 25 |
+
+- The built client chunk has `useEffect` before the gate.
+- `pnpm install --frozen-lockfile`: pass. `git apply --check` of the patch on a clean package copy: pass.
+- `oxlint`: exit 0. `oxfmt --check`: exit 0 (466 files). `tsc --noEmit` for `.`, `convex`, `emails`: 0 errors each. `pnpm test`: 2 files, 83 passed. `pnpm build`: exit 0.
+
+### D5 commits
+
+- `29a4548d` fix(deps): patch react-start-client conditional use() in hydration boundary
+
 ## Next step
 
-- Fix or wait for upstream TanStack/router#8652 (React #467 in `<Hydrate when={visible()}>`); a pnpm patch needs a decision.
+- Remove the D5 patch when a `@tanstack/react-start-client` release contains TanStack/router#8653.
 - Browser check of the other migrated loaders (billing, profile) and the error boundary.
