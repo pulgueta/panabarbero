@@ -26,8 +26,10 @@ import {
   Map as MapLibreGL,
   Marker,
   Popup,
+  setWorkerUrl,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import type { PropsWithChildren } from "react";
 import {
   createContext,
@@ -44,6 +46,9 @@ import {
 import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/utils";
+
+// Bundlers must give MapLibre the worker URL (MapLibre v6 install docs, Vite).
+setWorkerUrl(maplibreWorkerUrl);
 
 const defaultStyles = {
   dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",

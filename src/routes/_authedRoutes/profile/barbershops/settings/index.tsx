@@ -1,5 +1,6 @@
 import { ShareNetworkIcon } from "@phosphor-icons/react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { noop } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
@@ -54,20 +55,23 @@ export const Route = createFileRoute(
         throw redirect({ to: "/profile/barbershops/appointments" });
       }
 
-      const barbershop = await opts.context.queryClient.ensureQueryData(
-        barbershopByOwnerIdQueryOptions(userId),
-      );
+      const barbershop = await opts.context.queryClient.query({
+        ...barbershopByOwnerIdQueryOptions(userId),
+        staleTime: "static",
+      });
 
       if (barbershop?._id) {
-        void opts.context.queryClient.prefetchQuery(
-          barbershopLocationQueryOptions(barbershop._id),
-        );
-        void opts.context.queryClient.prefetchQuery(
-          barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
-        );
+        void opts.context.queryClient
+          .query(barbershopLocationQueryOptions(barbershop._id))
+          .catch(noop);
+        void opts.context.queryClient
+          .query(barbershopMembersByBarbershopIdQueryOptions(barbershop._id))
+          .catch(noop);
       }
 
-      void opts.context.queryClient.prefetchQuery(isBarberQueryOptions(userId));
+      void opts.context.queryClient
+        .query(isBarberQueryOptions(userId))
+        .catch(noop);
     }
   },
 });

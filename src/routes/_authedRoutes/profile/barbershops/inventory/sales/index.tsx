@@ -1,6 +1,7 @@
 import type { Barbershop } from "@convex/schema";
 import { PackageIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { noop } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
 import type { FC } from "react";
 
@@ -81,18 +82,20 @@ export const Route = createFileRoute(
 
     if (!barbershop?._id) return;
 
-    const plan = await context.queryClient.ensureQueryData(
-      getBarbershopPlanQueryOptions(barbershop._id),
-    );
+    const plan = await context.queryClient.query({
+      ...getBarbershopPlanQueryOptions(barbershop._id),
+      staleTime: "static",
+    });
 
     if (plan?.planLimits.inventoryEnabled) {
       // Spine: the KPI strip and both charts read the same metrics query.
-      await context.queryClient.ensureQueryData(
-        salesMetricsQueryOptions(barbershop._id),
-      );
-      void context.queryClient.prefetchQuery(
-        recentSalesQueryOptions(barbershop._id),
-      );
+      await context.queryClient.query({
+        ...salesMetricsQueryOptions(barbershop._id),
+        staleTime: "static",
+      });
+      void context.queryClient
+        .query(recentSalesQueryOptions(barbershop._id))
+        .catch(noop);
     }
   },
 });

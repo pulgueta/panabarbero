@@ -38,6 +38,7 @@ Biome 2.5.8 does the formatting and linting. The other projects of the owner (`v
 - Branch `chore/oxc-migration` created from `e096eb36`.
 - T1–T3 done by the delegated writer.
 - T4 done (lint policy tuned and every finding fixed).
+- The dependency update (former T8) moved to its own PR on branch `chore/deps-update`: see `odd/tasks/deps-update.md`.
 
 ## Evidence
 

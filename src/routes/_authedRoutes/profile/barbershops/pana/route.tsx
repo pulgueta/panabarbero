@@ -12,6 +12,7 @@ import {
   useLocation,
   useParams,
 } from "@tanstack/react-router";
+import { noop } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { RecentChats } from "@/components/chat/recent-chats";
@@ -64,8 +65,10 @@ export const Route = createFileRoute("/_authedRoutes/profile/barbershops/pana")(
       const userId = context.userId;
 
       if (userId) {
-        void context.queryClient.prefetchQuery(myThreadsQueryOptions(userId));
-        void context.queryClient.prefetchQuery(getPanaAccessQueryOptions());
+        void context.queryClient
+          .query(myThreadsQueryOptions(userId))
+          .catch(noop);
+        void context.queryClient.query(getPanaAccessQueryOptions()).catch(noop);
       }
     },
   },

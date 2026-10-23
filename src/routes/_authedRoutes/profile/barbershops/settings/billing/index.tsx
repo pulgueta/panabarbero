@@ -1,6 +1,7 @@
 import { api } from "@convex/_generated/api";
 import { CustomerPortalLink } from "@convex-dev/polar/react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { noop } from "@tanstack/react-query";
 import type { FC, ReactNode } from "react";
 import { lazy, Suspense } from "react";
 
@@ -72,10 +73,19 @@ export const Route = createFileRoute(
       // creation — no unhandled-rejection window while the barbershop query
       // is in flight.
       await Promise.all([
-        queryClient.ensureQueryData(getConfiguredProductsQueryOptions()),
-        queryClient.ensureQueryData(getSubscriptionQueryOptions()),
+        queryClient.query({
+          ...getConfiguredProductsQueryOptions(),
+          staleTime: "static",
+        }),
+        queryClient.query({
+          ...getSubscriptionQueryOptions(),
+          staleTime: "static",
+        }),
         queryClient
-          .ensureQueryData(barbershopByOwnerIdQueryOptions(userId))
+          .query({
+            ...barbershopByOwnerIdQueryOptions(userId),
+            staleTime: "static",
+          })
           .then((barbershop) => {
             if (!barbershop) {
               return null;
@@ -83,14 +93,17 @@ export const Route = createFileRoute(
 
             // Streamed: the credits section suspends on these behind its own
             // Suspense boundary.
-            void queryClient.prefetchQuery(getExtraCreditsQueryOptions());
-            void queryClient.prefetchQuery(
-              getBarbershopQuotaUsageQueryOptions(barbershop._id),
-            );
+            // oxlint-disable-next-line promise/no-nesting -- fire-and-forget prefetch; nothing chains on it
+            void queryClient.query(getExtraCreditsQueryOptions()).catch(noop);
+            // oxlint-disable-next-line promise/no-nesting -- fire-and-forget prefetch; nothing chains on it
+            void queryClient
+              .query(getBarbershopQuotaUsageQueryOptions(barbershop._id))
+              .catch(noop);
 
-            return queryClient.ensureQueryData(
-              getBarbershopPlanQueryOptions(barbershop._id),
-            );
+            return queryClient.query({
+              ...getBarbershopPlanQueryOptions(barbershop._id),
+              staleTime: "static",
+            });
           }),
       ]);
     }

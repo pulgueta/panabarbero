@@ -1,6 +1,7 @@
 import type { Barbershop } from "@convex/schema";
 import { PackageIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { noop } from "@tanstack/react-query";
 import type { FC } from "react";
 
 import {
@@ -51,22 +52,25 @@ export const Route = createFileRoute(
     }
 
     if (barbershop?._id) {
-      const plan = await opts.context.queryClient.ensureQueryData(
-        getBarbershopPlanQueryOptions(barbershop._id),
-      );
+      const plan = await opts.context.queryClient.query({
+        ...getBarbershopPlanQueryOptions(barbershop._id),
+        staleTime: "static",
+      });
 
       if (!plan?.planLimits.inventoryEnabled) {
         return;
       }
 
       // Leaf: the first ledger page primes without blocking navigation.
-      void opts.context.queryClient.prefetchQuery(
-        shopMovementsPaginatedQueryOptions(
-          barbershop._id,
-          null,
-          LEDGER_PAGE_SIZE,
-        ),
-      );
+      void opts.context.queryClient
+        .query(
+          shopMovementsPaginatedQueryOptions(
+            barbershop._id,
+            null,
+            LEDGER_PAGE_SIZE,
+          ),
+        )
+        .catch(noop);
     }
   },
 });

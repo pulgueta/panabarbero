@@ -55,17 +55,19 @@ export const Route = createFileRoute(
 
     // Plan gate first: getInventoryOverview throws for inventory-disabled
     // plans, so it must not be fetched before the redirect check.
-    const plan = await context.queryClient.ensureQueryData(
-      getBarbershopPlanQueryOptions(barbershop._id),
-    );
+    const plan = await context.queryClient.query({
+      ...getBarbershopPlanQueryOptions(barbershop._id),
+      staleTime: "static",
+    });
 
     if (!plan?.planLimits.inventoryEnabled) {
       throw redirect({ to: "/profile/barbershops/inventory" });
     }
 
-    const overview = await context.queryClient.ensureQueryData(
-      inventoryOverviewQueryOptions(barbershop._id),
-    );
+    const overview = await context.queryClient.query({
+      ...inventoryOverviewQueryOptions(barbershop._id),
+      staleTime: "static",
+    });
 
     const item = overview.rows.find((row) => row._id === params.itemId);
 

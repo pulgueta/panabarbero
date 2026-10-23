@@ -89,9 +89,10 @@ export const Route = createFileRoute(
     }
 
     if (barbershop?._id) {
-      const plan = await opts.context.queryClient.ensureQueryData(
-        getBarbershopPlanQueryOptions(barbershop._id),
-      );
+      const plan = await opts.context.queryClient.query({
+        ...getBarbershopPlanQueryOptions(barbershop._id),
+        staleTime: "static",
+      });
 
       // Inventory queries throw for plans without the feature — the page
       // renders the upsell instead, so skip priming them entirely.
@@ -100,9 +101,10 @@ export const Route = createFileRoute(
       }
 
       // Spine: the overview feeds the table via useSuspenseQuery.
-      await opts.context.queryClient.ensureQueryData(
-        inventoryOverviewQueryOptions(barbershop._id),
-      );
+      await opts.context.queryClient.query({
+        ...inventoryOverviewQueryOptions(barbershop._id),
+        staleTime: "static",
+      });
     }
   },
 });

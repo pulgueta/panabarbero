@@ -69,7 +69,7 @@ export function useInventorySaleProofUrl() {
   const queryClient = useQueryClient();
 
   return (barbershopId: Barbershop["_id"], saleId: InventorySaleRow["_id"]) =>
-    queryClient.fetchQuery(saleProofUrlQueryOptions(barbershopId, saleId));
+    queryClient.query(saleProofUrlQueryOptions(barbershopId, saleId));
 }
 
 export function salesMetricsQueryOptions(barbershopId: Barbershop["_id"]) {

@@ -45,9 +45,10 @@ export const Route = createFileRoute(
     }
 
     if (barbershop?._id) {
-      const plan = await context.queryClient.ensureQueryData(
-        getBarbershopPlanQueryOptions(barbershop._id),
-      );
+      const plan = await context.queryClient.query({
+        ...getBarbershopPlanQueryOptions(barbershop._id),
+        staleTime: "static",
+      });
 
       // Without the feature the index page renders the upsell — land there.
       if (!plan?.planLimits.inventoryEnabled) {

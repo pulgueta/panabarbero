@@ -4,6 +4,7 @@ import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Hydrate } from "@tanstack/react-start";
 import { visible } from "@tanstack/react-start/hydration";
+import { noop } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
 import { z } from "zod";
 
@@ -92,63 +93,73 @@ export const Route = createFileRoute("/barbershops/$barbershopUuid/")({
     }
 
     // Critical, above-the-fold identity — block on the shop.
-    const barbershop = await context.queryClient.ensureQueryData(
-      barbershopByUuidQueryOptions(params.barbershopUuid),
-    );
+    const barbershop = await context.queryClient.query({
+      ...barbershopByUuidQueryOptions(params.barbershopUuid),
+      staleTime: "static",
+    });
 
     if (!barbershop?._id || !barbershop.isActive) {
       throw notFound();
     }
 
     // Primary content (services list + the barbers it lets you pick) — block
-    // the initial render on these.
+    // the initial render on these. The info card's metadata (map) is SSR-ed
+    // too, so block on it as well: if it streams in, the server renders the
+    // card without the map and the client hydrates it with the map (hydration
+    // mismatch). A metadata error must not fail the page, so `.catch(noop)`.
     const [, barbershopMembers] = await Promise.all([
-      context.queryClient.ensureQueryData(servicesQueryOptions(barbershop._id)),
-      context.queryClient.ensureQueryData(
-        barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
-      ),
+      context.queryClient.query({
+        ...servicesQueryOptions(barbershop._id),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+        staleTime: "static",
+      }),
+      context.queryClient
+        .query({
+          ...barbershopMetadataQueryOptions(barbershop._id),
+          staleTime: "static",
+        })
+        .catch(noop),
     ]);
 
     // Secondary / below-the-fold / interaction-only data — prime the cache
-    // without blocking. prefetchQuery never throws, and the streaming SSR
+    // without blocking. `.catch(noop)` keeps these from throwing, and the streaming SSR
     // integration hands these to the components' <Suspense>/<Hydrate>
-    // boundaries (availability + per-barber services are for the booking flow,
-    // metadata feeds the lazily-hydrated info card).
-    void context.queryClient.prefetchQuery(
-      barbershopAvailabilityQueryOptions(barbershop._id),
-    );
-    void context.queryClient.prefetchQuery(
-      barbershopMetadataQueryOptions(barbershop._id),
-    );
-    void context.queryClient.prefetchQuery(
-      reviewsByBarbershopQueryOptions(barbershop._id, 6),
-    );
-    void context.queryClient.prefetchQuery(
-      barbershopRatingQueryOptions(barbershop._id),
-    );
-    void context.queryClient.prefetchQuery(
-      barbershopRatingDistributionQueryOptions(barbershop._id),
-    );
+    // boundaries (availability + per-barber services are for the booking flow).
+    void context.queryClient
+      .query(barbershopAvailabilityQueryOptions(barbershop._id))
+      .catch(noop);
+    void context.queryClient
+      .query(reviewsByBarbershopQueryOptions(barbershop._id, 6))
+      .catch(noop);
+    void context.queryClient
+      .query(barbershopRatingQueryOptions(barbershop._id))
+      .catch(noop);
+    void context.queryClient
+      .query(barbershopRatingDistributionQueryOptions(barbershop._id))
+      .catch(noop);
     if (context.userId) {
-      void context.queryClient.prefetchQuery(
-        reviewableForBarbershopQueryOptions(barbershop._id),
-      );
+      void context.queryClient
+        .query(reviewableForBarbershopQueryOptions(barbershop._id))
+        .catch(noop);
     }
     for (const barbershopMember of barbershopMembers) {
-      void context.queryClient.prefetchQuery(
-        servicesForBarberQueryOptions(barbershopMember._id),
-      );
+      void context.queryClient
+        .query(servicesForBarberQueryOptions(barbershopMember._id))
+        .catch(noop);
     }
 
     // Viewer-specific data (used by the booking flow / barber checks, not the
     // first paint) — fire-and-forget so an authenticated session never blocks.
     if (context.userId) {
-      void context.queryClient.prefetchQuery(
-        profileQueryOptions(context.userId),
-      );
-      void context.queryClient.prefetchQuery(
-        barberByUserIdQueryOptions(context.userId),
-      );
+      void context.queryClient
+        .query(profileQueryOptions(context.userId))
+        .catch(noop);
+      void context.queryClient
+        .query(barberByUserIdQueryOptions(context.userId))
+        .catch(noop);
     }
 
     return {

@@ -1,6 +1,7 @@
 /* oxlint-disable typescript/no-non-null-assertion -- barbershop is primed by the loader and gated to owners/staff */
 
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { noop } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
 
 import {
@@ -69,21 +70,23 @@ export const Route = createFileRoute(
     }
 
     const [barbershopMembers] = await Promise.all([
-      opts.context.queryClient.ensureQueryData(
-        barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
-      ),
-      opts.context.queryClient.ensureQueryData(
-        servicesQueryOptions(barbershop._id),
-      ),
+      opts.context.queryClient.query({
+        ...barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+        staleTime: "static",
+      }),
+      opts.context.queryClient.query({
+        ...servicesQueryOptions(barbershop._id),
+        staleTime: "static",
+      }),
     ]);
 
     for (const barbershopMember of barbershopMembers) {
-      void opts.context.queryClient.prefetchQuery(
-        servicesForBarberQueryOptions(barbershopMember._id),
-      );
-      void opts.context.queryClient.prefetchQuery(
-        barberScheduleQueryOptions(barbershopMember._id),
-      );
+      void opts.context.queryClient
+        .query(servicesForBarberQueryOptions(barbershopMember._id))
+        .catch(noop);
+      void opts.context.queryClient
+        .query(barberScheduleQueryOptions(barbershopMember._id))
+        .catch(noop);
     }
   },
 });

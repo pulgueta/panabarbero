@@ -2,6 +2,7 @@
 
 import { PlusIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { noop } from "@tanstack/react-query";
 import { Suspense } from "react";
 import { z } from "zod";
 
@@ -101,32 +102,55 @@ export const Route = createFileRoute(
     // Page spine: everything the route reads via useSuspenseQuery must resolve
     // before render (plan, members, services, availability, reschedule list).
     const spinePromise = Promise.all([
-      context.queryClient.ensureQueryData(
-        getBarbershopPlanQueryOptions(barbershopId),
-      ),
-      context.queryClient.ensureQueryData(barberByUserIdQueryOptions(userId)),
-      context.queryClient.ensureQueryData(isBarberQueryOptions(userId)),
-      context.queryClient.ensureQueryData(isStaffQueryOptions(userId)),
-      context.queryClient.ensureQueryData(isOwnerQueryOptions(userId)),
-      context.queryClient.ensureQueryData(
-        barbershopAvailabilityQueryOptions(barbershopId),
-      ),
-      context.queryClient.ensureQueryData(servicesQueryOptions(barbershopId)),
-      context.queryClient.ensureQueryData(
-        barbershopMembersByBarbershopIdQueryOptions(barbershopId),
-      ),
-      context.queryClient.ensureQueryData(
-        requestRescheduleQueryOptions(barbershopId),
-      ),
+      context.queryClient.query({
+        ...getBarbershopPlanQueryOptions(barbershopId),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...barberByUserIdQueryOptions(userId),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...isBarberQueryOptions(userId),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...isStaffQueryOptions(userId),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...isOwnerQueryOptions(userId),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...barbershopAvailabilityQueryOptions(barbershopId),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...servicesQueryOptions(barbershopId),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...barbershopMembersByBarbershopIdQueryOptions(barbershopId),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...requestRescheduleQueryOptions(barbershopId),
+        staleTime: "static",
+      }),
     ]).then((results) => [results[7], results[8]] as const);
 
     // Calendar range: one day-windowed query per visible day, matching
     // useCalendarAppointments' fan-out so the grid paints without pop-in.
     const rangePromise = Promise.all(
       getRangeDayTimestamps(deps.view, new Date(deps.date)).map((ms) =>
-        context.queryClient.ensureQueryData(
-          appointmentsByBarbershopQueryOptions({ id: barbershopId, date: ms }),
-        ),
+        context.queryClient.query({
+          ...appointmentsByBarbershopQueryOptions({
+            id: barbershopId,
+            date: ms,
+          }),
+          staleTime: "static",
+        }),
       ),
     );
 
@@ -138,14 +162,14 @@ export const Route = createFileRoute(
     // Leaf drill-downs primed without blocking: the create dialog's per-barber
     // services and the reschedule table's async service cells.
     for (const member of barbershopMembers) {
-      void context.queryClient.prefetchQuery(
-        servicesForBarberQueryOptions(member._id),
-      );
+      void context.queryClient
+        .query(servicesForBarberQueryOptions(member._id))
+        .catch(noop);
     }
     for (const request of rescheduleRequests) {
-      void context.queryClient.prefetchQuery(
-        serviceByAppointmentIdQueryOptions(request._id),
-      );
+      void context.queryClient
+        .query(serviceByAppointmentIdQueryOptions(request._id))
+        .catch(noop);
     }
   },
 });

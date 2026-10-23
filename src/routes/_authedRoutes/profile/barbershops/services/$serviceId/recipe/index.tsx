@@ -56,22 +56,28 @@ export const Route = createFileRoute(
       throw redirect({ to: "/profile/barbershops/services" });
     }
 
-    const plan = await context.queryClient.ensureQueryData(
-      getBarbershopPlanQueryOptions(barbershop._id),
-    );
+    const plan = await context.queryClient.query({
+      ...getBarbershopPlanQueryOptions(barbershop._id),
+      staleTime: "static",
+    });
 
     if (!plan?.planLimits.inventoryEnabled) {
       throw redirect({ to: "/profile/barbershops/services" });
     }
 
     await Promise.all([
-      context.queryClient.ensureQueryData(servicesQueryOptions(barbershop._id)),
-      context.queryClient.ensureQueryData(
-        inventoryOverviewQueryOptions(barbershop._id),
-      ),
-      context.queryClient.ensureQueryData(
-        serviceRecipeQueryOptions(asConvexId<"services">(params.serviceId)),
-      ),
+      context.queryClient.query({
+        ...servicesQueryOptions(barbershop._id),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...inventoryOverviewQueryOptions(barbershop._id),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...serviceRecipeQueryOptions(asConvexId<"services">(params.serviceId)),
+        staleTime: "static",
+      }),
     ]);
   },
 });

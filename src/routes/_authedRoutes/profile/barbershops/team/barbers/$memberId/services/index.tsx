@@ -59,15 +59,18 @@ export const Route = createFileRoute(
     }
 
     const [members] = await Promise.all([
-      opts.context.queryClient.ensureQueryData(
-        barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
-      ),
-      opts.context.queryClient.ensureQueryData(
-        servicesQueryOptions(barbershop._id),
-      ),
-      opts.context.queryClient.ensureQueryData(
-        servicesForBarberQueryOptions(memberId),
-      ),
+      opts.context.queryClient.query({
+        ...barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+        staleTime: "static",
+      }),
+      opts.context.queryClient.query({
+        ...servicesQueryOptions(barbershop._id),
+        staleTime: "static",
+      }),
+      opts.context.queryClient.query({
+        ...servicesForBarberQueryOptions(memberId),
+        staleTime: "static",
+      }),
     ]);
 
     const member = members.find((row) => row._id === memberId);

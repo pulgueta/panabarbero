@@ -95,17 +95,19 @@ export const Route = createFileRoute(
       throw redirect({ to: "/profile/barbershops/inventory" });
     }
 
-    const plan = await context.queryClient.ensureQueryData(
-      getBarbershopPlanQueryOptions(barbershop._id),
-    );
+    const plan = await context.queryClient.query({
+      ...getBarbershopPlanQueryOptions(barbershop._id),
+      staleTime: "static",
+    });
 
     if (!plan?.planLimits.inventoryEnabled) {
       throw redirect({ to: "/profile/barbershops/inventory" });
     }
 
-    await context.queryClient.ensureQueryData(
-      archivedInventoryQueryOptions(barbershop._id),
-    );
+    await context.queryClient.query({
+      ...archivedInventoryQueryOptions(barbershop._id),
+      staleTime: "static",
+    });
   },
 });
 

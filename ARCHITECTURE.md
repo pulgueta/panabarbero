@@ -47,8 +47,10 @@ const { updateThingMutation: {
 ```
 
 Loaders prefer `context.userId` over re-fetching the session. **Block** the
-loader (`await context.queryClient.ensureQueryData(opts)`) only for first-paint
-data; otherwise **stream** it (`void context.queryClient.prefetchQuery(opts)`).
+loader (`await context.queryClient.query({ ...opts, staleTime: "static" })`) only
+for first-paint data; otherwise **stream** it
+(`void context.queryClient.query(opts).catch(noop)`). `ensureQueryData` and
+`prefetchQuery` are deprecated since TanStack Query 5.102.
 See `src/hooks/use-barbershop-members.ts` for the canonical multi-factory hook
 and `src/routes/_authedRoutes/profile/index.tsx` for loader prefetch usage.
 **Relations:** §2 (auth context that feeds `userId`), §1.4 (the Convex function
@@ -210,7 +212,7 @@ WorkOS AuthKit (`@workos/authkit-tanstack-react-start` 0.11.0 +
   mount.
 - **Auth is fetched once per request, not per navigation.** The snapshot lives
   in `getWorkosAuthQueryOptions()` (`src/hooks/use-session.ts`) with infinite
-  `staleTime`/`gcTime`. The root `beforeLoad` reads it via `ensureQueryData`.
+  `staleTime`/`gcTime`. The root `beforeLoad` reads it via `queryClient.query` with `staleTime: "static"`.
   **Do not** call a `getAuth()` server fn directly in `beforeLoad` — that fires
   an RPC on every navigation *and* every intent preload (2–3 s entry latency).
   Auth only changes through full-page redirects (hosted login/logout), so the
