@@ -26,6 +26,8 @@ export default defineConfig({
     "convex/_generated/**/*",
     "src/routeTree.gen.ts",
     "src/components/ui/**/*",
+    // Vendored ReUI registry component.
+    "src/components/calendar/**/*",
     ".agents/**/*",
     ".claude/**/*",
     ".codex/**/*",
@@ -72,6 +74,7 @@ export default defineConfig({
         "src/components/inventory/movement-trend-chart.tsx",
         "src/components/inventory/sales/sales-revenue-chart.tsx",
         "src/components/inventory/sales/top-products-chart.tsx",
+        "src/components/landing/metrics-section.tsx",
         "src/components/reviews/shop/rating-trend.tsx",
       ],
       rules: {
@@ -160,6 +163,11 @@ export default defineConfig({
           },
         ],
       },
+    ],
+    // `||` on strings is the intended empty-string fallback.
+    "typescript/prefer-nullish-coalescing": [
+      "error",
+      { ignorePrimitives: { string: true } },
     ],
     // `fn(undefined)` and `.eq("field", undefined)` state intent in Convex
     // filters and form resets.
