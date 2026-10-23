@@ -1,6 +1,6 @@
 /* oxlint-disable typescript/no-non-null-assertion -- the authed layout guarantees a session; the hooks return undefined until the data loads */
 
-import { useQuery } from "@tanstack/react-query";
+import { noop, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
@@ -141,52 +141,73 @@ export const Route = createFileRoute("/_authedRoutes/profile/")({
       // roles and the owner barbershop via useQuery for every user, so priming
       // them here is never wasted.
       const [appointments, barbershop] = await Promise.all([
-        context.queryClient.ensureQueryData(
-          appointmentsByUserQueryOptions(userId),
-        ),
-        context.queryClient.ensureQueryData(
-          barbershopByOwnerIdQueryOptions(userId),
-        ),
-        context.queryClient.ensureQueryData(isBarberQueryOptions(userId)),
-        context.queryClient.ensureQueryData(isOwnerQueryOptions(userId)),
-        context.queryClient.ensureQueryData(isStaffQueryOptions(userId)),
-        context.queryClient.ensureQueryData(profileQueryOptions(userId)),
-        context.queryClient.ensureQueryData(
-          barbershopMemberRolesQueryOptions(userId),
-        ),
+        context.queryClient.query({
+          ...appointmentsByUserQueryOptions(userId),
+          staleTime: "static",
+        }),
+        context.queryClient.query({
+          ...barbershopByOwnerIdQueryOptions(userId),
+          staleTime: "static",
+        }),
+        context.queryClient.query({
+          ...isBarberQueryOptions(userId),
+          staleTime: "static",
+        }),
+        context.queryClient.query({
+          ...isOwnerQueryOptions(userId),
+          staleTime: "static",
+        }),
+        context.queryClient.query({
+          ...isStaffQueryOptions(userId),
+          staleTime: "static",
+        }),
+        context.queryClient.query({
+          ...profileQueryOptions(userId),
+          staleTime: "static",
+        }),
+        context.queryClient.query({
+          ...barbershopMemberRolesQueryOptions(userId),
+          staleTime: "static",
+        }),
       ]);
 
       // Quota usage only feeds an owner tab — defer it.
       if (barbershop) {
-        void context.queryClient.prefetchQuery(
-          getBarbershopQuotaUsageQueryOptions(barbershop._id),
-        );
+        void context.queryClient
+          .query(getBarbershopQuotaUsageQueryOptions(barbershop._id))
+          .catch(noop);
       }
 
       // Tab-specific data — every consumer lives inside a <Suspense>-wrapped
       // lazy tab, so prime the cache without blocking the shell or default tab.
-      void context.queryClient.prefetchQuery(getExtraCreditsQueryOptions());
-      void context.queryClient.prefetchQuery(
-        unreadNotificationsCountQueryOptions(),
-      );
-      void context.queryClient.prefetchQuery(lastReadQueryOptions());
-      void context.queryClient.prefetchQuery(
-        notificationsPageQueryOptions({ cursor: null, numItems: 20 }),
-      );
-      void context.queryClient.prefetchQuery(
-        unreadNotificationsPageQueryOptions({ cursor: null, numItems: 20 }),
-      );
-      void context.queryClient.prefetchQuery(recentNotificationsQueryOptions());
-      void context.queryClient.prefetchQuery(
-        myReviewsNeedingAttentionCountQueryOptions(),
-      );
+      void context.queryClient.query(getExtraCreditsQueryOptions()).catch(noop);
+      void context.queryClient
+        .query(unreadNotificationsCountQueryOptions())
+        .catch(noop);
+      void context.queryClient.query(lastReadQueryOptions()).catch(noop);
+      void context.queryClient
+        .query(notificationsPageQueryOptions({ cursor: null, numItems: 20 }))
+        .catch(noop);
+      void context.queryClient
+        .query(
+          unreadNotificationsPageQueryOptions({ cursor: null, numItems: 20 }),
+        )
+        .catch(noop);
+      void context.queryClient
+        .query(recentNotificationsQueryOptions())
+        .catch(noop);
+      void context.queryClient
+        .query(myReviewsNeedingAttentionCountQueryOptions())
+        .catch(noop);
 
       if (appointments) {
-        void context.queryClient.prefetchQuery(
-          servicesByIdsQueryOptions(
-            appointments.page.map((appointment) => appointment.serviceId),
-          ),
-        );
+        void context.queryClient
+          .query(
+            servicesByIdsQueryOptions(
+              appointments.page.map((appointment) => appointment.serviceId),
+            ),
+          )
+          .catch(noop);
       }
     }
   },
@@ -211,7 +232,7 @@ function ProfilePage() {
     useAppointmentsByUser(user?.id!, cursor);
   const { data: profile } = useProfile(user?.id!);
   // Non-suspense read: the loader only *streams* this badge count
-  // (`void prefetchQuery`), so consuming it with `useSuspenseQuery` would let a
+  // (`void query().catch(noop)`), so consuming it with `useSuspenseQuery` would let a
   // non-critical tab badge suspend the whole profile shell on slow paths. Plain
   // `useQuery` degrades gracefully — shell paints immediately, badge fills in.
   const { data: reviewsNeedingAttention = 0 } = useQuery(

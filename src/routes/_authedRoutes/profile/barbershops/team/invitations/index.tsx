@@ -55,9 +55,10 @@ export const Route = createFileRoute(
     }
 
     if (barbershop?._id) {
-      await opts.context.queryClient.ensureQueryData(
-        invitationsListQueryOptions(barbershop._id),
-      );
+      await opts.context.queryClient.query({
+        ...invitationsListQueryOptions(barbershop._id),
+        staleTime: "static",
+      });
     }
   },
 });

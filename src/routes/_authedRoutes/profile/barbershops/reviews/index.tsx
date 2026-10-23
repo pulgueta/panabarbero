@@ -1,4 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { noop } from "@tanstack/react-query";
 import type { FC } from "react";
 
 import {
@@ -45,17 +46,18 @@ export const Route = createFileRoute(
 
     if (barbershop?._id) {
       // Spine: the stats power the KPI strip + distribution, ready on first paint.
-      await opts.context.queryClient.ensureQueryData(
-        shopReviewStatsQueryOptions(barbershop._id),
-      );
+      await opts.context.queryClient.query({
+        ...shopReviewStatsQueryOptions(barbershop._id),
+        staleTime: "static",
+      });
 
       // Leaves: prime without blocking navigation.
-      void opts.context.queryClient.prefetchQuery(
-        shopRatingTrendQueryOptions(barbershop._id),
-      );
-      void opts.context.queryClient.prefetchQuery(
-        shopReviewBreakdownQueryOptions(barbershop._id),
-      );
+      void opts.context.queryClient
+        .query(shopRatingTrendQueryOptions(barbershop._id))
+        .catch(noop);
+      void opts.context.queryClient
+        .query(shopReviewBreakdownQueryOptions(barbershop._id))
+        .catch(noop);
     }
   },
 });

@@ -7,6 +7,7 @@ import {
   UsersIcon,
 } from "@phosphor-icons/react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { noop } from "@tanstack/react-query";
 import { useEffect, useId, useState } from "react";
 import { z } from "zod";
 
@@ -85,9 +86,10 @@ export const Route = createFileRoute(
     const isStaff = roles?.isStaff ?? false;
     const isOwner = roles?.isOwner ?? false;
 
-    const plan = await context.queryClient.ensureQueryData(
-      getBarbershopPlanQueryOptions(barbershop._id),
-    );
+    const plan = await context.queryClient.query({
+      ...getBarbershopPlanQueryOptions(barbershop._id),
+      staleTime: "static",
+    });
 
     if (
       !plan?.planLimits.staffCanCreateAppointments ||
@@ -97,23 +99,40 @@ export const Route = createFileRoute(
     }
 
     const [members] = await Promise.all([
-      context.queryClient.ensureQueryData(
-        barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
-      ),
-      context.queryClient.ensureQueryData(barberByUserIdQueryOptions(userId)),
-      context.queryClient.ensureQueryData(isBarberQueryOptions(userId)),
-      context.queryClient.ensureQueryData(isStaffQueryOptions(userId)),
-      context.queryClient.ensureQueryData(isOwnerQueryOptions(userId)),
-      context.queryClient.ensureQueryData(
-        barbershopAvailabilityQueryOptions(barbershop._id),
-      ),
-      context.queryClient.ensureQueryData(servicesQueryOptions(barbershop._id)),
+      context.queryClient.query({
+        ...barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...barberByUserIdQueryOptions(userId),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...isBarberQueryOptions(userId),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...isStaffQueryOptions(userId),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...isOwnerQueryOptions(userId),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...barbershopAvailabilityQueryOptions(barbershop._id),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...servicesQueryOptions(barbershop._id),
+        staleTime: "static",
+      }),
     ]);
 
     for (const member of members) {
-      void context.queryClient.prefetchQuery(
-        servicesForBarberQueryOptions(member._id),
-      );
+      void context.queryClient
+        .query(servicesForBarberQueryOptions(member._id))
+        .catch(noop);
     }
   },
 });

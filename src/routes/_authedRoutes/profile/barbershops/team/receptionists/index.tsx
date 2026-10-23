@@ -68,12 +68,14 @@ export const Route = createFileRoute(
 
     if (barbershop?._id) {
       await Promise.all([
-        opts.context.queryClient.ensureQueryData(
-          staffByBarbershopIdQueryOptions(barbershop._id),
-        ),
-        opts.context.queryClient.ensureQueryData(
-          getBarbershopPlanQueryOptions(barbershop._id),
-        ),
+        opts.context.queryClient.query({
+          ...staffByBarbershopIdQueryOptions(barbershop._id),
+          staleTime: "static",
+        }),
+        opts.context.queryClient.query({
+          ...getBarbershopPlanQueryOptions(barbershop._id),
+          staleTime: "static",
+        }),
       ]);
     }
   },

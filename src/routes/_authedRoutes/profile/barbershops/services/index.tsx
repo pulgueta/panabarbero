@@ -98,18 +98,21 @@ export const Route = createFileRoute(
 
     if (barbershop?._id) {
       const [, plan] = await Promise.all([
-        opts.context.queryClient.ensureQueryData(
-          servicesQueryOptions(barbershop._id),
-        ),
-        opts.context.queryClient.ensureQueryData(
-          getBarbershopPlanQueryOptions(barbershop._id),
-        ),
+        opts.context.queryClient.query({
+          ...servicesQueryOptions(barbershop._id),
+          staleTime: "static",
+        }),
+        opts.context.queryClient.query({
+          ...getBarbershopPlanQueryOptions(barbershop._id),
+          staleTime: "static",
+        }),
       ]);
 
       if (plan?.planLimits.inventoryEnabled) {
-        await opts.context.queryClient.ensureQueryData(
-          serviceSupplyCountsQueryOptions(barbershop._id),
-        );
+        await opts.context.queryClient.query({
+          ...serviceSupplyCountsQueryOptions(barbershop._id),
+          staleTime: "static",
+        });
       }
     }
   },

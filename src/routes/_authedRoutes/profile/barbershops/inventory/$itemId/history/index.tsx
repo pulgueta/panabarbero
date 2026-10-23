@@ -5,6 +5,7 @@ import {
   PackageIcon,
 } from "@phosphor-icons/react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { noop } from "@tanstack/react-query";
 import type { FC } from "react";
 import { z } from "zod";
 
@@ -65,25 +66,27 @@ export const Route = createFileRoute(
       throw redirect({ to: "/profile/barbershops/inventory" });
     }
 
-    const plan = await context.queryClient.ensureQueryData(
-      getBarbershopPlanQueryOptions(barbershop._id),
-    );
+    const plan = await context.queryClient.query({
+      ...getBarbershopPlanQueryOptions(barbershop._id),
+      staleTime: "static",
+    });
 
     if (!plan?.planLimits.inventoryEnabled) {
       throw redirect({ to: "/profile/barbershops/inventory" });
     }
 
-    const itemData = await context.queryClient.ensureQueryData(
-      inventoryItemQueryOptions(itemId),
-    );
+    const itemData = await context.queryClient.query({
+      ...inventoryItemQueryOptions(itemId),
+      staleTime: "static",
+    });
 
     if (itemData.item.barbershopId !== barbershop._id) {
       throw redirect({ to: "/profile/barbershops/inventory" });
     }
 
-    void context.queryClient.prefetchQuery(
-      inventoryItemAuditQueryOptions(itemId, 20),
-    );
+    void context.queryClient
+      .query(inventoryItemAuditQueryOptions(itemId, 20))
+      .catch(noop);
   },
 });
 

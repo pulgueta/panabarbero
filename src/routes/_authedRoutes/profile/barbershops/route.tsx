@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { noop } from "@tanstack/react-query";
 
 import { DASHBOARD_GUTTER_X } from "@/components/dashboard/dashboard-gutter";
 import { DashboardPending } from "@/components/dashboard/dashboard-pending";
@@ -33,12 +34,14 @@ export const Route = createFileRoute("/_authedRoutes/profile/barbershops")({
     }
 
     const [barbershop, roles] = await Promise.all([
-      context.queryClient.ensureQueryData(
-        barbershopByMemberUserIdQueryOptions(userId),
-      ),
-      context.queryClient.ensureQueryData(
-        barbershopMemberRolesQueryOptions(userId),
-      ),
+      context.queryClient.query({
+        ...barbershopByMemberUserIdQueryOptions(userId),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...barbershopMemberRolesQueryOptions(userId),
+        staleTime: "static",
+      }),
     ]);
 
     // The dashboard is for members only. A customer (no membership) has no
@@ -55,9 +58,9 @@ export const Route = createFileRoute("/_authedRoutes/profile/barbershops")({
   },
   loader: ({ context }) => {
     if (context.dashboardBarbershop?._id) {
-      void context.queryClient.prefetchQuery(
-        getBarbershopPlanQueryOptions(context.dashboardBarbershop._id),
-      );
+      void context.queryClient
+        .query(getBarbershopPlanQueryOptions(context.dashboardBarbershop._id))
+        .catch(noop);
     }
   },
 });

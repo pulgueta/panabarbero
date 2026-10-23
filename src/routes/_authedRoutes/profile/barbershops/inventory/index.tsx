@@ -1,6 +1,7 @@
 import type { Barbershop } from "@convex/schema";
 import { PackageIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { noop } from "@tanstack/react-query";
 import type { FC } from "react";
 import { lazy, Suspense } from "react";
 
@@ -95,9 +96,10 @@ export const Route = createFileRoute(
     }
 
     if (barbershop?._id) {
-      const plan = await opts.context.queryClient.ensureQueryData(
-        getBarbershopPlanQueryOptions(barbershop._id),
-      );
+      const plan = await opts.context.queryClient.query({
+        ...getBarbershopPlanQueryOptions(barbershop._id),
+        staleTime: "static",
+      });
 
       // Inventory queries throw for plans without the feature — the page
       // renders the upsell instead, so skip priming them entirely.
@@ -106,32 +108,35 @@ export const Route = createFileRoute(
       }
 
       // Spine: the overview feeds the category breakdown via useSuspenseQuery.
-      await opts.context.queryClient.ensureQueryData(
-        inventoryOverviewQueryOptions(barbershop._id),
-      );
+      await opts.context.queryClient.query({
+        ...inventoryOverviewQueryOptions(barbershop._id),
+        staleTime: "static",
+      });
 
       // The remaining widgets expose costs and the full movement ledger.
       if (canManage) {
         // Leaves: prime the KPI strip, charts and recent activity without blocking.
-        void opts.context.queryClient.prefetchQuery(
-          valuationQueryOptions(barbershop._id),
-        );
-        void opts.context.queryClient.prefetchQuery(
-          lowStockQueryOptions(barbershop._id),
-        );
-        void opts.context.queryClient.prefetchQuery(
-          monthlyConsumptionQueryOptions(barbershop._id),
-        );
-        void opts.context.queryClient.prefetchQuery(
-          movementTrendQueryOptions(barbershop._id),
-        );
-        void opts.context.queryClient.prefetchQuery(
-          shopMovementsPaginatedQueryOptions(
-            barbershop._id,
-            null,
-            RECENT_MOVEMENTS_PAGE_SIZE,
-          ),
-        );
+        void opts.context.queryClient
+          .query(valuationQueryOptions(barbershop._id))
+          .catch(noop);
+        void opts.context.queryClient
+          .query(lowStockQueryOptions(barbershop._id))
+          .catch(noop);
+        void opts.context.queryClient
+          .query(monthlyConsumptionQueryOptions(barbershop._id))
+          .catch(noop);
+        void opts.context.queryClient
+          .query(movementTrendQueryOptions(barbershop._id))
+          .catch(noop);
+        void opts.context.queryClient
+          .query(
+            shopMovementsPaginatedQueryOptions(
+              barbershop._id,
+              null,
+              RECENT_MOVEMENTS_PAGE_SIZE,
+            ),
+          )
+          .catch(noop);
       }
     }
   },

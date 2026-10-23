@@ -5,6 +5,7 @@ import {
   Outlet,
   useParams,
 } from "@tanstack/react-router";
+import { noop } from "@tanstack/react-query";
 
 import { RecentChats } from "@/components/chat/recent-chats";
 import { BorderContainer } from "@/components/layout/border-container";
@@ -37,8 +38,8 @@ export const Route = createFileRoute("/chat")({
     const userId = context.userId;
 
     if (userId) {
-      void context.queryClient.prefetchQuery(myThreadsQueryOptions(userId));
-      void context.queryClient.prefetchQuery(getPanaAccessQueryOptions());
+      void context.queryClient.query(myThreadsQueryOptions(userId)).catch(noop);
+      void context.queryClient.query(getPanaAccessQueryOptions()).catch(noop);
     }
   },
 });

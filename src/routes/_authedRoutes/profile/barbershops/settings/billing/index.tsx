@@ -72,10 +72,19 @@ export const Route = createFileRoute(
       // creation — no unhandled-rejection window while the barbershop query
       // is in flight.
       await Promise.all([
-        queryClient.ensureQueryData(getConfiguredProductsQueryOptions()),
-        queryClient.ensureQueryData(getSubscriptionQueryOptions()),
+        queryClient.query({
+          ...getConfiguredProductsQueryOptions(),
+          staleTime: "static",
+        }),
+        queryClient.query({
+          ...getSubscriptionQueryOptions(),
+          staleTime: "static",
+        }),
         queryClient
-          .ensureQueryData(barbershopByOwnerIdQueryOptions(userId))
+          .query({
+            ...barbershopByOwnerIdQueryOptions(userId),
+            staleTime: "static",
+          })
           .then((barbershop) => {
             if (!barbershop) {
               return null;
@@ -83,14 +92,17 @@ export const Route = createFileRoute(
 
             // Streamed: the credits section suspends on these behind its own
             // Suspense boundary.
-            void queryClient.prefetchQuery(getExtraCreditsQueryOptions());
-            void queryClient.prefetchQuery(
-              getBarbershopQuotaUsageQueryOptions(barbershop._id),
-            );
+            void Promise.allSettled([
+              queryClient.query(getExtraCreditsQueryOptions()),
+              queryClient.query(
+                getBarbershopQuotaUsageQueryOptions(barbershop._id),
+              ),
+            ]);
 
-            return queryClient.ensureQueryData(
-              getBarbershopPlanQueryOptions(barbershop._id),
-            );
+            return queryClient.query({
+              ...getBarbershopPlanQueryOptions(barbershop._id),
+              staleTime: "static",
+            });
           }),
       ]);
     }

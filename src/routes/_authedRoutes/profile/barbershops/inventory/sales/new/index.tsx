@@ -62,14 +62,16 @@ export const Route = createFileRoute(
 
     if (!barbershop?._id) return;
 
-    const plan = await context.queryClient.ensureQueryData(
-      getBarbershopPlanQueryOptions(barbershop._id),
-    );
+    const plan = await context.queryClient.query({
+      ...getBarbershopPlanQueryOptions(barbershop._id),
+      staleTime: "static",
+    });
 
     if (plan?.planLimits.inventoryEnabled) {
-      await context.queryClient.ensureQueryData(
-        sellableItemsQueryOptions(barbershop._id),
-      );
+      await context.queryClient.query({
+        ...sellableItemsQueryOptions(barbershop._id),
+        staleTime: "static",
+      });
     }
   },
 });
