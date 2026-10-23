@@ -34,6 +34,7 @@ minimumReleaseAgeExclude:
   - '@tanstack/react-form@1.33.5'
   - ultracite@8.0.2
 patchedDependencies:
+  '@tanstack/react-start-client@1.168.43': patches/@tanstack__react-start-client@1.168.43.patch
   convex-whatsapp@1.1.5: patches/convex-whatsapp@1.1.5.patch
 overrides:
   '@polar-sh/sdk': 0.49.0

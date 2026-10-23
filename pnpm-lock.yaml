@@ -166,6 +166,7 @@ overrides:
   '@polar-sh/sdk': 0.49.0
 
 patchedDependencies:
+  '@tanstack/react-start-client@1.168.43': 4a79aa9fdde873074a9e392c0c2eb85c9a34c950aa158cbe0945d6ad20de7209
   convex-whatsapp@1.1.5: 454d79d1d2374d47936bf803acf5b74e0ac692f6bdd273d693f74939e5e109e8
 
 importers:
@@ -10090,7 +10091,7 @@ snapshots:
       react: 19.2.9
       react-dom: 19.2.9(react@19.2.9)
 
-  '@tanstack/react-start-client@1.168.43(react-dom@19.2.9(react@19.2.9))(react@19.2.9)':
+  '@tanstack/react-start-client@1.168.43(patch_hash=4a79aa9fdde873074a9e392c0c2eb85c9a34c950aa158cbe0945d6ad20de7209)(react-dom@19.2.9(react@19.2.9))(react@19.2.9)':
     dependencies:
       '@tanstack/react-router': 1.170.45(react-dom@19.2.9(react@19.2.9))(react@19.2.9)
       '@tanstack/router-core': 1.171.38
@@ -10134,7 +10135,7 @@ snapshots:
   '@tanstack/react-start@1.169.3(esbuild@0.28.2)(react-dom@19.2.9(react@19.2.9))(react@19.2.9)(rolldown@1.2.15)(supports-color@10.2.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))':
     dependencies:
       '@tanstack/react-router': 1.170.45(react-dom@19.2.9(react@19.2.9))(react@19.2.9)
-      '@tanstack/react-start-client': 1.168.43(react-dom@19.2.9(react@19.2.9))(react@19.2.9)
+      '@tanstack/react-start-client': 1.168.43(patch_hash=4a79aa9fdde873074a9e392c0c2eb85c9a34c950aa158cbe0945d6ad20de7209)(react-dom@19.2.9(react@19.2.9))(react@19.2.9)
       '@tanstack/react-start-rsc': 0.1.64(esbuild@0.28.2)(react-dom@19.2.9(react@19.2.9))(react@19.2.9)(rolldown@1.2.15)(supports-color@10.2.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
       '@tanstack/react-start-server': 1.167.51(react-dom@19.2.9(react@19.2.9))(react@19.2.9)
       '@tanstack/router-utils': 1.162.4(supports-color@10.2.2)
