@@ -42,7 +42,7 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
   const setLocationState = useLocationStore((s) => s.setState);
   const setLocationCity = useLocationStore((s) => s.setCity);
 
-  // oxlint-disable-next-line react-doctor/no-derived-useState -- the inputs are uncontrolled: the form snapshots the saved values once, as the previous refs did
+  // oxlint-disable-next-line react-doctor/no-derived-useState -- the controlled inputs edit a draft that starts from the saved values once
   const [fullAddress, setFullAddress] = useState(
     barbershop.address.fullAddress,
   );
@@ -124,7 +124,7 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
             <FieldLabel htmlFor={ids.address}>Dirección</FieldLabel>
             <Input
               id={ids.address}
-              defaultValue={fullAddress}
+              value={fullAddress}
               onChange={(e) => {
                 setFullAddress(e.target.value);
               }}
@@ -138,7 +138,7 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
             <FieldLabel htmlFor={ids.details}>Detalles</FieldLabel>
             <Input
               id={ids.details}
-              defaultValue={details}
+              value={details}
               onChange={(e) => {
                 setDetails(e.target.value);
               }}
@@ -202,7 +202,7 @@ export const AddressForm: FC<AddressFormProps> = ({ barbershop }) => {
             <FieldLabel htmlFor={ids.zip}>Código postal</FieldLabel>
             <Input
               id={ids.zip}
-              defaultValue={zip}
+              value={zip}
               onChange={(e) => {
                 setZip(e.target.value);
               }}

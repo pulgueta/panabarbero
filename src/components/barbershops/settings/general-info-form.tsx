@@ -24,7 +24,7 @@ export const GeneralInfoForm: FC<GeneralInfoFormProps> = ({ barbershop }) => {
     name: useId(),
     description: useId(),
   };
-  // oxlint-disable-next-line react-doctor/no-derived-useState -- the inputs are uncontrolled: the form snapshots the saved values once, as the previous refs did
+  // oxlint-disable-next-line react-doctor/no-derived-useState -- the controlled inputs edit a draft that starts from the saved values once
   const [name, setName] = useState(barbershop.name);
   const [description, setDescription] = useState(barbershop.description ?? "");
 
@@ -77,7 +77,7 @@ export const GeneralInfoForm: FC<GeneralInfoFormProps> = ({ barbershop }) => {
           <FieldLabel htmlFor={ids.name}>Nombre</FieldLabel>
           <Input
             id={ids.name}
-            defaultValue={name}
+            value={name}
             onChange={(e) => {
               setName(e.target.value);
             }}
@@ -91,7 +91,7 @@ export const GeneralInfoForm: FC<GeneralInfoFormProps> = ({ barbershop }) => {
           <FieldLabel htmlFor={ids.description}>Descripción</FieldLabel>
           <Input
             id={ids.description}
-            defaultValue={description}
+            value={description}
             onChange={(e) => {
               setDescription(e.target.value);
             }}
