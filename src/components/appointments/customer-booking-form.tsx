@@ -485,7 +485,7 @@ export const CustomerBookingForm: FC<CustomerBookingFormProps> = ({
                       value={field.state.value}
                       onValueChange={(value) => {
                         startTransition(() => {
-                          if (value !== null) field.handleChange(value);
+                          field.handleChange(value ?? undefined);
                           setSelectedSlotTime(undefined);
                         });
                       }}
