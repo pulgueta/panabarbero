@@ -19,7 +19,7 @@ export interface PastAppointmentReminderEmailProps {
 }
 
 export const PastAppointmentReminderEmail = ({
-  subject = "Recordatorio de cita pasada",
+  subject,
 }: PastAppointmentReminderEmailProps) => {
   return (
     <Html lang="es" dir="ltr">
@@ -55,5 +55,9 @@ export const PastAppointmentReminderEmail = ({
     </Html>
   );
 };
+
+PastAppointmentReminderEmail.PreviewProps = {
+  subject: "Recordatorio de cita pasada",
+} satisfies Partial<PastAppointmentReminderEmailProps>;
 
 export default PastAppointmentReminderEmail;

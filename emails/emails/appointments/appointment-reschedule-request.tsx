@@ -22,7 +22,7 @@ export interface AppointmentRescheduleRequestEmailProps {
 
 export const AppointmentRescheduleRequestEmail = ({
   requestUrl,
-  subject = "Solicitud de reagendamiento",
+  subject,
   body,
 }: AppointmentRescheduleRequestEmailProps) => {
   return (
@@ -62,5 +62,9 @@ export const AppointmentRescheduleRequestEmail = ({
     </Html>
   );
 };
+
+AppointmentRescheduleRequestEmail.PreviewProps = {
+  subject: "Solicitud de reagendamiento",
+} satisfies Partial<AppointmentRescheduleRequestEmailProps>;
 
 export default AppointmentRescheduleRequestEmail;

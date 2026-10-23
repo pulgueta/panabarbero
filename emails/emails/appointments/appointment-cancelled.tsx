@@ -19,8 +19,8 @@ export interface AppointmentCancelledEmailProps {
 }
 
 export const AppointmentCancelledEmail = ({
-  notes = "Sin motivo alguno. Esto es un mensaje de prueba para ver como se ve el texto en el email.",
-  subject = "Cita cancelada",
+  notes,
+  subject,
   body,
 }: AppointmentCancelledEmailProps) => {
   return (
@@ -52,5 +52,10 @@ export const AppointmentCancelledEmail = ({
     </Html>
   );
 };
+
+AppointmentCancelledEmail.PreviewProps = {
+  notes: "Sin motivo alguno. Esto es un mensaje de prueba para ver como se ve el texto en el email.",
+  subject: "Cita cancelada",
+} satisfies Partial<AppointmentCancelledEmailProps>;
 
 export default AppointmentCancelledEmail;

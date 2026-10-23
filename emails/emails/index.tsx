@@ -1,3 +1,4 @@
+/* oxlint-disable oxc/no-barrel-file -- the single import point for convex/emails.ts; the count is react-email's own module graph */
 export * from "./appointments/appointment-cancelled";
 export * from "./appointments/appointment-created";
 export * from "./appointments/appointment-reminder";
