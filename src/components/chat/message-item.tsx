@@ -33,7 +33,8 @@ const THINKING_PHRASES = [
 function pickThinkingPhrase(seed: string): string {
   let h = 0;
   for (let i = 0; i < seed.length; i++) {
-    h = Math.imul(31, h) + (seed.codePointAt(i) ?? 0);
+    // oxlint-disable-next-line unicorn/prefer-code-point -- UTF-16 code units keep the existing phrase hash stable
+    h = Math.imul(31, h) + seed.charCodeAt(i);
   }
   const idx = Math.abs(h) % THINKING_PHRASES.length;
   return THINKING_PHRASES[idx] ?? THINKING_PHRASES[0];
