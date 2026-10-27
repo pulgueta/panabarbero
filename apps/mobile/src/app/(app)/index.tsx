@@ -1,15 +1,26 @@
 import { api } from "@panabarbero/backend/convex/_generated/api";
 import { useConvexConnectionState, useQuery } from "convex/react";
-import { Button, Card, Chip } from "heroui-native";
+import { Button, Card, Chip, Typography } from "heroui-native";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BrandWordmark } from "@/components/brand-wordmark";
+import { type Access, useAccess } from "@/hooks/use-access";
 import { useAuth } from "@/providers/auth-provider";
+
+type Membership = NonNullable<Access["membership"]>;
+
+/** Highest role wins: owner > staff > barber. */
+function roleLabel(membership: Membership) {
+  if (membership.isOwner) return "Dueño";
+  if (membership.isStaff) return "Recepción";
+  return "Barbero";
+}
 
 export default function HomeScreen() {
   const { user: sessionUser, signOut } = useAuth();
   const currentUser = useQuery(api.auth.getCurrentUser);
+  const membership = useAccess()?.membership;
   const { isWebSocketConnected } = useConvexConnectionState();
   const insets = useSafeAreaInsets();
 
@@ -24,6 +35,17 @@ export default function HomeScreen() {
       <BrandWordmark />
 
       <View className="gap-3">
+        {membership ? (
+          <View className="flex-row items-center gap-2">
+            <Typography weight="semibold">
+              {membership.barbershopName}
+            </Typography>
+            <Chip size="sm" variant="soft">
+              {roleLabel(membership)}
+            </Chip>
+          </View>
+        ) : null}
+
         <Card>
           <Card.Body>
             <Card.Title>{name}</Card.Title>
