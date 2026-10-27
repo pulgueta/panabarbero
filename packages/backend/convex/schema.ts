@@ -237,6 +237,8 @@ export const appointments = zodTable("appointments", (id) => ({
   deletedAt: z.number().optional(),
   upcomingNotificationId: id("_scheduled_functions").optional(),
   pastReminderNotificationId: id("_scheduled_functions").optional(),
+  /** Stamped once when the customer marks they are on their way. */
+  customerOnMyWayAt: z.number().optional(),
   /**
    * Single-use review token minted when this appointment is marked completed
    * (only for authenticated customers). Consumed when the review is created.
@@ -336,6 +338,8 @@ export const notificationKinds = [
   "appointment_reschedule_denied",
   "appointment_reminder",
   "past_appointment_reminder",
+  "customer_on_my_way",
+  "appointment_reassigned",
   "team_invited",
   "barber_removed_cancellation",
   "service_deleted_cancellation",
