@@ -50,7 +50,10 @@ import {
   useAppointmentActions,
   useAppointmentFormMetadata,
 } from "@/hooks/use-appointments";
-import { useBarbersForServices } from "@/hooks/use-barbershop-members";
+import {
+  type PublicBarber,
+  useBarbersForServices,
+} from "@/hooks/use-barbershop-members";
 import { useProfile } from "@/hooks/use-profile";
 import { useSession } from "@/hooks/use-session";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
@@ -75,7 +78,7 @@ import { TimeSlotPicker } from "./time-slot-picker";
 interface CustomerBookingFormProps {
   barbershop: Barbershop;
   services: Service[];
-  barbers: BarbershopMemberWithName[];
+  barbers: PublicBarber[];
   /** Deep-linked `?serviceId=` match, rendered as selected until the store seeds. */
   initialService?: Service;
 }

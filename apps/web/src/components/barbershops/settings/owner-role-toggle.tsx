@@ -24,7 +24,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import {
   useBarbershopMemberActions,
-  useBarbershopMembersByBarbershopId,
+  useTeamByBarbershopId,
 } from "@/hooks/use-barbershop-members";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 
@@ -55,7 +55,7 @@ export const OwnerRoleToggle: FC<OwnerRoleToggleProps> = ({
 
   const haptic = useWebHaptics();
 
-  const { data: allMembers } = useBarbershopMembersByBarbershopId(barbershopId);
+  const { data: allMembers } = useTeamByBarbershopId(barbershopId);
   const {
     toggleBarberRoleMutation: {
       mutateAsync: toggleBarberRole,

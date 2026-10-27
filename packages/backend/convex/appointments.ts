@@ -869,6 +869,8 @@ export const requestReschedule = zAuthMutation({
       throw new ConvexError(errorMessages.notFound("cita"));
     }
 
+    await assertCanMutateAppointment(ctx, appt, userId);
+
     // A completed visit already happened — rescheduling it back to "pending"
     // would strand its single-use review code (the issued review link would
     // silently stop working and is never re-minted on a later re-completion).
@@ -1024,6 +1026,14 @@ export const answerRescheduleRequest = zAuthMutation({
 
     if (appt.deletedAt) {
       return;
+    }
+
+    await assertCanMutateAppointment(ctx, appt, userId);
+
+    // Only the counterpart answers: the requester cannot decide on their own
+    // request.
+    if (appt.rescheduleRequestedByUserId === userId) {
+      throw new ConvexError(errorMessages.unauthorized);
     }
 
     if (args.accepted) {

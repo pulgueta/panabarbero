@@ -33,9 +33,9 @@ import { useBarbershopByMemberUserId } from "@/hooks/barbershop/use-barbershop";
 import { useBarbershopMemberRoles } from "@/hooks/barbershop/use-barbershop-member";
 import {
   barberScheduleQueryOptions,
-  barbershopMembersByBarbershopIdQueryOptions,
   servicesForBarberQueryOptions,
-  useBarbershopMembersByBarbershopId,
+  teamByBarbershopIdQueryOptions,
+  useTeamByBarbershopId,
 } from "@/hooks/use-barbershop-members";
 import {
   servicesQueryOptions,
@@ -70,7 +70,7 @@ export const Route = createFileRoute(
 
     const [barbershopMembers] = await Promise.all([
       opts.context.queryClient.ensureQueryData(
-        barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+        teamByBarbershopIdQueryOptions(barbershop._id),
       ),
       opts.context.queryClient.ensureQueryData(
         servicesQueryOptions(barbershop._id),
@@ -92,9 +92,7 @@ function RouteComponent() {
   const { data: user } = useSession();
   const { data: barbershop } = useBarbershopByMemberUserId(user?.id!);
   const { data: rolesData } = useBarbershopMemberRoles(user?.id!);
-  const { data: barbershopMembers } = useBarbershopMembersByBarbershopId(
-    barbershop?._id!,
-  );
+  const { data: barbershopMembers } = useTeamByBarbershopId(barbershop?._id!);
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
   const barberMembers =
     barbershopMembers?.filter((member) => member.roles.includes("barber")) ??

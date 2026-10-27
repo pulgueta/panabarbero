@@ -45,16 +45,16 @@ import {
 } from "@/hooks/use-appointments";
 import {
   barberByUserIdQueryOptions,
-  barbershopMembersByBarbershopIdQueryOptions,
   isBarberQueryOptions,
   isOwnerQueryOptions,
   isStaffQueryOptions,
   servicesForBarberQueryOptions,
+  teamByBarbershopIdQueryOptions,
   useBarberByUserId,
-  useBarbershopMembersByBarbershopId,
   useIsBarber,
   useIsOwner,
   useIsStaff,
+  useTeamByBarbershopId,
 } from "@/hooks/use-barbershop-members";
 import {
   serviceByAppointmentIdQueryOptions,
@@ -113,7 +113,7 @@ export const Route = createFileRoute(
       ),
       context.queryClient.ensureQueryData(servicesQueryOptions(barbershopId)),
       context.queryClient.ensureQueryData(
-        barbershopMembersByBarbershopIdQueryOptions(barbershopId),
+        teamByBarbershopIdQueryOptions(barbershopId),
       ),
       context.queryClient.ensureQueryData(
         requestRescheduleQueryOptions(barbershopId),
@@ -158,9 +158,7 @@ function RouteComponent() {
 
   const { data: session } = useSession();
   const { data: barbershop } = useBarbershopByMemberUserId(session?.id ?? "");
-  const { data: barbershopMembers } = useBarbershopMembersByBarbershopId(
-    barbershop?._id!,
-  );
+  const { data: barbershopMembers } = useTeamByBarbershopId(barbershop?._id!);
   const { data: services } = useServicesByBarbershopId(barbershop?._id!);
   const { data: availability } = useBarbershopAvailability(barbershop?._id!);
   const { data: rescheduledAppointmentRequests } =
