@@ -45,6 +45,7 @@ import type * as invitations from "../invitations.js";
 import type * as invitationsSchema from "../invitationsSchema.js";
 import type * as log from "../log.js";
 import type * as migrations from "../migrations.js";
+import type * as mobileAccess from "../mobileAccess.js";
 import type * as notificationCopy from "../notificationCopy.js";
 import type * as notificationSubjects from "../notificationSubjects.js";
 import type * as notifications from "../notifications.js";
@@ -108,6 +109,7 @@ declare const fullApi: ApiFromModules<{
   invitationsSchema: typeof invitationsSchema;
   log: typeof log;
   migrations: typeof migrations;
+  mobileAccess: typeof mobileAccess;
   notificationCopy: typeof notificationCopy;
   notificationSubjects: typeof notificationSubjects;
   notifications: typeof notifications;
