@@ -131,7 +131,10 @@
     border-radius: var(--radius-xl);
   }
 
-  .surface__root {
+  /* Filled variants only; `transparent` stays chrome-less. */
+  .surface__root--variant-default,
+  .surface__root--variant-secondary,
+  .surface__root--variant-tertiary {
     border-width: var(--border-width);
     border-color: var(--color-border);
   }
