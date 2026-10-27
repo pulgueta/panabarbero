@@ -144,6 +144,32 @@ export async function recordInApp(
     channelId: opts.userId,
     timestamp: doc!._creationTime,
   });
+
+  const profile = await getProfileByUserId(ctx, opts.userId);
+
+  if (
+    profile &&
+    isNotificationEnabled("push", profile.notificationsPreferences)
+  ) {
+    const data: Record<string, string> = { kind: opts.copy.kind };
+
+    if (opts.payload?.appointmentId) {
+      data.appointmentId = opts.payload.appointmentId;
+    }
+    if (opts.payload?.barbershopId) {
+      data.barbershopId = opts.payload.barbershopId;
+    }
+    if (opts.payload?.reviewId) {
+      data.reviewId = opts.payload.reviewId;
+    }
+
+    await ctx.scheduler.runAfter(0, internal.pushTokens.sendPush, {
+      userId: opts.userId,
+      title: opts.copy.title,
+      body: opts.copy.description,
+      data,
+    });
+  }
 }
 
 export const createAppointmentCancelled = zInternalMutation({

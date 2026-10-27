@@ -51,6 +51,7 @@ import type * as notifications from "../notifications.js";
 import type * as plans from "../plans.js";
 import type * as polar from "../polar.js";
 import type * as posthog from "../posthog.js";
+import type * as pushTokens from "../pushTokens.js";
 import type * as r2 from "../r2.js";
 import type * as ratelimit from "../ratelimit.js";
 import type * as reviewModeration from "../reviewModeration.js";
@@ -113,6 +114,7 @@ declare const fullApi: ApiFromModules<{
   plans: typeof plans;
   polar: typeof polar;
   posthog: typeof posthog;
+  pushTokens: typeof pushTokens;
   r2: typeof r2;
   ratelimit: typeof ratelimit;
   reviewModeration: typeof reviewModeration;
@@ -177,4 +179,5 @@ export declare const components: {
   aggregateInventoryMovements: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"aggregateInventoryMovements">;
   workflow: import("@convex-dev/workflow/_generated/component.js").ComponentApi<"workflow">;
   reviewModerationWorkpool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"reviewModerationWorkpool">;
+  pushNotifications: import("@convex-dev/expo-push-notifications/_generated/component.js").ComponentApi<"pushNotifications">;
 };
