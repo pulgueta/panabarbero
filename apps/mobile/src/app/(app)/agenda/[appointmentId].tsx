@@ -3,6 +3,7 @@ import { useLocalSearchParams } from "expo-router";
 import { Spinner, Typography } from "heroui-native";
 import { View } from "react-native";
 
+import { AppointmentActions } from "@/components/agenda/appointment-actions";
 import { AppointmentDetail } from "@/components/agenda/appointment-detail";
 import { useAccess } from "@/hooks/use-access";
 import { useAppointment, useShopMembers } from "@/hooks/use-appointments";
@@ -43,6 +44,7 @@ export default function AppointmentScreen() {
       barberName={
         showBarber ? memberName(appointment.barbershopMemberId) : undefined
       }
+      actions={<AppointmentActions appointment={appointment} />}
     />
   );
 }
