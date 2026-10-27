@@ -1,7 +1,7 @@
 
 # AGENTS.md
 
-PanaBarbero is a barbershop marketplace + management app: **TanStack Start (SSR) + Convex + WorkOS AuthKit + Polar + Tailwind v4 / Base UI**. Package manager is **pnpm only**. All user-facing copy is **Spanish (es-CO)**.
+PanaBarbero is a barbershop marketplace + management app: **TanStack Start (SSR) + Convex + WorkOS AuthKit + Polar + Tailwind v4 / Base UI**. It is a pnpm workspace: `apps/web` contains the web app, `apps/mobile` is planned, and `packages/backend` contains Convex and email code. Package manager is **pnpm only**. All user-facing copy is **Spanish (es-CO)**.
 
 > [!IMPORTANT]
 > **Code patterns, style, and architecture live in `ARCHITECTURE.md`** — read the relevant section before touching a subsystem. This file (`AGENTS.md`) covers only *how to behave*. Keep both updated as the project evolves.
@@ -21,7 +21,7 @@ Before substantial work:
 
 This project uses [Convex](https://convex.dev) as its backend.
 
-When working on Convex code, **always read `convex/_generated/ai/guidelines.md` first** for important guidelines on how to correctly use Convex APIs and patterns. The file contains rules that override what you may have learned about Convex from training data.
+When working on Convex code, **always read `packages/backend/convex/_generated/ai/guidelines.md` first** for important guidelines on how to correctly use Convex APIs and patterns. The file contains rules that override what you may have learned about Convex from training data.
 
 Convex agent skills for common tasks can be installed by running `pnpm dlx convex ai-files install`.
 
@@ -29,9 +29,9 @@ Convex agent skills for common tasks can be installed by running `pnpm dlx conve
 
 ## 1. The discipline (read before editing anything)
 
-This codebase has had three full backend migrations (auth, notifications, analytics) and carries a **pnpm patch** (`@tanstack/router-core`) and **strict-evaluation config** that punish blind edits. Before you change a file:
+This codebase has had three full backend migrations (auth, notifications, analytics) and carries **strict-evaluation config** that punish blind edits. Before you change a file:
 
-1. **Research before code.** Read the file, its imports, its callers, and the relevant section of `ARCHITECTURE.md`. If the change touches Convex, **read the `convex-functions` skill first** (or `convex/_generated/ai/guidelines.md`, present only after `pnpm dlx convex ai-files install`) — those rules override training priors. If it touches a third-party SDK, read the installed source under `node_modules/.pnpm/<pkg>/...` rather than guessing the API.
+1. **Research before code.** Read the file, its imports, its callers, and the relevant section of `ARCHITECTURE.md`. If the change touches Convex, **read the `convex-functions` skill first** (or `packages/backend/convex/_generated/ai/guidelines.md`, present only after `pnpm dlx convex ai-files install`) — those rules override training priors. If it touches a third-party SDK, read the installed source under `node_modules/.pnpm/<pkg>/...` rather than guessing the API.
 2. **State assumptions; surface tradeoffs.** If two interpretations exist, name them. If a simpler path exists, say so. If something is unclear, stop and ask — do not paper over confusion with defensive code.
 3. **Surgical changes only.** Every changed line must trace to the task. Don'treformat, "improve", or refactor adjacent code. Match existing style. Remove only the orphans *your* change created; flag pre-existing dead code, don't delete it.
 4. **Examine edge cases.** Auth latency, SSR/client hydration parity, empty states, post-signup race windows (profile row may not exist yet), plan/role gating, optimistic-update rollback. The landmines around auth (`ARCHITECTURE.md` §2), Convex components (`ARCHITECTURE.md` §1.4), and `"use node"` files are real; re-read those sections when working near them.

@@ -91,6 +91,7 @@ jobs:
         uses: ./.github/setup
 
       - name: Pull Vercel preview settings
+        working-directory: apps/web
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: pnpm dlx "vercel@${VERCEL_CLI_VERSION}" pull --yes --environment=preview
@@ -98,6 +99,7 @@ jobs:
       # --cmd only exports the injected deployment URLs; the app build runs in
       # the next step, in a process tree that never held CONVEX_DEPLOY_KEY.
       - name: Deploy Convex preview
+        working-directory: packages/backend
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
           RELEASE_TAG: ${{ github.ref_name }}
@@ -107,9 +109,11 @@ jobs:
             --cmd 'echo "VITE_CONVEX_URL=$VITE_CONVEX_URL" >> "$GITHUB_ENV" && echo "VITE_CONVEX_SITE_URL=$VITE_CONVEX_SITE_URL" >> "$GITHUB_ENV"'
 
       - name: Build Vercel artifact
+        working-directory: apps/web
         run: pnpm dlx "vercel@${VERCEL_CLI_VERSION}" build
 
       - name: Deploy Vercel preview
+        working-directory: apps/web
         id: deploy
         env:
           RELEASE_TAG: ${{ github.ref_name }}
@@ -140,12 +144,14 @@ jobs:
         uses: ./.github/setup
 
       - name: Pull Vercel production settings
+        working-directory: apps/web
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: pnpm dlx "vercel@${VERCEL_CLI_VERSION}" pull --yes --environment=production
 
       # Same split as the preview job: the build never sees CONVEX_DEPLOY_KEY.
       - name: Deploy Convex production
+        working-directory: packages/backend
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
         run: >-
@@ -153,9 +159,11 @@ jobs:
           --cmd 'echo "VITE_CONVEX_URL=$VITE_CONVEX_URL" >> "$GITHUB_ENV" && echo "VITE_CONVEX_SITE_URL=$VITE_CONVEX_SITE_URL" >> "$GITHUB_ENV"'
 
       - name: Build Vercel artifact
+        working-directory: apps/web
         run: pnpm dlx "vercel@${VERCEL_CLI_VERSION}" build --prod
 
       - name: Deploy Vercel production
+        working-directory: apps/web
         id: deploy
         env:
           RELEASE_TAG: ${{ github.ref_name }}

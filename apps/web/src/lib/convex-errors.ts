@@ -1,6 +1,5 @@
+import { errorMessages } from "@convex/errors";
 import { ConvexError } from "convex/values";
-
-import { errorMessages } from "../../convex/errors";
 
 function messageFromConvexData(data: unknown): string {
   if (typeof data === "string") {
