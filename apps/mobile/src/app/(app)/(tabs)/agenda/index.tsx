@@ -13,9 +13,16 @@ import {
   DAY_STRIP_PADDING,
   DayStrip,
 } from "@/components/agenda/day-strip";
+import { RescheduleRequests } from "@/components/agenda/reschedule-requests";
 import { ScreenHeader } from "@/components/screen-header";
 import { useAccess } from "@/hooks/use-access";
-import { useDayAppointments, useShopMembers } from "@/hooks/use-appointments";
+import {
+  useDayAppointments,
+  useMyMemberId,
+  useRescheduleRequests,
+  useShopMembers,
+} from "@/hooks/use-appointments";
+import type { Appointment } from "@/lib/appointments";
 import { addDaysBogota, bogotaStartOfDay } from "@/lib/dates";
 
 const DAYS_BEFORE = 7;
@@ -54,6 +61,20 @@ export default function AgendaScreen() {
   const { memberName } = useShopMembers(
     showBarber ? membership.barbershopId : undefined,
   );
+  // Owner and staff see every request; barbers only their own.
+  const myMemberId = useMyMemberId(showBarber);
+  const requests = useRescheduleRequests(
+    membership?.barbershopId,
+    showBarber ? undefined : myMemberId,
+  );
+  const visibleRequests =
+    showBarber || myMemberId !== undefined ? requests : undefined;
+
+  const openAppointment = (appointment: Appointment) =>
+    router.push({
+      pathname: "/(app)/agenda/[appointmentId]",
+      params: { appointmentId: appointment._id },
+    });
 
   /** Scroll so today's pill sits in the middle of the strip. */
   const scrollToToday = (animated: boolean) => {
@@ -93,16 +114,12 @@ export default function AgendaScreen() {
           onLayout={() => scrollToToday(false)}
         />
       </View>
+      <RescheduleRequests requests={visibleRequests} onOpen={openAppointment} />
       <View className="flex-1">
         <AppointmentList
           appointments={appointments}
           memberName={showBarber ? memberName : undefined}
-          onOpen={(appointment) =>
-            router.push({
-              pathname: "/(app)/agenda/[appointmentId]",
-              params: { appointmentId: appointment._id },
-            })
-          }
+          onOpen={openAppointment}
         />
       </View>
     </View>
