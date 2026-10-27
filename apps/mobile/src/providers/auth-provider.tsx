@@ -17,6 +17,7 @@ import {
   refreshSession,
   type SessionUser,
   WorkOSAuthError,
+  WorkOSRequestError,
   type WorkOSSession,
   workosDiscovery,
 } from "@/lib/workos";
@@ -39,6 +40,12 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 /** Refresh the access token when it expires within this window. */
 const EXPIRY_MARGIN_MS = 60_000;
 
+/** Wait times between token refresh attempts after a transient failure. */
+const RETRY_DELAYS_MS = [500, 1500, 3000];
+
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [user, setUser] = useState<SessionUser | null>(null);
@@ -48,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     null,
   );
   const refreshInFlightRef = useRef<Promise<string | null> | null>(null);
+  const retryInFlightRef = useRef<Promise<string | null> | null>(null);
   // Bumped on sign-out so a refresh that resolves later cannot restore the session.
   const generationRef = useRef(0);
 
@@ -56,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshTokenRef.current = null;
     accessTokenRef.current = null;
     refreshInFlightRef.current = null;
+    retryInFlightRef.current = null;
     setUser(null);
     setStatus("signedOut");
     await clearSession();
@@ -108,20 +117,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const stored = await loadSession();
-      if (cancelled) return;
-      if (!stored) {
-        setStatus("signedOut");
-        return;
-      }
-      refreshTokenRef.current = stored.refreshToken;
-      setUser(stored.user);
       try {
-        await refresh();
-      } catch {
-        // Transient failure (for example offline): keep the stored session and
-        // let the next getAccessToken call retry the refresh.
-        if (!cancelled) setStatus("signedIn");
+        const stored = await loadSession();
+        if (cancelled) return;
+        if (!stored) {
+          setStatus("signedOut");
+          return;
+        }
+        refreshTokenRef.current = stored.refreshToken;
+        setUser(stored.user);
+        try {
+          await refresh();
+        } catch {
+          // Transient failure (for example offline): keep the stored session and
+          // let the next getAccessToken call retry the refresh.
+          if (!cancelled) setStatus("signedIn");
+        }
+      } catch (error) {
+        // The stored session could not be read: settle so the splash can hide.
+        console.warn("Could not load the stored session", error);
+        if (!cancelled) setStatus("signedOut");
       }
     })();
     return () => {
@@ -139,7 +154,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ) {
         return cached.token;
       }
-      return refresh();
+      if (retryInFlightRef.current) return retryInFlightRef.current;
+
+      // Retry transient failures so Convex does not stay unauthenticated.
+      const generation = generationRef.current;
+      const run = async () => {
+        for (let attempt = 0; ; attempt += 1) {
+          try {
+            return await refresh();
+          } catch (error) {
+            const delay = RETRY_DELAYS_MS[attempt];
+            if (
+              !(error instanceof WorkOSRequestError) ||
+              delay === undefined ||
+              generation !== generationRef.current
+            ) {
+              throw error;
+            }
+            await sleep(delay);
+            if (generation !== generationRef.current) return null;
+          }
+        }
+      };
+      const promise = run().finally(() => {
+        if (retryInFlightRef.current === promise) {
+          retryInFlightRef.current = null;
+        }
+      });
+      retryInFlightRef.current = promise;
+      return promise;
     },
     [refresh],
   );
