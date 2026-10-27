@@ -65,6 +65,9 @@ const agendaKinds = new Set([
   "appointment_created",
   "barber_appointment_created",
   "appointment_cancelled",
+  "appointment_reschedule_request",
+  "appointment_reschedule_accepted",
+  "appointment_reschedule_denied",
   "appointment_reminder",
   "past_appointment_reminder",
   "barber_removed_cancellation",
@@ -72,19 +75,14 @@ const agendaKinds = new Set([
   "service_line_removed",
 ]);
 
-/** Other backend notification kinds to app routes. */
-const hrefByKind: Record<string, Href> = {
-  // Inbox
-  appointment_reschedule_request: "/",
-  appointment_reschedule_accepted: "/",
-  appointment_reschedule_denied: "/",
-  // Reviews
-  review_needs_attention: "/",
-  // Inventory
-  low_stock: "/",
-};
+/**
+ * Every other kind opens the notifications inbox: `review_needs_attention`,
+ * `low_stock`, and kinds with no mobile destination yet (`team_invited`,
+ * `review_invite`).
+ */
+const inboxHref: Href = "/(app)/(tabs)/notificaciones";
 
-/** Where a tapped notification opens. Unknown kinds open home. */
+/** Where a tapped notification opens. Unknown kinds open the inbox. */
 export function notificationHrefForData(data: NotificationData): Href {
   if (data.kind && agendaKinds.has(data.kind)) {
     return data.appointmentId
@@ -94,5 +92,5 @@ export function notificationHrefForData(data: NotificationData): Href {
         }
       : "/(app)/(tabs)/agenda";
   }
-  return (data.kind && hrefByKind[data.kind]) || "/";
+  return inboxHref;
 }
