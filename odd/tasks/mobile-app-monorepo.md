@@ -29,7 +29,7 @@ today. Push notifications were removed with the old mobile app and must return.
 | T2 | Expo SDK 58 shell with HeroUI Native, theme tokens, Convex client | delegated (Claude writer, UI) | pending | |
 | T3 | WorkOS PKCE auth + ConvexProviderWithAuth | delegated (Claude writer) | pending | |
 | T4 | Access gate query + gate screen | delegated | pending | |
-| T5 | Push backend: component, pushTokens, pref migration, recordInApp hook | delegated (Codex) | pending | |
+| T5 | Push backend: component, pushTokens, pref migration, recordInApp hook | delegated (Codex) | implemented | branch feat/push-notifications-backend @ 0644e682 (opus convex-expert in worktree): backend tsc OK, web tsc OK, biome OK; codegen + convex dev --once + migration run PENDING (worktree had no deployment env). Component 0.4.2 peers convex ^1.46 vs repo 1.42.2 (types OK; runtime check pending). |
 | T6 | Mobile push registration + deep links | delegated | pending | |
 | T7 | Agenda + appointment actions | delegated (Claude writer, UI) | pending | |
 | T8 | Notifications inbox | delegated | pending | |
@@ -50,5 +50,6 @@ Authored changed lines ≈ 3500 across 9 PRs. Running count: ~430 authored (excl
 
 - 2026-10-26: exploration done (4 handoffs). Plan written. Stack root created.
 - 2026-10-26: T1 started: converting the root package into a pnpm/Turborepo workspace. Explicit instruction forbids work-unit commits; progress remains uncommitted.
-- 2026-10-26: T1 structural conversion completed: web moved to `apps/web`; Convex and email sources moved to `packages/backend`; workspace manifests, Turbo, CI cwd, aliases, and ignores updated. `git mv` could not write `.git/index.lock` in this sandbox, so the required renames are unstaged filesystem moves. `pnpm install` cannot finish because pnpm 11 defaults `verifyDepsBeforeRun` to `install`; its supply-chain metadata check reaches the registry and returns `ENOTFOUND`, leaving `node_modules` incomplete. The existing lockfile still has only the root importer, so it cannot restore the workspace without a successful lockfile-generating install; package checks, build, Biome, Turbo dry run, and React Doctor are pending network restoration.
+- 2026-10-26: T1 structural conversion completed: web moved to `apps/web`; Convex and email sources moved to `packages/backend`; workspace manifests, Turbo, CI cwd, aliases, and ignores updated. `git mv` could not write `.git/index.lock` in this sandbox, so the required renames are unstaged filesystem moves. `pnpm install` cannot finish because pnpm 11 defaults `verifyDepsBeforeRun` to `install`; its supply-chain metadata check reaches the registry and returns `ENOTFOUND`, leaving `node_modules` incomplete. The existing lockfile still has only the root importer, so it cannot restore the workspace without a successful lockfile-generating install; package checks, build, Biome, Turbo dry run, and React Doctor are pending network restoration. Logs: `/tmp/panabarbero-t1-*.log`.
 - 2026-10-26: T1 done at de9b92bc (parent completed install/verification after Codex sandbox limits). T2 started on feat/mobile-app-shell.
+- 2026-10-26: T5 implemented in parallel at 0644e682; stack will be reordered to main → workspace → push-backend → mobile-shell → …

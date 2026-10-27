@@ -1,0 +1,138 @@
+@import "tailwindcss";
+@import "uniwind";
+@import "heroui-native/styles";
+
+/* PanaBarbero tokens, ported from apps/web/src/styles.css. */
+@theme {
+  --radius: 0.5rem;
+  --field-radius: calc(var(--radius) * 0.75);
+  --field-border-width: 1px;
+
+  --font-normal: "Geist_400Regular";
+  --font-medium: "Geist_500Medium";
+  --font-semibold: "Geist_600SemiBold";
+  --font-bold: "Geist_700Bold";
+}
+
+@layer theme {
+  :root {
+    @variant light {
+      --background: oklch(1 0 0);
+      --foreground: oklch(0.145 0 0);
+
+      --surface: oklch(1 0 0);
+      --surface-foreground: var(--foreground);
+      --surface-secondary: oklch(0.97 0 0);
+      --surface-secondary-foreground: var(--foreground);
+      --surface-tertiary: oklch(0.94 0 0);
+      --surface-tertiary-foreground: var(--foreground);
+
+      --overlay: oklch(1 0 0);
+      --overlay-foreground: var(--foreground);
+      --backdrop: oklch(0 0 0 / 20%);
+
+      --muted: oklch(0.485 0 0);
+
+      --default: oklch(0.97 0 0);
+      --default-foreground: oklch(0.205 0 0);
+
+      --accent: oklch(0.5156 0.1651 28.33);
+      --accent-foreground: oklch(0.971 0.013 17.38);
+
+      --field-background: oklch(1 0 0);
+      --field-foreground: var(--foreground);
+      --field-placeholder: var(--muted);
+      --field-border: oklch(0.922 0 0);
+
+      --success: oklch(0.539 0.1521 140.7);
+      --success-foreground: oklch(1 0 0);
+      --warning: oklch(0.6749 0.1662 54.63);
+      --warning-foreground: oklch(1 0 0);
+      --danger: oklch(0.598 0.198 25.52);
+      --danger-foreground: oklch(0.983 0.0083 25.52);
+
+      --segment: oklch(1 0 0);
+      --segment-foreground: var(--foreground);
+
+      --border: oklch(0.922 0 0);
+      --separator: oklch(0.922 0 0);
+      --focus: oklch(0.556 0 0);
+      --link: var(--foreground);
+
+      /* Borders over shadows. */
+      --surface-shadow: 0 0 0 0 transparent inset;
+      --overlay-shadow: 0 0 0 0 transparent inset;
+      --field-shadow: 0 0 0 0 transparent inset;
+    }
+
+    @variant dark {
+      --background: oklch(0.145 0 0);
+      --foreground: oklch(0.985 0 0);
+
+      --surface: oklch(0.205 0 0);
+      --surface-foreground: var(--foreground);
+      --surface-secondary: oklch(0.269 0 0);
+      --surface-secondary-foreground: var(--foreground);
+      --surface-tertiary: oklch(0.3 0 0);
+      --surface-tertiary-foreground: var(--foreground);
+
+      --overlay: oklch(0.205 0 0);
+      --overlay-foreground: var(--foreground);
+      --backdrop: oklch(0 0 0 / 40%);
+
+      --muted: oklch(0.708 0 0);
+
+      --default: oklch(0.269 0 0);
+      --default-foreground: oklch(0.985 0 0);
+
+      --accent: oklch(0.5156 0.1651 28.33);
+      --accent-foreground: oklch(0.971 0.013 17.38);
+
+      --field-background: oklch(1 0 0 / 4%);
+      --field-foreground: var(--foreground);
+      --field-placeholder: var(--muted);
+      --field-border: oklch(1 0 0 / 15%);
+
+      --success: oklch(0.7933 0.2287 140.68);
+      --success-foreground: oklch(0.145 0 0);
+      --warning: oklch(0.829 0.171 81);
+      --warning-foreground: oklch(0.145 0 0);
+      --danger: oklch(0.704 0.191 22.216);
+      --danger-foreground: oklch(0.985 0 0);
+
+      --segment: oklch(0.3 0 0);
+      --segment-foreground: var(--foreground);
+
+      --border: oklch(1 0 0 / 12%);
+      --separator: oklch(1 0 0 / 12%);
+      --focus: oklch(0.556 0 0);
+      --link: var(--foreground);
+
+      --surface-shadow: 0 0 0 0 transparent inset;
+      --overlay-shadow: 0 0 0 0 transparent inset;
+      --field-shadow: 0 0 0 0 transparent inset;
+    }
+  }
+}
+
+/* PanaBarbero shapes: 8px buttons, 12px cards, borders instead of shadows. */
+@layer components {
+  .button__root--size-sm,
+  .button__root--size-md,
+  .button__root--size-lg,
+  .button__background--size-sm,
+  .button__background--size-md,
+  .button__background--size-lg {
+    border-radius: var(--radius-lg);
+  }
+
+  .surface__root,
+  .surface__background {
+    border-radius: var(--radius-xl);
+  }
+
+  .surface__root {
+    border-width: var(--border-width);
+    border-color: var(--color-border);
+  }
+}
