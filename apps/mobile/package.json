@@ -11,10 +11,12 @@
     "export:ios": "expo export --platform ios"
   },
   "dependencies": {
+    "@date-fns/tz": "catalog:",
     "@expo-google-fonts/geist": "^0.4.2",
     "@gorhom/bottom-sheet": "^5.2.14",
     "@panabarbero/backend": "workspace:*",
     "convex": "catalog:",
+    "date-fns": "catalog:",
     "expo": "~58.0.19",
     "expo-auth-session": "~58.0.14",
     "expo-blur": "~58.0.5",
