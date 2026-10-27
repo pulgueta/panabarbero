@@ -27,8 +27,8 @@ today. Push notifications were removed with the old mobile app and must return.
 | --- | --- | --- | --- | --- |
 | T1 | Turborepo workspace: move web, backend, emails; root config; CI cwd | delegated (Codex, mechanical, 2+ files) | done (PR #107) | commit de9b92bc. pnpm install OK; backend tsc OK; web tsc OK; web vite build OK; biome ci 0 errors (3 pre-existing warnings); turbo sees @panabarbero/backend + @panabarbero/web. Codex sandbox had no network/git index, parent finished install, staging, shadcn devDep restore, biome globs, alias cleanup. |
 | T2 | Expo SDK 58 shell with HeroUI Native, theme tokens, Convex client | delegated (Claude writer, UI) | done | PR #109 c93f8ce7: tsc OK, expo export OK, expo run:ios on iPhone 18 Pro OK (light+dark screenshots reviewed), biome OK. @types/react pinned 19.2.17; HeroUI button/surface class overrides for radii. |
-| T3 | WorkOS PKCE auth + ConvexProviderWithAuth | delegated (Claude writer) | pending | |
-| T4 | Access gate query + gate screen | delegated | backend done, UI pending | branch feat/mobile-access-gate @ 9ffd7981: mobileAccess.getAccess (profile, membership w/ isActive guard, owner subscription, canEnter); backend+mobile tsc OK, biome OK; gate screen UI follows after T3. |
+| T3 | WorkOS PKCE auth + ConvexProviderWithAuth | delegated (Claude writer) | done (PR #111) | WorkOS PKCE public client; tsc/biome/export/run:ios OK; authorize URL verified via WorkOS 302 redirect-uri-invalid; full sign-in pending redirect URI registration (user action). |
+| T4 | Access gate query + gate screen | delegated | done (PR #112) | getAccess query + AccessGate screen (two compliant copy variants); tsc/biome/export OK; both variants screenshot-verified via temporary preview route; live path pending sign-in. |
 | T5 | Push backend: component, pushTokens, pref migration, recordInApp hook | delegated (Codex) | implemented (PR #108) | branch feat/push-notifications-backend @ 0644e682 (opus convex-expert in worktree): backend tsc OK, web tsc OK, biome OK; codegen + convex dev --once + migration run PENDING (worktree had no deployment env). Component 0.4.2 peers convex ^1.46 vs repo 1.42.2 (types OK; runtime check pending). |
 | T6 | Mobile push registration + deep links | delegated | pending | |
 | T7 | Agenda + appointment actions | delegated (Claude writer, UI) | pending | |
@@ -44,7 +44,7 @@ today. Push notifications were removed with the old mobile app and must return.
 
 ## Forecast
 
-Authored changed lines ≈ 3500 across 9 PRs. Running count: ~430 authored (excl. lockfile/renames) after T1.
+Authored changed lines ≈ 3500 across 9 PRs. Running count: ~430 (T1) + 157 (T5) + 421 (T2) + ~600 (T3) + ~260 (T4) ≈ 1870 authored lines across PRs #107/#108/#109/#111/#112.
 
 ## Progress log
 
@@ -54,3 +54,4 @@ Authored changed lines ≈ 3500 across 9 PRs. Running count: ~430 authored (excl
 - 2026-10-26: T1 done at de9b92bc (parent completed install/verification after Codex sandbox limits). T2 started on feat/mobile-app-shell.
 - 2026-10-26: T5 implemented in parallel at 0644e682; stack will be reordered to main → workspace → push-backend → mobile-shell → …
 - 2026-10-26: Stack #110 submitted: #107 workspace, #108 push backend, #109 mobile shell. T3 auth in progress on feat/mobile-auth; T4 query done at 9ffd7981 (to be stacked above auth).
+- 2026-10-26: Review fixes landed: e46b07ae on #107 (Convex env names, Vercel from root, biome JSON, turbo inputs), shell follow-up on #109 (expo-system-ui, AGENTS.md, surface border scope). #111 auth and #112 gate opened. T6 started on feat/mobile-push-registration.
