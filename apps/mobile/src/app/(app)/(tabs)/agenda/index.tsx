@@ -18,7 +18,6 @@ import { ScreenHeader } from "@/components/screen-header";
 import { useAccess } from "@/hooks/use-access";
 import {
   useDayAppointments,
-  useMyMemberId,
   useRescheduleRequests,
   useShopMembers,
 } from "@/hooks/use-appointments";
@@ -62,13 +61,10 @@ export default function AgendaScreen() {
     showBarber ? membership.barbershopId : undefined,
   );
   // Owner and staff see every request; barbers only their own.
-  const myMemberId = useMyMemberId(showBarber);
   const requests = useRescheduleRequests(
     membership?.barbershopId,
-    showBarber ? undefined : myMemberId,
+    showBarber ? undefined : membership?.memberId,
   );
-  const visibleRequests =
-    showBarber || myMemberId !== undefined ? requests : undefined;
 
   const openAppointment = (appointment: Appointment) =>
     router.push({
@@ -114,7 +110,7 @@ export default function AgendaScreen() {
           onLayout={() => scrollToToday(false)}
         />
       </View>
-      <RescheduleRequests requests={visibleRequests} onOpen={openAppointment} />
+      <RescheduleRequests requests={requests} onOpen={openAppointment} />
       <View className="flex-1">
         <AppointmentList
           appointments={appointments}

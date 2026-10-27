@@ -26,6 +26,7 @@ import {
 } from "@/lib/appointments";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
 import { formatDayTime } from "@/lib/dates";
+import { useAuth } from "@/providers/auth-provider";
 
 const tabularNums = { fontVariant: ["tabular-nums" as const] };
 
@@ -73,6 +74,7 @@ export function AppointmentActions({
 }: {
   appointment: Appointment;
 }) {
+  const { user } = useAuth();
   const actions = useAppointmentActions();
   const { pending, run } = useRunAction();
   const [open, setOpen] = useState<
@@ -87,6 +89,10 @@ export function AppointmentActions({
   const needsFinalPrices = items.some(isStartingItem);
   const hasRescheduleRequest =
     appointment.status === "pending" && appointment.proposedDate !== undefined;
+  // Staff can also propose a move (from the web); the customer answers those.
+  const isRequester =
+    !!appointment.rescheduleRequestedByUserId &&
+    appointment.rescheduleRequestedByUserId === user?.id;
   const isActionable = ACTIONABLE_STATUSES.includes(appointment.status);
 
   if (!isActionable) return null;
@@ -107,12 +113,15 @@ export function AppointmentActions({
           currentDate={appointment.date}
           proposedDate={appointment.proposedDate}
           pending={pending}
-          onAnswer={(accepted) =>
-            run(
-              accepted ? "accept" : "deny",
-              () => actions.answerReschedule(id, accepted),
-              accepted ? "Cita reagendada" : "Solicitud rechazada",
-            )
+          onAnswer={
+            isRequester
+              ? undefined
+              : (accepted) =>
+                  run(
+                    accepted ? "accept" : "deny",
+                    () => actions.answerReschedule(id, accepted),
+                    accepted ? "Cita reagendada" : "Solicitud rechazada",
+                  )
           }
         />
       ) : null}
@@ -191,7 +200,8 @@ type RescheduleRequestCardProps = {
   currentDate: number;
   proposedDate: number;
   pending: Action | null;
-  onAnswer: (accepted: boolean) => void;
+  /** Omit when the current user made the proposal; the customer answers it. */
+  onAnswer?: (accepted: boolean) => void;
 };
 
 export function RescheduleRequestCard({
@@ -216,23 +226,29 @@ export function RescheduleRequestCard({
           emphasized
         />
       </View>
-      <View className="flex-row gap-3">
-        <Button
-          className="flex-1"
-          isDisabled={pending !== null}
-          onPress={() => onAnswer(true)}
-        >
-          Aceptar
-        </Button>
-        <Button
-          className="flex-1"
-          variant="secondary"
-          isDisabled={pending !== null}
-          onPress={() => onAnswer(false)}
-        >
-          Rechazar
-        </Button>
-      </View>
+      {onAnswer ? (
+        <View className="flex-row gap-3">
+          <Button
+            className="flex-1"
+            isDisabled={pending !== null}
+            onPress={() => onAnswer(true)}
+          >
+            Aceptar
+          </Button>
+          <Button
+            className="flex-1"
+            variant="secondary"
+            isDisabled={pending !== null}
+            onPress={() => onAnswer(false)}
+          >
+            Rechazar
+          </Button>
+        </View>
+      ) : (
+        <Typography.Paragraph type="body-sm" color="muted">
+          Esperando respuesta del cliente.
+        </Typography.Paragraph>
+      )}
     </View>
   );
 }

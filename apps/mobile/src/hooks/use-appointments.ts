@@ -47,7 +47,7 @@ export function useShopMembers(barbershopId: Id<"barbershops"> | undefined) {
  */
 export function useRescheduleRequests(
   barbershopId: Id<"barbershops"> | undefined,
-  memberId?: Id<"barbershopMembers"> | null,
+  memberId?: Id<"barbershopMembers">,
 ) {
   const requests = useQuery(
     api.appointments.getRescheduledRequests,
@@ -64,20 +64,6 @@ export function useRescheduleRequests(
       ),
     [requests, memberId],
   );
-}
-
-/**
- * The signed-in user's member id. Pass `skip` for owner and staff, who see
- * every barber. `undefined` while loading, `null` without a member row.
- */
-export function useMyMemberId(skip: boolean) {
-  const { user } = useAuth();
-  const member = useQuery(
-    api.barbershopMembers.getByUserId,
-    skip || !user ? "skip" : { userId: user.id },
-  );
-
-  return member === undefined ? undefined : (member?._id ?? null);
 }
 
 /** Staff-side status changes for one appointment. */

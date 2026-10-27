@@ -17,6 +17,7 @@ const accessSchema = z.object({
     .nullable(),
   membership: z
     .object({
+      memberId: zid("barbershopMembers"),
       barbershopId: zid("barbershops"),
       barbershopUuid: z.string(),
       barbershopName: z.string(),
@@ -94,6 +95,7 @@ export const getAccess = zAuthQuery({
     return {
       profile: profileOut,
       membership: {
+        memberId: member._id,
         barbershopId: barbershop._id,
         barbershopUuid: barbershop.uuid,
         barbershopName: barbershop.name,

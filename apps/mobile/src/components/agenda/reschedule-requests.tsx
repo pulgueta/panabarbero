@@ -1,6 +1,6 @@
 import { Typography } from "heroui-native";
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 
 import type { Appointment } from "@/lib/appointments";
 import { formatDayTime } from "@/lib/dates";
@@ -59,13 +59,16 @@ export function RescheduleRequests({
           <Typography className="text-link">Ver</Typography>
         </Pressable>
       ) : (
-        sorted.map((request) => (
-          <RequestRow
-            key={request._id}
-            request={request}
-            onPress={() => onOpen(request)}
-          />
-        ))
+        // Bounded so a long list keeps the day list below reachable.
+        <ScrollView style={{ maxHeight: 240 }} nestedScrollEnabled>
+          {sorted.map((request) => (
+            <RequestRow
+              key={request._id}
+              request={request}
+              onPress={() => onOpen(request)}
+            />
+          ))}
+        </ScrollView>
       )}
     </View>
   );
