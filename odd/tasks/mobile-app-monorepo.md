@@ -32,8 +32,8 @@ today. Push notifications were removed with the old mobile app and must return.
 | T5 | Push backend: component, pushTokens, pref migration, recordInApp hook | delegated (Codex) | implemented (PR #108) | branch feat/push-notifications-backend @ 0644e682 (opus convex-expert in worktree): backend tsc OK, web tsc OK, biome OK; codegen + convex dev --once + migration run PENDING (worktree had no deployment env). Component 0.4.2 peers convex ^1.46 vs repo 1.42.2 (types OK; runtime check pending). |
 | T6 | Mobile push registration + deep links | delegated | done (PR #113) | push.ts/getPushToken/kind table, registration per user, sign-out unregister via removeToken (07017c3e); tsc/biome/export/run:ios OK; live token + banner pending sign-in/EAS id. |
 | T7 | Agenda + appointment actions | delegated (Claude writer, UI) | done (PRs #114, #115) | read-only agenda (fcbdb316 incl. focus/deleted fixes) + actions layer (a97a6655); preview screenshots verified; live mutations pending sign-in. |
-| T8 | Notifications inbox | delegated | done (PR #116) | inbox tab + badge + watermark read state (3aee7845); tsc/biome/export OK; simulator visual check pending. |
-| T9 | Profile + settings | delegated | pending | |
+| T8 | Notifications inbox | delegated | done (PR #116) | inbox tab + badge + watermark read state; reschedule kinds route to the appointment (9a83f4f0); tsc/biome/export OK; simulator pass pending. |
+| T9 | Profile + settings | delegated | done (PR #117) | profile tab: account fields, channel switches (optimistic), barber schedule, appearance (SecureStore + Uniwind), sign-out (5a6f57b2); tsc/biome/export OK; simulator pass pending. |
 
 ## Acceptance criteria
 
@@ -44,7 +44,7 @@ today. Push notifications were removed with the old mobile app and must return.
 
 ## Forecast
 
-Authored changed lines ≈ 3500 across 9 PRs. Running count: ~430 (T1) + 157 (T5) + 421 (T2) + ~600 (T3) + ~260 (T4) ≈ 1870 authored lines across PRs #107/#108/#109/#111/#112.
+Authored changed lines ≈ 3500 across 9 PRs. Running count ≈ 4000 authored lines across PRs #107–#117 (several layers carry a size:exception noted in their bodies).
 
 ## Progress log
 
@@ -57,3 +57,4 @@ Authored changed lines ≈ 3500 across 9 PRs. Running count: ~430 (T1) + 157 (T5
 - 2026-10-26: Review fixes landed: e46b07ae on #107 (Convex env names, Vercel from root, biome JSON, turbo inputs), shell follow-up on #109 (expo-system-ui, AGENTS.md, surface border scope). #111 auth and #112 gate opened. T6 started on feat/mobile-push-registration.
 - 2026-10-27: #113 push registration (+07017c3e review fix) and #114 agenda read-only opened. Review fixes f7f92f63 (#111), 6770b3e5 + ce7f343b (#112). T7 layer 2 (actions) started.
 - 2026-10-27: #115 agenda actions and #116 inbox opened; #114 got fcbdb316 (Codex P2 fixes). T9 profile in progress on feat/mobile-profile (worktree).
+- 2026-10-27: #117 profile opened. Review fixes 0ba36592 (#115), 9a83f4f0 (#116). All nine ODD tasks implemented; pending: simulator pass for inbox/profile, WorkOS redirect URI, EAS project id, Vercel Root Directory, push runtime verify on dev deployment.
