@@ -33,6 +33,10 @@ type AuthContextValue = {
   getAccessToken: (options?: {
     forceRefresh?: boolean;
   }) => Promise<string | null>;
+  /** Makes Convex fetch the access token again after it reported no session. */
+  retryConvexAuth: () => void;
+  /** Changes on each `retryConvexAuth` call. */
+  retryNonce: number;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -49,6 +53,7 @@ const sleep = (ms: number) =>
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [user, setUser] = useState<SessionUser | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
 
   const refreshTokenRef = useRef<string | null>(null);
   const accessTokenRef = useRef<{ token: string; expiresAt: number } | null>(
@@ -211,9 +216,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await applySession(session);
   }, [applySession]);
 
+  const retryConvexAuth = useCallback(() => {
+    setRetryNonce((nonce) => nonce + 1);
+  }, []);
+
   const value = useMemo(
-    () => ({ status, user, signIn, signOut: resetLocal, getAccessToken }),
-    [status, user, signIn, resetLocal, getAccessToken],
+    () => ({
+      status,
+      user,
+      signIn,
+      signOut: resetLocal,
+      getAccessToken,
+      retryConvexAuth,
+      retryNonce,
+    }),
+    [
+      status,
+      user,
+      signIn,
+      resetLocal,
+      getAccessToken,
+      retryConvexAuth,
+      retryNonce,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -227,8 +252,11 @@ export function useAuth() {
 
 /** Adapter for `ConvexProviderWithAuth`. */
 export function useWorkosConvexAuth() {
-  const { status, getAccessToken } = useAuth();
+  const { status, getAccessToken, retryNonce } = useAuth();
 
+  // A new `fetchAccessToken` identity makes `ConvexProviderWithAuth` call
+  // `client.setAuth` again, so `retryNonce` is a deliberate extra dependency.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see the comment above
   const fetchAccessToken = useCallback(
     async ({ forceRefreshToken }: { forceRefreshToken: boolean }) => {
       try {
@@ -237,7 +265,7 @@ export function useWorkosConvexAuth() {
         return null;
       }
     },
-    [getAccessToken],
+    [getAccessToken, retryNonce],
   );
 
   return useMemo(

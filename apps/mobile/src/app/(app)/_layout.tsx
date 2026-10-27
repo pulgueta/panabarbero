@@ -1,9 +1,10 @@
+import { useConvexAuth } from "convex/react";
 import { Stack } from "expo-router";
 import { Spinner } from "heroui-native";
 import { useState } from "react";
 import { View } from "react-native";
 
-import { AccessGate } from "@/components/access-gate";
+import { AccessGate, SessionProblem } from "@/components/access-gate";
 import { useAccess } from "@/hooks/use-access";
 
 export default function AppLayout() {
@@ -19,9 +20,16 @@ export default function AppLayout() {
 }
 
 function AccessBoundary({ onRecheck }: { onRecheck: () => void }) {
+  const convexAuth = useConvexAuth();
   const access = useAccess();
 
-  if (access === undefined) {
+  // The provider is signed in here, so "not authenticated" means Convex could
+  // not get a token (offline start, WorkOS error after retries).
+  if (!convexAuth.isLoading && !convexAuth.isAuthenticated) {
+    return <SessionProblem />;
+  }
+
+  if (convexAuth.isLoading || access === undefined) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
         <Spinner />
