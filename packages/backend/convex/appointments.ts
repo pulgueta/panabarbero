@@ -846,6 +846,54 @@ export const cancel = zAuthMutation({
   },
 });
 
+const ACTIVE_STATUSES = new Set<Appointment["status"]>([
+  "pending",
+  "confirmed",
+  "rescheduled",
+]);
+
+/**
+ * The customer marks they are on their way to an upcoming appointment.
+ * Stamped once (`customerOnMyWayAt`) so repeat calls never re-notify the
+ * barber; a repeat call returns the original stamp.
+ */
+export const markOnMyWay = zAuthMutation({
+  ratelimit: "markOnMyWay",
+  args: z.object({
+    appointmentId: appointments.tools.id.shape.id,
+  }),
+  returns: z.object({ customerOnMyWayAt: z.number() }),
+  handler: async (ctx, args) => {
+    const appt = await ctx.db.get(args.appointmentId);
+
+    if (!appt || appt.deletedAt) {
+      throw new ConvexError(errorMessages.notFound("cita"));
+    }
+
+    if (appt.userId !== ctx.userId) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    if (!ACTIVE_STATUSES.has(appt.status) || appt.date < Date.now()) {
+      throw new ConvexError("Esta cita ya no está activa.");
+    }
+
+    if (appt.customerOnMyWayAt) {
+      return { customerOnMyWayAt: appt.customerOnMyWayAt };
+    }
+
+    const customerOnMyWayAt = Date.now();
+
+    await ctx.db.patch(appt._id, { customerOnMyWayAt });
+
+    await ctx.runMutation(internal.notifications.createCustomerOnMyWay, {
+      appointmentId: appt._id,
+    });
+
+    return { customerOnMyWayAt };
+  },
+});
+
 export const requestReschedule = zAuthMutation({
   args: z.object({
     appointmentId: appointments.tools.id,

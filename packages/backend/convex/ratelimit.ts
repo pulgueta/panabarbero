@@ -31,6 +31,7 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     period: MINUTE,
     capacity: 5,
   },
+  markOnMyWay: { kind: "fixed window", rate: 5, period: 10 * MINUTE },
   answerRescheduleRequest: {
     kind: "token bucket",
     rate: 5,
