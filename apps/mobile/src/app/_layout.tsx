@@ -16,6 +16,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { convex } from "@/lib/convex";
+import { configureNotificationHandler } from "@/lib/push";
 import {
   AuthProvider,
   useAuth,
@@ -23,6 +24,7 @@ import {
 } from "@/providers/auth-provider";
 
 SplashScreen.preventAutoHideAsync();
+configureNotificationHandler();
 
 const iconContext = { weight: "bold" } as const;
 

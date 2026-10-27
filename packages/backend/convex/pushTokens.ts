@@ -25,6 +25,21 @@ export const registerPushToken = zAuthMutation({
 });
 
 /**
+ * Remove the caller's push token, so this device stops getting their pushes
+ * after sign-out. The component keeps one token per user.
+ */
+export const unregisterPushToken = zAuthMutation({
+  ratelimit: "pushTokenUnregister",
+  args: z.object({}),
+  returns: z.null(),
+  handler: async (ctx) => {
+    await pushNotifications.removeToken(ctx, { userId: ctx.userId });
+
+    return null;
+  },
+});
+
+/**
  * Queue one Expo push for a user. Users without a recorded token (web-only)
  * or with paused pushes are skipped by the component, not treated as errors.
  */
