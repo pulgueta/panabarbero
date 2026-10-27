@@ -26,7 +26,8 @@ export default function AppointmentScreen() {
     );
   }
 
-  if (appointment === null) {
+  // Soft-deleted rows keep their data; show them as unavailable.
+  if (appointment === null || appointment.deletedAt) {
     return (
       <View className="flex-1 items-center justify-center bg-background px-6">
         <Typography.Paragraph color="muted" className="text-center">

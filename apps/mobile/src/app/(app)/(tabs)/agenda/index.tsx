@@ -1,6 +1,6 @@
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { Chip } from "heroui-native";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   type ScrollViewInstance,
   useWindowDimensions,
@@ -27,8 +27,19 @@ export default function AgendaScreen() {
   const { width } = useWindowDimensions();
   const stripRef = useRef<ScrollViewInstance>(null);
 
-  const todayMs = bogotaStartOfDay(new Date());
+  const [todayMs, setTodayMs] = useState(() => bogotaStartOfDay(new Date()));
   const [selectedMs, setSelectedMs] = useState(todayMs);
+
+  // The screen can stay mounted across Bogotá midnight; re-anchor on focus.
+  useFocusEffect(
+    useCallback(() => {
+      const now = bogotaStartOfDay(new Date());
+      if (now !== todayMs) {
+        setTodayMs(now);
+        setSelectedMs(now);
+      }
+    }, [todayMs]),
+  );
   const days = useMemo(
     () =>
       Array.from({ length: DAYS_BEFORE + 1 + DAYS_AFTER }, (_, index) =>
