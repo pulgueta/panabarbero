@@ -65,6 +65,9 @@ const agendaKinds = new Set([
   "appointment_created",
   "barber_appointment_created",
   "appointment_cancelled",
+  "appointment_reschedule_request",
+  "appointment_reschedule_accepted",
+  "appointment_reschedule_denied",
   "appointment_reminder",
   "past_appointment_reminder",
   "barber_removed_cancellation",
@@ -73,9 +76,9 @@ const agendaKinds = new Set([
 ]);
 
 /**
- * Every other kind opens the notifications inbox: reschedule replies
- * (`appointment_reschedule_*`), `review_needs_attention`, `low_stock`, and
- * kinds with no mobile destination yet (`team_invited`, `review_invite`).
+ * Every other kind opens the notifications inbox: `review_needs_attention`,
+ * `low_stock`, and kinds with no mobile destination yet (`team_invited`,
+ * `review_invite`).
  */
 const inboxHref: Href = "/(app)/(tabs)/notificaciones";
 
