@@ -60,17 +60,20 @@ type NotificationData = {
   reviewId?: string;
 };
 
-/** Backend notification kinds (see `convex/notifications.ts`) to app routes. */
+/** Backend notification kinds (see `convex/notifications.ts`) that open the agenda. */
+const agendaKinds = new Set([
+  "appointment_created",
+  "barber_appointment_created",
+  "appointment_cancelled",
+  "appointment_reminder",
+  "past_appointment_reminder",
+  "barber_removed_cancellation",
+  "service_deleted_cancellation",
+  "service_line_removed",
+]);
+
+/** Other backend notification kinds to app routes. */
 const hrefByKind: Record<string, Href> = {
-  // Agenda
-  appointment_created: "/",
-  barber_appointment_created: "/",
-  appointment_cancelled: "/",
-  appointment_reminder: "/",
-  past_appointment_reminder: "/",
-  barber_removed_cancellation: "/",
-  service_deleted_cancellation: "/",
-  service_line_removed: "/",
   // Inbox
   appointment_reschedule_request: "/",
   appointment_reschedule_accepted: "/",
@@ -83,5 +86,13 @@ const hrefByKind: Record<string, Href> = {
 
 /** Where a tapped notification opens. Unknown kinds open home. */
 export function notificationHrefForData(data: NotificationData): Href {
+  if (data.kind && agendaKinds.has(data.kind)) {
+    return data.appointmentId
+      ? {
+          pathname: "/(app)/agenda/[appointmentId]",
+          params: { appointmentId: data.appointmentId },
+        }
+      : "/(app)/(tabs)/agenda";
+  }
   return (data.kind && hrefByKind[data.kind]) || "/";
 }

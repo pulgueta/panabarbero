@@ -1,6 +1,6 @@
 import { useConvexAuth } from "convex/react";
 import { Stack } from "expo-router";
-import { Spinner } from "heroui-native";
+import { Spinner, useThemeColor } from "heroui-native";
 import { useState } from "react";
 import { View } from "react-native";
 
@@ -53,10 +53,25 @@ function AccessBoundary({ onRecheck }: { onRecheck: () => void }) {
 function GatedApp() {
   const { status } = usePushRegistration(true);
   useNotificationNavigation();
+  const [background, foreground] = useThemeColor(["background", "foreground"]);
 
   return (
     <PushStatusContext value={status}>
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="agenda/[appointmentId]"
+          options={{
+            headerShown: true,
+            title: "Cita",
+            headerBackTitle: "Agenda",
+            headerShadowVisible: false,
+            headerStyle: { backgroundColor: background },
+            headerTintColor: foreground,
+            headerTitleStyle: { fontFamily: "Geist_600SemiBold" },
+          }}
+        />
+      </Stack>
     </PushStatusContext>
   );
 }
