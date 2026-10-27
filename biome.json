@@ -12,10 +12,12 @@
     "includes": [
       "apps/web/src/**",
       "apps/web/vite.config.ts",
+      "apps/mobile/src/**",
       "packages/backend/convex/**",
       "**/*.json",
       "!**/_generated",
-      "!**/routeTree.gen.ts"
+      "!**/routeTree.gen.ts",
+      "!**/uniwind-types.d.ts"
     ]
   },
   "formatter": {
@@ -66,5 +68,17 @@
     "parser": {
       "tailwindDirectives": true
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["apps/mobile/src/global.css"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noDuplicateCustomProperties": "off"
+          }
+        }
+      }
+    }
+  ]
 }
