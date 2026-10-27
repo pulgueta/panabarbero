@@ -6,6 +6,11 @@ import { View } from "react-native";
 
 import { AccessGate, SessionProblem } from "@/components/access-gate";
 import { useAccess } from "@/hooks/use-access";
+import { useNotificationNavigation } from "@/hooks/use-notification-navigation";
+import {
+  PushStatusContext,
+  usePushRegistration,
+} from "@/hooks/use-push-registration";
 
 export default function AppLayout() {
   // Bumping the key remounts the gate, so the access query subscribes again.
@@ -41,5 +46,17 @@ function AccessBoundary({ onRecheck }: { onRecheck: () => void }) {
     return <AccessGate access={access} onRecheck={onRecheck} />;
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return <GatedApp />;
+}
+
+/** Mounted only for users who passed the gate, so push work never runs for gated users. */
+function GatedApp() {
+  const { status } = usePushRegistration(true);
+  useNotificationNavigation();
+
+  return (
+    <PushStatusContext value={status}>
+      <Stack screenOptions={{ headerShown: false }} />
+    </PushStatusContext>
+  );
 }
