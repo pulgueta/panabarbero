@@ -22,6 +22,7 @@ import {
   useAuth,
   useWorkosConvexAuth,
 } from "@/providers/auth-provider";
+import { ThemeProvider } from "@/providers/theme-provider";
 
 SplashScreen.preventAutoHideAsync();
 configureNotificationHandler();
@@ -40,19 +41,21 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <HeroUINativeProvider>
-          <AuthProvider>
-            <ConvexProviderWithAuth
-              client={convex}
-              useAuth={useWorkosConvexAuth}
-            >
-              <IconContext.Provider value={iconContext}>
-                <StatusBar style="auto" />
-                <RootNavigator fontsReady={fontsReady} />
-              </IconContext.Provider>
-            </ConvexProviderWithAuth>
-          </AuthProvider>
-        </HeroUINativeProvider>
+        <ThemeProvider>
+          <HeroUINativeProvider>
+            <AuthProvider>
+              <ConvexProviderWithAuth
+                client={convex}
+                useAuth={useWorkosConvexAuth}
+              >
+                <IconContext.Provider value={iconContext}>
+                  <StatusBar style="auto" />
+                  <RootNavigator fontsReady={fontsReady} />
+                </IconContext.Provider>
+              </ConvexProviderWithAuth>
+            </AuthProvider>
+          </HeroUINativeProvider>
+        </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
