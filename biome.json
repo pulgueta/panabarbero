@@ -13,6 +13,7 @@
       "apps/web/src/**",
       "apps/web/vite.config.ts",
       "packages/backend/convex/**",
+      "**/*.json",
       "!**/_generated",
       "!**/routeTree.gen.ts"
     ]

@@ -25,7 +25,7 @@ today. Push notifications were removed with the old mobile app and must return.
 
 | ID | Task | Route | Status | Evidence |
 | --- | --- | --- | --- | --- |
-| T1 | Turborepo workspace: move web, backend, emails; root config; CI cwd | delegated (Codex, mechanical, 2+ files) | blocked | Structural conversion complete; pnpm 11 auto-installs before scripts because the lockfile lacks workspace importers and `node_modules` is incomplete. Its default supply-chain metadata check reaches the registry and hits DNS `ENOTFOUND`; the sandbox also prevents `git mv`/index writes, so moves are unstaged filesystem renames. |
+| T1 | Turborepo workspace: move web, backend, emails; root config; CI cwd | delegated (Codex, mechanical, 2+ files) | done | commit de9b92bc. pnpm install OK; backend tsc OK; web tsc OK; web vite build OK; biome ci 0 errors (3 pre-existing warnings); turbo sees @panabarbero/backend + @panabarbero/web. Codex sandbox had no network/git index, parent finished install, staging, shadcn devDep restore, biome globs, alias cleanup. |
 | T2 | Expo SDK 58 shell with HeroUI Native, theme tokens, Convex client | delegated (Claude writer, UI) | pending | |
 | T3 | WorkOS PKCE auth + ConvexProviderWithAuth | delegated (Claude writer) | pending | |
 | T4 | Access gate query + gate screen | delegated | pending | |
@@ -44,10 +44,11 @@ today. Push notifications were removed with the old mobile app and must return.
 
 ## Forecast
 
-Authored changed lines ≈ 3500 across 9 PRs. Running count: 0.
+Authored changed lines ≈ 3500 across 9 PRs. Running count: ~430 authored (excl. lockfile/renames) after T1.
 
 ## Progress log
 
 - 2026-10-26: exploration done (4 handoffs). Plan written. Stack root created.
 - 2026-10-26: T1 started: converting the root package into a pnpm/Turborepo workspace. Explicit instruction forbids work-unit commits; progress remains uncommitted.
-- 2026-10-26: T1 structural conversion completed: web moved to `apps/web`; Convex and email sources moved to `packages/backend`; workspace manifests, Turbo, CI cwd, aliases, and ignores updated. `git mv` could not write `.git/index.lock` in this sandbox, so the required renames are unstaged filesystem moves. `pnpm install` cannot finish because pnpm 11 defaults `verifyDepsBeforeRun` to `install`; its supply-chain metadata check reaches the registry and returns `ENOTFOUND`, leaving `node_modules` incomplete. The existing lockfile still has only the root importer, so it cannot restore the workspace without a successful lockfile-generating install; package checks, build, Biome, Turbo dry run, and React Doctor are pending network restoration. Logs: `/tmp/panabarbero-t1-*.log`.
+- 2026-10-26: T1 structural conversion completed: web moved to `apps/web`; Convex and email sources moved to `packages/backend`; workspace manifests, Turbo, CI cwd, aliases, and ignores updated. `git mv` could not write `.git/index.lock` in this sandbox, so the required renames are unstaged filesystem moves. `pnpm install` cannot finish because pnpm 11 defaults `verifyDepsBeforeRun` to `install`; its supply-chain metadata check reaches the registry and returns `ENOTFOUND`, leaving `node_modules` incomplete. The existing lockfile still has only the root importer, so it cannot restore the workspace without a successful lockfile-generating install; package checks, build, Biome, Turbo dry run, and React Doctor are pending network restoration.
+- 2026-10-26: T1 done at de9b92bc (parent completed install/verification after Codex sandbox limits). T2 started on feat/mobile-app-shell.

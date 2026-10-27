@@ -1,5 +1,10 @@
 {
-  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "doctor.config.ts"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "vite.config.ts",
+    "doctor.config.ts"
+  ],
   "compilerOptions": {
     "target": "esnext",
     "jsx": "preserve",

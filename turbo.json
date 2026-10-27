@@ -5,7 +5,8 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": [".output/**", "dist/**"],
-      "env": ["VITE_*", "WORKOS_*", "CONVEX_*"]
+      "env": ["VITE_*", "WORKOS_*", "CONVEX_*"],
+      "inputs": ["$TURBO_DEFAULT$", ".env", ".env.local"]
     },
     "dev": {
       "cache": false,
