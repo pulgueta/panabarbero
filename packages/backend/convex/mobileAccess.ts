@@ -39,6 +39,9 @@ const accessSchema = z.object({
  * Backs the mobile barbershop app gate: returns, in one round trip, the
  * caller's profile, barbershop membership, and the shop owner's plan.
  *
+ * When the user has several membership rows, the first active one is used;
+ * a user with only inactive rows is treated as a non-member.
+ *
  * This is a UX gate only. Server-side enforcement stays in `acl.ts`
  * (plan guards) and `authz.ts` (role guards).
  */
@@ -48,20 +51,20 @@ export const getAccess = zAuthQuery({
   handler: async (ctx) => {
     const profile = await getProfileByUserId(ctx, ctx.userId);
 
-    // Same lookup as `getByUserIdFn`, inlined to reuse the profile read above.
-    const member = profile
+    // A user has at most a handful of membership rows (old inactive rows plus
+    // the current one), so collecting them all stays small.
+    const memberships = profile
       ? await ctx.db
           .query("barbershopMembers")
           .withIndex("by_userProfileDataId", (q) =>
             q.eq("userProfileDataId", profile._id),
           )
-          .first()
-      : null;
+          .collect()
+      : [];
 
     // Inactive members are treated as non-members, like `isBarber` does.
-    const barbershop = member?.isActive
-      ? await ctx.db.get(member.barbershopId)
-      : null;
+    const member = memberships.find((row) => row.isActive) ?? null;
+    const barbershop = member ? await ctx.db.get(member.barbershopId) : null;
 
     const profileOut = profile
       ? {
