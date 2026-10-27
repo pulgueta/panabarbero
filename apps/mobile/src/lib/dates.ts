@@ -38,3 +38,8 @@ export function formatDayOfMonth(ms: number): string {
 export function formatTime(ms: number): string {
   return format(inShopZone(ms), "HH:mm");
 }
+
+/** "lun 27 oct · 10:30" */
+export function formatDayTime(ms: number): string {
+  return `${formatDayLabel(ms)} · ${formatTime(ms)}`;
+}

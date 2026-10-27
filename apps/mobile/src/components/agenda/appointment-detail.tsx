@@ -18,11 +18,14 @@ type AppointmentDetailProps = {
   appointment: Appointment;
   /** Omitted for barbers, who only see their own appointments. */
   barberName?: string;
+  /** Status actions, rendered below the details. */
+  actions?: ReactNode;
 };
 
 export function AppointmentDetail({
   appointment,
   barberName,
+  actions,
 }: AppointmentDetailProps) {
   const status = appointmentStatus(appointment.status);
   const total = priceLabel(appointment);
@@ -108,7 +111,7 @@ export function AppointmentDetail({
         </Section>
       ) : null}
 
-      {/* actions arrive in the next layer */}
+      {actions}
     </ScrollView>
   );
 }
