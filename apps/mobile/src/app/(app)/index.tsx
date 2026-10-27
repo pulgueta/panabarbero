@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BrandWordmark } from "@/components/brand-wordmark";
 import { type Access, useAccess } from "@/hooks/use-access";
+import { type PushStatus, usePushStatus } from "@/hooks/use-push-registration";
 import { useAuth } from "@/providers/auth-provider";
 
 type Membership = NonNullable<Access["membership"]>;
@@ -17,12 +18,23 @@ function roleLabel(membership: Membership) {
   return "Barbero";
 }
 
+/** QA hint for push setup; `null` while registration runs. */
+const pushStatusLabel: Record<PushStatus, string | null> = {
+  pending: null,
+  active: "Notificaciones push: activas",
+  simulator: "Notificaciones push: no disponibles en este dispositivo",
+  denied: "Notificaciones push: permiso denegado",
+  "no-project-id": "Notificaciones push: pendientes de configuración",
+  error: "Notificaciones push: no se pudieron activar",
+};
+
 export default function HomeScreen() {
   const { user: sessionUser, signOut } = useAuth();
   const currentUser = useQuery(api.auth.getCurrentUser);
   const membership = useAccess()?.membership;
   const { isWebSocketConnected } = useConvexConnectionState();
   const insets = useSafeAreaInsets();
+  const pushLabel = pushStatusLabel[usePushStatus()];
 
   const email = currentUser?.email ?? sessionUser?.email;
   const name = currentUser?.name ?? email ?? "Cargando…";
@@ -54,6 +66,11 @@ export default function HomeScreen() {
             ) : null}
           </Card.Body>
         </Card>
+        {pushLabel ? (
+          <Typography.Paragraph type="body-sm" color="muted">
+            {pushLabel}
+          </Typography.Paragraph>
+        ) : null}
 
         <Card>
           <Card.Body className="flex-row items-center justify-between">
