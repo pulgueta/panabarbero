@@ -27,8 +27,8 @@ import {
 } from "@/hooks/barbershop/use-barbershop";
 import { barbershopLocationQueryOptions } from "@/hooks/barbershop/use-barbershop-metadata";
 import {
-  barbershopMembersByBarbershopIdQueryOptions,
   isBarberQueryOptions,
+  teamByBarbershopIdQueryOptions,
   useIsBarber,
 } from "@/hooks/use-barbershop-members";
 import { useClipboard } from "@/hooks/use-clipboard";
@@ -65,7 +65,7 @@ export const Route = createFileRoute(
             barbershopLocationQueryOptions(barbershop._id),
           );
           void opts.context.queryClient.prefetchQuery(
-            barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+            teamByBarbershopIdQueryOptions(barbershop._id),
           );
         });
 

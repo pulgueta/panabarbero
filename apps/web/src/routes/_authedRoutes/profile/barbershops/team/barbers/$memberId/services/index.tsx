@@ -24,10 +24,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cacheTime } from "@/config/cache";
 import { useBarbershopByMemberUserId } from "@/hooks/barbershop/use-barbershop";
 import {
-  barbershopMembersByBarbershopIdQueryOptions,
   servicesForBarberQueryOptions,
-  useBarbershopMembersByBarbershopId,
+  teamByBarbershopIdQueryOptions,
   useServicesForBarber,
+  useTeamByBarbershopId,
 } from "@/hooks/use-barbershop-members";
 import {
   servicesQueryOptions,
@@ -59,7 +59,7 @@ export const Route = createFileRoute(
 
     const [members] = await Promise.all([
       opts.context.queryClient.ensureQueryData(
-        barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+        teamByBarbershopIdQueryOptions(barbershop._id),
       ),
       opts.context.queryClient.ensureQueryData(
         servicesQueryOptions(barbershop._id),
@@ -83,9 +83,7 @@ function RouteComponent() {
   const typedMemberId = memberId as BarbershopMember["_id"];
   const { data: user } = useSession();
   const { data: barbershop } = useBarbershopByMemberUserId(user?.id!);
-  const { data: members } = useBarbershopMembersByBarbershopId(
-    barbershop?._id!,
-  );
+  const { data: members } = useTeamByBarbershopId(barbershop?._id!);
   const { data: services } = useServicesFromBarbershop(barbershop?._id!);
   const { data: currentServices } = useServicesForBarber(typedMemberId);
   const member = members.find((row) => row._id === typedMemberId);

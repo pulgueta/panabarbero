@@ -48,28 +48,67 @@ export const create = zInternalMutation({
   },
 });
 
+async function getActiveBarbersWithName(
+  ctx: QueryCtx,
+  barbershopId: Barbershop["_id"],
+) {
+  const members = await ctx.db
+    .query("barbershopMembers")
+    .withIndex("by_barbershopId", (q) => q.eq("barbershopId", barbershopId))
+    .filter((q) => q.eq(q.field("isActive"), true))
+    .collect();
+
+  const membersWithName = await Promise.all(
+    members.map(async (member) => {
+      const memberProfile = await ctx.db.get(member.userProfileDataId);
+
+      return {
+        ...member,
+        name: memberProfile?.name ?? "",
+        avatarUrl: memberProfile?.image ?? "",
+      };
+    }),
+  );
+
+  return membersWithName.filter((member) => member.roles.includes("barber"));
+}
+
+/**
+ * Public barber list for the shop page and the booking flow. Exposes display
+ * fields only; the full membership row is served to members by
+ * `getTeamByBarbershopId`.
+ */
 export const getByBarbershopId = zQuery({
   args: barbershops.tools.id.shape,
   handler: async (ctx, args) => {
-    const members = await ctx.db
-      .query("barbershopMembers")
-      .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
-      .filter((q) => q.eq(q.field("isActive"), true))
-      .collect();
+    const barbers = await getActiveBarbersWithName(ctx, args.id);
 
-    const membersWithName = await Promise.all(
-      members.map(async (member) => {
-        const memberProfile = await ctx.db.get(member.userProfileDataId);
+    return barbers.map(({ _id, name, avatarUrl, roles }) => ({
+      _id,
+      name,
+      avatarUrl,
+      roles,
+    }));
+  },
+});
 
-        return {
-          ...member,
-          name: memberProfile?.name ?? "",
-          avatarUrl: memberProfile?.image ?? "",
-        };
-      }),
-    );
+/** Full membership rows of the shop's barbers, for active members only. */
+export const getTeamByBarbershopId = zQuery({
+  args: barbershops.tools.id.shape,
+  handler: async (ctx, args) => {
+    const userId = await getUserId(ctx);
 
-    return membersWithName.filter((member) => member.roles.includes("barber"));
+    if (!userId) {
+      return [];
+    }
+
+    const callerMember = await getByUserIdFn(ctx, { userId });
+
+    if (!callerMember || callerMember.barbershopId !== args.id) {
+      return [];
+    }
+
+    return await getActiveBarbersWithName(ctx, args.id);
   },
 });
 
@@ -698,12 +737,16 @@ export const getByUserIdFn = async (
     return null;
   }
 
-  return await ctx.db
+  // A user has at most a handful of membership rows (old inactive rows plus
+  // the current one), so collecting them all stays small.
+  const memberships = await ctx.db
     .query("barbershopMembers")
     .withIndex("by_userProfileDataId", (q) =>
       q.eq("userProfileDataId", profile._id),
     )
-    .first();
+    .collect();
+
+  return memberships.find((row) => row.isActive) ?? null;
 };
 
 // ---------------------------------------------------------------------------

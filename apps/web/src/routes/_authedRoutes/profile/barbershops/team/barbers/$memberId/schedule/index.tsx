@@ -24,8 +24,8 @@ import { cacheTime } from "@/config/cache";
 import { useBarbershopByMemberUserId } from "@/hooks/barbershop/use-barbershop";
 import {
   barberScheduleQueryOptions,
-  barbershopMembersByBarbershopIdQueryOptions,
-  useBarbershopMembersByBarbershopId,
+  teamByBarbershopIdQueryOptions,
+  useTeamByBarbershopId,
 } from "@/hooks/use-barbershop-members";
 import { useSession } from "@/hooks/use-session";
 
@@ -49,7 +49,7 @@ export const Route = createFileRoute(
 
     const [members] = await Promise.all([
       opts.context.queryClient.ensureQueryData(
-        barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+        teamByBarbershopIdQueryOptions(barbershop._id),
       ),
       opts.context.queryClient.ensureQueryData(
         barberScheduleQueryOptions(memberId),
@@ -70,9 +70,7 @@ function RouteComponent() {
   const typedMemberId = memberId as BarbershopMember["_id"];
   const { data: user } = useSession();
   const { data: barbershop } = useBarbershopByMemberUserId(user?.id!);
-  const { data: members } = useBarbershopMembersByBarbershopId(
-    barbershop?._id!,
-  );
+  const { data: members } = useTeamByBarbershopId(barbershop?._id!);
   const member = members.find((row) => row._id === typedMemberId);
 
   if (!member) {

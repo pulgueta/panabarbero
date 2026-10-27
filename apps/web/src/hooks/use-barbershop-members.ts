@@ -2,11 +2,26 @@ import { api } from "@convex/_generated/api";
 import type { Barbershop, BarbershopMember, Service } from "@convex/schema";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import type { FunctionReturnType } from "convex/server";
+
+/** Display fields of a shop barber, as served to public pages. */
+export type PublicBarber = FunctionReturnType<
+  typeof api.barbershopMembers.getByBarbershopId
+>[number];
 
 export function barbershopMembersByBarbershopIdQueryOptions(
   barbershopId: Barbershop["_id"],
 ) {
   return convexQuery(api.barbershopMembers.getByBarbershopId, {
+    id: barbershopId,
+  });
+}
+
+/** Full barber rows; the server returns `[]` unless the caller is a member. */
+export function teamByBarbershopIdQueryOptions(
+  barbershopId: Barbershop["_id"],
+) {
+  return convexQuery(api.barbershopMembers.getTeamByBarbershopId, {
     id: barbershopId,
   });
 }
@@ -61,6 +76,10 @@ export function useBarbershopMembersByBarbershopId(
   return useSuspenseQuery(
     barbershopMembersByBarbershopIdQueryOptions(barbershopId),
   );
+}
+
+export function useTeamByBarbershopId(barbershopId: Barbershop["_id"]) {
+  return useSuspenseQuery(teamByBarbershopIdQueryOptions(barbershopId));
 }
 
 export function useIsBarber(userId: string) {

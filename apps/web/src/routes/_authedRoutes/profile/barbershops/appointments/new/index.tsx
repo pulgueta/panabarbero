@@ -35,18 +35,18 @@ import {
 import { getBarbershopPlanQueryOptions } from "@/hooks/billing/use-plan";
 import {
   barberByUserIdQueryOptions,
-  barbershopMembersByBarbershopIdQueryOptions,
   isBarberQueryOptions,
   isOwnerQueryOptions,
   isStaffQueryOptions,
   servicesForBarberQueryOptions,
+  teamByBarbershopIdQueryOptions,
   useBarberByUserId,
   useBarbersForServices,
-  useBarbershopMembersByBarbershopId,
   useIsBarber,
   useIsOwner,
   useIsStaff,
   useServicesForBarber,
+  useTeamByBarbershopId,
 } from "@/hooks/use-barbershop-members";
 import { useProfile } from "@/hooks/use-profile";
 import {
@@ -97,7 +97,7 @@ export const Route = createFileRoute(
 
     const [members] = await Promise.all([
       context.queryClient.ensureQueryData(
-        barbershopMembersByBarbershopIdQueryOptions(barbershop._id),
+        teamByBarbershopIdQueryOptions(barbershop._id),
       ),
       context.queryClient.ensureQueryData(barberByUserIdQueryOptions(userId)),
       context.queryClient.ensureQueryData(isBarberQueryOptions(userId)),
@@ -124,9 +124,7 @@ function RouteComponent() {
   const userId = user?.id ?? "";
   const { data: userProfile } = useProfile(userId);
   const { data: barbershop } = useBarbershopByMemberUserId(userId);
-  const { data: barbershopMembers } = useBarbershopMembersByBarbershopId(
-    barbershop?._id!,
-  );
+  const { data: barbershopMembers } = useTeamByBarbershopId(barbershop?._id!);
   const { data: services } = useServicesByBarbershopId(barbershop?._id!);
   const { data: isBarber } = useIsBarber(userId);
   const { data: isStaff } = useIsStaff(userId);

@@ -1,18 +1,18 @@
-import type { BarbershopMemberWithName } from "@convex/schema";
 import type { FC } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
+import type { PublicBarber } from "@/hooks/use-barbershop-members";
 import { getInitials } from "@/lib/utils";
 
-const ROLE_LABELS: Record<BarbershopMemberWithName["roles"][number], string> = {
+const ROLE_LABELS: Record<PublicBarber["roles"][number], string> = {
   owner: "Dueño",
   barber: "Barbero",
   staff: "Staff",
 };
 
 interface BarberTeamSectionProps {
-  barbers: BarbershopMemberWithName[];
+  barbers: PublicBarber[];
 }
 
 /** Detail-page team card: one row per member with their roles. */
