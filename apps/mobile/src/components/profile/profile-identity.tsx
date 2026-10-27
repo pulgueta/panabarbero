@@ -47,7 +47,7 @@ export function ProfileIdentity({
               {shopName}
             </Typography>
             {roleLabel ? (
-              <Chip size="sm" variant="soft">
+              <Chip size="sm" variant="soft" color="default">
                 {roleLabel}
               </Chip>
             ) : null}
