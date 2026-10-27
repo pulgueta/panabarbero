@@ -30,6 +30,8 @@ type AuthContextValue = {
   /** Resolves when the flow ends; a user cancel resolves without signing in. Throws on failure. */
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
+  /** Run `task` before the next sign-out clears the session. Returns an unsubscribe. */
+  registerSignOutTask: (task: () => Promise<void>) => () => void;
   getAccessToken: (options?: {
     forceRefresh?: boolean;
   }) => Promise<string | null>;
@@ -47,6 +49,9 @@ const EXPIRY_MARGIN_MS = 60_000;
 /** Wait times between token refresh attempts after a transient failure. */
 const RETRY_DELAYS_MS = [500, 1500, 3000];
 
+/** Maximum wait for sign-out tasks before the local session is cleared. */
+const SIGN_OUT_TASKS_TIMEOUT_MS = 3000;
+
 const sleep = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -63,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const retryInFlightRef = useRef<Promise<string | null> | null>(null);
   // Bumped on sign-out so a refresh that resolves later cannot restore the session.
   const generationRef = useRef(0);
+  const signOutTasksRef = useRef(new Set<() => Promise<void>>());
 
   const resetLocal = useCallback(async () => {
     generationRef.current += 1;
@@ -216,6 +222,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await applySession(session);
   }, [applySession]);
 
+  const registerSignOutTask = useCallback((task: () => Promise<void>) => {
+    signOutTasksRef.current.add(task);
+    return () => {
+      signOutTasksRef.current.delete(task);
+    };
+  }, []);
+
+  const signOut = useCallback(async () => {
+    // Tasks need the live session (for example a Convex call), so run them first.
+    const tasks = [...signOutTasksRef.current].map(async (task) => task());
+    await Promise.race([
+      Promise.allSettled(tasks),
+      sleep(SIGN_OUT_TASKS_TIMEOUT_MS),
+    ]);
+    await resetLocal();
+  }, [resetLocal]);
+
   const retryConvexAuth = useCallback(() => {
     setRetryNonce((nonce) => nonce + 1);
   }, []);
@@ -225,7 +248,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       user,
       signIn,
-      signOut: resetLocal,
+      signOut,
+      registerSignOutTask,
       getAccessToken,
       retryConvexAuth,
       retryNonce,
@@ -234,7 +258,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       user,
       signIn,
-      resetLocal,
+      signOut,
+      registerSignOutTask,
       getAccessToken,
       retryConvexAuth,
       retryNonce,

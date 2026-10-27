@@ -241,6 +241,12 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     period: MINUTE,
     capacity: 10,
   },
+  pushTokenUnregister: {
+    kind: "token bucket",
+    rate: 10,
+    period: MINUTE,
+    capacity: 10,
+  },
 });
 
 export type RateLimitName = keyof NonNullable<typeof rateLimiter.limits>;
