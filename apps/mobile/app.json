@@ -38,7 +38,9 @@
             "backgroundColor": "#0a0a0a"
           }
         }
-      ]
+      ],
+      "expo-web-browser",
+      "expo-secure-store"
     ]
   }
 }
