@@ -1,6 +1,7 @@
 import cascadingDelete from "@00akshatsinha00/convex-cascading-delete/convex.config";
 import agent from "@convex-dev/agent/convex.config";
 import aggregate from "@convex-dev/aggregate/convex.config";
+import pushNotifications from "@convex-dev/expo-push-notifications/convex.config";
 import geospatial from "@convex-dev/geospatial/convex.config";
 import migrations from "@convex-dev/migrations/convex.config";
 import polar from "@convex-dev/polar/convex.config";
@@ -27,6 +28,7 @@ const app = defineApp({
     POSTHOG_FLAGS_POLLING_INTERVAL_SECONDS: v.optional(v.string()),
     USESEND_API_KEY: v.string(),
     USESEND_BASE_URL: v.optional(v.string()),
+    EXPO_ACCESS_TOKEN: v.optional(v.string()),
   },
 });
 app.use(authkit);
@@ -66,4 +68,7 @@ app.use(aggregate, { name: "aggregateInventoryValue" });
 app.use(aggregate, { name: "aggregateInventoryMovements" });
 app.use(workflow);
 app.use(workpool, { name: "reviewModerationWorkpool" });
+app.use(pushNotifications, {
+  env: { EXPO_ACCESS_TOKEN: app.env.EXPO_ACCESS_TOKEN },
+});
 export default app;

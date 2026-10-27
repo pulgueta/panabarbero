@@ -160,3 +160,25 @@ export const backfillReviewStars = migrations.define({
     });
   },
 });
+
+/**
+ * Backfill the `push` channel preference (enabled by default, like new
+ * sign-ups) onto profiles created before mobile push existed. Idempotent:
+ * rows that already carry a `push` entry are skipped. Run once with
+ * `npx convex run migrations:run '{fn: "migrations:backfillPushNotificationPreference"}'`.
+ */
+export const backfillPushNotificationPreference = migrations.define({
+  table: "userProfileData",
+  migrateOne: async (ctx, profile) => {
+    if (profile.notificationsPreferences.some((p) => p.type === "push")) {
+      return;
+    }
+
+    await ctx.db.patch(profile._id, {
+      notificationsPreferences: [
+        ...profile.notificationsPreferences,
+        { type: "push", enabled: true },
+      ],
+    });
+  },
+});

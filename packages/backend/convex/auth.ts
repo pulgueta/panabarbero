@@ -326,6 +326,7 @@ export const { authKitEvent } = authkit.events({
         notificationsPreferences: [
           { type: "email", enabled: true },
           { type: "sms", enabled: false },
+          { type: "push", enabled: true },
         ],
       });
 

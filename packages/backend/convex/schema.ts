@@ -17,7 +17,7 @@ export const userProfileData = zodTable("userProfileData", () => ({
   phoneNumber: z.string().optional(),
   notificationsPreferences: z.array(
     z.object({
-      type: z.enum(["email", "sms"]),
+      type: z.enum(["email", "sms", "push"]),
       enabled: z.boolean(),
     }),
   ),

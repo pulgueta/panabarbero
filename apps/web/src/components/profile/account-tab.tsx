@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import {
   FieldContent,
+  FieldDescription,
   FieldLabel,
   Field as FieldRoot,
 } from "@/components/ui/field";
@@ -300,6 +301,31 @@ export const AccountTab: FC<AccountTabProps> = ({
                   onCheckedChange={(val) =>
                     updateNotificationPreference({
                       type: "sms",
+                      enabled: val,
+                      userId,
+                    })
+                  }
+                />
+              </FieldContent>
+            </FieldRoot>
+
+            <FieldRoot orientation="horizontal">
+              <FieldContent>
+                <FieldLabel>Notificaciones push</FieldLabel>
+                <FieldDescription>
+                  Alertas en la app móvil de PanaBarbero.
+                </FieldDescription>
+              </FieldContent>
+              <FieldContent className="items-end">
+                <Switch
+                  checked={
+                    profile?.notificationsPreferences.find(
+                      (p) => p.type === "push",
+                    )?.enabled
+                  }
+                  onCheckedChange={(val) =>
+                    updateNotificationPreference({
+                      type: "push",
                       enabled: val,
                       userId,
                     })
