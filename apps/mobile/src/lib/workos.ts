@@ -1,8 +1,4 @@
-import {
-  AuthRequest,
-  CodeChallengeMethod,
-  makeRedirectUri,
-} from "expo-auth-session";
+import { AuthRequest, CodeChallengeMethod } from "expo-auth-session";
 import { z } from "zod";
 
 const clientId = process.env.EXPO_PUBLIC_WORKOS_CLIENT_ID;
@@ -14,6 +10,11 @@ if (!clientId) {
 }
 
 const WORKOS_API = "https://api.workos.com/user_management";
+
+// Registered as a redirect URI on the WorkOS AuthKit client. A fixed value is used on
+// purpose: `makeRedirectUri` resolves to `exp://<metro-host>/--/…` when Metro is attached,
+// and WorkOS rejects anything that does not match the registered URI exactly.
+const REDIRECT_URI = "panabarbero://auth/callback";
 
 export const workosDiscovery = {
   authorizationEndpoint: `${WORKOS_API}/authorize`,
@@ -61,10 +62,7 @@ export type WorkOSSession = {
 export function buildAuthorizeRequest() {
   return new AuthRequest({
     clientId: clientId as string,
-    redirectUri: makeRedirectUri({
-      scheme: "panabarbero",
-      path: "auth/callback",
-    }),
+    redirectUri: REDIRECT_URI,
     usePKCE: true,
     codeChallengeMethod: CodeChallengeMethod.S256,
     extraParams: { provider: "authkit" },
