@@ -10,14 +10,12 @@
   "files": {
     "ignoreUnknown": true,
     "includes": [
-      "convex/**/*.ts",
-      "!convex/_generated",
-      "src/**/*.ts",
-      "src/**/*.tsx",
-      "./**/*.css",
-      "./**/*.json",
-      "!src/routeTree.gen.ts",
-      "vite.config.ts"
+      "apps/web/src/**",
+      "apps/web/vite.config.ts",
+      "packages/backend/convex/**",
+      "**/*.json",
+      "!**/_generated",
+      "!**/routeTree.gen.ts"
     ]
   },
   "formatter": {

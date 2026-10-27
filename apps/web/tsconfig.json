@@ -1,5 +1,10 @@
 {
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "vite.config.ts",
+    "doctor.config.ts"
+  ],
   "compilerOptions": {
     "target": "esnext",
     "jsx": "preserve",
@@ -23,7 +28,7 @@
     "noUncheckedSideEffectImports": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@convex/*": ["./convex/*"]
+      "@convex/*": ["../../packages/backend/convex/*"]
     }
   }
 }

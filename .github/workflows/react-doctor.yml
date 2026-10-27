@@ -26,6 +26,8 @@ jobs:
       - name: Runs React Doctor
         id: doctor
         uses: millionco/react-doctor@938008119a288f2fb47c66a69cd9279a21f31784 # v2.2.7
+        with:
+          directory: apps/web
 
       # The action never fails on findings for non-PR events, so gate release
       # (tag) runs on its outputs: block on error-severity findings or on a
