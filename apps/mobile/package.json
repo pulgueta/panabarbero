@@ -17,8 +17,8 @@
     "@panabarbero/backend": "workspace:*",
     "convex": "catalog:",
     "date-fns": "catalog:",
-    "expo": "~58.0.19",
-    "expo-auth-session": "~58.0.14",
+    "expo": "~58.0.20",
+    "expo-auth-session": "~58.0.15",
     "expo-blur": "~58.0.5",
     "expo-constants": "~58.0.13",
     "expo-crypto": "~58.0.7",
@@ -27,12 +27,12 @@
     "expo-haptics": "~58.0.7",
     "expo-linking": "~58.0.14",
     "expo-notifications": "~58.1.6",
-    "expo-router": "~58.0.26",
+    "expo-router": "~58.0.27",
     "expo-secure-store": "~58.0.2",
     "expo-splash-screen": "~58.0.11",
     "expo-status-bar": "~58.0.4",
     "expo-system-ui": "~58.0.6",
-    "expo-web-browser": "~58.0.6",
+    "expo-web-browser": "~58.0.7",
     "heroui-native": "^1.0.11",
     "phosphor-react-native": "^3.0.6",
     "react": "19.3.0",
@@ -50,7 +50,15 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/react": "19.2.17",
+    "@types/react": "catalog:",
     "typescript": "catalog:"
+  },
+  "expo": {
+    "install": {
+      "exclude": [
+        "typescript",
+        "@types/react"
+      ]
+    }
   }
 }
