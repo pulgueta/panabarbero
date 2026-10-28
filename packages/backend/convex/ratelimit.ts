@@ -1,4 +1,4 @@
-import type { RunMutationCtx } from "@convex-dev/rate-limiter";
+import type { ActionCtx, MutationCtx } from "@convex-dev/rate-limiter";
 import { MINUTE, RateLimiter } from "@convex-dev/rate-limiter";
 import { ConvexError } from "convex/values";
 import { components } from "./_generated/api";
@@ -253,7 +253,7 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
 export type RateLimitName = keyof NonNullable<typeof rateLimiter.limits>;
 
 export const rateLimitOrThrow = async (
-  ctx: RunMutationCtx,
+  ctx: MutationCtx | ActionCtx,
   name: RateLimitName,
   key: string,
 ) => {

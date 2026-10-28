@@ -1,7 +1,7 @@
 import { vOnCompleteArgs, Workpool } from "@convex-dev/workpool";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { convexToZod } from "convex-helpers/server/zod4";
+import { convexToZod, convexToZodFields } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 import {
@@ -685,11 +685,13 @@ export const applyModeration = zInternalMutation({
  * (the action already resolved the review on success).
  *
  * The Workpool dictates the argument validator through `vOnCompleteArgs` (a
- * Convex validator); `convexToZod` bridges it into the zod wrapper so this stays
+ * Convex validator); `convexToZodFields` bridges it into the zod wrapper so this stays
  * consistent with every other function in the file.
  */
 export const onModerationComplete = zInternalMutation({
-  args: convexToZod(vOnCompleteArgs(v.object({ reviewId: v.id("reviews") }))),
+  args: convexToZodFields(
+    vOnCompleteArgs(v.object({ reviewId: v.id("reviews") })).fields,
+  ),
   handler: async (ctx, { context, result }) => {
     if (result.kind !== "failed") {
       return;
