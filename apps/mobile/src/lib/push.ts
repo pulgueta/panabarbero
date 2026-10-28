@@ -70,6 +70,8 @@ const agendaKinds = new Set([
   "appointment_reschedule_denied",
   "appointment_reminder",
   "past_appointment_reminder",
+  "customer_on_my_way",
+  "appointment_reassigned",
   "barber_removed_cancellation",
   "service_deleted_cancellation",
   "service_line_removed",

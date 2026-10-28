@@ -21,6 +21,8 @@ every current feature. Delivery is a stack of small PRs so bots and humans revie
 | Theme | Mobile `global.css` maps HeroUI Native variables to the web oklch values from `src/styles.css`. Geist font, Phosphor icons, radius 8px. | HeroUI Native themes via Uniwind use oklch CSS variables, same as the web. |
 | Calendar | Native day agenda list, not a port of the 10k-line web calendar. HeroUI Calendar/DatePicker are Pro-only. | Pro components are out of budget. |
 | Push | `@convex-dev/expo-push-notifications` 0.4.x. New `pushTokens.ts` with its own rate-limit name. Send hook in `recordInApp` (`convex/notifications.ts`). Prefs enum gains `push`. | `recordInApp` is the one place on `main` that has recipient id and copy. PR #103 adds a central dispatcher; the hook moves there after #103 lands. |
+| Dispatcher | Port only the channel-agnostic shape of #103's `sendNotification` (one entry point, `sendSms`/`sendEmail`/`emailFallback`), driven by the current `email | sms | push` prefs. Skip WhatsApp, consent, metering, prefs/credits migrations. | #103's body is WhatsApp-first and its plan deletes email/SMS prefs, which conflicts with the mobile push channel. |
+| Mobile redirect URI | Fixed constant `panabarbero://auth/callback`; never `makeRedirectUri`. | Under Metro it resolves to `exp://<lan-ip>/--/…`, which WorkOS rejects and which changes with the LAN IP. |
 | Model routing | Codex (gpt-5.6) for mechanical slices (workspace move, backend wiring). Claude Opus/Fable for user-facing UI and reviews. | Per repo model guidance. |
 
 ## Stack (bottom to top)
@@ -36,6 +38,9 @@ every current feature. Delivery is a stack of small PRs so bots and humans revie
 | 7 | `feat/mobile-agenda` | Day agenda, appointment detail, complete / no-show / cancel, reschedule requests. | Owner persona day with seeded appointments |
 | 8 | `feat/mobile-notifications-inbox` | Inbox, unread badge, mark all read. | Simulator |
 | 9 | `feat/mobile-profile-settings` | Account, notification prefs, barber schedule view, theme toggle, sign out. | Simulator |
+| 10 | `fix/backend-authz` | Reschedule request/answer authz, active membership resolution, public member projection + gated team query. | `turbo typecheck`, `biome ci` |
+| 11 | `feat/notifications-dispatcher` | `sendNotification` entry point on email/sms/push prefs (ported from #103 without WhatsApp), kinds `customer_on_my_way` + `appointment_reassigned`, `markOnMyWay`. | `turbo typecheck`, web build, `convex dev --once` |
+| 12 | `chore/workspace-deps-update` | Convex 1.48 via catalog; web/backend to latest with migrations; mobile only Expo doctor fixes. | install, typecheck, web build, expo export, expo-doctor |
 
 Phase 2 (new stacks after this one lands): team, services, inventory, sales, reviews, analytics,
 Pana chat, shop settings.

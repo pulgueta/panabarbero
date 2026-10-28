@@ -1,5 +1,11 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: early return */
 
+import type {
+  FunctionArgs,
+  FunctionHandle,
+  FunctionReference,
+} from "convex/server";
+import { createFunctionHandle } from "convex/server";
 import { ConvexError } from "convex/values";
 import { zid } from "convex-helpers/server/zod4";
 import { UnreadTracking } from "convex-unread-tracking";
@@ -28,6 +34,13 @@ export { subjects };
 
 export const unreads = new UnreadTracking(components.unreadTracking);
 
+const timeFormatter = new Intl.DateTimeFormat("es-CO", {
+  timeZone: "America/Bogota",
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+});
+
 export function isNotificationEnabled(
   channel: UserProfileData["notificationsPreferences"][number]["type"],
   notificationsPreferences: UserProfileData["notificationsPreferences"],
@@ -43,22 +56,12 @@ function resolveCustomerEmail(
   return normalizedAppointmentEmail || profileEmail || undefined;
 }
 
-function isCustomerEmailEnabled(customerProfile: UserProfileData | null) {
-  return customerProfile
-    ? isNotificationEnabled("email", customerProfile.notificationsPreferences)
-    : true;
-}
-
 /**
- * Schedule an SMS via Twilio while enforcing the barbershop's monthly SMS quota.
- *
- * If `barbershopId` is provided the limit is checked and the counter is
- * incremented. When the quota has been reached the SMS is silently skipped —
- * this function never throws on limit violations.
- * When `barbershopId` is `undefined` (e.g. for notifications that are not
- * scoped to a barbershop) the SMS is sent without quota checks.
+ * Schedule an SMS via Twilio. With a `barbershopId` the plan's monthly SMS cap
+ * is enforced: at the cap the SMS is silently skipped, never thrown. Without
+ * one (notifications not scoped to a barbershop) the SMS is sent unchecked.
  */
-async function scheduleSmsWithQuota(
+async function sendSms(
   ctx: MutationCtx,
   opts: {
     to: string;
@@ -83,18 +86,12 @@ async function scheduleSmsWithQuota(
 }
 
 /**
- * Schedule an email while enforcing the barbershop's monthly email quota.
- *
- * If `barbershopId` is provided the limit is checked and the counter is
- * incremented. When the quota has been reached the email is silently skipped —
- * this function never throws on limit violations.
- * When `barbershopId` is `undefined` (e.g. for notifications that are not
- * scoped to a barbershop) the email is sent without quota checks.
+ * Schedule an email. Same cap semantics as `sendSms` (monthly email cap).
  *
  * @param send - A thunk that performs the actual `ctx.scheduler.runAfter` call.
- *               Only invoked when the quota allows it.
+ *               Only invoked when the cap allows it.
  */
-async function scheduleEmailWithQuota(
+async function sendEmail(
   ctx: MutationCtx,
   barbershopId: Barbershop["_id"] | undefined,
   send: () => Promise<unknown>,
@@ -110,6 +107,76 @@ async function scheduleEmailWithQuota(
   }
 
   await send();
+}
+
+/** An email action serialized by `emailFallback`, ready to be scheduled. */
+export type NotificationEmail = {
+  handle: string;
+  args: Record<string, unknown>;
+};
+
+/** Serialize an email send so `sendNotification` can schedule it by handle. */
+export async function emailFallback<
+  Ref extends FunctionReference<"action", "internal">,
+>(ref: Ref, args: FunctionArgs<Ref>): Promise<NotificationEmail> {
+  return { handle: await createFunctionHandle(ref), args };
+}
+
+/**
+ * Send one notification over the receiver's enabled channels. Each leg runs
+ * when its address/phone exists and the receiver's preference for that
+ * channel is on; receivers without a profile (guests) use `guestDefault`.
+ * Monthly caps apply per barbershop (see `sendSms` / `sendEmail`). The in-app
+ * row and its push stay in `recordInApp`.
+ */
+export async function sendNotification(
+  ctx: MutationCtx,
+  opts: {
+    barbershopId: Barbershop["_id"] | undefined;
+    receiverProfile: UserProfileData | null;
+    /** Channel default when the receiver has no profile. Defaults to `true`. */
+    guestDefault?: boolean;
+    email?: NotificationEmail;
+    phone?: string;
+    smsBody?: string;
+    /** Send the SMS regardless of the receiver's preference. */
+    forceSms?: boolean;
+  },
+): Promise<void> {
+  const { receiverProfile } = opts;
+  const guestDefault = opts.guestDefault ?? true;
+
+  const emailEnabled = receiverProfile
+    ? isNotificationEnabled("email", receiverProfile.notificationsPreferences)
+    : guestDefault;
+
+  if (emailEnabled && opts.email) {
+    const email = opts.email;
+
+    await sendEmail(ctx, opts.barbershopId, () =>
+      ctx.scheduler.runAfter(
+        0,
+        // SAFETY: `email.handle` is a `createFunctionHandle` result for an
+        // internal action (see `emailFallback`), serialized as a string.
+        email.handle as FunctionHandle<"action">,
+        email.args,
+      ),
+    );
+  }
+
+  const smsEnabled =
+    opts.forceSms ||
+    (receiverProfile
+      ? isNotificationEnabled("sms", receiverProfile.notificationsPreferences)
+      : guestDefault);
+
+  if (smsEnabled && opts.phone && opts.smsBody) {
+    await sendSms(ctx, {
+      to: opts.phone,
+      body: opts.smsBody,
+      barbershopId: opts.barbershopId,
+    });
+  }
 }
 
 /**
@@ -223,35 +290,21 @@ export const createAppointmentCancelled = zInternalMutation({
     const body = copy.description;
     const smsBody = buildSmsBody(copy);
 
-    const emailEnabled = receiverProfile
-      ? isNotificationEnabled("email", receiverProfile.notificationsPreferences)
-      : isCustomer; // Default to enabled for guest customers
-
-    if (emailEnabled && toEmail) {
-      await scheduleEmailWithQuota(ctx, appointment.barbershopId, () =>
-        ctx.scheduler.runAfter(0, internal.emails.sendAppointmentCancelled, {
-          notes: args.notes,
-          sendTo: args.sendTo,
-          to: toEmail,
-          body,
-        }),
-      );
-    }
-
-    const smsEnabled = receiverProfile
-      ? isNotificationEnabled("sms", receiverProfile.notificationsPreferences)
-      : isCustomer; // Default to enabled for guest customers
-
-    const phoneNumber =
-      receiverProfile?.phoneNumber ?? appointment.contactPhone;
-
-    if (smsEnabled && phoneNumber) {
-      await scheduleSmsWithQuota(ctx, {
-        body: smsBody,
-        to: phoneNumber,
-        barbershopId: appointment.barbershopId,
-      });
-    }
+    await sendNotification(ctx, {
+      barbershopId: appointment.barbershopId,
+      receiverProfile,
+      guestDefault: isCustomer,
+      email: toEmail
+        ? await emailFallback(internal.emails.sendAppointmentCancelled, {
+            notes: args.notes,
+            sendTo: args.sendTo,
+            to: toEmail,
+            body,
+          })
+        : undefined,
+      phone: receiverProfile?.phoneNumber ?? appointment.contactPhone,
+      smsBody,
+    });
 
     if (receiverProfile?.userId) {
       await recordInApp(ctx, {
@@ -315,34 +368,21 @@ export const createAppointmentRescheduleRequest = zInternalMutation({
     const body = copy.description;
     const smsBody = buildSmsBody(copy);
 
-    const emailEnabled = isCustomer
-      ? isCustomerEmailEnabled(customerProfile)
-      : isNotificationEnabled("email", barberProfile.notificationsPreferences);
-
-    if (emailEnabled && toEmail) {
-      await scheduleEmailWithQuota(ctx, appointment.barbershopId, () =>
-        ctx.scheduler.runAfter(
-          0,
-          internal.emails.sendAppointmentRescheduleRequestEmail,
-          { to: toEmail, body, sendTo: args.sendTo },
-        ),
-      );
-    }
-
-    const smsEnabled = receiverProfile
-      ? isNotificationEnabled("sms", receiverProfile.notificationsPreferences)
-      : isCustomer;
-    const phoneNumber = isCustomer
-      ? appointment.contactPhone
-      : receiverProfile?.phoneNumber;
-
-    if (smsEnabled && phoneNumber) {
-      await scheduleSmsWithQuota(ctx, {
-        body: smsBody,
-        to: phoneNumber,
-        barbershopId: appointment.barbershopId,
-      });
-    }
+    await sendNotification(ctx, {
+      barbershopId: appointment.barbershopId,
+      receiverProfile,
+      guestDefault: isCustomer,
+      email: toEmail
+        ? await emailFallback(
+            internal.emails.sendAppointmentRescheduleRequestEmail,
+            { to: toEmail, body, sendTo: args.sendTo },
+          )
+        : undefined,
+      phone: isCustomer
+        ? appointment.contactPhone
+        : receiverProfile?.phoneNumber,
+      smsBody,
+    });
 
     if (receiverProfile?.userId) {
       await recordInApp(ctx, {
@@ -397,59 +437,41 @@ export const createAppointmentRescheduleDecision = zInternalMutation({
     const body = copy.description;
     const smsBody = buildSmsBody(copy);
 
-    const emailEnabled = receiverProfile
-      ? isNotificationEnabled("email", receiverProfile.notificationsPreferences)
-      : isCustomer; // Default to enabled for guest customers
-
-    if (emailEnabled && args.to) {
-      if (args.accepted) {
-        await scheduleEmailWithQuota(ctx, appointment?.barbershopId, () =>
-          ctx.scheduler.runAfter(
-            0,
-            internal.emails.sendAppointmentRescheduledAcceptedEmail,
-            { to: args.to, body },
-          ),
-        );
-      } else {
-        if (isCustomer) {
-          await scheduleEmailWithQuota(ctx, appointment?.barbershopId, () =>
-            ctx.scheduler.runAfter(
-              0,
-              internal.emails.sendAppointmentCancelled,
-              {
-                sendTo: "customer",
-                notes: args.notes ?? "Sin motivo especificado.",
-                to: args.to,
-                body,
-              },
-            ),
-          );
-        } else {
-          await scheduleEmailWithQuota(ctx, appointment?.barbershopId, () =>
-            ctx.scheduler.runAfter(
-              0,
-              internal.emails.sendAppointmentRescheduledDeniedEmail,
-              { to: args.to, body },
-            ),
-          );
-        }
+    const resolveEmail = async () => {
+      if (!args.to) {
+        return undefined;
       }
-    }
 
-    const smsEnabled = receiverProfile
-      ? isNotificationEnabled("sms", receiverProfile.notificationsPreferences)
-      : isCustomer; // Default to enabled for guest customers
+      if (args.accepted) {
+        return emailFallback(
+          internal.emails.sendAppointmentRescheduledAcceptedEmail,
+          { to: args.to, body },
+        );
+      }
 
-    const phoneNumber =
-      receiverProfile?.phoneNumber ?? appointment?.contactPhone;
+      if (isCustomer) {
+        return emailFallback(internal.emails.sendAppointmentCancelled, {
+          sendTo: "customer",
+          notes: args.notes ?? "Sin motivo especificado.",
+          to: args.to,
+          body,
+        });
+      }
 
-    if (smsEnabled && phoneNumber) {
-      await scheduleSmsWithQuota(ctx, {
-        body: smsBody,
-        to: phoneNumber,
-        barbershopId: appointment?.barbershopId,
-      });
-    }
+      return emailFallback(
+        internal.emails.sendAppointmentRescheduledDeniedEmail,
+        { to: args.to, body },
+      );
+    };
+
+    await sendNotification(ctx, {
+      barbershopId: appointment?.barbershopId,
+      receiverProfile,
+      guestDefault: isCustomer,
+      email: await resolveEmail(),
+      phone: receiverProfile?.phoneNumber ?? appointment?.contactPhone,
+      smsBody,
+    });
 
     if (receiverProfile?.userId && appointment) {
       await recordInApp(ctx, {
@@ -511,55 +533,23 @@ export const createAppointmentCreated = zInternalMutation({
       ? resolveCustomerEmail(args.to, customerProfile?.email)
       : (args.to ?? receiverProfile?.email);
 
-    const emailEnabled = isCustomer
-      ? isCustomerEmailEnabled(customerProfile)
-      : isNotificationEnabled(
-          "email",
-          receiverProfile?.notificationsPreferences ?? [],
-        );
-
-    if (emailEnabled && to) {
-      await scheduleEmailWithQuota(ctx, appointment?.barbershopId, () =>
-        ctx.scheduler.runAfter(
-          0,
-          isCustomer
-            ? internal.emails.sendAppointmentCreatedToUserEmail
-            : internal.emails.sendAppointmentCreatedToBarberEmail,
-          { to, body: receiverBody, subject },
-        ),
-      );
-    }
-
-    const fallbackPhone =
-      receiverProfile?.phoneNumber ?? args.receiverPhoneNumber;
-
-    let smsEnabled = false;
-
-    if (isCustomer) {
-      smsEnabled =
-        args.isStaffCreated ||
-        (receiverProfile
-          ? isNotificationEnabled(
-              "sms",
-              receiverProfile.notificationsPreferences ?? [],
-            )
-          : true);
-    } else {
-      smsEnabled = receiverProfile
-        ? isNotificationEnabled(
-            "sms",
-            receiverProfile.notificationsPreferences ?? [],
+    await sendNotification(ctx, {
+      barbershopId: appointment?.barbershopId,
+      receiverProfile,
+      guestDefault: isCustomer,
+      email: to
+        ? await emailFallback(
+            isCustomer
+              ? internal.emails.sendAppointmentCreatedToUserEmail
+              : internal.emails.sendAppointmentCreatedToBarberEmail,
+            { to, body: receiverBody, subject },
           )
-        : false;
-    }
-
-    if (smsEnabled && fallbackPhone) {
-      await scheduleSmsWithQuota(ctx, {
-        body: smsBody,
-        to: fallbackPhone,
-        barbershopId: appointment?.barbershopId,
-      });
-    }
+        : undefined,
+      phone: receiverProfile?.phoneNumber ?? args.receiverPhoneNumber,
+      smsBody,
+      // Staff-created bookings always text the customer their confirmation.
+      forceSms: isCustomer && args.isStaffCreated,
+    });
 
     if (receiverProfile?.userId) {
       await recordInApp(ctx, {
@@ -602,34 +592,19 @@ export const createAppointmentReminder = zInternalMutation({
     const smsBody = buildSmsBody(copy);
 
     const to = resolveCustomerEmail(args.to, customerProfile?.email);
-    const emailEnabled = isCustomerEmailEnabled(customerProfile);
 
-    if (emailEnabled && to) {
-      await scheduleEmailWithQuota(ctx, args.barbershopId, () =>
-        ctx.scheduler.runAfter(
-          0,
-          internal.emails.sendAppointmentReminderEmail,
-          {
+    await sendNotification(ctx, {
+      barbershopId: args.barbershopId,
+      receiverProfile: customerProfile,
+      email: to
+        ? await emailFallback(internal.emails.sendAppointmentReminderEmail, {
             to,
             body,
-          },
-        ),
-      );
-    }
-
-    const phoneNumber =
-      customerProfile?.phoneNumber || args.receiverPhoneNumber;
-    const smsEnabled = customerProfile
-      ? isNotificationEnabled("sms", customerProfile.notificationsPreferences)
-      : !!phoneNumber;
-
-    if (smsEnabled && phoneNumber) {
-      await scheduleSmsWithQuota(ctx, {
-        body: smsBody,
-        to: phoneNumber,
-        barbershopId: args.barbershopId,
-      });
-    }
+          })
+        : undefined,
+      phone: customerProfile?.phoneNumber || args.receiverPhoneNumber,
+      smsBody,
+    });
 
     if (customerProfile?.userId) {
       await recordInApp(ctx, {
@@ -658,27 +633,17 @@ export const createPastAppointmentReminder = zInternalMutation({
     const copy = buildNotificationCopy({ kind: "past_appointment_reminder" });
     const smsBody = buildSmsBody(copy);
 
-    if (
-      isNotificationEnabled("email", barberProfile.notificationsPreferences)
-    ) {
-      await scheduleEmailWithQuota(ctx, undefined, () =>
-        ctx.scheduler.runAfter(
-          0,
-          internal.emails.sendPastAppointmentReminderEmail,
-          { to: barberProfile.email },
-        ),
-      );
-    }
-
-    if (
-      isNotificationEnabled("sms", barberProfile.notificationsPreferences) &&
-      barberProfile.phoneNumber
-    ) {
-      await ctx.scheduler.runAfter(0, internal.twilio.sendSms, {
-        body: smsBody,
-        to: barberProfile.phoneNumber,
-      });
-    }
+    // Not scoped to a barbershop: no monthly caps apply.
+    await sendNotification(ctx, {
+      barbershopId: undefined,
+      receiverProfile: barberProfile,
+      email: await emailFallback(
+        internal.emails.sendPastAppointmentReminderEmail,
+        { to: barberProfile.email },
+      ),
+      phone: barberProfile.phoneNumber,
+      smsBody,
+    });
 
     await recordInApp(ctx, {
       userId: barberProfile.userId,
@@ -750,34 +715,20 @@ export const createBarberRemovedCancellation = zInternalMutation({
       customerProfile?.email,
     );
 
-    const emailEnabled = customerProfile
-      ? isNotificationEnabled("email", customerProfile.notificationsPreferences)
-      : true; // Default to enabled for guests
-
-    if (emailEnabled && toEmail) {
-      await scheduleEmailWithQuota(ctx, appointment?.barbershopId, () =>
-        ctx.scheduler.runAfter(0, internal.emails.sendAppointmentCancelled, {
-          notes: `Barbero ${args.barberName} eliminado de la barbería`,
-          sendTo: "customer",
-          to: toEmail,
-          body,
-        }),
-      );
-    }
-
-    const phoneNumber = customerProfile?.phoneNumber ?? args.contactPhone;
-
-    const smsEnabled = customerProfile
-      ? isNotificationEnabled("sms", customerProfile.notificationsPreferences)
-      : true; // Default to enabled for guests
-
-    if (smsEnabled) {
-      await scheduleSmsWithQuota(ctx, {
-        body: smsBody,
-        to: phoneNumber,
-        barbershopId: appointment?.barbershopId,
-      });
-    }
+    await sendNotification(ctx, {
+      barbershopId: appointment?.barbershopId,
+      receiverProfile: customerProfile,
+      email: toEmail
+        ? await emailFallback(internal.emails.sendAppointmentCancelled, {
+            notes: `Barbero ${args.barberName} eliminado de la barbería`,
+            sendTo: "customer",
+            to: toEmail,
+            body,
+          })
+        : undefined,
+      phone: customerProfile?.phoneNumber ?? args.contactPhone,
+      smsBody,
+    });
 
     if (customerProfile?.userId) {
       await recordInApp(ctx, {
@@ -826,34 +777,20 @@ export const createServiceDeletedCancellation = zInternalMutation({
       customerProfile?.email,
     );
 
-    const emailEnabled = customerProfile
-      ? isNotificationEnabled("email", customerProfile.notificationsPreferences)
-      : true; // Default to enabled for guests
-
-    if (emailEnabled && toEmail) {
-      await scheduleEmailWithQuota(ctx, appointment?.barbershopId, () =>
-        ctx.scheduler.runAfter(0, internal.emails.sendAppointmentCancelled, {
-          notes: `Servicio "${args.serviceName}" eliminado`,
-          sendTo: "customer",
-          to: toEmail,
-          body,
-        }),
-      );
-    }
-
-    const phoneNumber = customerProfile?.phoneNumber ?? args.contactPhone;
-
-    const smsEnabled = customerProfile
-      ? isNotificationEnabled("sms", customerProfile.notificationsPreferences)
-      : true; // Default to enabled for guests
-
-    if (smsEnabled) {
-      await scheduleSmsWithQuota(ctx, {
-        body: smsBody,
-        to: phoneNumber,
-        barbershopId: appointment?.barbershopId,
-      });
-    }
+    await sendNotification(ctx, {
+      barbershopId: appointment?.barbershopId,
+      receiverProfile: customerProfile,
+      email: toEmail
+        ? await emailFallback(internal.emails.sendAppointmentCancelled, {
+            notes: `Servicio "${args.serviceName}" eliminado`,
+            sendTo: "customer",
+            to: toEmail,
+            body,
+          })
+        : undefined,
+      phone: customerProfile?.phoneNumber ?? args.contactPhone,
+      smsBody,
+    });
 
     if (customerProfile?.userId) {
       await recordInApp(ctx, {
@@ -903,33 +840,19 @@ export const createServiceLineRemoved = zInternalMutation({
       customerProfile?.email,
     );
 
-    const emailEnabled = customerProfile
-      ? isNotificationEnabled("email", customerProfile.notificationsPreferences)
-      : true; // Default to enabled for guests
-
-    if (emailEnabled && toEmail) {
-      await scheduleEmailWithQuota(ctx, appointment?.barbershopId, () =>
-        ctx.scheduler.runAfter(0, internal.emails.sendAppointmentUpdated, {
-          notes: `Servicio "${args.serviceName}" removido de la cita`,
-          to: toEmail,
-          body,
-        }),
-      );
-    }
-
-    const phoneNumber = customerProfile?.phoneNumber ?? args.contactPhone;
-
-    const smsEnabled = customerProfile
-      ? isNotificationEnabled("sms", customerProfile.notificationsPreferences)
-      : true; // Default to enabled for guests
-
-    if (smsEnabled) {
-      await scheduleSmsWithQuota(ctx, {
-        body: smsBody,
-        to: phoneNumber,
-        barbershopId: appointment?.barbershopId,
-      });
-    }
+    await sendNotification(ctx, {
+      barbershopId: appointment?.barbershopId,
+      receiverProfile: customerProfile,
+      email: toEmail
+        ? await emailFallback(internal.emails.sendAppointmentUpdated, {
+            notes: `Servicio "${args.serviceName}" removido de la cita`,
+            to: toEmail,
+            body,
+          })
+        : undefined,
+      phone: customerProfile?.phoneNumber ?? args.contactPhone,
+      smsBody,
+    });
 
     if (customerProfile?.userId) {
       await recordInApp(ctx, {
@@ -943,5 +866,121 @@ export const createServiceLineRemoved = zInternalMutation({
         },
       });
     }
+  },
+});
+
+/**
+ * Customer notice that a departing barber's cita moved to a colleague (same
+ * date and time). One call per reassigned appointment.
+ */
+export const createAppointmentReassigned = zInternalMutation({
+  args: z.object({
+    appointmentId: zid("appointments"),
+    newBarberName: z.string(),
+    barbershopName: z.string(),
+  }),
+  handler: async (ctx, args) => {
+    const appointment = await ctx.db.get(args.appointmentId);
+
+    if (!appointment || appointment.deletedAt) {
+      return;
+    }
+
+    const customerProfile =
+      appointment.userId !== "user_does_not_exist"
+        ? await getProfileByUserId(ctx, appointment.userId)
+        : null;
+
+    const copy = buildNotificationCopy({
+      kind: "appointment_reassigned",
+      barbershopName: args.barbershopName,
+      newBarberName: args.newBarberName,
+    });
+    const smsBody = buildSmsBody(copy);
+
+    const toEmail = resolveCustomerEmail(
+      appointment.contactEmail,
+      customerProfile?.email,
+    );
+
+    await sendNotification(ctx, {
+      barbershopId: appointment.barbershopId,
+      receiverProfile: customerProfile,
+      email: toEmail
+        ? await emailFallback(internal.emails.sendAppointmentReassignedEmails, {
+            notifications: [
+              {
+                to: toEmail,
+                barbershopName: args.barbershopName,
+                newBarberName: args.newBarberName,
+              },
+            ],
+          })
+        : undefined,
+      phone: appointment.contactPhone || customerProfile?.phoneNumber,
+      smsBody,
+    });
+
+    if (customerProfile?.userId) {
+      await recordInApp(ctx, {
+        userId: customerProfile.userId,
+        copy,
+        payload: {
+          appointmentId: appointment._id,
+          barbershopId: appointment.barbershopId,
+          barbershopName: args.barbershopName,
+          barberName: args.newBarberName,
+        },
+      });
+    }
+  },
+});
+
+/**
+ * In-app-only notice to the assigned barber that the customer marked they
+ * are on their way. Email and SMS would be noise here.
+ */
+export const createCustomerOnMyWay = zInternalMutation({
+  args: z.object({
+    appointmentId: zid("appointments"),
+  }),
+  handler: async (ctx, args) => {
+    const appointment = await ctx.db.get(args.appointmentId);
+
+    if (!appointment || appointment.deletedAt) {
+      return;
+    }
+
+    const barberMember = await ctx.db.get(appointment.barbershopMemberId);
+    const barberProfile = barberMember
+      ? await ctx.db.get(barberMember.userProfileDataId)
+      : null;
+
+    if (!barberProfile) {
+      return;
+    }
+
+    const customerProfile =
+      appointment.userId !== "user_does_not_exist"
+        ? await getProfileByUserId(ctx, appointment.userId)
+        : null;
+    const barbershop = await ctx.db.get(appointment.barbershopId);
+    const customerName =
+      customerProfile?.name || appointment.customerName || "Tu cliente";
+
+    await recordInApp(ctx, {
+      userId: barberProfile.userId,
+      copy: buildNotificationCopy({
+        kind: "customer_on_my_way",
+        customerName,
+        time: timeFormatter.format(new Date(appointment.date)),
+      }),
+      payload: {
+        appointmentId: appointment._id,
+        barbershopId: appointment.barbershopId,
+        barbershopName: barbershop?.name,
+        customerName,
+      },
+    });
   },
 });

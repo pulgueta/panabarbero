@@ -198,28 +198,13 @@ async function handleBarberDeparture(
       ),
   );
 
-  // Email customers whose appointments were reassigned
-  const reassignedEmailNotifs = upcomingAppointments
-    .filter((a) => reassignedItems.some((r) => r.appointmentId === a._id))
-    .flatMap((appt) => {
-      if (!appt.contactEmail) return [];
-      const item = reassignedItems.find((r) => r.appointmentId === appt._id);
-      if (!item) return [];
-      return [
-        {
-          to: appt.contactEmail,
-          barbershopName: barbershop.name,
-          newBarberName: item.newBarberName,
-        },
-      ];
+  // Notify customers whose appointments were reassigned (email/SMS, in-app row)
+  for (const item of reassignedItems) {
+    await ctx.runMutation(internal.notifications.createAppointmentReassigned, {
+      appointmentId: item.appointmentId,
+      newBarberName: item.newBarberName,
+      barbershopName: barbershop.name,
     });
-
-  if (reassignedEmailNotifs.length > 0) {
-    await ctx.scheduler.runAfter(
-      0,
-      internal.emails.sendAppointmentReassignedEmails,
-      { notifications: reassignedEmailNotifs },
-    );
   }
 
   // Notify shop owner with a summary

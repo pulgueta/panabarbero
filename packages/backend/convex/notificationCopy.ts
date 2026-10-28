@@ -87,6 +87,16 @@ export type NotificationInput =
       kind: "past_appointment_reminder";
     }
   | {
+      kind: "customer_on_my_way";
+      customerName: string;
+      time: string;
+    }
+  | {
+      kind: "appointment_reassigned";
+      barbershopName: string;
+      newBarberName: string;
+    }
+  | {
       kind: "team_invited";
       barbershopName: string;
       roleLabel: string;
@@ -222,6 +232,22 @@ export function buildNotificationCopy(
         description:
           "Has tenido una cita hace poco, no olvides marcar su estado final.",
         href: deepLinks.barberAppointments(),
+      };
+    }
+    case "customer_on_my_way": {
+      return {
+        kind: "customer_on_my_way",
+        title: subjects.customer_on_my_way,
+        description: `Cita de las ${input.time}: ${input.customerName} avisó que va en camino.`,
+        href: deepLinks.barberAppointments(),
+      };
+    }
+    case "appointment_reassigned": {
+      return {
+        kind: "appointment_reassigned",
+        title: subjects.appointment_reassigned,
+        description: `Tu cita en ${input.barbershopName} sigue en pie: ahora te atiende ${input.newBarberName}. La fecha y la hora no cambian.`,
+        href: deepLinks.customerAppointments(),
       };
     }
     case "team_invited": {
