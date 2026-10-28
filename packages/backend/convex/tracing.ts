@@ -1,5 +1,6 @@
 "use node";
 
+import { OpenTelemetry } from "@ai-sdk/otel";
 import { trace } from "@opentelemetry/api";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import {
@@ -7,10 +8,14 @@ import {
   SimpleSpanProcessor,
 } from "@opentelemetry/sdk-trace-base";
 import { PostHogTraceExporter } from "@posthog/ai/otel";
+import { registerTelemetry } from "ai";
 
 /**
  * PostHog AI observability via OpenTelemetry. Registered once at module scope;
  * AI SDK calls opt in per-call through {@link aiTelemetry}.
+ *
+ * AI SDK 7 no longer collects OpenTelemetry spans itself: `@ai-sdk/otel` has
+ * to be registered once, and it reads the global tracer provider set below.
  */
 const provider = new BasicTracerProvider({
   resource: resourceFromAttributes({
@@ -28,8 +33,9 @@ const provider = new BasicTracerProvider({
 });
 
 trace.setGlobalTracerProvider(provider);
+registerTelemetry(new OpenTelemetry());
 
-/** Builds the `experimental_telemetry` settings for an AI SDK call. */
+/** Builds the `telemetry` settings for an AI SDK call. */
 export function aiTelemetry(opts: {
   spanName: string;
   distinctId?: string;

@@ -88,7 +88,7 @@ export const moderateReview = zInternalAction({
         model: gateway(PANA_MODEL_ID),
         schema: moderationSchema,
         prompt: buildModerationPrompt(comment),
-        experimental_telemetry: aiTelemetry({
+        telemetry: aiTelemetry({
           spanName: "pana.review-moderation",
           distinctId: reviewId,
           traceId: reviewId,
