@@ -22,9 +22,14 @@ import {
 import type { DataModel } from "./dataModel.js";
 
 /**
- * Typesafe environment variables declared in `convex.config.ts`.
+ * Typesafe environment variables.
+ *
+ * This includes platform-provided env vars and any variables declared in
+ * `convex.config.ts`.
  */
 type Env = {
+  readonly CONVEX_CLOUD_URL: string;
+  readonly CONVEX_SITE_URL: string;
   readonly EXPO_ACCESS_TOKEN: string | undefined;
   readonly POSTHOG_FLAGS_POLLING_INTERVAL_SECONDS: string | undefined;
   readonly POSTHOG_HOST: string | undefined;
@@ -109,7 +114,10 @@ export declare const internalAction: ActionBuilder<DataModel, "internal">;
 export declare const httpAction: HttpActionBuilder;
 
 /**
- * Typesafe environment variables declared in `convex.config.ts`.
+ * Typesafe environment variables.
+ *
+ * This includes platform-provided env vars and any variables declared in
+ * `convex.config.ts`.
  */
 export declare const env: Env;
 
