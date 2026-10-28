@@ -39,7 +39,7 @@ Mensaje del usuario:
 ${prompt}
 
 Título:`,
-        experimental_telemetry: aiTelemetry({
+        telemetry: aiTelemetry({
           spanName: "pana.thread-title",
           distinctId: callerId,
           traceId: threadId,
@@ -115,7 +115,7 @@ export const streamResponse = zInternalAction({
       {
         promptMessageId,
         system,
-        experimental_telemetry: aiTelemetry({
+        telemetry: aiTelemetry({
           spanName: "pana.chat",
           distinctId: callerId,
           traceId: threadId,

@@ -11,8 +11,9 @@ import {
 } from "@phosphor-icons/react";
 import { useDebouncer } from "@tanstack/react-pacer";
 import type { MarkerOptions, PopupOptions } from "maplibre-gl";
-import { default as MapLibreGL } from "maplibre-gl";
+import * as MapLibreGL from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import type { PropsWithChildren } from "react";
 import {
   createContext,
@@ -29,6 +30,10 @@ import {
 import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/utils";
+
+// MapLibre v6 is ESM-only and resolves its worker as a real URL; bundlers must
+// hand it the worker URL (MapLibre install docs, Vite section).
+MapLibreGL.setWorkerUrl(maplibreWorkerUrl);
 
 const defaultStyles = {
   dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",

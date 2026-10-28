@@ -16,7 +16,7 @@
     "doctor:diff": "pnpm --filter @panabarbero/web doctor:diff"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.4",
+    "@biomejs/biome": "2.5.15",
     "turbo": "2.11.10",
     "typescript": "catalog:"
   }

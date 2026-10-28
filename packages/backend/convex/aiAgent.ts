@@ -1,7 +1,10 @@
-import { Agent, stepCountIs } from "@convex-dev/agent";
+import type { AgentComponent, Config } from "@convex-dev/agent";
+import { Agent, isStepCount } from "@convex-dev/agent";
+import type { LanguageModel, StopCondition } from "ai";
 import { gateway } from "ai";
 
 import { components } from "./_generated/api";
+import type { ActionCtx } from "./_generated/server";
 import { tools } from "./aiAgentTools";
 import { rateLimiter } from "./ratelimit";
 import { toColombiaDateKey } from "./utils";
@@ -333,7 +336,28 @@ ${dateBlock}
 ${sessionBlock}${teamBlock}`;
 }
 
-export const panaAgent = new Agent(components.agent, {
+/**
+ * `new Agent(...)` fails with TS2590 on @convex-dev/agent 0.7.8: its
+ * constructor type intersects `Config["languageModel"]` (a conditional type
+ * over the AI SDK model-id catalog) with `LanguageModel`
+ * (get-convex/agent#413, fixed by #414, not released yet). This alias keeps
+ * the same runtime constructor and the same instance type, and only types the
+ * options without that intersection. Remove it when the fix ships.
+ */
+type PanaAgentOptions = Omit<Config, "languageModel"> & {
+  name: string;
+  languageModel: LanguageModel;
+  instructions: string;
+  tools: typeof tools;
+  stopWhen: StopCondition<typeof tools>;
+};
+
+const PanaAgent = Agent as unknown as new (
+  component: AgentComponent,
+  options: PanaAgentOptions,
+) => Agent<object, typeof tools>;
+
+export const panaAgent = new PanaAgent(components.agent, {
   name: "Pana",
   languageModel: gateway(PANA_MODEL_ID),
   instructions: PAN_AGENT_INSTRUCTIONS_STATIC,
@@ -341,10 +365,12 @@ export const panaAgent = new Agent(components.agent, {
   // Headroom for multi-step flows (e.g. getMyBarbershop → getAvailability →
   // proposeStaffBooking) plus a recovery step if a slot was just taken. The
   // agent stops on its own once it hands back a proposal or an answer.
-  stopWhen: stepCountIs(8),
+  stopWhen: isStepCount(8),
   usageHandler: async (ctx, { userId, usage }) => {
     if (!userId) return;
-    await rateLimiter.limit(ctx, "aiTokenUsage", {
+    // The agent narrows its ctx type to runQuery/runMutation/runAction; the
+    // real action ctx it passes also carries `meta`, which rate-limiter 0.4 reads.
+    await rateLimiter.limit(ctx as ActionCtx, "aiTokenUsage", {
       key: userId,
       count: usage.totalTokens ?? 0,
       reserve: true,
