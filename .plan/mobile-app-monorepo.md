@@ -23,6 +23,7 @@ every current feature. Delivery is a stack of small PRs so bots and humans revie
 | Push | `@convex-dev/expo-push-notifications` 0.4.x. New `pushTokens.ts` with its own rate-limit name. Send hook in `recordInApp` (`convex/notifications.ts`). Prefs enum gains `push`. | `recordInApp` is the one place on `main` that has recipient id and copy. PR #103 adds a central dispatcher; the hook moves there after #103 lands. |
 | Dispatcher | Port only the channel-agnostic shape of #103's `sendNotification` (one entry point, `sendSms`/`sendEmail`/`emailFallback`), driven by the current `email | sms | push` prefs. Skip WhatsApp, consent, metering, prefs/credits migrations. | #103's body is WhatsApp-first and its plan deletes email/SMS prefs, which conflicts with the mobile push channel. |
 | Mobile redirect URI | Fixed constant `panabarbero://auth/callback`; never `makeRedirectUri`. | Under Metro it resolves to `exp://<lan-ip>/--/…`, which WorkOS rejects and which changes with the LAN IP. |
+| Liquid Glass | Navigation chrome is native: `NativeTabs` and native stack headers; glass components only for floating chrome. Keep Phosphor for in-screen icons, SF Symbols for tabs/toolbars. | iOS 26 renders glass for native chrome automatically; JS tab bars never get it. |
 | Model routing | Codex (gpt-5.6) for mechanical slices (workspace move, backend wiring). Claude Opus/Fable for user-facing UI and reviews. | Per repo model guidance. |
 
 ## Stack (bottom to top)
@@ -40,6 +41,7 @@ every current feature. Delivery is a stack of small PRs so bots and humans revie
 | 9 | `feat/mobile-profile-settings` | Account, notification prefs, barber schedule view, theme toggle, sign out. | Simulator |
 | 10 | `fix/backend-authz` | Reschedule request/answer authz, active membership resolution, public member projection + gated team query. | `turbo typecheck`, `biome ci` |
 | 11 | `feat/notifications-dispatcher` | `sendNotification` entry point on email/sms/push prefs (ported from #103 without WhatsApp), kinds `customer_on_my_way` + `appointment_reassigned`, `markOnMyWay`. | `turbo typecheck`, web build, `convex dev --once` |
+| 13 | `feat/mobile-liquid-glass` | Native tabs + native stack headers (Liquid Glass on iOS 26), SF Symbol tab icons, header/bottom toolbars, detail route inside the agenda tab stack. | typecheck, biome, expo export, dev client rebuild, simulator pass light/dark |
 | 12 | `chore/workspace-deps-update` | Convex 1.48 via catalog; web/backend to latest with migrations; mobile only Expo doctor fixes. | install, typecheck, web build, expo export, expo-doctor |
 
 Phase 2 (new stacks after this one lands): team, services, inventory, sales, reviews, analytics,
