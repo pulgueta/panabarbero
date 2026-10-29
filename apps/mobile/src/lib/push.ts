@@ -89,7 +89,7 @@ export function notificationHrefForData(data: NotificationData): Href {
   if (data.kind && agendaKinds.has(data.kind)) {
     return data.appointmentId
       ? {
-          pathname: "/(app)/agenda/[appointmentId]",
+          pathname: "/(app)/(tabs)/agenda/[appointmentId]",
           params: { appointmentId: data.appointmentId },
         }
       : "/(app)/(tabs)/agenda";

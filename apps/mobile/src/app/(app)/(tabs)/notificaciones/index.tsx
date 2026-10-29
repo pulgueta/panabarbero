@@ -1,14 +1,14 @@
 import type { Doc } from "@panabarbero/backend/convex/_generated/dataModel";
 import { useFocusEffect, useRouter } from "expo-router";
-import { Button, Separator, Spinner, Typography } from "heroui-native";
+import { Separator, Spinner, Typography } from "heroui-native";
 import { useCallback, useEffect, useRef } from "react";
 import { FlatList, type ListRenderItemInfo, View } from "react-native";
 
+import { HeaderAction } from "@/components/header-action";
 import {
   NotificationRow,
   NotificationRowSkeleton,
 } from "@/components/notifications/notification-row";
-import { ScreenHeader } from "@/components/screen-header";
 import {
   useLastRead,
   useMarkAllRead,
@@ -72,51 +72,52 @@ export default function NotificationsScreen() {
     [lastRead, openNotification],
   );
 
-  return (
-    <View className="flex-1 bg-background">
-      <ScreenHeader
-        title="Notificaciones"
-        action={
-          unreadCount > 0 ? (
-            <Button variant="ghost" size="sm" onPress={() => markAllRead()}>
-              Marcar leídas
-            </Button>
-          ) : null
-        }
-      />
+  const isLoadingFirstPage = status === "LoadingFirstPage";
 
-      {status === "LoadingFirstPage" ? (
-        <View>
-          {skeletonKeys.map((key) => (
-            <NotificationRowSkeleton key={key} />
-          ))}
-        </View>
-      ) : (
-        <FlatList
-          data={results}
-          keyExtractor={(notification) => notification._id}
-          renderItem={renderItem}
-          ItemSeparatorComponent={() => <Separator className="mx-5" />}
-          onEndReached={() => {
-            if (status === "CanLoadMore") loadMore(PAGE_SIZE);
-          }}
-          ListFooterComponent={
-            status === "LoadingMore" ? (
-              <View className="items-center py-6">
-                <Spinner size="sm" />
-              </View>
-            ) : undefined
-          }
-          ListEmptyComponent={
+  return (
+    <>
+      <HeaderAction
+        label="Marcar leídas"
+        icon="checkmark.circle"
+        disabled={unreadCount === 0}
+        onPress={() => markAllRead()}
+      />
+      {/* The list is the first view so rows run under the glass header. A
+          FlatList does not drive the tab bar minimize-on-scroll; accepted. */}
+      <FlatList
+        className="flex-1 bg-background"
+        contentInsetAdjustmentBehavior="automatic"
+        data={isLoadingFirstPage ? [] : results}
+        keyExtractor={(notification) => notification._id}
+        renderItem={renderItem}
+        ItemSeparatorComponent={() => <Separator className="mx-5" />}
+        onEndReached={() => {
+          if (status === "CanLoadMore") loadMore(PAGE_SIZE);
+        }}
+        ListFooterComponent={
+          status === "LoadingMore" ? (
+            <View className="items-center py-6">
+              <Spinner size="sm" />
+            </View>
+          ) : undefined
+        }
+        ListEmptyComponent={
+          isLoadingFirstPage ? (
+            <View>
+              {skeletonKeys.map((key) => (
+                <NotificationRowSkeleton key={key} />
+              ))}
+            </View>
+          ) : (
             <Typography.Paragraph
               color="muted"
               className="px-5 py-10 text-center"
             >
               Sin notificaciones por ahora.
             </Typography.Paragraph>
-          }
-        />
-      )}
-    </View>
+          )
+        }
+      />
+    </>
   );
 }

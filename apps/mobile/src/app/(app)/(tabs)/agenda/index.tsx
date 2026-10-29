@@ -1,7 +1,7 @@
 import { useFocusEffect, useRouter } from "expo-router";
-import { Chip } from "heroui-native";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
+  ScrollView,
   type ScrollViewInstance,
   useWindowDimensions,
   View,
@@ -14,7 +14,7 @@ import {
   DayStrip,
 } from "@/components/agenda/day-strip";
 import { RescheduleRequests } from "@/components/agenda/reschedule-requests";
-import { ScreenHeader } from "@/components/screen-header";
+import { HeaderAction } from "@/components/header-action";
 import { useAccess } from "@/hooks/use-access";
 import {
   useDayAppointments,
@@ -68,7 +68,7 @@ export default function AgendaScreen() {
 
   const openAppointment = (appointment: Appointment) =>
     router.push({
-      pathname: "/(app)/agenda/[appointmentId]",
+      pathname: "/(app)/(tabs)/agenda/[appointmentId]",
       params: { appointmentId: appointment._id },
     });
 
@@ -83,41 +83,37 @@ export default function AgendaScreen() {
   };
 
   return (
-    <View className="flex-1 bg-background">
-      <ScreenHeader
-        title="Agenda"
-        action={
-          <Chip
-            size="sm"
-            variant="soft"
-            color="default"
-            onPress={() => {
-              setSelectedMs(todayMs);
-              scrollToToday(true);
-            }}
-          >
-            Hoy
-          </Chip>
-        }
+    <>
+      <HeaderAction
+        label="Hoy"
+        icon="calendar.badge.clock"
+        onPress={() => {
+          setSelectedMs(todayMs);
+          scrollToToday(true);
+        }}
       />
-      <View className="border-border border-b pb-3">
-        <DayStrip
-          ref={stripRef}
-          days={days}
-          todayMs={todayMs}
-          selectedMs={selectedMs}
-          onSelect={setSelectedMs}
-          onLayout={() => scrollToToday(false)}
-        />
-      </View>
-      <RescheduleRequests requests={requests} onOpen={openAppointment} />
-      <View className="flex-1">
+      {/* The scrollable is the first view so content runs under the glass chrome. */}
+      <ScrollView
+        className="flex-1 bg-background"
+        contentInsetAdjustmentBehavior="automatic"
+      >
+        <View className="border-border border-b pt-3 pb-3">
+          <DayStrip
+            ref={stripRef}
+            days={days}
+            todayMs={todayMs}
+            selectedMs={selectedMs}
+            onSelect={setSelectedMs}
+            onLayout={() => scrollToToday(false)}
+          />
+        </View>
+        <RescheduleRequests requests={requests} onOpen={openAppointment} />
         <AppointmentList
           appointments={appointments}
           memberName={showBarber ? memberName : undefined}
           onOpen={openAppointment}
         />
-      </View>
-    </View>
+      </ScrollView>
+    </>
   );
 }

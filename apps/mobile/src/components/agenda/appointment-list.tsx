@@ -1,6 +1,7 @@
 import type { Id } from "@panabarbero/backend/convex/_generated/dataModel";
 import { Separator, Typography } from "heroui-native";
-import { FlatList, View } from "react-native";
+import { Fragment } from "react";
+import { View } from "react-native";
 
 import {
   AppointmentRow,
@@ -18,6 +19,7 @@ type AppointmentListProps = {
 
 const skeletonKeys = ["a", "b", "c", "d"];
 
+/** One day's rows. Not virtualized: it lives inside the agenda ScrollView and a day is short. */
 export function AppointmentList({
   appointments,
   memberName,
@@ -33,25 +35,28 @@ export function AppointmentList({
     );
   }
 
+  if (appointments.length === 0) {
+    return (
+      <Typography.Paragraph color="muted" className="px-5 py-10 text-center">
+        Sin citas este día.
+      </Typography.Paragraph>
+    );
+  }
+
   const sorted = [...appointments].sort((a, b) => a.date - b.date);
 
   return (
-    <FlatList
-      data={sorted}
-      keyExtractor={(appointment) => appointment._id}
-      renderItem={({ item }) => (
-        <AppointmentRow
-          appointment={item}
-          barberName={memberName?.(item.barbershopMemberId)}
-          onPress={() => onOpen(item)}
-        />
-      )}
-      ItemSeparatorComponent={() => <Separator className="mx-5" />}
-      ListEmptyComponent={
-        <Typography.Paragraph color="muted" className="px-5 py-10 text-center">
-          Sin citas este día.
-        </Typography.Paragraph>
-      }
-    />
+    <View>
+      {sorted.map((appointment, index) => (
+        <Fragment key={appointment._id}>
+          {index > 0 ? <Separator className="mx-5" /> : null}
+          <AppointmentRow
+            appointment={appointment}
+            barberName={memberName?.(appointment.barbershopMemberId)}
+            onPress={() => onOpen(appointment)}
+          />
+        </Fragment>
+      ))}
+    </View>
   );
 }

@@ -35,6 +35,7 @@ export function AppointmentDetail({
   return (
     <ScrollView
       className="flex-1 bg-background"
+      contentInsetAdjustmentBehavior="automatic"
       contentContainerClassName="gap-6 px-5 py-6"
     >
       <View className="flex-row items-start justify-between gap-3">
