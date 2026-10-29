@@ -1,72 +1,45 @@
-import { Tabs } from "expo-router";
+import { NativeTabs } from "expo-router/native-tabs";
 import { useThemeColor } from "heroui-native";
-import {
-  BellIcon,
-  CalendarBlankIcon,
-  UserCircleIcon,
-} from "phosphor-react-native";
 
 import { useUnreadCount } from "@/hooks/use-notifications";
 
+const labelStyle = { fontFamily: "Geist_500Medium" };
+
 export default function TabsLayout() {
-  const [accent, accentForeground, muted, background, border] = useThemeColor([
+  const [accent, accentForeground] = useThemeColor([
     "accent",
     "accent-foreground",
-    "muted",
-    "background",
-    "border",
   ]);
   const unreadCount = useUnreadCount() ?? 0;
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: accent,
-        tabBarInactiveTintColor: muted,
-        tabBarStyle: { backgroundColor: background, borderTopColor: border },
-        tabBarLabelStyle: { fontFamily: "Geist_500Medium" },
-      }}
+    <NativeTabs
+      tintColor={accent}
+      labelStyle={labelStyle}
+      minimizeBehavior="onScrollDown"
+      badgeBackgroundColor={accent}
+      badgeTextColor={accentForeground}
     >
-      <Tabs.Screen
-        name="agenda/index"
-        options={{
-          title: "Agenda",
-          tabBarIcon: ({ color, size }) => (
-            // Tint colors come from `useThemeColor`, so they are strings.
-            <CalendarBlankIcon color={color as string} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="notificaciones"
-        options={{
-          title: "Notificaciones",
-          tabBarIcon: ({ color, size }) => (
-            <BellIcon color={color as string} size={size} />
-          ),
-          tabBarBadge:
-            unreadCount > 0
-              ? unreadCount > 99
-                ? "99+"
-                : unreadCount
-              : undefined,
-          tabBarBadgeStyle: {
-            backgroundColor: accent,
-            color: accentForeground,
-            fontFamily: "Geist_500Medium",
-          },
-        }}
-      />
-      <Tabs.Screen
-        name="perfil"
-        options={{
-          title: "Perfil",
-          tabBarIcon: ({ color, size }) => (
-            <UserCircleIcon color={color as string} size={size} />
-          ),
-        }}
-      />
-    </Tabs>
+      <NativeTabs.Trigger name="agenda">
+        <NativeTabs.Trigger.Icon sf="calendar" md="calendar_month" />
+        <NativeTabs.Trigger.Label>Agenda</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="notificaciones">
+        <NativeTabs.Trigger.Icon
+          sf={unreadCount > 0 ? "bell.badge" : "bell"}
+          md="notifications"
+        />
+        <NativeTabs.Trigger.Label>Notificaciones</NativeTabs.Trigger.Label>
+        {unreadCount > 0 ? (
+          <NativeTabs.Trigger.Badge>
+            {unreadCount > 99 ? "99+" : String(unreadCount)}
+          </NativeTabs.Trigger.Badge>
+        ) : null}
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="perfil">
+        <NativeTabs.Trigger.Icon sf="person.crop.circle" md="account_circle" />
+        <NativeTabs.Trigger.Label>Perfil</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+    </NativeTabs>
   );
 }
