@@ -1,7 +1,7 @@
 import { api } from "@panabarbero/backend/convex/_generated/api";
 import { useQuery } from "convex/react";
 import { Button, Typography, useToast } from "heroui-native";
-import { ScrollView, View } from "react-native";
+import { ScrollView } from "react-native";
 
 import { AppearancePicker } from "@/components/profile/appearance-picker";
 import { BarberScheduleList } from "@/components/profile/barber-schedule-list";
@@ -9,7 +9,6 @@ import { PreferenceSwitchRow } from "@/components/profile/preference-switch-row"
 import { ProfileIdentity } from "@/components/profile/profile-identity";
 import { ProfileSection } from "@/components/profile/profile-section";
 import { SaveableTextField } from "@/components/profile/saveable-text-field";
-import { ScreenHeader } from "@/components/screen-header";
 import { type Access, useAccess } from "@/hooks/use-access";
 import {
   nameSchema,
@@ -103,100 +102,98 @@ export default function ProfileScreen() {
   const profileReady = profile !== undefined && profile !== null;
 
   return (
-    <View className="flex-1 bg-background">
-      <ScreenHeader title="Perfil" />
+    // The scrollable is the first child so content runs under the glass chrome.
+    <ScrollView
+      className="flex-1 bg-background"
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerClassName="gap-8 px-5 pt-3 pb-10"
+      keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets
+    >
+      <ProfileIdentity
+        name={name}
+        email={email}
+        image={image}
+        shopName={membership?.barbershopName}
+        roleLabel={membership ? roleLabel(membership) : undefined}
+      />
 
-      <ScrollView
-        className="flex-1"
-        contentContainerClassName="gap-8 px-5 pt-3 pb-10"
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
-      >
-        <ProfileIdentity
-          name={name}
-          email={email}
-          image={image}
-          shopName={membership?.barbershopName}
-          roleLabel={membership ? roleLabel(membership) : undefined}
+      <ProfileSection title="Cuenta">
+        <SaveableTextField
+          label="Nombre"
+          value={nameField.value}
+          onChangeText={nameField.onChangeText}
+          error={nameField.error}
+          isDirty={nameField.isDirty}
+          isSaving={nameField.isSaving}
+          onSave={() => saveField(nameField, "Nombre actualizado")}
+          autoComplete="name"
+          textContentType="name"
         />
+        <SaveableTextField
+          label="Teléfono"
+          value={phoneField.value}
+          onChangeText={phoneField.onChangeText}
+          error={phoneField.error}
+          isDirty={phoneField.isDirty}
+          isSaving={phoneField.isSaving}
+          onSave={() => saveField(phoneField, "Teléfono actualizado")}
+          placeholder="3001234567"
+          keyboardType="phone-pad"
+          autoComplete="tel"
+          textContentType="telephoneNumber"
+        />
+      </ProfileSection>
 
-        <ProfileSection title="Cuenta">
-          <SaveableTextField
-            label="Nombre"
-            value={nameField.value}
-            onChangeText={nameField.onChangeText}
-            error={nameField.error}
-            isDirty={nameField.isDirty}
-            isSaving={nameField.isSaving}
-            onSave={() => saveField(nameField, "Nombre actualizado")}
-            autoComplete="name"
-            textContentType="name"
-          />
-          <SaveableTextField
-            label="Teléfono"
-            value={phoneField.value}
-            onChangeText={phoneField.onChangeText}
-            error={phoneField.error}
-            isDirty={phoneField.isDirty}
-            isSaving={phoneField.isSaving}
-            onSave={() => saveField(phoneField, "Teléfono actualizado")}
-            placeholder="3001234567"
-            keyboardType="phone-pad"
-            autoComplete="tel"
-            textContentType="telephoneNumber"
+      <ProfileSection title="Notificaciones">
+        <PreferenceSwitchRow
+          label="Correo"
+          isSelected={isChannelEnabled("email")}
+          onSelectedChange={(enabled) => setChannel("email", enabled)}
+          isDisabled={!profileReady}
+        />
+        <PreferenceSwitchRow
+          label="SMS"
+          description={
+            profile?.phoneNumber
+              ? undefined
+              : "Agrega un teléfono para activarlo."
+          }
+          isSelected={isChannelEnabled("sms")}
+          onSelectedChange={(enabled) => setChannel("sms", enabled)}
+          isDisabled={!profileReady || !profile.phoneNumber}
+        />
+        <PreferenceSwitchRow
+          label="Notificaciones push"
+          description="Alertas en la app móvil de PanaBarbero."
+          isSelected={isChannelEnabled("push")}
+          onSelectedChange={(enabled) => setChannel("push", enabled)}
+          isDisabled={!profileReady}
+        >
+          {pushLabel ? (
+            <Typography type="body-xs" color="muted">
+              {pushLabel}
+            </Typography>
+          ) : null}
+        </PreferenceSwitchRow>
+      </ProfileSection>
+
+      {membership?.isBarber && schedule ? (
+        <ProfileSection title="Mi horario">
+          <BarberScheduleList
+            schedule={schedule.schedule}
+            isCustom={schedule.isCustom}
           />
         </ProfileSection>
+      ) : null}
 
-        <ProfileSection title="Notificaciones">
-          <PreferenceSwitchRow
-            label="Correo"
-            isSelected={isChannelEnabled("email")}
-            onSelectedChange={(enabled) => setChannel("email", enabled)}
-            isDisabled={!profileReady}
-          />
-          <PreferenceSwitchRow
-            label="SMS"
-            description={
-              profile?.phoneNumber
-                ? undefined
-                : "Agrega un teléfono para activarlo."
-            }
-            isSelected={isChannelEnabled("sms")}
-            onSelectedChange={(enabled) => setChannel("sms", enabled)}
-            isDisabled={!profileReady || !profile.phoneNumber}
-          />
-          <PreferenceSwitchRow
-            label="Notificaciones push"
-            description="Alertas en la app móvil de PanaBarbero."
-            isSelected={isChannelEnabled("push")}
-            onSelectedChange={(enabled) => setChannel("push", enabled)}
-            isDisabled={!profileReady}
-          >
-            {pushLabel ? (
-              <Typography type="body-xs" color="muted">
-                {pushLabel}
-              </Typography>
-            ) : null}
-          </PreferenceSwitchRow>
-        </ProfileSection>
+      <ProfileSection title="Apariencia">
+        <AppearancePicker value={preference} onChange={setPreference} />
+      </ProfileSection>
 
-        {membership?.isBarber && schedule ? (
-          <ProfileSection title="Mi horario">
-            <BarberScheduleList
-              schedule={schedule.schedule}
-              isCustom={schedule.isCustom}
-            />
-          </ProfileSection>
-        ) : null}
-
-        <ProfileSection title="Apariencia">
-          <AppearancePicker value={preference} onChange={setPreference} />
-        </ProfileSection>
-
-        <Button variant="danger-soft" onPress={signOut}>
-          Cerrar sesión
-        </Button>
-      </ScrollView>
-    </View>
+      <Button variant="danger-soft" onPress={signOut}>
+        Cerrar sesión
+      </Button>
+    </ScrollView>
   );
 }
