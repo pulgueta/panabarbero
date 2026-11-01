@@ -1,3 +1,4 @@
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import type { Id } from "@panabarbero/backend/convex/_generated/dataModel";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
@@ -10,23 +11,28 @@ import {
   FieldError,
   Input,
   Label,
+  Spinner,
   TextArea,
   TextField,
   Typography,
   useBottomSheetAwareHandlers,
   useToast,
 } from "heroui-native";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { KeyboardAvoidingView, View } from "react-native";
 
-import { useAppointmentActions } from "@/hooks/use-appointments";
+import { DayStrip } from "@/components/agenda/day-strip";
+import {
+  useAppointmentActions,
+  useAvailableSlots,
+} from "@/hooks/use-appointments";
 import {
   type Appointment,
   formatCop,
   isStartingItem,
 } from "@/lib/appointments";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
-import { formatDayTime } from "@/lib/dates";
+import { addDaysBogota, bogotaStartOfDay, formatDayTime } from "@/lib/dates";
 import { useAuth } from "@/providers/auth-provider";
 
 const tabularNums = { fontVariant: ["tabular-nums" as const] };
@@ -38,8 +44,16 @@ const ACTIONABLE_STATUSES: Appointment["status"][] = [
 ];
 
 const MIN_REASON_LENGTH = 3;
+const RESCHEDULE_DAYS = 30;
 
-type Action = "complete" | "noShow" | "cancel" | "delete" | "accept" | "deny";
+type Action =
+  | "complete"
+  | "noShow"
+  | "cancel"
+  | "delete"
+  | "reschedule"
+  | "accept"
+  | "deny";
 type FinalPrice = { serviceId: Id<"services">; finalPrice: number };
 
 /** Runs one action at a time, with haptic + toast feedback. */
@@ -80,7 +94,7 @@ export function AppointmentActions({
   const actions = useAppointmentActions();
   const { pending, run } = useRunAction();
   const [open, setOpen] = useState<
-    "prices" | "complete" | "noShow" | "cancel" | "delete"
+    "prices" | "complete" | "noShow" | "cancel" | "delete" | "reschedule"
   >();
   const close = () => setOpen(undefined);
   const setOpenFor = (key: NonNullable<typeof open>) => (next: boolean) =>
@@ -100,6 +114,8 @@ export function AppointmentActions({
   // delete what can no longer happen, cancel what is still ahead.
   const isPast = Date.now() > appointment.date;
   const needsMark = isActionable && isPast;
+  const canRequestReschedule =
+    isActionable && !isPast && appointment.proposedDate === undefined;
 
   if (appointment.status === "completed") return null;
 
@@ -133,6 +149,15 @@ export function AppointmentActions({
       ) : null}
 
       <View className="gap-3">
+        {canRequestReschedule ? (
+          <Button
+            variant="secondary"
+            isDisabled={pending !== null}
+            onPress={() => setOpen("reschedule")}
+          >
+            Solicitar reagendamiento
+          </Button>
+        ) : null}
         {needsMark ? (
           <>
             <Button
@@ -211,6 +236,20 @@ export function AppointmentActions({
           if (done) close();
         }}
       />
+      <RescheduleSheet
+        appointment={appointment}
+        isOpen={open === "reschedule"}
+        onOpenChange={setOpenFor("reschedule")}
+        isPending={pending === "reschedule"}
+        onConfirm={async (proposedDate) => {
+          const done = await run(
+            "reschedule",
+            () => actions.requestReschedule(id, proposedDate),
+            "Solicitud enviada al cliente",
+          );
+          if (done) close();
+        }}
+      />
       <ConfirmDialog
         isOpen={open === "delete"}
         onOpenChange={setOpenFor("delete")}
@@ -254,7 +293,9 @@ export function RescheduleRequestCard({
       <View className="gap-1">
         <Typography weight="medium">Solicitud de reagendamiento</Typography>
         <Typography.Paragraph type="body-sm" color="muted">
-          El cliente pidió mover la cita.
+          {onAnswer
+            ? "El cliente pidió mover la cita."
+            : "Propusiste mover la cita."}
         </Typography.Paragraph>
       </View>
       <View className="gap-1">
@@ -585,5 +626,121 @@ function PriceField({
       <Description>Mínimo {formatCop(minimum)}</Description>
       <FieldError>Ingresa {formatCop(minimum)} o más.</FieldError>
     </TextField>
+  );
+}
+
+type RescheduleSheetProps = {
+  appointment: Appointment;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  isPending: boolean;
+  onConfirm: (proposedDate: number) => void;
+};
+
+/** Proposes a new day and free slot of the same barber to the customer. */
+export function RescheduleSheet({
+  appointment,
+  isOpen,
+  onOpenChange,
+  isPending,
+  onConfirm,
+}: RescheduleSheetProps) {
+  const [todayMs, setTodayMs] = useState(() => bogotaStartOfDay(new Date()));
+  const [dayMs, setDayMs] = useState(todayMs);
+  const [minutes, setMinutes] = useState<number>();
+  const slots = useAvailableSlots(appointment, isOpen ? dayMs : undefined);
+  const days = useMemo(
+    () =>
+      Array.from({ length: RESCHEDULE_DAYS }, (_, index) =>
+        addDaysBogota(todayMs, index),
+      ),
+    [todayMs],
+  );
+
+  return (
+    <BottomSheet
+      isOpen={isOpen}
+      onOpenChange={(next) => {
+        if (next) {
+          const today = bogotaStartOfDay(new Date());
+          setTodayMs(today);
+          setDayMs(today);
+          setMinutes(undefined);
+        }
+        onOpenChange(next);
+      }}
+    >
+      <BottomSheet.Portal>
+        <BottomSheet.Overlay />
+        <BottomSheet.Content
+          snapPoints={["80%"]}
+          enableDynamicSizing={false}
+          enableOverDrag={false}
+          contentContainerClassName="h-full"
+        >
+          <View className="mb-5 gap-1.5">
+            <BottomSheet.Title>Solicitar reagendamiento</BottomSheet.Title>
+            <BottomSheet.Description>
+              Propón una nueva fecha y hora al cliente.
+            </BottomSheet.Description>
+          </View>
+          <View className="mb-4">
+            <MomentLine
+              label="Actual"
+              value={formatDayTime(appointment.date)}
+            />
+          </View>
+
+          {/* The strip pads itself; bleed it to the sheet edges. */}
+          <View className="-mx-5">
+            <DayStrip
+              days={days}
+              todayMs={todayMs}
+              selectedMs={dayMs}
+              onSelect={(next) => {
+                setDayMs(next);
+                setMinutes(undefined);
+              }}
+            />
+          </View>
+
+          <BottomSheetScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingVertical: 16 }}
+          >
+            {slots === undefined ? (
+              <Spinner />
+            ) : slots.length === 0 ? (
+              <Typography.Paragraph color="muted" className="text-center">
+                No hay horarios libres este día.
+              </Typography.Paragraph>
+            ) : (
+              <View className="flex-row flex-wrap gap-2">
+                {slots.map((slot) => (
+                  <Button
+                    key={slot.minutes}
+                    size="sm"
+                    variant={slot.minutes === minutes ? "primary" : "secondary"}
+                    onPress={() => setMinutes(slot.minutes)}
+                  >
+                    <Button.Label style={tabularNums}>{slot.time}</Button.Label>
+                  </Button>
+                ))}
+              </View>
+            )}
+          </BottomSheetScrollView>
+
+          <Button
+            isDisabled={isPending || minutes === undefined}
+            onPress={() => {
+              // Bogotá has no DST, so a slot is midnight plus its minutes.
+              if (minutes !== undefined) onConfirm(dayMs + minutes * 60_000);
+            }}
+          >
+            Enviar solicitud
+          </Button>
+        </BottomSheet.Content>
+      </BottomSheet.Portal>
+    </BottomSheet>
   );
 }
