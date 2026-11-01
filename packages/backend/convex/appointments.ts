@@ -5,7 +5,13 @@ import { ConvexError } from "convex/values";
 import { convexToZod } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
-import { zAuthMutation, zInternalMutation, zInternalQuery, zQuery } from ".";
+import {
+  zAuthMutation,
+  zAuthQuery,
+  zInternalMutation,
+  zInternalQuery,
+  zQuery,
+} from ".";
 import { internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
 import { assertCanCreateStaffAppointment } from "./acl";
@@ -21,6 +27,7 @@ import {
 import {
   assertCanMutateAppointment,
   assertShopRole,
+  canViewAppointment,
   getBarbershopMemberByUserId,
   memberHasAnyRole,
 } from "./authz";
@@ -426,6 +433,23 @@ export const getRescheduledRequests = zQuery({
       )
       .collect();
 
+    const barbershopMember = await getBarbershopMemberByUserId(
+      ctx,
+      args.id,
+      userId,
+    );
+
+    // A barber without a management role only sees their own requests
+    if (
+      barbershopMember &&
+      !barbershopMember.roles.includes("owner") &&
+      !barbershopMember.roles.includes("staff")
+    ) {
+      return appointments.filter(
+        (appt) => appt.barbershopMemberId === barbershopMember._id,
+      );
+    }
+
     return appointments;
   },
 });
@@ -508,10 +532,20 @@ export const getByBarbershopId = zQuery({
   },
 });
 
-export const getById = zQuery({
+export const getById = zAuthQuery({
   args: appointments.tools.id,
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.id);
+    const appointment = await ctx.db.get(args.id);
+
+    if (!appointment) {
+      return null;
+    }
+
+    // Hide, don't throw: a plain barber opening another barber's appointment
+    // (e.g. through a deep link) must get the same result as a missing doc.
+    const canView = await canViewAppointment(ctx, appointment, ctx.userId);
+
+    return canView ? appointment : null;
   },
 });
 
@@ -557,11 +591,7 @@ export const setStatus = zAuthMutation({
       throw new ConvexError(errorMessages.unauthorized);
     }
 
-    await assertShopRole(ctx, appt.barbershopId, userId, [
-      "owner",
-      "barber",
-      "staff",
-    ]);
+    await assertCanMutateAppointment(ctx, appt, userId);
 
     let updatedAppointment = null;
 
