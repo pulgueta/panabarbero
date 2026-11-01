@@ -44,6 +44,23 @@ export function minutesToY(minutes: number) {
   return TOP_PADDING + (minutes / 60) * HOUR_HEIGHT;
 }
 
+/** Half the hour label: headroom so the top visible label is never cut. */
+const LABEL_HEADROOM = 6;
+/** An hour label this close to the now line hides under its pill. */
+const NOW_LABEL_CLEARANCE = 10;
+
+/**
+ * Scroll offset that shows `minutes` in the top third of the viewport,
+ * snapped up to the hour line above it with room for that hour's label.
+ */
+export function scrollOffsetFor(minutes: number, viewportHeight: number) {
+  const target = minutesToY(minutes) - viewportHeight / 3;
+  const hourLine =
+    Math.floor((target - TOP_PADDING) / HOUR_HEIGHT) * HOUR_HEIGHT +
+    TOP_PADDING;
+  return Math.max(0, hourLine - LABEL_HEADROOM);
+}
+
 export type DayTimelineHandle = {
   /** Scroll so the current time sits in the top third of the viewport. */
   scrollToNow: (animated: boolean) => void;
@@ -80,7 +97,7 @@ export function DayTimeline({
   // Puts `minutes` in the top third of the viewport.
   const scrollToMinutes = (minutes: number, animated: boolean) => {
     scrollRef.current?.scrollTo({
-      y: Math.max(0, minutesToY(minutes) - viewport.height / 3),
+      y: scrollOffsetFor(minutes, viewport.height),
       animated,
     });
   };
@@ -118,7 +135,7 @@ export function DayTimeline({
         contentContainerStyle={{ height: TIMELINE_HEIGHT }}
         showsVerticalScrollIndicator={false}
       >
-        <HourLines />
+        <HourLines nowMinutes={isToday ? nowMinutes : undefined} />
 
         {blocks.map(({ appointment, top, height, column, columns }) => {
           const columnWidth =
@@ -162,8 +179,15 @@ export function DayTimeline({
   );
 }
 
-/** The gutter rule and the 24 hour lines with their labels, absolutely placed. */
-export function HourLines() {
+/**
+ * The gutter rule and the 24 hour lines with their labels, absolutely placed.
+ * Pass `nowMinutes` on today so the label under the now pill steps aside.
+ */
+export function HourLines({ nowMinutes }: { nowMinutes?: number }) {
+  const isUnderNowPill = (hour: number) =>
+    nowMinutes !== undefined &&
+    Math.abs(minutesToY(hour * 60) - minutesToY(nowMinutes)) <
+      NOW_LABEL_CLEARANCE;
   return (
     <>
       <View
@@ -178,7 +202,7 @@ export function HourLines() {
               className="h-px bg-separator"
               style={{ marginLeft: GUTTER_WIDTH }}
             />
-            {hour > 0 ? (
+            {hour > 0 && !isUnderNowPill(hour) ? (
               <Typography
                 weight="medium"
                 color="muted"

@@ -1,7 +1,7 @@
 import type { Id } from "@panabarbero/backend/convex/_generated/dataModel";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/build/react-navigation/elements/index.js";
-import { Chip } from "heroui-native";
+import { Chip, Typography } from "heroui-native";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -31,12 +31,14 @@ import {
 import {
   bogotaStartOfDay,
   bogotaStartOfMonth,
+  formatDayLabel,
   monthGrid,
   monthWeeks,
   weekDays,
 } from "@/lib/dates";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const dayCaption = { fontSize: 11, lineHeight: 14 };
 
 export default function AgendaScreen() {
   const router = useRouter();
@@ -176,38 +178,48 @@ export default function AgendaScreen() {
             onToday={goToToday}
           />
           <View className="flex-1 overflow-hidden rounded-[20px] bg-agenda-card">
-            {showBarberFilter ? (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                className="max-h-11 shrink-0 grow-0"
-                contentContainerStyle={{
-                  paddingHorizontal: 8,
-                  paddingVertical: 8,
-                  gap: 6,
-                }}
+            {/* The header can show another month: the selected day stays explicit here. */}
+            <View className="flex-row items-center">
+              {showBarberFilter ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="max-h-11 flex-1"
+                  contentContainerStyle={{
+                    paddingHorizontal: 8,
+                    paddingVertical: 8,
+                    gap: 6,
+                  }}
+                >
+                  {[
+                    { _id: "all" as const, name: "Todos los barberos" },
+                    ...(members ?? []),
+                  ].map((barber) => {
+                    const isSelected = barber._id === barberFilter;
+                    return (
+                      <Chip
+                        key={barber._id}
+                        size="sm"
+                        variant={isSelected ? "primary" : "secondary"}
+                        color={isSelected ? "accent" : "default"}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: isSelected }}
+                        onPress={() => setBarberFilter(barber._id)}
+                      >
+                        {barber.name}
+                      </Chip>
+                    );
+                  })}
+                </ScrollView>
+              ) : null}
+              <Typography
+                color="muted"
+                className="ml-auto shrink-0 px-3 py-2"
+                style={dayCaption}
               >
-                {[
-                  { _id: "all" as const, name: "Todos los barberos" },
-                  ...(members ?? []),
-                ].map((barber) => {
-                  const isSelected = barber._id === barberFilter;
-                  return (
-                    <Chip
-                      key={barber._id}
-                      size="sm"
-                      variant={isSelected ? "primary" : "secondary"}
-                      color={isSelected ? "accent" : "default"}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: isSelected }}
-                      onPress={() => setBarberFilter(barber._id)}
-                    >
-                      {barber.name}
-                    </Chip>
-                  );
-                })}
-              </ScrollView>
-            ) : null}
+                {formatDayLabel(selectedMs)}
+              </Typography>
+            </View>
             {view === "day" ? (
               <DayTimeline
                 ref={timelineRef}

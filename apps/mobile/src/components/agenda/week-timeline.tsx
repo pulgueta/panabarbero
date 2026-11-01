@@ -21,8 +21,8 @@ import {
   HourLines,
   layoutBlocks,
   MIN_BLOCK_HEIGHT,
-  minutesToY,
   NowLine,
+  scrollOffsetFor,
   TIMELINE_HEIGHT,
   tabularNums,
   useNowMinutes,
@@ -80,7 +80,7 @@ export function WeekTimeline({
 
   const scrollToMinutes = (minutes: number, animated: boolean) => {
     scrollRef.current?.scrollTo({
-      y: Math.max(0, minutesToY(minutes) - viewport.height / 3),
+      y: scrollOffsetFor(minutes, viewport.height),
       animated,
     });
   };
@@ -153,7 +153,7 @@ export function WeekTimeline({
         contentContainerStyle={{ height: TIMELINE_HEIGHT }}
         showsVerticalScrollIndicator={false}
       >
-        <HourLines />
+        <HourLines nowMinutes={hasToday ? nowMinutes : undefined} />
         {columnWidth > 0
           ? COLUMN_INDEXES.map((index) => (
               <View
