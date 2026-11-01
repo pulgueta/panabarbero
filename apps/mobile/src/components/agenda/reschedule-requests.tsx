@@ -1,13 +1,15 @@
 import { Typography } from "heroui-native";
 import { useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import type { Appointment } from "@/lib/appointments";
 import { formatDayTime } from "@/lib/dates";
 
 const tabularNums = { fontVariant: ["tabular-nums" as const] };
+const rowLabel = { fontSize: 13, lineHeight: 18 };
+const rowDetail = { fontSize: 11, lineHeight: 14 };
 
-/** Above this count the section starts collapsed to one summary row. */
+/** Above this count the card starts as one summary row. */
 const MAX_VISIBLE = 2;
 
 type RescheduleRequestsProps = {
@@ -16,7 +18,7 @@ type RescheduleRequestsProps = {
   onOpen: (appointment: Appointment) => void;
 };
 
-/** Customer requests to move an appointment, as a card above the calendar. */
+/** Customer requests to move an appointment: 44 pt rows in a card above the calendar. */
 export function RescheduleRequests({
   requests,
   onOpen,
@@ -29,47 +31,31 @@ export function RescheduleRequests({
   const isCollapsible = sorted.length > MAX_VISIBLE;
 
   return (
-    <View className="mb-2 rounded-[20px] bg-agenda-card py-1">
-      <View className="flex-row items-center justify-between px-4 py-1.5">
-        <Typography.Paragraph type="body-sm" color="muted" weight="medium">
-          Solicitudes de reagendamiento
-        </Typography.Paragraph>
-        {isCollapsible && isExpanded ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setIsExpanded(false)}
-            hitSlop={8}
-          >
-            <Typography.Paragraph type="body-sm" className="text-link">
-              Ocultar
-            </Typography.Paragraph>
-          </Pressable>
-        ) : null}
-      </View>
-
-      {isCollapsible && !isExpanded ? (
+    <View className="mb-2 overflow-hidden rounded-[20px] bg-agenda-card">
+      {isCollapsible ? (
         <Pressable
           accessibilityRole="button"
-          onPress={() => setIsExpanded(true)}
-          className="min-h-11 flex-row items-center px-4 py-2 active:bg-surface-tertiary"
+          accessibilityState={{ expanded: isExpanded }}
+          onPress={() => setIsExpanded((value) => !value)}
+          className="h-11 flex-row items-center justify-between px-4 active:bg-surface-tertiary"
         >
-          <Typography weight="medium" className="flex-1">
-            {sorted.length} solicitudes pendientes
+          <Typography weight="medium" style={rowLabel}>
+            {sorted.length} solicitudes de reagendamiento
           </Typography>
-          <Typography className="text-link">Ver</Typography>
+          <Typography weight="medium" className="text-accent" style={rowLabel}>
+            {isExpanded ? "Ocultar" : "Ver"}
+          </Typography>
         </Pressable>
-      ) : (
-        // Bounded so a long list keeps the calendar below reachable.
-        <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
-          {sorted.map((request) => (
+      ) : null}
+      {!isCollapsible || isExpanded
+        ? sorted.map((request) => (
             <RequestRow
               key={request._id}
               request={request}
               onPress={() => onOpen(request)}
             />
-          ))}
-        </ScrollView>
-      )}
+          ))
+        : null}
     </View>
   );
 }
@@ -90,20 +76,15 @@ function RequestRow({
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      className="min-h-11 gap-0.5 px-4 py-1.5 active:bg-surface-tertiary"
+      className="h-11 justify-center px-4 active:bg-surface-tertiary"
     >
-      <Typography weight="medium" truncate>
+      <Typography weight="medium" truncate style={rowLabel}>
         {request.customerName}
       </Typography>
-      <Typography.Paragraph
-        type="body-sm"
-        color="muted"
-        truncate
-        style={tabularNums}
-      >
+      <Typography color="muted" truncate style={[rowDetail, tabularNums]}>
         {formatDayTime(request.date)}
         {proposed}
-      </Typography.Paragraph>
+      </Typography>
     </Pressable>
   );
 }
