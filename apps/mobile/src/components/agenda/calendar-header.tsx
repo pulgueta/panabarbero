@@ -4,11 +4,12 @@ import {
   CaretLeftIcon,
   CaretRightIcon,
 } from "phosphor-react-native";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { Pressable, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Easing,
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -112,9 +113,6 @@ export function CalendarHeader({
     transform: [
       { translateY: -activeWeek * WEEK_ROW_HEIGHT * (1 - progress.value) },
     ],
-  }));
-  const otherRowStyle = useAnimatedStyle(() => ({
-    opacity: progress.value,
   }));
 
   const togglePicker = () => {
@@ -231,12 +229,10 @@ export function CalendarHeader({
             <Animated.View style={[clipStyle, { overflow: "hidden" }]}>
               <Animated.View style={gridStyle}>
                 {weeks.map((week, weekIndex) => (
-                  <Animated.View
+                  <WeekRow
                     key={week[0]}
-                    style={[
-                      { flexDirection: "row" },
-                      weekIndex === activeWeek ? undefined : otherRowStyle,
-                    ]}
+                    isActive={weekIndex === activeWeek}
+                    progress={progress}
                   >
                     {week.map((dayMs) => (
                       <DayCell
@@ -249,7 +245,7 @@ export function CalendarHeader({
                         onPress={() => selectDay(dayMs)}
                       />
                     ))}
-                  </Animated.View>
+                  </WeekRow>
                 ))}
               </Animated.View>
             </Animated.View>
@@ -268,6 +264,28 @@ export function CalendarHeader({
         </View>
       </GestureDetector>
     </>
+  );
+}
+
+type WeekRowProps = {
+  /** The row that stays visible while the grid is collapsed. */
+  isActive: boolean;
+  progress: SharedValue<number>;
+  children: ReactNode;
+};
+
+/**
+ * Every row owns its animated opacity. Attaching the style only to the
+ * inactive rows left a stale opacity 0 behind when the active week changed.
+ */
+function WeekRow({ isActive, progress, children }: WeekRowProps) {
+  const style = useAnimatedStyle(() => ({
+    opacity: isActive ? 1 : progress.value,
+  }));
+  return (
+    <Animated.View style={[{ flexDirection: "row" }, style]}>
+      {children}
+    </Animated.View>
   );
 }
 
