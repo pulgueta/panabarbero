@@ -532,6 +532,62 @@ export const getByBarbershopId = zQuery({
   },
 });
 
+const MAX_RANGE_DAYS = 35;
+
+/**
+ * Light rows for one Bogotá week or month: the mobile agenda paints a dot
+ * under each day that has appointments. `from`/`to` are inclusive epoch ms.
+ */
+export const getByBarbershopIdRange = zAuthQuery({
+  args: z.object({
+    ...barbershops.tools.id.shape,
+    from: z.number(),
+    to: z.number(),
+  }),
+  handler: async (ctx, args) => {
+    if (args.to < args.from) {
+      throw new ConvexError("El rango de fechas es inválido");
+    }
+    if (args.to - args.from > MAX_RANGE_DAYS * 24 * 60 * 60 * 1000) {
+      throw new ConvexError(`El rango supera ${MAX_RANGE_DAYS} días`);
+    }
+
+    const appointments = await ctx.db
+      .query("appointments")
+      .withIndex("by_barbershopId_and_date", (q) =>
+        q
+          .eq("barbershopId", args.id)
+          .gte("date", args.from)
+          .lte("date", args.to),
+      )
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .collect();
+
+    const barbershopMember = await getBarbershopMemberByUserId(
+      ctx,
+      args.id,
+      ctx.userId,
+    );
+
+    // Same scoping as getByBarbershopId: a plain barber sees only their own.
+    const visible =
+      barbershopMember &&
+      !barbershopMember.roles.includes("owner") &&
+      !barbershopMember.roles.includes("staff")
+        ? appointments.filter(
+            (appt) => appt.barbershopMemberId === barbershopMember._id,
+          )
+        : appointments;
+
+    return visible.map((appt) => ({
+      _id: appt._id,
+      date: appt.date,
+      status: appt.status,
+      barbershopMemberId: appt.barbershopMemberId,
+    }));
+  },
+});
+
 export const getById = zAuthQuery({
   args: appointments.tools.id,
   handler: async (ctx, args) => {
