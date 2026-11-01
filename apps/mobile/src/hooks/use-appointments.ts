@@ -3,6 +3,7 @@ import type { Id } from "@panabarbero/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { useCallback, useMemo } from "react";
 
+import { type Appointment, totalDuration } from "@/lib/appointments";
 import { useAuth } from "@/providers/auth-provider";
 
 /** Appointments for one Bogotá day. Barbers get only their own (server-side). */
@@ -66,12 +67,41 @@ export function useRescheduleRequests(
   );
 }
 
+/**
+ * Free slots of the appointment's barber on one Bogotá day, sized to the
+ * appointment's own lines. Pass `undefined` to skip the query.
+ */
+export function useAvailableSlots(
+  appointment: Appointment,
+  dayMs: number | undefined,
+) {
+  const items = appointment.items ?? [];
+  return useQuery(
+    api.appointments.getAvailableSlots,
+    dayMs === undefined
+      ? "skip"
+      : {
+          barbershopId: appointment.barbershopId,
+          barbershopMemberId: appointment.barbershopMemberId,
+          serviceIds:
+            items.length > 0
+              ? items.map((item) => item.serviceId)
+              : [appointment.serviceId],
+          date: dayMs,
+          // Snapshot width, so lines whose services were deleted still move.
+          durationMinutes: totalDuration(appointment) ?? undefined,
+        },
+  );
+}
+
 /** Staff-side status changes for one appointment. */
 export function useAppointmentActions() {
   const { user } = useAuth();
   const setStatus = useMutation(api.appointments.setStatus);
   const cancelMutation = useMutation(api.appointments.cancel);
   const answerMutation = useMutation(api.appointments.answerRescheduleRequest);
+  const deleteMutation = useMutation(api.appointments.deleteAppointment);
+  const requestMutation = useMutation(api.appointments.requestReschedule);
 
   return useMemo(
     () => ({
@@ -94,7 +124,18 @@ export function useAppointmentActions() {
           accepted,
           answeredBy: "barber",
         }),
+      remove: (id: Id<"appointments">) =>
+        deleteMutation({ appointmentId: { id } }),
+      requestReschedule: (id: Id<"appointments">, proposedDate: number) =>
+        requestMutation({ appointmentId: { id }, proposedDate }),
     }),
-    [setStatus, cancelMutation, answerMutation, user?.id],
+    [
+      setStatus,
+      cancelMutation,
+      answerMutation,
+      deleteMutation,
+      requestMutation,
+      user?.id,
+    ],
   );
 }

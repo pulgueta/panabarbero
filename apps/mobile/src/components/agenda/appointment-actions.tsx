@@ -1,5 +1,6 @@
 import type { Id } from "@panabarbero/backend/convex/_generated/dataModel";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 import {
   BottomSheet,
   Button,
@@ -38,7 +39,7 @@ const ACTIONABLE_STATUSES: Appointment["status"][] = [
 
 const MIN_REASON_LENGTH = 3;
 
-type Action = "complete" | "noShow" | "cancel" | "accept" | "deny";
+type Action = "complete" | "noShow" | "cancel" | "delete" | "accept" | "deny";
 type FinalPrice = { serviceId: Id<"services">; finalPrice: number };
 
 /** Runs one action at a time, with haptic + toast feedback. */
@@ -75,10 +76,11 @@ export function AppointmentActions({
   appointment: Appointment;
 }) {
   const { user } = useAuth();
+  const router = useRouter();
   const actions = useAppointmentActions();
   const { pending, run } = useRunAction();
   const [open, setOpen] = useState<
-    "prices" | "complete" | "noShow" | "cancel"
+    "prices" | "complete" | "noShow" | "cancel" | "delete"
   >();
   const close = () => setOpen(undefined);
   const setOpenFor = (key: NonNullable<typeof open>) => (next: boolean) =>
@@ -94,8 +96,12 @@ export function AppointmentActions({
     !!appointment.rescheduleRequestedByUserId &&
     appointment.rescheduleRequestedByUserId === user?.id;
   const isActionable = ACTIONABLE_STATUSES.includes(appointment.status);
+  // Same gates as the web event popover: mark only once the time has passed,
+  // delete what can no longer happen, cancel what is still ahead.
+  const isPast = Date.now() > appointment.date;
+  const needsMark = isActionable && isPast;
 
-  if (!isActionable) return null;
+  if (appointment.status === "completed") return null;
 
   const complete = async (finalPrices?: FinalPrice[]) => {
     const done = await run(
@@ -127,26 +133,39 @@ export function AppointmentActions({
       ) : null}
 
       <View className="gap-3">
-        <Button
-          isDisabled={pending !== null}
-          onPress={() => setOpen(needsFinalPrices ? "prices" : "complete")}
-        >
-          Marcar completada
-        </Button>
-        <Button
-          variant="secondary"
-          isDisabled={pending !== null}
-          onPress={() => setOpen("noShow")}
-        >
-          No asistió
-        </Button>
-        <Button
-          variant="danger-soft"
-          isDisabled={pending !== null}
-          onPress={() => setOpen("cancel")}
-        >
-          Cancelar cita
-        </Button>
+        {needsMark ? (
+          <>
+            <Button
+              isDisabled={pending !== null}
+              onPress={() => setOpen(needsFinalPrices ? "prices" : "complete")}
+            >
+              Marcar completada
+            </Button>
+            <Button
+              variant="secondary"
+              isDisabled={pending !== null}
+              onPress={() => setOpen("noShow")}
+            >
+              No asistió
+            </Button>
+          </>
+        ) : isActionable ? (
+          <Button
+            variant="danger-soft"
+            isDisabled={pending !== null}
+            onPress={() => setOpen("cancel")}
+          >
+            Cancelar cita
+          </Button>
+        ) : (
+          <Button
+            variant="danger-soft"
+            isDisabled={pending !== null}
+            onPress={() => setOpen("delete")}
+          >
+            Eliminar
+          </Button>
+        )}
       </View>
 
       <FinalPriceSheet
@@ -190,6 +209,26 @@ export function AppointmentActions({
             "Cita cancelada",
           );
           if (done) close();
+        }}
+      />
+      <ConfirmDialog
+        isOpen={open === "delete"}
+        onOpenChange={setOpenFor("delete")}
+        title="¿Eliminar esta cita?"
+        description="Se borrará de tus registros. Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+        confirmVariant="danger"
+        isPending={pending === "delete"}
+        onConfirm={async () => {
+          const done = await run(
+            "delete",
+            () => actions.remove(id),
+            "Cita eliminada",
+          );
+          if (!done) return;
+          close();
+          if (router.canGoBack()) router.back();
+          else router.replace("/(app)/(tabs)/agenda");
         }}
       />
     </View>
@@ -279,6 +318,7 @@ type ConfirmDialogProps = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
+  description?: string;
   confirmLabel: string;
   confirmVariant?: ButtonVariant;
   isPending: boolean;
@@ -289,6 +329,7 @@ export function ConfirmDialog({
   isOpen,
   onOpenChange,
   title,
+  description,
   confirmLabel,
   confirmVariant = "primary",
   isPending,
@@ -299,7 +340,12 @@ export function ConfirmDialog({
       <Dialog.Portal>
         <Dialog.Overlay />
         <Dialog.Content>
-          <Dialog.Title className="mb-5">{title}</Dialog.Title>
+          <View className="mb-5 gap-1.5">
+            <Dialog.Title>{title}</Dialog.Title>
+            {description ? (
+              <Dialog.Description>{description}</Dialog.Description>
+            ) : null}
+          </View>
           <DialogButtons
             confirmLabel={confirmLabel}
             confirmVariant={confirmVariant}
@@ -357,6 +403,7 @@ export function CancelDialog({
               <TextArea
                 value={reason}
                 onChangeText={setReason}
+                maxLength={300}
                 placeholder="Ej.: el barbero no está disponible"
               />
               <Description>El cliente recibirá este motivo.</Description>
