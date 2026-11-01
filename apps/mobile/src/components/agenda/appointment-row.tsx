@@ -47,8 +47,10 @@ export function AppointmentRow({
         </Typography.Paragraph>
       </View>
       <View className="items-end gap-1">
-        <Chip size="sm" variant="soft" color={status.color}>
-          {status.label}
+        <Chip size="sm" variant="soft" {...status.chip}>
+          <Chip.Label className={status.labelClassName}>
+            {status.label}
+          </Chip.Label>
         </Chip>
         {price ? (
           <Typography.Paragraph type="body-sm" style={tabularNums}>

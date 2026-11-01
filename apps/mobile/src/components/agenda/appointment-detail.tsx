@@ -51,8 +51,10 @@ export function AppointmentDetail({
             {formatDayLabel(appointment.date)}
           </Typography.Paragraph>
         </View>
-        <Chip variant="soft" color={status.color}>
-          {status.label}
+        <Chip variant="soft" {...status.chip}>
+          <Chip.Label className={status.labelClassName}>
+            {status.label}
+          </Chip.Label>
         </Chip>
       </View>
 

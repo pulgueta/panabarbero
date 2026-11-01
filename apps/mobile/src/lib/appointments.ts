@@ -15,18 +15,33 @@ const statusLabel: Record<AppointmentStatus, string> = {
   denied: "Denegada",
 };
 
-const statusColor: Record<AppointmentStatus, ChipColor> = {
+// Same mapping as the web calendar (apps/web/src/calendar/constants.ts).
+const statusColor: Record<AppointmentStatus, ChipColor | "info"> = {
   pending: "warning",
-  confirmed: "default",
+  confirmed: "success",
   cancelled: "danger",
   completed: "success",
   "no-show": "danger",
-  rescheduled: "default",
+  rescheduled: "info",
   denied: "danger",
 };
 
+/** Chips have no info color: paint the info tokens over "default", without its glass layer. */
+const infoChip = {
+  color: "default",
+  className: "bg-info-soft",
+  background: null,
+} as const;
+
+/** `chip` spreads onto a soft `Chip`; `labelClassName` goes on its `Chip.Label`. */
 export function appointmentStatus(status: AppointmentStatus) {
-  return { label: statusLabel[status], color: statusColor[status] };
+  const color = statusColor[status];
+  const isInfo = color === "info";
+  return {
+    label: statusLabel[status],
+    chip: isInfo ? infoChip : { color },
+    labelClassName: isInfo ? "text-info-soft-foreground" : undefined,
+  };
 }
 
 function hasItems(
