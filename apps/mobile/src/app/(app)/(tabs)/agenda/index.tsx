@@ -1,4 +1,6 @@
+import type { Id } from "@panabarbero/backend/convex/_generated/dataModel";
 import { useFocusEffect, useRouter } from "expo-router";
+import { Chip } from "heroui-native";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ScrollView,
@@ -57,9 +59,20 @@ export default function AgendaScreen() {
   // Barbers only get their own appointments, so the barber name is noise.
   const showBarber = !!membership && (membership.isOwner || membership.isStaff);
   const appointments = useDayAppointments(membership?.barbershopId, selectedMs);
-  const { memberName } = useShopMembers(
+  const { members, memberName } = useShopMembers(
     showBarber ? membership.barbershopId : undefined,
   );
+  // Same as the web calendar: managers filter by barber when there are several.
+  const [barberFilter, setBarberFilter] = useState<
+    "all" | Id<"barbershopMembers">
+  >("all");
+  const showBarberFilter = showBarber && (members?.length ?? 0) > 1;
+  const visibleAppointments =
+    barberFilter === "all"
+      ? appointments
+      : appointments?.filter(
+          (appointment) => appointment.barbershopMemberId === barberFilter,
+        );
   // Owner and staff see every request; barbers only their own.
   const requests = useRescheduleRequests(
     membership?.barbershopId,
@@ -106,10 +119,40 @@ export default function AgendaScreen() {
             onSelect={setSelectedMs}
             onLayout={() => scrollToToday(false)}
           />
+          {showBarberFilter ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="pt-3"
+              contentContainerStyle={{
+                paddingHorizontal: DAY_STRIP_PADDING,
+                gap: 8,
+              }}
+            >
+              {[
+                { _id: "all" as const, name: "Todos los barberos" },
+                ...(members ?? []),
+              ].map((barber) => {
+                const isSelected = barber._id === barberFilter;
+                return (
+                  <Chip
+                    key={barber._id}
+                    variant={isSelected ? "primary" : "secondary"}
+                    color={isSelected ? "accent" : "default"}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                    onPress={() => setBarberFilter(barber._id)}
+                  >
+                    {barber.name}
+                  </Chip>
+                );
+              })}
+            </ScrollView>
+          ) : null}
         </View>
         <RescheduleRequests requests={requests} onOpen={openAppointment} />
         <AppointmentList
-          appointments={appointments}
+          appointments={visibleAppointments}
           memberName={showBarber ? memberName : undefined}
           onOpen={openAppointment}
         />
