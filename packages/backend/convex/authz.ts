@@ -346,50 +346,19 @@ export async function assertCanViewAppointments(
 }
 
 /**
- * Assert that a user can mutate an appointment.
- * Allowed if: user is the appointment owner (customer) OR user is a shop member (owner/barber).
+ * Whether a user may access one appointment: the customer who booked it, an
+ * active owner/staff member of the shop, or the active barber it is assigned
+ * to. A plain barber never reaches another barber's appointments.
  */
-export async function assertCanMutateAppointment(
-  ctx: QueryCtx | MutationCtx,
-  appointment: Appointment,
-  userId: string,
-): Promise<void> {
-  // Appointment owner (customer) can always mutate their own appointment
-  if (appointment.userId === userId) {
-    return;
-  }
-
-  // Otherwise, must be a shop member with owner or barber role
-  const member = await getBarbershopMemberByUserId(
-    ctx,
-    appointment.barbershopId,
-    userId,
-  );
-
-  if (!member?.isActive) {
-    throw new ConvexError(errorMessages.unauthorized);
-  }
-
-  if (!memberHasAnyRole(member, ["owner", "barber", "staff"])) {
-    throw new ConvexError(errorMessages.unauthorized);
-  }
-}
-
-/**
- * Check if a user can view an appointment (appointment owner OR shop member).
- * Returns false instead of throwing.
- */
-export async function canViewAppointment(
+async function canAccessAppointment(
   ctx: QueryCtx | MutationCtx,
   appointment: Appointment,
   userId: string,
 ): Promise<boolean> {
-  // Appointment owner can view
   if (appointment.userId === userId) {
     return true;
   }
 
-  // Shop member can view
   const member = await getBarbershopMemberByUserId(
     ctx,
     appointment.barbershopId,
@@ -400,7 +369,41 @@ export async function canViewAppointment(
     return false;
   }
 
-  return memberHasAnyRole(member, ["owner", "barber", "staff"]);
+  if (memberHasAnyRole(member, ["owner", "staff"])) {
+    return true;
+  }
+
+  return (
+    memberHasRole(member, "barber") &&
+    appointment.barbershopMemberId === member._id
+  );
+}
+
+/**
+ * Assert that a user can mutate an appointment.
+ * Allowed if: user is the appointment owner (customer), an owner/staff member
+ * of the shop, or the barber assigned to the appointment.
+ */
+export async function assertCanMutateAppointment(
+  ctx: QueryCtx | MutationCtx,
+  appointment: Appointment,
+  userId: string,
+): Promise<void> {
+  if (!(await canAccessAppointment(ctx, appointment, userId))) {
+    throw new ConvexError(errorMessages.unauthorized);
+  }
+}
+
+/**
+ * Check if a user can view an appointment (same rule as mutation).
+ * Returns false instead of throwing.
+ */
+export async function canViewAppointment(
+  ctx: QueryCtx | MutationCtx,
+  appointment: Appointment,
+  userId: string,
+): Promise<boolean> {
+  return canAccessAppointment(ctx, appointment, userId);
 }
 
 /**
