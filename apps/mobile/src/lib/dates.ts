@@ -1,5 +1,18 @@
 import { TZDate } from "@date-fns/tz";
-import { addDays, format, startOfDay } from "date-fns";
+import {
+  addDays,
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  getHours,
+  getMinutes,
+  getYear,
+  startOfDay,
+  startOfMonth,
+  startOfWeek,
+} from "date-fns";
 import { es } from "date-fns/locale/es";
 
 /** Shops operate on Bogotá time (UTC-5, no DST), the same zone the backend uses for day queries. */
@@ -42,4 +55,65 @@ export function formatTime(ms: number): string {
 /** "lun 27 oct · 10:30" */
 export function formatDayTime(ms: number): string {
   return `${formatDayLabel(ms)} · ${formatTime(ms)}`;
+}
+
+/** Minutes since Bogotá midnight, for a position on the day timeline. */
+export function bogotaMinutesOfDay(ms: number): number {
+  const date = inShopZone(ms);
+  return getHours(date) * 60 + getMinutes(date);
+}
+
+/** "08:00" for a timeline hour label. */
+export function formatHour(hour: number): string {
+  return `${String(hour).padStart(2, "0")}:00`;
+}
+
+/** "Noviembre 2026" */
+export function formatMonthTitle(monthMs: number): string {
+  const title = format(inShopZone(monthMs), "MMMM yyyy", { locale: es });
+  return title.charAt(0).toUpperCase() + title.slice(1);
+}
+
+/** "ene" … "dic" for the month picker. */
+export function formatMonthShort(monthMs: number): string {
+  return format(inShopZone(monthMs), "LLL", { locale: es });
+}
+
+/** Bogotá midnight of the first day of the month that contains `ms`. */
+export function bogotaStartOfMonth(ms: number): number {
+  return startOfMonth(inShopZone(ms)).getTime();
+}
+
+/** Bogotá midnight of the last day of the month that contains `ms`. */
+export function bogotaEndOfMonth(ms: number): number {
+  return startOfDay(endOfMonth(inShopZone(ms))).getTime();
+}
+
+/** Bogotá midnight of the first day, `amount` months after `monthMs`. */
+export function addMonthsBogota(monthMs: number, amount: number): number {
+  return startOfMonth(addMonths(inShopZone(monthMs), amount)).getTime();
+}
+
+/** Monday-first weeks (as Bogotá midnights) that cover the month of `monthMs`. */
+export function monthWeeks(monthMs: number): number[][] {
+  const month = inShopZone(monthMs);
+  const days = eachDayOfInterval({
+    start: startOfWeek(startOfMonth(month), { weekStartsOn: 1 }),
+    end: endOfWeek(endOfMonth(month), { weekStartsOn: 1 }),
+  }).map((day) => startOfDay(inShopZone(day.getTime())).getTime());
+  const weeks: number[][] = [];
+  for (let index = 0; index < days.length; index += 7) {
+    weeks.push(days.slice(index, index + 7));
+  }
+  return weeks;
+}
+
+/** Calendar year of `ms` in Bogotá. */
+export function bogotaYear(ms: number): number {
+  return getYear(inShopZone(ms));
+}
+
+/** Bogotá midnight of the first day of `monthIndex` (0–11) in `year`. */
+export function bogotaMonth(year: number, monthIndex: number): number {
+  return new TZDate(year, monthIndex, 1, SHOP_TIME_ZONE).getTime();
 }

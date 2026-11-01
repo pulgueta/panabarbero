@@ -17,6 +17,18 @@ export function useDayAppointments(
   );
 }
 
+/** Light rows for the days between `fromMs` and `toMs` (inclusive, ≤ 35 days). */
+export function useRangeAppointments(
+  barbershopId: Id<"barbershops"> | undefined,
+  fromMs: number,
+  toMs: number,
+) {
+  return useQuery(
+    api.appointments.getByBarbershopIdRange,
+    barbershopId ? { id: barbershopId, from: fromMs, to: toMs } : "skip",
+  );
+}
+
 /** `undefined` while loading, `null` when the appointment does not exist. */
 export function useAppointment(id: Id<"appointments">) {
   return useQuery(api.appointments.getById, { id });

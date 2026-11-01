@@ -16,6 +16,12 @@
 
 /* HeroUI Native has no info color; register it like its success/warning tokens. */
 @theme inline {
+  /* Agenda surfaces: well one step above the background, cards one more step. */
+  --color-agenda-well: var(--agenda-well);
+  --color-agenda-card: var(--agenda-card);
+  --color-agenda-pill: var(--agenda-pill);
+  --color-agenda-pill-active: var(--agenda-pill-active);
+
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
   --color-info-soft: color-mix(in oklab, var(--info) 15%, transparent);
@@ -64,6 +70,11 @@
       --danger-foreground: oklch(0.983 0.0083 25.52);
       --info: oklch(0.6 0.17 230);
       --info-foreground: oklch(0.985 0 0);
+
+      --agenda-well: oklch(0.955 0 0);
+      --agenda-card: oklch(1 0 0);
+      --agenda-pill: oklch(0.93 0 0);
+      --agenda-pill-active: oklch(1 0 0);
 
       --segment: oklch(1 0 0);
       --segment-foreground: var(--foreground);
@@ -115,6 +126,11 @@
       --danger-foreground: oklch(0.985 0 0);
       --info: oklch(0.7 0.15 230);
       --info-foreground: oklch(0.985 0 0);
+
+      --agenda-well: oklch(0.205 0 0);
+      --agenda-card: oklch(0.269 0 0);
+      --agenda-pill: oklch(0.32 0 0);
+      --agenda-pill-active: oklch(0.42 0 0);
 
       --segment: oklch(0.3 0 0);
       --segment-foreground: var(--foreground);

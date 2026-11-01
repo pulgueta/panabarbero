@@ -16,7 +16,7 @@ type RescheduleRequestsProps = {
   onOpen: (appointment: Appointment) => void;
 };
 
-/** Customer requests to move an appointment, shown above the day list. */
+/** Customer requests to move an appointment, as a card above the calendar. */
 export function RescheduleRequests({
   requests,
   onOpen,
@@ -29,8 +29,8 @@ export function RescheduleRequests({
   const isCollapsible = sorted.length > MAX_VISIBLE;
 
   return (
-    <View className="border-border border-b py-2">
-      <View className="flex-row items-center justify-between px-5 py-1">
+    <View className="mb-2 rounded-[20px] bg-agenda-card py-1">
+      <View className="flex-row items-center justify-between px-4 py-1.5">
         <Typography.Paragraph type="body-sm" color="muted" weight="medium">
           Solicitudes de reagendamiento
         </Typography.Paragraph>
@@ -51,7 +51,7 @@ export function RescheduleRequests({
         <Pressable
           accessibilityRole="button"
           onPress={() => setIsExpanded(true)}
-          className="min-h-12 flex-row items-center px-5 py-2 active:bg-surface-secondary"
+          className="min-h-11 flex-row items-center px-4 py-2 active:bg-surface-tertiary"
         >
           <Typography weight="medium" className="flex-1">
             {sorted.length} solicitudes pendientes
@@ -59,8 +59,8 @@ export function RescheduleRequests({
           <Typography className="text-link">Ver</Typography>
         </Pressable>
       ) : (
-        // Bounded so a long list keeps the day list below reachable.
-        <ScrollView style={{ maxHeight: 240 }} nestedScrollEnabled>
+        // Bounded so a long list keeps the calendar below reachable.
+        <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
           {sorted.map((request) => (
             <RequestRow
               key={request._id}
@@ -90,7 +90,7 @@ function RequestRow({
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      className="min-h-12 gap-0.5 px-5 py-2 active:bg-surface-secondary"
+      className="min-h-11 gap-0.5 px-4 py-1.5 active:bg-surface-tertiary"
     >
       <Typography weight="medium" truncate>
         {request.customerName}

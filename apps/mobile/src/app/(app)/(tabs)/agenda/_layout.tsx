@@ -13,10 +13,8 @@ export default function AgendaLayout() {
     <Stack
       screenOptions={{ ...stackScreenOptions, headerTintColor: foreground }}
     >
-      <Stack.Screen
-        name="index"
-        options={{ title: "Agenda", headerLargeTitle: true }}
-      />
+      {/* The agenda is a fixed card layout, not a scroll; an inline title keeps the room. */}
+      <Stack.Screen name="index" options={{ title: "Agenda" }} />
       <Stack.Screen
         name="[appointmentId]"
         options={{ title: "Cita", headerBackTitle: "Agenda" }}

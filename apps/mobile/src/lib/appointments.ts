@@ -44,6 +44,25 @@ export function appointmentStatus(status: AppointmentStatus) {
   };
 }
 
+/**
+ * Timeline block paint: a solid left bar and a soft tint of the status color.
+ * Finished and dropped appointments go gray; dropped ones also fade.
+ */
+export function timelineStatus(status: AppointmentStatus) {
+  switch (status) {
+    case "confirmed":
+      return { bar: "bg-success", tint: "bg-success-soft", faded: false };
+    case "pending":
+      return { bar: "bg-warning", tint: "bg-warning-soft", faded: false };
+    case "rescheduled":
+      return { bar: "bg-info", tint: "bg-info-soft", faded: false };
+    case "completed":
+      return { bar: "bg-muted", tint: "bg-surface-tertiary", faded: false };
+    default:
+      return { bar: "bg-muted", tint: "bg-surface-tertiary", faded: true };
+  }
+}
+
 function hasItems(
   appointment: Appointment,
 ): appointment is Appointment & { items: AppointmentItem[] } {
