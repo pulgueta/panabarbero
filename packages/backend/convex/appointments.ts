@@ -532,11 +532,14 @@ export const getByBarbershopId = zQuery({
   },
 });
 
-const MAX_RANGE_DAYS = 35;
+/** A 6-row month grid: 42 Bogotá days. */
+const MAX_RANGE_DAYS = 42;
 
 /**
  * Light rows for one Bogotá week or month: the mobile agenda paints a dot
- * under each day that has appointments. `from`/`to` are inclusive epoch ms.
+ * under each day that has appointments and draws the week and month views
+ * from them (durations give the block height). `from`/`to` are inclusive
+ * epoch ms.
  */
 export const getByBarbershopIdRange = zAuthQuery({
   args: z.object({
@@ -584,6 +587,8 @@ export const getByBarbershopIdRange = zAuthQuery({
       date: appt.date,
       status: appt.status,
       barbershopMemberId: appt.barbershopMemberId,
+      customerName: appt.customerName,
+      items: appt.items?.map((item) => ({ duration: item.duration })),
     }));
   },
 });
