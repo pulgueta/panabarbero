@@ -107,7 +107,12 @@ function GateScreen({
       <BrandWordmark />
 
       <View className="gap-4">
-        <IconComponent size={40} color={muted} />
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <IconComponent size={40} color={muted} />
+        </View>
         <Typography.Heading type="h3">{title}</Typography.Heading>
         <Typography.Paragraph color="muted">{body}</Typography.Paragraph>
         {note ? (

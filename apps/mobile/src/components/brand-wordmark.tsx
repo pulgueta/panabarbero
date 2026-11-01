@@ -7,7 +7,12 @@ export function BrandWordmark() {
 
   return (
     <View className="flex-row items-center gap-2">
-      <ScissorsIcon size={28} color={accent} />
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        <ScissorsIcon size={28} color={accent} />
+      </View>
       <Typography.Heading type="h2" weight="bold">
         PanaBarbero
       </Typography.Heading>
