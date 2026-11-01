@@ -1,5 +1,6 @@
 import type { Id } from "@panabarbero/backend/convex/_generated/dataModel";
 import { useFocusEffect, useRouter } from "expo-router";
+import { useHeaderHeight } from "expo-router/build/react-navigation/elements/index.js";
 import { Chip, useToast } from "heroui-native";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
@@ -37,6 +38,8 @@ const MAX_RANGE_DAYS = 35;
 export default function AgendaScreen() {
   const router = useRouter();
   const { toast } = useToast();
+  // The header is transparent, so the content starts under it.
+  const headerHeight = useHeaderHeight();
   const membership = useAccess()?.membership;
   const timelineRef = useRef<DayTimelineHandle>(null);
 
@@ -127,62 +130,69 @@ export default function AgendaScreen() {
   };
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-background">
-      <View className="mx-4 mt-2 mb-4 flex-1 rounded-[28px] bg-agenda-well p-2">
-        <RescheduleRequests requests={requests} onOpen={openAppointment} />
-        <CalendarHeader
-          todayMs={todayMs}
-          selectedMs={selectedMs}
-          monthMs={monthMs}
-          markedDays={markedDays}
-          onSelect={setSelectedMs}
-          onMonthChange={setMonthMs}
-          onToday={goToToday}
-        />
-        <View className="flex-1 overflow-hidden rounded-[20px] bg-agenda-card">
-          {showBarberFilter ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              className="max-h-11 shrink-0 grow-0"
-              contentContainerStyle={{
-                paddingHorizontal: 8,
-                paddingTop: 8,
-                gap: 6,
-              }}
-            >
-              {[
-                { _id: "all" as const, name: "Todos los barberos" },
-                ...(members ?? []),
-              ].map((barber) => {
-                const isSelected = barber._id === barberFilter;
-                return (
-                  <Chip
-                    key={barber._id}
-                    size="sm"
-                    variant={isSelected ? "primary" : "secondary"}
-                    color={isSelected ? "accent" : "default"}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: isSelected }}
-                    onPress={() => setBarberFilter(barber._id)}
-                  >
-                    {barber.name}
-                  </Chip>
-                );
-              })}
-            </ScrollView>
-          ) : null}
-          <DayTimeline
-            ref={timelineRef}
-            appointments={visibleAppointments}
-            isToday={selectedMs === todayMs}
-            selectedId={selectedId}
-            memberName={showBarber ? memberName : undefined}
-            onOpen={openAppointment}
+    <View className="flex-1 bg-background">
+      {/* Third-party views take no className: the safe area gets a plain style. */}
+      <SafeAreaView
+        edges={["bottom"]}
+        style={{ flex: 1, paddingTop: headerHeight }}
+      >
+        <View className="mx-4 mt-2 mb-4 flex-1 rounded-[28px] bg-agenda-well p-2">
+          <RescheduleRequests requests={requests} onOpen={openAppointment} />
+          <CalendarHeader
+            todayMs={todayMs}
+            selectedMs={selectedMs}
+            monthMs={monthMs}
+            markedDays={markedDays}
+            onSelect={setSelectedMs}
+            onMonthChange={setMonthMs}
+            onToday={goToToday}
           />
-          <ViewSwitcher value="day" onChange={changeView} />
+          <View className="flex-1 overflow-hidden rounded-[20px] bg-agenda-card">
+            {showBarberFilter ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                className="max-h-11 shrink-0 grow-0"
+                contentContainerStyle={{
+                  paddingHorizontal: 8,
+                  paddingVertical: 8,
+                  gap: 6,
+                }}
+              >
+                {[
+                  { _id: "all" as const, name: "Todos los barberos" },
+                  ...(members ?? []),
+                ].map((barber) => {
+                  const isSelected = barber._id === barberFilter;
+                  return (
+                    <Chip
+                      key={barber._id}
+                      size="sm"
+                      variant={isSelected ? "primary" : "secondary"}
+                      color={isSelected ? "accent" : "default"}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isSelected }}
+                      onPress={() => setBarberFilter(barber._id)}
+                    >
+                      {barber.name}
+                    </Chip>
+                  );
+                })}
+              </ScrollView>
+            ) : null}
+            <DayTimeline
+              ref={timelineRef}
+              dayMs={selectedMs}
+              appointments={visibleAppointments}
+              isToday={selectedMs === todayMs}
+              selectedId={selectedId}
+              memberName={showBarber ? memberName : undefined}
+              onOpen={openAppointment}
+            />
+            <ViewSwitcher value="day" onChange={changeView} />
+          </View>
         </View>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }

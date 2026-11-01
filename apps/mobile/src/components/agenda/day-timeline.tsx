@@ -34,8 +34,8 @@ const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
 
 const hourLabel = { fontSize: 9, lineHeight: 11 };
 const nowLabel = { fontSize: 8, lineHeight: 10 };
-const blockTitle = { fontSize: 11, lineHeight: 14 };
-const blockDetail = { fontSize: 9, lineHeight: 12 };
+const blockTitle = { fontSize: 11, lineHeight: 13 };
+const blockDetail = { fontSize: 9, lineHeight: 11 };
 const tabularNums = { fontVariant: ["tabular-nums" as const] };
 
 function minutesToY(minutes: number) {
@@ -48,6 +48,8 @@ export type DayTimelineHandle = {
 };
 
 type DayTimelineProps = {
+  /** Bogotá midnight of the shown day; a change scrolls to its first appointment. */
+  dayMs: number;
   /** `undefined` while loading. */
   appointments: Appointment[] | undefined;
   /** The now line and pill show only on today. */
@@ -61,6 +63,7 @@ type DayTimelineProps = {
 
 /** One day as a 24-hour grid with the appointments laid out as tinted blocks. */
 export function DayTimeline({
+  dayMs,
   appointments,
   isToday,
   selectedId,
@@ -72,20 +75,32 @@ export function DayTimeline({
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const nowMinutes = useNowMinutes();
 
-  const scrollToNow = (animated: boolean) => {
+  // Puts `minutes` in the top third of the viewport.
+  const scrollToMinutes = (minutes: number, animated: boolean) => {
     scrollRef.current?.scrollTo({
-      y: Math.max(0, minutesToY(nowMinutes) - viewport.height / 3),
+      y: Math.max(0, minutesToY(minutes) - viewport.height / 3),
       animated,
     });
   };
+  const scrollToNow = (animated: boolean) =>
+    scrollToMinutes(nowMinutes, animated);
   useImperativeHandle(ref, () => ({ scrollToNow }));
 
-  // Open at "now" once the viewport is measured; later days keep the scroll.
-  const didOpenAtNow = useRef(false);
+  // Open at "now"; a new day opens at its first appointment once it has loaded.
+  // Each day scrolls once, so live updates never move the user.
+  const scrolledDay = useRef<number | null>(null);
   useEffect(() => {
-    if (viewport.height === 0 || didOpenAtNow.current) return;
-    didOpenAtNow.current = true;
-    scrollToNow(false);
+    if (viewport.height === 0 || scrolledDay.current === dayMs) return;
+    if (isToday) {
+      scrolledDay.current = dayMs;
+      scrollToNow(false);
+      return;
+    }
+    if (!appointments) return;
+    scrolledDay.current = dayMs;
+    const first = Math.min(...appointments.map((a) => a.date));
+    if (Number.isFinite(first))
+      scrollToMinutes(bogotaMinutesOfDay(first), true);
   });
 
   const blocks = layoutBlocks(
@@ -225,8 +240,8 @@ function TimelineBlock({
     (totalDuration(appointment) ?? FALLBACK_DURATION) * 60 * 1000;
   const range = `${formatTime(appointment.date)} – ${formatTime(endMs)}`;
   const detail = barberName ? `${range} · ${barberName}` : range;
-  // A short block only has room for the name.
-  const showDetail = style.height >= 36;
+  // A 30-minute block (28 pt) still fits both lines; anything shorter keeps the name only.
+  const showDetail = style.height >= MIN_BLOCK_HEIGHT;
 
   return (
     <Pressable
@@ -242,7 +257,7 @@ function TimelineBlock({
       <View className={`absolute top-0 bottom-0 left-0 w-[3px] ${paint.bar}`} />
       <View
         className="flex-1 pr-2 pl-[11px]"
-        style={{ paddingTop: showDetail ? 5 : 3 }}
+        style={{ paddingTop: showDetail ? 2 : 3 }}
       >
         <Typography weight="medium" numberOfLines={1} style={blockTitle}>
           {appointment.customerName}

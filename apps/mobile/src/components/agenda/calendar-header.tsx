@@ -228,13 +228,15 @@ export function CalendarHeader({
                 </Typography>
               ))}
             </View>
-            <Animated.View style={clipStyle} className="overflow-hidden">
+            <Animated.View style={[clipStyle, { overflow: "hidden" }]}>
               <Animated.View style={gridStyle}>
                 {weeks.map((week, weekIndex) => (
                   <Animated.View
                     key={week[0]}
-                    style={weekIndex === activeWeek ? undefined : otherRowStyle}
-                    className="flex-row"
+                    style={[
+                      { flexDirection: "row" },
+                      weekIndex === activeWeek ? undefined : otherRowStyle,
+                    ]}
                   >
                     {week.map((dayMs) => (
                       <DayCell
