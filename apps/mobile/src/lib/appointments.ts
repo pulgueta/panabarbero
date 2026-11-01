@@ -94,10 +94,17 @@ export function servicesLabel(appointment: Appointment): string {
   return appointment.items.map((item) => item.name).join(" + ");
 }
 
-/** Summed duration in minutes; null for legacy rows. */
-export function totalDuration(appointment: Appointment): number | null {
-  if (!hasItems(appointment)) return null;
+/** Summed duration in minutes; null for legacy rows. Range rows carry durations only. */
+export function totalDuration(appointment: {
+  items?: { duration: number }[];
+}): number | null {
+  if (!appointment.items?.length) return null;
   return appointment.items.reduce((total, item) => total + item.duration, 0);
+}
+
+/** "Daniela" from "Daniela Marín", for narrow week blocks and month chips. */
+export function firstName(customerName: string): string {
+  return customerName.trim().split(/\s+/)[0] || customerName;
 }
 
 const copFormatter = new Intl.NumberFormat("es-CO", {

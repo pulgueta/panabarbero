@@ -42,6 +42,11 @@ export function formatWeekday(ms: number): string {
   return format(inShopZone(ms), "EEE", { locale: es });
 }
 
+/** "L", "M", "X", "J", "V", "S", "D" for narrow column headers. */
+export function formatWeekdayLetter(ms: number): string {
+  return format(inShopZone(ms), "EEEEE", { locale: es }).toUpperCase();
+}
+
 /** "27" */
 export function formatDayOfMonth(ms: number): string {
   return format(inShopZone(ms), "d");
@@ -106,6 +111,20 @@ export function monthWeeks(monthMs: number): number[][] {
     weeks.push(days.slice(index, index + 7));
   }
   return weeks;
+}
+
+/** The Monday-first week (as Bogotá midnights) that contains `dayMs`. */
+export function weekDays(dayMs: number): number[] {
+  const monday = startOfWeek(inShopZone(dayMs), { weekStartsOn: 1 });
+  return Array.from({ length: 7 }, (_, index) =>
+    addDays(monday, index).getTime(),
+  );
+}
+
+/** Always 42 Bogotá midnights (6 Monday-first weeks) from the first grid cell of the month. */
+export function monthGrid(monthMs: number): number[] {
+  const first = monthWeeks(monthMs)[0][0];
+  return Array.from({ length: 42 }, (_, index) => addDaysBogota(first, index));
 }
 
 /** Calendar year of `ms` in Bogotá. */

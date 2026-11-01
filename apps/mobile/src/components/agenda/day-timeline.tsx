@@ -21,24 +21,26 @@ import {
 } from "@/lib/appointments";
 import { bogotaMinutesOfDay, formatHour, formatTime } from "@/lib/dates";
 
-const HOUR_HEIGHT = 56;
+export const HOUR_HEIGHT = 56;
 /** Hour labels sit in the gutter; the vertical rule and the blocks start after it. */
-const GUTTER_WIDTH = 52;
+export const GUTTER_WIDTH = 52;
 const BLOCK_GAP = 4;
-const MIN_BLOCK_HEIGHT = 28;
-const FALLBACK_DURATION = 30;
-const TOP_PADDING = 16;
+export const MIN_BLOCK_HEIGHT = 28;
+export const FALLBACK_DURATION = 30;
+export const TOP_PADDING = 16;
 /** Room so the last hour clears the floating view switcher. */
-const BOTTOM_PADDING = 72;
+export const BOTTOM_PADDING = 72;
+/** Full scroll height of a 24-hour timeline. */
+export const TIMELINE_HEIGHT = TOP_PADDING + 24 * HOUR_HEIGHT + BOTTOM_PADDING;
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
 
 const hourLabel = { fontSize: 9, lineHeight: 11 };
 const nowLabel = { fontSize: 8, lineHeight: 10 };
 const blockTitle = { fontSize: 11, lineHeight: 13 };
 const blockDetail = { fontSize: 9, lineHeight: 11 };
-const tabularNums = { fontVariant: ["tabular-nums" as const] };
+export const tabularNums = { fontVariant: ["tabular-nums" as const] };
 
-function minutesToY(minutes: number) {
+export function minutesToY(minutes: number) {
   return TOP_PADDING + (minutes / 60) * HOUR_HEIGHT;
 }
 
@@ -107,48 +109,16 @@ export function DayTimeline({
     appointments ?? [],
     viewport.width - GUTTER_WIDTH - BLOCK_GAP * 2,
   );
-  const nowY = minutesToY(nowMinutes);
 
   return (
     <View className="flex-1">
       <ScrollView
         ref={scrollRef}
         onLayout={(event) => setViewport(event.nativeEvent.layout)}
-        contentContainerStyle={{
-          height: TOP_PADDING + 24 * HOUR_HEIGHT + BOTTOM_PADDING,
-        }}
+        contentContainerStyle={{ height: TIMELINE_HEIGHT }}
         showsVerticalScrollIndicator={false}
       >
-        <View
-          className="absolute top-0 bottom-0 w-px bg-separator"
-          style={{ left: GUTTER_WIDTH }}
-        />
-        {HOURS.map((hour) => {
-          const y = minutesToY(hour * 60);
-          return (
-            <View key={hour} className="absolute inset-x-0" style={{ top: y }}>
-              <View
-                className="h-px bg-separator"
-                style={{ marginLeft: GUTTER_WIDTH }}
-              />
-              {hour > 0 ? (
-                <Typography
-                  weight="medium"
-                  color="muted"
-                  align="end"
-                  className="absolute"
-                  style={[
-                    hourLabel,
-                    tabularNums,
-                    { top: -5, left: 0, width: GUTTER_WIDTH - 6 },
-                  ]}
-                >
-                  {formatHour(hour)}
-                </Typography>
-              ) : null}
-            </View>
-          );
-        })}
+        <HourLines />
 
         {blocks.map(({ appointment, top, height, column, columns }) => {
           const columnWidth =
@@ -175,34 +145,7 @@ export function DayTimeline({
           );
         })}
 
-        {isToday ? (
-          <View
-            pointerEvents="none"
-            className="absolute inset-x-0"
-            style={{ top: nowY }}
-          >
-            <View
-              className="h-px bg-danger"
-              style={{ marginLeft: GUTTER_WIDTH }}
-            />
-            <View
-              className="absolute h-1.5 w-0.5 bg-danger"
-              style={{ left: GUTTER_WIDTH, top: -3 }}
-            />
-            <View
-              className="absolute h-3.5 w-[46px] items-center justify-center rounded-full bg-danger"
-              style={{ left: 2, top: -7 }}
-            >
-              <Typography
-                weight="bold"
-                className="text-danger-foreground"
-                style={[nowLabel, tabularNums]}
-              >
-                {formatTime(Date.now())}
-              </Typography>
-            </View>
-          </View>
-        ) : null}
+        {isToday ? <NowLine nowMinutes={nowMinutes} /> : null}
       </ScrollView>
 
       {appointments?.length === 0 ? (
@@ -215,6 +158,73 @@ export function DayTimeline({
           </Typography.Paragraph>
         </View>
       ) : null}
+    </View>
+  );
+}
+
+/** The gutter rule and the 24 hour lines with their labels, absolutely placed. */
+export function HourLines() {
+  return (
+    <>
+      <View
+        className="absolute top-0 bottom-0 w-px bg-separator"
+        style={{ left: GUTTER_WIDTH }}
+      />
+      {HOURS.map((hour) => {
+        const y = minutesToY(hour * 60);
+        return (
+          <View key={hour} className="absolute inset-x-0" style={{ top: y }}>
+            <View
+              className="h-px bg-separator"
+              style={{ marginLeft: GUTTER_WIDTH }}
+            />
+            {hour > 0 ? (
+              <Typography
+                weight="medium"
+                color="muted"
+                align="end"
+                className="absolute"
+                style={[
+                  hourLabel,
+                  tabularNums,
+                  { top: -5, left: 0, width: GUTTER_WIDTH - 6 },
+                ]}
+              >
+                {formatHour(hour)}
+              </Typography>
+            ) : null}
+          </View>
+        );
+      })}
+    </>
+  );
+}
+
+/** Red time pill in the gutter and a line across the columns at the current minute. */
+export function NowLine({ nowMinutes }: { nowMinutes: number }) {
+  return (
+    <View
+      pointerEvents="none"
+      className="absolute inset-x-0"
+      style={{ top: minutesToY(nowMinutes) }}
+    >
+      <View className="h-px bg-danger" style={{ marginLeft: GUTTER_WIDTH }} />
+      <View
+        className="absolute h-1.5 w-0.5 bg-danger"
+        style={{ left: GUTTER_WIDTH, top: -3 }}
+      />
+      <View
+        className="absolute h-3.5 w-[46px] items-center justify-center rounded-full bg-danger"
+        style={{ left: 2, top: -7 }}
+      >
+        <Typography
+          weight="bold"
+          className="text-danger-foreground"
+          style={[nowLabel, tabularNums]}
+        >
+          {formatTime(Date.now())}
+        </Typography>
+      </View>
     </View>
   );
 }
@@ -276,8 +286,11 @@ function TimelineBlock({
   );
 }
 
-type PlacedBlock = {
-  appointment: Appointment;
+/** What the layout needs from a row: full documents and range rows both fit. */
+type TimelineItem = { date: number; items?: { duration: number }[] };
+
+type PlacedBlock<T extends TimelineItem> = {
+  appointment: T;
   top: number;
   height: number;
   column: number;
@@ -289,12 +302,15 @@ type PlacedBlock = {
  * overlapping runs into side-by-side columns. Overlap uses the drawn height,
  * so very short appointments never draw on top of each other.
  */
-function layoutBlocks(appointments: Appointment[], areaWidth: number) {
+export function layoutBlocks<T extends TimelineItem>(
+  appointments: T[],
+  areaWidth: number,
+) {
   if (areaWidth <= 0) return [];
 
   const sorted = [...appointments].sort((a, b) => a.date - b.date);
-  const placed: PlacedBlock[] = [];
-  let cluster: PlacedBlock[] = [];
+  const placed: PlacedBlock<T>[] = [];
+  let cluster: PlacedBlock<T>[] = [];
   let columnEnds: number[] = [];
   let clusterEnd = -1;
 
@@ -329,7 +345,7 @@ function layoutBlocks(appointments: Appointment[], areaWidth: number) {
 }
 
 /** Minutes since Bogotá midnight, refreshed on every minute boundary. */
-function useNowMinutes() {
+export function useNowMinutes() {
   const [minutes, setMinutes] = useState(() => bogotaMinutesOfDay(Date.now()));
 
   useEffect(() => {

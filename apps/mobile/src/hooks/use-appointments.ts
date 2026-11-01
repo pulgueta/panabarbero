@@ -17,7 +17,7 @@ export function useDayAppointments(
   );
 }
 
-/** Light rows for the days between `fromMs` and `toMs` (inclusive, ≤ 35 days). */
+/** Light rows for the days between `fromMs` and `toMs` (inclusive, ≤ 42 days). */
 export function useRangeAppointments(
   barbershopId: Id<"barbershops"> | undefined,
   fromMs: number,
@@ -28,6 +28,11 @@ export function useRangeAppointments(
     barbershopId ? { id: barbershopId, from: fromMs, to: toMs } : "skip",
   );
 }
+
+/** One row of the range query: enough for a dot, a week block, or a month chip. */
+export type RangeAppointment = NonNullable<
+  ReturnType<typeof useRangeAppointments>
+>[number];
 
 /** `undefined` while loading, `null` when the appointment does not exist. */
 export function useAppointment(id: Id<"appointments">) {

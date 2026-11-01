@@ -1,7 +1,7 @@
 import type { Id } from "@panabarbero/backend/convex/_generated/dataModel";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/build/react-navigation/elements/index.js";
-import { Chip, useToast } from "heroui-native";
+import { Chip } from "heroui-native";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -11,33 +11,35 @@ import {
   DayTimeline,
   type DayTimelineHandle,
 } from "@/components/agenda/day-timeline";
+import { MonthGrid } from "@/components/agenda/month-grid";
 import { RescheduleRequests } from "@/components/agenda/reschedule-requests";
 import {
   type AgendaView,
+  getSessionView,
+  setSessionView,
   ViewSwitcher,
 } from "@/components/agenda/view-switcher";
+import { WeekTimeline } from "@/components/agenda/week-timeline";
 import { useAccess } from "@/hooks/use-access";
 import {
+  type RangeAppointment,
   useDayAppointments,
   useRangeAppointments,
   useRescheduleRequests,
   useShopMembers,
 } from "@/hooks/use-appointments";
-import type { Appointment } from "@/lib/appointments";
 import {
-  addDaysBogota,
   bogotaStartOfDay,
   bogotaStartOfMonth,
+  monthGrid,
   monthWeeks,
+  weekDays,
 } from "@/lib/dates";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-/** The range query caps at 35 days; a 6-row grid loses dots on its last trailing days. */
-const MAX_RANGE_DAYS = 35;
 
 export default function AgendaScreen() {
   const router = useRouter();
-  const { toast } = useToast();
   // The header is transparent, so the content starts under it.
   const headerHeight = useHeaderHeight();
   const membership = useAccess()?.membership;
@@ -47,6 +49,7 @@ export default function AgendaScreen() {
   const [selectedMs, setSelectedMs] = useState(todayMs);
   const [monthMs, setMonthMs] = useState(() => bogotaStartOfMonth(todayMs));
   const [selectedId, setSelectedId] = useState<Id<"appointments"> | null>(null);
+  const [view, setView] = useState<AgendaView>(getSessionView);
 
   // The screen can stay mounted across Bogotá midnight; re-anchor on focus.
   // Regaining focus also clears the block highlighted before a detail push.
@@ -85,33 +88,44 @@ export default function AgendaScreen() {
     showBarber ? undefined : membership?.memberId,
   );
 
-  // Dots for the visible grid: from its first cell, capped to the query limit.
-  const { rangeFrom, rangeTo } = useMemo(() => {
-    const weeks = monthWeeks(monthMs);
-    const first = weeks[0][0];
-    const last = weeks[weeks.length - 1][6];
-    const cappedLast = Math.min(last, addDaysBogota(first, MAX_RANGE_DAYS - 1));
-    return { rangeFrom: first, rangeTo: cappedLast + DAY_MS - 1 };
-  }, [monthMs]);
+  // Header dots and the month view share the 42-cell grid window.
+  const gridDays = useMemo(() => monthGrid(monthMs), [monthMs]);
   const rangeRows = useRangeAppointments(
     membership?.barbershopId,
-    rangeFrom,
-    rangeTo,
+    gridDays[0],
+    gridDays[41] + DAY_MS - 1,
+  );
+  // The week view reads its own 7 days: the selection can sit outside the visible month.
+  const week = useMemo(() => weekDays(selectedMs), [selectedMs]);
+  const weekRows = useRangeAppointments(
+    view === "week" ? membership?.barbershopId : undefined,
+    week[0],
+    week[6] + DAY_MS - 1,
+  );
+  const byBarber = useCallback(
+    (rows: RangeAppointment[] | undefined) =>
+      barberFilter === "all"
+        ? rows
+        : rows?.filter((row) => row.barbershopMemberId === barberFilter),
+    [barberFilter],
+  );
+  const visibleRangeRows = useMemo(
+    () => byBarber(rangeRows),
+    [byBarber, rangeRows],
+  );
+  const visibleWeekRows = useMemo(
+    () => byBarber(weekRows),
+    [byBarber, weekRows],
   );
   const markedDays = useMemo(
     () =>
       new Set(
-        rangeRows
-          ?.filter(
-            (row) =>
-              barberFilter === "all" || row.barbershopMemberId === barberFilter,
-          )
-          .map((row) => bogotaStartOfDay(new Date(row.date))),
+        visibleRangeRows?.map((row) => bogotaStartOfDay(new Date(row.date))),
       ),
-    [rangeRows, barberFilter],
+    [visibleRangeRows],
   );
 
-  const openAppointment = (appointment: Appointment) => {
+  const openAppointment = (appointment: { _id: Id<"appointments"> }) => {
     setSelectedId(appointment._id);
     router.push({
       pathname: "/(app)/(tabs)/agenda/[appointmentId]",
@@ -125,8 +139,22 @@ export default function AgendaScreen() {
     timelineRef.current?.scrollToNow(true);
   };
 
-  const changeView = (view: AgendaView) => {
-    if (view !== "day") toast.show({ label: "Pronto" });
+  const changeView = (next: AgendaView) => {
+    setSessionView(next);
+    setView(next);
+  };
+
+  // The header strip follows the selection only inside its month grid; a
+  // trailing cell of the 6-row month view moves the header to that month.
+  const selectDay = (dayMs: number) => {
+    setSelectedMs(dayMs);
+    if (!monthWeeks(monthMs).some((row) => row.includes(dayMs))) {
+      setMonthMs(bogotaStartOfMonth(dayMs));
+    }
+  };
+  const openDay = (dayMs: number) => {
+    selectDay(dayMs);
+    changeView("day");
   };
 
   return (
@@ -180,16 +208,38 @@ export default function AgendaScreen() {
                 })}
               </ScrollView>
             ) : null}
-            <DayTimeline
-              ref={timelineRef}
-              dayMs={selectedMs}
-              appointments={visibleAppointments}
-              isToday={selectedMs === todayMs}
-              selectedId={selectedId}
-              memberName={showBarber ? memberName : undefined}
-              onOpen={openAppointment}
-            />
-            <ViewSwitcher value="day" onChange={changeView} />
+            {view === "day" ? (
+              <DayTimeline
+                ref={timelineRef}
+                dayMs={selectedMs}
+                appointments={visibleAppointments}
+                isToday={selectedMs === todayMs}
+                selectedId={selectedId}
+                memberName={showBarber ? memberName : undefined}
+                onOpen={openAppointment}
+              />
+            ) : view === "week" ? (
+              <WeekTimeline
+                ref={timelineRef}
+                days={week}
+                todayMs={todayMs}
+                selectedMs={selectedMs}
+                appointments={visibleWeekRows}
+                selectedId={selectedId}
+                onSelectDay={selectDay}
+                onOpen={openAppointment}
+              />
+            ) : (
+              <MonthGrid
+                monthMs={monthMs}
+                todayMs={todayMs}
+                selectedMs={selectedMs}
+                appointments={visibleRangeRows}
+                onSelectDay={selectDay}
+                onOpenDay={openDay}
+              />
+            )}
+            <ViewSwitcher value={view} onChange={changeView} />
           </View>
         </View>
       </SafeAreaView>
