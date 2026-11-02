@@ -1,14 +1,20 @@
 import type { Doc } from "@panabarbero/backend/convex/_generated/dataModel";
 import { useFocusEffect, useRouter } from "expo-router";
-import { Separator, Spinner, Typography } from "heroui-native";
-import { useCallback, useEffect, useRef } from "react";
+import { Spinner, useThemeColor } from "heroui-native";
+import { BellSimpleIcon, CheckCircleIcon } from "phosphor-react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, type ListRenderItemInfo, View } from "react-native";
 
 import { HeaderAction } from "@/components/header-action";
 import {
+  type InboxFilter,
+  InboxFilterPill,
+} from "@/components/notifications/inbox-filter";
+import {
   NotificationRow,
   NotificationRowSkeleton,
 } from "@/components/notifications/notification-row";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   useLastRead,
   useMarkAllRead,
@@ -22,12 +28,22 @@ const skeletonKeys = ["a", "b", "c", "d", "e"];
 
 type Notification = Doc<"inAppNotifications">;
 
+/** Rounds the corners of a row that touches the card edge. */
+function rowCorners(index: number, count: number) {
+  const top = index === 0 ? "rounded-t-[20px]" : "";
+  const bottom = index === count - 1 ? "rounded-b-[20px]" : "";
+  return `${top} ${bottom}`;
+}
+
 export default function NotificationsScreen() {
   const router = useRouter();
+  const [muted] = useThemeColor(["muted"]);
   const { results, status, loadMore } = useNotificationsFeed();
   const unreadCount = useUnreadCount() ?? 0;
   const lastRead = useLastRead();
   const markAllRead = useMarkAllRead();
+  const [filter, setFilter] = useState<InboxFilter>("all");
+  const [openId, setOpenId] = useState<Notification["_id"] | null>(null);
 
   // Read through a ref so the focus effect does not re-run (and mark read)
   // every time the count changes while the tab is open.
@@ -47,32 +63,53 @@ export default function NotificationsScreen() {
     ),
   );
 
-  const openNotification = useCallback(
+  // Wait for the watermark so rows do not flash as unread.
+  const isUnread = useCallback(
     (notification: Notification) =>
+      lastRead !== undefined && notification._creationTime > (lastRead ?? 0),
+    [lastRead],
+  );
+
+  const isLoadingFirstPage = status === "LoadingFirstPage";
+  const data = useMemo(() => {
+    if (isLoadingFirstPage) return [];
+    return filter === "unread" ? results.filter(isUnread) : results;
+  }, [filter, isLoadingFirstPage, isUnread, results]);
+
+  // A tap while another row is open only closes that row.
+  const openNotification = useCallback(
+    (notification: Notification) => {
+      if (openId !== null && openId !== notification._id) {
+        setOpenId(null);
+        return;
+      }
       router.push(
         notificationHrefForData({
           kind: notification.kind,
           ...notification.payload,
         }),
-      ),
-    [router],
+      );
+    },
+    [openId, router],
   );
 
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<Notification>) => (
+    ({ item, index }: ListRenderItemInfo<Notification>) => (
       <NotificationRow
         notification={item}
-        // Wait for the watermark so rows do not flash as unread.
-        isUnread={
-          lastRead !== undefined && item._creationTime > (lastRead ?? 0)
+        isUnread={isUnread(item)}
+        isOpen={openId === item._id}
+        onOpenChange={(isOpen) =>
+          setOpenId((current) =>
+            isOpen ? item._id : current === item._id ? null : current,
+          )
         }
         onOpen={openNotification}
+        className={rowCorners(index, data.length)}
       />
     ),
-    [lastRead, openNotification],
+    [data.length, isUnread, openId, openNotification],
   );
-
-  const isLoadingFirstPage = status === "LoadingFirstPage";
 
   return (
     <>
@@ -87,10 +124,24 @@ export default function NotificationsScreen() {
       <FlatList
         className="flex-1 bg-background"
         contentInsetAdjustmentBehavior="automatic"
-        data={isLoadingFirstPage ? [] : results}
+        contentContainerClassName="mx-4 mt-2 mb-4 rounded-[28px] bg-agenda-well p-2"
+        data={data}
+        extraData={openId}
         keyExtractor={(notification) => notification._id}
         renderItem={renderItem}
-        ItemSeparatorComponent={() => <Separator className="mx-5" />}
+        // Scrolling counts as tapping outside: the open row closes.
+        onScrollBeginDrag={() => setOpenId(null)}
+        ListHeaderComponent={
+          <View className="pt-1 pb-3">
+            <InboxFilterPill value={filter} onChange={setFilter} />
+          </View>
+        }
+        ItemSeparatorComponent={() => (
+          // Inset to the text column: 16 pt padding + 36 pt well + 12 pt gap.
+          <View className="bg-agenda-card">
+            <View className="ml-16 h-px bg-separator" />
+          </View>
+        )}
         onEndReached={() => {
           if (status === "CanLoadMore") loadMore(PAGE_SIZE);
         }}
@@ -102,20 +153,24 @@ export default function NotificationsScreen() {
           ) : undefined
         }
         ListEmptyComponent={
-          isLoadingFirstPage ? (
-            <View>
-              {skeletonKeys.map((key) => (
-                <NotificationRowSkeleton key={key} />
-              ))}
-            </View>
-          ) : (
-            <Typography.Paragraph
-              color="muted"
-              className="px-5 py-10 text-center"
-            >
-              Sin notificaciones por ahora.
-            </Typography.Paragraph>
-          )
+          <View className="rounded-[20px] bg-agenda-card">
+            {isLoadingFirstPage ? (
+              skeletonKeys.map((key) => <NotificationRowSkeleton key={key} />)
+            ) : filter === "unread" ? (
+              <EmptyState
+                icon={<CheckCircleIcon size={18} color={muted} />}
+                title="Todo leído"
+                description="No tienes notificaciones sin leer."
+                action={{ label: "Ver todas", onPress: () => setFilter("all") }}
+              />
+            ) : (
+              <EmptyState
+                icon={<BellSimpleIcon size={18} color={muted} />}
+                title="Sin notificaciones"
+                description="Cuando pase algo con tus citas, lo verás aquí."
+              />
+            )}
+          </View>
         }
       />
     </>

@@ -96,3 +96,8 @@ export function notificationHrefForData(data: NotificationData): Href {
   }
   return inboxHref;
 }
+
+/** True when the kind has a mobile screen beyond the inbox itself. */
+export function notificationOpensScreen(kind: string) {
+  return agendaKinds.has(kind);
+}

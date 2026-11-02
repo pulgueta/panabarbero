@@ -1,61 +1,157 @@
 import type { Doc } from "@panabarbero/backend/convex/_generated/dataModel";
-import { Skeleton, Typography } from "heroui-native";
-import { Pressable, View } from "react-native";
+import { Chip, Skeleton, Typography, useThemeColor } from "heroui-native";
+import {
+  ArrowUpRightIcon,
+  CalendarCheckIcon,
+  CalendarDotsIcon,
+  CalendarXIcon,
+  EnvelopeSimpleIcon,
+  type Icon,
+  PackageIcon,
+  StarIcon,
+} from "phosphor-react-native";
+import { View } from "react-native";
 
+import { type SwipeAction, SwipeableRow } from "@/components/ui/swipeable-row";
+import { notificationOpensScreen } from "@/lib/push";
 import { formatRelativeTime } from "@/lib/relative-time";
 
 const tabularNums = { fontVariant: ["tabular-nums" as const] };
+const titleStyle = { fontSize: 14, lineHeight: 18 };
+const bodyStyle = { fontSize: 13, lineHeight: 17 };
+const timeStyle = { fontSize: 11, lineHeight: 14 };
+
+type Notification = Doc<"inAppNotifications">;
+type Kind = Notification["kind"];
+
+/**
+ * Kind families, mirroring the web `NotificationRenderer`. One icon per
+ * family; a chip names the area when the kind has no mobile screen yet.
+ */
+const families = {
+  appointment: { Icon: CalendarCheckIcon },
+  cancellation: { Icon: CalendarXIcon },
+  reschedule: { Icon: CalendarDotsIcon },
+  review: { Icon: StarIcon, chip: "Reseña" },
+  team: { Icon: EnvelopeSimpleIcon, chip: "Equipo" },
+  inventory: { Icon: PackageIcon, chip: "Inventario" },
+} satisfies Record<string, { Icon: Icon; chip?: string }>;
+
+const familyByKind: Record<Kind, keyof typeof families> = {
+  appointment_created: "appointment",
+  barber_appointment_created: "appointment",
+  appointment_reminder: "appointment",
+  past_appointment_reminder: "appointment",
+  customer_on_my_way: "appointment",
+  appointment_reassigned: "appointment",
+  appointment_cancelled: "cancellation",
+  appointment_reschedule_denied: "cancellation",
+  barber_removed_cancellation: "cancellation",
+  service_deleted_cancellation: "cancellation",
+  service_line_removed: "cancellation",
+  appointment_reschedule_request: "reschedule",
+  appointment_reschedule_accepted: "reschedule",
+  team_invited: "team",
+  review_invite: "review",
+  review_needs_attention: "review",
+  low_stock: "inventory",
+};
 
 type NotificationRowProps = {
-  notification: Doc<"inAppNotifications">;
+  notification: Notification;
   isUnread: boolean;
-  onOpen: (notification: Doc<"inAppNotifications">) => void;
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+  onOpen: (notification: Notification) => void;
+  /** Rounds the corners that touch the card edge. */
+  className?: string;
 };
 
 export function NotificationRow({
   notification,
   isUnread,
+  isOpen,
+  onOpenChange,
   onOpen,
+  className,
 }: NotificationRowProps) {
+  const [accent, muted, accentForeground] = useThemeColor([
+    "accent",
+    "muted",
+    "accent-foreground",
+  ]);
+  const family = families[familyByKind[notification.kind]];
+  const opensScreen = notificationOpensScreen(notification.kind);
+  const open = () => onOpen(notification);
+
+  // No per-item mark-read mutation exists, so a right swipe has no action.
+  const action: SwipeAction | undefined = opensScreen
+    ? {
+        label: "Abrir",
+        icon: <ArrowUpRightIcon size={18} color={accentForeground} />,
+        onPress: open,
+        className: "bg-accent",
+        textClassName: "text-accent-foreground",
+      }
+    : undefined;
+
   return (
-    <Pressable
-      onPress={() => onOpen(notification)}
-      accessibilityRole="button"
+    <SwipeableRow
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      action={action}
+      onPress={opensScreen ? open : undefined}
       accessibilityHint={isUnread ? "No leída" : undefined}
-      className="flex-row items-start gap-3 px-5 py-3 active:bg-surface-secondary"
+      className={className}
     >
-      {/* Fixed slot so read and unread titles stay aligned. */}
-      <View className="w-2 pt-2">
-        {isUnread ? <View className="size-2 rounded-full bg-accent" /> : null}
-      </View>
-      <View className="flex-1 gap-0.5">
-        <View className="flex-row items-start gap-3">
-          <Typography weight="semibold" className="flex-1">
+      <View className="min-h-[64px] flex-row items-center gap-3 bg-agenda-card px-4 py-3">
+        <View
+          className={`size-9 items-center justify-center rounded-full ${
+            isUnread ? "bg-accent-soft" : "bg-agenda-pill"
+          }`}
+        >
+          <family.Icon size={18} color={isUnread ? accent : muted} />
+        </View>
+        <View className="flex-1 gap-0.5">
+          <Typography weight="medium" style={titleStyle} numberOfLines={1}>
             {notification.title}
           </Typography>
-          <Typography.Paragraph
-            type="body-xs"
-            color="muted"
-            className="pt-0.5"
-            style={tabularNums}
+          <Typography color="muted" style={bodyStyle} numberOfLines={1}>
+            {notification.description}
+          </Typography>
+          {"chip" in family ? (
+            <Chip
+              size="sm"
+              variant="soft"
+              color="default"
+              className="mt-1 self-start"
+            >
+              {family.chip}
+            </Chip>
+          ) : null}
+        </View>
+        <View className="items-end gap-1.5 self-start pt-0.5">
+          <Typography
+            className={isUnread ? "text-accent" : "text-muted"}
+            style={[timeStyle, tabularNums]}
           >
             {formatRelativeTime(notification._creationTime)}
-          </Typography.Paragraph>
+          </Typography>
+          {isUnread ? (
+            <View className="size-1.5 rounded-full bg-accent" />
+          ) : null}
         </View>
-        <Typography.Paragraph type="body-sm" color="muted" numberOfLines={2}>
-          {notification.description}
-        </Typography.Paragraph>
       </View>
-    </Pressable>
+    </SwipeableRow>
   );
 }
 
 export function NotificationRowSkeleton() {
   return (
-    <View className="flex-row items-start gap-3 px-5 py-3">
-      <View className="w-2" />
+    <View className="min-h-[64px] flex-row items-center gap-3 px-4 py-3">
+      <Skeleton className="size-9 rounded-full" />
       <View className="flex-1 gap-2">
-        <Skeleton className="h-4 w-40 rounded-md" />
+        <Skeleton className="h-3.5 w-40 rounded-md" />
         <Skeleton className="h-3 w-56 rounded-md" />
       </View>
     </View>
