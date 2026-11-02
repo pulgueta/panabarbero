@@ -4,6 +4,7 @@ import { Spinner, Typography, useThemeColor } from "heroui-native";
 import { BellSimpleIcon, CheckCircleIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  AppState,
   SectionList,
   type SectionListRenderItemInfo,
   View,
@@ -50,8 +51,10 @@ function rowCorners(index: number, count: number) {
 }
 
 /** Newest-first rows into one section per device-local day. */
-function groupByDay(notifications: Notification[]): DaySection[] {
-  const todayMs = localStartOfDay(Date.now());
+function groupByDay(
+  notifications: Notification[],
+  todayMs: number,
+): DaySection[] {
   const sections: DaySection[] = [];
   for (const notification of notifications) {
     const dayMs = localStartOfDay(notification._creationTime);
@@ -78,6 +81,20 @@ export default function NotificationsScreen() {
   const markAllRead = useMarkAllRead();
   const [filter, setFilter] = useState<InboxFilter>("all");
   const [openId, setOpenId] = useState<Notification["_id"] | null>(null);
+  const [todayMs, setTodayMs] = useState(() => localStartOfDay(Date.now()));
+
+  // Day headings ("Hoy", "Ayer") must follow the clock after midnight.
+  useFocusEffect(
+    useCallback(() => {
+      setTodayMs(localStartOfDay(Date.now()));
+    }, []),
+  );
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") setTodayMs(localStartOfDay(Date.now()));
+    });
+    return () => subscription.remove();
+  }, []);
 
   // Read through a ref so the focus effect does not re-run (and mark read)
   // every time the count changes while the tab is open.
@@ -118,8 +135,8 @@ export default function NotificationsScreen() {
         : filter === "read"
           ? results.filter(isRead)
           : results;
-    return groupByDay(rows);
-  }, [filter, isLoadingFirstPage, isRead, isUnread, results]);
+    return groupByDay(rows, todayMs);
+  }, [filter, isLoadingFirstPage, isRead, isUnread, results, todayMs]);
 
   // A tap while another row is open only closes that row.
   const openNotification = useCallback(
