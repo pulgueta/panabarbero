@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useCallback, useMemo } from "react";
 
 import { type Appointment, totalDuration } from "@/lib/appointments";
+import { bogotaWeekdayKey } from "@/lib/dates";
 import { useAuth } from "@/providers/auth-provider";
 
 /** Appointments for one Bogotá day. Barbers get only their own (server-side). */
@@ -155,4 +156,56 @@ export function useAppointmentActions() {
       user?.id,
     ],
   );
+}
+
+type SlotsForArgs = {
+  barbershopId: Id<"barbershops"> | undefined;
+  memberId: Id<"barbershopMembers"> | undefined;
+  serviceIds: Id<"services">[];
+  dayMs: number | undefined;
+};
+
+/**
+ * Free slots of `memberId` on one Bogotá day for the chosen services.
+ * Skips the query until the barber, at least one service and the day are set.
+ */
+export function useSlotsFor({
+  barbershopId,
+  memberId,
+  serviceIds,
+  dayMs,
+}: SlotsForArgs) {
+  return useQuery(
+    api.appointments.getAvailableSlots,
+    barbershopId && memberId && serviceIds.length > 0 && dayMs !== undefined
+      ? {
+          barbershopId,
+          barbershopMemberId: memberId,
+          serviceIds,
+          date: dayMs,
+        }
+      : "skip",
+  );
+}
+
+/**
+ * Days the shop does not open, from its weekly availability. Returns
+ * `isDayDisabled` for the calendar; past days are the calendar's own rule.
+ */
+export function useClosedDays(barbershopId: Id<"barbershops"> | undefined) {
+  const availability = useQuery(
+    api.barbershops.getAvailability,
+    barbershopId ? { id: barbershopId } : "skip",
+  );
+
+  return useMemo(() => {
+    const activeDays = new Set(
+      availability
+        ?.filter((day) => day.weekDay.isActive)
+        .map((day) => day.weekDay.day),
+    );
+    // While loading no day is closed; the slot query still guards the booking.
+    return (dayMs: number) =>
+      availability !== undefined && !activeDays.has(bogotaWeekdayKey(dayMs));
+  }, [availability]);
 }

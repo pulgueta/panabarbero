@@ -6,6 +6,7 @@ import {
   endOfMonth,
   endOfWeek,
   format,
+  getDay,
   getHours,
   getMinutes,
   getYear,
@@ -135,4 +136,21 @@ export function bogotaYear(ms: number): number {
 /** Bogotá midnight of the first day of `monthIndex` (0–11) in `year`. */
 export function bogotaMonth(year: number, monthIndex: number): number {
   return new TZDate(year, monthIndex, 1, SHOP_TIME_ZONE).getTime();
+}
+
+const WEEKDAY_KEYS = [
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+] as const;
+
+export type WeekdayKey = (typeof WEEKDAY_KEYS)[number];
+
+/** Backend weekday key ("monday" …) of the Bogotá day that contains `ms`. */
+export function bogotaWeekdayKey(ms: number): WeekdayKey {
+  return WEEKDAY_KEYS[getDay(inShopZone(ms))];
 }
