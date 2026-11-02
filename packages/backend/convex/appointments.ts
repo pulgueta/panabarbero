@@ -452,6 +452,8 @@ export const getRescheduledRequests = zQuery({
       return [];
     }
 
+    const now = Date.now();
+
     const appointments = await ctx.db
       .query("appointments")
       .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
@@ -464,6 +466,8 @@ export const getRescheduledRequests = zQuery({
             q.not(q.eq(q.field("status"), "no-show")),
           ),
           q.eq(q.field("deletedAt"), undefined),
+          // A proposal whose start already passed can no longer be accepted.
+          q.gt(q.field("proposedDate"), now),
         ),
       )
       .collect();
@@ -1163,7 +1167,11 @@ export const answerRescheduleRequest = zAuthMutation({
   args: z.object({
     appointment: appointments.tools.id,
     accepted: z.boolean(),
-    answeredBy: z.enum(["customer", "barber"]),
+    /**
+     * Ignored: the server derives the answerer's side. Kept optional so
+     * existing callers that still send it do not break.
+     */
+    answeredBy: z.enum(["customer", "barber"]).optional(),
   }),
   handler: async (ctx, args) => {
     const { userId } = ctx;
@@ -1184,17 +1192,35 @@ export const answerRescheduleRequest = zAuthMutation({
       return;
     }
 
+    // Nothing pending (already answered, or never requested).
+    if (!appt.rescheduleRequestedByUserId) {
+      return;
+    }
+
+    // Shop side = active owner/staff or the assigned barber; customer side =
+    // the customer who booked. The check below admits exactly those two.
     await assertCanMutateAppointment(ctx, appt, userId);
 
-    // Only the counterpart answers: the requester cannot decide on their own
+    const requesterSide =
+      appt.rescheduleRequestedByUserId === appt.userId ? "customer" : "shop";
+    const answererSide = userId === appt.userId ? "customer" : "shop";
+
+    // Only the counterpart answers: nobody decides on their own side's
     // request.
-    if (appt.rescheduleRequestedByUserId === userId) {
+    if (answererSide === requesterSide) {
       throw new ConvexError(errorMessages.unauthorized);
     }
 
     if (args.accepted) {
       if (!appt.proposedDate) {
         return;
+      }
+
+      // Declining a stale proposal stays allowed; accepting it does not.
+      if (appt.proposedDate < Date.now()) {
+        throw new ConvexError(
+          "La hora propuesta ya pasó. Rechaza la solicitud o propón otra hora.",
+        );
       }
 
       const items = await getAppointmentItems(ctx, appt);
@@ -1248,6 +1274,8 @@ export const answerRescheduleRequest = zAuthMutation({
         date: appt.proposedDate,
         proposedDate: undefined,
         rescheduleRequestedByUserId: undefined,
+        // "On my way" belonged to the old slot; the new one starts fresh.
+        customerOnMyWayAt: undefined,
         upcomingNotificationId,
         pastReminderNotificationId,
       });
@@ -1288,7 +1316,7 @@ export const answerRescheduleRequest = zAuthMutation({
       throw new ConvexError(errorMessages.notFound("barbería"));
     }
 
-    const isCustomerAccepting = args.answeredBy === "customer";
+    const isCustomerAccepting = answererSide === "customer";
     const receiverProfile = isCustomerAccepting
       ? barberProfile
       : customerProfile;
