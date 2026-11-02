@@ -58,8 +58,19 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
 
   const requesterUserId = appointment.rescheduleRequestedByUserId;
   const isRequester = requesterUserId && requesterUserId === session?.id;
-  const hasPendingProposal = Boolean(appointment.proposedDate);
-  const canRespond = hasPendingProposal && !isRequester;
+  const hasPendingProposal = Boolean(
+    requesterUserId && appointment.proposedDate,
+  );
+  // Compare sides, not people, exactly like answerRescheduleRequest: only the
+  // counterpart of the requester's side may answer.
+  const requesterIsCustomer = requesterUserId === appointment.userId;
+  const viewerIsCustomer = session?.id === appointment.userId;
+  const canRespond =
+    hasPendingProposal &&
+    Boolean(session) &&
+    requesterIsCustomer !== viewerIsCustomer;
+  const isExpired =
+    hasPendingProposal && (appointment.proposedDate ?? 0) < Date.now();
 
   const handleAnswer = async (accepted: boolean) => {
     try {
@@ -93,9 +104,11 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
             Solicitud de reagendamiento
           </ResponsiveModalTitle>
           <ResponsiveModalDescription>
-            {isRequester
-              ? "Estos son los detalles de tu solicitud."
-              : "Revisa las fechas antes de responder."}
+            {canRespond
+              ? "Revisa las fechas antes de responder."
+              : isRequester
+                ? "Estos son los detalles de tu solicitud."
+                : "Estos son los detalles de la solicitud."}
           </ResponsiveModalDescription>
         </ResponsiveModalHeader>
 
@@ -110,6 +123,16 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
               {formatDateTime(appointment.proposedDate ?? undefined)}
             </p>
           </div>
+          {isExpired && (
+            <p className="text-muted-foreground">La hora propuesta ya pasó.</p>
+          )}
+          {hasPendingProposal && !canRespond && (
+            <p className="text-muted-foreground">
+              {requesterIsCustomer
+                ? "Esperando respuesta de la barbería."
+                : "Esperando respuesta del cliente."}
+            </p>
+          )}
         </div>
 
         {canRespond && (
@@ -122,15 +145,17 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
             >
               Rechazar
             </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={isAnswering}
-              onClick={() => handleAnswer(true)}
-            >
-              {isAnswering && <Spinner />}
-              Aceptar
-            </Button>
+            {!isExpired && (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={isAnswering}
+                onClick={() => handleAnswer(true)}
+              >
+                {isAnswering && <Spinner />}
+                Aceptar
+              </Button>
+            )}
           </ResponsiveModalFooter>
         )}
       </ResponsiveModalContent>
