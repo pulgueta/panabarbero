@@ -125,9 +125,14 @@ export function AppointmentActions({
   const router = useRouter();
   const actions = useAppointmentActions();
   const { pending, run } = useRunAction();
-  const [open, setOpen] = useState<OpenFlow | undefined>(() =>
-    initialFlow(appointment, initialAction),
-  );
+  const [open, setOpen] = useState<OpenFlow>();
+  // A peek preloads this screen and the menu's push reuses that instance with
+  // new params, so the asked flow arrives as a prop change, not only on mount.
+  const [seenAction, setSeenAction] = useState<string>();
+  if (seenAction !== initialAction) {
+    setSeenAction(initialAction);
+    setOpen(initialFlow(appointment, initialAction));
+  }
   const close = () => setOpen(undefined);
   const setOpenFor = (key: NonNullable<typeof open>) => (next: boolean) =>
     setOpen(next ? key : undefined);
