@@ -13,7 +13,7 @@ import {
   zQuery,
 } from ".";
 import { internal } from "./_generated/api";
-import type { MutationCtx } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { assertCanCreateStaffAppointment } from "./acl";
 import { track } from "./analytics";
 import {
@@ -40,7 +40,12 @@ import {
   reserveForAppointment,
 } from "./inventory";
 import { rateLimitOrThrow } from "./ratelimit";
-import type { Appointment, Service, UserProfileData } from "./schema";
+import type {
+  Appointment,
+  Barbershop,
+  Service,
+  UserProfileData,
+} from "./schema";
 import {
   appointments,
   barbershopMembers,
@@ -102,6 +107,29 @@ async function cancelScheduledNotifications(
       }
     }),
   );
+}
+
+/**
+ * Row filter for shop-wide appointment lists. Only an active member gets
+ * one: owner/staff see every row, a plain barber only their own. Anyone else
+ * (no membership, inactive member) gets `null` and must see nothing.
+ */
+async function shopAppointmentScope(
+  ctx: QueryCtx,
+  barbershopId: Barbershop["_id"],
+  userId: string,
+): Promise<((appt: Appointment) => boolean) | null> {
+  const member = await getBarbershopMemberByUserId(ctx, barbershopId, userId);
+
+  if (!member?.isActive) {
+    return null;
+  }
+
+  if (memberHasAnyRole(member, ["owner", "staff"])) {
+    return () => true;
+  }
+
+  return (appt) => appt.barbershopMemberId === member._id;
 }
 
 export const create = zAuthMutation({
@@ -417,6 +445,13 @@ export const getRescheduledRequests = zQuery({
       return [];
     }
 
+    // A barber without a management role only sees their own requests
+    const isVisible = await shopAppointmentScope(ctx, args.id, userId);
+
+    if (!isVisible) {
+      return [];
+    }
+
     const appointments = await ctx.db
       .query("appointments")
       .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
@@ -433,24 +468,7 @@ export const getRescheduledRequests = zQuery({
       )
       .collect();
 
-    const barbershopMember = await getBarbershopMemberByUserId(
-      ctx,
-      args.id,
-      userId,
-    );
-
-    // A barber without a management role only sees their own requests
-    if (
-      barbershopMember &&
-      !barbershopMember.roles.includes("owner") &&
-      !barbershopMember.roles.includes("staff")
-    ) {
-      return appointments.filter(
-        (appt) => appt.barbershopMemberId === barbershopMember._id,
-      );
-    }
-
-    return appointments;
+    return appointments.filter(isVisible);
   },
 });
 
@@ -493,6 +511,13 @@ export const getByBarbershopId = zQuery({
       return [];
     }
 
+    // If user is a barber (not owner/staff), filter appointments for this barber only
+    const isVisible = await shopAppointmentScope(ctx, args.id, userId);
+
+    if (!isVisible) {
+      return [];
+    }
+
     const startOfDay = args.date ?? Date.now();
     const endOfDay = startOfDay + 24 * 60 * 60 * 1000 - 1;
 
@@ -507,28 +532,7 @@ export const getByBarbershopId = zQuery({
       .filter((q) => q.eq(q.field("deletedAt"), undefined))
       .collect();
 
-    const userProfile = await getProfileByUserId(ctx, userId);
-
-    if (userProfile) {
-      const barbershopMember = await getBarbershopMemberByUserId(
-        ctx,
-        args.id,
-        userId,
-      );
-
-      // If user is a barber (not owner/staff), filter appointments for this barber only
-      if (
-        barbershopMember &&
-        !barbershopMember.roles.includes("owner") &&
-        !barbershopMember.roles.includes("staff")
-      ) {
-        return appointments.filter(
-          (appt) => appt.barbershopMemberId === barbershopMember._id,
-        );
-      }
-    }
-
-    return appointments;
+    return appointments.filter(isVisible);
   },
 });
 
@@ -555,6 +559,13 @@ export const getByBarbershopIdRange = zAuthQuery({
       throw new ConvexError(`El rango supera ${MAX_RANGE_DAYS} días`);
     }
 
+    // Same scoping as getByBarbershopId: a plain barber sees only their own.
+    const isVisible = await shopAppointmentScope(ctx, args.id, ctx.userId);
+
+    if (!isVisible) {
+      return [];
+    }
+
     const appointments = await ctx.db
       .query("appointments")
       .withIndex("by_barbershopId_and_date", (q) =>
@@ -566,23 +577,7 @@ export const getByBarbershopIdRange = zAuthQuery({
       .filter((q) => q.eq(q.field("deletedAt"), undefined))
       .collect();
 
-    const barbershopMember = await getBarbershopMemberByUserId(
-      ctx,
-      args.id,
-      ctx.userId,
-    );
-
-    // Same scoping as getByBarbershopId: a plain barber sees only their own.
-    const visible =
-      barbershopMember &&
-      !barbershopMember.roles.includes("owner") &&
-      !barbershopMember.roles.includes("staff")
-        ? appointments.filter(
-            (appt) => appt.barbershopMemberId === barbershopMember._id,
-          )
-        : appointments;
-
-    return visible.map((appt) => ({
+    return appointments.filter(isVisible).map((appt) => ({
       _id: appt._id,
       date: appt.date,
       status: appt.status,
