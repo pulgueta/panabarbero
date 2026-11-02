@@ -98,13 +98,14 @@ jobs:
       # --cmd only exports the injected deployment URLs; the app build runs in
       # the next step, in a process tree that never held CONVEX_DEPLOY_KEY.
       - name: Deploy Convex preview
+        working-directory: packages/backend
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           base="${RELEASE_TAG%%-*}"
           pnpm convex deploy --preview-name "release-${base//./-}" \
-            --cmd 'echo "VITE_CONVEX_URL=$VITE_CONVEX_URL" >> "$GITHUB_ENV" && echo "VITE_CONVEX_SITE_URL=$VITE_CONVEX_SITE_URL" >> "$GITHUB_ENV"'
+            --cmd 'echo "VITE_CONVEX_URL=$CONVEX_URL" >> "$GITHUB_ENV" && echo "VITE_CONVEX_SITE_URL=$CONVEX_SITE_URL" >> "$GITHUB_ENV"'
 
       - name: Build Vercel artifact
         run: pnpm dlx "vercel@${VERCEL_CLI_VERSION}" build
@@ -146,11 +147,12 @@ jobs:
 
       # Same split as the preview job: the build never sees CONVEX_DEPLOY_KEY.
       - name: Deploy Convex production
+        working-directory: packages/backend
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
         run: >-
           pnpm convex deploy
-          --cmd 'echo "VITE_CONVEX_URL=$VITE_CONVEX_URL" >> "$GITHUB_ENV" && echo "VITE_CONVEX_SITE_URL=$VITE_CONVEX_SITE_URL" >> "$GITHUB_ENV"'
+          --cmd 'echo "VITE_CONVEX_URL=$CONVEX_URL" >> "$GITHUB_ENV" && echo "VITE_CONVEX_SITE_URL=$CONVEX_SITE_URL" >> "$GITHUB_ENV"'
 
       - name: Build Vercel artifact
         run: pnpm dlx "vercel@${VERCEL_CLI_VERSION}" build --prod
