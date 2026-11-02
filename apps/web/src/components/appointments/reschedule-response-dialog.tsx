@@ -100,13 +100,10 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
     },
   } = useAppointmentActions();
 
-  const {
-    canRespond,
-    description,
-    hasPendingProposal,
-    isExpired,
-    waitingNote,
-  } = getProposalState(appointment, session?.id);
+  const { canRespond, description, isExpired, waitingNote } = getProposalState(
+    appointment,
+    session?.id,
+  );
 
   const handleAnswer = async (accepted: boolean) => {
     try {
