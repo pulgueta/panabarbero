@@ -39,6 +39,50 @@ const formatDateTime = (timestamp?: number) => {
   });
 };
 
+/**
+ * Compares sides, not people, exactly like answerRescheduleRequest: only the
+ * counterpart of the requester's side (customer vs shop) may answer.
+ */
+const getProposalState = (
+  appointment: RescheduleResponseDialogProps["appointment"],
+  viewerId: string | undefined,
+) => {
+  const requesterUserId = appointment.rescheduleRequestedByUserId;
+  const hasPendingProposal = Boolean(
+    requesterUserId && appointment.proposedDate,
+  );
+  const requesterIsCustomer = requesterUserId === appointment.userId;
+  const viewerIsCustomer = viewerId === appointment.userId;
+  const canRespond =
+    hasPendingProposal &&
+    viewerId !== undefined &&
+    requesterIsCustomer !== viewerIsCustomer;
+  const isExpired =
+    hasPendingProposal && (appointment.proposedDate ?? 0) < Date.now();
+
+  let description = "Estos son los detalles de la solicitud.";
+  if (canRespond) {
+    description = "Revisa las fechas antes de responder.";
+  } else if (requesterUserId && requesterUserId === viewerId) {
+    description = "Estos son los detalles de tu solicitud.";
+  }
+
+  let waitingNote: string | null = null;
+  if (hasPendingProposal && !canRespond) {
+    waitingNote = requesterIsCustomer
+      ? "Esperando respuesta de la barbería."
+      : "Esperando respuesta del cliente.";
+  }
+
+  return {
+    canRespond,
+    description,
+    hasPendingProposal,
+    isExpired,
+    waitingNote,
+  };
+};
+
 export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
   appointment,
   trigger,
@@ -56,21 +100,13 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
     },
   } = useAppointmentActions();
 
-  const requesterUserId = appointment.rescheduleRequestedByUserId;
-  const isRequester = requesterUserId && requesterUserId === session?.id;
-  const hasPendingProposal = Boolean(
-    requesterUserId && appointment.proposedDate,
-  );
-  // Compare sides, not people, exactly like answerRescheduleRequest: only the
-  // counterpart of the requester's side may answer.
-  const requesterIsCustomer = requesterUserId === appointment.userId;
-  const viewerIsCustomer = session?.id === appointment.userId;
-  const canRespond =
-    hasPendingProposal &&
-    Boolean(session) &&
-    requesterIsCustomer !== viewerIsCustomer;
-  const isExpired =
-    hasPendingProposal && (appointment.proposedDate ?? 0) < Date.now();
+  const {
+    canRespond,
+    description,
+    hasPendingProposal,
+    isExpired,
+    waitingNote,
+  } = getProposalState(appointment, session?.id);
 
   const handleAnswer = async (accepted: boolean) => {
     try {
@@ -103,13 +139,7 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
           <ResponsiveModalTitle>
             Solicitud de reagendamiento
           </ResponsiveModalTitle>
-          <ResponsiveModalDescription>
-            {canRespond
-              ? "Revisa las fechas antes de responder."
-              : isRequester
-                ? "Estos son los detalles de tu solicitud."
-                : "Estos son los detalles de la solicitud."}
-          </ResponsiveModalDescription>
+          <ResponsiveModalDescription>{description}</ResponsiveModalDescription>
         </ResponsiveModalHeader>
 
         <div className="space-y-2 text-sm">
@@ -126,12 +156,8 @@ export const RescheduleResponseDialog: FC<RescheduleResponseDialogProps> = ({
           {isExpired && (
             <p className="text-muted-foreground">La hora propuesta ya pasó.</p>
           )}
-          {hasPendingProposal && !canRespond && (
-            <p className="text-muted-foreground">
-              {requesterIsCustomer
-                ? "Esperando respuesta de la barbería."
-                : "Esperando respuesta del cliente."}
-            </p>
+          {waitingNote && (
+            <p className="text-muted-foreground">{waitingNote}</p>
           )}
         </div>
 
