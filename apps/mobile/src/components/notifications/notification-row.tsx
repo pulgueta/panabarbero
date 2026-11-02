@@ -1,4 +1,5 @@
 import type { Doc } from "@panabarbero/backend/convex/_generated/dataModel";
+import { Link } from "expo-router";
 import { Chip, Skeleton, Typography, useThemeColor } from "heroui-native";
 import {
   ArrowUpRightIcon,
@@ -10,10 +11,10 @@ import {
   PackageIcon,
   StarIcon,
 } from "phosphor-react-native";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 
 import { type SwipeAction, SwipeableRow } from "@/components/ui/swipeable-row";
-import { notificationOpensScreen } from "@/lib/push";
+import { notificationHrefForData, notificationOpensScreen } from "@/lib/push";
 import { formatRelativeTime } from "@/lib/relative-time";
 
 const tabularNums = { fontVariant: ["tabular-nums" as const] };
@@ -83,6 +84,8 @@ export function NotificationRow({
   const family = families[familyByKind[notification.kind]];
   const opensScreen = notificationOpensScreen(notification.kind);
   const open = () => onOpen(notification);
+  // iOS lifts the row into a native context menu with a peek of the screen.
+  const hasNativeMenu = opensScreen && Platform.OS === "ios";
 
   // No per-item mark-read mutation exists, so a right swipe has no action.
   const action: SwipeAction | undefined = opensScreen
@@ -95,12 +98,13 @@ export function NotificationRow({
       }
     : undefined;
 
-  return (
+  const row = (
     <SwipeableRow
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       action={action}
-      onPress={opensScreen ? open : undefined}
+      // With a native menu the `Link` injects the tap handler instead.
+      onPress={opensScreen && !hasNativeMenu ? open : undefined}
       accessibilityHint={isUnread ? "No leída" : undefined}
       className={className}
     >
@@ -143,6 +147,32 @@ export function NotificationRow({
         </View>
       </View>
     </SwipeableRow>
+  );
+
+  if (!hasNativeMenu) return row;
+
+  return (
+    <Link
+      href={notificationHrefForData({
+        kind: notification.kind,
+        ...notification.payload,
+      })}
+      asChild
+      // The screen owns the tap (it may only close an open row), so the
+      // link does not navigate by itself; the peek and the menu still do.
+      onPress={(event) => {
+        event.preventDefault();
+        open();
+      }}
+    >
+      <Link.Trigger>{row}</Link.Trigger>
+      <Link.Preview />
+      <Link.Menu>
+        <Link.MenuAction icon="arrow.up.right" onPress={open}>
+          Abrir
+        </Link.MenuAction>
+      </Link.Menu>
+    </Link>
   );
 }
 

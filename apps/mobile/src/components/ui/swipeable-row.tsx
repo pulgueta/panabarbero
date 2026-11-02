@@ -1,7 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { Typography } from "heroui-native";
 import { type ReactNode, useEffect } from "react";
-import { Pressable, View } from "react-native";
+import { type GestureResponderEvent, Pressable, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   useAnimatedStyle,
@@ -36,8 +36,8 @@ type SwipeableRowProps = {
   onOpenChange: (isOpen: boolean) => void;
   /** Trailing action revealed by a left swipe. Omit to disable swiping. */
   action?: SwipeAction;
-  /** Tap on the content while the row is closed. */
-  onPress?: () => void;
+  /** Tap on the content while the row is closed. Gets the press event, so a `Link` parent can `preventDefault()`. */
+  onPress?: (event: GestureResponderEvent) => void;
   accessibilityHint?: string;
   /** Classes for the clipping container, for example rounded corners. */
   className?: string;
@@ -105,12 +105,12 @@ export function SwipeableRow({
     transform: [{ translateX: translateX.value }],
   }));
 
-  const handlePress = () => {
+  const handlePress = (event: GestureResponderEvent) => {
     if (isOpen) {
       onOpenChange(false);
       return;
     }
-    onPress?.();
+    onPress?.(event);
   };
 
   return (

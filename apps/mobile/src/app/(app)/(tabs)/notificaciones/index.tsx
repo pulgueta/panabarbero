@@ -1,38 +1,72 @@
 import type { Doc } from "@panabarbero/backend/convex/_generated/dataModel";
 import { useFocusEffect, useRouter } from "expo-router";
-import { Spinner, useThemeColor } from "heroui-native";
+import { Spinner, Typography, useThemeColor } from "heroui-native";
 import { BellSimpleIcon, CheckCircleIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, type ListRenderItemInfo, View } from "react-native";
+import {
+  SectionList,
+  type SectionListRenderItemInfo,
+  View,
+} from "react-native";
 
 import { HeaderAction } from "@/components/header-action";
-import {
-  type InboxFilter,
-  InboxFilterPill,
-} from "@/components/notifications/inbox-filter";
 import {
   NotificationRow,
   NotificationRowSkeleton,
 } from "@/components/notifications/notification-row";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
+  type Segment,
+  SegmentedControl,
+} from "@/components/ui/segmented-control";
+import {
   useLastRead,
   useMarkAllRead,
   useNotificationsFeed,
   useUnreadCount,
 } from "@/hooks/use-notifications";
+import { formatDayGroup, localStartOfDay } from "@/lib/dates";
 import { notificationHrefForData } from "@/lib/push";
 
 const PAGE_SIZE = 20;
 const skeletonKeys = ["a", "b", "c", "d", "e"];
+const sectionTitle = { fontSize: 12, lineHeight: 16 };
 
 type Notification = Doc<"inAppNotifications">;
+type InboxFilter = "all" | "unread" | "read";
+type DaySection = { dayMs: number; title: string; data: Notification[] };
+
+const FILTERS: Segment<InboxFilter>[] = [
+  { value: "all", label: "Todas" },
+  { value: "unread", label: "No leídas" },
+  { value: "read", label: "Leídas" },
+];
 
 /** Rounds the corners of a row that touches the card edge. */
 function rowCorners(index: number, count: number) {
   const top = index === 0 ? "rounded-t-[20px]" : "";
   const bottom = index === count - 1 ? "rounded-b-[20px]" : "";
   return `${top} ${bottom}`;
+}
+
+/** Newest-first rows into one section per device-local day. */
+function groupByDay(notifications: Notification[]): DaySection[] {
+  const todayMs = localStartOfDay(Date.now());
+  const sections: DaySection[] = [];
+  for (const notification of notifications) {
+    const dayMs = localStartOfDay(notification._creationTime);
+    const last = sections[sections.length - 1];
+    if (last?.dayMs === dayMs) {
+      last.data.push(notification);
+    } else {
+      sections.push({
+        dayMs,
+        title: formatDayGroup(dayMs, todayMs),
+        data: [notification],
+      });
+    }
+  }
+  return sections;
 }
 
 export default function NotificationsScreen() {
@@ -63,18 +97,29 @@ export default function NotificationsScreen() {
     ),
   );
 
-  // Wait for the watermark so rows do not flash as unread.
+  // Wait for the watermark so rows do not flash as unread (or as read).
   const isUnread = useCallback(
     (notification: Notification) =>
       lastRead !== undefined && notification._creationTime > (lastRead ?? 0),
     [lastRead],
   );
+  const isRead = useCallback(
+    (notification: Notification) =>
+      lastRead !== undefined && notification._creationTime <= (lastRead ?? 0),
+    [lastRead],
+  );
 
   const isLoadingFirstPage = status === "LoadingFirstPage";
-  const data = useMemo(() => {
+  const sections = useMemo(() => {
     if (isLoadingFirstPage) return [];
-    return filter === "unread" ? results.filter(isUnread) : results;
-  }, [filter, isLoadingFirstPage, isUnread, results]);
+    const rows =
+      filter === "unread"
+        ? results.filter(isUnread)
+        : filter === "read"
+          ? results.filter(isRead)
+          : results;
+    return groupByDay(rows);
+  }, [filter, isLoadingFirstPage, isRead, isUnread, results]);
 
   // A tap while another row is open only closes that row.
   const openNotification = useCallback(
@@ -94,7 +139,11 @@ export default function NotificationsScreen() {
   );
 
   const renderItem = useCallback(
-    ({ item, index }: ListRenderItemInfo<Notification>) => (
+    ({
+      item,
+      index,
+      section,
+    }: SectionListRenderItemInfo<Notification, DaySection>) => (
       <NotificationRow
         notification={item}
         isUnread={isUnread(item)}
@@ -105,10 +154,10 @@ export default function NotificationsScreen() {
           )
         }
         onOpen={openNotification}
-        className={rowCorners(index, data.length)}
+        className={rowCorners(index, section.data.length)}
       />
     ),
-    [data.length, isUnread, openId, openNotification],
+    [isUnread, openId, openNotification],
   );
 
   return (
@@ -120,20 +169,32 @@ export default function NotificationsScreen() {
         onPress={() => markAllRead()}
       />
       {/* The list is the first view so rows run under the glass header. A
-          FlatList does not drive the tab bar minimize-on-scroll; accepted. */}
-      <FlatList
+          SectionList does not drive the tab bar minimize-on-scroll; accepted. */}
+      <SectionList
         className="flex-1 bg-background"
         contentInsetAdjustmentBehavior="automatic"
         contentContainerClassName="mx-4 mt-2 mb-4 rounded-[28px] bg-agenda-well p-2"
-        data={data}
+        sections={sections}
         extraData={openId}
         keyExtractor={(notification) => notification._id}
         renderItem={renderItem}
+        // The well tone paints the header, so rows slide under it when it sticks.
+        renderSectionHeader={({ section }) => (
+          <View className="bg-agenda-well px-3 pt-3 pb-2">
+            <Typography weight="medium" color="muted" style={sectionTitle}>
+              {section.title}
+            </Typography>
+          </View>
+        )}
         // Scrolling counts as tapping outside: the open row closes.
         onScrollBeginDrag={() => setOpenId(null)}
         ListHeaderComponent={
-          <View className="pt-1 pb-3">
-            <InboxFilterPill value={filter} onChange={setFilter} />
+          <View className="items-center pt-1">
+            <SegmentedControl
+              segments={FILTERS}
+              value={filter}
+              onChange={setFilter}
+            />
           </View>
         }
         ItemSeparatorComponent={() => (
@@ -153,7 +214,7 @@ export default function NotificationsScreen() {
           ) : undefined
         }
         ListEmptyComponent={
-          <View className="rounded-[20px] bg-agenda-card">
+          <View className="mt-3 rounded-[20px] bg-agenda-card">
             {isLoadingFirstPage ? (
               skeletonKeys.map((key) => <NotificationRowSkeleton key={key} />)
             ) : filter === "unread" ? (
@@ -161,6 +222,13 @@ export default function NotificationsScreen() {
                 icon={<CheckCircleIcon size={18} color={muted} />}
                 title="Todo leído"
                 description="No tienes notificaciones sin leer."
+                action={{ label: "Ver todas", onPress: () => setFilter("all") }}
+              />
+            ) : filter === "read" ? (
+              <EmptyState
+                icon={<BellSimpleIcon size={18} color={muted} />}
+                title="Sin notificaciones leídas"
+                description="Las que ya leíste aparecerán aquí."
                 action={{ label: "Ver todas", onPress: () => setFilter("all") }}
               />
             ) : (

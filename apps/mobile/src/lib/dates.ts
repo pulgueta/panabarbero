@@ -2,6 +2,7 @@ import { TZDate } from "@date-fns/tz";
 import {
   addDays,
   addMonths,
+  differenceInCalendarDays,
   eachDayOfInterval,
   endOfMonth,
   endOfWeek,
@@ -136,6 +137,21 @@ export function bogotaYear(ms: number): number {
 /** Bogotá midnight of the first day of `monthIndex` (0–11) in `year`. */
 export function bogotaMonth(year: number, monthIndex: number): number {
   return new TZDate(year, monthIndex, 1, SHOP_TIME_ZONE).getTime();
+}
+
+/** Midnight of the day that contains `ms` in the device zone: the inbox groups by the reader's day. */
+export function localStartOfDay(ms: number): number {
+  return startOfDay(ms).getTime();
+}
+
+/** "Hoy", "Ayer", "lunes 26 oct" inside the last week, then "12 ago" ("12 ago 2025" in another year). */
+export function formatDayGroup(dayMs: number, todayMs: number): string {
+  const days = differenceInCalendarDays(todayMs, dayMs);
+  if (days <= 0) return "Hoy";
+  if (days === 1) return "Ayer";
+  if (days < 7) return format(dayMs, "EEEE d MMM", { locale: es });
+  const pattern = getYear(dayMs) === getYear(todayMs) ? "d MMM" : "d MMM yyyy";
+  return format(dayMs, pattern, { locale: es });
 }
 
 const WEEKDAY_KEYS = [
