@@ -8,8 +8,8 @@
     "start": "node .output/server/index.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "doctor:full": "react-doctor . --project @panabarbero/web --verbose --scope full",
-    "doctor:diff": "react-doctor . --project @panabarbero/web --verbose --scope changed"
+    "doctor:full": "react-doctor . --verbose --scope full",
+    "doctor:diff": "react-doctor . --verbose --scope changed"
   },
   "dependencies": {
     "@ai-sdk/react": "^4.0.159",
