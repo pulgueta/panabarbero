@@ -1,14 +1,14 @@
 import { api } from "@panabarbero/backend/convex/_generated/api";
 import { useQuery } from "convex/react";
-import { Button, Typography, useToast } from "heroui-native";
-import { ScrollView } from "react-native";
+import { Typography, useToast } from "heroui-native";
+import { ScrollView, View } from "react-native";
 
 import { AppearancePicker } from "@/components/profile/appearance-picker";
 import { BarberScheduleList } from "@/components/profile/barber-schedule-list";
 import { PreferenceSwitchRow } from "@/components/profile/preference-switch-row";
 import { ProfileIdentity } from "@/components/profile/profile-identity";
-import { ProfileSection } from "@/components/profile/profile-section";
 import { SaveableTextField } from "@/components/profile/saveable-text-field";
+import { ListGroup, ListRow } from "@/components/ui/list-group";
 import { type Access, useAccess } from "@/hooks/use-access";
 import {
   nameSchema,
@@ -106,7 +106,7 @@ export default function ProfileScreen() {
     <ScrollView
       className="flex-1 bg-background"
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerClassName="gap-8 px-5 pt-3 pb-10"
+      contentContainerClassName="gap-6 px-4 pt-3 pb-10"
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets
     >
@@ -118,34 +118,38 @@ export default function ProfileScreen() {
         roleLabel={membership ? roleLabel(membership) : undefined}
       />
 
-      <ProfileSection title="Cuenta">
-        <SaveableTextField
-          label="Nombre"
-          value={nameField.value}
-          onChangeText={nameField.onChangeText}
-          error={nameField.error}
-          isDirty={nameField.isDirty}
-          isSaving={nameField.isSaving}
-          onSave={() => saveField(nameField, "Nombre actualizado")}
-          autoComplete="name"
-          textContentType="name"
-        />
-        <SaveableTextField
-          label="Teléfono"
-          value={phoneField.value}
-          onChangeText={phoneField.onChangeText}
-          error={phoneField.error}
-          isDirty={phoneField.isDirty}
-          isSaving={phoneField.isSaving}
-          onSave={() => saveField(phoneField, "Teléfono actualizado")}
-          placeholder="3001234567"
-          keyboardType="phone-pad"
-          autoComplete="tel"
-          textContentType="telephoneNumber"
-        />
-      </ProfileSection>
+      <ListGroup label="Cuenta">
+        <View className="px-4 py-3">
+          <SaveableTextField
+            label="Nombre"
+            value={nameField.value}
+            onChangeText={nameField.onChangeText}
+            error={nameField.error}
+            isDirty={nameField.isDirty}
+            isSaving={nameField.isSaving}
+            onSave={() => saveField(nameField, "Nombre actualizado")}
+            autoComplete="name"
+            textContentType="name"
+          />
+        </View>
+        <View className="px-4 py-3">
+          <SaveableTextField
+            label="Teléfono"
+            value={phoneField.value}
+            onChangeText={phoneField.onChangeText}
+            error={phoneField.error}
+            isDirty={phoneField.isDirty}
+            isSaving={phoneField.isSaving}
+            onSave={() => saveField(phoneField, "Teléfono actualizado")}
+            placeholder="3001234567"
+            keyboardType="phone-pad"
+            autoComplete="tel"
+            textContentType="telephoneNumber"
+          />
+        </View>
+      </ListGroup>
 
-      <ProfileSection title="Notificaciones">
+      <ListGroup label="Notificaciones">
         <PreferenceSwitchRow
           label="Correo"
           isSelected={isChannelEnabled("email")}
@@ -176,24 +180,24 @@ export default function ProfileScreen() {
             </Typography>
           ) : null}
         </PreferenceSwitchRow>
-      </ProfileSection>
+      </ListGroup>
 
       {membership?.isBarber && schedule ? (
-        <ProfileSection title="Mi horario">
-          <BarberScheduleList
-            schedule={schedule.schedule}
-            isCustom={schedule.isCustom}
-          />
-        </ProfileSection>
+        <BarberScheduleList
+          schedule={schedule.schedule}
+          isCustom={schedule.isCustom}
+        />
       ) : null}
 
-      <ProfileSection title="Apariencia">
-        <AppearancePicker value={preference} onChange={setPreference} />
-      </ProfileSection>
+      <ListGroup label="Apariencia">
+        <View className="px-4 py-3">
+          <AppearancePicker value={preference} onChange={setPreference} />
+        </View>
+      </ListGroup>
 
-      <Button variant="danger-soft" onPress={signOut}>
-        Cerrar sesión
-      </Button>
+      <ListGroup label="Sesión">
+        <ListRow title="Cerrar sesión" destructive onPress={signOut} />
+      </ListGroup>
     </ScrollView>
   );
 }

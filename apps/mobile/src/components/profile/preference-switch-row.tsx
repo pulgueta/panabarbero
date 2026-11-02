@@ -21,17 +21,20 @@ export function PreferenceSwitchRow({
   children,
 }: PreferenceSwitchRowProps) {
   return (
-    <ControlField
-      isSelected={isSelected}
-      onSelectedChange={onSelectedChange}
-      isDisabled={isDisabled}
-    >
-      <View className="flex-1 gap-0.5">
-        <Label>{label}</Label>
-        {description ? <Description>{description}</Description> : null}
-        {children}
-      </View>
-      <ControlField.Indicator />
-    </ControlField>
+    // 52 pt list row; the switch stays HeroUI's own control.
+    <View className="min-h-[52px] justify-center px-4 py-2">
+      <ControlField
+        isSelected={isSelected}
+        onSelectedChange={onSelectedChange}
+        isDisabled={isDisabled}
+      >
+        <View className="flex-1 gap-0.5">
+          <Label>{label}</Label>
+          {description ? <Description>{description}</Description> : null}
+          {children}
+        </View>
+        <ControlField.Indicator />
+      </ControlField>
+    </View>
   );
 }

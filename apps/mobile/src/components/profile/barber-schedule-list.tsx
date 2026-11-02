@@ -3,6 +3,8 @@ import type { FunctionReturnType } from "convex/server";
 import { Typography } from "heroui-native";
 import { View } from "react-native";
 
+import { ListGroup, ListRow } from "@/components/ui/list-group";
+
 export type BarberSchedule = NonNullable<
   FunctionReturnType<typeof api.barbershopMembers.getBarberSchedule>
 >;
@@ -17,50 +19,49 @@ const WEEK_DAYS = [
   { key: "sunday", label: "Domingo" },
 ] as const;
 
-/** Read-only weekly schedule, Monday to Sunday. */
+const hoursStyle = { fontSize: 14, lineHeight: 18 };
+const lunchStyle = { fontSize: 12, lineHeight: 16 };
+const tabularNums = { fontVariant: ["tabular-nums" as const] };
+
+/** Read-only weekly schedule, Monday to Sunday, one row per day. */
 export function BarberScheduleList({ schedule, isCustom }: BarberSchedule) {
   return (
-    <View className="gap-3">
-      <View className="gap-2">
-        {WEEK_DAYS.map(({ key, label }) => {
-          const entry = schedule.find((s) => s.weekDay.day === key);
-          const isActive = entry?.weekDay.isActive ?? false;
+    <ListGroup
+      label="Mi horario"
+      footer={
+        isCustom ? "Horario personalizado." : "Usa el horario de la barbería."
+      }
+    >
+      {WEEK_DAYS.map(({ key, label }) => {
+        const entry = schedule.find((s) => s.weekDay.day === key);
+        const isActive = entry?.weekDay.isActive ?? false;
 
-          return (
-            <View
-              key={key}
-              className="flex-row items-start justify-between gap-4"
-            >
-              <Typography type="body-sm" color={isActive ? "default" : "muted"}>
-                {label}
-              </Typography>
-              {entry && isActive ? (
+        return (
+          <ListRow
+            key={key}
+            title={label}
+            muted={!isActive}
+            trailing={
+              entry && isActive ? (
                 <View className="items-end">
-                  <Typography type="body-sm" className="tabular-nums">
+                  <Typography style={[hoursStyle, tabularNums]}>
                     {entry.openAt}–{entry.closeAt}
                   </Typography>
                   {entry.lunchStart && entry.lunchEnd ? (
-                    <Typography
-                      type="body-xs"
-                      color="muted"
-                      className="tabular-nums"
-                    >
+                    <Typography color="muted" style={[lunchStyle, tabularNums]}>
                       Almuerzo {entry.lunchStart}–{entry.lunchEnd}
                     </Typography>
                   ) : null}
                 </View>
               ) : (
-                <Typography type="body-sm" color="muted">
+                <Typography color="muted" style={hoursStyle}>
                   Cerrado
                 </Typography>
-              )}
-            </View>
-          );
-        })}
-      </View>
-      <Typography type="body-xs" color="muted">
-        {isCustom ? "Horario personalizado" : "Usa el horario de la barbería"}
-      </Typography>
-    </View>
+              )
+            }
+          />
+        );
+      })}
+    </ListGroup>
   );
 }
