@@ -84,6 +84,7 @@ export function CreateAppointmentForm({
     email: "",
     notes: "",
   });
+  const [droppedServices, setDroppedServices] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -115,6 +116,17 @@ export function CreateAppointmentForm({
     }
   }, [isPlainBarber, barbers, memberId]);
 
+  // While the barber list narrows, every barber is tappable: services the
+  // chosen barber does not offer are dropped once their catalog loads.
+  useEffect(() => {
+    if (isPlainBarber || !barberId || services === undefined) return;
+    const offered = new Set(services.map((service) => service._id));
+    if (serviceIds.every((id) => offered.has(id))) return;
+    setServiceIds(serviceIds.filter((id) => offered.has(id)));
+    setMinutes(undefined);
+    setDroppedServices(true);
+  }, [isPlainBarber, barberId, services, serviceIds]);
+
   const selectedServices =
     services?.filter((service) => serviceIds.includes(service._id)) ?? [];
   const totalDuration = selectedServices.reduce(
@@ -137,11 +149,13 @@ export function CreateAppointmentForm({
         : [...current, serviceId],
     );
     setMinutes(undefined);
+    setDroppedServices(false);
   };
   const selectBarber = (nextId: Id<"barbershopMembers">) => {
     Haptics.selectionAsync();
     setMemberId(nextId);
     setMinutes(undefined);
+    setDroppedServices(false);
   };
   const setField = (field: CustomerField) => (value: string) =>
     setCustomer((current) => ({ ...current, [field]: value }));
@@ -246,6 +260,11 @@ export function CreateAppointmentForm({
               ))}
             </View>
           )}
+          {droppedServices ? (
+            <Typography.Paragraph type="body-sm" color="muted">
+              Se quitaron servicios que este barbero no ofrece.
+            </Typography.Paragraph>
+          ) : null}
           {selectedServices.length > 0 ? (
             <View className="flex-row items-baseline justify-between gap-3 border-border border-t pt-3">
               <Typography.Paragraph type="body-sm" color="muted">
