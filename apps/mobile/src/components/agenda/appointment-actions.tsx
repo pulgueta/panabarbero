@@ -565,7 +565,7 @@ export function FinalPriceSheet({
     >
       <BottomSheet.Portal>
         <BottomSheet.Overlay />
-        <BottomSheet.Content keyboardBehavior="extend">
+        <BottomSheet.Content accessible={false} keyboardBehavior="extend">
           <View className="mb-5 gap-1.5">
             <BottomSheet.Title>Precio final</BottomSheet.Title>
             <BottomSheet.Description>
@@ -679,25 +679,30 @@ export function RescheduleSheet({
 }: RescheduleSheetProps) {
   const [dayMs, setDayMs] = useState<number>();
   const [minutes, setMinutes] = useState<number>();
+  // The parent opens the sheet by prop (buttons and context menus alike), so
+  // `onOpenChange(true)` never fires: a fresh pick starts on each open.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (wasOpen !== isOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) {
+      setDayMs(undefined);
+      setMinutes(undefined);
+    }
+  }
   const slots = useAvailableSlots(appointment, isOpen ? dayMs : undefined);
   const isClosedDay = useClosedDays(
     isOpen ? appointment.barbershopId : undefined,
+    isOpen ? appointment.barbershopMemberId : undefined,
   );
 
   return (
-    <BottomSheet
-      isOpen={isOpen}
-      onOpenChange={(next) => {
-        if (next) {
-          setDayMs(undefined);
-          setMinutes(undefined);
-        }
-        onOpenChange(next);
-      }}
-    >
+    <BottomSheet isOpen={isOpen} onOpenChange={onOpenChange}>
       <BottomSheet.Portal>
         <BottomSheet.Overlay />
+        {/* gorhom defaults to one accessible element; the calendar and slots
+            need their own. */}
         <BottomSheet.Content
+          accessible={false}
           snapPoints={["80%"]}
           enableDynamicSizing={false}
           enableOverDrag={false}

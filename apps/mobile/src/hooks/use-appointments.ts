@@ -108,6 +108,8 @@ export function useAvailableSlots(
           date: dayMs,
           // Snapshot width, so lines whose services were deleted still move.
           durationMinutes: totalDuration(appointment) ?? undefined,
+          // The appointment's own slot is free to move into.
+          excludeAppointmentId: appointment._id,
         },
   );
 }
@@ -136,12 +138,9 @@ export function useAppointmentActions() {
           reason,
           cancelledBy: "barber",
         }),
+      // The server derives the answerer's side.
       answerReschedule: (id: Id<"appointments">, accepted: boolean) =>
-        answerMutation({
-          appointment: { id },
-          accepted,
-          answeredBy: "barber",
-        }),
+        answerMutation({ appointment: { id }, accepted }),
       remove: (id: Id<"appointments">) =>
         deleteMutation({ appointmentId: { id } }),
       requestReschedule: (id: Id<"appointments">, proposedDate: number) =>
@@ -189,14 +188,23 @@ export function useSlotsFor({
 }
 
 /**
- * Days the shop does not open, from its weekly availability. Returns
- * `isDayDisabled` for the calendar; past days are the calendar's own rule.
+ * Days with no availability: the barber's effective schedule when `memberId`
+ * is set, else the shop's weekly availability. Returns `isDayDisabled` for
+ * the calendar; past days are the calendar's own rule.
  */
-export function useClosedDays(barbershopId: Id<"barbershops"> | undefined) {
-  const availability = useQuery(
+export function useClosedDays(
+  barbershopId: Id<"barbershops"> | undefined,
+  memberId?: Id<"barbershopMembers">,
+) {
+  const shopAvailability = useQuery(
     api.barbershops.getAvailability,
-    barbershopId ? { id: barbershopId } : "skip",
+    barbershopId && !memberId ? { id: barbershopId } : "skip",
   );
+  const barberSchedule = useQuery(
+    api.barbershopMembers.getBarberSchedule,
+    memberId ? { barbershopMemberId: memberId } : "skip",
+  );
+  const availability = memberId ? barberSchedule?.schedule : shopAvailability;
 
   return useMemo(() => {
     const activeDays = new Set(

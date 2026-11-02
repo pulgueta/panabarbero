@@ -14,6 +14,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 import {
   addMonthsBogota,
@@ -76,9 +77,12 @@ export function CalendarHeader({
   // 0 = one week, 1 = whole month. Driven by the grabber and by day taps.
   const progress = useSharedValue(0);
   const dragStart = useSharedValue(0);
+  // JS mirror of the settled `progress`, for the grabber's accessibility value.
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const setExpanded = (expanded: boolean) => {
     progress.value = withTiming(expanded ? 1 : 0, expandTiming);
+    setIsExpanded(expanded);
   };
 
   const pan = Gesture.Pan()
@@ -100,9 +104,12 @@ export function CalendarHeader({
               ? 1
               : 0;
       progress.value = withTiming(target, expandTiming);
+      scheduleOnRN(setIsExpanded, target === 1);
     });
   const tap = Gesture.Tap().onEnd(() => {
-    progress.value = withTiming(progress.value > 0.5 ? 0 : 1, expandTiming);
+    const expand = progress.value <= 0.5;
+    progress.value = withTiming(expand ? 1 : 0, expandTiming);
+    scheduleOnRN(setIsExpanded, expand);
   });
   const grabberGesture = Gesture.Race(pan, tap);
 
@@ -256,7 +263,14 @@ export function CalendarHeader({
       <GestureDetector gesture={grabberGesture}>
         <View
           accessibilityRole="adjustable"
-          accessibilityLabel="Mostrar el mes completo"
+          accessibilityLabel="Días visibles"
+          accessibilityValue={{
+            text: isExpanded ? "Mes completo" : "Una semana",
+          }}
+          accessibilityActions={[{ name: "increment" }, { name: "decrement" }]}
+          onAccessibilityAction={(event) =>
+            setExpanded(event.nativeEvent.actionName === "increment")
+          }
           className="h-4 items-center justify-center"
           hitSlop={10}
         >

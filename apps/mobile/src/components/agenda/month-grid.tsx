@@ -22,6 +22,11 @@ const dayNumber = { fontSize: 12, lineHeight: 14 };
 const chipLabel = { fontSize: 9, lineHeight: 11 };
 const tabularNums = { fontVariant: ["tabular-nums" as const] };
 
+/** "1 cita", "3 citas" */
+function countLabel(count: number) {
+  return `${count} ${count === 1 ? "cita" : "citas"}`;
+}
+
 type MonthGridProps = {
   /** Bogotá midnight of the first day of the visible month. */
   monthMs: number;
@@ -141,7 +146,7 @@ function DayCell({
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ selected: isSelected }}
-        accessibilityLabel={`${formatDayOfMonth(dayMs)}, ${appointments.length} citas`}
+        accessibilityLabel={`${formatDayOfMonth(dayMs)}, ${countLabel(appointments.length)}`}
         onPress={onPress}
         className="flex-1 items-center pt-[2px]"
       >
@@ -177,7 +182,7 @@ function DayCell({
       {overflow > 0 ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${overflow} citas más`}
+          accessibilityLabel={`${countLabel(overflow)} más`}
           onPress={onMore}
           hitSlop={4}
           className="items-center"

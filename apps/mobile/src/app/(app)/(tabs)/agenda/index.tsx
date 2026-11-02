@@ -2,8 +2,8 @@ import type { Id } from "@panabarbero/backend/convex/_generated/dataModel";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/build/react-navigation/elements/index.js";
 import { Chip, Typography } from "heroui-native";
-import { useCallback, useMemo, useRef, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AppState, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CalendarHeader } from "@/components/agenda/calendar-header";
@@ -53,19 +53,29 @@ export default function AgendaScreen() {
   const [selectedId, setSelectedId] = useState<Id<"appointments"> | null>(null);
   const [view, setView] = useState<AgendaView>(getSessionView);
 
-  // The screen can stay mounted across Bogotá midnight; re-anchor on focus.
+  // The screen can stay mounted across Bogotá midnight: re-anchor on focus
+  // and when the app returns to the foreground.
+  const anchorToday = useCallback(() => {
+    const now = bogotaStartOfDay(new Date());
+    if (now !== todayMs) {
+      setTodayMs(now);
+      setSelectedMs(now);
+      setMonthMs(bogotaStartOfMonth(now));
+    }
+  }, [todayMs]);
   // Regaining focus also clears the block highlighted before a detail push.
   useFocusEffect(
     useCallback(() => {
       setSelectedId(null);
-      const now = bogotaStartOfDay(new Date());
-      if (now !== todayMs) {
-        setTodayMs(now);
-        setSelectedMs(now);
-        setMonthMs(bogotaStartOfMonth(now));
-      }
-    }, [todayMs]),
+      anchorToday();
+    }, [anchorToday]),
   );
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") anchorToday();
+    });
+    return () => subscription.remove();
+  }, [anchorToday]);
 
   // Barbers only get their own appointments, so the barber name is noise.
   const showBarber = !!membership && (membership.isOwner || membership.isStaff);
@@ -78,11 +88,13 @@ export default function AgendaScreen() {
     "all" | Id<"barbershopMembers">
   >("all");
   const showBarberFilter = showBarber && (members?.length ?? 0) > 1;
+  // Hidden chips mean no filter: a barber picked earlier must not hide rows.
+  const activeFilter = showBarberFilter ? barberFilter : "all";
   const visibleAppointments =
-    barberFilter === "all"
+    activeFilter === "all"
       ? appointments
       : appointments?.filter(
-          (appointment) => appointment.barbershopMemberId === barberFilter,
+          (appointment) => appointment.barbershopMemberId === activeFilter,
         );
   // Owner and staff see every request; barbers only their own.
   const requests = useRescheduleRequests(
@@ -106,10 +118,10 @@ export default function AgendaScreen() {
   );
   const byBarber = useCallback(
     (rows: RangeAppointment[] | undefined) =>
-      barberFilter === "all"
+      activeFilter === "all"
         ? rows
-        : rows?.filter((row) => row.barbershopMemberId === barberFilter),
-    [barberFilter],
+        : rows?.filter((row) => row.barbershopMemberId === activeFilter),
+    [activeFilter],
   );
   const visibleRangeRows = useMemo(
     () => byBarber(rangeRows),
@@ -140,8 +152,11 @@ export default function AgendaScreen() {
   };
 
   const goToToday = () => {
-    setSelectedMs(todayMs);
-    setMonthMs(bogotaStartOfMonth(todayMs));
+    // Read the clock: the anchored day can be stale right after midnight.
+    const now = bogotaStartOfDay(new Date());
+    setTodayMs(now);
+    setSelectedMs(now);
+    setMonthMs(bogotaStartOfMonth(now));
     timelineRef.current?.scrollToNow(true);
   };
 

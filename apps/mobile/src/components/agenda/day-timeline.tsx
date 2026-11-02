@@ -146,25 +146,31 @@ export function DayTimeline({
               BLOCK_GAP * 2 -
               (columns - 1) * BLOCK_GAP) /
             columns;
+          const detail = detailText(
+            appointment,
+            memberName?.(appointment.barbershopMemberId),
+          );
+          const isSelected = appointment._id === selectedId;
           return (
             <AppointmentLink
               key={appointment._id}
               appointment={appointment}
               onPress={() => onSelect(appointment)}
+              accessibilityLabel={`${appointment.customerName}, ${detail}`}
+              accessibilityState={{ selected: isSelected }}
+              style={{
+                top,
+                height,
+                left:
+                  GUTTER_WIDTH + BLOCK_GAP + column * (columnWidth + BLOCK_GAP),
+                width: columnWidth,
+              }}
             >
               <TimelineBlock
                 appointment={appointment}
-                barberName={memberName?.(appointment.barbershopMemberId)}
-                isSelected={appointment._id === selectedId}
-                style={{
-                  top,
-                  height,
-                  left:
-                    GUTTER_WIDTH +
-                    BLOCK_GAP +
-                    column * (columnWidth + BLOCK_GAP),
-                  width: columnWidth,
-                }}
+                detail={detail}
+                height={height}
+                isSelected={isSelected}
               />
             </AppointmentLink>
           );
@@ -261,11 +267,21 @@ export function NowLine({ nowMinutes }: { nowMinutes: number }) {
   );
 }
 
+/** "10:00 – 10:30", with " · Daniela" for owner and staff. */
+function detailText(appointment: Appointment, barberName?: string) {
+  const endMs =
+    appointment.date +
+    (totalDuration(appointment) ?? FALLBACK_DURATION) * 60 * 1000;
+  const range = `${formatTime(appointment.date)} – ${formatTime(endMs)}`;
+  return barberName ? `${range} · ${barberName}` : range;
+}
+
 type TimelineBlockProps = {
   appointment: Appointment;
-  barberName?: string;
+  detail: string;
+  /** Drawn height, from the layout; the block fills its `AppointmentLink` frame. */
+  height: number;
   isSelected: boolean;
-  style: { top: number; height: number; left: number; width: number };
   /** Injected by `AppointmentLink`. */
   onPress?: () => void;
   onLongPress?: () => void;
@@ -273,20 +289,15 @@ type TimelineBlockProps = {
 
 function TimelineBlock({
   appointment,
-  barberName,
+  detail,
+  height,
   isSelected,
-  style,
   onPress,
   onLongPress,
 }: TimelineBlockProps) {
   const paint = timelineStatus(appointment.status);
-  const endMs =
-    appointment.date +
-    (totalDuration(appointment) ?? FALLBACK_DURATION) * 60 * 1000;
-  const range = `${formatTime(appointment.date)} – ${formatTime(endMs)}`;
-  const detail = barberName ? `${range} · ${barberName}` : range;
   // A 30-minute block (28 pt) still fits both lines; anything shorter keeps the name only.
-  const showDetail = style.height >= MIN_BLOCK_HEIGHT;
+  const showDetail = height >= MIN_BLOCK_HEIGHT;
 
   return (
     <Pressable
@@ -295,10 +306,9 @@ function TimelineBlock({
       accessibilityState={{ selected: isSelected }}
       onPress={onPress}
       onLongPress={onLongPress}
-      className={`absolute overflow-hidden rounded-[6px] border ${paint.tint} ${
+      className={`flex-1 overflow-hidden rounded-[6px] border ${paint.tint} ${
         isSelected ? "border-accent" : "border-transparent"
       } ${paint.faded ? "opacity-50" : ""}`}
-      style={style}
     >
       <View className={`absolute top-0 bottom-0 left-0 w-[3px] ${paint.bar}`} />
       <View
@@ -385,19 +395,19 @@ export function useNowMinutes() {
   const [minutes, setMinutes] = useState(() => bogotaMinutesOfDay(Date.now()));
 
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | undefined;
-    const tick = () => setMinutes(bogotaMinutesOfDay(Date.now()));
-    const timeout = setTimeout(
-      () => {
-        tick();
-        interval = setInterval(tick, 60 * 1000);
-      },
-      60 * 1000 - (Date.now() % (60 * 1000)),
-    );
-    return () => {
-      clearTimeout(timeout);
-      if (interval) clearInterval(interval);
+    // One timer at a time, re-armed for the next boundary after each tick.
+    let timeout: ReturnType<typeof setTimeout>;
+    const arm = () => {
+      timeout = setTimeout(
+        () => {
+          setMinutes(bogotaMinutesOfDay(Date.now()));
+          arm();
+        },
+        60 * 1000 - (Date.now() % (60 * 1000)),
+      );
     };
+    arm();
+    return () => clearTimeout(timeout);
   }, []);
 
   return minutes;

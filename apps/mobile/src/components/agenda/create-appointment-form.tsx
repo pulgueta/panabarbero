@@ -94,6 +94,7 @@ export function CreateAppointmentForm({
   const [isSaved, setIsSaved] = useState(false);
   // The blocked navigation to replay once the user confirms the discard.
   const [discard, setDiscard] = useState<(() => void) | null>(null);
+  const [isDiscarding, setIsDiscarding] = useState(false);
 
   const barberId = isPlainBarber ? membership.memberId : memberId;
   const services = useBookableServices(barbershopId, barberId);
@@ -103,7 +104,7 @@ export function CreateAppointmentForm({
   const barbers = members?.filter(
     (member) => barberIds === undefined || barberIds.includes(member._id),
   );
-  const isClosedDay = useClosedDays(barbershopId);
+  const isClosedDay = useClosedDays(barbershopId, barberId);
   const slots = useSlotsFor({
     barbershopId,
     memberId: barberId,
@@ -175,7 +176,7 @@ export function CreateAppointmentForm({
     minutes !== undefined ||
     Object.values(customer).some((value) => value !== "");
   const disablePrevention = usePreventRemove(
-    isDirty && !isSaved,
+    isDirty && !isSaved && !isDiscarding,
     ({ repeat }) => setDiscard(() => repeat),
   );
 
@@ -422,6 +423,9 @@ export function CreateAppointmentForm({
         onConfirm={() => {
           const repeat = discard;
           setDiscard(null);
+          // Same as the save path: the guard must be down before the replay.
+          setIsDiscarding(true);
+          disablePrevention();
           repeat?.();
         }}
       />

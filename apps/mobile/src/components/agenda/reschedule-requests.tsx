@@ -1,6 +1,6 @@
 import { Typography } from "heroui-native";
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 
 import type { Appointment } from "@/lib/appointments";
 import { formatDayTime } from "@/lib/dates";
@@ -11,6 +11,8 @@ const rowDetail = { fontSize: 11, lineHeight: 14 };
 
 /** Above this count the card starts as one summary row. */
 const MAX_VISIBLE = 2;
+/** The expanded list scrolls past this many 44 pt rows, so the calendar keeps its room. */
+const MAX_EXPANDED_HEIGHT = 44 * 5;
 
 type RescheduleRequestsProps = {
   /** `undefined` while loading. */
@@ -47,15 +49,17 @@ export function RescheduleRequests({
           </Typography>
         </Pressable>
       ) : null}
-      {!isCollapsible || isExpanded
-        ? sorted.map((request) => (
+      {!isCollapsible || isExpanded ? (
+        <ScrollView style={{ maxHeight: MAX_EXPANDED_HEIGHT }} bounces={false}>
+          {sorted.map((request) => (
             <RequestRow
               key={request._id}
               request={request}
               onPress={() => onOpen(request)}
             />
-          ))
-        : null}
+          ))}
+        </ScrollView>
+      ) : null}
     </View>
   );
 }

@@ -29,10 +29,11 @@ import {
   useNowMinutes,
 } from "@/components/agenda/day-timeline";
 import type { RangeAppointment } from "@/hooks/use-appointments";
-import { firstName, timelineStatus } from "@/lib/appointments";
+import { firstName, timelineStatus, totalDuration } from "@/lib/appointments";
 import {
   bogotaMinutesOfDay,
   bogotaStartOfDay,
+  formatDayLabel,
   formatTime,
   formatWeekdayLetter,
 } from "@/lib/dates";
@@ -127,6 +128,7 @@ export function WeekTimeline({
             <Pressable
               key={dayMs}
               accessibilityRole="button"
+              accessibilityLabel={formatDayLabel(dayMs)}
               accessibilityState={{ selected: isSelected }}
               onPress={() => onSelectDay(dayMs)}
               className="flex-1 items-center justify-center"
@@ -170,25 +172,29 @@ export function WeekTimeline({
           layoutBlocks(byDay.get(dayMs) ?? [], areaWidth).map(
             ({ appointment, top, height, column, columns }) => {
               const width = (areaWidth - (columns - 1) * OVERLAP_GAP) / columns;
+              const isSelected = appointment._id === selectedId;
               return (
                 <AppointmentLink
                   key={appointment._id}
                   appointment={appointment}
                   onPress={() => onSelect(appointment)}
+                  accessibilityLabel={blockLabel(appointment)}
+                  accessibilityState={{ selected: isSelected }}
+                  style={{
+                    top,
+                    height,
+                    left:
+                      GUTTER_WIDTH +
+                      dayIndex * columnWidth +
+                      COLUMN_INSET +
+                      column * (width + OVERLAP_GAP),
+                    width,
+                  }}
                 >
                   <WeekBlock
                     appointment={appointment}
-                    isSelected={appointment._id === selectedId}
-                    style={{
-                      top,
-                      height,
-                      left:
-                        GUTTER_WIDTH +
-                        dayIndex * columnWidth +
-                        COLUMN_INSET +
-                        column * (width + OVERLAP_GAP),
-                      width,
-                    }}
+                    height={height}
+                    isSelected={isSelected}
                   />
                 </AppointmentLink>
               );
@@ -202,10 +208,19 @@ export function WeekTimeline({
   );
 }
 
+/** "Daniela Marín, 10:00 – 10:30" */
+function blockLabel(appointment: RangeAppointment) {
+  const endMs =
+    appointment.date +
+    (totalDuration(appointment) ?? FALLBACK_DURATION) * 60 * 1000;
+  return `${appointment.customerName}, ${formatTime(appointment.date)} – ${formatTime(endMs)}`;
+}
+
 type WeekBlockProps = {
   appointment: RangeAppointment;
+  /** Drawn height, from the layout; the block fills its `AppointmentLink` frame. */
+  height: number;
   isSelected: boolean;
-  style: { top: number; height: number; left: number; width: number };
   /** Injected by `AppointmentLink`. */
   onPress?: () => void;
   onLongPress?: () => void;
@@ -213,31 +228,25 @@ type WeekBlockProps = {
 
 function WeekBlock({
   appointment,
+  height,
   isSelected,
-  style,
   onPress,
   onLongPress,
 }: WeekBlockProps) {
   const paint = timelineStatus(appointment.status);
-  const minutes =
-    appointment.items?.reduce((total, item) => total + item.duration, 0) ||
-    FALLBACK_DURATION;
-  const endMs = appointment.date + minutes * 60 * 1000;
-  const start = formatTime(appointment.date);
   // Under 28 pt there is room for the name only.
-  const showTime = style.height >= MIN_BLOCK_HEIGHT;
+  const showTime = height >= MIN_BLOCK_HEIGHT;
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${appointment.customerName}, ${start} – ${formatTime(endMs)}`}
+      accessibilityLabel={blockLabel(appointment)}
       accessibilityState={{ selected: isSelected }}
       onPress={onPress}
       onLongPress={onLongPress}
-      className={`absolute overflow-hidden rounded-[4px] border ${paint.tint} ${
+      className={`flex-1 overflow-hidden rounded-[4px] border ${paint.tint} ${
         isSelected ? "border-accent" : "border-transparent"
       } ${paint.faded ? "opacity-50" : ""}`}
-      style={style}
     >
       <View className={`absolute top-0 bottom-0 left-0 w-[3px] ${paint.bar}`} />
       <View className="flex-1 pt-[2px] pr-1 pl-[6px]">
@@ -250,7 +259,7 @@ function WeekBlock({
             numberOfLines={1}
             style={[blockTime, tabularNums]}
           >
-            {start}
+            {formatTime(appointment.date)}
           </Typography>
         ) : null}
       </View>
