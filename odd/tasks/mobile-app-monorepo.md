@@ -47,7 +47,7 @@ today. Push notifications were removed with the old mobile app and must return.
 | T19 | Slice B: week + month agenda views | delegated (Fable writer, UI) | done (PR #125) | 9737a5f8…6b7d06b2: week columns, month grid with +N, sliding pill, now-label/first-label/day-caption polish, +N a11y; range cap 42 + projection. tsc/biome/export OK; simulator light+dark reviewed (/tmp/agenda-ui/41–51). |
 | T20 | Calendar + slot sheet for reschedule; create appointment flow (web parity) | delegated (Fable writer, UI) | done | 45139e04, 07e5a9af, 3c03796e folded above T19 (simulator: form light/dark, calendar, slots, one real 3 Nov row, reschedule sheet; /tmp/create-ui): Calendar/SlotGrid/EmptyState, reschedule sheet swap, nueva.tsx + plan gate. tsc/biome/export OK. Landmine: backend create rejects owners without the barber role. |
 | T21 | Inbox SwipeableRow + per-kind rendering, EmptyState, ListGroup settings | delegated (Fable writer, UI) | done | 3d5a9789, 3f71e6c2, bb7b4c0f + 1bf40343 (profile card tone) folded; simulator light/dark inbox, swipe, filter, Perfil groups (/tmp/inbox-ui); tsc/biome/export OK. No per-item mark-read mutation exists (backend follow-up). |
-| T22 | Polish from QA4: discard guard on Nueva, tab bar re-expand after the form, chips/caption layout, barber-services narrowing | delegated (Fable writer) | in progress | branch feat/mobile-agenda-polish; QA4 (/tmp/qa4) passed 8/8 owner+barber on views + create |
+| T22 | Polish from QA4: discard guard on Nueva, tab bar re-expand after the form, chips/caption layout, barber-services narrowing | delegated (Fable writer) | visual pass in progress | 92611504…117f0345 folded (tsc/biome/export OK); QA4 (/tmp/qa4) passed 8/8 owner+barber on views + create |
 
 ## Acceptance criteria
 
