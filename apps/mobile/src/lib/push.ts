@@ -14,7 +14,8 @@ export function configureNotificationHandler() {
     handleNotification: async () => ({
       shouldShowBanner: true,
       shouldShowList: true,
-      shouldPlaySound: false,
+      // Android shows no heads-up for a silent notification.
+      shouldPlaySound: Platform.OS === "android",
       shouldSetBadge: false,
     }),
   });

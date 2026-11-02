@@ -16,70 +16,86 @@ export type PushStatus =
   | "no-project-id"
   | "error";
 
-// Registration runs once per user per app session, even if the gated layout
-// remounts. A different user on this device gets a fresh registration.
-const sessionStatus = new Map<string, PushStatus>();
+// One registration per user per app session, shared by every mount of the
+// hook: the gated layout can remount while the first attempt is in flight.
+// A different user on this device gets a fresh registration.
+const registrations = new Map<string, Promise<PushStatus>>();
+
+type RegisterPushToken = (args: { token: string }) => Promise<unknown>;
+
+async function register(
+  userId: string,
+  registerPushToken: RegisterPushToken,
+): Promise<PushStatus> {
+  const result = await getPushToken();
+  if (result.token === null) return result.reason;
+
+  // Key by user too, so a different account on this device registers again.
+  const stored = `${userId}:${result.token}`;
+  if ((await SecureStore.getItemAsync(LAST_TOKEN_KEY)) !== stored) {
+    await registerPushToken({ token: result.token });
+    await SecureStore.setItemAsync(LAST_TOKEN_KEY, stored);
+  }
+  return "active";
+}
 
 /** Register this device's push token with the backend. Never blocks the UI. */
 export function usePushRegistration(enabled: boolean) {
-  const { user, registerSignOutTask } = useAuth();
+  const { user } = useAuth();
   const registerPushToken = useMutation(api.pushTokens.registerPushToken);
-  const unregisterPushToken = useMutation(api.pushTokens.unregisterPushToken);
   const userId = user?.id;
-  const [status, setStatus] = useState<PushStatus>(
-    () => (userId && sessionStatus.get(userId)) || "pending",
-  );
+  const [status, setStatus] = useState<PushStatus>("pending");
 
   useEffect(() => {
     if (!enabled || !userId) return;
-    const known = sessionStatus.get(userId);
-    if (known !== undefined) {
-      setStatus(known);
-      return;
-    }
-    sessionStatus.set(userId, "pending");
-    setStatus("pending");
+    let cancelled = false;
 
-    const register = async (): Promise<PushStatus> => {
-      const result = await getPushToken();
-      if (result.token === null) return result.reason;
-
-      // Key by user too, so a different account on this device registers again.
-      const stored = `${userId}:${result.token}`;
-      if ((await SecureStore.getItemAsync(LAST_TOKEN_KEY)) !== stored) {
-        await registerPushToken({ token: result.token });
-        await SecureStore.setItemAsync(LAST_TOKEN_KEY, stored);
-      }
-      return "active";
-    };
-
-    register()
-      .catch((error) => {
+    let registration = registrations.get(userId);
+    if (!registration) {
+      registration = register(userId, registerPushToken).catch((error) => {
         console.warn("Could not register the push token", error);
         return "error" as const;
-      })
-      .then((next) => {
-        sessionStatus.set(userId, next);
-        setStatus(next);
       });
+      registrations.set(userId, registration);
+    }
+    registration.then((next) => {
+      if (!cancelled) setStatus(next);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [enabled, userId, registerPushToken]);
 
-  // The backend keeps the token for this user until sign-out removes it, so
-  // the next person on this device does not get this user's pushes.
+  return { status };
+}
+
+/**
+ * Removes this device's token from the user on sign-out, so the next person
+ * on this device does not get this user's pushes. Mount it above the access
+ * gate: the task must outlive a gate remount, and sign-out runs it while the
+ * session is still live. A failed removal keeps the stored token, so the same
+ * user skips a duplicate register next time and the next sign-out retries.
+ */
+export function usePushSignOutTask() {
+  const { user, registerSignOutTask } = useAuth();
+  const unregisterPushToken = useMutation(api.pushTokens.unregisterPushToken);
+  const userId = user?.id;
+
   useEffect(() => {
-    if (status !== "active" || !userId) return;
+    if (!userId) return;
     return registerSignOutTask(async () => {
-      sessionStatus.delete(userId);
+      registrations.delete(userId);
+      const stored = await SecureStore.getItemAsync(LAST_TOKEN_KEY);
+      if (!stored?.startsWith(`${userId}:`)) return;
       try {
         await unregisterPushToken({});
+        await SecureStore.deleteItemAsync(LAST_TOKEN_KEY);
       } catch (error) {
         console.warn("Could not unregister the push token", error);
       }
-      await SecureStore.deleteItemAsync(LAST_TOKEN_KEY);
     });
-  }, [status, userId, registerSignOutTask, unregisterPushToken]);
-
-  return { status };
+  }, [userId, registerSignOutTask, unregisterPushToken]);
 }
 
 export const PushStatusContext = createContext<PushStatus>("pending");

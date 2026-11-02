@@ -10,11 +10,14 @@ import { useNotificationNavigation } from "@/hooks/use-notification-navigation";
 import {
   PushStatusContext,
   usePushRegistration,
+  usePushSignOutTask,
 } from "@/hooks/use-push-registration";
 
 export default function AppLayout() {
   // Bumping the key remounts the gate, so the access query subscribes again.
   const [checkKey, setCheckKey] = useState(0);
+  // Above the gate: a gate remount must not drop the sign-out cleanup.
+  usePushSignOutTask();
 
   return (
     <AccessBoundary
