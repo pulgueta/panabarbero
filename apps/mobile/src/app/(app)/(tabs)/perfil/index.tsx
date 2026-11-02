@@ -141,7 +141,7 @@ export default function ProfileScreen() {
             isDirty={phoneField.isDirty}
             isSaving={phoneField.isSaving}
             onSave={() => saveField(phoneField, "Teléfono actualizado")}
-            placeholder="3001234567"
+            placeholder="Tu número de celular"
             keyboardType="phone-pad"
             autoComplete="tel"
             textContentType="telephoneNumber"

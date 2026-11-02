@@ -110,7 +110,8 @@ export function useEditableField({
     setIsSaving(true);
     try {
       await save(result.data);
-      setDraft(null);
+      // Text typed while the save ran stays as the draft.
+      setDraft((current) => (current === value ? null : current));
       return true;
     } finally {
       setIsSaving(false);
