@@ -2,10 +2,10 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { Spinner } from "heroui-native";
 import { View } from "react-native";
 
-import { pinTabBarExpanded } from "@/app/(app)/(tabs)/_layout";
 import { CreateAppointmentForm } from "@/components/agenda/create-appointment-form";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useCanCreateAppointment } from "@/hooks/use-create-appointment";
+import { pinTabBarExpanded } from "@/lib/tab-bar";
 
 export default function NewAppointmentScreen() {
   const router = useRouter();
