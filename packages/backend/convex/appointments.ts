@@ -1454,6 +1454,11 @@ export const getAvailableSlots = zQuery({
      * service lookup so lines whose services were deleted can still move.
      */
     durationMinutes: z.number().optional(),
+    /**
+     * The appointment being rescheduled: it does not block its own nearby
+     * slots.
+     */
+    excludeAppointmentId: appointments.tools.id.shape.id.optional(),
   }),
   handler: async (ctx, args) => {
     // Requested width = Σ live durations, or the snapshot override.
@@ -1580,6 +1585,10 @@ export const getAvailableSlots = zQuery({
     const occupied: Array<{ start: number; end: number }> = [];
 
     for (const appt of existingAppointments) {
+      if (appt._id === args.excludeAppointmentId) {
+        continue;
+      }
+
       const apptDuration = conflictDurationMinutes(appt, (serviceId) =>
         serviceMap.get(serviceId.toString()),
       );
