@@ -1,5 +1,6 @@
 import type { Id } from "@panabarbero/backend/convex/_generated/dataModel";
 import * as Haptics from "expo-haptics";
+import { usePreventRemove } from "expo-router";
 import {
   Button,
   Chip,
@@ -18,6 +19,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { z } from "zod";
 
+import { ConfirmDialog } from "@/components/agenda/confirm-dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { SlotGrid } from "@/components/ui/slot-grid";
 import type { Access } from "@/hooks/use-access";
@@ -85,8 +87,13 @@ export function CreateAppointmentForm({
     notes: "",
   });
   const [droppedServices, setDroppedServices] = useState(false);
+  // The sole barber gets picked for the user; only a tap counts as an edit.
+  const [barberPicked, setBarberPicked] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  // The blocked navigation to replay once the user confirms the discard.
+  const [discard, setDiscard] = useState<(() => void) | null>(null);
 
   const barberId = isPlainBarber ? membership.memberId : memberId;
   const services = useBookableServices(barbershopId, barberId);
@@ -154,11 +161,23 @@ export function CreateAppointmentForm({
   const selectBarber = (nextId: Id<"barbershopMembers">) => {
     Haptics.selectionAsync();
     setMemberId(nextId);
+    setBarberPicked(true);
     setMinutes(undefined);
     setDroppedServices(false);
   };
   const setField = (field: CustomerField) => (value: string) =>
     setCustomer((current) => ({ ...current, [field]: value }));
+
+  const isDirty =
+    serviceIds.length > 0 ||
+    barberPicked ||
+    dayMs !== undefined ||
+    minutes !== undefined ||
+    Object.values(customer).some((value) => value !== "");
+  const disablePrevention = usePreventRemove(
+    isDirty && !isSaved,
+    ({ repeat }) => setDiscard(() => repeat),
+  );
 
   const parsed = customerSchema.safeParse(customer);
   const fieldError = (field: CustomerField) =>
@@ -212,6 +231,9 @@ export function CreateAppointmentForm({
       });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       toast.show({ variant: "success", label: "Cita reservada exitosamente" });
+      // The guard reads the new state only after a render; lift it now.
+      setIsSaved(true);
+      disablePrevention();
       onSuccess();
     } catch (error) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -385,6 +407,24 @@ export function CreateAppointmentForm({
       <Button className="mt-4" isDisabled={isSaving} onPress={submit}>
         {isSaving ? "Reservando…" : "Reservar cita"}
       </Button>
+
+      {/* Portaled: it can sit here without changing the scroll layout. */}
+      <ConfirmDialog
+        isOpen={discard !== null}
+        onOpenChange={(open) => {
+          if (!open) setDiscard(null);
+        }}
+        title="¿Descartar la cita?"
+        description="Se perderán los datos que ingresaste."
+        backLabel="Seguir editando"
+        confirmLabel="Descartar"
+        confirmVariant="danger"
+        onConfirm={() => {
+          const repeat = discard;
+          setDiscard(null);
+          repeat?.();
+        }}
+      />
     </ScrollView>
   );
 }
