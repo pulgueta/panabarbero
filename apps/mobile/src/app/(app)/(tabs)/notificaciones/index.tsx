@@ -178,7 +178,6 @@ export default function NotificationsScreen() {
         extraData={openId}
         keyExtractor={(notification) => notification._id}
         renderItem={renderItem}
-        // The well tone paints the header, so rows slide under it when it sticks.
         renderSectionHeader={({ section }) => (
           <View className="bg-agenda-well px-3 pt-3 pb-2">
             <Typography weight="medium" color="muted" style={sectionTitle}>
@@ -186,6 +185,9 @@ export default function NotificationsScreen() {
             </Typography>
           </View>
         )}
+        // Sticky headers pin to the list's frame top, which sits under the
+        // transparent large-title header, so a pinned header is never visible.
+        stickySectionHeadersEnabled={false}
         // Scrolling counts as tapping outside: the open row closes.
         onScrollBeginDrag={() => setOpenId(null)}
         ListHeaderComponent={
