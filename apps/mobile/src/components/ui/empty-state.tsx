@@ -27,7 +27,12 @@ export function EmptyState({
   return (
     <View className="items-center p-6">
       {icon ? (
-        <View className="mb-3 size-11 items-center justify-center rounded-full bg-agenda-pill">
+        // Decorative: the SVG would otherwise read its package name.
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          className="mb-3 size-11 items-center justify-center rounded-full bg-agenda-pill"
+        >
           {icon}
         </View>
       ) : null}
