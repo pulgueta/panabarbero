@@ -890,8 +890,9 @@ const proposeCancellation = createTool({
   execute: async (ctx, input): Promise<Proposal> => {
     const userId = requireAuthUserId(ctx.userId);
 
-    const appt = (await ctx.runQuery(api.appointments.getById, {
+    const appt = (await ctx.runQuery(internal.appointments.getByIdForUser, {
       id: input.appointmentId as Appointment["_id"],
+      userId,
     })) as AppointmentDoc | null;
 
     if (!appt || appt.deletedAt) {
@@ -941,8 +942,9 @@ const proposeReschedule = createTool({
 
     const newDateMs = colombiaDateTimeToMs(input.date, input.time);
 
-    const appt = (await ctx.runQuery(api.appointments.getById, {
+    const appt = (await ctx.runQuery(internal.appointments.getByIdForUser, {
       id: input.appointmentId as Appointment["_id"],
+      userId,
     })) as AppointmentDoc | null;
 
     if (!appt || appt.deletedAt) {
@@ -1155,8 +1157,9 @@ const proposeManageAppointment = createTool({
   execute: async (ctx, input): Promise<Proposal> => {
     const userId = requireAuthUserId(ctx.userId);
 
-    const appt = (await ctx.runQuery(api.appointments.getById, {
+    const appt = (await ctx.runQuery(internal.appointments.getByIdForUser, {
       id: input.appointmentId as Appointment["_id"],
+      userId,
     })) as AppointmentDoc | null;
 
     if (!appt || appt.deletedAt) {
@@ -1230,8 +1233,9 @@ const proposeAnswerReschedule = createTool({
   execute: async (ctx, input): Promise<Proposal> => {
     const userId = requireAuthUserId(ctx.userId);
 
-    const appt = (await ctx.runQuery(api.appointments.getById, {
+    const appt = (await ctx.runQuery(internal.appointments.getByIdForUser, {
       id: input.appointmentId as Appointment["_id"],
+      userId,
     })) as AppointmentDoc | null;
 
     if (!appt || appt.deletedAt) {

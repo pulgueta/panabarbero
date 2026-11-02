@@ -605,6 +605,28 @@ export const getById = zAuthQuery({
   },
 });
 
+/**
+ * `getById` for Pana tools: they run in a scheduled action with no auth
+ * identity, so the caller passes the user it acts for. Same visibility rule.
+ */
+export const getByIdForUser = zInternalQuery({
+  args: z.object({
+    ...appointments.tools.id.shape,
+    userId: z.string(),
+  }),
+  handler: async (ctx, args) => {
+    const appointment = await ctx.db.get(args.id);
+
+    if (!appointment) {
+      return null;
+    }
+
+    const canView = await canViewAppointment(ctx, appointment, args.userId);
+
+    return canView ? appointment : null;
+  },
+});
+
 export const setStatusSchema = z.object({
   appointment: appointments.tools.id,
   status: z.enum(["completed", "no-show", "cancelled"]),
