@@ -8,7 +8,7 @@ import {
   SimpleSpanProcessor,
 } from "@opentelemetry/sdk-trace-base";
 import { PostHogTraceExporter } from "@posthog/ai/otel";
-import { registerTelemetry } from "ai";
+import { registerTelemetry, type TelemetryOptions } from "ai";
 
 /**
  * PostHog AI observability via OpenTelemetry. Registered once at module scope;
@@ -35,20 +35,37 @@ const provider = new BasicTracerProvider({
 trace.setGlobalTracerProvider(provider);
 registerTelemetry(new OpenTelemetry());
 
-/** Builds the `telemetry` settings for an AI SDK call. */
+/**
+ * Builds the `telemetry` settings for an AI SDK call.
+ *
+ * AI SDK 7 removed `TelemetryOptions.metadata`, so the PostHog ids are
+ * stamped on every span of the call by a per-call integration instead. The
+ * keys match what SDK 6 metadata produced (`ai.telemetry.metadata.*`), plus
+ * `posthog.distinct_id`, which the PostHog exporter reads first.
+ */
 export function aiTelemetry(opts: {
   spanName: string;
   distinctId?: string;
   traceId?: string;
   metadata?: Record<string, string | number | boolean>;
-}) {
+}): TelemetryOptions {
+  const metadata: Record<string, string | number | boolean> = {
+    ...(opts.distinctId ? { posthog_distinct_id: opts.distinctId } : {}),
+    ...(opts.traceId ? { posthog_trace_id: opts.traceId } : {}),
+    ...opts.metadata,
+  };
+  const attributes: Record<string, string | number | boolean> = {
+    ...(opts.distinctId ? { "posthog.distinct_id": opts.distinctId } : {}),
+  };
+
+  for (const [key, value] of Object.entries(metadata)) {
+    attributes[`ai.telemetry.metadata.${key}`] = value;
+  }
+
   return {
     isEnabled: true,
     functionId: opts.spanName,
-    metadata: {
-      ...(opts.distinctId ? { posthog_distinct_id: opts.distinctId } : {}),
-      ...(opts.traceId ? { posthog_trace_id: opts.traceId } : {}),
-      ...opts.metadata,
-    },
+    // Per-call integrations replace the global one for this call only.
+    integrations: new OpenTelemetry({ enrichSpan: () => attributes }),
   };
 }
