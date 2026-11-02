@@ -38,7 +38,7 @@ import {
 } from "@/lib/dates";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const dayCaption = { fontSize: 11, lineHeight: 14 };
+const dayCaption = { fontSize: 11, lineHeight: 20 };
 
 export default function AgendaScreen() {
   const router = useRouter();
@@ -178,18 +178,15 @@ export default function AgendaScreen() {
             onToday={goToToday}
           />
           <View className="flex-1 overflow-hidden rounded-[20px] bg-agenda-card">
-            {/* The header can show another month: the selected day stays explicit here. */}
-            <View className="flex-row items-center">
+            {/* The header can show another month: the selected day stays explicit here.
+                With barber chips the caption takes its own line under them, so no chip
+                gets clipped. */}
+            <View className="gap-2 py-2">
               {showBarberFilter ? (
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  className="max-h-11 flex-1"
-                  contentContainerStyle={{
-                    paddingHorizontal: 8,
-                    paddingVertical: 8,
-                    gap: 6,
-                  }}
+                  contentContainerStyle={{ paddingHorizontal: 8, gap: 6 }}
                 >
                   {[
                     { _id: "all" as const, name: "Todos los barberos" },
@@ -214,7 +211,7 @@ export default function AgendaScreen() {
               ) : null}
               <Typography
                 color="muted"
-                className="ml-auto shrink-0 px-3 py-2"
+                className="self-end px-3"
                 style={dayCaption}
               >
                 {formatDayLabel(selectedMs)}
