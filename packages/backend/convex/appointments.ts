@@ -452,8 +452,6 @@ export const getRescheduledRequests = zQuery({
       return [];
     }
 
-    const now = Date.now();
-
     const appointments = await ctx.db
       .query("appointments")
       .withIndex("by_barbershopId", (q) => q.eq("barbershopId", args.id))
@@ -465,9 +463,8 @@ export const getRescheduledRequests = zQuery({
             q.not(q.eq(q.field("status"), "confirmed")),
             q.not(q.eq(q.field("status"), "no-show")),
           ),
+          // Expired proposals stay listed so they can still be declined.
           q.eq(q.field("deletedAt"), undefined),
-          // A proposal whose start already passed can no longer be accepted.
-          q.gt(q.field("proposedDate"), now),
         ),
       )
       .collect();
@@ -1582,10 +1579,30 @@ export const getAvailableSlots = zQuery({
       ),
     );
 
+    // Honour the exclusion only for an appointment the caller may move in
+    // this barber's agenda: otherwise anyone could free someone else's slot.
+    let excludedAppointmentId: Appointment["_id"] | undefined;
+
+    if (args.excludeAppointmentId) {
+      const userId = await getUserId(ctx);
+      const excluded = await ctx.db.get(args.excludeAppointmentId);
+
+      if (
+        userId &&
+        excluded &&
+        excluded.deletedAt === undefined &&
+        excluded.barbershopId === args.barbershopId &&
+        excluded.barbershopMemberId === args.barbershopMemberId &&
+        (await canViewAppointment(ctx, excluded, userId))
+      ) {
+        excludedAppointmentId = excluded._id;
+      }
+    }
+
     const occupied: Array<{ start: number; end: number }> = [];
 
     for (const appt of existingAppointments) {
-      if (appt._id === args.excludeAppointmentId) {
+      if (appt._id === excludedAppointmentId) {
         continue;
       }
 
