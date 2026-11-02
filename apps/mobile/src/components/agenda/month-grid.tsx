@@ -134,55 +134,59 @@ function DayCell({
         : "text-foreground";
   const overflow = appointments.length - MAX_CHIPS;
 
+  // "+N" is a sibling, not a child: a nested control inside a labelled
+  // button is invisible to VoiceOver.
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected: isSelected }}
-      accessibilityLabel={`${formatDayOfMonth(dayMs)}, ${appointments.length} citas`}
-      onPress={onPress}
-      className="flex-1 items-center px-[1px] pt-[2px]"
-    >
-      <View
-        className={`h-5 w-5 items-center justify-center rounded-full ${circle}`}
+    <View className="flex-1 px-[1px]">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ selected: isSelected }}
+        accessibilityLabel={`${formatDayOfMonth(dayMs)}, ${appointments.length} citas`}
+        onPress={onPress}
+        className="flex-1 items-center pt-[2px]"
       >
-        <Typography weight="medium" className={number} style={dayNumber}>
-          {formatDayOfMonth(dayMs)}
-        </Typography>
-      </View>
-      <View className="mt-[2px] w-full gap-[1px]">
-        {appointments.slice(0, MAX_CHIPS).map((appointment) => {
-          const paint = timelineStatus(appointment.status);
-          return (
-            <View
-              key={appointment._id}
-              className={`h-[14px] justify-center overflow-hidden rounded-[3px] px-1 ${paint.tint} ${
-                paint.faded ? "opacity-50" : ""
-              }`}
-            >
-              <Typography
-                weight="medium"
-                numberOfLines={1}
-                style={[chipLabel, tabularNums]}
+        <View
+          className={`h-5 w-5 items-center justify-center rounded-full ${circle}`}
+        >
+          <Typography weight="medium" className={number} style={dayNumber}>
+            {formatDayOfMonth(dayMs)}
+          </Typography>
+        </View>
+        <View className="mt-[2px] w-full gap-[1px]">
+          {appointments.slice(0, MAX_CHIPS).map((appointment) => {
+            const paint = timelineStatus(appointment.status);
+            return (
+              <View
+                key={appointment._id}
+                className={`h-[14px] justify-center overflow-hidden rounded-[3px] px-1 ${paint.tint} ${
+                  paint.faded ? "opacity-50" : ""
+                }`}
               >
-                {`${formatTime(appointment.date)} ${firstName(appointment.customerName)}`}
-              </Typography>
-            </View>
-          );
-        })}
-        {overflow > 0 ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${overflow} citas más`}
-            onPress={onMore}
-            hitSlop={4}
-            className="items-center"
-          >
-            <Typography color="muted" style={chipLabel}>
-              {`+${overflow}`}
-            </Typography>
-          </Pressable>
-        ) : null}
-      </View>
-    </Pressable>
+                <Typography
+                  weight="medium"
+                  numberOfLines={1}
+                  style={[chipLabel, tabularNums]}
+                >
+                  {`${formatTime(appointment.date)} ${firstName(appointment.customerName)}`}
+                </Typography>
+              </View>
+            );
+          })}
+        </View>
+      </Pressable>
+      {overflow > 0 ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${overflow} citas más`}
+          onPress={onMore}
+          hitSlop={4}
+          className="items-center"
+        >
+          <Typography color="muted" style={chipLabel}>
+            {`+${overflow}`}
+          </Typography>
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
