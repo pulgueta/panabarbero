@@ -146,6 +146,20 @@ export function AppointmentActions({
   const isRequester =
     !!appointment.rescheduleRequestedByUserId &&
     appointment.rescheduleRequestedByUserId === user?.id;
+  // Compare sides, not people, exactly like answerRescheduleRequest: only the
+  // counterpart of the requester's side may answer.
+  const requesterIsCustomer =
+    appointment.rescheduleRequestedByUserId === appointment.userId;
+  const viewerIsCustomer = user?.id === appointment.userId;
+  const canAnswer =
+    !!appointment.rescheduleRequestedByUserId &&
+    !!user &&
+    requesterIsCustomer !== viewerIsCustomer;
+  const requestSummary = requesterIsCustomer
+    ? "El cliente pidió mover la cita."
+    : isRequester
+      ? "Propusiste mover la cita."
+      : "La barbería propuso mover la cita.";
   const { isActionable, needsMark, canRequestReschedule } =
     appointmentRules(appointment);
 
@@ -166,16 +180,23 @@ export function AppointmentActions({
         <RescheduleRequestCard
           currentDate={appointment.date}
           proposedDate={appointment.proposedDate}
+          summary={requestSummary}
+          waitingNote={
+            requesterIsCustomer
+              ? "Esperando respuesta de la barbería."
+              : "Esperando respuesta del cliente."
+          }
+          isExpired={appointment.proposedDate < Date.now()}
           pending={pending}
           onAnswer={
-            isRequester
-              ? undefined
-              : (accepted) =>
+            canAnswer
+              ? (accepted) =>
                   run(
                     accepted ? "accept" : "deny",
                     () => actions.answerReschedule(id, accepted),
                     accepted ? "Cita reagendada" : "Solicitud rechazada",
                   )
+              : undefined
           }
         />
       ) : null}
@@ -309,14 +330,22 @@ export function AppointmentActions({
 type RescheduleRequestCardProps = {
   currentDate: number;
   proposedDate: number;
+  summary: string;
+  /** Shown instead of the answer buttons. */
+  waitingNote: string;
+  /** The proposed time passed: it can only be declined. */
+  isExpired: boolean;
   pending: Action | null;
-  /** Omit when the current user made the proposal; the customer answers it. */
+  /** Omit when the viewer is on the requester's side; the other side answers. */
   onAnswer?: (accepted: boolean) => void;
 };
 
 export function RescheduleRequestCard({
   currentDate,
   proposedDate,
+  summary,
+  waitingNote,
+  isExpired,
   pending,
   onAnswer,
 }: RescheduleRequestCardProps) {
@@ -325,9 +354,7 @@ export function RescheduleRequestCard({
       <View className="gap-1">
         <Typography weight="medium">Solicitud de reagendamiento</Typography>
         <Typography.Paragraph type="body-sm" color="muted">
-          {onAnswer
-            ? "El cliente pidió mover la cita."
-            : "Propusiste mover la cita."}
+          {summary}
         </Typography.Paragraph>
       </View>
       <View className="gap-1">
@@ -338,15 +365,22 @@ export function RescheduleRequestCard({
           emphasized
         />
       </View>
+      {isExpired ? (
+        <Typography.Paragraph type="body-sm" color="muted">
+          La hora propuesta ya pasó.
+        </Typography.Paragraph>
+      ) : null}
       {onAnswer ? (
         <View className="flex-row gap-3">
-          <Button
-            className="flex-1"
-            isDisabled={pending !== null}
-            onPress={() => onAnswer(true)}
-          >
-            Aceptar
-          </Button>
+          {isExpired ? null : (
+            <Button
+              className="flex-1"
+              isDisabled={pending !== null}
+              onPress={() => onAnswer(true)}
+            >
+              Aceptar
+            </Button>
+          )}
           <Button
             className="flex-1"
             variant="secondary"
@@ -358,7 +392,7 @@ export function RescheduleRequestCard({
         </View>
       ) : (
         <Typography.Paragraph type="body-sm" color="muted">
-          Esperando respuesta del cliente.
+          {waitingNote}
         </Typography.Paragraph>
       )}
     </View>
