@@ -126,3 +126,12 @@ export function priceLabel(appointment: Appointment): string | null {
     ? `Desde ${formatCop(total)}`
     : formatCop(total);
 }
+
+type Service = Doc<"services">;
+
+/** "$ 45.000" or "Desde $ 45.000" for one service of the catalog. */
+export function servicePriceLabel(service: Service): string {
+  return service.priceType === "starting"
+    ? `Desde ${formatCop(service.price)}`
+    : formatCop(service.price);
+}
