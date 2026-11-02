@@ -13,6 +13,7 @@
   "dependencies": {
     "@date-fns/tz": "catalog:",
     "@expo-google-fonts/geist": "^0.4.2",
+    "@expo/ui": "~58.0.26",
     "@gorhom/bottom-sheet": "^5.2.14",
     "@panabarbero/backend": "workspace:*",
     "convex": "catalog:",
