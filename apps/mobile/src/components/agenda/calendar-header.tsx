@@ -262,6 +262,7 @@ export function CalendarHeader({
 
       <GestureDetector gesture={grabberGesture}>
         <View
+          accessible
           accessibilityRole="adjustable"
           accessibilityLabel="Días visibles"
           accessibilityValue={{
