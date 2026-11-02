@@ -63,6 +63,47 @@ export function timelineStatus(status: AppointmentStatus) {
   }
 }
 
+/** Statuses the staff can still act on. */
+const ACTIONABLE_STATUSES: AppointmentStatus[] = [
+  "pending",
+  "confirmed",
+  "rescheduled",
+];
+
+/** An action a context menu asks the detail to open with. */
+export type AppointmentQuickAction =
+  | "complete"
+  | "noShow"
+  | "cancel"
+  | "reschedule"
+  | "delete";
+
+/** Range rows carry no `proposedDate`; they read as "no request pending". */
+type RuledAppointment = Pick<Appointment, "status" | "date"> & {
+  proposedDate?: number;
+};
+
+/**
+ * Same gates as the web event popover: mark only once the time has passed,
+ * cancel what is still ahead, delete what can no longer happen. The detail
+ * buttons and the context menus share these.
+ */
+export function appointmentRules(
+  appointment: RuledAppointment,
+  now: number = Date.now(),
+) {
+  const isActionable = ACTIONABLE_STATUSES.includes(appointment.status);
+  const isPast = now > appointment.date;
+  return {
+    isActionable,
+    needsMark: isActionable && isPast,
+    canCancel: isActionable && !isPast,
+    canRequestReschedule:
+      isActionable && !isPast && appointment.proposedDate === undefined,
+    canDelete: !isActionable && appointment.status !== "completed",
+  };
+}
+
 function hasItems(
   appointment: Appointment,
 ): appointment is Appointment & { items: AppointmentItem[] } {

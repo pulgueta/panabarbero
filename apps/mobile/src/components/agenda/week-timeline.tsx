@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 
+import { AppointmentLink } from "@/components/agenda/appointment-link";
 import {
   type DayTimelineHandle,
   FALLBACK_DURATION,
@@ -55,7 +56,8 @@ type WeekTimelineProps = {
   appointments: RangeAppointment[] | undefined;
   selectedId: Id<"appointments"> | null;
   onSelectDay: (dayMs: number) => void;
-  onOpen: (appointment: RangeAppointment) => void;
+  /** A tap on a block, before `AppointmentLink` opens the detail. */
+  onSelect: (appointment: RangeAppointment) => void;
   ref?: Ref<DayTimelineHandle>;
 };
 
@@ -70,7 +72,7 @@ export function WeekTimeline({
   appointments,
   selectedId,
   onSelectDay,
-  onOpen,
+  onSelect,
   ref,
 }: WeekTimelineProps) {
   const scrollRef = useRef<ScrollViewInstance>(null);
@@ -169,22 +171,26 @@ export function WeekTimeline({
             ({ appointment, top, height, column, columns }) => {
               const width = (areaWidth - (columns - 1) * OVERLAP_GAP) / columns;
               return (
-                <WeekBlock
+                <AppointmentLink
                   key={appointment._id}
                   appointment={appointment}
-                  isSelected={appointment._id === selectedId}
-                  style={{
-                    top,
-                    height,
-                    left:
-                      GUTTER_WIDTH +
-                      dayIndex * columnWidth +
-                      COLUMN_INSET +
-                      column * (width + OVERLAP_GAP),
-                    width,
-                  }}
-                  onPress={() => onOpen(appointment)}
-                />
+                  onPress={() => onSelect(appointment)}
+                >
+                  <WeekBlock
+                    appointment={appointment}
+                    isSelected={appointment._id === selectedId}
+                    style={{
+                      top,
+                      height,
+                      left:
+                        GUTTER_WIDTH +
+                        dayIndex * columnWidth +
+                        COLUMN_INSET +
+                        column * (width + OVERLAP_GAP),
+                      width,
+                    }}
+                  />
+                </AppointmentLink>
               );
             },
           ),
@@ -200,7 +206,9 @@ type WeekBlockProps = {
   appointment: RangeAppointment;
   isSelected: boolean;
   style: { top: number; height: number; left: number; width: number };
-  onPress: () => void;
+  /** Injected by `AppointmentLink`. */
+  onPress?: () => void;
+  onLongPress?: () => void;
 };
 
 function WeekBlock({
@@ -208,6 +216,7 @@ function WeekBlock({
   isSelected,
   style,
   onPress,
+  onLongPress,
 }: WeekBlockProps) {
   const paint = timelineStatus(appointment.status);
   const minutes =
@@ -224,6 +233,7 @@ function WeekBlock({
       accessibilityLabel={`${appointment.customerName}, ${start} – ${formatTime(endMs)}`}
       accessibilityState={{ selected: isSelected }}
       onPress={onPress}
+      onLongPress={onLongPress}
       className={`absolute overflow-hidden rounded-[4px] border ${paint.tint} ${
         isSelected ? "border-accent" : "border-transparent"
       } ${paint.faded ? "opacity-50" : ""}`}

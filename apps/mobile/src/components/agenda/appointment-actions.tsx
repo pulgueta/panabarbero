@@ -29,6 +29,7 @@ import {
 } from "@/hooks/use-appointments";
 import {
   type Appointment,
+  appointmentRules,
   formatCop,
   isStartingItem,
 } from "@/lib/appointments";
@@ -37,12 +38,6 @@ import { formatDayTime } from "@/lib/dates";
 import { useAuth } from "@/providers/auth-provider";
 
 const tabularNums = { fontVariant: ["tabular-nums" as const] };
-
-const ACTIONABLE_STATUSES: Appointment["status"][] = [
-  "pending",
-  "confirmed",
-  "rescheduled",
-];
 
 const MIN_REASON_LENGTH = 3;
 
@@ -55,6 +50,40 @@ type Action =
   | "accept"
   | "deny";
 type FinalPrice = { serviceId: Id<"services">; finalPrice: number };
+type OpenFlow =
+  | "prices"
+  | "complete"
+  | "noShow"
+  | "cancel"
+  | "delete"
+  | "reschedule";
+
+/**
+ * The flow a context menu asked for, only while its rule still holds: the
+ * menu read the row a moment ago, and week rows do not know about a pending
+ * reschedule request.
+ */
+function initialFlow(
+  appointment: Appointment,
+  action: string | undefined,
+): OpenFlow | undefined {
+  const rules = appointmentRules(appointment);
+  switch (action) {
+    case "complete":
+      if (!rules.needsMark) return undefined;
+      return appointment.items?.some(isStartingItem) ? "prices" : "complete";
+    case "noShow":
+      return rules.needsMark ? "noShow" : undefined;
+    case "cancel":
+      return rules.canCancel ? "cancel" : undefined;
+    case "reschedule":
+      return rules.canRequestReschedule ? "reschedule" : undefined;
+    case "delete":
+      return rules.canDelete ? "delete" : undefined;
+    default:
+      return undefined;
+  }
+}
 
 /** Runs one action at a time, with haptic + toast feedback. */
 function useRunAction() {
@@ -86,16 +115,19 @@ function useRunAction() {
 /** Reschedule card and status actions for the staff-side appointment detail. */
 export function AppointmentActions({
   appointment,
+  initialAction,
 }: {
   appointment: Appointment;
+  /** A context-menu action (`AppointmentQuickAction`) to open with. */
+  initialAction?: string;
 }) {
   const { user } = useAuth();
   const router = useRouter();
   const actions = useAppointmentActions();
   const { pending, run } = useRunAction();
-  const [open, setOpen] = useState<
-    "prices" | "complete" | "noShow" | "cancel" | "delete" | "reschedule"
-  >();
+  const [open, setOpen] = useState<OpenFlow | undefined>(() =>
+    initialFlow(appointment, initialAction),
+  );
   const close = () => setOpen(undefined);
   const setOpenFor = (key: NonNullable<typeof open>) => (next: boolean) =>
     setOpen(next ? key : undefined);
@@ -109,13 +141,8 @@ export function AppointmentActions({
   const isRequester =
     !!appointment.rescheduleRequestedByUserId &&
     appointment.rescheduleRequestedByUserId === user?.id;
-  const isActionable = ACTIONABLE_STATUSES.includes(appointment.status);
-  // Same gates as the web event popover: mark only once the time has passed,
-  // delete what can no longer happen, cancel what is still ahead.
-  const isPast = Date.now() > appointment.date;
-  const needsMark = isActionable && isPast;
-  const canRequestReschedule =
-    isActionable && !isPast && appointment.proposedDate === undefined;
+  const { isActionable, needsMark, canRequestReschedule } =
+    appointmentRules(appointment);
 
   if (appointment.status === "completed") return null;
 

@@ -9,7 +9,11 @@ import { useAccess } from "@/hooks/use-access";
 import { useAppointment, useShopMembers } from "@/hooks/use-appointments";
 
 export default function AppointmentScreen() {
-  const { appointmentId } = useLocalSearchParams<{ appointmentId: string }>();
+  // `action` comes from a context menu: the detail opens with that flow up.
+  const { appointmentId, action } = useLocalSearchParams<{
+    appointmentId: string;
+    action?: string;
+  }>();
   const appointment = useAppointment(appointmentId as Id<"appointments">);
   const membership = useAccess()?.membership;
 
@@ -44,7 +48,9 @@ export default function AppointmentScreen() {
       barberName={
         showBarber ? memberName(appointment.barbershopMemberId) : undefined
       }
-      actions={<AppointmentActions appointment={appointment} />}
+      actions={
+        <AppointmentActions appointment={appointment} initialAction={action} />
+      }
     />
   );
 }

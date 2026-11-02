@@ -127,8 +127,12 @@ export default function AgendaScreen() {
     [visibleRangeRows],
   );
 
-  const openAppointment = (appointment: { _id: Id<"appointments"> }) => {
+  // Blocks open through `AppointmentLink`; this only highlights the tapped one.
+  const selectAppointment = (appointment: { _id: Id<"appointments"> }) =>
     setSelectedId(appointment._id);
+
+  const openAppointment = (appointment: { _id: Id<"appointments"> }) => {
+    selectAppointment(appointment);
     router.push({
       pathname: "/(app)/(tabs)/agenda/[appointmentId]",
       params: { appointmentId: appointment._id },
@@ -225,7 +229,7 @@ export default function AgendaScreen() {
                 isToday={selectedMs === todayMs}
                 selectedId={selectedId}
                 memberName={showBarber ? memberName : undefined}
-                onOpen={openAppointment}
+                onSelect={selectAppointment}
               />
             ) : view === "week" ? (
               <WeekTimeline
@@ -236,7 +240,7 @@ export default function AgendaScreen() {
                 appointments={visibleWeekRows}
                 selectedId={selectedId}
                 onSelectDay={selectDay}
-                onOpen={openAppointment}
+                onSelect={selectAppointment}
               />
             ) : (
               <MonthGrid

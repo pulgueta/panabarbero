@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 
+import { AppointmentLink } from "@/components/agenda/appointment-link";
 import {
   type Appointment,
   timelineStatus,
@@ -76,7 +77,8 @@ type DayTimelineProps = {
   selectedId: Id<"appointments"> | null;
   /** Set for owner and staff; barbers see only their own appointments. */
   memberName?: (memberId: Id<"barbershopMembers">) => string;
-  onOpen: (appointment: Appointment) => void;
+  /** A tap, before `AppointmentLink` opens the detail. */
+  onSelect: (appointment: Appointment) => void;
   ref?: Ref<DayTimelineHandle>;
 };
 
@@ -87,7 +89,7 @@ export function DayTimeline({
   isToday,
   selectedId,
   memberName,
-  onOpen,
+  onSelect,
   ref,
 }: DayTimelineProps) {
   const scrollRef = useRef<ScrollViewInstance>(null);
@@ -145,20 +147,26 @@ export function DayTimeline({
               (columns - 1) * BLOCK_GAP) /
             columns;
           return (
-            <TimelineBlock
+            <AppointmentLink
               key={appointment._id}
               appointment={appointment}
-              barberName={memberName?.(appointment.barbershopMemberId)}
-              isSelected={appointment._id === selectedId}
-              style={{
-                top,
-                height,
-                left:
-                  GUTTER_WIDTH + BLOCK_GAP + column * (columnWidth + BLOCK_GAP),
-                width: columnWidth,
-              }}
-              onPress={() => onOpen(appointment)}
-            />
+              onPress={() => onSelect(appointment)}
+            >
+              <TimelineBlock
+                appointment={appointment}
+                barberName={memberName?.(appointment.barbershopMemberId)}
+                isSelected={appointment._id === selectedId}
+                style={{
+                  top,
+                  height,
+                  left:
+                    GUTTER_WIDTH +
+                    BLOCK_GAP +
+                    column * (columnWidth + BLOCK_GAP),
+                  width: columnWidth,
+                }}
+              />
+            </AppointmentLink>
           );
         })}
 
@@ -258,7 +266,9 @@ type TimelineBlockProps = {
   barberName?: string;
   isSelected: boolean;
   style: { top: number; height: number; left: number; width: number };
-  onPress: () => void;
+  /** Injected by `AppointmentLink`. */
+  onPress?: () => void;
+  onLongPress?: () => void;
 };
 
 function TimelineBlock({
@@ -267,6 +277,7 @@ function TimelineBlock({
   isSelected,
   style,
   onPress,
+  onLongPress,
 }: TimelineBlockProps) {
   const paint = timelineStatus(appointment.status);
   const endMs =
@@ -283,6 +294,7 @@ function TimelineBlock({
       accessibilityLabel={`${appointment.customerName}, ${detail}`}
       accessibilityState={{ selected: isSelected }}
       onPress={onPress}
+      onLongPress={onLongPress}
       className={`absolute overflow-hidden rounded-[6px] border ${paint.tint} ${
         isSelected ? "border-accent" : "border-transparent"
       } ${paint.faded ? "opacity-50" : ""}`}
