@@ -15,7 +15,8 @@ type ListGroupProps = {
 };
 
 /**
- * Settings group: an uppercase label, then one radius-20 card whose children
+ * Settings group: an uppercase label, then one radius-20 card (well tone, so it
+ * reads on the bare background) whose children
  * are split by hairlines inset to the text column.
  */
 export function ListGroup({ label, footer, children }: ListGroupProps) {
@@ -31,7 +32,7 @@ export function ListGroup({ label, footer, children }: ListGroupProps) {
       >
         {label}
       </Typography>
-      <View className="overflow-hidden rounded-[20px] bg-agenda-card">
+      <View className="overflow-hidden rounded-[20px] bg-agenda-well">
         {items.map((item, index) => (
           // Children carry no stable ids; order is fixed per group.
           <Fragment key={index}>
