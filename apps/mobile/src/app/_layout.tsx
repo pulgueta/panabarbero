@@ -6,14 +6,20 @@ import { Geist_600SemiBold } from "@expo-google-fonts/geist/600SemiBold";
 import { Geist_700Bold } from "@expo-google-fonts/geist/700Bold";
 import { ConvexProviderWithAuth } from "convex/react";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider as NavigationThemeProvider,
+  Stack,
+} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { HeroUINativeProvider } from "heroui-native";
+import { HeroUINativeProvider, useThemeColor } from "heroui-native";
 import { IconContext } from "phosphor-react-native";
-import { useEffect } from "react";
+import { type ReactNode, useEffect, useMemo } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { useUniwind } from "uniwind";
 
 import { convex } from "@/lib/convex";
 import { configureNotificationHandler } from "@/lib/push";
@@ -50,7 +56,9 @@ export default function RootLayout() {
               >
                 <IconContext.Provider value={iconContext}>
                   <StatusBar style="auto" />
-                  <RootNavigator fontsReady={fontsReady} />
+                  <NavigationTheme>
+                    <RootNavigator fontsReady={fontsReady} />
+                  </NavigationTheme>
                 </IconContext.Provider>
               </ConvexProviderWithAuth>
             </AuthProvider>
@@ -58,6 +66,43 @@ export default function RootLayout() {
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
+  );
+}
+
+/**
+ * Hands the resolved Uniwind palette to React Navigation. Screen backgrounds
+ * and the headers that are not Liquid Glass (Android, older iOS) otherwise
+ * stay light in dark mode. Glass headers ignore `card`, so iOS 26 is unchanged.
+ */
+function NavigationTheme({ children }: { children: ReactNode }) {
+  const { theme } = useUniwind();
+  const [accent, background, surface, foreground, border, danger] =
+    useThemeColor([
+      "accent",
+      "background",
+      "surface",
+      "foreground",
+      "border",
+      "danger",
+    ]);
+
+  const value = useMemo(
+    () => ({
+      ...(theme === "dark" ? DarkTheme : DefaultTheme),
+      colors: {
+        primary: accent,
+        background,
+        card: surface,
+        text: foreground,
+        border,
+        notification: danger,
+      },
+    }),
+    [theme, accent, background, surface, foreground, border, danger],
+  );
+
+  return (
+    <NavigationThemeProvider value={value}>{children}</NavigationThemeProvider>
   );
 }
 
