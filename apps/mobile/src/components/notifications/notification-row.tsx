@@ -14,8 +14,8 @@ import {
 import { Platform, View } from "react-native";
 
 import { type SwipeAction, SwipeableRow } from "@/components/ui/swipeable-row";
+import { formatLocalTime } from "@/lib/dates";
 import { notificationHrefForData, notificationOpensScreen } from "@/lib/push";
-import { formatRelativeTime } from "@/lib/relative-time";
 
 const tabularNums = { fontVariant: ["tabular-nums" as const] };
 const titleStyle = { fontSize: 14, lineHeight: 18 };
@@ -109,7 +109,10 @@ export function NotificationRow({
       className={className}
     >
       <View className="min-h-[64px] flex-row items-center gap-3 bg-agenda-card px-4 py-3">
+        {/* Decorative: the SVG would otherwise read its package name. */}
         <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
           className={`size-9 items-center justify-center rounded-full ${
             isUnread ? "bg-accent-soft" : "bg-agenda-pill"
           }`}
@@ -120,7 +123,12 @@ export function NotificationRow({
           <Typography weight="medium" style={titleStyle} numberOfLines={1}>
             {notification.title}
           </Typography>
-          <Typography color="muted" style={bodyStyle} numberOfLines={1}>
+          {/* A row with no screen behind it carries its whole message here. */}
+          <Typography
+            color="muted"
+            style={bodyStyle}
+            numberOfLines={opensScreen ? 1 : 3}
+          >
             {notification.description}
           </Typography>
           {"chip" in family ? (
@@ -139,7 +147,7 @@ export function NotificationRow({
             className={isUnread ? "text-accent" : "text-muted"}
             style={[timeStyle, tabularNums]}
           >
-            {formatRelativeTime(notification._creationTime)}
+            {formatLocalTime(notification._creationTime)}
           </Typography>
           {isUnread ? (
             <View className="size-1.5 rounded-full bg-accent" />
@@ -151,28 +159,39 @@ export function NotificationRow({
 
   if (!hasNativeMenu) return row;
 
+  // The native preview wrapper keeps its children out of the accessibility
+  // tree, so the row's frame is the accessible element.
   return (
-    <Link
-      href={notificationHrefForData({
-        kind: notification.kind,
-        ...notification.payload,
-      })}
-      asChild
-      // The screen owns the tap (it may only close an open row), so the
-      // link does not navigate by itself; the peek and the menu still do.
-      onPress={(event) => {
-        event.preventDefault();
-        open();
-      }}
+    <View
+      accessible
+      accessibilityRole="button"
+      accessibilityLabel={`${notification.title}. ${notification.description}`}
+      accessibilityHint={isUnread ? "No leída" : undefined}
+      accessibilityActions={[{ name: "activate", label: "Abrir" }]}
+      onAccessibilityAction={open}
     >
-      <Link.Trigger>{row}</Link.Trigger>
-      <Link.Preview />
-      <Link.Menu>
-        <Link.MenuAction icon="arrow.up.right" onPress={open}>
-          Abrir
-        </Link.MenuAction>
-      </Link.Menu>
-    </Link>
+      <Link
+        href={notificationHrefForData({
+          kind: notification.kind,
+          ...notification.payload,
+        })}
+        asChild
+        // The screen owns the tap (it may only close an open row), so the
+        // link does not navigate by itself; the peek and the menu still do.
+        onPress={(event) => {
+          event.preventDefault();
+          open();
+        }}
+      >
+        <Link.Trigger>{row}</Link.Trigger>
+        <Link.Preview />
+        <Link.Menu>
+          <Link.MenuAction icon="arrow.up.right" onPress={open}>
+            Abrir
+          </Link.MenuAction>
+        </Link.Menu>
+      </Link>
+    </View>
   );
 }
 

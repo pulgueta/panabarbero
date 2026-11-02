@@ -144,6 +144,16 @@ export function localStartOfDay(ms: number): number {
   return startOfDay(ms).getTime();
 }
 
+const localTimeFormatter = new Intl.DateTimeFormat("es-CO", {
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+/** "10:30 a. m." in the device zone, for rows already grouped under their day. */
+export function formatLocalTime(ms: number): string {
+  return localTimeFormatter.format(ms);
+}
+
 /** "Hoy", "Ayer", "lunes 26 oct" inside the last week, then "12 ago" ("12 ago 2025" in another year). */
 export function formatDayGroup(dayMs: number, todayMs: number): string {
   const days = differenceInCalendarDays(todayMs, dayMs);
