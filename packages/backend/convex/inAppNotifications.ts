@@ -6,6 +6,8 @@ import { zAuthMutation, zAuthQuery, zInternalMutation } from ".";
 import { unreads } from "./notifications";
 
 const INBOX_RECENT_LIMIT = 5;
+/** Clients show "99+" above 99, so counting past 100 rows buys nothing. */
+const UNREAD_COUNT_CAP = 100;
 
 /** Most recent 5 notifications for the current user. Used by the header popover. */
 export const listRecent = zAuthQuery({
@@ -60,16 +62,31 @@ export const listUnread = zAuthQuery({
   },
 });
 
-/** Count of notifications the current user has not yet read. Used for the bell badge. */
+/**
+ * Count of notifications the current user has not yet read. Used for the bell
+ * badge. Counts inbox rows above the read watermark, the same rule as
+ * `listUnread` and `getLastRead`, so the badge always matches the rows shown
+ * as unread. (The component's own count only sees rows it has a `messages`
+ * entry for; the 90-day cleanup prunes those while the rows stay.)
+ */
 export const unreadCount = zAuthQuery({
   args: z.object({}),
   handler: async (ctx) => {
     const { userId } = ctx;
 
-    return await unreads.getUnreadCount(ctx, {
+    const lastRead = await unreads.getLastRead(ctx, {
       userId,
       channelId: userId,
     });
+
+    const rows = await ctx.db
+      .query("inAppNotifications")
+      .withIndex("by_user_created", (q) =>
+        q.eq("userId", userId).gt("_creationTime", lastRead ?? 0),
+      )
+      .take(UNREAD_COUNT_CAP);
+
+    return rows.length;
   },
 });
 
