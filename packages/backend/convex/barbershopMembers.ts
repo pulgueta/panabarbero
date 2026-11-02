@@ -8,9 +8,11 @@ import { internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import {
   assertCanManageShop,
+  assertOwner,
   assertShopRole,
   authz,
   barbershopScope,
+  getBarbershopMemberByUserId,
   getMemberWorkosUserId,
   revokeMemberAuthz,
   syncMemberAuthz,
@@ -102,9 +104,13 @@ export const getTeamByBarbershopId = zQuery({
       return [];
     }
 
-    const callerMember = await getByUserIdFn(ctx, { userId });
+    const callerMember = await getBarbershopMemberByUserId(
+      ctx,
+      args.id,
+      userId,
+    );
 
-    if (!callerMember || callerMember.barbershopId !== args.id) {
+    if (!callerMember?.isActive) {
       return [];
     }
 
@@ -121,13 +127,35 @@ export const update = zAuthMutation({
 
     const existing = await ctx.db.get(args.id);
 
+    if (!existing) {
+      throw new ConvexError(errorMessages.notFound("miembro"));
+    }
+
+    // Only an active owner of the membership's shop edits it.
+    const callerMember = await assertOwner(ctx, existing.barbershopId, userId);
+
+    // A membership never moves to another shop or person.
+    if (
+      (args.data.barbershopId !== undefined &&
+        args.data.barbershopId !== existing.barbershopId) ||
+      (args.data.userProfileDataId !== undefined &&
+        args.data.userProfileDataId !== existing.userProfileDataId)
+    ) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
+    // Nobody changes their own roles or activation.
+    if (
+      callerMember._id === existing._id &&
+      (args.data.roles !== undefined || args.data.isActive !== undefined)
+    ) {
+      throw new ConvexError(errorMessages.unauthorized);
+    }
+
     const updatedBarbershopMember = await ctx.db.patch(args.id, args.data);
 
     // Mirror role/activation changes into the authz component.
-    if (
-      existing &&
-      (args.data.roles !== undefined || args.data.isActive !== undefined)
-    ) {
+    if (args.data.roles !== undefined || args.data.isActive !== undefined) {
       const workosUserId = await getMemberWorkosUserId(ctx, existing);
 
       if (workosUserId) {
