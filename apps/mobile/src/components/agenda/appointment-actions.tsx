@@ -11,20 +11,21 @@ import {
   FieldError,
   Input,
   Label,
-  Spinner,
   TextArea,
   TextField,
   Typography,
   useBottomSheetAwareHandlers,
   useToast,
 } from "heroui-native";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { KeyboardAvoidingView, View } from "react-native";
 
-import { DayStrip } from "@/components/agenda/day-strip";
+import { Calendar } from "@/components/ui/calendar";
+import { SlotGrid } from "@/components/ui/slot-grid";
 import {
   useAppointmentActions,
   useAvailableSlots,
+  useClosedDays,
 } from "@/hooks/use-appointments";
 import {
   type Appointment,
@@ -32,7 +33,7 @@ import {
   isStartingItem,
 } from "@/lib/appointments";
 import { getConvexErrorMessage } from "@/lib/convex-errors";
-import { addDaysBogota, bogotaStartOfDay, formatDayTime } from "@/lib/dates";
+import { formatDayTime } from "@/lib/dates";
 import { useAuth } from "@/providers/auth-provider";
 
 const tabularNums = { fontVariant: ["tabular-nums" as const] };
@@ -44,7 +45,6 @@ const ACTIONABLE_STATUSES: Appointment["status"][] = [
 ];
 
 const MIN_REASON_LENGTH = 3;
-const RESCHEDULE_DAYS = 30;
 
 type Action =
   | "complete"
@@ -645,16 +645,11 @@ export function RescheduleSheet({
   isPending,
   onConfirm,
 }: RescheduleSheetProps) {
-  const [todayMs, setTodayMs] = useState(() => bogotaStartOfDay(new Date()));
-  const [dayMs, setDayMs] = useState(todayMs);
+  const [dayMs, setDayMs] = useState<number>();
   const [minutes, setMinutes] = useState<number>();
   const slots = useAvailableSlots(appointment, isOpen ? dayMs : undefined);
-  const days = useMemo(
-    () =>
-      Array.from({ length: RESCHEDULE_DAYS }, (_, index) =>
-        addDaysBogota(todayMs, index),
-      ),
-    [todayMs],
+  const isClosedDay = useClosedDays(
+    isOpen ? appointment.barbershopId : undefined,
   );
 
   return (
@@ -662,9 +657,7 @@ export function RescheduleSheet({
       isOpen={isOpen}
       onOpenChange={(next) => {
         if (next) {
-          const today = bogotaStartOfDay(new Date());
-          setTodayMs(today);
-          setDayMs(today);
+          setDayMs(undefined);
           setMinutes(undefined);
         }
         onOpenChange(next);
@@ -684,57 +677,44 @@ export function RescheduleSheet({
               Propón una nueva fecha y hora al cliente.
             </BottomSheet.Description>
           </View>
-          <View className="mb-4">
+          <View className="mb-2">
             <MomentLine
               label="Actual"
               value={formatDayTime(appointment.date)}
             />
           </View>
 
-          {/* The strip pads itself; bleed it to the sheet edges. */}
-          <View className="-mx-5">
-            <DayStrip
-              days={days}
-              todayMs={todayMs}
-              selectedMs={dayMs}
-              onSelect={(next) => {
-                setDayMs(next);
-                setMinutes(undefined);
-              }}
-            />
-          </View>
-
           <BottomSheetScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={{ paddingVertical: 16 }}
+            contentContainerStyle={{ paddingBottom: 16 }}
           >
-            {slots === undefined ? (
-              <Spinner />
-            ) : slots.length === 0 ? (
-              <Typography.Paragraph color="muted" className="text-center">
-                No hay horarios libres este día.
-              </Typography.Paragraph>
-            ) : (
-              <View className="flex-row flex-wrap gap-2">
-                {slots.map((slot) => (
-                  <Button
-                    key={slot.minutes}
-                    size="sm"
-                    variant={slot.minutes === minutes ? "primary" : "secondary"}
-                    onPress={() => setMinutes(slot.minutes)}
-                  >
-                    <Button.Label style={tabularNums}>{slot.time}</Button.Label>
-                  </Button>
-                ))}
+            {/* Keep the sheet open while the calendar is still mounting. */}
+            {isOpen ? (
+              <Calendar
+                value={dayMs}
+                isDayDisabled={isClosedDay}
+                onChange={(next) => {
+                  setDayMs(next);
+                  setMinutes(undefined);
+                }}
+              />
+            ) : null}
+            {dayMs !== undefined ? (
+              <View className="pt-4">
+                <SlotGrid slots={slots} value={minutes} onChange={setMinutes} />
               </View>
-            )}
+            ) : null}
           </BottomSheetScrollView>
 
           <Button
-            isDisabled={isPending || minutes === undefined}
+            isDisabled={
+              isPending || dayMs === undefined || minutes === undefined
+            }
             onPress={() => {
               // Bogotá has no DST, so a slot is midnight plus its minutes.
-              if (minutes !== undefined) onConfirm(dayMs + minutes * 60_000);
+              if (dayMs !== undefined && minutes !== undefined) {
+                onConfirm(dayMs + minutes * 60_000);
+              }
             }}
           >
             Enviar solicitud
