@@ -66,10 +66,7 @@ function AppointmentUnavailable({ message }: { message: string }) {
       </Typography.Paragraph>
       <Button
         variant="secondary"
-        onPress={() => {
-          if (router.canGoBack()) router.back();
-          else router.replace("/(app)/(tabs)/agenda");
-        }}
+        onPress={() => router.dismissTo("/(app)/(tabs)/agenda")}
       >
         Volver a la agenda
       </Button>
