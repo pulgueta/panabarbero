@@ -1,6 +1,6 @@
 import type { Id } from "@panabarbero/backend/convex/_generated/dataModel";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
-import { Spinner, Typography } from "heroui-native";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { Button, Spinner, Typography } from "heroui-native";
 import { View } from "react-native";
 
 import { AppointmentActions } from "@/components/agenda/appointment-actions";
@@ -37,13 +37,7 @@ export default function AppointmentScreen() {
 
   // Soft-deleted rows keep their data; show them as unavailable.
   if (appointment === null || appointment.deletedAt) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background px-6">
-        <Typography.Paragraph color="muted" className="text-center">
-          No encontramos esta cita.
-        </Typography.Paragraph>
-      </View>
-    );
+    return <AppointmentUnavailable message="No encontramos esta cita." />;
   }
 
   return (
@@ -56,5 +50,26 @@ export default function AppointmentScreen() {
         <AppointmentActions appointment={appointment} initialAction={action} />
       }
     />
+  );
+}
+
+/** A malformed id in a link makes the query throw during render. */
+export function ErrorBoundary() {
+  return <AppointmentUnavailable message="No pudimos abrir esta cita." />;
+}
+
+function AppointmentUnavailable({ message }: { message: string }) {
+  return (
+    <View className="flex-1 items-center justify-center gap-4 bg-background px-6">
+      <Typography.Paragraph color="muted" className="text-center">
+        {message}
+      </Typography.Paragraph>
+      <Button
+        variant="secondary"
+        onPress={() => router.replace("/(app)/(tabs)/agenda")}
+      >
+        Volver a la agenda
+      </Button>
+    </View>
   );
 }

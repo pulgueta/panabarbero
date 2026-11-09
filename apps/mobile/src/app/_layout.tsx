@@ -30,6 +30,8 @@ import {
 } from "@/providers/auth-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 
+export { RootError as ErrorBoundary } from "@/components/root-error";
+
 SplashScreen.preventAutoHideAsync();
 configureNotificationHandler();
 
